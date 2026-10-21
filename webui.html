@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FuchsLabs USB-Display</title>
+<link rel="icon" href="data:image/svg+xml,<svg viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'><rect width='64' height='64' rx='14' fill='%23f77f00'/><path fill='%23fff4e6' d='M9 7L25 19H39L55 7V31L32 57L9 31Z'/><path fill='%23b05200' d='M13 14L22 21L13 26ZM51 14L42 21L51 26Z'/><path fill='%23fdd6aa' d='M9 31L27 38L32 57ZM55 31L37 38L32 57Z'/><path fill='%2314213d' d='M28 51H36L32 57ZM21 30L25 27L29 30L25 32ZM35 30L39 27L43 30L39 32Z'/></svg>">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('fl_theme')||'hell'}catch(e){}</script>
+<style>
+/* FuchsLabs-CI: Fuchs-Orange und Creme als Hauptfarben, Navy als Schrift. Nur Systemschriften. */
+:root{--bg:#fff4e6;--card:#fffaf3;--card2:#fae4c8;--line:#eed2b0;--text:#14213d;--muted:#68605c;--orange:#f77f00;--accent:#b05200;
+--green:#168c48;--red:#d72d32;--yellow:#8a5a00;--radius:14px;--ink:#14213d;--field:#fff;--okbg:#e4f4ea;--okline:#b5dfc4;--badbg:#fbe5e5;--badline:#f0babb;--head:Bahnschrift,"Segoe UI",system-ui,sans-serif}
+/* Dunkelmodus: Navy-Grund, Creme-Schrift; Orange bleibt Hauptfarbe (Seitenleiste, Knöpfe) */
+html[data-theme=dunkel]{--bg:#0e1628;--card:#14213d;--card2:#1b2b4d;--line:#27395f;--text:#fff4e6;--muted:#a9b4cb;--accent:#ff9a2e;
+--green:#3ccf7a;--red:#ff6266;--yellow:#f0b232;--field:#0e1628;--okbg:#12392a;--okline:#1f6b46;--badbg:#3b1518;--badline:#7a2a30}
+aside{--text:#14213d;--bg:#fff4e6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 "Segoe UI",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h3,.brand,nav button,.btn,.val,.page .n{font-family:var(--head)}
+.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+aside{background:var(--orange);padding:20px 14px;position:sticky;top:0;height:100vh;
+display:flex;flex-direction:column;gap:6px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px;font-weight:700;font-size:19px;color:var(--text)}
+.brand svg{width:34px;height:34px;flex:none}
+.brand small{display:block;font-weight:400;color:var(--text);opacity:.8;font-size:12px;font-family:"Segoe UI",system-ui,sans-serif}
+nav button{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;border:0;
+background:none;padding:10px 12px;border-radius:10px;color:var(--text);cursor:pointer;font-weight:600;font-size:15px}
+nav button:hover{background:#ffffff33}
+nav button.on{background:var(--bg);color:var(--text);box-shadow:0 2px 0 #b0520040}
+nav .dot{width:9px;height:9px;border-radius:50%;border:2px solid #14213d66}
+nav .dot.act{background:var(--text);border-color:var(--text)}
+.foot{margin-top:auto;color:var(--text);font-size:12px;padding:8px}
+main{padding:28px 34px 110px;max-width:980px}
+h1{margin:0 0 4px;font-size:28px;font-weight:600}
+.sub{color:var(--muted);margin:0 0 22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;
+box-shadow:0 1px 2px #b0520014}
+.card h3{margin:0 0 4px;font-size:17px;font-weight:600}
+.card p.hint{margin:0 0 14px;color:var(--muted);font-size:13px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row .lbl b{display:block;font-weight:600}
+.row .lbl span{color:var(--muted);font-size:13px}
+input[type=text],input[type=password],input[type=number],select,textarea{background:var(--field);border:1px solid var(--line);
+border-radius:10px;padding:9px 12px;min-width:230px;outline:0}
+input:focus,select:focus,textarea:focus{border-color:var(--orange);box-shadow:0 0 0 3px #f77f0033}
+textarea{width:100%;min-height:64px;resize:vertical}
+input[type=range]{accent-color:var(--orange);width:230px}
+.val{min-width:64px;text-align:right;color:var(--accent);font-weight:700}
+.sw{position:relative;width:46px;height:26px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;cursor:pointer;margin:0;z-index:1}
+.sw i{position:absolute;inset:0;background:#e2cdb3;border-radius:26px;transition:.15s}
+.sw i:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px #0003}
+.sw input:checked+i{background:var(--orange)}
+.sw input:checked+i:before{transform:translateX(20px)}
+.btn{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:600;color:var(--text)}
+.btn:hover{border-color:var(--orange)}
+.btn.pri{background:var(--orange);border-color:var(--orange);color:var(--ink)}
+.btn.pri:hover{border-color:var(--accent)}
+.btn.sm{padding:5px 10px;font-weight:600;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.preview{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:start}
+.preview img{width:480px;max-width:100%;border-radius:12px;border:6px solid #14213d;background:#14213d;display:block}
+.pagelist{display:flex;flex-direction:column;gap:8px}
+.page{display:flex;align-items:center;gap:12px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.page .n{width:24px;height:24px;border-radius:50%;background:var(--orange);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--ink)}
+.page .t{flex:1}.page .t b{display:block}.page .t span{font-size:12px;color:var(--muted)}
+.page.off{opacity:.5}
+.arrows{display:flex;flex-direction:column;gap:2px}
+.arrows button{border:0;background:var(--card2);color:var(--text);border-radius:6px;width:26px;height:18px;line-height:1;cursor:pointer;font-size:11px}
+.arrows button:disabled{opacity:.25;cursor:default}
+.list{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.item{display:flex;align-items:center;gap:12px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:9px 12px}
+.item .t{flex:1;min-width:0}.item .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .t span{font-size:12.5px;color:var(--muted)}
+.item .ok{color:var(--green)}.item .bad{color:var(--red)}
+.add{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.add input{flex:1;min-width:200px}
+.members{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--field);margin-top:10px}
+.member{display:flex;align-items:center;gap:12px;padding:8px 12px;border-top:1px solid var(--line);cursor:pointer}
+.member:first-child{border-top:0}.member:hover{background:var(--bg)}
+.member input{accent-color:var(--orange);width:17px;height:17px}
+.member small{color:var(--muted);margin-left:auto}
+.ok{color:var(--green)}.bad{color:var(--red)}
+.conn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);margin:0 0 12px;font-weight:600}
+.conn .d{width:10px;height:10px;border-radius:50%;background:#c9b49a;flex:none}.conn .t{flex:1;min-width:0}
+.conn-ok{background:var(--okbg);border-color:var(--okline)}.conn-ok .d{background:var(--green)}.conn-ok .t{color:var(--green)}
+.conn-bad{background:var(--badbg);border-color:var(--badline)}.conn-bad .d{background:var(--red)}.conn-bad .t{color:var(--red)}
+.conn-off .t{color:var(--muted);font-weight:400}
+.chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;background:var(--card2);color:var(--muted)}
+.chip.warn{background:#fde9bf;color:var(--yellow)}.chip.good{background:var(--orange);color:var(--ink);font-weight:700}
+.note{color:var(--muted);font-size:13px}
+details summary{cursor:pointer;color:var(--muted);font-weight:600;padding:6px 0}
+.howto{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:4px 14px;margin-top:12px}
+.howto summary{color:var(--accent)}.howto ol{margin:6px 0 10px;padding-left:22px}.howto li{margin:5px 0}
+.howto .links{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+a.btn{text-decoration:none;display:inline-block;color:var(--text)}a.btn.pri{color:var(--ink)}.foot a{color:var(--text);font-weight:600}
+.bar{position:fixed;left:230px;right:0;bottom:0;background:var(--card);border-top:2px solid var(--orange);padding:14px 34px;
+display:flex;align-items:center;gap:14px;transform:translateY(100%);transition:.2s;backdrop-filter:blur(6px)}
+.bar.show{transform:none}.bar span{flex:1;color:var(--accent);font-weight:600}
+.overlay{position:fixed;inset:0;background:var(--bg);display:none;place-items:center;text-align:center;z-index:9}
+.overlay.show{display:grid}.spin{width:44px;height:44px;border:4px solid var(--line);border-top-color:var(--orange);
+border-radius:50%;animation:s 1s linear infinite;margin:0 auto 16px}@keyframes s{to{transform:rotate(360deg)}}
+.toast{position:fixed;top:18px;right:22px;background:var(--red);color:#fff;padding:10px 16px;border-radius:10px;display:none;z-index:10}
+@media(max-width:1150px){.preview{grid-template-columns:1fr}}
+@media(max-width:800px){.app{grid-template-columns:1fr}aside{position:static;height:auto;flex-direction:row;flex-wrap:wrap}
+.foot,.brand small{display:none}.bar{left:0}.preview{grid-template-columns:1fr}main{padding:20px 16px 110px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="#fff4e6" d="M9 7L25 19H39L55 7V31L32 57L9 31Z"/><path fill="#b05200" d="M13 14L22 21L13 26ZM51 14L42 21L51 26Z"/><path fill="#fdd6aa" d="M9 31L27 38L32 57ZM55 31L37 38L32 57Z"/><path fill="#14213d" d="M28 51H36L32 57ZM21 30L25 27L29 30L25 32ZM35 30L39 27L43 30L39 32Z"/></svg><div>FuchsLabs<small>USB-Display</small></div></div>
+    <nav id="nav"></nav>
+    <div class="foot" id="foot"></div>
+  </aside>
+  <main id="main"></main>
+</div>
+<div class="bar" id="bar"><span>Änderungen noch nicht angewendet</span>
+  <button class="btn" id="discard">Verwerfen</button>
+  <button class="btn pri" id="save">Speichern &amp; anwenden</button></div>
+<div class="overlay" id="overlay"><div><div class="spin"></div><h2 id="ovt">Wird angewendet …</h2>
+  <p class="note" id="ovs">Die Anzeige startet neu, das dauert etwa 10 Sekunden.</p></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const h = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(k));
+  return e;
+};
+const api = (path, body) => fetch(path, body === undefined ? {} : {method: 'POST',
+  headers: {'X-FL': '1', 'Content-Type': 'application/json'}, body: JSON.stringify(body)}).then(r => r.json());
+
+const TABS = [
+  ['start', 'Start'], ['overview', 'Übersicht'], ['friends', 'Freunde'], ['discord', 'Discord'], ['bf6', 'Battlefield 6'], ['rss', 'Blogs'],
+  ['system', 'System'], ['display', 'Display']];
+const PAGES = {
+  system: ['System', 'CPU, GPU, RAM, Datenträger, Netzwerk'],
+  friends: ['Freunde (alle Plattformen)', 'Discord, Steam und Xbox in einer Liste'],
+  discord: ['Discord-Freunde', 'Wer ist online und was spielt er'],
+  bf6: ['Battlefield 6 Rangliste', 'Profile deiner EA-Freunde nach Rang'],
+  rss: ['Blog-Updates', 'Neueste Beiträge deiner Blogs']};
+
+let saved = null, cfg = null, tab = 'start', meta = {}, previewTimer = null, cache = {};
+
+const toast = msg => { const t = $('#toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 5000); };
+const dirty = () => JSON.stringify(saved) !== JSON.stringify(cfg);
+const touch = () => { $('#bar').classList.toggle('show', dirty()); renderNav(); };
+
+function bind(sec, key, el, conv = v => v) {
+  el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
+    cfg[sec][key] = el.type === 'checkbox' ? el.checked : conv(el.value);
+    const v = el.parentElement.querySelector('.val'); if (v) v.textContent = el.dataset.fmt ? el.dataset.fmt.replace('%', el.value) : el.value;
+    touch();
+  });
+  return el;
+}
+const toggle = (sec, key) => { const i = h('input', {type: 'checkbox', checked: !!cfg[sec][key]}); bind(sec, key, i);
+  return h('label', {class: 'sw'}, i, h('i')); };
+const text = (sec, key, ph = '', type = 'text') => bind(sec, key, h('input', {type, value: cfg[sec][key] ?? '', placeholder: ph}));
+const select = (sec, key, opts) => { const s = h('select', {}, opts.map(([v, l]) => h('option', {value: v, selected: v === cfg[sec][key]}, l)));
+  return bind(sec, key, s); };
+const range = (sec, key, min, max, step, fmt) => {
+  const i = h('input', {type: 'range', min, max, step, value: cfg[sec][key], 'data-fmt': fmt});
+  bind(sec, key, i, Number); return h('div', {style: 'display:flex;align-items:center;gap:12px'}, i,
+    h('span', {class: 'val'}, fmt.replace('%', cfg[sec][key]))); };
+const row = (label, hint, ctl) => h('div', {class: 'row'}, h('div', {class: 'lbl'}, h('b', {}, label), hint ? h('span', {}, hint) : null), ctl);
+const card = (title, hint, ...kids) => h('div', {class: 'card'}, h('h3', {}, title), hint ? h('p', {class: 'hint'}, hint) : null, ...kids);
+const head = (t, s) => [h('h1', {}, t), h('p', {class: 'sub'}, s)];
+/* Kleine Hilfen: Link zur richtigen Seite und Schritte zum Aufklappen. Ein Schritt darf ein Array aus Text und Elementen sein. */
+const B = t => h('b', {}, t);
+const ext = (href, label) => h('a', {class: 'btn sm', href, target: '_blank', rel: 'noopener noreferrer'}, label + ' ↗');
+const howto = (title, items, ...links) => h('details', {class: 'howto'}, h('summary', {}, title),
+  h('ol', {}, items.map(i => h('li', {}, ...[].concat(i)))), links.length ? h('div', {class: 'links'}, ...links) : null);
+
+function isActive(p) {
+  const c = cfg[p];
+  if (p === 'discord') return c.enabled && (c.token_set || meta.discord_ready) && !(cfg.friends.enabled && cfg.friends.include_discord);
+  if (p === 'friends') return c.enabled && ((c.include_discord && cfg.discord.token_set) || c.steam_api_key_set || c.xbox_api_key_set);
+  if (p === 'bf6') return c.enabled && c.players.length > 0; if (p === 'rss') return c.enabled && c.feeds.length > 0;
+  return c.enabled;
+}
+function renderNav() {
+  $('#nav').replaceChildren(...TABS.map(([k, l]) => {
+    const dot = PAGES[k] ? h('span', {class: 'dot' + (isActive(k) ? ' act' : '')}) : null;
+    return h('button', {class: k === tab ? 'on' : '', onclick: () => { tab = k; render(); }}, l, dot); }));
+}
+
+/* ---------- Start / Ersteinrichtung ---------- */
+let statusTimer = null;
+function viewStart() {
+  const box = h('div');
+  const item = (title, state, detail, ...actions) => h('div', {class: 'item'},
+    h('div', {class: 't'}, h('b', {}, title), h('span', {class: state}, detail)), ...actions);
+  const post = async (url, body = {}) => { const r = await api(url, body); if (r.ok === false) toast(r.error || 'Fehler'); refresh(); };
+  const refresh = async () => {
+    const s = await api('/api/status'), list = h('div', {class: 'list'});
+    list.append(item('Display', s.display_ok ? 'ok' : 'bad', s.display_ok ? 'Verbunden' : s.display_error,
+      s.vendor_running ? h('button', {class: 'btn sm', onclick: () => post('/api/vendor/stop')}, 'Hersteller-App beenden') : null));
+    if (s.vendor_autostart) list.append(item('Autostart der Hersteller-App', 'bad',
+      'Ist noch an und belegt das Display nach jedem Windows-Start.',
+      h('button', {class: 'btn sm', onclick: () => post('/api/vendor/disable-autostart')}, 'Abschalten (Windows fragt nach)')));
+    const c = h('input', {type: 'checkbox', checked: s.autostart});
+    c.addEventListener('change', () => post('/api/autostart', {enabled: c.checked}));
+    list.append(h('div', {class: 'item'}, h('div', {class: 't'}, h('b', {}, 'Mit Windows starten'),
+      h('span', {}, 'Die App startet beim Anmelden von selbst im Hintergrund.')), h('label', {class: 'sw'}, c, h('i'))));
+    if (cfg.discord.enabled) list.append(item('Discord', s.discord === '' ? 'ok' : s.discord === null ? '' : 'bad',
+      s.discord === '' ? 'Verbunden' : s.discord || 'Aus'));
+    box.replaceChildren(list);
+  };
+  refresh(); clearInterval(statusTimer); statusTimer = setInterval(() => document.hidden || tab !== 'start' || refresh(), 4000);
+  const step = (n, t, d, go) => h('div', {class: 'item'}, h('div', {class: 'n page', style: 'padding:0;border:0;background:none'}, h('span', {class: 'chip good'}, n)),
+    h('div', {class: 't'}, h('b', {}, t), h('span', {}, d)), go ? h('button', {class: 'btn sm', onclick: () => { tab = go; render(); }}, 'Öffnen') : null);
+  return [...head(meta.first_run ? 'Willkommen!' : 'Start', meta.first_run
+      ? 'In wenigen Minuten ist dein Display eingerichtet. Du kannst alles später jederzeit ändern.' : 'Zustand deiner Installation.'),
+    card('Zustand', 'Hier siehst du, ob alles läuft. Fehler werden direkt erklärt.', box),
+    card('Einrichtung in 3 Schritten', null,
+      h('div', {class: 'item', style: 'margin-bottom:8px'}, h('div', {class: 't'}, h('b', {}, 'Lieber mit Bildern, Schritt für Schritt?'),
+        h('span', {}, 'Die bebilderte Anleitung zeigt jeden Klick, auch für Discord, Steam und Xbox.')),
+        h('a', {class: 'btn sm pri', href: '/anleitung', target: '_blank'}, 'Anleitung öffnen ↗')),
+      h('div', {class: 'list'},
+        step('1', 'Seiten wählen', 'Welche Seiten das Display zeigt und in welcher Reihenfolge', 'overview'),
+        step('2', 'Inhalte eintragen', 'Discord-Freunde, Battlefield-6-Spieler oder Blogs – alles optional', 'discord'),
+        step('3', 'Fertig', 'Mit „Speichern & anwenden“ startet die Anzeige mit deinen Einstellungen neu'))),
+    meta.first_run ? h('div', {style: 'text-align:right'}, h('button', {class: 'btn', onclick: async () => {
+      await api('/api/setup-done', {}); meta.first_run = false; tab = 'overview'; render(); }}, 'Einrichtungshilfe ausblenden')) : null];
+}
+
+/* ---------- Übersicht ---------- */
+function moveTo(i, d) { const p = cfg.display.pages; [p[i], p[i + d]] = [p[i + d], p[i]]; touch(); render(); }
+function viewOverview() {
+  const list = h('div', {class: 'pagelist'}, cfg.display.pages.map((p, i) => {
+    const sec = cfg[p], on = sec.enabled, act = isActive(p);
+    let note = PAGES[p][1];
+    if (on && !act) note = p === 'discord' ? (cfg.friends.enabled && cfg.friends.include_discord
+      ? 'Wird nicht gezeigt: Die Freunde-Seite enthält Discord schon' : 'Bot-Token fehlt')
+      : p === 'friends' ? 'Noch keine Konten verbunden' : p === 'bf6' ? 'Keine Spieler eingetragen' : 'Keine Blogs eingetragen';
+    return h('div', {class: 'page' + (on ? '' : ' off')},
+      h('div', {class: 'n'}, String(i + 1)), h('div', {class: 't'}, h('b', {}, PAGES[p][0]), h('span', {}, note)),
+      h('div', {class: 'arrows'}, h('button', {disabled: i === 0, title: 'Nach oben', onclick: () => moveTo(i, -1)}, '▲'),
+        h('button', {disabled: i === cfg.display.pages.length - 1, title: 'Nach unten', onclick: () => moveTo(i, 1)}, '▼')),
+      toggle(p, 'enabled')); }));
+  const sw = list.querySelectorAll('.sw input'); sw.forEach(i => i.addEventListener('change', () => { render(); }));
+  return [...head('Übersicht', 'So sieht dein Display gerade aus und in welcher Reihenfolge die Seiten wechseln.'),
+    h('div', {class: 'card'}, h('div', {class: 'preview'},
+      h('img', {id: 'prev', alt: 'Live-Vorschau', src: '/api/preview.png?t=' + Date.now()}),
+      h('div', {}, h('h3', {}, 'Seiten'), h('p', {class: 'hint'}, 'Mit den Pfeilen sortierst du, mit dem Schalter blendest du Seiten ein oder aus.'), list))),
+    card('Wechsel & Helligkeit', null,
+      row('Anzeigedauer pro Seite', 'Wie lange eine Seite stehen bleibt', range('display', 'page_seconds', 5, 60, 1, '% s')),
+      row('Helligkeit', 'Display-Helligkeit', range('display', 'brightness', 10, 100, 5, '% %')))];
+}
+
+/* ---------- Discord ---------- */
+function viewDiscord() {
+  const d = cfg.discord, box = h('div');
+  const draw = (members, q = '') => {
+    const ids = new Set(d.friend_ids.map(String));
+    const known = new Set(members.map(m => String(m.id)));
+    const all = [...members, ...[...ids].filter(i => !known.has(i)).map(i => ({id: i, name: 'Unbekannte ID ' + i, guild: ''}))]
+      .filter(m => m.name.toLowerCase().includes(q.toLowerCase()));
+    box.replaceChildren(...all.map(m => {
+      const c = h('input', {type: 'checkbox', checked: ids.has(String(m.id))});
+      c.addEventListener('change', () => { const s = new Set(d.friend_ids.map(String)); c.checked ? s.add(String(m.id)) : s.delete(String(m.id));
+        d.friend_ids = [...s]; touch(); });
+      return h('label', {class: 'member'}, c, h('span', {}, m.name), h('small', {}, m.guild)); }));
+    if (!all.length) box.append(h('div', {class: 'member'}, h('span', {class: 'note'}, 'Keine Mitglieder gefunden.')));
+  };
+  const search = h('input', {type: 'text', placeholder: 'Mitglieder suchen …', style: 'width:100%'});
+  const info = h('p', {class: 'note'});
+  api('/api/discord/members').then(r => {
+    cache.members = r.members; info.textContent = r.ready
+      ? 'Ohne Auswahl werden alle Mitglieder angezeigt. Mit Auswahl nur die angehakten.'
+      : 'Der Bot ist gerade nicht verbunden. Trage zuerst einen gültigen Token ein.';
+    draw(r.members); search.addEventListener('input', () => draw(cache.members, search.value)); });
+  const ign = h('textarea', {placeholder: 'IDs, durch Komma getrennt'}, d.ignore_ids.join(', '));
+  ign.addEventListener('input', () => { d.ignore_ids = ign.value.split(/[^0-9]+/).filter(Boolean); touch(); });
+  const gld = h('textarea', {placeholder: 'leer = alle Server des Bots'}, d.guild_ids.join(', '));
+  gld.addEventListener('input', () => { d.guild_ids = gld.value.split(/[^0-9]+/).filter(Boolean); touch(); });
+  return [...head('Discord', 'Zeigt, wer auf deinen Servern online ist. Dafür nutzt die App einen eigenen Bot.'),
+    card('Verbindung', null,
+      connBadge('discord'),
+      row('Seite anzeigen', null, toggle('discord', 'enabled')),
+      row('Bot-Token', d.token_set ? 'Gespeichert. Leer lassen, um ihn zu behalten.' : 'Wie ein Passwort. Wie du ihn bekommst, steht unten.',
+        text('discord', 'token', d.token_set ? '••••••••••••' : 'Token einfügen', 'password')),
+      row('Offline-Freunde anzeigen', 'Ausgegraut mit in der Liste', toggle('discord', 'show_offline')),
+      howto('So bekommst du den Bot-Token (5 Minuten)', [
+        ['Klicke unten auf ', B('Discord-Entwicklerseite'), ' und melde dich mit deinem Discord-Konto an.'],
+        ['Oben rechts auf ', B('New Application'), ' klicken, einen Namen eingeben (z. B. „Mein Display“), Haken setzen, ', B('Create'), '.'],
+        ['Links auf ', B('Bot'), ' klicken, dann ', B('Reset Token'), ' und ', B('Copy'), '. Jetzt ist der Token kopiert.'],
+        ['Etwas nach unten scrollen: ', B('Presence Intent'), ' und ', B('Server Members Intent'), ' einschalten, ', B('Save Changes'), '.'],
+        ['Oben in das Feld ', B('Bot-Token'), ' klicken und mit Strg + V einfügen.']],
+        ext('https://discord.com/developers/applications', 'Discord-Entwicklerseite')),
+      howto('So lädst du den Bot auf deinen Server ein', [
+        ['Auf der Entwicklerseite links ', B('OAuth2'), ' anklicken.'],
+        ['Bei ', B('OAuth2 URL Generator'), ' unter Scopes den Haken bei ', B('bot'), ' setzen.'],
+        ['Ganz unten die Adresse mit ', B('Copy'), ' kopieren, oben im Browser einfügen und Enter drücken.'],
+        ['Deinen Server auswählen und ', B('Autorisieren'), ' klicken. Dafür musst du dort Admin sein.']])),
+    card('Personen', null, info, search, box),
+    card('Erweitert', null, h('details', {}, h('summary', {}, 'Server und ausgeblendete Personen'),
+      h('p', {class: 'hint'}, 'Nur diese Server beobachten (Server-IDs)'), gld,
+      h('p', {class: 'hint', style: 'margin-top:12px'}, 'Diese Personen nie anzeigen (Benutzer-IDs)'), ign))];
+}
+
+/* ---------- Check-Listen (BF6 / RSS) ---------- */
+function checkList(sec, key, kind, placeholder) {
+  const list = h('div', {class: 'list'});
+  const info = {};
+  const draw = () => list.replaceChildren(...cfg[sec][key].map((v, i) => {
+    const r = info[v], st = r ? (r.ok ? h('span', {class: 'ok'}, kind === 'bf6'
+      ? `Rang ${r.rank ?? '?'}${r.rank_name ? ' · ' + r.rank_name : ''} · K/D ${r.kd ?? '–'}` : `${r.source}: ${r.latest}`)
+      : h('span', {class: 'bad'}, r.error)) : h('span', {}, 'Noch nicht geprüft');
+    return h('div', {class: 'item'}, h('div', {class: 't'}, h('b', {}, v), st),
+      h('button', {class: 'btn sm', onclick: async e => { e.target.disabled = true; e.target.textContent = '…';
+        info[v] = await api(`/api/check/${kind}?${kind === 'bf6' ? 'name' : 'url'}=${encodeURIComponent(v)}`); draw(); }}, 'Prüfen'),
+      h('button', {class: 'btn sm', onclick: () => { cfg[sec][key].splice(i, 1); touch(); draw(); renderNav(); }}, 'Entfernen')); }));
+  draw();
+  const inp = h('input', {type: 'text', placeholder});
+  let plat = null;
+  if (kind === 'bf6') plat = h('select', {style: 'min-width:130px'}, [['', 'PC (EA)'], ['@psn', 'PlayStation'], ['@xbox', 'Xbox']].map(([v, l]) => h('option', {value: v}, l)));
+  const add = () => { let v = inp.value.trim(); if (!v) return; if (plat) v += plat.value;
+    if (!cfg[sec][key].includes(v)) cfg[sec][key].push(v); inp.value = ''; touch(); draw(); renderNav(); };
+  inp.addEventListener('keydown', e => e.key === 'Enter' && add());
+  return h('div', {}, list, h('div', {class: 'add'}, inp, plat, h('button', {class: 'btn', onclick: add}, 'Hinzufügen')));
+}
+/* ---------- Dauerhafter Verbindungsstatus (Discord, Steam, Xbox) ---------- */
+let connTimer = null;
+function ago(ts) {
+  const m = Math.floor((Date.now() / 1000 - ts) / 60);
+  return m < 1 ? 'gerade eben' : m < 60 ? `vor ${m} min` : `vor ${Math.floor(m / 60)} h`;
+}
+function connLine(p, c) {
+  if (!c || c.state === 'off') return ['off', 'Noch nicht eingerichtet'];
+  if (c.state === 'idle') return ['off', p === 'discord'
+    ? 'Verbinde … oder Token gespeichert, aber gerade nicht genutzt'
+    : 'Zugang gespeichert – er wird genutzt, sobald die Seite „Freunde“ an und alles ausgefüllt ist'];
+  if (c.state === 'ok') return ['ok', `Verbunden${c.name ? ' als ' + c.name : ''} · ${c.detail}`
+    + (c.live ? ' · live' : c.at ? ' · zuletzt abgefragt ' + ago(c.at) : '')];
+  return ['bad', (c.error || 'Fehler') + (c.at ? ` (letzter Erfolg ${ago(c.at)})` : '')];
+}
+function connBadge(p) {
+  return h('div', {class: 'conn conn-off', 'data-p': p}, h('i', {class: 'd'}), h('span', {class: 't'}, 'Status wird geladen …'));
+}
+async function updateConn() {
+  let data; try { data = await api('/api/connections'); } catch (e) { return; }
+  for (const el of document.querySelectorAll('.conn')) {
+    const [cls, txt] = connLine(el.dataset.p, data[el.dataset.p]);
+    el.className = 'conn conn-' + cls; el.querySelector('.t').textContent = txt;
+  }
+}
+
+/* ---------- Freunde (alle Plattformen) ---------- */
+function checker(platform, body) {
+  const out = h('span', {class: 'note'});
+  const b = h('button', {class: 'btn sm', onclick: async () => {
+    b.disabled = true; out.className = 'note'; out.textContent = 'Prüfe …';
+    const r = await api('/api/check/friends/' + platform, body()); b.disabled = false;
+    out.className = r.ok ? 'ok' : 'bad';
+    out.textContent = r.ok ? `Verbunden: ${r.count} Freunde, ${r.online} gerade online` : r.error; }}, 'Verbindung prüfen');
+  return h('div', {style: 'display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap'}, b, out);
+}
+function linksEditor() {
+  const box = h('div'); let accounts = [], suggestions = [];
+  const NAMES = {discord: 'Discord', steam: 'Steam', xbox: 'Xbox'};
+  const parse = e => { const [name, ...members] = e.split('|'); return {name, members}; };
+  const draw = () => {
+    const rows = cfg.friends.links.map((e, i) => { const l = parse(e);
+      return h('div', {class: 'item'}, h('div', {class: 't'}, h('b', {}, l.name),
+        h('span', {}, l.members.map(m => NAMES[m.split(':')[0]] || m.split(':')[0]).join(' + '))),
+        h('button', {class: 'btn sm', onclick: () => { cfg.friends.links.splice(i, 1); touch(); draw(); }}, 'Entfernen')); });
+    const opt = a => h('option', {value: a.platform + ':' + a.id}, `${a.name} (${NAMES[a.platform]})`);
+    const A = h('select', {}, accounts.map(opt)), B = h('select', {}, accounts.map(opt));
+    const link = (a, b) => {   // a, b: Konten {platform, id, name}; erweitert eine vorhandene Verknüpfung, sonst neu
+      const av = a.platform + ':' + a.id, bv = b.platform + ':' + b.id;
+      const L = cfg.friends.links, at = L.findIndex(e => parse(e).members.some(m => m === av || m === bv));
+      if (at >= 0) { const l = parse(L[at]); for (const v of [av, bv]) if (!l.members.includes(v)) l.members.push(v);
+        L[at] = [l.name, ...l.members].join('|'); }
+      else L.push([a.name, av, bv].join('|'));
+      suggestions = suggestions.filter(s => s.a !== a || s.b !== b);
+      touch(); draw(); };
+    const add = () => {
+      const find = v => accounts.find(x => x.platform + ':' + x.id === v);
+      if (A.value && B.value && A.value !== B.value) link(find(A.value), find(B.value)); };
+    const sug = suggestions.map(s => h('div', {class: 'item'}, h('div', {class: 't'},
+      h('b', {}, `${s.a.name} (${NAMES[s.a.platform]}) = ${s.b.name} (${NAMES[s.b.platform]})?`),
+      h('span', {}, 'Ähnliche Namen – dieselbe Person?')),
+      h('button', {class: 'btn sm', onclick: () => link(s.a, s.b)}, 'Ja, zusammenführen'),
+      h('button', {class: 'btn sm', onclick: () => { suggestions = suggestions.filter(x => x !== s); draw(); }}, 'Nein')));
+    box.replaceChildren(...(sug.length ? [h('div', {class: 'list', style: 'margin-bottom:14px'}, sug)] : []), h('div', {class: 'list'}, rows),
+      accounts.length ? h('div', {class: 'add'}, A, B, h('button', {class: 'btn', onclick: add}, 'Verknüpfen'))
+        : h('p', {class: 'note'}, 'Sobald Konten verbunden sind, kannst du sie hier zusammenführen.')); };
+  api('/api/friends/accounts').then(r => { accounts = r.accounts; suggestions = r.suggestions || []; draw(); }); draw();
+  return box;
+}
+function viewFriends() {
+  const f = cfg.friends;
+  return [...head('Freunde', 'Eine gemeinsame Liste für alle Plattformen. Wer auf mehreren Plattformen ist, erscheint nur einmal.'),
+    card('Seite', 'Tipp: Schalte in der Übersicht die Seite „Discord-Freunde“ aus, wenn du nur noch diese gemeinsame Liste sehen willst.',
+      row('Seite anzeigen', null, toggle('friends', 'enabled')),
+      row('Discord einbeziehen', 'Braucht den Bot-Token im Reiter Discord', toggle('friends', 'include_discord')),
+      row('Gleiche Namen automatisch zusammenfassen', 'Zwei Konten mit gleichem Namen auf verschiedenen Plattformen gelten als eine Person', toggle('friends', 'auto_merge')),
+      row('Offline-Freunde anzeigen', 'Ausgegraut mit in der Liste', toggle('friends', 'show_offline'))),
+    card('Steam', 'Kostenlos und offiziell von Valve. Deine Freundesliste im Steam-Profil muss auf „Öffentlich“ stehen.',
+      connBadge('steam'),
+      row('Steam-Schlüssel', f.steam_api_key_set ? 'Gespeichert. Leer lassen, um ihn zu behalten.' : 'Wird gleich erklärt',
+        text('friends', 'steam_api_key', f.steam_api_key_set ? '••••••••••••' : 'Schlüssel einfügen', 'password')),
+      row('Dein Steam-Profil', 'Der Link aus der Adresszeile deines Profils', text('friends', 'steam_id', 'https://steamcommunity.com/id/…')),
+      checker('steam', () => ({key: cfg.friends.steam_api_key, id: cfg.friends.steam_id})),
+      howto('So bekommst du den Steam-Schlüssel', [
+        ['Klicke unten auf ', B('Steam-Schlüssel holen'), ' und melde dich bei Steam an.'],
+        ['Bei ', B('Domain Name'), ' einfach ', B('localhost'), ' eintragen, den Haken setzen und auf ', B('Registrieren'), ' klicken.'],
+        ['Den langen Schlüssel (Buchstaben und Zahlen) kopieren und oben bei ', B('Steam-Schlüssel'), ' einfügen.']],
+        ext('https://steamcommunity.com/dev/apikey', 'Steam-Schlüssel holen')),
+      howto('So findest du deinen Profil-Link', [
+        ['Klicke unten auf ', B('Mein Steam-Profil'), '. Dein Profil geht auf.'],
+        ['Oben in der Adresszeile des Browsers steht der Link. Hineinklicken, mit Strg + C kopieren und oben bei ', B('Dein Steam-Profil'), ' einfügen.'],
+        ['Wichtig: Klicke auf ', B('Datenschutz öffnen'), ' und stelle ', B('Freundesliste'), ' auf ', B('Öffentlich'), '. Sonst sieht die App deine Freunde nicht.']],
+        ext('https://steamcommunity.com/my/profile', 'Mein Steam-Profil'), ext('https://steamcommunity.com/my/edit/settings', 'Datenschutz öffnen'))),
+    card('Xbox', 'Über den kostenlosen Dienst OpenXBL (xbl.io), nicht direkt von Microsoft.',
+      connBadge('xbox'),
+      row('OpenXBL-Schlüssel', f.xbox_api_key_set ? 'Gespeichert. Leer lassen, um ihn zu behalten.' : 'Wird gleich erklärt',
+        text('friends', 'xbox_api_key', f.xbox_api_key_set ? '••••••••••••' : 'Schlüssel einfügen', 'password')),
+      checker('xbox', () => ({key: cfg.friends.xbox_api_key})),
+      howto('So bekommst du den Xbox-Schlüssel', [
+        ['Klicke unten auf ', B('OpenXBL öffnen'), ' und melde dich mit deinem Xbox- bzw. Microsoft-Konto an.'],
+        ['Danach bist du in deinem Bereich (Dashboard). Dort bei ', B('API Keys'), ' einen neuen Schlüssel erstellen.'],
+        ['Den Schlüssel kopieren und oben bei ', B('OpenXBL-Schlüssel'), ' einfügen. Dann ', B('Verbindung prüfen'), '.']],
+        ext('https://xbl.io/', 'OpenXBL öffnen'))),
+    card('PlayStation', null, h('p', {class: 'note', style: 'margin:0'},
+      'Für PlayStation gibt es keine offizielle Schnittstelle. Der inoffizielle Weg kann zur Sperre des Kontos führen und ist deshalb nicht eingebaut.')),
+    card('Personen zusammenführen', 'Wenn jemand auf zwei Plattformen verschieden heißt: Wähle beide Konten und klicke Verknüpfen.', linksEditor())];
+}
+
+function viewBf6() {
+  return [...head('Battlefield 6', 'Die Rangliste deiner EA-Freunde. Eine Freundesliste gibt EA nicht heraus, deshalb trägst du die Namen hier ein.'),
+    card('Seite', null, row('Seite anzeigen', null, toggle('bf6', 'enabled')),
+      row('Aktualisieren alle', 'Wie oft die Werte neu geholt werden', range('bf6', 'refresh_minutes', 5, 120, 5, '% min'))),
+    card('Spieler', 'EA-ID eingeben, mit „Prüfen“ siehst du sofort, ob der Name gefunden wird.', checkList('bf6', 'players', 'bf6', 'EA-ID, z. B. P4p4F0x'),
+      howto('Wo finde ich die EA-ID?', [
+        ['Deine eigene: Klicke unten auf ', B('Meine EA-ID ansehen'), ' und melde dich an. Bei ', B('EA-ID'), ' steht dein Name.'],
+        ['Oder in der ', B('EA app'), ': oben links auf dein Profilbild klicken.'],
+        ['Deine Freunde: In der EA app bei ', B('Freunde'), ' stehen ihre EA-IDs. Oder frag sie einfach.'],
+        ['Wer auf PlayStation oder Xbox spielt: dessen PSN-Namen bzw. Gamertag eintragen und daneben die Plattform wählen.']],
+        ext('https://myaccount.ea.com/cp-ui/aboutme/index', 'Meine EA-ID ansehen')))];
+}
+function viewRss() {
+  return [...head('Blogs', 'Die neuesten Beiträge deiner Blogs auf einer übersichtlichen Seite.'),
+    card('Seite', null, row('Seite anzeigen', null, toggle('rss', 'enabled')),
+      row('Beiträge insgesamt', 'Mehr als 4 passen nicht lesbar aufs Display', range('rss', 'max_items', 1, 4, 1, '%')),
+      row('Je Blog höchstens', null, range('rss', 'max_per_feed', 1, 4, 1, '%')),
+      row('Aktualisieren alle', null, range('rss', 'refresh_minutes', 10, 240, 10, '% min'))),
+    card('Blogs', 'Die normale Adresse reicht, der Feed wird automatisch gesucht.', checkList('rss', 'feeds', 'rss', 'Blog-Adresse, z. B. https://winfuture.de/'),
+      howto('So fügst du eine Webseite hinzu', [
+        'Öffne die Webseite in deinem Browser, zum Beispiel deinen Lieblings-Blog.',
+        ['Klicke oben in die Adresszeile und kopiere die Adresse mit ', B('Strg + C'), '.'],
+        ['Klicke hier ins Feld, füge sie mit ', B('Strg + V'), ' ein und klicke auf ', B('Hinzufügen'), '.'],
+        ['Klicke auf ', B('Prüfen'), '. Grün heißt: Es wurden Beiträge gefunden.']]))];
+}
+
+/* ---------- System ---------- */
+function viewSystem() {
+  const s = cfg.system, box = h('div');
+  api('/api/system/info').then(r => {
+    const opt = (cur, list) => [h('option', {value: ''}, 'Automatisch'), ...list.map(n => h('option', {value: n, selected: n === cur}, n))];
+    const net = bind('system', 'net_adapter', h('select', {}, opt(s.net_adapter, r.interfaces.map(i => i.name))));
+    const t = bind('system', 'cpu_temp_sensor', h('select', {}, opt(s.cpu_temp_sensor, r.sensors.temps)));
+    const f = bind('system', 'cpu_fan_sensor', h('select', {}, opt(s.cpu_fan_sensor, r.sensors.fans)));
+    box.replaceChildren(
+      row('Netzwerkadapter', 'Automatisch = der Adapter deiner Internetverbindung', net),
+      row('CPU-Temperatur', r.sensors.available ? 'Sensor aus HWiNFO' : 'HWiNFO läuft nicht – Automatik bleibt leer', t),
+      row('CPU-Lüfter', r.sensors.available ? 'Sensor aus HWiNFO' : 'HWiNFO läuft nicht', f)); });
+  return [...head('System', 'Auslastung, Temperaturen und Netzwerk deines PCs.'),
+    card('Seite', null, row('Seite anzeigen', null, toggle('system', 'enabled')),
+      row('Netzwerkraten in', 'Wie im Task-Manager (Mbit/s) oder in Megabyte pro Sekunde',
+        select('system', 'net_unit', [['bit', 'Mbit/s'], ['byte', 'MB/s']])),
+      row('Laufwerk', 'Für Belegung und Temperatur', text('system', 'disk', 'C:'))),
+    card('Sensoren', null, box)];
+}
+
+/* ---------- Design (hell/dunkel) ---------- */
+const applyTheme = () => { const t = cfg.display.theme === 'dunkel' ? 'dunkel' : 'hell';
+  document.documentElement.dataset.theme = t; try { localStorage.setItem('fl_theme', t); } catch (e) {} };
+function themeSel() { const s = select('display', 'theme', [['hell', 'Hell (Creme)'], ['dunkel', 'Dunkel (Navy)']]);
+  s.addEventListener('change', applyTheme); return s; }
+
+/* ---------- Display ---------- */
+function viewDisplay() {
+  return [...head('Display', 'Ausrichtung, Anschluss und Verhalten des Bildschirms.'),
+    card('Bild', null,
+      row('Ausrichtung', 'Wenn das Bild auf dem Kopf steht, die andere Variante wählen',
+        select('display', 'orientation', [['landscape', 'Querformat'], ['reverse_landscape', 'Querformat, gedreht'], ['portrait', 'Hochformat'], ['reverse_portrait', 'Hochformat, gedreht']])),
+      row('Helligkeit', null, range('display', 'brightness', 10, 100, 5, '% %')),
+      row('Design', 'Gilt für das Display und diese Einstellungsseite. Hell ist auf dem Display besser lesbar.', themeSel())),
+    card('Anschluss', null,
+      row('COM-Port', 'AUTO sucht das Display selbst', text('display', 'port', 'AUTO')),
+      row('Beim Start zurücksetzen', 'Verhindert verschobene Bilder', toggle('display', 'reset_on_start')),
+      row('Beim Beenden ausschalten', null, toggle('display', 'screen_off_on_exit'))),
+    card('Programm', null,
+      row('Port dieser Einstellungsseite', 'Nur lokal erreichbar. Änderung wirkt nach dem Neustart.', text('ui', 'port', '8765')),
+      row('App steuern', 'Neustart lädt alle Einstellungen neu',
+        h('div', {style: 'display:flex;gap:8px'},
+          h('button', {class: 'btn', onclick: () => confirm('Anzeige neu starten?') && apply('Neustart …', () => api('/api/restart', {}))}, 'Neu starten'),
+          h('button', {class: 'btn', onclick: async () => { if (confirm('App beenden? Das Display wird dunkel.')) { await api('/api/quit', {});
+            $('#ovt').textContent = 'App beendet'; $('#ovs').textContent = 'Du kannst dieses Fenster schließen.'; $('#overlay').classList.add('show'); } }}, 'Beenden'))))];
+}
+
+const VIEWS = {start: viewStart, overview: viewOverview, friends: viewFriends, discord: viewDiscord, bf6: viewBf6, rss: viewRss, system: viewSystem, display: viewDisplay};
+function render() {
+  clearInterval(previewTimer); clearInterval(statusTimer); clearInterval(connTimer);
+  $('#main').replaceChildren(...VIEWS[tab]().filter(Boolean));
+  renderNav();
+  if (document.querySelector('.conn')) { updateConn(); connTimer = setInterval(() => document.hidden || updateConn(), 5000); }
+  if (tab === 'overview') previewTimer = setInterval(() => { const i = $('#prev'); if (i && !document.hidden) i.src = '/api/preview.png?t=' + Date.now(); }, 2000);
+}
+
+async function apply(title, fn) {
+  $('#ovt').textContent = title || 'Wird angewendet …';
+  $('#ovs').textContent = 'Die Anzeige startet neu, das dauert etwa 10 Sekunden.';
+  $('#overlay').classList.add('show');
+  const r = await fn();
+  if (r && r.ok === false) { $('#overlay').classList.remove('show'); toast(r.error || 'Fehler'); return; }
+  await new Promise(r => setTimeout(r, 3500));
+  for (let i = 0; i < 60; i++) {
+    try { const c = await api('/api/config'); if (c.config) { location.reload(); return; } } catch (e) {}
+    await new Promise(r => setTimeout(r, 1000));
+  }
+  $('#ovt').textContent = 'Keine Verbindung'; $('#ovs').textContent = 'Starte die App über das Startmenü oder den Autostart neu.';
+}
+$('#save').onclick = () => apply('Wird angewendet …', () => api('/api/config', {config: cfg}));
+$('#discard').onclick = () => { cfg = JSON.parse(JSON.stringify(saved)); applyTheme(); render(); touch(); };
+window.addEventListener('beforeunload', e => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
+
+api('/api/config').then(r => {
+  cfg = r.config; saved = JSON.parse(JSON.stringify(cfg)); meta = r; applyTheme(); tab = r.first_run ? 'start' : 'overview';
+  $('#foot').replaceChildren(h('a', {href: '/anleitung', target: '_blank'}, '📖 Bebilderte Anleitung'), h('br'),
+    'Version ' + r.version + ' · © 2026 FuchsLabs');
+  render();
+}).catch(() => { $('#main').textContent = 'Keine Verbindung zur App.'; });
+</script>
+</body>
+</html>

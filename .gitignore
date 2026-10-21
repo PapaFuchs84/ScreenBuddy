@@ -1,0 +1,32 @@
+# Python / Build
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+dist/
+*.zip
+
+# Erzeugte Dateien
+app.ico
+ANLEITUNG.html
+preview/
+
+# Persönliche Daten und Geheimnisse – niemals einchecken
+config.toml
+config*.toml
+*.toml.bak
+*.bak
+*.log
+*.log.*
+.env
+
+# Anleitungs-Screenshots mit echten Namen (vor dem Einchecken neu aufnehmen)
+anleitung/bilder/uebersicht.png
+anleitung/bilder/freunde.png
+
+# Editor / System
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

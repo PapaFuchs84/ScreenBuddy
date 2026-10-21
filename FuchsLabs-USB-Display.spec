@@ -1,0 +1,46 @@
+# -*- mode: python ; coding: utf-8 -*-
+
+
+a = Analysis(
+    ['fuchslabs_display.py'],
+    pathex=[],
+    binaries=[],
+    datas=[('webui.html', '.'), ('ANLEITUNG.html', '.')],
+    hiddenimports=['serial.tools.list_ports_windows'],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=['tkinter', 'numpy', 'unittest', 'pydoc', 'doctest', 'test', 'distutils', 'setuptools', 'xmlrpc', 'pdb', 'curses', 'sqlite3', 'PIL._avif', 'PIL.AvifImagePlugin'],
+    noarchive=False,
+    optimize=2,
+)
+pyz = PYZ(a.pure)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    [('O', None, 'OPTION'), ('O', None, 'OPTION')],
+    exclude_binaries=True,
+    name='FuchsLabs-USB-Display',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    version='version-info.txt',
+    icon=['app.ico'],
+)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='FuchsLabs-USB-Display',
+)

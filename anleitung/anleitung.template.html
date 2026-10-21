@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>USB-Display einrichten</title>
+<link rel="icon" href="{{img:icon}}">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('fl_theme')||'hell'}catch(e){}</script>
+<style>
+/* FuchsLabs-CI: Fuchs-Orange und Creme, Navy als Schrift. Nur Systemschriften. */
+:root{--bg:#fff4e6;--card:#fffaf3;--card2:#fae4c8;--line:#eed2b0;--text:#14213d;--muted:#68605c;--orange:#f77f00;
+--orange2:#b05200;--green:#168c48;--red:#d72d32;--yellow:#8a5a00;--blue:#5865f2;--head:Bahnschrift,"Segoe UI",system-ui,sans-serif}
+html[data-theme=dunkel]{--bg:#0e1628;--card:#14213d;--card2:#1b2b4d;--line:#27395f;--text:#fff4e6;--muted:#a9b4cb;--orange2:#ff9a2e;
+--green:#3ccf7a;--red:#ff6266;--yellow:#f0b232}
+html[data-theme=dunkel] .box.tip{background:#12392a;border-color:#1f6b46}html[data-theme=dunkel] .box.warn{background:#3d2f0c;border-color:#7a5c14}
+html[data-theme=dunkel] .box.secret{background:#3b1518;border-color:#7a2a30}html[data-theme=dunkel] .choice.on{background:#2a2216}
+html[data-theme=dunkel] .key{background:var(--card2)}html[data-theme=dunkel] .nav{background:#0e1628f2}
+.top,.do li:before,.btnname,.next,.choice.on .tick,.menu{--text:#14213d}.menu{--bg:#fff4e6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:18px/1.55 "Segoe UI",system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:var(--orange2)}
+b,strong{color:var(--text)}
+h1,h2,.brand,.kicker,.big,.choice b{font-family:var(--head)}
+.top{position:sticky;top:0;z-index:5;background:var(--orange);box-shadow:0 2px 8px #b0520033}
+.topin{max-width:980px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:21px}
+.brand img{width:34px;height:34px}
+.count{margin-left:auto;color:var(--text);font-size:15px;white-space:nowrap}
+.count b{color:var(--text)}
+.menu{background:var(--bg);border:0;border-radius:10px;padding:6px 12px;font-size:15px;font-weight:600}
+.prog{height:6px;background:#ffffff55}
+.prog i{display:block;height:100%;width:0;background:var(--text);transition:width .3s}
+main{max-width:980px;margin:0 auto;padding:26px 20px 130px}
+.step{animation:in .25s ease}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.kicker{color:var(--orange2);font-weight:700;font-size:15px;letter-spacing:.04em;text-transform:uppercase;margin:0 0 4px}
+h1{font-size:36px;line-height:1.2;margin:0 0 14px;font-weight:600}
+h2{font-size:23px;margin:28px 0 10px;font-weight:600}
+p{margin:0 0 14px}
+.lead{font-size:21px}
+.do{list-style:none;padding:0;margin:18px 0;counter-reset:d;display:flex;flex-direction:column;gap:12px}
+.do li{counter-increment:d;position:relative;padding:14px 16px 14px 62px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.do li:before{content:counter(d);position:absolute;left:14px;top:12px;width:34px;height:34px;border-radius:50%;
+background:var(--orange);color:var(--text);font-weight:800;display:grid;place-items:center;font-family:var(--head)}
+.key{display:inline-block;background:#fff;border:1px solid var(--line);border-bottom-width:3px;border-radius:8px;padding:0 8px;font-weight:700;color:var(--text);white-space:nowrap}
+.btnname{display:inline-block;background:var(--orange);color:var(--text);border-radius:8px;padding:0 9px;font-weight:700;white-space:nowrap}
+.btnname.grey{background:var(--card2);color:var(--text);border:1px solid var(--line)}
+.box{border-radius:14px;padding:14px 16px 14px 56px;margin:16px 0;position:relative;border:1px solid}
+.box:before{position:absolute;left:16px;top:12px;font-size:24px;line-height:1}
+.box.tip{background:#e4f4ea;border-color:#b5dfc4}.box.tip:before{content:"💡"}
+.box.warn{background:#fde9bf;border-color:#efc773}.box.warn:before{content:"⚠️"}
+.box.secret{background:#fbe5e5;border-color:#f0babb}.box.secret:before{content:"🔒"}
+.box p:last-child{margin:0}
+figure{margin:18px 0}
+figcaption{color:var(--muted);font-size:15px;margin-top:8px}
+.shot{position:relative;display:block;border-radius:12px;overflow:hidden;border:1px solid var(--line);cursor:zoom-in;background:var(--text);box-shadow:0 6px 20px #b0520022}
+.shot img{display:block;width:100%;height:auto}
+.ring{position:absolute;border:4px solid var(--text);border-radius:12px;box-shadow:0 0 0 4px #f77f0080,0 0 24px #f77f00a0;
+animation:pulse 1.6s ease-in-out infinite;pointer-events:none}
+.ring b{position:absolute;top:-16px;left:-16px;color:var(--bg);}.ring.tr b{left:auto;right:-16px}.ring b{width:30px;height:30px;border-radius:50%;background:var(--text);color:var(--bg);
+display:grid;place-items:center;font-size:16px;box-shadow:0 2px 6px #0006}
+@keyframes pulse{50%{box-shadow:0 0 0 9px #f77f0040,0 0 30px #f77f00d0}}
+.real{display:inline-block;font-size:13px;background:var(--card2);color:var(--muted);padding:2px 8px;border-radius:20px;margin-bottom:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pages{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0}
+.choice{display:flex;gap:14px;align-items:flex-start;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px 16px;cursor:pointer;text-align:left;width:100%}
+.choice .ic{font-size:32px;line-height:1}
+.choice b{display:block;font-size:19px}
+.choice span{color:var(--muted);font-size:15px}
+.choice .tick{margin-left:auto;width:30px;height:30px;flex:none;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;font-weight:900}
+.choice.on{border-color:var(--orange);background:#ffe9cf}
+.choice.on .tick{background:var(--orange);border-color:var(--orange);color:var(--text)}
+.choice.on .tick:after{content:"✓"}
+.checks{display:flex;flex-direction:column;gap:10px;margin:16px 0}
+.help{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.help>summary{list-style:none;padding:14px 18px;font-weight:700;cursor:pointer;color:var(--orange2)}
+.help>summary::-webkit-details-marker{display:none}
+.help>summary:before{content:"🙋 "}
+.help[open]>summary{border-bottom:1px solid var(--line)}
+.help .in{padding:14px 18px}
+.help dl{margin:0}.help dt{font-weight:700;margin-top:12px;color:var(--text)}.help dt:first-child{margin-top:0}.help dd{margin:2px 0 0}
+.nav{position:fixed;left:0;right:0;bottom:0;background:#fffaf3f2;border-top:2px solid var(--orange);backdrop-filter:blur(6px);z-index:5}
+.navin{max-width:980px;margin:0 auto;padding:14px 20px;display:flex;gap:12px;align-items:center}
+.big{border:0;border-radius:14px;padding:14px 26px;font-weight:700;font-size:20px}
+.next{background:var(--orange);color:var(--text);margin-left:auto;min-width:190px;box-shadow:0 4px 0 #b05200}
+.next:active{transform:translateY(2px);box-shadow:0 2px 0 #b05200}
+.back{background:var(--card2);border:1px solid var(--line)}
+.back:disabled{visibility:hidden}
+.toc{position:fixed;inset:0;background:#14213d80;z-index:20;display:none}
+.toc.show{display:block}
+.toc .pan{position:absolute;right:0;top:0;bottom:0;width:min(380px,90vw);background:var(--card);border-left:1px solid var(--line);padding:20px;overflow:auto}
+.toc ol{padding-left:0;list-style:none;margin:14px 0}
+.toc li button{width:100%;text-align:left;background:none;border:0;padding:9px 10px;border-radius:10px;display:flex;gap:10px;font-size:16px}
+.toc li button:hover{background:var(--card2)}
+.toc li button i{font-style:normal;width:26px;height:26px;flex:none;border-radius:50%;background:var(--card2);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--orange2)}
+.toc li.cur button{background:var(--card2);color:var(--text);font-weight:700}
+.toc li.done button i{background:var(--green);color:#fff}
+.zoom{position:fixed;inset:0;background:#14213dee;z-index:30;display:none;place-items:center;padding:16px;cursor:zoom-out}
+.zoom.show{display:grid}
+.zoom .shot{max-width:1280px;width:100%;cursor:zoom-out}
+/* Nachgebaute Windows- und Discord-Fenster */
+.mock b{color:inherit}.mock{border-radius:12px;overflow:hidden;border:1px solid #3a4560;box-shadow:0 10px 30px #0008;font-family:"Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.4}
+.win{background:#f3f3f3;color:#1b1b1b}
+.win .tb{background:#fff;padding:8px 12px;font-size:13px;color:#444;border-bottom:1px solid #ddd;display:flex;gap:8px;align-items:center}
+.win .tb span{margin-left:auto;letter-spacing:10px;color:#666}
+.files{padding:14px;display:flex;gap:22px;flex-wrap:wrap;background:#fff}
+.file{width:110px;text-align:center;font-size:13px;padding:8px;border-radius:6px;color:#1b1b1b;position:relative}
+.file .fi{font-size:44px;line-height:1.1}
+.file.sel{background:#cce4f7;outline:1px solid #99c9ef}
+.file img{width:48px;height:48px}
+.ctx{position:absolute;left:118px;top:40px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 6px 18px #0003;padding:4px;width:210px;text-align:left;z-index:2}
+.ctx div{padding:6px 10px;border-radius:5px}
+.ctx .hl{background:#e5f1fb;outline:3px solid var(--orange)}
+.ss{background:#0063b1;color:#fff;padding:22px 24px;min-height:260px;display:flex;flex-direction:column}
+.ss h3{font-size:24px;font-weight:600;margin:0 0 14px;color:#fff}
+.ss p{margin:0 0 10px;font-size:15px}
+.ss .lnk{background:none;border:0;padding:0;color:#fff;text-decoration:underline;font-size:15px;text-align:left}
+.ss .row{margin-top:auto;display:flex;gap:10px;justify-content:flex-end;padding-top:16px}
+.ss .row button{background:transparent;border:2px solid #fff;color:#fff;padding:6px 18px;font-size:15px}
+.ss .row button.go{background:#fff;color:#0063b1;font-weight:700}
+.hlbtn{outline:4px solid var(--orange)!important;outline-offset:3px;animation:pulse 1.6s infinite}
+.tray{background:#1f1f1f;color:#fff;padding:10px 14px;display:flex;align-items:center;gap:14px;justify-content:flex-end;position:relative;min-height:150px;align-items:flex-end;
+background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat,#1f1f1f}
+.tray .ar{font-size:18px;padding:4px 8px;border-radius:5px}
+.tray .ic{width:26px;height:26px;opacity:.85}
+.tray .clock{font-size:13px;text-align:right;line-height:1.3}
+.flyout{position:absolute;right:120px;bottom:60px;background:#2b2b2b;border:1px solid #444;border-radius:8px;padding:10px;display:grid;grid-template-columns:repeat(3,34px);gap:8px}
+.flyout span{width:34px;height:34px;display:grid;place-items:center;border-radius:6px;font-size:18px}
+.flyout img{width:26px;height:26px}
+.dc{background:#313338;color:#dbdee1;display:grid;grid-template-columns:150px 1fr;min-height:250px}
+.dc .side{background:#2b2d31;padding:12px 8px;font-size:14px}
+.dc .side div{padding:6px 10px;border-radius:5px;color:#b5bac1}
+.dc .side .on{background:#404249;color:#fff}
+.dc .body{padding:16px 18px}
+.dc h4{margin:0 0 10px;color:#fff;font-size:18px}
+.dc .bl{display:inline-block;background:var(--blue);color:#fff;border-radius:4px;padding:6px 14px;font-weight:600;font-size:14px}
+.dc .bl.red{background:#da373c}
+.dc .tok{background:#1e1f22;border-radius:4px;padding:8px 10px;font-family:Consolas,monospace;color:#949ba4;margin:8px 0;font-size:13px}
+.dc .sw{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #3f4147;font-size:14px}
+.dc .sw i{width:40px;height:24px;border-radius:12px;background:#80848e;position:relative}
+.dc .sw i:after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px}
+.dc .sw i.on{background:#23a55a}.dc .sw i.on:after{left:19px}
+.dc .cb{display:inline-flex;align-items:center;gap:8px;margin:4px 14px 4px 0;font-size:14px}
+.dc .cb i{width:18px;height:18px;border-radius:4px;border:2px solid #80848e}
+.dc .cb i.on{background:var(--blue);border-color:var(--blue)}
+.dc .url{background:#1e1f22;border-radius:4px;padding:8px 10px;font-family:Consolas,monospace;font-size:12px;color:#00a8fc;margin-top:6px;word-break:break-all}
+.ok{color:var(--green);font-weight:700}
+.party{font-size:80px;text-align:center;margin:10px 0}
+@media(max-width:720px){.ring{border-width:3px}html,body{font-size:17px}h1{font-size:27px}.grid2,.pages{grid-template-columns:1fr}
+.next{min-width:0;flex:1}.big{padding:13px 18px}.dc{grid-template-columns:1fr}.dc .side{display:none}.count span{display:none}}
+@media print{.top,.nav,.help>summary:before{display:none}}
+</style>
+</head>
+<body>
+<div class="top"><div class="topin">
+  <div class="brand"><img src="{{img:icon}}" alt="">FuchsLabs</div>
+  <div class="count" id="count"></div>
+  <button class="menu" id="menu" aria-label="Alle Schritte anzeigen">☰ Alle Schritte</button>
+</div><div class="prog"><i id="prog"></i></div></div>
+
+<main id="main"></main>
+
+<div class="nav"><div class="navin">
+  <button class="big back" id="back">← Zurück</button>
+  <button class="big next" id="next">Weiter →</button>
+</div></div>
+
+<div class="toc" id="toc"><div class="pan"><b style="font-size:20px">Alle Schritte</b>
+  <p style="color:var(--muted);font-size:15px;margin:6px 0 0">Tippe auf einen Schritt, um direkt dorthin zu springen.</p><ol id="toclist"></ol></div></div>
+<div class="zoom" id="zoom"></div>
+
+<script>
+/* Bilder: echte Aufnahmen der Einstellungsseite. Ringe in Prozent des Bildes (links, oben, Breite, Höhe). */
+const IMG = {
+  start: '{{img:start}}', uebersicht: '{{img:uebersicht}}', discord: '{{img:discord}}', bf6: '{{img:bf6}}',
+  blogs: '{{img:blogs}}', display: '{{img:display}}', bar: '{{img:bar}}', page_system: '{{img:page_system}}',
+  page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', icon: '{{img:icon}}'};
+const W = 1280, H = 860;
+function shot(name, rings = [], cap = '', w = W, h = H, nums = true) {
+  const r = rings.map(([x, y, rw, rh, pos = ''], i) => `<span class="ring ${pos}" style="left:${x / w * 100}%;top:${y / h * 100}%;width:${rw / w * 100}%;height:${rh / h * 100}%">${nums && rings.length > 1 ? `<b>${i + 1}</b>` : ''}</span>`).join('');
+  return `<figure><span class="real">📷 So sieht es bei dir aus</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${cap}">${r}</div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
+}
+const help = (items, title = 'Klappt nicht? Hier klicken') =>
+  `<details class="help"><summary>${title}</summary><div class="in"><dl>${items.map(([q, a]) => `<dt>${q}</dt><dd>${a}</dd>`).join('')}</dl></div></details>`;
+const b = t => `<span class="btnname">${t}</span>`, g = t => `<span class="btnname grey">${t}</span>`;
+
+/* Was der Nutzer sehen möchte (wird nur in diesem Browser gemerkt) */
+const FEAT = [
+  ['system', '🖥️', 'Mein PC', 'Wie fleißig Prozessor, Grafikkarte und Speicher gerade arbeiten'],
+  ['discord', '💬', 'Discord-Freunde', 'Wer von deinen Freunden gerade online ist und was er spielt'],
+  ['friends', '🎮', 'Steam- und Xbox-Freunde', 'Deine Freunde von Steam, Xbox und Discord in einer gemeinsamen Liste'],
+  ['bf6', '🎖️', 'Battlefield 6', 'Eine Rangliste von dir und deinen Freunden'],
+  ['blogs', '📰', 'Neuigkeiten', 'Die neuesten Artikel von Webseiten, die du magst']];
+let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true}, cur = 0, seen = new Set();
+try { Object.assign(sel, JSON.parse(localStorage.getItem('fl-guide-sel') || '{}')); } catch (e) {}
+const saveSel = () => { try { localStorage.setItem('fl-guide-sel', JSON.stringify(sel)); } catch (e) {} };
+
+const STEPS = [
+{t: 'Hallo!', html: () => `
+<p class="kicker">Los geht's</p><h1>Hallo! Wir richten jetzt zusammen dein USB-Display ein.</h1>
+<p class="lead">Das kleine Display zeigt dir Sachen an, ohne dass du dafür ein Fenster auf deinem großen Bildschirm brauchst. Zum Beispiel so:</p>
+<div class="pages">
+  <figure><div class="shot" data-zoom><img src="${IMG.page_system}" alt="Systemseite"></div><figcaption>Wie fleißig dein PC gerade arbeitet</figcaption></figure>
+  <figure><div class="shot" data-zoom><img src="${IMG.page_blogs}" alt="Neuigkeiten"></div><figcaption>Neue Artikel von deinen Lieblingsseiten</figcaption></figure>
+</div>
+<p>Du machst immer nur <b>einen kleinen Schritt</b>. Oben rechts steht, wie weit du schon bist. Wenn du fertig bist, drückst du unten auf ${b('Weiter →')}.</p>
+<div class="box tip"><p>Wenn etwas nicht klappt, gibt es bei jedem Schritt unten einen Knopf <b>„Klappt nicht?“</b>. Dort steht, was du tun kannst.</p></div>`},
+
+{t: 'Was willst du sehen?', html: () => `
+<p class="kicker">Aussuchen</p><h1>Was soll dein Display zeigen?</h1>
+<p class="lead">Tippe an, was du haben willst. Die Anleitung zeigt dir dann nur die Schritte, die du brauchst.</p>
+<div class="checks">${FEAT.map(([k, ic, t, d]) => `<button class="choice${sel[k] ? ' on' : ''}" data-feat="${k}"><span class="ic">${ic}</span><span><b>${t}</b><span>${d}</span></span><span class="tick"></span></button>`).join('')}</div>
+<p style="color:var(--muted)">Keine Sorge: Du kannst später alles noch ändern.</p>`},
+
+{t: 'Was du brauchst', html: () => `
+<p class="kicker">Vorbereiten</p><h1>Das brauchst du</h1>
+<ol class="do">
+<li><b>Das Display</b> mit seinem <b>USB-Kabel</b>.</li>
+<li><b>Einen Windows-PC</b> mit Internet.</li>
+<li><b>Die Datei <span class="key">FuchsLabs-USB-Display-1.1.zip</span></b>. Die hast du von dem bekommen, der dir diese Anleitung geschickt hat.</li>
+${sel.discord ? '<li><b>Dein Discord-Konto</b> und einen Discord-Server, auf dem du Chef (Admin) bist. Bist du das nicht, frag den Chef des Servers, ob er dir hilft.</li>' : ''}
+${sel.friends ? '<li><b>Dein Steam-Konto</b> und/oder <b>dein Xbox-Konto</b>.</li>' : ''}
+${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</li>' : ''}
+</ol>
+<div class="box tip"><p>Hol dir am besten einen Erwachsenen oder großen Bruder dazu, wenn Windows etwas fragt, das du nicht verstehst.</p></div>`},
+
+{t: 'Ordner auspacken', html: () => `
+<p class="kicker">Auspacken</p><h1>Pack die ZIP-Datei aus</h1>
+<p class="lead">Die ZIP-Datei ist wie ein Paket. Bevor du das Programm benutzen kannst, musst du es auspacken.</p>
+<ol class="do">
+<li>Klicke mit der <b>rechten Maustaste</b> auf die Datei <span class="key">FuchsLabs-USB-Display-1.1.zip</span>.</li>
+<li>Klicke auf <b>„Alle extrahieren …“</b>.</li>
+<li>Klicke im neuen Fenster unten rechts auf ${g('Extrahieren')}.</li>
+</ol>
+<figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
+<div class="tb">📁 Downloads<span>— ☐ ✕</span></div>
+<div class="files" style="min-height:230px;position:relative">
+<div class="file sel"><div class="fi">🗜️</div>FuchsLabs-USB-Display-1.1.zip
+<div class="ctx"><div>Öffnen</div><div class="hl"><b>Alle extrahieren …</b></div><div>Kopieren</div><div>Umbenennen</div><div>Eigenschaften</div></div></div>
+</div></div></figure>
+<div class="box tip"><p>Leg den ausgepackten Ordner an einen Platz, wo er bleiben darf, zum Beispiel in <b>Dokumente</b>. Nicht im Papierkorb und nicht auf einem USB-Stick, den du wieder abziehst.</p></div>
+${help([['Ich finde die ZIP-Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den findest du im Explorer (gelbes Ordner-Symbol unten in der Taskleiste) links in der Liste.'],
+  ['Es steht kein „Alle extrahieren“ da.', 'Bei Windows 11 erst auf <b>„Weitere Optionen anzeigen“</b> klicken. Oder die ZIP-Datei doppelklicken und oben auf <b>„Alle extrahieren“</b> klicken.']])}`},
+
+{t: 'Display anstecken', html: () => `
+<p class="kicker">Anschließen</p><h1>Steck das Display an</h1>
+<ol class="do">
+<li>Steck das USB-Kabel in das Display.</li>
+<li>Steck das andere Ende in deinen PC.</li>
+</ol>
+<p>Das Display bleibt vielleicht noch dunkel oder zeigt ein eigenes Bild. Das ist in Ordnung. Gleich startest du das Programm, dann leuchtet es.</p>
+<div class="box tip"><p>Am besten einen USB-Anschluss <b>direkt am PC</b> nehmen, nicht an einem USB-Verteiler.</p></div>`},
+
+{t: 'Programm starten', html: () => `
+<p class="kicker">Starten</p><h1>Starte das Programm</h1>
+<ol class="do">
+<li>Öffne den ausgepackten Ordner <span class="key">FuchsLabs-USB-Display</span>.</li>
+<li>Mach einen <b>Doppelklick</b> auf <span class="key">FuchsLabs-USB-Display.exe</span>. Das ist die Datei mit dem orangen Zeichen.</li>
+</ol>
+<figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
+<div class="tb">📁 FuchsLabs-USB-Display<span>— ☐ ✕</span></div>
+<div class="files"><div class="file"><div class="fi">📁</div>_internal</div>
+<div class="file"><div class="fi">📄</div>ANLEITUNG.html</div>
+<div class="file sel hlbtn"><img src="${IMG.icon}" alt=""><br>FuchsLabs-USB-Display.exe</div>
+<div class="file"><div class="fi">📄</div>DOKUMENTATION.md</div></div></div></figure>
+<h2>Vielleicht kommt jetzt ein blaues Fenster</h2>
+<p>Windows kennt das Programm noch nicht und fragt lieber einmal nach. Das ist normal. <b>Probier es hier aus</b>, klick in dem Fenster unten:</p>
+<figure><span class="real">✏️ Zum Üben, das ist noch nicht das echte Fenster</span><div class="mock">
+<div class="ss" id="ss"><h3>Der Computer wurde durch Windows geschützt</h3>
+<p>Von Microsoft Defender SmartScreen wurde der Start einer unbekannten App verhindert.</p>
+<button class="lnk hlbtn" id="ssmore">Weitere Informationen</button>
+<div class="row"><button>Nicht ausführen</button></div></div></div></figure>
+<p id="ssdone" class="ok" hidden>Super, genau so geht's! Mach das jetzt beim echten Fenster genauso.</p>
+${help([['Es passiert gar nichts.', 'Warte 10 Sekunden. Das Programm braucht beim ersten Mal kurz. Dann schau, ob sich der Browser geöffnet hat.'],
+  ['Da steht „Windows hat Ihren PC geschützt“ und kein „Trotzdem ausführen“.', 'Dann ist dein PC streng eingestellt. Frag einen Erwachsenen, der den PC verwaltet.'],
+  ['Mein Virenschutz meldet sich.', 'Das Programm ist neu und noch nicht bekannt. Frag den, der dir das Programm gegeben hat, ob alles stimmt, und erlaube es dann.']])}`,
+ init: () => {
+  const ss = document.getElementById('ss'), more = document.getElementById('ssmore');
+  more.onclick = () => {
+    more.outerHTML = '<p>App: FuchsLabs-USB-Display.exe<br>Herausgeber: Unbekannter Herausgeber</p>';
+    ss.querySelector('.row').innerHTML = '<button class="go hlbtn" id="ssrun">Trotzdem ausführen</button><button>Nicht ausführen</button>';
+    document.getElementById('ssrun').onclick = () => { ss.innerHTML = '<h3>✓ Geschafft!</h3><p>Das Programm startet jetzt.</p>'; document.getElementById('ssdone').hidden = false; };
+  };
+ }},
+
+{t: 'Die Einstellungsseite', html: () => `
+<p class="kicker">Nachschauen</p><h1>Dein Browser öffnet sich von selbst</h1>
+<p class="lead">Es geht ein Fenster im Browser auf. Das ist die <b>Einstellungsseite</b>. Dort stellst du alles ein. Sie gehört nur dir und ist nicht im Internet.</p>
+<p>Schau ins Feld <b>„Zustand“</b>. Bei <b>Display</b> soll <b>„Verbunden“</b> stehen.</p>
+${shot('start', [[286, 193, 869, 62]], 'Bei „Display“ steht „Verbunden“: Alles gut!')}
+<p>Wenn das klappt, leuchtet jetzt auch dein kleines Display. 🎉</p>
+${help([['Da steht „Die Hersteller-App des Displays läuft“.', `Klicke daneben auf ${g('Hersteller-App beenden')}. Wenn darunter noch <b>„Autostart der Hersteller-App“</b> steht, klicke dort auf ${g('Abschalten')}. Windows fragt dann einmal nach, ob du das erlaubst: <b>Ja</b> klicken.`],
+  ['Da steht „Display nicht gefunden“.', 'Zieh das USB-Kabel ab und steck es wieder an. Probier einen anderen USB-Anschluss am PC. Warte dann ein paar Sekunden.'],
+  ['Der Browser ist nicht aufgegangen.', 'Unten rechts neben der Uhr ist ein kleines oranges Zeichen. Mach darauf einen Doppelklick. Den nächsten Schritt erklärt das noch genauer. Oder tippe im Browser oben ein: <span class="key">127.0.0.1:8765</span>'],
+  ['Das Bild auf dem Display steht auf dem Kopf.', 'Kein Problem, das reparierst du gleich in Schritt „Bild drehen und Helligkeit“.']])}`},
+
+{t: 'Mit Windows starten', html: () => `
+<p class="kicker">Einschalten</p><h1>Das Display soll immer von selbst angehen</h1>
+<p class="lead">Damit du das Programm nicht jedes Mal selbst starten musst:</p>
+<ol class="do"><li>Schalte auf der Seite <b>Start</b> den Schalter <b>„Mit Windows starten“</b> ein. Er wird dann orange.</li></ol>
+${shot('start', [[1088, 276, 62, 40]], 'Diesen Schalter antippen, bis er orange ist.')}
+<div class="box tip"><p>Auf dieser Seite gibt es auch den Knopf ${b('Anleitung öffnen ↗')}. Damit kommst du jederzeit zurück zu dieser Anleitung.</p></div>
+<div class="box tip"><p>Ab jetzt startet das Programm von selbst, wenn du dich bei Windows anmeldest. Ausschalten kannst du es hier genauso.</p></div>`},
+
+{t: 'Seiten aussuchen', html: () => `
+<p class="kicker">Aussuchen</p><h1>Welche Seiten zeigt das Display?</h1>
+<p class="lead">Klicke links auf <b>„Übersicht“</b>. Links siehst du, was das Display gerade zeigt. Rechts sind die Seiten.</p>
+${shot('uebersicht', [[1090, 222, 58, 352, 'tr'], [1055, 222, 34, 352], [843, 730, 238, 34]])}
+<ol class="do">
+<li>Mit dem <b>orangen Schalter</b> machst du eine Seite an oder aus. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Mach die Seiten aus, die du nicht willst.' : ''}${sel.friends ? ' Für Steam und Xbox schaltest du <b>„Freunde (alle Plattformen)“</b> ein.' : ''}</li>
+<li>Mit den <b>Pfeilen ▲ ▼</b> änderst du die Reihenfolge.</li>
+<li>Mit dem Regler <b>Helligkeit</b> machst du das Display heller oder dunkler.</li>
+</ol>
+<div class="box warn"><p>Unten erscheint dann ein Balken mit ${b('Speichern &amp; anwenden')}. Den drückst du ganz am Ende. Du kannst ihn aber auch jetzt schon drücken.</p></div>`},
+
+{t: 'Bild drehen und Helligkeit', html: () => `
+<p class="kicker">Nur wenn nötig</p><h1>Steht das Bild auf dem Kopf?</h1>
+<p class="lead">Wenn das Bild auf deinem Display richtig herum ist, drück einfach auf ${b('Weiter →')}.</p>
+<p>Wenn es auf dem Kopf steht:</p>
+<ol class="do"><li>Klicke links auf <b>„Display“</b>.</li><li>Wähle bei <b>Ausrichtung</b> die andere Variante, also <b>„Querformat“</b> statt <b>„Querformat, gedreht“</b> oder andersherum.</li></ol>
+${shot('display', [[925, 170, 231, 43]], 'Hier stellst du um, wie herum das Bild ist.')}`},
+
+{need: 'discord', t: 'Discord 1: Bot anlegen', html: () => `
+<p class="kicker">Discord · Teil 1 von 3</p><h1>Mach dir einen kleinen Discord-Helfer</h1>
+<p class="lead">Damit das Display sieht, wer online ist, braucht es einen <b>Bot</b>. Das ist ein Helfer-Konto bei Discord. Den machst du dir einmal selbst.</p>
+<ol class="do">
+<li>Öffne diese Seite: <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">discord.com/developers/applications</a> und melde dich mit deinem Discord-Konto an.</li>
+<li>Klicke oben rechts auf <span class="btnname" style="background:var(--blue);color:#fff">New Application</span>.</li>
+<li>Gib einen Namen ein, zum Beispiel <b>Mein Display</b>. Setz den Haken bei den Regeln und klicke auf <b>Create</b>.</li>
+<li>Klicke links auf <b>Bot</b>.</li>
+<li>Klicke auf <span class="btnname" style="background:var(--blue);color:#fff">Reset Token</span> und dann auf <b>Copy</b>. Jetzt ist der Token kopiert.</li>
+<li>Scroll etwas nach unten. Schalte <b>Presence Intent</b> und <b>Server Members Intent</b> ein (grün). Klicke auf <b>Save Changes</b>.</li>
+</ol>
+<figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock dc">
+<div class="side"><div>General Information</div><div>OAuth2</div><div class="on">Bot</div><div>Emojis</div></div>
+<div class="body"><h4>Bot</h4><div style="font-size:13px;color:#b5bac1">TOKEN</div>
+<div class="tok">••••••••••••••••••••••••••••</div><span class="bl hlbtn">Reset Token</span>
+<div style="margin-top:16px;font-size:12px;color:#b5bac1;font-weight:700">PRIVILEGED GATEWAY INTENTS</div>
+<div class="sw hlbtn" style="outline-offset:0">Presence Intent <i class="on"></i></div>
+<div class="sw hlbtn" style="outline-offset:0">Server Members Intent <i class="on"></i></div>
+<div class="sw">Message Content Intent <i></i></div></div></div></figure>
+<div class="box tip"><p>Die gleichen Schritte und den Knopf ${g('Discord-Entwicklerseite ↗')} findest du auch auf der Einstellungsseite bei <b>Discord</b> unter <b>„So bekommst du den Bot-Token“</b>.</p></div>
+<div class="box secret"><p>Der <b>Token</b> ist wie ein <b>Passwort</b>. Zeig ihn niemandem und schick ihn niemandem. Du fügst ihn gleich nur in deine Einstellungsseite ein.</p></div>
+${help([['Die Seite ist auf Englisch.', 'Das ist normal, Discord hat diese Seite nur auf Englisch. Halte dich einfach an die fett gedruckten Wörter.'],
+  ['Ich habe den Token verloren.', `Kein Problem. Klicke einfach noch einmal auf <b>Reset Token</b>. Dann bekommst du einen neuen.`],
+  ['Discord fragt nach meinem Passwort oder einem Code.', 'Das ist Discords Sicherheits-Abfrage. Gib es dort bei Discord ein, nirgendwo sonst.']])}`},
+
+{need: 'discord', t: 'Discord 2: Bot einladen', html: () => `
+<p class="kicker">Discord · Teil 2 von 3</p><h1>Lade deinen Bot auf deinen Server ein</h1>
+<p class="lead">Der Bot kann nur Leute sehen, die auf demselben Server sind wie er.</p>
+<ol class="do">
+<li>Klicke links auf <b>OAuth2</b> und dann auf <b>URL Generator</b>.</li>
+<li>Setz bei <b>Scopes</b> einen Haken bei <b>bot</b>.</li>
+<li>Ganz unten steht jetzt eine lange Adresse. Klicke auf <b>Copy</b>.</li>
+<li>Füge die Adresse oben in deinem Browser ein und drück <span class="key">Enter</span>.</li>
+<li>Wähle deinen Server aus und klicke auf <b>Autorisieren</b>.</li>
+</ol>
+<figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock dc">
+<div class="side"><div>General Information</div><div class="on">OAuth2</div><div>Bot</div></div>
+<div class="body"><h4>OAuth2 URL Generator</h4><div style="font-size:12px;color:#b5bac1;font-weight:700">SCOPES</div>
+<span class="cb">  <i></i>identify</span><span class="cb hlbtn"><i class="on"></i><b style="color:#fff">bot</b></span><span class="cb"><i></i>guilds</span><span class="cb"><i></i>email</span>
+<div style="margin-top:14px;font-size:12px;color:#b5bac1;font-weight:700">GENERATED URL</div>
+<div class="url">https://discord.com/oauth2/authorize?client_id=…&amp;scope=bot</div>
+<div style="margin-top:8px"><span class="bl hlbtn">Copy</span></div></div></div></figure>
+<p>Wenn es geklappt hat, ist dein Bot jetzt in der Mitgliederliste deines Servers zu sehen (noch grau, das ist normal).</p>
+${help([['Mein Server steht nicht in der Liste.', 'Du darfst nur Bots auf Server einladen, auf denen du Chef (Admin) bist. Schick die Adresse sonst dem Chef des Servers. Er kann den Bot für dich einladen.'],
+  ['Ich habe mehrere Server.', 'Du kannst die Adresse mehrmals öffnen und den Bot auf jeden Server einladen.']])}`},
+
+{need: 'discord', t: 'Discord 3: Token einfügen', html: () => `
+<p class="kicker">Discord · Teil 3 von 3</p><h1>Gib dem Display den Token</h1>
+<ol class="do">
+<li>Geh zurück zur Einstellungsseite und klicke links auf <b>„Discord“</b>.</li>
+<li>Klicke in das Feld <b>Bot-Token</b> und füge den Token ein: <span class="key">Strg</span> + <span class="key">V</span>.</li>
+<li>Drück unten auf ${b('Speichern &amp; anwenden')}. Warte etwa 10 Sekunden.</li>
+<li>Jetzt erscheinen bei <b>Personen</b> die Leute von deinem Server. Setz einen Haken bei deinen Freunden.</li>
+</ol>
+${shot('discord', [[925, 218, 231, 42], [286, 800, 869, 318]], 'Beispiel-Namen. Unter dem Token-Feld steht die Hilfe noch einmal zum Aufklappen.', W, 1180)}
+<div class="box tip"><p>Wenn du <b>niemanden</b> anhakst, zeigt das Display alle Leute vom Server. Wenn du Freunde anhakst, nur diese.</p></div>
+${help([['Bei „Personen“ steht „Der Bot ist gerade nicht verbunden“.', 'Prüfe, ob du den ganzen Token eingefügt hast, und ob du in Teil 1 die beiden Schalter (Intents) grün gemacht und gespeichert hast. Klicke dann noch einmal auf <b>Speichern &amp; anwenden</b>.'],
+  ['Meine Freunde fehlen in der Liste.', 'Der Bot sieht nur Leute auf Servern, auf denen er selbst ist. Lade ihn auch auf den Server ein, auf dem deine Freunde sind (Teil 2).'],
+  ['Auf dem Display steht niemand.', 'Es werden nur Leute gezeigt, die gerade online sind. Oder schalte <b>„Offline-Freunde anzeigen“</b> ein.']])}`},
+
+{need: 'friends', t: 'Steam und Xbox', html: () => `
+<p class="kicker">Steam und Xbox</p><h1>Hol deine Steam- und Xbox-Freunde dazu</h1>
+<p class="lead">Dafür braucht das Display je einen <b>Schlüssel</b>. Das ist ein langer Code, mit dem die App deine Freundesliste lesen darf. Du brauchst nur die, die du benutzt.</p>
+<ol class="do">
+<li>Klicke links auf <b>„Freunde“</b>.</li>
+<li><b>Steam:</b> Klapp <b>„So bekommst du den Steam-Schlüssel“</b> auf und klicke auf ${g('Steam-Schlüssel holen ↗')}. Bei <b>Domain Name</b> schreibst du <b>localhost</b>. Den Schlüssel kopierst du ins Feld <b>Steam-Schlüssel</b>.</li>
+<li>Klapp <b>„So findest du deinen Profil-Link“</b> auf. Mit ${g('Mein Steam-Profil ↗')} öffnest du dein Profil. Kopier die Adresse oben aus dem Browser ins Feld <b>Dein Steam-Profil</b>.</li>
+<li>Ganz wichtig: Mit ${g('Datenschutz öffnen ↗')} stellst du bei Steam <b>Freundesliste</b> auf <b>Öffentlich</b>.</li>
+<li><b>Xbox:</b> Klapp <b>„So bekommst du den Xbox-Schlüssel“</b> auf und folge den Schritten dort.</li>
+<li>Klicke jeweils auf ${g('Verbindung prüfen')}. Grün heißt: klappt. Dann ${b('Speichern &amp; anwenden')}.</li>
+</ol>
+${shot('freunde', [[675, 97, 231, 42], [675, 161, 231, 42], [35, 269, 870, 390], [675, 783, 231, 42]], 'Die Hilfe zum Aufklappen hat Knöpfe, die gleich die richtige Seite öffnen.', 940, 960, false)}
+<div class="box secret"><p>Die Schlüssel sind wie <b>Passwörter</b>. Zeig sie niemandem.</p></div>
+<div class="box tip"><p>Für PlayStation gibt es leider keinen erlaubten Weg. Darum fehlt sie hier.</p></div>
+${help([['Da steht, die Freundesliste ist privat.', 'Bei Steam die Freundesliste auf <b>Öffentlich</b> stellen (Schritt 4) und dann noch einmal prüfen.'],
+  ['Ein Freund steht doppelt in der Liste.', 'Ganz unten bei <b>„Personen zusammenführen“</b> die beiden Konten auswählen und auf <b>Verknüpfen</b> klicken.'],
+  ['Discord-Freunde stehen jetzt doppelt auf dem Display.', 'In der <b>Übersicht</b> die Seite <b>„Discord-Freunde“</b> ausschalten. Die gemeinsame Liste zeigt Discord schon mit.']])}`},
+
+{need: 'bf6', t: 'Battlefield 6', html: () => `
+<p class="kicker">Battlefield 6</p><h1>Trag die Battlefield-Spieler ein</h1>
+<p class="lead">EA verrät nicht, wer deine Freunde sind. Darum schreibst du die Namen selbst auf.</p>
+<ol class="do">
+<li>Klicke links auf <b>„Battlefield 6“</b>.</li>
+<li>Schreib unten deinen <b>EA-Namen</b> in das Feld. Spielst du auf PlayStation oder Xbox, wähl das daneben aus.</li>
+<li>Klicke auf ${g('Hinzufügen')}. Mach das genauso für jeden Freund.</li>
+<li>Klicke bei einem Namen auf ${g('Prüfen')}. Steht dort grün ein <b>Rang</b>, ist der Name richtig.</li>
+</ol>
+${shot('bf6', [[286, 746, 869, 43], [990, 399, 62, 33], [286, 801, 869, 203]], 'Beispiel-Namen. Grün heißt: gefunden. Bei 3 steht, wo du die EA-ID findest.', W, 1180)}
+${help([['Da steht „Spieler nicht gefunden“.', 'Schau genau auf die Schreibweise. Groß- und Kleinbuchstaben und Null und O werden oft verwechselt. Frag deinen Freund nach seinem genauen EA-Namen.'],
+  ['Mein Freund spielt auf der Konsole.', 'Wähle beim Eintragen rechts neben dem Feld <b>PlayStation</b> oder <b>Xbox</b> aus.']])}`},
+
+{need: 'blogs', t: 'Neuigkeiten', html: () => `
+<p class="kicker">Neuigkeiten</p><h1>Such dir Webseiten aus</h1>
+<p class="lead">Das Display zeigt die neuesten Artikel von Webseiten, die öfter neue Sachen schreiben (zum Beispiel News-Seiten oder Blogs).</p>
+<ol class="do">
+<li>Klicke links auf <b>„Blogs“</b>.</li>
+<li>Kopier die Adresse der Webseite aus deinem Browser und füge sie unten ins Feld ein.</li>
+<li>Klicke auf ${g('Hinzufügen')} und dann auf ${g('Prüfen')}. Grün heißt: klappt.</li>
+</ol>
+${shot('blogs', [[286, 760, 869, 42], [286, 471, 869, 63]], 'Beispiel-Webseiten. Grün heißt: Es wurden Artikel gefunden.', W, 1180)}
+${help([['Da steht „Kein Feed gefunden“.', 'Manche Seiten machen keine Artikel-Liste für Programme. Probier eine andere Seite oder häng an die Adresse <span class="key">/feed/</span> an.']])}`},
+
+{need: 'system', t: 'Mein PC', html: () => `
+<p class="kicker">Mein PC</p><h1>Die PC-Seite läuft schon</h1>
+<p class="lead">Hier musst du nichts machen. Die Seite zeigt sofort, wie viel dein PC gerade arbeitet.</p>
+<figure><div class="shot" data-zoom style="max-width:520px"><img src="${IMG.page_system}" alt="Systemseite"></div></figure>
+<div class="box tip"><p><b>Für Profis:</b> Steht bei CPU-Temperatur und Lüfter nur ein Strich „–“? Dafür braucht der PC das kostenlose Programm <b>HWiNFO64</b>. Installiere es von <a href="https://www.hwinfo.com/" target="_blank" rel="noopener">hwinfo.com</a>, dann mach im Ordner einen Rechtsklick auf <span class="key">hwinfo-einrichten.bat</span> und wähle <b>„Als Administrator ausführen“</b>. Frag dafür am besten einen Erwachsenen.</p></div>`},
+
+{t: 'Speichern', html: () => `
+<p class="kicker">Ganz wichtig</p><h1>Speichern nicht vergessen!</h1>
+<p class="lead">Wenn du etwas geändert hast, erscheint unten auf der Einstellungsseite ein Balken.</p>
+${shot('bar', [[828, 14, 190, 44]], 'Diesen Knopf drücken.', 1050, 70)}
+<ol class="do">
+<li>Drück auf ${b('Speichern &amp; anwenden')}.</li>
+<li>Warte etwa <b>10 Sekunden</b>. Das Display wird kurz neu gestartet.</li>
+<li>Fertig! Dein Display zeigt jetzt deine Seiten, eine nach der anderen.</li>
+</ol>
+<div class="box warn"><p>Wenn du die Seite schließt, ohne zu speichern, ist deine Änderung weg. Der Browser warnt dich dann aber vorher.</p></div>`},
+
+{t: 'Wiederfinden', html: () => `
+<p class="kicker">Später</p><h1>So findest du die Einstellungen wieder</h1>
+<p class="lead">Das Programm läuft leise im Hintergrund. Es hat ein kleines <b>oranges Zeichen</b> unten rechts neben der Uhr.</p>
+<figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock">
+<div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
+<span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>21.10.2026</div></div></div></figure>
+<ol class="do">
+<li>Siehst du das Zeichen nicht? Klicke auf den kleinen Pfeil <span class="key">^</span>.</li>
+<li>Mach einen <b>Doppelklick</b> auf das orange Zeichen. Die Einstellungsseite geht auf.</li>
+<li>Mit einem <b>Rechtsklick</b> auf das Zeichen kannst du das Programm auch <b>beenden</b>.</li>
+</ol>
+<div class="box tip"><p>Du kannst auch einfach noch einmal <span class="key">FuchsLabs-USB-Display.exe</span> doppelklicken. Dann geht auch die Einstellungsseite auf.</p></div>`},
+
+{t: 'Fertig!', html: () => `
+<div class="party">🎉</div>
+<h1 style="text-align:center">Geschafft! Dein Display ist fertig.</h1>
+<p class="lead" style="text-align:center">Du hast alles eingerichtet. Jetzt kannst du zuschauen, wie die Seiten wechseln.</p>
+<h2>Wenn später etwas nicht klappt</h2>
+${help([['Das Display bleibt dunkel.', 'Schau, ob das orange Zeichen unten rechts da ist. Wenn nicht: <span class="key">FuchsLabs-USB-Display.exe</span> doppelklicken. Danach auf der Seite <b>Start</b> schauen, was bei „Zustand“ steht.'],
+  ['Das Bild sieht verschoben oder komisch aus.', 'Kabel kurz abziehen und wieder anstecken. Oder auf der Seite <b>Display</b> auf <b>Neu starten</b> klicken.'],
+  ['Das Display ist zu dunkel.', 'Seite <b>Übersicht</b>, Regler <b>Helligkeit</b> nach rechts schieben, dann <b>Speichern &amp; anwenden</b>.'],
+  ['Ich will das Programm loswerden.', 'Auf der Seite <b>Start</b> „Mit Windows starten“ ausschalten. Dann mit Rechtsklick auf das orange Zeichen <b>Beenden</b>. Danach kannst du den Ordner löschen.']], 'Hilfe bei Problemen')}
+<p style="color:var(--muted);margin-top:26px;text-align:center">Viel Spaß! · © 2026 FuchsLabs</p>`}
+];
+
+const $ = s => document.querySelector(s);
+const active = () => STEPS.filter(s => !s.need || sel[s.need]);
+function show(i) {
+  const list = active(); cur = Math.max(0, Math.min(i, list.length - 1)); const s = list[cur];
+  seen.add(s.t);
+  $('#main').innerHTML = `<section class="step">${s.html()}</section>`;
+  s.init && s.init();
+  $('#count').innerHTML = `<span>Schritt </span><b>${cur + 1}</b> von ${list.length}`;
+  $('#prog').style.width = ((cur + 1) / list.length * 100) + '%';
+  $('#back').disabled = cur === 0;
+  $('#next').textContent = cur === list.length - 1 ? 'Nochmal von vorn ↺' : 'Weiter →';
+  document.title = `${s.t} · USB-Display einrichten`;
+  try { history.replaceState(null, '', '#' + (cur + 1)); } catch (e) {}
+  window.scrollTo({top: 0});
+  $('#main').querySelectorAll('[data-feat]').forEach(el => el.onclick = () => {
+    sel[el.dataset.feat] = !sel[el.dataset.feat]; el.classList.toggle('on', sel[el.dataset.feat]); saveSel(); });
+  $('#main').querySelectorAll('[data-zoom]').forEach(el => el.onclick = () => {
+    $('#zoom').innerHTML = el.outerHTML; $('#zoom').classList.add('show'); });
+}
+$('#next').onclick = () => show(cur === active().length - 1 ? 0 : cur + 1);
+$('#back').onclick = () => show(cur - 1);
+$('#zoom').onclick = () => $('#zoom').classList.remove('show');
+$('#menu').onclick = () => {
+  const list = active();
+  $('#toclist').innerHTML = list.map((s, i) => `<li class="${i === cur ? 'cur' : seen.has(s.t) ? 'done' : ''}"><button data-go="${i}"><i>${seen.has(s.t) && i !== cur ? '✓' : i + 1}</i>${s.t}</button></li>`).join('');
+  $('#toclist').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { $('#toc').classList.remove('show'); show(+b.dataset.go); });
+  $('#toc').classList.add('show');
+};
+$('#toc').onclick = e => { if (e.target.id === 'toc') $('#toc').classList.remove('show'); };
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { $('#zoom').classList.remove('show'); $('#toc').classList.remove('show'); }
+  if (['INPUT', 'TEXTAREA', 'BUTTON'].includes(document.activeElement.tagName) && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  if (e.key === 'ArrowRight') $('#next').click(); if (e.key === 'ArrowLeft' && cur > 0) show(cur - 1);
+});
+const fromHash = () => show((parseInt(location.hash.slice(1)) || 1) - 1);
+window.addEventListener('hashchange', fromHash);
+fromHash();
+</script>
+</body>
+</html>
