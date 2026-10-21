@@ -73,7 +73,7 @@ class Bf6Stats:
 
     async def run(self, on_update: Callable[[], None]) -> None:
         timeout = aiohttp.ClientTimeout(total=45)
-        async with aiohttp.ClientSession(timeout=timeout, headers={"User-Agent": "FuchsLabs-USB-Display/1.1"}) as s:
+        async with aiohttp.ClientSession(timeout=timeout, headers={"User-Agent": "FuchsLabs-USB-Display/1.2"}) as s:
             while True:
                 t = time.monotonic()
                 fresh = []

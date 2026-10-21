@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 log = logging.getLogger("webui")
 HTML = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / "webui.html"
 GUIDE = HTML.with_name("ANLEITUNG.html")
-VERSION = "1.1"
+VERSION = "1.2"
 
 
 def _json(data, status: int = 200) -> web.Response:
@@ -176,7 +176,7 @@ class SettingsServer:
         if not name:
             return _json({"ok": False, "error": "Name fehlt"}, 400)
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=40),
-                                         headers={"User-Agent": "FuchsLabs-USB-Display/1.1"}) as s:
+                                         headers={"User-Agent": "FuchsLabs-USB-Display/1.2"}) as s:
             p = await Bf6Stats({"players": []})._fetch(s, name)
         if p.error:
             return _json({"ok": False, "error": "Spieler nicht gefunden"})
