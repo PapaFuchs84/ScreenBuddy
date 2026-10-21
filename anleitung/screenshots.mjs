@@ -57,6 +57,11 @@ const anon = `(() => {
     const fr = ['Lena', 'Max', 'Tom', 'Mia'];
     items.forEach((it, i) => it.querySelector('b').textContent = fr[i % fr.length]);
     document.querySelectorAll('option').forEach((o, i) => o.textContent = o.textContent.replace(/^.*\\(/, fr[i % fr.length] + ' ('));
+
+    // Auch private Xbox-Statusnamen und Prüftexte durch neutrale Beispieldaten ersetzen.
+    document.querySelectorAll('.conn .t').forEach(e => e.textContent = 'Verbunden als FuchsKumpel · Beispielkonto · live');
+    document.querySelectorAll('input').forEach(e => { if (e.type !== 'checkbox') e.value = e.type === 'password' ? '' : 'Beispielname'; });
+    document.querySelectorAll('.note, .ok, .bad').forEach(e => { if (/Verbunden:|Prüfe|Fehler|Gamertag|Xbox/i.test(e.textContent)) e.textContent = 'Verbunden: 4 Freunde, 2 gerade online'; });
   }
   return true; })()`;
 
