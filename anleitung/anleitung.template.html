@@ -288,7 +288,7 @@ ${help([['Es passiert gar nichts.', 'Warte 10 Sekunden. Das Programm braucht bei
 <p class="kicker">Nachschauen</p><h1>Dein Browser öffnet sich von selbst</h1>
 <p class="lead">Es geht ein Fenster im Browser auf. Das ist die <b>Einstellungsseite</b>. Dort stellst du alles ein. Sie gehört nur dir und ist nicht im Internet.</p>
 <p>Schau ins Feld <b>„Zustand“</b>. Bei <b>Display</b> soll <b>„Verbunden“</b> stehen.</p>
-${shot('start', [[286, 193, 869, 62]], 'Bei „Display“ steht „Verbunden“: Alles gut!')}
+${shot('start', [[286, 196, 869, 63]], 'Bei „Display“ steht „Verbunden“: Alles gut!')}
 <p>Wenn das klappt, leuchtet jetzt auch dein kleines Display. 🎉</p>
 ${help([['Da steht „Die Hersteller-App des Displays läuft“.', `Klicke daneben auf ${g('Hersteller-App beenden')}. Wenn darunter noch <b>„Autostart der Hersteller-App“</b> steht, klicke dort auf ${g('Abschalten')}. Windows fragt dann einmal nach, ob du das erlaubst: <b>Ja</b> klicken.`],
   ['Da steht „Display nicht gefunden“.', 'Zieh das USB-Kabel ab und steck es wieder an. Probier einen anderen USB-Anschluss am PC. Warte dann ein paar Sekunden.'],
@@ -299,14 +299,14 @@ ${help([['Da steht „Die Hersteller-App des Displays läuft“.', `Klicke daneb
 <p class="kicker">Einschalten</p><h1>Das Display soll immer von selbst angehen</h1>
 <p class="lead">Damit du das Programm nicht jedes Mal selbst starten musst:</p>
 <ol class="do"><li>Schalte auf der Seite <b>Start</b> den Schalter <b>„Mit Windows starten“</b> ein. Er wird dann orange.</li></ol>
-${shot('start', [[1088, 276, 62, 40]], 'Diesen Schalter antippen, bis er orange ist.')}
+${shot('start', [[1088, 280, 62, 40]], 'Diesen Schalter antippen, bis er orange ist.')}
 <div class="box tip"><p>Auf dieser Seite gibt es auch den Knopf ${b('Anleitung öffnen ↗')}. Damit kommst du jederzeit zurück zu dieser Anleitung.</p></div>
 <div class="box tip"><p>Ab jetzt startet das Programm von selbst, wenn du dich bei Windows anmeldest. Ausschalten kannst du es hier genauso.</p></div>`},
 
 {t: 'Seiten aussuchen', html: () => `
 <p class="kicker">Aussuchen</p><h1>Welche Seiten zeigt das Display?</h1>
 <p class="lead">Klicke links auf <b>„Übersicht“</b>. Links siehst du, was das Display gerade zeigt. Rechts sind die Seiten.</p>
-${shot('uebersicht', [[1090, 222, 58, 352, 'tr'], [1055, 222, 34, 352], [843, 730, 238, 34]])}
+${shot('uebersicht', [[1090, 226, 58, 352, 'tr'], [1055, 226, 34, 352], [843, 735, 238, 34]])}
 <ol class="do">
 <li>Mit dem <b>orangen Schalter</b> machst du eine Seite an oder aus. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Mach die Seiten aus, die du nicht willst.' : ''}${sel.friends ? ' Für Steam und Xbox schaltest du <b>„Freunde (alle Plattformen)“</b> ein.' : ''}</li>
 <li>Mit den <b>Pfeilen ▲ ▼</b> änderst du die Reihenfolge.</li>
@@ -319,7 +319,7 @@ ${shot('uebersicht', [[1090, 222, 58, 352, 'tr'], [1055, 222, 34, 352], [843, 73
 <p class="lead">Wenn das Bild auf deinem Display richtig herum ist, drück einfach auf ${b('Weiter →')}.</p>
 <p>Wenn es auf dem Kopf steht:</p>
 <ol class="do"><li>Klicke links auf <b>„Display“</b>.</li><li>Wähle bei <b>Ausrichtung</b> die andere Variante, also <b>„Querformat“</b> statt <b>„Querformat, gedreht“</b> oder andersherum.</li></ol>
-${shot('display', [[925, 170, 231, 43]], 'Hier stellst du um, wie herum das Bild ist.')}`},
+${shot('display', [[925, 175, 231, 43]], 'Hier stellst du um, wie herum das Bild ist.')}`},
 
 {need: 'discord', t: 'Discord 1: Bot anlegen', html: () => `
 <p class="kicker">Discord · Teil 1 von 3</p><h1>Mach dir einen kleinen Discord-Helfer</h1>
@@ -375,7 +375,7 @@ ${help([['Mein Server steht nicht in der Liste.', 'Du darfst nur Bots auf Server
 <li>Drück unten auf ${b('Speichern &amp; anwenden')}. Warte etwa 10 Sekunden.</li>
 <li>Jetzt erscheinen bei <b>Personen</b> die Leute von deinem Server. Setz einen Haken bei deinen Freunden.</li>
 </ol>
-${shot('discord', [[925, 218, 231, 42], [286, 800, 869, 318]], 'Beispiel-Namen. Unter dem Token-Feld steht die Hilfe noch einmal zum Aufklappen.', W, 1180)}
+${shot('discord', [[925, 277, 231, 42], [286, 860, 869, 318]], 'Beispiel-Namen. Unter dem Token-Feld steht die Hilfe noch einmal zum Aufklappen.', W, 1180)}
 <div class="box tip"><p>Wenn du <b>niemanden</b> anhakst, zeigt das Display alle Leute vom Server. Wenn du Freunde anhakst, nur diese.</p></div>
 ${help([['Bei „Personen“ steht „Der Bot ist gerade nicht verbunden“.', 'Prüfe, ob du den ganzen Token eingefügt hast, und ob du in Teil 1 die beiden Schalter (Intents) grün gemacht und gespeichert hast. Klicke dann noch einmal auf <b>Speichern &amp; anwenden</b>.'],
   ['Meine Freunde fehlen in der Liste.', 'Der Bot sieht nur Leute auf Servern, auf denen er selbst ist. Lade ihn auch auf den Server ein, auf dem deine Freunde sind (Teil 2).'],
@@ -392,7 +392,7 @@ ${help([['Bei „Personen“ steht „Der Bot ist gerade nicht verbunden“.', '
 <li><b>Xbox:</b> Klapp <b>„So bekommst du den Xbox-Schlüssel“</b> auf und folge den Schritten dort.</li>
 <li>Klicke jeweils auf ${g('Verbindung prüfen')}. Grün heißt: klappt. Dann ${b('Speichern &amp; anwenden')}.</li>
 </ol>
-${shot('freunde', [[675, 97, 231, 42], [675, 161, 231, 42], [35, 269, 870, 390], [675, 783, 231, 42]], 'Die Hilfe zum Aufklappen hat Knöpfe, die gleich die richtige Seite öffnen.', 940, 960, false)}
+${shot('freunde', [[675, 157, 231, 42], [675, 222, 231, 42], [35, 329, 870, 390], [675, 900, 231, 42]], 'Die Hilfe zum Aufklappen hat Knöpfe, die gleich die richtige Seite öffnen.', 940, 960, false)}
 <div class="box secret"><p>Die Schlüssel sind wie <b>Passwörter</b>. Zeig sie niemandem.</p></div>
 <div class="box tip"><p>Für PlayStation gibt es leider keinen erlaubten Weg. Darum fehlt sie hier.</p></div>
 ${help([['Da steht, die Freundesliste ist privat.', 'Bei Steam die Freundesliste auf <b>Öffentlich</b> stellen (Schritt 4) und dann noch einmal prüfen.'],
@@ -408,7 +408,7 @@ ${help([['Da steht, die Freundesliste ist privat.', 'Bei Steam die Freundesliste
 <li>Klicke auf ${g('Hinzufügen')}. Mach das genauso für jeden Freund.</li>
 <li>Klicke bei einem Namen auf ${g('Prüfen')}. Steht dort grün ein <b>Rang</b>, ist der Name richtig.</li>
 </ol>
-${shot('bf6', [[286, 746, 869, 43], [990, 399, 62, 33], [286, 801, 869, 203]], 'Beispiel-Namen. Grün heißt: gefunden. Bei 3 steht, wo du die EA-ID findest.', W, 1180)}
+${shot('bf6', [[286, 751, 869, 43], [990, 405, 62, 33], [286, 806, 869, 203]], 'Beispiel-Namen. Grün heißt: gefunden. Bei 3 steht, wo du die EA-ID findest.', W, 1180)}
 ${help([['Da steht „Spieler nicht gefunden“.', 'Schau genau auf die Schreibweise. Groß- und Kleinbuchstaben und Null und O werden oft verwechselt. Frag deinen Freund nach seinem genauen EA-Namen.'],
   ['Mein Freund spielt auf der Konsole.', 'Wähle beim Eintragen rechts neben dem Feld <b>PlayStation</b> oder <b>Xbox</b> aus.']])}`},
 
@@ -420,7 +420,7 @@ ${help([['Da steht „Spieler nicht gefunden“.', 'Schau genau auf die Schreibw
 <li>Kopier die Adresse der Webseite aus deinem Browser und füge sie unten ins Feld ein.</li>
 <li>Klicke auf ${g('Hinzufügen')} und dann auf ${g('Prüfen')}. Grün heißt: klappt.</li>
 </ol>
-${shot('blogs', [[286, 760, 869, 42], [286, 471, 869, 63]], 'Beispiel-Webseiten. Grün heißt: Es wurden Artikel gefunden.', W, 1180)}
+${shot('blogs', [[286, 765, 869, 42], [286, 476, 869, 63]], 'Beispiel-Webseiten. Grün heißt: Es wurden Artikel gefunden.', W, 1180)}
 ${help([['Da steht „Kein Feed gefunden“.', 'Manche Seiten machen keine Artikel-Liste für Programme. Probier eine andere Seite oder häng an die Adresse <span class="key">/feed/</span> an.']])}`},
 
 {need: 'system', t: 'Mein PC', html: () => `
