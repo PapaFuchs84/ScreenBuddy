@@ -12,7 +12,8 @@ Kurzer Verlauf, wie die App entstanden ist, und welche Entscheidungen dabei gefa
 | mittags | Version 1.1: Einstellungsseite im Browser, Herstellername überall entfernt, Token verschlüsselt, schlanker Build, Fassung für Freunde ohne Vorkenntnisse. |
 | mittags | Gemeinsame Freundesliste aus Discord, Steam und Xbox. Unabhängiges Sicherheits- und Performance-Review mit Fixes. Kindgerechte, bebilderte Anleitung und Hilfen an jedem Schlüsselfeld. |
 | nachmittags | Verbindungsstatus je Plattform, FuchsLabs-CI mit Fuchs-Logo, Hell/Dunkel-Umschalter. |
-| nachmittags | Quellcode als Git-Repository, CHANGELOG, dieses Protokoll, Vorlagen für Rückmeldungen in der Testphase. |
+| nachmittags | Quellcode als Git-Repository, CHANGELOG, dieses Protokoll, Vorlagen für Rückmeldungen in der Testphase. Anleitungs-Screenshots ohne echte Namen neu aufgenommen. |
+| abends | Version 1.2: eigene Farben, beliebige Auflösungen, HDMI/USB-C-Bildschirme mit optionalem Touch. Doku im Repository nach üblichem Standard ausgebaut (README, CONTRIBUTING, SECURITY). |
 
 ## Entscheidungen
 

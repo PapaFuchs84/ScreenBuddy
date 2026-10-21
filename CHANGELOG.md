@@ -4,6 +4,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unveröffentlicht]
 
+### Dokumentation
+- README nach üblichem Aufbau: Badges, Funktionen, Bilder mit Beispieldaten (`docs/screenshots/`), Schnellstart, Zugänge, Konfiguration, Hardware, Bauen, Projektaufbau, Sicherheit, Lizenzhinweis.
+- Neu: `CONTRIBUTING.md` (Ablauf, Code-Regeln, Umgang mit Geheimnissen), `SECURITY.md` (Lücken melden, Sicherheitsmodell) und eine Vorlage für Pull Requests.
+
 ## [1.2] – 2026-10-21
 
 ### Hinzugefügt
@@ -65,5 +69,6 @@ Erste Fassung als Python-Skript, danach als EXE `FuchsLabs-USB-Display-1.0.zip`.
 - Helligkeit von 50 auf 90 angehoben.
 - Ganzes Bild wird bei jedem Seitenwechsel und alle 5 Minuten neu gesendet. Ein Streifen an fester Stelle bei einfarbigen Testbildern liegt an Display oder Kabel, nicht an der App.
 
-[Unveröffentlicht]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v1.1...HEAD
+[Unveröffentlicht]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v1.2...HEAD
+[1.2]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v1.1...v1.2
 [1.1]: https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v1.1
