@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tomllib
 from pathlib import Path
 
@@ -15,7 +16,12 @@ DEFAULTS: dict[str, dict] = {
                 "show_offline": False},
     "display": {"port": "AUTO", "orientation": "landscape", "brightness": 50, "reset_on_start": True,
                 "page_seconds": 15, "pages": list(PAGES), "title": "Discord-Freunde",
-                "screen_off_on_exit": True, "theme": "hell"},
+                "screen_off_on_exit": True, "theme": "hell",
+                # Ausgabe: serial = USB-Display (3,5"), monitor = HDMI/USB-C-Bildschirm als Vollbildfenster
+                "output": "serial", "monitor": "", "touch": False,
+                # Eigene Farben (theme = "eigen"): Vorlage plus #RRGGBB-Werte; leer = Farbe der Vorlage
+                "color_base": "hell", "color_bg": "", "color_card": "", "color_header": "", "color_accent": "",
+                "color_text": "", "color_muted": ""},
     "system": {"enabled": True, "title": "System", "net_adapter": "", "net_unit": "bit", "disk": "C:",
                "cpu_temp_sensor": "", "cpu_fan_sensor": ""},
     "friends": {"enabled": False, "title": "Freunde", "include_discord": True, "auto_merge": True,
@@ -36,8 +42,11 @@ LIMITS = {
 CHOICES = {
     ("display", "orientation"): ("landscape", "reverse_landscape", "portrait", "reverse_portrait"),
     ("system", "net_unit"): ("bit", "byte"),
-    ("display", "theme"): ("hell", "dunkel"),
+    ("display", "theme"): ("hell", "dunkel", "eigen"),
+    ("display", "color_base"): ("hell", "dunkel"),
+    ("display", "output"): ("serial", "monitor"),
 }
+COLORS = {("display", f"color_{k}") for k in ("bg", "card", "header", "accent", "text", "muted")}
 ID_LISTS = {("discord", "guild_ids"), ("discord", "friend_ids"), ("discord", "ignore_ids")}
 SECRETS = {("discord", "token"), ("friends", "steam_api_key"), ("friends", "xbox_api_key")}
 
@@ -95,6 +104,10 @@ def _coerce(sec: str, key: str, value, default):
         v = str(value).strip()[:300]
         if (sec, key) in CHOICES and v not in CHOICES[(sec, key)]:
             raise ValueError(f"erlaubt: {', '.join(CHOICES[(sec, key)])}")
+        if (sec, key) in COLORS and v:
+            if not re.fullmatch(r"#[0-9a-fA-F]{6}", v):
+                raise ValueError("Farbe als #RRGGBB erwartet")
+            v = v.upper()
         return v
     if (sec, key) in LIMITS:
         lo, hi = LIMITS[(sec, key)]

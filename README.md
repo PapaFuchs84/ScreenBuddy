@@ -1,6 +1,6 @@
 # FuchsLabs USB-Display
 
-Windows-App für 3,5"-USB-Displays (480 × 320). Sie ersetzt die Hersteller-App und zeigt im Wechsel:
+Windows-App für 3,5"-USB-Displays (480 × 320) und Zusatzbildschirme über HDMI/USB-C in jeder Auflösung (z. B. 10,25"-Leisten mit 1920 × 720, auch mit Touch). Sie ersetzt die Hersteller-App und zeigt im Wechsel:
 
 - **System:** CPU, GPU, RAM, Datenträger, Netzwerk, Temperaturen und Lüfter (über HWiNFO)
 - **Freunde:** Discord, Steam und Xbox in einer gemeinsamen Liste

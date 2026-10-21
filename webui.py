@@ -74,6 +74,8 @@ class SettingsServer:
         r.add_get("/api/config", self.get_config)
         r.add_post("/api/config", self.post_config)
         r.add_get("/api/preview.png", self.preview)
+        r.add_post("/api/preview-theme.png", self.preview_theme)
+        r.add_get("/api/display/options", self.display_options)
         r.add_get("/api/discord/members", self.members)
         r.add_get("/api/system/info", self.system_info)
         r.add_get("/api/check/bf6", self.check_bf6)
@@ -134,6 +136,31 @@ class SettingsServer:
         buf = io.BytesIO()
         frame.save(buf, "PNG")
         return web.Response(body=buf.getvalue(), content_type="image/png", headers={"Cache-Control": "no-store"})
+
+    async def preview_theme(self, request: web.Request) -> web.Response:
+        """Aktuelles Displaybild mit den (noch nicht gespeicherten) Farben aus dem Formular."""
+        try:
+            body = await request.json()
+            keys = {"theme", "color_base"} | {k for _, k in appconfig.COLORS}
+            dp = {k: v for k, v in dict(body.get("display", {})).items() if k in keys}
+            merged = appconfig.merge(self.board.cfg, {"display": dp})["display"]
+        except (ValueError, TypeError, AttributeError) as e:
+            return _json({"ok": False, "error": str(e)}, 400)
+        frame = self.board.preview_theme(merged)
+        if frame is None:
+            return web.Response(status=404)
+        buf = io.BytesIO()
+        frame.save(buf, "PNG")
+        return web.Response(body=buf.getvalue(), content_type="image/png", headers={"Cache-Control": "no-store"})
+
+    async def display_options(self, request: web.Request) -> web.Response:
+        """Angeschlossene Bildschirme, Touch-Fähigkeit und die Farben der Vorlagen."""
+        import monitor_output
+        import render
+        monitors, touch = await asyncio.gather(asyncio.to_thread(monitor_output.list_monitors),
+                                               asyncio.to_thread(monitor_output.touch_info))
+        presets = {name: {k: render.hex_color(c) for k, c in p.items()} for name, p in render.PRESETS.items()}
+        return _json({"monitors": monitors, "touch": touch, "presets": presets, "size": list(self.board.size)})
 
     async def members(self, request: web.Request) -> web.Response:
         return _json({"ready": self.board.discord_ready, "members": self.board.member_list()})

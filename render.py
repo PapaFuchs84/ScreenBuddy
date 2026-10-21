@@ -1,5 +1,9 @@
 # © 2026 FuchsLabs
-"""Zeichnet die Freundesliste als Pillow-Bild für das 3,5"-Display."""
+"""Zeichnet die Seiten als Pillow-Bilder.
+
+Alle Maße sind für das 3,5"-Display (480 × 320) ausgelegt. Größere Displays zeichnen in denselben logischen
+Koordinaten; ScaledDraw rechnet sie auf die echte Pixelgröße um (Schrift wird groß gerendert, nicht hochgezogen).
+"""
 from __future__ import annotations
 
 import os
@@ -31,9 +35,48 @@ STATUS_COLOR = {           # Discord-Statusfarben, für hellen Grund abgedunkelt
 }
 
 
-def set_theme(name: str) -> None:
-    """Hell (Creme-Grund) oder dunkel (Navy-Grund); Kopfzeile bleibt in beiden Fuchs-Orange."""
-    global BG, CARD, LINE, ACCENT, TEXT, MUTED, WARN, HOT, DOWN
+HEAD_TEXT = brand.NAVY      # Schrift auf der Kopfzeile
+
+# Frei wählbare Farben (Einstellungen → Design → Eigene Farben); alles andere wird daraus abgeleitet
+COLOR_KEYS = ("bg", "card", "header", "accent", "text", "muted")
+PRESETS = {
+    "hell": {"bg": brand.CREME, "card": brand.SAND, "header": brand.ORANGE, "accent": brand.GLUT,
+             "text": brand.NAVY, "muted": brand.NEBEL},
+    "dunkel": {"bg": brand.NAVY_TIEF, "card": brand.NAVY, "header": brand.ORANGE, "accent": brand.ORANGE,
+               "text": brand.CREME, "muted": (150, 160, 180)},
+}
+
+
+def hex_color(c) -> str:
+    return "#%02X%02X%02X" % tuple(c)
+
+
+def parse_color(s: str):
+    s = str(s).strip().lstrip("#")
+    if not re.fullmatch(r"[0-9a-fA-F]{6}", s):
+        raise ValueError("Farbe als #RRGGBB erwartet")
+    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _mix(a, b, t: float):
+    return tuple(round(x + (y - x) * t) for x, y in zip(a, b))
+
+
+def contrast(a, b) -> float:
+    """Kontrastverhältnis nach WCAG (1 … 21); ab 4,5 gut lesbar."""
+    def lum(c):
+        v = [x / 255 for x in c]
+        v = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in v]
+        return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]
+    hi, lo = sorted((lum(a), lum(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def set_theme(name: str, custom: dict | None = None) -> None:
+    """Hell (Creme-Grund) oder dunkel (Navy-Grund); Kopfzeile bleibt in beiden Fuchs-Orange.
+    custom: eigene Farben {Schlüssel aus COLOR_KEYS: "#RRGGBB"} über der gewählten Vorlage; leere Werte = Vorlage."""
+    global BG, CARD, LINE, ORANGE, ACCENT, TEXT, MUTED, WARN, HOT, DOWN, HEAD_TEXT
+    ORANGE, HEAD_TEXT = brand.ORANGE, brand.NAVY
     if name == "dunkel":
         BG, CARD, LINE = brand.NAVY_TIEF, brand.NAVY, brand.NAVY_LINIE
         ACCENT, TEXT, MUTED = brand.ORANGE, brand.CREME, (150, 160, 180)
@@ -45,6 +88,93 @@ def set_theme(name: str) -> None:
         status = {"online": (22, 140, 72), "idle": (200, 140, 0), "dnd": (215, 45, 50), "offline": (140, 140, 140)}
         WARN, HOT, DOWN = (190, 120, 0), (215, 45, 50), (22, 140, 72)
     STATUS_COLOR.update(status)
+    c = {}
+    for k, v in (custom or {}).items():
+        try:
+            if k in COLOR_KEYS and v:
+                c[k] = parse_color(v)
+        except ValueError:
+            pass  # ungültige Farbe: Vorlage behalten
+    BG, CARD, ORANGE = c.get("bg", BG), c.get("card", CARD), c.get("header", ORANGE)
+    ACCENT, TEXT, MUTED = c.get("accent", ACCENT), c.get("text", TEXT), c.get("muted", MUTED)
+    if "bg" in c or "muted" in c:
+        LINE = _mix(BG, MUTED, 0.2)
+    if "header" in c:  # Kopfzeilenschrift: Navy oder Weiß, je nachdem was besser lesbar ist
+        HEAD_TEXT = max((brand.NAVY, (255, 255, 255)), key=lambda t: contrast(t, ORANGE))
+
+
+class ScaledDraw:
+    """ImageDraw in logischen Koordinaten; rechnet Lage, Linienbreite und Radius auf echte Pixel um."""
+
+    def __init__(self, img: Image.Image, s: float):
+        self._d, self.s = ImageDraw.Draw(img), s
+
+    def _xy(self, xy):
+        s = self.s
+        if xy and isinstance(xy[0], (tuple, list)):
+            return [(round(x * s), round(y * s)) for x, y in xy]
+        return [round(v * s) for v in xy]
+
+    def _kw(self, kw: dict) -> dict:
+        for k in ("width", "radius"):
+            if kw.get(k):
+                kw[k] = max(1, round(kw[k] * self.s))
+        return kw
+
+    def rectangle(self, xy, **kw):
+        self._d.rectangle(self._xy(xy), **self._kw(kw))
+
+    def rounded_rectangle(self, xy, **kw):
+        self._d.rounded_rectangle(self._xy(xy), **self._kw(kw))
+
+    def ellipse(self, xy, **kw):
+        self._d.ellipse(self._xy(xy), **self._kw(kw))
+
+    def line(self, xy, **kw):
+        self._d.line(self._xy(xy), **self._kw(kw))
+
+    def polygon(self, xy, **kw):
+        self._d.polygon(self._xy(xy), **self._kw(kw))
+
+    def text(self, xy, text, **kw):
+        self._d.text((xy[0] * self.s, xy[1] * self.s), text, **kw)
+
+    def textlength(self, text, font=None) -> float:
+        return self._d.textlength(text, font=font) / self.s
+
+
+def apply_theme(dp: dict) -> None:
+    """Design aus den Display-Einstellungen: hell, dunkel oder eigen (eigene Farben über color_base)."""
+    if dp.get("theme") == "eigen":
+        set_theme(dp.get("color_base", "hell"), {k: dp.get(f"color_{k}", "") for k in COLOR_KEYS})
+    else:
+        set_theme(dp.get("theme", "hell"))
+
+
+def tile_layout(size: tuple[int, int], pages: int = 99) -> tuple[int, list[tuple[int, int, int, int]]]:
+    """Breite Leisten (z. B. 1920 × 720 oder 1920 × 480) zeigen mehrere Seiten nebeneinander statt einer
+    riesig gezogenen. Rückgabe: Trennstrich-Breite und je Kachel (x, y, Breite, Höhe) in echten Pixeln."""
+    w, h = size
+    cols = max(1, min(pages, 4, round(w / h / 1.5))) if w > h else 1
+    gap = 0 if cols == 1 else max(2, round(h / 160))
+    tw = (w - gap * (cols - 1)) // cols
+    boxes = [(i * (tw + gap), 0, tw if i < cols - 1 else w - i * (tw + gap), h) for i in range(cols)]
+    return gap, boxes
+
+
+def compose(size: tuple[int, int], boxes, frames: list[Image.Image]) -> Image.Image:
+    if len(frames) == 1:
+        return frames[0]
+    img = Image.new("RGB", size, LINE)
+    for (x, y, _, _), f in zip(boxes, frames):
+        img.paste(f, (x, y))
+    return img
+
+
+def scale_for(size: tuple[int, int]) -> float:
+    """Vergrößerung gegenüber dem 3,5"-Display (480 × 320 bzw. 320 × 480 = 1)."""
+    w, h = size
+    return min(w / 480, h / 320) if w >= h else min(w / 320, h / 480)
 
 
 STATUS_ORDER = {"online": 0, "idle": 1, "dnd": 2, "offline": 3}
@@ -122,7 +252,7 @@ def _round_avatar(img: Image.Image | None, name: str, size: int) -> Image.Image:
         d = ImageDraw.Draw(img)
         f = load_font(int(size * 0.55), bold=True)
         ch = (name[:1] or "?").upper()
-        d.text((size / 2, size / 2), ch, font=f, fill=brand.NAVY, anchor="mm")
+        d.text((size / 2, size / 2), ch, font=f, fill=HEAD_TEXT, anchor="mm")
     img = img.convert("RGB").resize((size, size), Image.LANCZOS)
     mask = Image.new("L", (size * 4, size * 4), 0)
     ImageDraw.Draw(mask).ellipse((0, 0, size * 4 - 1, size * 4 - 1), fill=255)
@@ -132,16 +262,31 @@ def _round_avatar(img: Image.Image | None, name: str, size: int) -> Image.Image:
 
 
 class Renderer:
+    ICON = 26  # Fuchs in der Kopfzeile
+
     def __init__(self, size: tuple[int, int], title: str = "Discord-Freunde"):
-        self.w, self.h = size
+        self.size = size
+        self.s = scale_for(size)
+        # self.w/self.h: logische Größe, in der alle Seiten zeichnen (beim 3,5"-Display = echte Pixel)
+        self.w, self.h = (size if self.s == 1 else (round(size[0] / self.s), round(size[1] / self.s)))
         self.title = title
-        self.f_title = load_font(17, bold=True)
-        self.f_small = load_font(12)
-        self.f_name = load_font(16, bold=True)
-        self.f_act = load_font(13)
-        self.f_big = load_font(18, bold=True)
-        self.icon = brand.fox(26, badge=False)
-        self._avatar_cache: dict[tuple[int, int], Image.Image] = {}
+        self.f_title = self._font(17, bold=True)
+        self.f_small = self._font(12)
+        self.f_name = self._font(16, bold=True)
+        self.f_act = self._font(13)
+        self.f_big = self._font(18, bold=True)
+        self.icon = brand.fox(round(self.ICON * self.s), badge=False)
+        self._avatar_cache: dict[tuple, Image.Image] = {}
+
+    def _font(self, size: int, bold: bool = False):
+        return load_font(max(6, round(size * self.s)), bold=bold)
+
+    def _canvas(self) -> tuple[Image.Image, ImageDraw.ImageDraw]:
+        img = Image.new("RGB", self.size, BG)
+        return img, (ImageDraw.Draw(img) if self.s == 1 else ScaledDraw(img, self.s))
+
+    def _paste(self, img: Image.Image, im: Image.Image, x: float, y: float) -> None:
+        img.paste(im, (round(x * self.s), round(y * self.s)), im)
 
     @property
     def rows_per_page(self) -> int:
@@ -155,9 +300,9 @@ class Renderer:
         return sorted(friends, key=lambda f: (STATUS_ORDER.get(f.status, 9), f.name.casefold()))
 
     def _avatar(self, f: Friend) -> Image.Image:
-        key = (f.user_id, id(f.avatar))
+        key = (f.user_id, id(f.avatar), ORANGE)
         if key not in self._avatar_cache:
-            self._avatar_cache[key] = _round_avatar(f.avatar, f.name, AVATAR)
+            self._avatar_cache[key] = _round_avatar(f.avatar, f.name, round(AVATAR * self.s))
         return self._avatar_cache[key]
 
     def _message(self, d: ImageDraw.ImageDraw, text: str) -> None:
@@ -178,15 +323,15 @@ class Renderer:
 
     def welcome(self, title: str, text: str) -> Image.Image:
         """Startbild im CI: großer Fuchs auf Orange, Wortmarke, darunter der Hinweis."""
-        img = Image.new("RGB", (self.w, self.h), BG)
-        d = ImageDraw.Draw(img)
+        img, d = self._canvas()
         band = int(self.h * 0.42)
         d.rectangle((0, 0, self.w, band), fill=ORANGE)
-        fox = brand.fox(int(band * 0.62), badge=False)
-        d.text((self.w / 2 + fox.width / 2 + 4, band / 2), "FuchsLabs", font=load_font(30, bold=True),
-               fill=brand.NAVY, anchor="mm")
-        tw = d.textlength("FuchsLabs", font=load_font(30, bold=True))
-        img.paste(fox, (int(self.w / 2 - tw / 2 - fox.width / 2 - 4), (band - fox.height) // 2), fox)
+        fw = int(band * 0.62)
+        fox = brand.fox(round(fw * self.s), badge=False)
+        f_mark = self._font(30, bold=True)
+        d.text((self.w / 2 + fw / 2 + 4, band / 2), "FuchsLabs", font=f_mark, fill=HEAD_TEXT, anchor="mm")
+        tw = d.textlength("FuchsLabs", font=f_mark)
+        self._paste(img, fox, int(self.w / 2 - tw / 2 - fw / 2 - 4), (band - fw) // 2)
         words, lines, cur = clean_text(text).split(), [], ""
         for w in words:
             test = f"{cur} {w}".strip()
@@ -206,8 +351,7 @@ class Renderer:
                now: datetime | None = None) -> Image.Image:
         now = now or datetime.now()
         friends = self.sort(friends)
-        img = Image.new("RGB", (self.w, self.h), BG)
-        d = ImageDraw.Draw(img)
+        img, d = self._canvas()
         online = sum(1 for f in friends if f.status != "offline")
         self._header(img, d, now, f"{online} online", STATUS_COLOR["online"])
 
@@ -231,13 +375,13 @@ class Renderer:
         d.rectangle((0, 0, self.w, HEADER_H - 1), fill=ORANGE)
         x = 8
         if self.icon:
-            img.paste(self.icon, (x, (HEADER_H - self.icon.height) // 2), self.icon)
-            x += self.icon.width + 6
-        d.text((x, HEADER_H // 2), self.title, font=self.f_title, fill=brand.NAVY, anchor="lm")
+            self._paste(img, self.icon, x, (HEADER_H - self.ICON) // 2)
+            x += self.ICON + 6
+        d.text((x, HEADER_H // 2), self.title, font=self.f_title, fill=HEAD_TEXT, anchor="lm")
         clock = now.strftime("%H:%M")
-        d.text((self.w - 8, HEADER_H // 2), clock, font=self.f_title, fill=brand.NAVY, anchor="rm")
+        d.text((self.w - 8, HEADER_H // 2), clock, font=self.f_title, fill=HEAD_TEXT, anchor="rm")
         cx = self.w - 8 - d.textlength(clock, font=self.f_title) - 12
-        d.text((cx, HEADER_H // 2), info, font=self.f_small, fill=brand.NAVY, anchor="rm")
+        d.text((cx, HEADER_H // 2), info, font=self.f_small, fill=HEAD_TEXT, anchor="rm")
 
     def _footer(self, d: ImageDraw.ImageDraw, left: str) -> None:
         fy = self.h - FOOTER_H
@@ -263,7 +407,7 @@ class Renderer:
         av = self._avatar(f)
         if f.status == "offline":
             av = Image.blend(Image.new("RGBA", av.size, (*BG, 0)), av, 0.45)
-        img.paste(av, (ax, ay), av)
+        self._paste(img, av, ax, ay)
         # Statuspunkt unten rechts am Avatar, wie in Discord
         r = 6
         cx, cy = ax + AVATAR - 4, ay + AVATAR - 4
@@ -303,8 +447,8 @@ class Bf6Renderer(Renderer):
 
     def __init__(self, size: tuple[int, int], title: str = "Battlefield 6 · Rangliste"):
         super().__init__(size, title=title)
-        self.f_stat = load_font(15, bold=True)
-        self.f_pos = load_font(14, bold=True)
+        self.f_stat = self._font(15, bold=True)
+        self.f_pos = self._font(14, bold=True)
         self._icon_cache: dict[int, Image.Image] = {}
 
     def pages(self, players) -> int:
@@ -315,8 +459,7 @@ class Bf6Renderer(Renderer):
         from bf6 import sort_players
         now = now or datetime.now()
         players = sort_players(players)
-        img = Image.new("RGB", (self.w, self.h), BG)
-        d = ImageDraw.Draw(img)
+        img, d = self._canvas()
         found = sum(1 for p in players if not p.error)
         self._header(img, d, now, f"{found} Spieler", ORANGE)
 
@@ -344,7 +487,8 @@ class Bf6Renderer(Renderer):
         key = id(icon)
         if key not in self._icon_cache:
             ic = icon.copy()
-            ic.thumbnail((AVATAR + 4, AVATAR + 4), Image.LANCZOS)
+            n = round((AVATAR + 4) * self.s)
+            ic.thumbnail((n, n), Image.LANCZOS)
             self._icon_cache[key] = ic
         return self._icon_cache[key]
 
@@ -355,7 +499,8 @@ class Bf6Renderer(Renderer):
         ix = 30
         icon = self._rank_icon(p.rank_icon)
         if icon:
-            img.paste(icon, (ix + (AVATAR + 4 - icon.width) // 2, cy - icon.height // 2), icon)
+            iw, ih = icon.width / self.s, icon.height / self.s  # logische Größe
+            self._paste(img, icon, ix + (AVATAR + 4 - iw) // 2, cy - ih // 2)
         elif p.rank is not None:
             d.ellipse((ix + 2, cy - 16, ix + 34, cy + 16), outline=ORANGE, width=2)
             d.text((ix + 18, cy), str(p.rank), font=self.f_small, fill=TEXT, anchor="mm")
@@ -415,18 +560,17 @@ class SysRenderer(Renderer):
     def __init__(self, size: tuple[int, int], title: str = "System", net_unit: str = "bit"):
         super().__init__(size, title=title)
         self.net_unit = net_unit
-        self.f_card = load_font(14, bold=True)
-        self.f_huge = load_font(30, bold=True)
-        self.f_val = load_font(15, bold=True)
-        self.f_lbl = load_font(12)
+        self.f_card = self._font(14, bold=True)
+        self.f_huge = self._font(30, bold=True)
+        self.f_val = self._font(15, bold=True)
+        self.f_lbl = self._font(12)
 
     def pages(self, _=None) -> int:
         return 1
 
     def render(self, s, now: datetime | None = None) -> Image.Image:
         now = now or datetime.now()
-        img = Image.new("RGB", (self.w, self.h), BG)
-        d = ImageDraw.Draw(img)
+        img, d = self._canvas()
         self._header(img, d, now, "" if s.hwinfo else "ohne HWiNFO", MUTED)
         top, bot, gap = HEADER_H + 4, self.h - FOOTER_H - 4, 6
         lw = (self.w - 3 * gap) // 2
@@ -521,8 +665,8 @@ class RssRenderer(Renderer):
 
     def __init__(self, size: tuple[int, int], title: str = "Blog-Updates"):
         super().__init__(size, title=title)
-        self.f_post = load_font(17, bold=True)
-        self.f_src = load_font(13, bold=True)
+        self.f_post = self._font(17, bold=True)
+        self.f_src = self._font(13, bold=True)
 
     def pages(self, posts) -> int:
         return 1  # bewusst nur eine Seite: wenige Beiträge, große Schrift
@@ -549,8 +693,7 @@ class RssRenderer(Renderer):
                now: datetime | None = None) -> Image.Image:
         from rss import ago
         now = now or datetime.now()
-        img = Image.new("RGB", (self.w, self.h), BG)
-        d = ImageDraw.Draw(img)
+        img, d = self._canvas()
         self._header(img, d, now, "", ORANGE)
         top, bot = HEADER_H + 2, self.h - FOOTER_H
         if updated is None:

@@ -62,6 +62,11 @@ input[type=range]{accent-color:var(--orange);width:230px}
 .btn:disabled{opacity:.5;cursor:default}
 .preview{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:start}
 .preview img{width:480px;max-width:100%;border-radius:12px;border:6px solid #14213d;background:#14213d;display:block}
+.colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:6px 0 12px}
+.colors label{display:flex;align-items:center;gap:10px;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;font-weight:600}
+.colors label small{display:block;font-weight:400;color:var(--muted);font-family:Consolas,monospace;font-size:12px}
+input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--field);cursor:pointer;flex:none}
+.warn{color:var(--yellow);font-weight:600}
 .pagelist{display:flex;flex-direction:column;gap:8px}
 .page{display:flex;align-items:center;gap:12px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .page .n{width:24px;height:24px;border-radius:50%;background:var(--orange);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--ink)}
@@ -253,7 +258,7 @@ function viewOverview() {
       h('div', {}, h('h3', {}, 'Seiten'), h('p', {class: 'hint'}, 'Mit den Pfeilen sortierst du, mit dem Schalter blendest du Seiten ein oder aus.'), list))),
     card('Wechsel & Helligkeit', null,
       row('Anzeigedauer pro Seite', 'Wie lange eine Seite stehen bleibt', range('display', 'page_seconds', 5, 60, 1, '% s')),
-      row('Helligkeit', 'Display-Helligkeit', range('display', 'brightness', 10, 100, 5, '% %')))];
+      cfg.display.output !== 'monitor' ? row('Helligkeit', 'Display-Helligkeit', range('display', 'brightness', 10, 100, 5, '% %')) : null)];
 }
 
 /* ---------- Discord ---------- */
@@ -482,23 +487,90 @@ function viewSystem() {
     card('Sensoren', null, box)];
 }
 
-/* ---------- Design (hell/dunkel) ---------- */
-const applyTheme = () => { const t = cfg.display.theme === 'dunkel' ? 'dunkel' : 'hell';
+/* ---------- Design (hell/dunkel/eigene Farben) ---------- */
+const COLORS = [['bg', 'Hintergrund'], ['card', 'Karten'], ['header', 'Kopfzeile & Balken'], ['accent', 'Akzentschrift'],
+  ['text', 'Schrift'], ['muted', 'Nebentext']];
+/* Die Einstellungsseite folgt der Vorlage (hell/dunkel); die eigenen Farben gelten nur fürs Display */
+const baseTheme = () => cfg.display.theme === 'eigen' ? cfg.display.color_base : cfg.display.theme;
+const applyTheme = () => { const t = baseTheme() === 'dunkel' ? 'dunkel' : 'hell';
   document.documentElement.dataset.theme = t; try { localStorage.setItem('fl_theme', t); } catch (e) {} };
-function themeSel() { const s = select('display', 'theme', [['hell', 'Hell (Creme)'], ['dunkel', 'Dunkel (Navy)']]);
-  s.addEventListener('change', applyTheme); return s; }
+function themeSel() { const s = select('display', 'theme', [['hell', 'Hell (Creme)'], ['dunkel', 'Dunkel (Navy)'], ['eigen', 'Eigene Farben']]);
+  s.addEventListener('change', () => { applyTheme(); render(); }); return s; }
+/* Kontrast nach WCAG, wie auf dem Display gerechnet (render.contrast) */
+function contrast(a, b) {
+  const lum = x => { const v = [1, 3, 5].map(i => parseInt(x.slice(i, i + 2), 16) / 255)
+    .map(c => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05);
+}
+function colorCard() {
+  const d = cfg.display, presets = (cache.opts || {}).presets || {};
+  const val = k => d['color_' + k] || (presets[d.color_base] || {})[k] || '#000000';
+  const img = h('img', {alt: 'Vorschau mit deinen Farben'}), warn = h('p', {class: 'note'});
+  let timer = null;
+  const refresh = () => {
+    const c = Object.fromEntries(COLORS.map(([k]) => [k, val(k)])), w = [];
+    if (contrast(c.text, c.bg) < 4.5) w.push('Schrift auf Hintergrund');
+    if (contrast(c.text, c.card) < 4.5) w.push('Schrift auf Karten');
+    if (contrast(c.muted, c.bg) < 3) w.push('Nebentext auf Hintergrund');
+    if (contrast(c.accent, c.bg) < 3) w.push('Akzentschrift auf Hintergrund');
+    warn.className = w.length ? 'warn' : 'note';
+    warn.textContent = w.length ? 'Schwer lesbar: ' + w.join(', ') + '. Wähle dort mehr Unterschied zwischen hell und dunkel.'
+      : 'Alles gut lesbar. Die Schrift auf der Kopfzeile wählt die App selbst (Navy oder Weiß).';
+    clearTimeout(timer); timer = setTimeout(async () => {
+      const body = {display: {theme: 'eigen', color_base: d.color_base, ...Object.fromEntries(COLORS.map(([k]) => ['color_' + k, d['color_' + k]]))}};
+      try {
+        const r = await fetch('/api/preview-theme.png', {method: 'POST', headers: {'X-FL': '1', 'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+        if (r.ok) { const old = img.src; img.src = URL.createObjectURL(await r.blob()); if (old) URL.revokeObjectURL(old); }
+      } catch (e) {} }, 250);
+  };
+  const pickers = COLORS.map(([k, label]) => {
+    const i = h('input', {type: 'color', value: val(k)}), code = h('small', {}, val(k).toUpperCase());
+    i.addEventListener('input', () => { d['color_' + k] = i.value.toUpperCase(); code.textContent = d['color_' + k]; touch(); refresh(); });
+    return h('label', {}, i, h('span', {}, label, code)); });
+  const base = select('display', 'color_base', [['hell', 'Hell (Creme)'], ['dunkel', 'Dunkel (Navy)']]);
+  base.addEventListener('change', () => { applyTheme(); render(); });
+  const reset = h('button', {class: 'btn', onclick: () => { COLORS.forEach(([k]) => d['color_' + k] = ''); touch(); render(); }}, 'Zurücksetzen');
+  refresh();
+  return card('Eigene Farben', 'Gilt für das Display. Die Vorschau zeigt die aktuelle Seite mit deinen Farben, übernommen wird erst mit „Speichern & anwenden“.',
+    h('div', {class: 'preview'}, img, h('div', {},
+      row('Ausgangsfarben', 'Leere Farben kommen von dieser Vorlage', base),
+      h('div', {class: 'colors'}, pickers), warn,
+      h('div', {style: 'display:flex;gap:8px;align-items:center'}, reset, h('span', {class: 'note'}, 'Setzt alle Farben auf die Vorlage zurück.')))));
+}
 
 /* ---------- Display ---------- */
 function viewDisplay() {
-  return [...head('Display', 'Ausrichtung, Anschluss und Verhalten des Bildschirms.'),
+  const d = cfg.display, o = cache.opts;
+  if (!o) api('/api/display/options').then(r => { cache.opts = r; if (tab === 'display') render(); });
+  const serial = d.output !== 'monitor';
+  const outSel = select('display', 'output', [['serial', 'USB-Display 3,5" (über COM-Port)'], ['monitor', 'Bildschirm über HDMI oder USB-C']]);
+  outSel.addEventListener('change', () => render());
+  let screen = null;
+  if (!serial) {
+    const mons = o ? o.monitors : [], t = o ? o.touch : {available: false};
+    const opts = [['', 'Automatisch (erster Bildschirm, der nicht der Hauptbildschirm ist)'], ...mons.map(m =>
+      [m.device, `${m.name || 'Bildschirm'} · ${m.w} × ${m.h}${m.primary ? ' · Hauptbildschirm' : ''}`])];
+    if (d.monitor && !mons.some(m => m.device === d.monitor)) opts.push([d.monitor, d.monitor + ' (gerade nicht angeschlossen)']);
+    const tg = toggle('display', 'touch');
+    tg.querySelector('input').disabled = !t.available && !d.touch;
+    screen = [
+      row('Bildschirm', 'Darauf erscheint die Anzeige als Vollbild ohne Rahmen', o ? select('display', 'monitor', opts) : h('span', {class: 'note'}, 'Suche Bildschirme …')),
+      row('Touch-Steuerung', t.available ? `Windows meldet einen Touchscreen (${t.points} Finger). Nach links wischen = nächste Seite, nach rechts = vorige. Tippen links = zurück, sonst weiter.`
+        : 'Windows meldet keinen Touchscreen. Sobald einer angeschlossen ist, lässt sich das hier einschalten.', tg),
+      h('p', {class: 'note'}, 'Breite Leisten wie 1920 × 720 zeigen mehrere Seiten nebeneinander. Der Bildschirm sollte in Windows auf „Erweitern“ stehen, nicht auf „Duplizieren“.')];
+  }
+  return [...head('Display', 'Art des Displays, Farben und Verhalten.'),
+    card('Bildschirm', o ? `Aktuelle Anzeige: ${o.size[0]} × ${o.size[1]} Pixel` : null,
+      row('Display-Typ', 'Kleines USB-Display oder ein normaler Bildschirm (z. B. eine 10,25"-Leiste)', outSel), screen),
     card('Bild', null,
-      row('Ausrichtung', 'Wenn das Bild auf dem Kopf steht, die andere Variante wählen',
-        select('display', 'orientation', [['landscape', 'Querformat'], ['reverse_landscape', 'Querformat, gedreht'], ['portrait', 'Hochformat'], ['reverse_portrait', 'Hochformat, gedreht']])),
-      row('Helligkeit', null, range('display', 'brightness', 10, 100, 5, '% %')),
-      row('Design', 'Gilt für das Display und diese Einstellungsseite. Hell ist auf dem Display besser lesbar.', themeSel())),
+      serial ? row('Ausrichtung', 'Wenn das Bild auf dem Kopf steht, die andere Variante wählen',
+        select('display', 'orientation', [['landscape', 'Querformat'], ['reverse_landscape', 'Querformat, gedreht'], ['portrait', 'Hochformat'], ['reverse_portrait', 'Hochformat, gedreht']])) : null,
+      serial ? row('Helligkeit', null, range('display', 'brightness', 10, 100, 5, '% %')) : null,
+      row('Design', 'Hell oder Dunkel gilt auch für diese Einstellungsseite. Hell ist auf dem Display besser lesbar.', themeSel())),
+    d.theme === 'eigen' ? colorCard() : null,
     card('Anschluss', null,
-      row('COM-Port', 'AUTO sucht das Display selbst', text('display', 'port', 'AUTO')),
-      row('Beim Start zurücksetzen', 'Verhindert verschobene Bilder', toggle('display', 'reset_on_start')),
+      serial ? row('COM-Port', 'AUTO sucht das Display selbst', text('display', 'port', 'AUTO')) : null,
+      serial ? row('Beim Start zurücksetzen', 'Verhindert verschobene Bilder', toggle('display', 'reset_on_start')) : null,
       row('Beim Beenden ausschalten', null, toggle('display', 'screen_off_on_exit'))),
     card('Programm', null,
       row('Port dieser Einstellungsseite', 'Nur lokal erreichbar. Änderung wirkt nach dem Neustart.', text('ui', 'port', '8765')),
