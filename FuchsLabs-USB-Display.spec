@@ -5,7 +5,7 @@ a = Analysis(
     ['fuchslabs_display.py'],
     pathex=[],
     binaries=[],
-    datas=[('webui.html', '.'), ('ANLEITUNG.html', '.')],
+    datas=[('webui.html', '.'), ('ANLEITUNG.html', '.'), ('GUIDE.html', '.')],
     hiddenimports=['serial.tools.list_ports_windows'],
     hookspath=[],
     hooksconfig={},

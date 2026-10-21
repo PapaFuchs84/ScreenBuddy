@@ -1,5 +1,7 @@
 # Mitarbeiten am FuchsLabs USB-Display
 
+**Deutsch** · [English](CONTRIBUTING.en.md)
+
 Schön, dass du helfen willst! Das Repository ist privat; mitarbeiten kann, wer von FuchsLabs eingeladen wurde.
 
 ## Fehler und Ideen
@@ -32,7 +34,8 @@ build.bat
 
 ## Regeln für den Code
 
-- **Stil:** Python wie im vorhandenen Code, Kommentare und Texte für Anwender auf Deutsch. Texte in der Einstellungsseite so einfach, dass ein Kind sie versteht.
+- **Stil:** Python wie im vorhandenen Code, Kommentare und Quelltexte auf Deutsch. Texte in der Einstellungsseite so einfach, dass ein Kind sie versteht.
+- **Sprachen:** Jeder Text, den Anwender sehen, gibt es auf Deutsch und Englisch. App- und Display-Texte übersetzt `i18n.py`, Texte der Einstellungsseite die Tabelle `EN` in `webui.html`. Sichtbare Änderungen in beiden Changelogs eintragen.
 - **Sparsam:** Die App läuft dauerhaft im Hintergrund. Keine neuen Abhängigkeiten ohne guten Grund; Pakete werden in `requirements.txt` auf genaue Versionen festgelegt.
 - **Design:** Farben und Logo nur aus `brand.py`. Nur Windows-Schriften (Bahnschrift, Segoe UI), keine Web-Fonts.
 - **Display:** Seiten zeichnen in logischen 480 × 320-Koordinaten; `render.py` skaliert auf die echte Auflösung. Keine Helligkeitsbefehle während einer Bildübertragung.

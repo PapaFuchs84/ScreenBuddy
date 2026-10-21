@@ -1,6 +1,6 @@
 # FuchsLabs USB-Display – Dokumentation
 
-Version 1.1 · Stand 21.10.2026 · © 2026 FuchsLabs
+Version 1.2 · Stand 21.10.2026 · © 2026 FuchsLabs
 
 Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt im Wechsel vier Seiten und wird komplett über eine Einstellungsseite im Browser bedient. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
 
@@ -103,7 +103,7 @@ Der Bot-Token wird nie an den Browser zurückgegeben; das Feld zeigt nur, ob ein
 | `[friends]` | `enabled` (false), `title` ("Freunde"), `include_discord` (true), `auto_merge` (true), `show_offline` (false), `steam_api_key` (verschlüsselt), `steam_id` (Profil-Link oder 17-stellige ID), `xbox_api_key` (verschlüsselt), `links` ([], Verknüpfungen als `"Name\|discord:ID\|steam:ID\|xbox:Gamertag"`) |
 | `[bf6]` | `enabled` (false), `players` ([], PC-Namen; Konsole als `"Name@psn"` / `"Name@xbox"`), `refresh_minutes` (15), `title` |
 | `[rss]` | `enabled` (false), `feeds` ([]), `refresh_minutes` (30), `max_items` (4), `max_per_feed` (1), `title` |
-| `[ui]` | `enabled` (true), `port` (8765), `setup_done` (false) |
+| `[ui]` | `enabled` (true), `port` (8765), `setup_done` (false), `language` ("de" oder "en"; beim ersten Start wie die Windows-Sprache – gilt für Einstellungsseite, Display und Infobereich) |
 
 ---
 

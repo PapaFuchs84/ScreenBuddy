@@ -1,5 +1,7 @@
 # Sicherheit
 
+**Deutsch** · [English](SECURITY.en.md)
+
 ## Unterstützte Versionen
 
 | Version | Sicherheitskorrekturen |

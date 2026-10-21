@@ -34,18 +34,22 @@ if (LOCAL) {
 
 // Echte Namen schon in den Daten ersetzen, bevor die Seite sie anzeigt. Wichtig, weil sich manche Anzeigen (Verbindungsstatus)
 // alle paar Sekunden selbst neu laden und eine nachträgliche Ersetzung im Bild sonst wieder überschreiben.
+// FL_LANG=en: englische Einstellungsseite und englische Beispieldaten (für GUIDE.html)
+const EN = process.env.FL_LANG === 'en';
 await cmd('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
+  const EN = ${EN};
   const EX = ['Lena','Max','Tom','Mia','Ben','Emma','Paul','Lia','Finn','Ida','Noah','Ella','Leon','Lea'];
   const nm = i => EX[i % EX.length];
   const clean = (url, d) => {
     if (url.includes('/api/connections')) for (const k in d) if (d[k] && d[k].name) d[k].name = 'FuchsKumpel';
-    if (url.includes('/api/discord/members')) (d.members || []).forEach((m, i) => { m.name = nm(i); m.guild = 'Mein Server'; });
+    if (url.includes('/api/discord/members')) (d.members || []).forEach((m, i) => { m.name = nm(i); m.guild = EN ? 'My server' : 'Mein Server'; });
     if (url.includes('/api/friends/accounts')) { (d.accounts || []).forEach((a, i) => { a.name = nm(i); }); d.suggestions = []; }
     if (url.includes('/api/config') && d.config) {
       const c = d.config;
       if (c.bf6) c.bf6.players = ['FuchsKumpel', 'Lena_Sniper', 'MaxPower99', 'TomTheTank', 'Mia2015'];
-      if (c.rss) c.rss.feeds = ['https://winfuture.de/', 'https://www.heise.de/', 'https://www.golem.de/', 'https://www.computerbase.de/'];
-      if (c.friends) { if (c.friends.steam_id) c.friends.steam_id = 'https://steamcommunity.com/id/meinname';
+      if (c.rss) c.rss.feeds = EN ? ['https://www.theverge.com/', 'https://arstechnica.com/', 'https://www.engadget.com/', 'https://www.pcgamer.com/']
+        : ['https://winfuture.de/', 'https://www.heise.de/', 'https://www.golem.de/', 'https://www.computerbase.de/'];
+      if (c.friends) { if (c.friends.steam_id) c.friends.steam_id = 'https://steamcommunity.com/id/' + (EN ? 'myname' : 'meinname');
         c.friends.links = (c.friends.links || []).map((l, i) => [nm(i), ...l.split('|').slice(1)].join('|')); }
       if (c.discord) { c.discord.friend_ids = []; c.discord.ignore_ids = []; c.discord.guild_ids = []; }
     }
@@ -60,37 +64,41 @@ await cmd('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
 })();` });
 
 await cmd('Emulation.setDeviceMetricsOverride', { width: 1280, height: 860, deviceScaleFactor: 1, mobile: false });
-await cmd('Page.navigate', { url: 'http://127.0.0.1:8765/' });
+await cmd('Page.navigate', { url: 'http://127.0.0.1:8765/' + (EN ? '?lang=en' : '') });
 await sleep(2500);
 
 // Private Namen durch Beispiele ersetzen, nichts an der App ändern
 const anon = `(() => {
+  const EN = ${EN};
   const ex = ['Lena','Max','Tom','Mia','Ben','Emma','Paul','Lia','Finn','Ida','Noah','Ella','Leon','Lea'];
   document.querySelectorAll('.member span:not(.note)').forEach((s,i) => s.textContent = ex[i % ex.length]);
-  document.querySelectorAll('.member small').forEach(s => s.textContent = 'Mein Server');
+  document.querySelectorAll('.member small').forEach(s => s.textContent = EN ? 'My server' : 'Mein Server');
   document.querySelectorAll('main input').forEach(e => { if (/P4p4F0x/.test(e.placeholder)) e.placeholder = e.placeholder.replace('P4p4F0x', 'FuchsKumpel'); });
   const h1 = document.querySelector('h1')?.textContent;
   const items = [...document.querySelectorAll('.list .item')];
   if (h1 === 'Battlefield 6') {
-    const pl = [['FuchsKumpel', 'Rang 42 · Sergeant · K/D 1.12'], ['Lena_Sniper', 'Rang 37 · K/D 0.94'], ['MaxPower99', null], ['TomTheTank', null], ['Mia2015', null]];
+    const R = EN ? 'Rank' : 'Rang';
+    const pl = [['FuchsKumpel', R + ' 42 · Sergeant · K/D 1.12'], ['Lena_Sniper', R + ' 37 · K/D 0.94'], ['MaxPower99', null], ['TomTheTank', null], ['Mia2015', null]];
     items.forEach((it, i) => { const [n, s] = pl[i % pl.length]; it.querySelector('b').textContent = n;
       const sp = it.querySelector('.t span'); if (s) { sp.textContent = s; sp.style.color = '#58d68d'; } });
   }
   if (h1 === 'Blogs') {
-    const bl = ['https://winfuture.de/', 'https://www.heise.de/', 'https://www.golem.de/', 'https://www.computerbase.de/'];
+    const bl = EN ? ['https://www.theverge.com/', 'https://arstechnica.com/', 'https://www.engadget.com/', 'https://www.pcgamer.com/']
+      : ['https://winfuture.de/', 'https://www.heise.de/', 'https://www.golem.de/', 'https://www.computerbase.de/'];
     items.forEach((it, i) => { it.querySelector('b').textContent = bl[i % bl.length];
-      if (i === 0) { const sp = it.querySelector('.t span'); sp.textContent = 'WinFuture: Neuer Beitrag gefunden'; sp.style.color = '#58d68d'; } });
+      if (i === 0) { const sp = it.querySelector('.t span'); sp.textContent = EN ? 'The Verge: new post found' : 'WinFuture: Neuer Beitrag gefunden'; sp.style.color = '#58d68d'; } });
   }
-  if (h1 === 'Freunde') {
+  if (h1 === 'Freunde' || h1 === 'Friends') {
     const fr = ['Lena', 'Max', 'Tom', 'Mia'];
     items.forEach((it, i) => it.querySelector('b').textContent = fr[i % fr.length]);
     document.querySelectorAll('option').forEach((o, i) => o.textContent = o.textContent.replace(/^.*\\(/, fr[i % fr.length] + ' ('));
 
     // Auch private Xbox-Statusnamen und Prüftexte durch neutrale Beispieldaten ersetzen.
-    document.querySelectorAll('.conn .t').forEach(e => e.textContent = 'Verbunden als FuchsKumpel · Beispielkonto · live');
+    document.querySelectorAll('.conn .t').forEach(e => e.textContent = EN ? 'Connected as FuchsKumpel · sample account · live' : 'Verbunden als FuchsKumpel · Beispielkonto · live');
+    document.querySelectorAll('.conn').forEach(e => e.className = 'conn conn-ok');
     document.querySelectorAll('main input').forEach(e => { if (e.type === 'password') e.value = '';
-      else if (e.type === 'text' && e.value) e.value = /steamcommunity/.test(e.placeholder) ? 'https://steamcommunity.com/id/meinname' : 'Beispielname'; });
-    document.querySelectorAll('.note, .ok, .bad').forEach(e => { if (/Verbunden:|Prüfe|Fehler|Gamertag|Xbox/i.test(e.textContent)) e.textContent = 'Verbunden: 4 Freunde, 2 gerade online'; });
+      else if (e.type === 'text' && e.value) e.value = /steamcommunity/.test(e.placeholder) ? 'https://steamcommunity.com/id/' + (EN ? 'myname' : 'meinname') : (EN ? 'samplename' : 'Beispielname'); });
+    document.querySelectorAll('.note, .ok, .bad').forEach(e => { if (/Verbunden:|Connected:|Prüfe|Checking|Fehler|Error|Gamertag|Xbox/i.test(e.textContent)) e.textContent = EN ? 'Connected: 4 friends, 2 online now' : 'Verbunden: 4 Freunde, 2 gerade online'; });
   }
   return true; })()`;
 
@@ -107,7 +115,9 @@ const go = async label => { await js(`[...document.querySelectorAll('#nav button
 // (Übersicht nicht hier: die Live-Vorschau zeigt echte Daten; dafür unten die prev-Aufnahmen und eine neutrale aussuchen)
 const VIEWS = [['Start', 'start', 860], ['Discord', 'discord', 1180, [0]],
   ['Battlefield', 'bf6', 1180, [0]], ['Blogs', 'blogs', 1180, [0]], ['System', 'system', 860], ['Display', 'display', 860],
-  ['Freunde', 'freunde', 1900, [0, 1]]];
+  [EN ? 'Friends' : 'Freunde', 'freunde', 1900, [0, 1]]];
+// Englisch: Übersicht mit aufnehmen; deren Live-Vorschau ersetzt make_images.py durch ein Beispielbild (render --demo)
+if (EN) VIEWS.push(['Overview', 'uebersicht', 860]);
 // Lage wichtiger Bedienelemente ausgeben, damit die Markierungen in der Anleitung stimmen
 const RECTS = `[...document.querySelectorAll('main input:not([type=checkbox]), main .howto, main .members, main .add, main .sw, main .btn, main select, main h3')]
   .map(e => { const r = e.getBoundingClientRect(); return (e.tagName + '.' + e.className + ' ' + (e.placeholder || e.textContent || '').slice(0, 30)).padEnd(52) +
@@ -123,7 +133,7 @@ for (const [label, file, height, open = []] of VIEWS) {
 }
 await cmd('Emulation.setDeviceMetricsOverride', { width: 1280, height: 860, deviceScaleFactor: 1, mobile: false });
 // Speichern-Leiste zeigen (nur Anzeige, ohne Änderung)
-await go('Übersicht');
+await go(EN ? 'Overview' : 'Übersicht');
 await js(`document.getElementById('bar').classList.add('show')`); await sleep(400);
 await shot('speichern');
 await js(`document.getElementById('bar').classList.remove('show')`);

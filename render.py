@@ -16,6 +16,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 import brand
+from i18n import tr
 
 HERE = Path(__file__).resolve().parent
 
@@ -136,11 +137,21 @@ class ScaledDraw:
     def polygon(self, xy, **kw):
         self._d.polygon(self._xy(xy), **self._kw(kw))
 
-    def text(self, xy, text, **kw):
-        self._d.text((xy[0] * self.s, xy[1] * self.s), text, **kw)
+    def text(self, xy, text, **kw):   # Texte erst hier übersetzen (i18n), damit alle Seiten gleich behandelt werden
+        self._d.text((xy[0] * self.s, xy[1] * self.s), tr(text), **kw)
 
     def textlength(self, text, font=None) -> float:
-        return self._d.textlength(text, font=font) / self.s
+        return self._d.textlength(tr(text), font=font) / self.s
+
+
+class _TrDraw(ImageDraw.ImageDraw):
+    """ImageDraw für die Originalgröße (3,5"), übersetzt Texte wie ScaledDraw."""
+
+    def text(self, xy, text, *args, **kw):
+        return super().text(xy, tr(text), *args, **kw)
+
+    def textlength(self, text, *args, **kw):
+        return super().textlength(tr(text), *args, **kw)
 
 
 def apply_theme(dp: dict) -> None:
@@ -237,7 +248,7 @@ def clean_text(text: str) -> str:
 
 
 def _fit(draw: ImageDraw.ImageDraw, text: str, font, max_w: int) -> str:
-    text = clean_text(text)
+    text = tr(clean_text(text))
     if draw.textlength(text, font=font) <= max_w:
         return text
     while text and draw.textlength(text + "…", font=font) > max_w:
@@ -283,7 +294,7 @@ class Renderer:
 
     def _canvas(self) -> tuple[Image.Image, ImageDraw.ImageDraw]:
         img = Image.new("RGB", self.size, BG)
-        return img, (ImageDraw.Draw(img) if self.s == 1 else ScaledDraw(img, self.s))
+        return img, (_TrDraw(img) if self.s == 1 else ScaledDraw(img, self.s))
 
     def _paste(self, img: Image.Image, im: Image.Image, x: float, y: float) -> None:
         img.paste(im, (round(x * self.s), round(y * self.s)), im)
@@ -307,7 +318,7 @@ class Renderer:
 
     def _message(self, d: ImageDraw.ImageDraw, text: str) -> None:
         """Mehrzeilige, zentrierte Hinweis- oder Fehlermeldung (bis zu 4 Zeilen)."""
-        words, lines, cur = clean_text(text).split(), [], ""
+        words, lines, cur = clean_text(tr(text)).split(), [], ""
         for w in words:
             test = f"{cur} {w}".strip()
             if d.textlength(test, font=self.f_big) <= self.w - 40:
@@ -332,7 +343,7 @@ class Renderer:
         d.text((self.w / 2 + fw / 2 + 4, band / 2), "FuchsLabs", font=f_mark, fill=HEAD_TEXT, anchor="mm")
         tw = d.textlength("FuchsLabs", font=f_mark)
         self._paste(img, fox, int(self.w / 2 - tw / 2 - fw / 2 - 4), (band - fw) // 2)
-        words, lines, cur = clean_text(text).split(), [], ""
+        words, lines, cur = clean_text(tr(text)).split(), [], ""
         for w in words:
             test = f"{cur} {w}".strip()
             if d.textlength(test, font=self.f_act) <= self.w - 40:

@@ -2,12 +2,15 @@
 
 # 🦊 FuchsLabs USB-Display
 
+**Deutsch** · [English](README.en.md)
+
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
 ![Version](https://img.shields.io/badge/version-1.2-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
+![Sprachen](https://img.shields.io/badge/sprachen-Deutsch%20%7C%20English-14213D)
 ![Lizenz](https://img.shields.io/badge/lizenz-alle%20Rechte%20vorbehalten-lightgrey)
 
 [![Spendier mir einen Kaffee](https://img.shields.io/badge/☕_Spendier_mir_einen_Kaffee-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/SHerbst84)
@@ -50,7 +53,8 @@ Dazu kommen:
 - **Design**: FuchsLabs-CI in Hell oder Dunkel, oder **eigene Farben** per Farbwähler mit Kontrastwarnung
 - **Jede Auflösung**: Seiten werden scharf auf die echte Größe gerendert; breite Leisten zeigen mehrere Seiten nebeneinander
 - **HDMI/USB-C-Bildschirme** als randloses Vollbild, optional mit **Touch** (wischen oder tippen zum Blättern)
-- **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder
+- **Deutsch oder Englisch**: Einstellungsseite, Display und Infobereich lassen sich umschalten; beim ersten Start folgt die Sprache Windows
+- **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, auf Deutsch (`ANLEITUNG.html`) und Englisch (`GUIDE.html`)
 - **Sparsam**: rund 1 % eines CPU-Kerns und etwa 90 MB Arbeitsspeicher
 
 ## Bilder
@@ -78,7 +82,7 @@ Alle Bilder zeigen Beispieldaten.
 5. Gewünschte Seiten unter **Übersicht** einschalten und die Zugänge eintragen. Jedes Feld hat eine Hilfe zum Aufklappen.
 6. **Speichern & anwenden.**
 
-Die Einstellungen öffnest du später per Doppelklick auf das Fuchs-Symbol im Infobereich. Ausführlich und bebildert: `ANLEITUNG.html` im ZIP.
+Die Einstellungen öffnest du später per Doppelklick auf das Fuchs-Symbol im Infobereich. Ausführlich und bebildert: `ANLEITUNG.html` im ZIP (englisch: `GUIDE.html`).
 
 ### Zugänge für die Datenquellen
 
@@ -127,6 +131,8 @@ Tokens und Schlüssel stehen dort nur verschlüsselt (`dpapi:…`). Alle Schlüs
 | `--preview ORDNER` | jedes Bild zusätzlich als PNG speichern |
 | `--log DATEI`, `-v` | Protokoll in eine Datei, ausführlich |
 
+Die Sprache steht unter `[ui]` als `language = "de"` oder `"en"`.
+
 ## Unterstützte Hardware
 
 | Gerät | Anschluss | Hinweis |
@@ -155,7 +161,9 @@ Ohne EXE entwickeln:
 .venv\Scripts\python test_friends.py                      :: Tests für das Zusammenführen der Freundeslisten
 ```
 
-Die bebilderte Anleitung entsteht aus `anleitung/anleitung.template.html` und den Screenshots in `anleitung/bilder` mit `anleitung/make_images.py`. Die Screenshots nimmt `anleitung/screenshots.mjs` auf und ersetzt dabei private Namen durch Beispiele. `anleitung/bilder/freunde.png` ist vorsichtshalber nicht im Repository und wird vor dem Bauen lokal aufgenommen.
+Die bebilderte Anleitung entsteht aus `anleitung/anleitung.template.html` und den Screenshots in `anleitung/bilder` mit `anleitung/make_images.py`; die englische `GUIDE.html` aus `anleitung/anleitung.template.en.html` mit `make_images.py <englische Screenshots> en`. Die Screenshots nimmt `anleitung/screenshots.mjs` auf (`FL_LANG=en` für Englisch) und ersetzt dabei private Namen durch Beispiele. `anleitung/bilder/freunde.png` ist vorsichtshalber nicht im Repository und wird vor dem Bauen lokal aufgenommen.
+
+Übersetzungen: App- und Display-Texte in `i18n.py`, Texte der Einstellungsseite in der Tabelle `EN` in `webui.html`. Die deutschen Texte im Code sind die Quelle.
 
 Wie du mitarbeitest, steht in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
@@ -171,6 +179,7 @@ sysinfo.py             Systemwerte: Windows-APIs, nvidia-smi, HWiNFO
 discord_feed.py        Discord-Bot (nur geladen, wenn gebraucht)
 friends.py             Steam, Xbox und Zusammenführen der Freundeslisten
 bf6.py, rss.py         Battlefield 6 und Blogs
+i18n.py                Sprache: Deutsch/Englisch für Display, Meldungen und Infobereich
 appconfig.py           Konfiguration lesen, prüfen, schreiben
 secure.py              DPAPI-Verschlüsselung der Zugangsdaten
 webui.py, webui.html   Einstellungsseite (lokaler Webserver, eine HTML-Datei)
@@ -198,14 +207,15 @@ Die App ist in der Testphase. Fehler und Ideen bitte über **Issues → New issu
 
 | Datei | Inhalt |
 |---|---|
+| [`README.en.md`](README.en.md) | dieses README auf Englisch |
 | [`ANLEITUNG.md`](ANLEITUNG.md) | Schnellstart für Anwender |
 | [`DOKUMENTATION.md`](DOKUMENTATION.md) | ausführliche Referenz: Seiten, Einstellungen, `config.toml`, HWiNFO, Fehlerbehebung |
-| [`CHANGELOG.md`](CHANGELOG.md) | Änderungen je Version |
+| [`CHANGELOG.md`](CHANGELOG.md) | Änderungen je Version ([English](CHANGELOG.en.md)) |
 | [`PROTOKOLL.md`](PROTOKOLL.md) | Entstehungsverlauf und Entscheidungen |
 | [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) | Sicherheits- und Performance-Prüfung |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Mitarbeiten: Ablauf, Stil, Regeln |
-| [`SECURITY.md`](SECURITY.md) | Sicherheitslücken melden |
-| [`TESTPHASE.md`](TESTPHASE.md) | Rückmeldungen in der Testphase |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Mitarbeiten: Ablauf, Stil, Regeln ([English](CONTRIBUTING.en.md)) |
+| [`SECURITY.md`](SECURITY.md) | Sicherheitslücken melden ([English](SECURITY.en.md)) |
+| [`TESTPHASE.md`](TESTPHASE.md) | Rückmeldungen in der Testphase ([English](TESTPHASE.en.md)) |
 
 ## Unterstützen
 

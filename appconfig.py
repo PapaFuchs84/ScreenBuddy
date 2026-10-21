@@ -29,7 +29,7 @@ DEFAULTS: dict[str, dict] = {
     "bf6": {"enabled": False, "players": [], "refresh_minutes": 15, "title": "Battlefield 6 · Rangliste"},
     "rss": {"enabled": False, "feeds": [], "refresh_minutes": 30, "max_items": 4, "max_per_feed": 1,
             "title": "Blog-Updates"},
-    "ui": {"enabled": True, "port": 8765, "setup_done": False},
+    "ui": {"enabled": True, "port": 8765, "setup_done": False, "language": "de"},   # language: de | en (i18n.py)
 }
 
 # (min, max) für Zahlenwerte
@@ -45,6 +45,7 @@ CHOICES = {
     ("display", "theme"): ("hell", "dunkel", "eigen"),
     ("display", "color_base"): ("hell", "dunkel"),
     ("display", "output"): ("serial", "monitor"),
+    ("ui", "language"): ("de", "en"),
 }
 COLORS = {("display", f"color_{k}") for k in ("bg", "card", "header", "accent", "text", "muted")}
 ID_LISTS = {("discord", "guild_ids"), ("discord", "friend_ids"), ("discord", "ignore_ids")}

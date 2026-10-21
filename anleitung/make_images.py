@@ -1,8 +1,9 @@
 """Bereitet die Screenshots für ANLEITUNG.html vor (zuschneiden, verkleinern) und baut die Datei zusammen.
 
-Aufruf: python anleitung\\make_images.py <ordner-mit-screenshots>
+Aufruf: python anleitung\\make_images.py <ordner-mit-screenshots> [en]
 Erwartet start, prev0 (Übersicht mit Systemseite in der Vorschau), prev4 (Vorschau mit Blogseite), discord, bf6,
-blogs, display, speichern, freunde als PNG (aufgenommen mit screenshots.mjs). Ergebnis: ANLEITUNG.html im Quellordner.
+blogs, display, speichern, freunde als PNG (aufgenommen mit screenshots.mjs). Ergebnis: ANLEITUNG.html im Quellordner,
+mit „en“ die englische GUIDE.html aus anleitung.template.en.html (Screenshots der englischen Einstellungsseite).
 """
 import base64
 import io
@@ -40,7 +41,8 @@ imgs['page_blogs'] = jpg(load('prev4').crop((291, 138, 759, 451)), 90)
 imgs['freunde'] = jpg(load('freunde').crop((250, 460, 1190, 1420)))
 imgs['icon'] = png(Image.open(HERE.parent / 'app.ico').convert('RGBA').resize((64, 64), Image.LANCZOS))
 
-html = (HERE / 'anleitung.template.html').read_text(encoding='utf-8')
+EN = len(sys.argv) > 2 and sys.argv[2] == 'en'
+html = (HERE / ('anleitung.template.en.html' if EN else 'anleitung.template.html')).read_text(encoding='utf-8')
 html = re.sub(r'\{\{img:(\w+)\}\}', lambda m: imgs[m.group(1)], html)
-(HERE.parent / 'ANLEITUNG.html').write_text(html, encoding='utf-8')
-print('ANLEITUNG.html', len(html) // 1024, 'KB')
+(HERE.parent / ('GUIDE.html' if EN else 'ANLEITUNG.html')).write_text(html, encoding='utf-8')
+print('GUIDE.html' if EN else 'ANLEITUNG.html', len(html) // 1024, 'KB')

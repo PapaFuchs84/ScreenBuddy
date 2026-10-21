@@ -1,6 +1,6 @@
 # FuchsLabs USB-Display – Schnellstart
 
-> **Am einfachsten:** `ANLEITUNG.html` doppelklicken. Das ist die bebilderte Anleitung, Schritt für Schritt mit Weiter-Knopf. Diese Datei hier ist die Kurzfassung.
+> **Am einfachsten:** `ANLEITUNG.html` doppelklicken (englisch: `GUIDE.html`; die App lässt sich unter **Start › Sprache · Language** auf Englisch umstellen). Das ist die bebilderte Anleitung, Schritt für Schritt mit Weiter-Knopf. Diese Datei hier ist die Kurzfassung.
 
 Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastung, Temperaturen, Netzwerk), **Discord-Freunde**, **Freunde von Steam, Xbox und Discord** in einer Liste, eine **Battlefield-6-Rangliste** und **Blog-Updates**. Du brauchst keine Vorkenntnisse.
 

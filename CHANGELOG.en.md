@@ -1,0 +1,78 @@
+# Changelog – FuchsLabs USB-Display
+
+[Deutsch](CHANGELOG.md) · **English**
+
+All notable changes to the app. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
+
+## [Unreleased]
+
+## [1.2] – 2026-10-21
+
+### Added
+- **Switchable English interface** (`ui.language = "de" | "en"`): settings page, display pages, messages and tray menu. The switch is under **Start** and **Display › App**; on first start the language follows the Windows language. Translations live in `i18n.py` (app) and `webui.html` (settings page); German texts remain the source.
+- **English guide** `GUIDE.html` (built from `anleitung/anleitung.template.en.html`, pictures with sample data); both guides link to each other, `/anleitung?lang=en` serves the English one.
+- Coffee button (PayPal) at the bottom left of the settings page, in the README and as a sponsor button on GitHub (`.github/FUNDING.yml`).
+- **Custom colours** (`display.theme = "eigen"`): background, cards, header & bars, accent text, text and secondary text via colour pickers on top of the light or dark preset (`display.color_*`, empty = preset). Live preview of the current page (`POST /api/preview-theme.png`), “Reset” and a warning for low contrast (WCAG). The header text picks navy or white by itself.
+- **Any resolution**: all pages draw in logical 480 × 320 coordinates and are rendered sharply at the real size (`render.ScaledDraw`). On the 3.5" display the picture stays pixel-identical. Wide bars show several pages side by side (1920 × 720: two, 1920 × 480: three).
+- **Screen via HDMI/USB-C** (`display.output = "monitor"`, `monitor_output.py`): borderless full-screen window on the chosen screen (`display.monitor`, empty = first non-primary screen), no taskbar entry, does not steal focus, mouse pointer hidden. The app is now DPI-aware (real pixel sizes).
+- **Touch page switching** (`display.touch`, only with screen output and when Windows reports a touchscreen): swipe left = next page, right = previous, tap in the left third = back, elsewhere = next.
+
+### Documentation
+- Bilingual repository: README, CHANGELOG, CONTRIBUTING, SECURITY and TESTPHASE also in English (`*.en.md`); issue forms and PR template are bilingual.
+- README in the usual structure: badges, features, pictures with sample data (`docs/screenshots/`), quick start, logins, configuration, hardware, building, project layout, security, licence note.
+- New: `CONTRIBUTING.md` (workflow, code rules, handling secrets), `SECURITY.md` (reporting vulnerabilities, security model) and a pull request template.
+
+## [1.1] – 2026-10-21
+
+### Added
+- **Settings page** in the browser at `http://127.0.0.1:8765/`, opened via the new tray icon (double-click) or by starting the program a second time. Sections: Start, Overview (live preview, pages on/off and order, time per page, brightness), Friends, Discord, Battlefield 6, Blogs, System, Display.
+- **First-run setup** for friends without prior knowledge: status of display and Discord, buttons to close and disable the vendor app, autostart via `HKCU\…\Run` without admin rights.
+- **Combined friends list** (`friends.py`): Discord, Steam (official Web API) and Xbox (OpenXBL) in one list, each person only once (automatically for identical names or via “Merge people”, with suggestions for similar names), D/S/X badges per platform. PlayStation and EA deliberately not included (no official API, risk of bans). Tests in `test_friends.py`.
+- **Connection status** in the Discord and Friends tabs: green with account name, count and last check, red with the error, grey when not set up.
+- **Fold-out help** next to every token and key field (Discord, Steam, profile link, Xbox, EA ID, blogs) with buttons that open the right page directly.
+- **Illustrated, interactive guide** `ANLEITUNG.html` (kid-friendly, “step X of N”, choose the wanted pages at the start, “Not working?” help per step), available at `/anleitung` and from the settings page. Sources in `anleitung/`.
+- Guide screenshots renewed with sample names; private Xbox names are anonymised while capturing.
+- **FuchsLabs design** (`brand.py`): fox orange `#F77F00` and cream `#FFF4E6` as main colours, navy `#14213D` for text, geometric fox logo for display, tray and EXE icon. Fonts Bahnschrift (headings, numbers) and Segoe UI (text), no web fonts.
+- **Light/dark switch** (`display.theme`), applies to display, settings page and guide. Light is the default.
+- Welcome picture on the display while no page is set up.
+
+### Changed
+- New name **FuchsLabs USB-Display**, all references to the display vendor removed (code, texts, EXE).
+- Built as a standalone EXE (PyInstaller, `build.bat`); users no longer need Python. Program size reduced from 66 MB to about 36 MB.
+- Discord is only loaded when a Discord page is active.
+- The plain “Discord friends” page is skipped automatically while the combined list includes Discord.
+
+### Security
+- Discord token, Steam and Xbox keys are stored encrypted with Windows DPAPI (`secure.py`) and never sent to the browser or written to the log. Old plain-text tokens are encrypted on start.
+- `save_config` no longer creates a plain-text backup (the token used to end up in `.bak` files).
+- Pillow raised from 11.3.0 (45 known vulnerabilities) to 13.0.0; external images only as PNG/JPEG/WebP/GIF and at most 2 MB.
+- Settings page: `127.0.0.1` only, host check against DNS rebinding, custom header for changes (CSRF), rejects `Sec-Fetch-Site: cross-site/same-site`, `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `nosniff`.
+- Feeds containing `<!ENTITY` are discarded, http/https only, responses limited to 3 MB. AVIF module excluded from the build.
+- Details in `SICHERHEITSREVIEW.md` (German).
+
+### Fixed
+- Invalid JSON sent to `/api/config` now returns 400 instead of 500.
+- The “Friends” tab showed “null”.
+
+## [1.0] – 2026-10-21
+
+First version as a Python script, then as the EXE `FuchsLabs-USB-Display-1.0.zip`.
+
+### Added
+- Own driver for the 3.5" USB display (480 × 320, serial protocol over USB CDC, RGB565, partial updates in row bands), replacing the vendor app.
+- **Discord friends** page via your own bot (Presence and Server Members intents): status, activity, avatars.
+- **Battlefield 6 · Leaderboard** page via `api.gametools.network`: rank with badge, K/D, win rate, players from the configuration.
+- **System** page: CPU, GPU (`nvidia-smi`), RAM, drive, network via the adapter of the internet connection; CPU temperature and fan from HWiNFO shared memory. `hwinfo-einrichten.bat` sets HWiNFO up to be lightweight and restarts it every 11 hours.
+- **Blog updates** page (RSS/Atom, the feed is found from the blog address), newest post per blog.
+- Page rotation every 15 seconds, autostart, `DOKUMENTATION.md`.
+
+### Fixed
+- Picture was upside down: orientation `reverse_landscape`.
+- Wrong network values because the vendor app measured the loopback adapter.
+- Fading between pages removed: brightness commands between image data caused picture errors.
+- Brightness raised from 50 to 90.
+- The whole picture is resent on every page change and every 5 minutes. A stripe at a fixed spot on single-colour test pictures comes from the display or cable, not the app.
+
+[Unreleased]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v1.2...HEAD
+[1.2]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v1.1...v1.2
+[1.1]: https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v1.1

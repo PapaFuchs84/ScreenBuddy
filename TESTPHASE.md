@@ -1,5 +1,7 @@
 # Testphase – Rückmeldungen geben
 
+**Deutsch** · [English](TESTPHASE.en.md)
+
 Danke, dass du die App testest! So hilfst du am meisten.
 
 ## Fehler melden

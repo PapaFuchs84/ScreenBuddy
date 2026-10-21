@@ -156,6 +156,7 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 <div class="top"><div class="topin">
   <div class="brand"><img src="{{img:icon}}" alt="">FuchsLabs</div>
   <div class="count" id="count"></div>
+  <a class="menu" id="lang" href="GUIDE.html" style="text-decoration:none;color:var(--text)">English</a>
   <button class="menu" id="menu" aria-label="Alle Schritte anzeigen">☰ Alle Schritte</button>
 </div><div class="prog"><i id="prog"></i></div></div>
 
@@ -218,7 +219,7 @@ const STEPS = [
 <ol class="do">
 <li><b>Das Display</b> mit seinem <b>USB-Kabel</b>.</li>
 <li><b>Einen Windows-PC</b> mit Internet.</li>
-<li><b>Die Datei <span class="key">FuchsLabs-USB-Display-1.1.zip</span></b>. Die hast du von dem bekommen, der dir diese Anleitung geschickt hat.</li>
+<li><b>Die Datei <span class="key">FuchsLabs-USB-Display-1.2.zip</span></b>. Die hast du von dem bekommen, der dir diese Anleitung geschickt hat.</li>
 ${sel.discord ? '<li><b>Dein Discord-Konto</b> und einen Discord-Server, auf dem du Chef (Admin) bist. Bist du das nicht, frag den Chef des Servers, ob er dir hilft.</li>' : ''}
 ${sel.friends ? '<li><b>Dein Steam-Konto</b> und/oder <b>dein Xbox-Konto</b>.</li>' : ''}
 ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</li>' : ''}
@@ -229,14 +230,14 @@ ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</l
 <p class="kicker">Auspacken</p><h1>Pack die ZIP-Datei aus</h1>
 <p class="lead">Die ZIP-Datei ist wie ein Paket. Bevor du das Programm benutzen kannst, musst du es auspacken.</p>
 <ol class="do">
-<li>Klicke mit der <b>rechten Maustaste</b> auf die Datei <span class="key">FuchsLabs-USB-Display-1.1.zip</span>.</li>
+<li>Klicke mit der <b>rechten Maustaste</b> auf die Datei <span class="key">FuchsLabs-USB-Display-1.2.zip</span>.</li>
 <li>Klicke auf <b>„Alle extrahieren …“</b>.</li>
 <li>Klicke im neuen Fenster unten rechts auf ${g('Extrahieren')}.</li>
 </ol>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
 <div class="tb">📁 Downloads<span>— ☐ ✕</span></div>
 <div class="files" style="min-height:230px;position:relative">
-<div class="file sel"><div class="fi">🗜️</div>FuchsLabs-USB-Display-1.1.zip
+<div class="file sel"><div class="fi">🗜️</div>FuchsLabs-USB-Display-1.2.zip
 <div class="ctx"><div>Öffnen</div><div class="hl"><b>Alle extrahieren …</b></div><div>Kopieren</div><div>Umbenennen</div><div>Eigenschaften</div></div></div>
 </div></div></figure>
 <div class="box tip"><p>Leg den ausgepackten Ordner an einen Platz, wo er bleiben darf, zum Beispiel in <b>Dokumente</b>. Nicht im Papierkorb und nicht auf einem USB-Stick, den du wieder abziehst.</p></div>
@@ -466,6 +467,7 @@ ${help([['Das Display bleibt dunkel.', 'Schau, ob das orange Zeichen unten recht
 ];
 
 const $ = s => document.querySelector(s);
+if (location.protocol !== 'file:') $('#lang').href = '/anleitung?lang=en';
 const active = () => STEPS.filter(s => !s.need || sel[s.need]);
 function show(i) {
   const list = active(); cur = Math.max(0, Math.min(i, list.length - 1)); const s = list[cur];

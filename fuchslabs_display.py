@@ -19,6 +19,7 @@ from pathlib import Path
 from PIL import Image
 
 import appconfig
+import i18n
 import winsetup
 from bf6 import Bf6Stats, demo_players
 from display_driver import Orientation, UsbDisplay
@@ -355,8 +356,10 @@ def run_demo(lcd: UsbDisplay | MonitorDisplay | None, cfg: dict, preview_dir: Pa
     r = Renderer(size, title=cfg["display"]["title"])
     br, rr = Bf6Renderer(size, title=cfg["bf6"]["title"]), RssRenderer(size, title=cfg["rss"]["title"])
     from rss import Post
-    posts = [Post("Beispiel-Blog", "Ein kurzer Titel für die Vorschau", datetime.now().astimezone(), ""),
-             Post("Noch ein Blog", "Zweiter Beitrag mit etwas längerem Titel, der umbricht", datetime.now().astimezone(), "")]
+    tr = i18n.tr
+    posts = [Post(tr("Beispiel-Blog"), tr("Ein kurzer Titel für die Vorschau"), datetime.now().astimezone(), ""),
+             Post(tr("Noch ein Blog"), tr("Zweiter Beitrag mit etwas längerem Titel, der umbricht"),
+                  datetime.now().astimezone(), "")]
     sr = SysRenderer(size, title=cfg["system"]["title"], net_unit=cfg["system"]["net_unit"])
     frames = [sr.render(mon.snap)]
     friends, players = demo_friends(), demo_players()
@@ -423,6 +426,9 @@ def main() -> int:
     cfg_path = Path(args.config)
     first_run = not cfg_path.exists()
     cfg = appconfig.load_config(cfg_path)
+    if first_run:  # Erststart: Sprache wie Windows (Deutsch, sonst Englisch); später in den Einstellungen umschaltbar
+        cfg["ui"]["language"] = "de" if ctypes.windll.kernel32.GetUserDefaultUILanguage() & 0x3FF == 0x07 else "en"
+    i18n.set_lang(cfg["ui"]["language"])
     if not args.demo:
         mutex = _single_instance(args.restarted)
         if mutex is None:  # läuft schon: nur die Einstellungen öffnen

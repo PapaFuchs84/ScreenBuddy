@@ -130,15 +130,152 @@ border-radius:50%;animation:s 1s linear infinite;margin:0 auto 16px}@keyframes s
 
 <script>
 const $ = s => document.querySelector(s);
+/* Sprache: Texte im Code sind deutsch; T() übersetzt sie, solange Englisch gewählt ist (cfg.ui.language oder ?lang=en).
+   h() übersetzt Texte und placeholder/title/alt selbst; nur zusammengesetzte Texte brauchen ein eigenes T() oder EN-Zweig. */
+let L = 'de';
+const EN = {
+  'Änderungen noch nicht angewendet': 'Changes not applied yet', 'Verwerfen': 'Discard', 'Speichern & anwenden': 'Save & apply',
+  'Wird angewendet …': 'Applying …', 'Die Anzeige startet neu, das dauert etwa 10 Sekunden.': 'The display restarts, this takes about 10 seconds.',
+  'Neustart …': 'Restarting …', 'Keine Verbindung': 'No connection', 'Keine Verbindung zur App.': 'No connection to the app.',
+  'Starte die App über das Startmenü oder den Autostart neu.': 'Start the app again from the Start menu or autostart.',
+  'Fehler': 'Error', 'Start': 'Start', 'Übersicht': 'Overview', 'Freunde': 'Friends', 'System': 'System', 'Display': 'Display',
+  'CPU, GPU, RAM, Datenträger, Netzwerk': 'CPU, GPU, RAM, drive, network', 'Freunde (alle Plattformen)': 'Friends (all platforms)',
+  'Discord, Steam und Xbox in einer Liste': 'Discord, Steam and Xbox in one list', 'Discord-Freunde': 'Discord friends',
+  'Wer ist online und was spielt er': 'Who is online and what they are playing', 'Battlefield 6 Rangliste': 'Battlefield 6 leaderboard',
+  'Profile deiner EA-Freunde nach Rang': 'Your EA friends ranked', 'Blog-Updates': 'Blog updates', 'Neueste Beiträge deiner Blogs': 'Latest posts from your blogs',
+  // Start
+  'Verbunden': 'Connected', 'Aus': 'Off', 'Öffnen': 'Open', 'Hersteller-App beenden': 'Close vendor app',
+  'Autostart der Hersteller-App': 'Vendor app autostart', 'Ist noch an und belegt das Display nach jedem Windows-Start.': 'Still on, and it takes over the display every time Windows starts.',
+  'Abschalten (Windows fragt nach)': 'Turn off (Windows will ask)', 'Mit Windows starten': 'Start with Windows',
+  'Die App startet beim Anmelden von selbst im Hintergrund.': 'The app starts by itself in the background when you sign in.',
+  'Willkommen!': 'Welcome!', 'In wenigen Minuten ist dein Display eingerichtet. Du kannst alles später jederzeit ändern.': 'Your display will be set up in a few minutes. You can change everything later at any time.',
+  'Zustand deiner Installation.': 'Status of your installation.', 'Zustand': 'Status', 'Hier siehst du, ob alles läuft. Fehler werden direkt erklärt.': 'See whether everything is running. Problems are explained right here.',
+  'Einrichtung in 3 Schritten': 'Setup in 3 steps', 'Lieber mit Bildern, Schritt für Schritt?': 'Prefer pictures, step by step?',
+  'Die bebilderte Anleitung zeigt jeden Klick, auch für Discord, Steam und Xbox.': 'The illustrated guide shows every click, including Discord, Steam and Xbox.',
+  'Anleitung öffnen ↗': 'Open guide ↗', 'Seiten wählen': 'Choose pages', 'Welche Seiten das Display zeigt und in welcher Reihenfolge': 'Which pages the display shows and in what order',
+  'Inhalte eintragen': 'Add content', 'Discord-Freunde, Battlefield-6-Spieler oder Blogs – alles optional': 'Discord friends, Battlefield 6 players or blogs – all optional',
+  'Fertig': 'Done', 'Mit „Speichern & anwenden“ startet die Anzeige mit deinen Einstellungen neu': '“Save & apply” restarts the display with your settings',
+  'Einrichtungshilfe ausblenden': 'Hide setup help', 'Sprache und Design werden mit „Speichern & anwenden“ übernommen.': 'Language and design take effect with “Save & apply”.',
+  // Übersicht
+  'Wird nicht gezeigt: Die Freunde-Seite enthält Discord schon': 'Not shown: the Friends page already includes Discord', 'Bot-Token fehlt': 'Bot token missing',
+  'Noch keine Konten verbunden': 'No accounts connected yet', 'Keine Spieler eingetragen': 'No players added', 'Keine Blogs eingetragen': 'No blogs added',
+  'Nach oben': 'Move up', 'Nach unten': 'Move down', 'So sieht dein Display gerade aus und in welcher Reihenfolge die Seiten wechseln.': 'What your display shows right now and in which order the pages change.',
+  'Live-Vorschau': 'Live preview', 'Seiten': 'Pages', 'Mit den Pfeilen sortierst du, mit dem Schalter blendest du Seiten ein oder aus.': 'Use the arrows to sort and the switch to show or hide a page.',
+  'Wechsel & Helligkeit': 'Rotation & brightness', 'Anzeigedauer pro Seite': 'Time per page', 'Wie lange eine Seite stehen bleibt': 'How long each page stays on screen',
+  'Helligkeit': 'Brightness', 'Display-Helligkeit': 'Display brightness',
+  // Discord
+  'Unbekannte ID ': 'Unknown ID ', 'Keine Mitglieder gefunden.': 'No members found.', 'Mitglieder suchen …': 'Search members …',
+  'Ohne Auswahl werden alle Mitglieder angezeigt. Mit Auswahl nur die angehakten.': 'With nothing selected, all members are shown. Otherwise only the ticked ones.',
+  'Der Bot ist gerade nicht verbunden. Trage zuerst einen gültigen Token ein.': 'The bot is not connected right now. Enter a valid token first.',
+  'IDs, durch Komma getrennt': 'IDs, separated by commas', 'leer = alle Server des Bots': 'empty = all of the bot\'s servers',
+  'Zeigt, wer auf deinen Servern online ist. Dafür nutzt die App einen eigenen Bot.': 'Shows who is online on your servers. The app uses its own bot for this.',
+  'Verbindung': 'Connection', 'Seite anzeigen': 'Show page', 'Bot-Token': 'Bot token', 'Gespeichert. Leer lassen, um ihn zu behalten.': 'Saved. Leave empty to keep it.',
+  'Wie ein Passwort. Wie du ihn bekommst, steht unten.': 'Like a password. How to get it is explained below.', 'Token einfügen': 'Paste token',
+  'Offline-Freunde anzeigen': 'Show offline friends', 'Ausgegraut mit in der Liste': 'Greyed out in the list',
+  'So bekommst du den Bot-Token (5 Minuten)': 'How to get the bot token (5 minutes)', 'Klicke unten auf ': 'Click ', 'Discord-Entwicklerseite': 'Discord developer page',
+  ' und melde dich mit deinem Discord-Konto an.': ' below and sign in with your Discord account.', 'Oben rechts auf ': 'At the top right, click ',
+  ' klicken, einen Namen eingeben (z. B. „Mein Display“), Haken setzen, ': ', enter a name (e.g. “My Display”), tick the box, click ',
+  'Links auf ': 'On the left, click ', ' klicken, dann ': ', then ', ' und ': ' and ', '. Jetzt ist der Token kopiert.': '. The token is now copied.',
+  'Etwas nach unten scrollen: ': 'Scroll down a bit and turn on ', ' einschalten, ': ', then click ', 'Oben in das Feld ': 'Click into the ',
+  ' klicken und mit Strg + V einfügen.': ' field above and paste with Ctrl + V.', 'So lädst du den Bot auf deinen Server ein': 'How to invite the bot to your server',
+  'Auf der Entwicklerseite links ': 'On the developer page, click ', ' anklicken.': ' on the left.', 'Bei ': 'At ', ' unter Scopes den Haken bei ': ', under Scopes tick ',
+  ' setzen.': '.', 'Ganz unten die Adresse mit ': 'At the very bottom, copy the address with ', ' kopieren, oben im Browser einfügen und Enter drücken.': ', paste it into your browser\'s address bar and press Enter.',
+  'Deinen Server auswählen und ': 'Choose your server and click ', 'Autorisieren': 'Authorize', ' klicken. Dafür musst du dort Admin sein.': '. You need to be an admin there.',
+  'Personen': 'People', 'Erweitert': 'Advanced', 'Server und ausgeblendete Personen': 'Servers and hidden people',
+  'Nur diese Server beobachten (Server-IDs)': 'Only watch these servers (server IDs)', 'Diese Personen nie anzeigen (Benutzer-IDs)': 'Never show these people (user IDs)',
+  // Listen, Status
+  'Noch nicht geprüft': 'Not checked yet', 'Prüfen': 'Check', 'Entfernen': 'Remove', 'Hinzufügen': 'Add', 'Status wird geladen …': 'Loading status …',
+  'Noch nicht eingerichtet': 'Not set up yet', 'Verbinde … oder Token gespeichert, aber gerade nicht genutzt': 'Connecting … or token saved but not in use right now',
+  'Zugang gespeichert – er wird genutzt, sobald die Seite „Freunde“ an und alles ausgefüllt ist': 'Access saved – it is used once the “Friends” page is on and everything is filled in',
+  'Prüfe …': 'Checking …', 'Verbindung prüfen': 'Check connection',
+  // Freunde
+  'Ähnliche Namen – dieselbe Person?': 'Similar names – same person?', 'Ja, zusammenführen': 'Yes, merge', 'Nein': 'No', 'Verknüpfen': 'Link',
+  'Sobald Konten verbunden sind, kannst du sie hier zusammenführen.': 'Once accounts are connected, you can merge them here.',
+  'Eine gemeinsame Liste für alle Plattformen. Wer auf mehreren Plattformen ist, erscheint nur einmal.': 'One list for all platforms. People on several platforms appear only once.',
+  'Seite': 'Page', 'Tipp: Schalte in der Übersicht die Seite „Discord-Freunde“ aus, wenn du nur noch diese gemeinsame Liste sehen willst.': 'Tip: turn off the “Discord friends” page in the Overview if you only want to see this combined list.',
+  'Discord einbeziehen': 'Include Discord', 'Braucht den Bot-Token im Reiter Discord': 'Needs the bot token in the Discord tab',
+  'Gleiche Namen automatisch zusammenfassen': 'Merge identical names automatically', 'Zwei Konten mit gleichem Namen auf verschiedenen Plattformen gelten als eine Person': 'Two accounts with the same name on different platforms count as one person',
+  'Kostenlos und offiziell von Valve. Deine Freundesliste im Steam-Profil muss auf „Öffentlich“ stehen.': 'Free and official from Valve. Your friends list in your Steam profile must be set to “Public”.',
+  'Steam-Schlüssel': 'Steam key', 'Wird gleich erklärt': 'Explained below', 'Schlüssel einfügen': 'Paste key', 'Dein Steam-Profil': 'Your Steam profile',
+  'Der Link aus der Adresszeile deines Profils': 'The link from your profile\'s address bar', 'So bekommst du den Steam-Schlüssel': 'How to get the Steam key',
+  'Steam-Schlüssel holen': 'Get Steam key', ' und melde dich bei Steam an.': ' below and sign in to Steam.', 'Domain Name': 'Domain Name', ' einfach ': ' simply enter ',
+  ' eintragen, den Haken setzen und auf ': ', tick the box and click ', 'Registrieren': 'Register', ' klicken.': '.',
+  'Den langen Schlüssel (Buchstaben und Zahlen) kopieren und oben bei ': 'Copy the long key (letters and numbers) and paste it above into ', ' einfügen.': '.',
+  'So findest du deinen Profil-Link': 'How to find your profile link', 'Mein Steam-Profil': 'My Steam profile', '. Dein Profil geht auf.': ' below. Your profile opens.',
+  'Oben in der Adresszeile des Browsers steht der Link. Hineinklicken, mit Strg + C kopieren und oben bei ': 'The link is in the browser\'s address bar. Click into it, copy with Ctrl + C and paste it above into ',
+  'Wichtig: Klicke auf ': 'Important: click ', 'Datenschutz öffnen': 'Open privacy settings', ' und stelle ': ' and set ', 'Freundesliste': 'Friends list', ' auf ': ' to ',
+  'Öffentlich': 'Public', '. Sonst sieht die App deine Freunde nicht.': '. Otherwise the app cannot see your friends.',
+  'Über den kostenlosen Dienst OpenXBL (xbl.io), nicht direkt von Microsoft.': 'Via the free OpenXBL service (xbl.io), not directly from Microsoft.',
+  'OpenXBL-Schlüssel': 'OpenXBL key', 'So bekommst du den Xbox-Schlüssel': 'How to get the Xbox key', 'OpenXBL öffnen': 'Open OpenXBL',
+  ' und melde dich mit deinem Xbox- bzw. Microsoft-Konto an.': ' below and sign in with your Xbox or Microsoft account.',
+  'Danach bist du in deinem Bereich (Dashboard). Dort bei ': 'You are now in your dashboard. Under ', ' einen neuen Schlüssel erstellen.': ', create a new key.',
+  'Den Schlüssel kopieren und oben bei ': 'Copy the key and paste it above into ', ' einfügen. Dann ': '. Then click ',
+  'Für PlayStation gibt es keine offizielle Schnittstelle. Der inoffizielle Weg kann zur Sperre des Kontos führen und ist deshalb nicht eingebaut.': 'There is no official API for PlayStation. The unofficial route can get your account banned, so it is not included.',
+  'Personen zusammenführen': 'Merge people', 'Wenn jemand auf zwei Plattformen verschieden heißt: Wähle beide Konten und klicke Verknüpfen.': 'If someone has different names on two platforms: choose both accounts and click Link.',
+  // Battlefield, Blogs
+  'Die Rangliste deiner EA-Freunde. Eine Freundesliste gibt EA nicht heraus, deshalb trägst du die Namen hier ein.': 'The leaderboard of your EA friends. EA does not share friend lists, so you add the names here.',
+  'Aktualisieren alle': 'Refresh every', 'Wie oft die Werte neu geholt werden': 'How often the stats are fetched', 'Spieler': 'Players',
+  'EA-ID eingeben, mit „Prüfen“ siehst du sofort, ob der Name gefunden wird.': 'Enter an EA ID; “Check” shows right away whether the name is found.',
+  'EA-ID, z. B. P4p4F0x': 'EA ID, e.g. P4p4F0x', 'PC (EA)': 'PC (EA)', 'Wo finde ich die EA-ID?': 'Where do I find the EA ID?',
+  'Deine eigene: Klicke unten auf ': 'Your own: click ', 'Meine EA-ID ansehen': 'View my EA ID', ' und melde dich an. Bei ': ' below and sign in. Your name is shown at ',
+  'EA-ID': 'EA ID', ' steht dein Name.': '.', 'Oder in der ': 'Or in the ', 'EA app': 'EA app', ': oben links auf dein Profilbild klicken.': ': click your profile picture at the top left.',
+  'Deine Freunde: In der EA app bei ': 'Your friends: in the EA app under ', ' stehen ihre EA-IDs. Oder frag sie einfach.': ' you can see their EA IDs. Or just ask them.',
+  'Wer auf PlayStation oder Xbox spielt: dessen PSN-Namen bzw. Gamertag eintragen und daneben die Plattform wählen.': 'Friends on PlayStation or Xbox: enter their PSN name or gamertag and choose the platform next to it.',
+  'Die neuesten Beiträge deiner Blogs auf einer übersichtlichen Seite.': 'The latest posts from your blogs on one clear page.', 'Beiträge insgesamt': 'Posts in total',
+  'Mehr als 4 passen nicht lesbar aufs Display': 'More than 4 do not fit readably on the display', 'Je Blog höchstens': 'At most per blog',
+  'Die normale Adresse reicht, der Feed wird automatisch gesucht.': 'The normal address is enough, the feed is found automatically.',
+  'Blog-Adresse, z. B. https://winfuture.de/': 'Blog address, e.g. https://www.theverge.com/', 'So fügst du eine Webseite hinzu': 'How to add a website',
+  'Öffne die Webseite in deinem Browser, zum Beispiel deinen Lieblings-Blog.': 'Open the website in your browser, for example your favourite blog.',
+  'Klicke oben in die Adresszeile und kopiere die Adresse mit ': 'Click into the address bar at the top and copy the address with ', 'Strg + C': 'Ctrl + C', '.': '.',
+  'Klicke hier ins Feld, füge sie mit ': 'Click into the field here, paste it with ', 'Strg + V': 'Ctrl + V', ' ein und klicke auf ': ' and click ',
+  'Klicke auf ': 'Click ', '. Grün heißt: Es wurden Beiträge gefunden.': '. Green means: posts were found.',
+  // System
+  'Automatisch': 'Automatic', 'Netzwerkadapter': 'Network adapter', 'Automatisch = der Adapter deiner Internetverbindung': 'Automatic = the adapter of your internet connection',
+  'CPU-Temperatur': 'CPU temperature', 'Sensor aus HWiNFO': 'Sensor from HWiNFO', 'HWiNFO läuft nicht – Automatik bleibt leer': 'HWiNFO is not running – automatic stays empty',
+  'CPU-Lüfter': 'CPU fan', 'HWiNFO läuft nicht': 'HWiNFO is not running', 'Auslastung, Temperaturen und Netzwerk deines PCs.': 'Load, temperatures and network of your PC.',
+  'Netzwerkraten in': 'Network rates in', 'Wie im Task-Manager (Mbit/s) oder in Megabyte pro Sekunde': 'Like Task Manager (Mbit/s) or in megabytes per second',
+  'Laufwerk': 'Drive', 'Für Belegung und Temperatur': 'For usage and temperature', 'Sensoren': 'Sensors',
+  // Design, Display
+  'Hintergrund': 'Background', 'Karten': 'Cards', 'Kopfzeile & Balken': 'Header & bars', 'Akzentschrift': 'Accent text', 'Schrift': 'Text', 'Nebentext': 'Secondary text',
+  'Hell (Creme)': 'Light (cream)', 'Dunkel (Navy)': 'Dark (navy)', 'Eigene Farben': 'Custom colours', 'Vorschau mit deinen Farben': 'Preview with your colours',
+  'Schrift auf Hintergrund': 'text on background', 'Schrift auf Karten': 'text on cards', 'Nebentext auf Hintergrund': 'secondary text on background',
+  'Akzentschrift auf Hintergrund': 'accent text on background', 'Zurücksetzen': 'Reset',
+  'Gilt für das Display. Die Vorschau zeigt die aktuelle Seite mit deinen Farben, übernommen wird erst mit „Speichern & anwenden“.': 'Applies to the display. The preview shows the current page in your colours; they take effect with “Save & apply”.',
+  'Ausgangsfarben': 'Base colours', 'Leere Farben kommen von dieser Vorlage': 'Empty colours come from this preset', 'Setzt alle Farben auf die Vorlage zurück.': 'Resets all colours to the preset.',
+  'USB-Display 3,5" (über COM-Port)': '3.5" USB display (via COM port)', 'Bildschirm über HDMI oder USB-C': 'Screen via HDMI or USB-C',
+  'Automatisch (erster Bildschirm, der nicht der Hauptbildschirm ist)': 'Automatic (first screen that is not the main screen)', 'Bildschirm': 'Screen',
+  'Darauf erscheint die Anzeige als Vollbild ohne Rahmen': 'The display appears there full-screen without borders', 'Suche Bildschirme …': 'Looking for screens …',
+  'Touch-Steuerung': 'Touch control', 'Windows meldet keinen Touchscreen. Sobald einer angeschlossen ist, lässt sich das hier einschalten.': 'Windows reports no touchscreen. Once one is connected, you can turn this on here.',
+  'Breite Leisten wie 1920 × 720 zeigen mehrere Seiten nebeneinander. Der Bildschirm sollte in Windows auf „Erweitern“ stehen, nicht auf „Duplizieren“.': 'Wide bars like 1920 × 720 show several pages side by side. Set the screen to “Extend” in Windows, not “Duplicate”.',
+  'Art des Displays, Farben und Verhalten.': 'Display type, colours and behaviour.', 'Display-Typ': 'Display type',
+  'Kleines USB-Display oder ein normaler Bildschirm (z. B. eine 10,25"-Leiste)': 'Small USB display or a regular screen (e.g. a 10.25" bar)', 'Bild': 'Picture',
+  'Ausrichtung': 'Orientation', 'Wenn das Bild auf dem Kopf steht, die andere Variante wählen': 'If the picture is upside down, choose the other option',
+  'Querformat': 'Landscape', 'Querformat, gedreht': 'Landscape, flipped', 'Hochformat': 'Portrait', 'Hochformat, gedreht': 'Portrait, flipped', 'Design': 'Design',
+  'Hell oder Dunkel gilt auch für diese Einstellungsseite. Hell ist auf dem Display besser lesbar.': 'Light or dark also applies to this settings page. Light is easier to read on the display.',
+  'Anschluss': 'Connection', 'COM-Port': 'COM port', 'AUTO sucht das Display selbst': 'AUTO finds the display by itself', 'Beim Start zurücksetzen': 'Reset on start',
+  'Verhindert verschobene Bilder': 'Prevents shifted pictures', 'Beim Beenden ausschalten': 'Turn off on exit', 'Programm': 'App',
+  'Port dieser Einstellungsseite': 'Port of this settings page', 'Nur lokal erreichbar. Änderung wirkt nach dem Neustart.': 'Only reachable on this PC. Takes effect after a restart.',
+  'App steuern': 'Control the app', 'Neustart lädt alle Einstellungen neu': 'A restart reloads all settings', 'Neu starten': 'Restart', 'Beenden': 'Quit',
+  'Anzeige neu starten?': 'Restart the display?', 'App beenden? Das Display wird dunkel.': 'Quit the app? The display will go dark.', 'App beendet': 'App closed',
+  'Du kannst dieses Fenster schließen.': 'You can close this window.', ' (gerade nicht angeschlossen)': ' (not connected right now)',
+  'Einstellungsseite, Display und Infobereich': 'Settings page, display and tray menu',
+  '📖 Bebilderte Anleitung': '📖 Illustrated guide', '☕ Spendier mir einen Kaffee': '☕ Buy me a coffee'};
+const T = s => (L === 'en' && typeof s === 'string' && EN[s] !== undefined) ? EN[s] : s;
 const h = (tag, attrs = {}, ...kids) => {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (k === 'class') e.className = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
-    else if (v !== false && v != null) e.setAttribute(k, v === true ? '' : v);
+    else if (v !== false && v != null) e.setAttribute(k, v === true ? '' : ['placeholder', 'title', 'alt'].includes(k) ? T(v) : v);
   }
-  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(k));
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(T(k)));
   return e;
 };
+function setLang(lang) {   // statische Texte der Seite (Leiste, Overlay) und html lang
+  L = lang === 'en' ? 'en' : 'de'; document.documentElement.lang = L;
+  $('#bar span').textContent = T('Änderungen noch nicht angewendet'); $('#discard').textContent = T('Verwerfen');
+  $('#save').textContent = T('Speichern & anwenden'); $('#ovt').textContent = T('Wird angewendet …');
+  $('#ovs').textContent = T('Die Anzeige startet neu, das dauert etwa 10 Sekunden.');
+}
 const api = (path, body) => fetch(path, body === undefined ? {} : {method: 'POST',
   headers: {'X-FL': '1', 'Content-Type': 'application/json'}, body: JSON.stringify(body)}).then(r => r.json());
 
@@ -180,7 +317,7 @@ const card = (title, hint, ...kids) => h('div', {class: 'card'}, h('h3', {}, tit
 const head = (t, s) => [h('h1', {}, t), h('p', {class: 'sub'}, s)];
 /* Kleine Hilfen: Link zur richtigen Seite und Schritte zum Aufklappen. Ein Schritt darf ein Array aus Text und Elementen sein. */
 const B = t => h('b', {}, t);
-const ext = (href, label) => h('a', {class: 'btn sm', href, target: '_blank', rel: 'noopener noreferrer'}, label + ' ↗');
+const ext = (href, label) => h('a', {class: 'btn sm', href, target: '_blank', rel: 'noopener noreferrer'}, T(label) + ' ↗');
 const howto = (title, items, ...links) => h('details', {class: 'howto'}, h('summary', {}, title),
   h('ol', {}, items.map(i => h('li', {}, ...[].concat(i)))), links.length ? h('div', {class: 'links'}, ...links) : null);
 
@@ -203,7 +340,7 @@ function viewStart() {
   const box = h('div');
   const item = (title, state, detail, ...actions) => h('div', {class: 'item'},
     h('div', {class: 't'}, h('b', {}, title), h('span', {class: state}, detail)), ...actions);
-  const post = async (url, body = {}) => { const r = await api(url, body); if (r.ok === false) toast(r.error || 'Fehler'); refresh(); };
+  const post = async (url, body = {}) => { const r = await api(url, body); if (r.ok === false) toast(r.error || T('Fehler')); refresh(); };
   const refresh = async () => {
     const s = await api('/api/status'), list = h('div', {class: 'list'});
     list.append(item('Display', s.display_ok ? 'ok' : 'bad', s.display_ok ? 'Verbunden' : s.display_error,
@@ -225,6 +362,7 @@ function viewStart() {
   return [...head(meta.first_run ? 'Willkommen!' : 'Start', meta.first_run
       ? 'In wenigen Minuten ist dein Display eingerichtet. Du kannst alles später jederzeit ändern.' : 'Zustand deiner Installation.'),
     card('Zustand', 'Hier siehst du, ob alles läuft. Fehler werden direkt erklärt.', box),
+    card('Sprache · Language', null, row('Deutsch oder English', 'Sprache und Design werden mit „Speichern & anwenden“ übernommen.', langSel())),
     card('Einrichtung in 3 Schritten', null,
       h('div', {class: 'item', style: 'margin-bottom:8px'}, h('div', {class: 't'}, h('b', {}, 'Lieber mit Bildern, Schritt für Schritt?'),
         h('span', {}, 'Die bebilderte Anleitung zeigt jeden Klick, auch für Discord, Steam und Xbox.')),
@@ -267,7 +405,7 @@ function viewDiscord() {
   const draw = (members, q = '') => {
     const ids = new Set(d.friend_ids.map(String));
     const known = new Set(members.map(m => String(m.id)));
-    const all = [...members, ...[...ids].filter(i => !known.has(i)).map(i => ({id: i, name: 'Unbekannte ID ' + i, guild: ''}))]
+    const all = [...members, ...[...ids].filter(i => !known.has(i)).map(i => ({id: i, name: T('Unbekannte ID ') + i, guild: ''}))]
       .filter(m => m.name.toLowerCase().includes(q.toLowerCase()));
     box.replaceChildren(...all.map(m => {
       const c = h('input', {type: 'checkbox', checked: ids.has(String(m.id))});
@@ -279,9 +417,9 @@ function viewDiscord() {
   const search = h('input', {type: 'text', placeholder: 'Mitglieder suchen …', style: 'width:100%'});
   const info = h('p', {class: 'note'});
   api('/api/discord/members').then(r => {
-    cache.members = r.members; info.textContent = r.ready
+    cache.members = r.members; info.textContent = T(r.ready
       ? 'Ohne Auswahl werden alle Mitglieder angezeigt. Mit Auswahl nur die angehakten.'
-      : 'Der Bot ist gerade nicht verbunden. Trage zuerst einen gültigen Token ein.';
+      : 'Der Bot ist gerade nicht verbunden. Trage zuerst einen gültigen Token ein.');
     draw(r.members); search.addEventListener('input', () => draw(cache.members, search.value)); });
   const ign = h('textarea', {placeholder: 'IDs, durch Komma getrennt'}, d.ignore_ids.join(', '));
   ign.addEventListener('input', () => { d.ignore_ids = ign.value.split(/[^0-9]+/).filter(Boolean); touch(); });
@@ -318,7 +456,7 @@ function checkList(sec, key, kind, placeholder) {
   const info = {};
   const draw = () => list.replaceChildren(...cfg[sec][key].map((v, i) => {
     const r = info[v], st = r ? (r.ok ? h('span', {class: 'ok'}, kind === 'bf6'
-      ? `Rang ${r.rank ?? '?'}${r.rank_name ? ' · ' + r.rank_name : ''} · K/D ${r.kd ?? '–'}` : `${r.source}: ${r.latest}`)
+      ? `${L === 'en' ? 'Rank' : 'Rang'} ${r.rank ?? '?'}${r.rank_name ? ' · ' + r.rank_name : ''} · K/D ${r.kd ?? '–'}` : `${r.source}: ${r.latest}`)
       : h('span', {class: 'bad'}, r.error)) : h('span', {}, 'Noch nicht geprüft');
     return h('div', {class: 'item'}, h('div', {class: 't'}, h('b', {}, v), st),
       h('button', {class: 'btn sm', onclick: async e => { e.target.disabled = true; e.target.textContent = '…';
@@ -337,16 +475,18 @@ function checkList(sec, key, kind, placeholder) {
 let connTimer = null;
 function ago(ts) {
   const m = Math.floor((Date.now() / 1000 - ts) / 60);
+  if (L === 'en') return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.floor(m / 60)} h ago`;
   return m < 1 ? 'gerade eben' : m < 60 ? `vor ${m} min` : `vor ${Math.floor(m / 60)} h`;
 }
 function connLine(p, c) {
-  if (!c || c.state === 'off') return ['off', 'Noch nicht eingerichtet'];
-  if (c.state === 'idle') return ['off', p === 'discord'
+  if (!c || c.state === 'off') return ['off', T('Noch nicht eingerichtet')];
+  if (c.state === 'idle') return ['off', T(p === 'discord'
     ? 'Verbinde … oder Token gespeichert, aber gerade nicht genutzt'
-    : 'Zugang gespeichert – er wird genutzt, sobald die Seite „Freunde“ an und alles ausgefüllt ist'];
-  if (c.state === 'ok') return ['ok', `Verbunden${c.name ? ' als ' + c.name : ''} · ${c.detail}`
-    + (c.live ? ' · live' : c.at ? ' · zuletzt abgefragt ' + ago(c.at) : '')];
-  return ['bad', (c.error || 'Fehler') + (c.at ? ` (letzter Erfolg ${ago(c.at)})` : '')];
+    : 'Zugang gespeichert – er wird genutzt, sobald die Seite „Freunde“ an und alles ausgefüllt ist')];
+  const en = L === 'en';
+  if (c.state === 'ok') return ['ok', `${en ? 'Connected' : 'Verbunden'}${c.name ? (en ? ' as ' : ' als ') + c.name : ''} · ${c.detail}`
+    + (c.live ? ' · live' : c.at ? (en ? ' · last checked ' : ' · zuletzt abgefragt ') + ago(c.at) : '')];
+  return ['bad', (c.error || T('Fehler')) + (c.at ? (en ? ` (last success ${ago(c.at)})` : ` (letzter Erfolg ${ago(c.at)})`) : '')];
 }
 function connBadge(p) {
   return h('div', {class: 'conn conn-off', 'data-p': p}, h('i', {class: 'd'}), h('span', {class: 't'}, 'Status wird geladen …'));
@@ -363,10 +503,11 @@ async function updateConn() {
 function checker(platform, body) {
   const out = h('span', {class: 'note'});
   const b = h('button', {class: 'btn sm', onclick: async () => {
-    b.disabled = true; out.className = 'note'; out.textContent = 'Prüfe …';
+    b.disabled = true; out.className = 'note'; out.textContent = T('Prüfe …');
     const r = await api('/api/check/friends/' + platform, body()); b.disabled = false;
     out.className = r.ok ? 'ok' : 'bad';
-    out.textContent = r.ok ? `Verbunden: ${r.count} Freunde, ${r.online} gerade online` : r.error; }}, 'Verbindung prüfen');
+    out.textContent = !r.ok ? r.error : L === 'en' ? `Connected: ${r.count} friends, ${r.online} online now`
+      : `Verbunden: ${r.count} Freunde, ${r.online} gerade online`; }}, 'Verbindung prüfen');
   return h('div', {style: 'display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap'}, b, out);
 }
 function linksEditor() {
@@ -494,6 +635,9 @@ const COLORS = [['bg', 'Hintergrund'], ['card', 'Karten'], ['header', 'Kopfzeile
 const baseTheme = () => cfg.display.theme === 'eigen' ? cfg.display.color_base : cfg.display.theme;
 const applyTheme = () => { const t = baseTheme() === 'dunkel' ? 'dunkel' : 'hell';
   document.documentElement.dataset.theme = t; try { localStorage.setItem('fl_theme', t); } catch (e) {} };
+/* Sprache sofort in der Seite umschalten; Display und Infobereich folgen nach „Speichern & anwenden“ */
+function langSel() { const s = select('ui', 'language', [['de', 'Deutsch'], ['en', 'English']]);
+  s.addEventListener('change', () => { setLang(cfg.ui.language); render(); }); return s; }
 function themeSel() { const s = select('display', 'theme', [['hell', 'Hell (Creme)'], ['dunkel', 'Dunkel (Navy)'], ['eigen', 'Eigene Farben']]);
   s.addEventListener('change', () => { applyTheme(); render(); }); return s; }
 /* Kontrast nach WCAG, wie auf dem Display gerechnet (render.contrast) */
@@ -509,12 +653,15 @@ function colorCard() {
   let timer = null;
   const refresh = () => {
     const c = Object.fromEntries(COLORS.map(([k]) => [k, val(k)])), w = [];
-    if (contrast(c.text, c.bg) < 4.5) w.push('Schrift auf Hintergrund');
-    if (contrast(c.text, c.card) < 4.5) w.push('Schrift auf Karten');
-    if (contrast(c.muted, c.bg) < 3) w.push('Nebentext auf Hintergrund');
-    if (contrast(c.accent, c.bg) < 3) w.push('Akzentschrift auf Hintergrund');
+    if (contrast(c.text, c.bg) < 4.5) w.push(T('Schrift auf Hintergrund'));
+    if (contrast(c.text, c.card) < 4.5) w.push(T('Schrift auf Karten'));
+    if (contrast(c.muted, c.bg) < 3) w.push(T('Nebentext auf Hintergrund'));
+    if (contrast(c.accent, c.bg) < 3) w.push(T('Akzentschrift auf Hintergrund'));
     warn.className = w.length ? 'warn' : 'note';
-    warn.textContent = w.length ? 'Schwer lesbar: ' + w.join(', ') + '. Wähle dort mehr Unterschied zwischen hell und dunkel.'
+    warn.textContent = L === 'en'
+      ? (w.length ? 'Hard to read: ' + w.join(', ') + '. Choose more difference between light and dark there.'
+        : 'Everything is easy to read. The app picks the header text colour itself (navy or white).')
+      : w.length ? 'Schwer lesbar: ' + w.join(', ') + '. Wähle dort mehr Unterschied zwischen hell und dunkel.'
       : 'Alles gut lesbar. Die Schrift auf der Kopfzeile wählt die App selbst (Navy oder Weiß).';
     clearTimeout(timer); timer = setTimeout(async () => {
       const body = {display: {theme: 'eigen', color_base: d.color_base, ...Object.fromEntries(COLORS.map(([k]) => ['color_' + k, d['color_' + k]]))}};
@@ -549,18 +696,19 @@ function viewDisplay() {
   if (!serial) {
     const mons = o ? o.monitors : [], t = o ? o.touch : {available: false};
     const opts = [['', 'Automatisch (erster Bildschirm, der nicht der Hauptbildschirm ist)'], ...mons.map(m =>
-      [m.device, `${m.name || 'Bildschirm'} · ${m.w} × ${m.h}${m.primary ? ' · Hauptbildschirm' : ''}`])];
-    if (d.monitor && !mons.some(m => m.device === d.monitor)) opts.push([d.monitor, d.monitor + ' (gerade nicht angeschlossen)']);
+      [m.device, `${m.name || T('Bildschirm')} · ${m.w} × ${m.h}${m.primary ? (L === 'en' ? ' · main screen' : ' · Hauptbildschirm') : ''}`])];
+    if (d.monitor && !mons.some(m => m.device === d.monitor)) opts.push([d.monitor, d.monitor + T(' (gerade nicht angeschlossen)')]);
     const tg = toggle('display', 'touch');
     tg.querySelector('input').disabled = !t.available && !d.touch;
     screen = [
       row('Bildschirm', 'Darauf erscheint die Anzeige als Vollbild ohne Rahmen', o ? select('display', 'monitor', opts) : h('span', {class: 'note'}, 'Suche Bildschirme …')),
-      row('Touch-Steuerung', t.available ? `Windows meldet einen Touchscreen (${t.points} Finger). Nach links wischen = nächste Seite, nach rechts = vorige. Tippen links = zurück, sonst weiter.`
+      row('Touch-Steuerung', t.available ? (L === 'en' ? `Windows reports a touchscreen (${t.points} fingers). Swipe left = next page, right = previous. Tap on the left = back, elsewhere = next.`
+        : `Windows meldet einen Touchscreen (${t.points} Finger). Nach links wischen = nächste Seite, nach rechts = vorige. Tippen links = zurück, sonst weiter.`)
         : 'Windows meldet keinen Touchscreen. Sobald einer angeschlossen ist, lässt sich das hier einschalten.', tg),
       h('p', {class: 'note'}, 'Breite Leisten wie 1920 × 720 zeigen mehrere Seiten nebeneinander. Der Bildschirm sollte in Windows auf „Erweitern“ stehen, nicht auf „Duplizieren“.')];
   }
   return [...head('Display', 'Art des Displays, Farben und Verhalten.'),
-    card('Bildschirm', o ? `Aktuelle Anzeige: ${o.size[0]} × ${o.size[1]} Pixel` : null,
+    card('Bildschirm', o ? (L === 'en' ? `Current display: ${o.size[0]} × ${o.size[1]} pixels` : `Aktuelle Anzeige: ${o.size[0]} × ${o.size[1]} Pixel`) : null,
       row('Display-Typ', 'Kleines USB-Display oder ein normaler Bildschirm (z. B. eine 10,25"-Leiste)', outSel), screen),
     card('Bild', null,
       serial ? row('Ausrichtung', 'Wenn das Bild auf dem Kopf steht, die andere Variante wählen',
@@ -573,12 +721,13 @@ function viewDisplay() {
       serial ? row('Beim Start zurücksetzen', 'Verhindert verschobene Bilder', toggle('display', 'reset_on_start')) : null,
       row('Beim Beenden ausschalten', null, toggle('display', 'screen_off_on_exit'))),
     card('Programm', null,
+      row('Sprache · Language', 'Einstellungsseite, Display und Infobereich', langSel()),
       row('Port dieser Einstellungsseite', 'Nur lokal erreichbar. Änderung wirkt nach dem Neustart.', text('ui', 'port', '8765')),
       row('App steuern', 'Neustart lädt alle Einstellungen neu',
         h('div', {style: 'display:flex;gap:8px'},
-          h('button', {class: 'btn', onclick: () => confirm('Anzeige neu starten?') && apply('Neustart …', () => api('/api/restart', {}))}, 'Neu starten'),
-          h('button', {class: 'btn', onclick: async () => { if (confirm('App beenden? Das Display wird dunkel.')) { await api('/api/quit', {});
-            $('#ovt').textContent = 'App beendet'; $('#ovs').textContent = 'Du kannst dieses Fenster schließen.'; $('#overlay').classList.add('show'); } }}, 'Beenden'))))];
+          h('button', {class: 'btn', onclick: () => confirm(T('Anzeige neu starten?')) && apply(T('Neustart …'), () => api('/api/restart', {}))}, 'Neu starten'),
+          h('button', {class: 'btn', onclick: async () => { if (confirm(T('App beenden? Das Display wird dunkel.'))) { await api('/api/quit', {});
+            $('#ovt').textContent = T('App beendet'); $('#ovs').textContent = T('Du kannst dieses Fenster schließen.'); $('#overlay').classList.add('show'); } }}, 'Beenden'))))];
 }
 
 const VIEWS = {start: viewStart, overview: viewOverview, friends: viewFriends, discord: viewDiscord, bf6: viewBf6, rss: viewRss, system: viewSystem, display: viewDisplay};
@@ -586,34 +735,35 @@ function render() {
   clearInterval(previewTimer); clearInterval(statusTimer); clearInterval(connTimer);
   $('#main').replaceChildren(...VIEWS[tab]().filter(Boolean));
   renderNav();
+  $('#foot').replaceChildren(h('a', {href: '/anleitung?lang=' + L, target: '_blank'}, '📖 Bebilderte Anleitung'), h('br'),
+    h('a', {href: 'https://www.paypal.me/SHerbst84', target: '_blank', rel: 'noopener noreferrer'}, '☕ Spendier mir einen Kaffee'), h('br'),
+    'Version ' + meta.version + ' · © 2026 FuchsLabs');
   if (document.querySelector('.conn')) { updateConn(); connTimer = setInterval(() => document.hidden || updateConn(), 5000); }
   if (tab === 'overview') previewTimer = setInterval(() => { const i = $('#prev'); if (i && !document.hidden) i.src = '/api/preview.png?t=' + Date.now(); }, 2000);
 }
 
 async function apply(title, fn) {
-  $('#ovt').textContent = title || 'Wird angewendet …';
-  $('#ovs').textContent = 'Die Anzeige startet neu, das dauert etwa 10 Sekunden.';
+  $('#ovt').textContent = title || T('Wird angewendet …');
+  $('#ovs').textContent = T('Die Anzeige startet neu, das dauert etwa 10 Sekunden.');
   $('#overlay').classList.add('show');
   const r = await fn();
-  if (r && r.ok === false) { $('#overlay').classList.remove('show'); toast(r.error || 'Fehler'); return; }
+  if (r && r.ok === false) { $('#overlay').classList.remove('show'); toast(r.error || T('Fehler')); return; }
   await new Promise(r => setTimeout(r, 3500));
   for (let i = 0; i < 60; i++) {
     try { const c = await api('/api/config'); if (c.config) { location.reload(); return; } } catch (e) {}
     await new Promise(r => setTimeout(r, 1000));
   }
-  $('#ovt').textContent = 'Keine Verbindung'; $('#ovs').textContent = 'Starte die App über das Startmenü oder den Autostart neu.';
+  $('#ovt').textContent = T('Keine Verbindung'); $('#ovs').textContent = T('Starte die App über das Startmenü oder den Autostart neu.');
 }
-$('#save').onclick = () => apply('Wird angewendet …', () => api('/api/config', {config: cfg}));
-$('#discard').onclick = () => { cfg = JSON.parse(JSON.stringify(saved)); applyTheme(); render(); touch(); };
+$('#save').onclick = () => apply(T('Wird angewendet …'), () => api('/api/config', {config: cfg}));
+$('#discard').onclick = () => { cfg = JSON.parse(JSON.stringify(saved)); applyTheme(); setLang(cfg.ui.language); render(); touch(); };
 window.addEventListener('beforeunload', e => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
 
 api('/api/config').then(r => {
   cfg = r.config; saved = JSON.parse(JSON.stringify(cfg)); meta = r; applyTheme(); tab = r.first_run ? 'start' : 'overview';
-  $('#foot').replaceChildren(h('a', {href: '/anleitung', target: '_blank'}, '📖 Bebilderte Anleitung'), h('br'),
-    h('a', {href: 'https://www.paypal.me/SHerbst84', target: '_blank', rel: 'noopener noreferrer'}, '☕ Spendier mir einen Kaffee'), h('br'),
-    'Version ' + r.version + ' · © 2026 FuchsLabs');
+  setLang(new URLSearchParams(location.search).get('lang') || cfg.ui.language);
   render();
-}).catch(() => { $('#main').textContent = 'Keine Verbindung zur App.'; });
+}).catch(() => { $('#main').textContent = T('Keine Verbindung zur App.'); });
 </script>
 </body>
 </html>

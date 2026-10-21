@@ -1,62 +1,64 @@
-name: Fehlerbericht
-description: Etwas funktioniert nicht wie erwartet
-title: "[Fehler] "
+name: Fehlerbericht / Bug report
+description: Etwas funktioniert nicht wie erwartet · Something doesn't work as expected
+title: "[Fehler/Bug] "
 labels: ["fehler", "testphase"]
 body:
   - type: markdown
     attributes:
       value: |
-        Danke fürs Melden! Bitte **niemals** `config.toml`, Bot-Token oder Steam-/Xbox-Schlüssel anhängen.
-        Wo das Protokoll liegt, steht in `TESTPHASE.md`.
+        Danke fürs Melden! Bitte **niemals** `config.toml`, Bot-Token oder Steam-/Xbox-Schlüssel anhängen. Wo das Protokoll liegt: `TESTPHASE.md`.
+
+        Thanks for reporting! **Never** attach `config.toml`, your bot token or Steam/Xbox keys. Where to find the log: `TESTPHASE.en.md`.
   - type: input
     id: version
     attributes:
       label: Version
-      description: Steht links unten in der Einstellungsseite
-      placeholder: "1.1"
+      description: Steht links unten in der Einstellungsseite · Shown at the bottom left of the settings page
+      placeholder: "1.2"
     validations:
       required: true
   - type: dropdown
     id: bereich
     attributes:
-      label: Wo tritt der Fehler auf?
+      label: Wo tritt der Fehler auf? · Where does it happen?
       multiple: true
       options:
-        - Display (Bild, Helligkeit, Ausrichtung)
-        - Seite System
-        - Seite Freunde / Discord
-        - Seite Battlefield 6
-        - Seite Blogs
-        - Einstellungsseite
-        - Anleitung
-        - Start, Autostart, Infobereich
-        - Sonstiges
+        - Display (Bild, Helligkeit, Ausrichtung) · Display (picture, brightness, orientation)
+        - Seite System · System page
+        - Seite Freunde / Discord · Friends / Discord page
+        - Seite Battlefield 6 · Battlefield 6 page
+        - Seite Blogs · Blogs page
+        - Einstellungsseite · Settings page
+        - Anleitung · Guide
+        - Start, Autostart, Infobereich · Start, autostart, tray icon
+        - Sprache / Übersetzung · Language / translation
+        - Sonstiges · Other
     validations:
       required: true
   - type: textarea
     id: was
     attributes:
-      label: Was hast du gemacht, und was ist passiert?
-      placeholder: "1. Einstellungsseite geöffnet\n2. Bei Steam auf „Verbindung prüfen“ geklickt\n3. Es erscheint …"
+      label: Was hast du gemacht, und was ist passiert? · What did you do, and what happened?
+      placeholder: "1. Einstellungsseite geöffnet / Opened the settings page\n2. …\n3. …"
     validations:
       required: true
   - type: textarea
     id: erwartet
     attributes:
-      label: Was hättest du erwartet?
+      label: Was hättest du erwartet? · What did you expect?
   - type: textarea
     id: log
     attributes:
-      label: Auszug aus usb-display.log
-      description: Die letzten Zeilen rund um den Fehler. Namen, die du nicht teilen willst, vorher ersetzen.
+      label: Auszug aus usb-display.log · Excerpt from usb-display.log
+      description: Die letzten Zeilen rund um den Fehler; Namen, die du nicht teilen willst, vorher ersetzen · The last lines around the error; replace names you don't want to share
       render: text
   - type: textarea
     id: bilder
     attributes:
-      label: Fotos oder Screenshots
-      description: Ein Foto vom Display oder ein Screenshot hilft sehr (per Drag & Drop einfügen).
+      label: Fotos oder Screenshots · Photos or screenshots
+      description: Per Drag & Drop einfügen · Drag & drop to add
   - type: input
     id: system
     attributes:
-      label: Windows-Version und Display-Anschluss
-      placeholder: "Windows 11, USB direkt am PC"
+      label: Windows-Version und Anschluss · Windows version and connection
+      placeholder: "Windows 11, USB direkt am PC / directly on the PC"

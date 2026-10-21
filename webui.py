@@ -18,9 +18,11 @@ import aiohttp
 from aiohttp import web
 
 import appconfig
+import i18n
 import sysinfo
 import winsetup
 from bf6 import Bf6Stats
+from i18n import tr
 from rss import UA, RssFeeds
 
 if TYPE_CHECKING:
@@ -29,11 +31,19 @@ if TYPE_CHECKING:
 log = logging.getLogger("webui")
 HTML = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / "webui.html"
 GUIDE = HTML.with_name("ANLEITUNG.html")
+GUIDE_EN = HTML.with_name("GUIDE.html")
 VERSION = "1.2"
+_MESSAGES = {"error", "display_error", "discord", "detail"}   # Meldungstexte, die i18n übersetzt
+
+
+def _tr_messages(data):
+    if isinstance(data, dict):
+        return {k: tr(v) if k in _MESSAGES else _tr_messages(v) for k, v in data.items()}
+    return data
 
 
 def _json(data, status: int = 200) -> web.Response:
-    return web.json_response(data, status=status, headers={"Cache-Control": "no-store"})
+    return web.json_response(_tr_messages(data), status=status, headers={"Cache-Control": "no-store"})
 
 
 @web.middleware
@@ -110,7 +120,8 @@ class SettingsServer:
                             headers={"Cache-Control": "no-store"})
 
     async def guide(self, request: web.Request) -> web.Response:
-        return web.FileResponse(GUIDE, headers={"Content-Type": "text/html; charset=utf-8"})
+        en = request.query.get("lang", i18n.lang()) == "en" and GUIDE_EN.exists()
+        return web.FileResponse(GUIDE_EN if en else GUIDE, headers={"Content-Type": "text/html; charset=utf-8"})
 
     async def get_config(self, request: web.Request) -> web.Response:
         b = self.board

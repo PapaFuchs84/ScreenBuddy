@@ -1,26 +1,26 @@
-name: Idee oder Rückmeldung
-description: Was gefällt dir, was fehlt, was ist umständlich?
-title: "[Idee] "
+name: Idee oder Rückmeldung / Idea or feedback
+description: Was gefällt dir, was fehlt, was ist umständlich? · What do you like, what's missing, what's awkward?
+title: "[Idee/Idea] "
 labels: ["rueckmeldung", "testphase"]
 body:
   - type: textarea
     id: rueckmeldung
     attributes:
-      label: Deine Rückmeldung
-      placeholder: "Ich fände es gut, wenn …"
+      label: Deine Rückmeldung · Your feedback
+      placeholder: "Ich fände es gut, wenn … / It would be great if …"
     validations:
       required: true
   - type: dropdown
     id: einrichtung
     attributes:
-      label: Wie leicht war die Einrichtung?
+      label: Wie leicht war die Einrichtung? · How easy was the setup?
       options:
-        - Sehr leicht
-        - Ging so
-        - Schwierig
-        - Habe ich nicht geschafft
+        - Sehr leicht · Very easy
+        - Ging so · OK
+        - Schwierig · Difficult
+        - Habe ich nicht geschafft · I didn't manage
   - type: textarea
     id: hakte
     attributes:
-      label: Wo hat es gehakt?
-      description: Zum Beispiel ein Schritt in der Anleitung, der unklar war.
+      label: Wo hat es gehakt? · Where did you get stuck?
+      description: Zum Beispiel ein unklarer Schritt in der Anleitung · For example an unclear step in the guide

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Callable
 
 import brand
+from i18n import tr
 
 log = logging.getLogger("tray")
 
@@ -112,10 +113,10 @@ class Tray:
 
     def _menu(self, hwnd) -> None:
         menu = user32.CreatePopupMenu()
-        user32.AppendMenuW(menu, MF_STRING, ID_OPEN, "Einstellungen öffnen")
-        user32.AppendMenuW(menu, MF_STRING, ID_RESTART, "Neu starten")
+        user32.AppendMenuW(menu, MF_STRING, ID_OPEN, tr("Einstellungen öffnen"))
+        user32.AppendMenuW(menu, MF_STRING, ID_RESTART, tr("Neu starten"))
         user32.AppendMenuW(menu, MF_SEPARATOR, 0, None)
-        user32.AppendMenuW(menu, MF_STRING, ID_QUIT, "Beenden")
+        user32.AppendMenuW(menu, MF_STRING, ID_QUIT, tr("Beenden"))
         pt = wt.POINT()
         user32.GetCursorPos(ctypes.byref(pt))
         user32.SetForegroundWindow(hwnd)  # sonst schließt das Menü nicht bei Klick daneben

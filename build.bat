@@ -12,7 +12,7 @@ rem Programm-Symbol (gleiches Zeichen wie im Infobereich)
 
 rem Kleiner und schneller: ungenutzte Module weglassen, Bytecode optimieren
 .venv\Scripts\python -m PyInstaller --noconfirm --clean --windowed --optimize 2 --name FuchsLabs-USB-Display ^
-  --icon app.ico --version-file version-info.txt --add-data "webui.html;." --add-data "ANLEITUNG.html;." ^
+  --icon app.ico --version-file version-info.txt --add-data "webui.html;." --add-data "ANLEITUNG.html;." --add-data "GUIDE.html;." ^
   --hidden-import serial.tools.list_ports_windows ^
   --exclude-module tkinter --exclude-module numpy --exclude-module unittest --exclude-module pydoc ^
   --exclude-module doctest --exclude-module test --exclude-module distutils --exclude-module setuptools ^
@@ -21,8 +21,11 @@ rem Kleiner und schneller: ungenutzte Module weglassen, Bytecode optimieren
   fuchslabs_display.py || (echo Build fehlgeschlagen & pause & exit /b 1)
 
 set "OUT=dist\FuchsLabs-USB-Display"
-rem Bebilderte Anleitung: neu erzeugen mit anleitung\make_images.py (Screenshots in anleitung\bilder)
+rem Bebilderte Anleitung: neu erzeugen mit anleitung\make_images.py (Screenshots in anleitung\bilder);
+rem englisch: make_images.py <englische Screenshots> en -> GUIDE.html
 copy /Y ANLEITUNG.html "%OUT%\" >nul
+copy /Y GUIDE.html "%OUT%\" >nul
+copy /Y README.en.md "%OUT%\" >nul
 copy /Y ANLEITUNG.md "%OUT%\" >nul
 copy /Y DOKUMENTATION.md "%OUT%\" >nul
 copy /Y hwinfo-einrichten.bat "%OUT%\" >nul
