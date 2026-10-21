@@ -32,7 +32,7 @@ legt eine eigene `.venv` an, installiert die festgelegten Pakete und baut nach `
 .venv\Scripts\python fuchslabs_display.py --no-lcd
 ```
 
-Die bebilderte Anleitung entsteht aus `anleitung/anleitung.template.html` und den Screenshots in `anleitung/bilder` mit `anleitung/make_images.py`; Screenshots nimmt `anleitung/screenshots.mjs` auf. Zwei Screenshots sind derzeit nicht im Repository (echte Namen), siehe `PROTOKOLL.md`.
+Die bebilderte Anleitung entsteht aus `anleitung/anleitung.template.html` und den Screenshots in `anleitung/bilder` mit `anleitung/make_images.py`; Screenshots nimmt `anleitung/screenshots.mjs` auf und ersetzt dabei private Namen durch Beispiele. `anleitung/bilder/freunde.png` ist vorsichtshalber nicht im Repository und wird vor dem Bauen lokal aufgenommen.
 
 ## Aufbau
 
