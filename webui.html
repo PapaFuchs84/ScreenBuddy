@@ -610,6 +610,7 @@ window.addEventListener('beforeunload', e => { if (dirty()) { e.preventDefault()
 api('/api/config').then(r => {
   cfg = r.config; saved = JSON.parse(JSON.stringify(cfg)); meta = r; applyTheme(); tab = r.first_run ? 'start' : 'overview';
   $('#foot').replaceChildren(h('a', {href: '/anleitung', target: '_blank'}, '📖 Bebilderte Anleitung'), h('br'),
+    h('a', {href: 'https://www.paypal.me/SHerbst84', target: '_blank', rel: 'noopener noreferrer'}, '☕ Spendier mir einen Kaffee'), h('br'),
     'Version ' + r.version + ' · © 2026 FuchsLabs');
   render();
 }).catch(() => { $('#main').textContent = 'Keine Verbindung zur App.'; });

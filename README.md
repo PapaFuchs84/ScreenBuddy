@@ -10,6 +10,8 @@
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
 ![Lizenz](https://img.shields.io/badge/lizenz-alle%20Rechte%20vorbehalten-lightgrey)
 
+[![Spendier mir einen Kaffee](https://img.shields.io/badge/☕_Spendier_mir_einen_Kaffee-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/SHerbst84)
+
 <img src="docs/screenshots/display-system.png" width="360" alt="Systemseite im hellen Design">&nbsp;
 <img src="docs/screenshots/display-freunde.png" width="360" alt="Freundesliste im hellen Design">
 
@@ -204,6 +206,10 @@ Die App ist in der Testphase. Fehler und Ideen bitte über **Issues → New issu
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Mitarbeiten: Ablauf, Stil, Regeln |
 | [`SECURITY.md`](SECURITY.md) | Sicherheitslücken melden |
 | [`TESTPHASE.md`](TESTPHASE.md) | Rückmeldungen in der Testphase |
+
+## Unterstützen
+
+Dir gefällt die App? Über einen Kaffee freut sich FuchsLabs: [☕ paypal.me/SHerbst84](https://www.paypal.me/SHerbst84)
 
 ## Lizenz
 
