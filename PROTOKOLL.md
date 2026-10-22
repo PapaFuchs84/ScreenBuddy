@@ -38,7 +38,11 @@ Kurzer Verlauf, wie die App entstanden ist, und welche Entscheidungen dabei gefa
 
 - Steam-Schlüssel bzw. öffentliche Freundesliste fehlt noch (Status rot).
 - Steam- und Xbox-Abruf bisher nur mit Bastis Konten getestet.
-- C++-Port ist noch nicht als Quellcode in diesem Repository eingecheckt; diese Protokolländerung dokumentiert den lokalen Arbeitsstand.
-- Native WebView2-Fensterdarstellung und COM7-Hardwarebetrieb noch praktisch prüfen.
+- C++-Version 2.0 liegt unter `cpp/`, einschließlich Testprotokoll.
+- Windows-Autostart nach echter Ab-/Anmeldung noch prüfen.
 - Alter Ordner der Skript-Vorversion und die alte Aufgabe „FuchsLabs Discord-Display“ können entfernt werden, wenn nichts mehr fehlt.
 - Zwei Anleitungs-Screenshots zeigen echte Namen (`anleitung/bilder/uebersicht.png` mit EA-Namen, `anleitung/bilder/freunde.png` und damit `ANLEITUNG.html` mit dem eigenen Xbox-Namen). Sie liegen deshalb nicht im Repository und sollten vor dem Weitergeben neu aufgenommen werden.
+
+## Abschluss 22.10.2026
+
+C++ 2.0 und bisherige App nacheinander an COM7 getestet: beide display_ok=true, physische Anzeige durch den Nutzer bestätigt. Natives Einstellungsfenster sichtbar geprüft. PC auf 2.0 umgestellt, Einstellungen übernommen und Autostart aktualisiert. Details: `cpp/TESTPROTOKOLL.md`.

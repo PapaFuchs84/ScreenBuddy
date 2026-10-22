@@ -1,0 +1,55 @@
+# © 2026 FuchsLabs – FuchsLabs USB-Display 2.0 (C++)
+cmake_minimum_required(VERSION 3.24)
+project(FuchsLabsUsbDisplay VERSION 2.0.0 LANGUAGES CXX RC)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Statische Laufzeit: eine einzige EXE ohne Visual-C++-Redistributable
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+
+find_package(OpenSSL REQUIRED)
+find_package(Opus CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(dpp CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(tomlplusplus CONFIG REQUIRED)
+find_package(pugixml CONFIG REQUIRED)
+find_package(httplib CONFIG REQUIRED)
+add_library(webview2_loader STATIC IMPORTED GLOBAL)
+set_target_properties(webview2_loader PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/third_party/webview2/lib/WebView2LoaderStatic.lib"
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/webview2/include")
+
+# MLS-Bibliotheken von D++ (statisch mitgebaut, siehe overlay-ports/dpp)
+set(DPP_EXTRA_LIBS)
+file(GLOB _DPP_PACKAGE_LIBDIRS "${VCPKG_INSTALLED_DIR}/vcpkg/pkgs/dpp_*/lib")
+foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
+    find_library(_p NAMES ${_lib} PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib" ${_DPP_PACKAGE_LIBDIRS} NO_DEFAULT_PATH REQUIRED)
+    list(APPEND DPP_EXTRA_LIBS "${_p}")
+    unset(_p CACHE)
+endforeach()
+
+set(CORE_SOURCES
+    src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/render.cpp
+    src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/friends.cpp src/discord.cpp
+    src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
+    src/installer.cpp src/resources.cpp src/settings_window.cpp)
+
+add_library(flcore STATIC ${CORE_SOURCES})
+target_include_directories(flcore PUBLIC src)
+target_compile_definitions(flcore PUBLIC UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
+target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EHsc /MP)
+target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL OpenSSL::Crypto Opus::opus ZLIB::ZLIB
+                                    nlohmann_json::nlohmann_json tomlplusplus::tomlplusplus pugixml::pugixml httplib::httplib
+                                    d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
+                                    comctl32 dwmapi bcrypt advapi32 user32 gdi32 ole32 shell32
+                                    webview2_loader)
+
+add_executable(FuchsLabs-USB-Display WIN32 src/main.cpp res/app.rc)
+target_link_libraries(FuchsLabs-USB-Display PRIVATE flcore)
+target_link_options(FuchsLabs-USB-Display PRIVATE /MANIFEST:NO /OPT:REF /OPT:ICF)
+
+# Tests (Konsole): Parser, Konfiguration, Zeichnen
+add_executable(fl-tests tests/tests.cpp res/app.rc)
+target_link_libraries(fl-tests PRIVATE flcore)
+target_link_options(fl-tests PRIVATE /MANIFEST:NO)
