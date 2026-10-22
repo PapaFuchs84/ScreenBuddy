@@ -16,8 +16,17 @@ for (let i = 0; i < 40; i++) { try { targets = await (await fetch('http://127.0.
 const t = targets.find(x => x.type === 'page');
 const ws = new WebSocket(t.webSocketDebuggerUrl);
 await new Promise(r => ws.onopen = r);
-let id = 0; const pend = {};
-ws.onmessage = e => { const m = JSON.parse(e.data); if (m.id && pend[m.id]) { pend[m.id](m); delete pend[m.id]; } };
+let id = 0; const pend = Object.create(null);
+ws.onmessage = e => {
+  const m = JSON.parse(e.data);
+  if (m.id) {
+    const cb = pend[m.id];
+    if (typeof cb === 'function') {
+      cb(m);
+      delete pend[m.id];
+    }
+  }
+};
 const cmd = (method, params = {}) => new Promise(r => { const i = ++id; pend[i] = r; ws.send(JSON.stringify({ id: i, method, params })); });
 const js = async expr => (await cmd('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true })).result?.result?.value;
 
