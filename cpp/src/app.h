@@ -44,6 +44,7 @@ public:
     std::vector<std::string> active_pages();
     ojson connections();
     std::optional<Image> last_frame();
+    ojson page_navigation();
     std::optional<Image> preview_theme(const ojson& display_override);
     bool display_ok();
     std::string display_error();
@@ -52,7 +53,7 @@ public:
     void request_stop(double delay = 0);
     void request_restart(double delay = 0);
     bool restart_requested() const { return restart_; }
-    void step_page(int delta);                      // Touch: eine Seite vor (+1) oder zurück (-1)
+    void step_page(int delta);                      // Touch/Einstellungen: eine Ansicht vor (+1) oder zurück (-1)
     void mark_dirty();
     void show_settings();
     bool setup_touch();
@@ -70,7 +71,7 @@ private:
     Image welcome();
     std::string friends_message();
     bool connect_display();
-    void output(const Image& frame, bool transition);
+    void output(const Image& frame, bool transition, const ojson& navigation);
     void display_loop();
 
     std::mutex cfg_mu_;
@@ -90,6 +91,7 @@ private:
     std::atomic<bool> stop_{false};
     std::atomic<bool> restart_{false};
     std::optional<Image> last_frame_;
+    ojson navigation_ = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
     bool display_ok_;
     std::string display_error_;
     int page_ = 0;

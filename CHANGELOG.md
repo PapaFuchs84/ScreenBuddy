@@ -17,6 +17,12 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ### Behoben
 - Prozentwerte in der Einstellungsseite (Helligkeit zeigte nach einer automatischen Korrektur „90 90“).
 
+## [2.0.4] – 2026-10-22
+
+- Übersicht: „Vorherige Ansicht“ und „Nächste Ansicht“ steuern direkt die laufende Anzeige, mit aktueller Position unter der Live-Vorschau. Unterseiten und breite Kachelgruppen werden berücksichtigt; der automatische Wechsel läuft weiter.
+- Bedienung auf Deutsch und Englisch, deaktivierte Steuerung bei vollständig sichtbaren oder fehlenden Ansichten; keine Speicherung und kein Neustart nötig.
+- Lokaler Entwicklungsstand; Build- und Prüfstatus siehe [Testprotokoll](cpp/TESTPROTOKOLL.md). Lokal installiert und auf Version, Hash, unveränderte Einstellungen, Autostart und Displayverbindung geprüft; noch nicht veröffentlicht.
+
 ## [2.0.3] – 2026-10-22
 
 - HDMI/USB-C-Vollbild bleibt über der Taskleiste, ohne den Tastaturfokus zu übernehmen; Ausblenden und Wiederherstellen sind abgesichert.

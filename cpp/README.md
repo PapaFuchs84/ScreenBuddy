@@ -1,4 +1,4 @@
-# FuchsLabs USB-Display 2.0.3
+# FuchsLabs USB-Display 2.0.4
 
 Native Windows C++20 port of FuchsLabs USB-Display. The application and installer are distributed as one EXE; it requires no Python runtime or Visual C++ redistributable. The settings window is a native Windows window backed by Microsoft Edge WebView2. The WebView2 Evergreen Runtime is a Windows prerequisite and is not bundled in this EXE.
 
@@ -18,6 +18,10 @@ The installer can import the Version 1.x `config.toml`. Secrets use Windows DPAP
 - Settings server binds only to loopback. Requests are checked for local Host, browser fetch metadata, and the `X-FL: 1` write header. RSS targets and redirects are checked against non-public IP ranges.
 
 Discord uses D++ with the Members and Presence intents enabled. Enable both privileged intents in the Discord Developer Portal for the bot.
+
+## Browse views (2.0.4)
+
+In **Settings → Overview**, use **Previous view** and **Next view** to cycle through the running display views directly. The position and visible pages appear below the live preview. Long lists include their subpages; wide displays advance by one tile group, as with touch navigation. Each manual change restarts the configured page duration, then automatic cycling continues. Buttons are disabled when there are no views or all views already fit on screen. No save or restart is needed. Changes to page selection and order take effect after **Save & apply**.
 
 ## HDMI/USB-C and touch
 
@@ -45,6 +49,8 @@ Run `build\fl-monitor-tests.exe window` only for a controlled visible secondary-
 - If the serial display cannot open its COM port, close the vendor monitor program and check that another app is not using that port.
 
 ## Validation status
+
+Version 2.0.4: release build, 86 core checks, 11 monitor basics and 49 navigation/API checks passed. The new controls and page changes were also checked in the German and English browser UI, using an isolated instance with no display output. Subsequently installed in the ordinary Windows user context: file/API version and hash match, settings are unchanged, autostart is preserved and display_ok=true. No new Windows sign-in or physical visual/touch check was performed. Run `python tests/test_page_navigation.py build/FuchsLabs-USB-Display.exe` to repeat the navigation checks on the reserved test port 8766.
 
 Version 2.0.3: release build, 86 core checks and 56 monitor/touch checks with injected Windows input passed (the 56 include 11 basic checks). Installation, actual file version/hash, API version, autostart entry and `display_ok=true` were verified outside package redirection. Physical touch hardware, the full assignment wizard and a new Windows sign-in test for 2.0.3 remain untested. Earlier 2.0 validation included the user-confirmed COM7 display comparison and Windows reboot. See [TESTPROTOKOLL.md](TESTPROTOKOLL.md). The EXE is unsigned and requires WebView2 Evergreen Runtime.
 

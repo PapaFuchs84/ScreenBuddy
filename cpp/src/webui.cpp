@@ -156,6 +156,22 @@ bool SettingsServer::start() {
         json_reply(res, {{"ok", true}});
     });
     svr.Get("/api/preview.png", [&app](const httplib::Request&, httplib::Response& res) { png_reply(res, app.last_frame()); });
+    svr.Get("/api/pages", [&app](const httplib::Request&, httplib::Response& res) {
+        json_reply(res, app.page_navigation());
+    });
+    svr.Post("/api/pages/step", [&app](const httplib::Request& req, httplib::Response& res) {
+        ojson body;
+        try {
+            body = body_json(req);
+            if (!body.is_object() || !body.contains("delta") || !body["delta"].is_number_integer() ||
+                (body["delta"] != -1 && body["delta"] != 1))
+                throw std::invalid_argument("delta: -1 oder 1 erwartet");
+        } catch (const std::exception&) {
+            return json_reply(res, {{"ok", false}, {"error", "delta: -1 oder 1 erwartet"}}, 400);
+        }
+        app.step_page(body["delta"].get<int>());
+        json_reply(res, {{"ok", true}});
+    });
     svr.Post("/api/preview-theme.png", [&app](const httplib::Request& req, httplib::Response& res) {
         // Aktuelles Displaybild mit den (noch nicht gespeicherten) Farben aus dem Formular
         ojson merged;

@@ -1,5 +1,21 @@
 # Testprotokoll vom 22.10.2026
 
+## Version 2.0.4: Ansichten in der Übersicht durchblättern
+
+- Basis: veröffentlichter Quellstand 2.0.3 (Commit 9e32bd3); separate 2.5-Plugin-Änderungen sind nicht enthalten.
+- Release-Build erfolgreich; Datei-/Produktversion 2.0.4.0 / 2.0.4.
+- 86 bestehende Kernprüfungen und 11 Monitor-Basisprüfungen bestanden. Keine sichtbaren Monitor-/Touchtests für diesen Stand durchgeführt.
+- 49 neue Prüfungen gegen die echte EXE in isolierten Instanzen auf Port 8766 mit neutralen Konfigurationen, eigener Instanzkennung und --no-lcd bestanden: vor/zurück, Umlauf in beide Richtungen, keine/eine Ansicht, automatische Fortsetzung und neue Anzeigedauer nach manuellem Wechsel.
+- Eingabeprüfung (einschließlich ungültigem JSON, falschen Typen und übergroßen Zahlen) sowie Host-/Origin-/Fetch-Metadata-/X-FL-Schutz geprüft. Unveränderter Prozess und unveränderte Konfigurationsdatei nach Navigation bestätigt.
+- Browserprüfung DE/EN bestanden: neue Knöpfe, Positionsanzeige und tatsächlicher Seitenwechsel geprüft; Sprachänderung nur im Formular ausprobiert und verworfen.
+- JavaScript-Syntax der Oberfläche und der eingebetteten Anleitungen sowie lokale Links der geänderten Dokumentation geprüft.
+- Unterseiten und breite Kachelgruppen verwenden den vorhandenen Touch-Wechselpfad; kein zusätzlicher Laufzeittest mit gefüllten Listen oder breitem Display durchgeführt.
+- Bei den isolierten Prüfungen keine Installation, Veröffentlichung, Autostartänderung oder physische Hardwareprüfung durchgeführt.
+
+### Anschließende Installation von 2.0.4
+
+Nach ausdrücklicher Nutzerfreigabe am 22.10.2026 im normalen Windows-Benutzerkontext außerhalb der Paketumleitung installiert. Bestehende EXE und Konfiguration zuvor lokal gesichert. Installer-Exitcode 0; installierte Datei-Version 2.0.4.0 und API-Version 2.0.4. SHA-256 stimmt mit dem geprüften Build überein: `EF7186C5ABF810DD1CC4D9F88E49883FC755AA10C65665D98FA61A39C54A177F`. Einstellungsdatei bytegleich erhalten, serielle Ausgabe und Autostart erhalten, genau ein Prozess aus dem regulären Installationsordner, `display_ok=true`. Neue Ansichten-Schnittstelle und Bedienelemente erreichbar. Unabhängige Abschlussprüfung erneut im normalen Windows-Kontext bestanden. Kein neuer Windows-Anmeldetest und keine visuelle/physische Touch-Abnahme durchgeführt. Noch nicht veröffentlicht.
+
 ## Version 2.0.3: HDMI-Vollbild und Touch
 
 - Basis: aktueller C++-Quellstand 2.0.2 im Veröffentlichungs-Repository. Die älteren Änderungen an Discord, gzip und Anleitung bleiben enthalten.

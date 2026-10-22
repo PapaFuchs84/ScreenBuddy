@@ -311,6 +311,7 @@ ${shot('start', [[1088, 280, 62, 40]], 'Diesen Schalter antippen, bis er orange 
 {t: 'Seiten aussuchen', html: () => `
 <p class="kicker">Aussuchen</p><h1>Welche Seiten zeigt das Display?</h1>
 <p class="lead">Klicke links auf <b>„Übersicht“</b>. Links siehst du, was das Display gerade zeigt. Rechts sind die Seiten.</p>
+<div class="box tip"><p>Ab Version 2.0.4 kannst du unter der Live-Vorschau mit <b>Vorherige Ansicht</b> und <b>Nächste Ansicht</b> direkt auf dem Display blättern. Die aktuelle Position steht darunter. Auch Unterseiten langer Listen werden berücksichtigt. Der automatische Wechsel läuft danach weiter. Dafür musst du nicht speichern.</p></div>
 ${shot('uebersicht', [[1090, 226, 58, 352, 'tr'], [1055, 226, 34, 352], [843, 735, 238, 34]])}
 <ol class="do">
 <li>Mit dem <b>orangen Schalter</b> machst du eine Seite an oder aus. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Mach die Seiten aus, die du nicht willst.' : ''}${sel.friends ? ' Für Steam und Xbox schaltest du <b>„Freunde (alle Plattformen)“</b> ein.' : ''}</li>

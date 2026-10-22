@@ -1,6 +1,6 @@
 # FuchsLabs USB-Display – Schnellstart
 
-> **Version 2.0.3:** Die bebilderte Anleitung öffnet sich über **Bebilderte Anleitung** in den Einstellungen oder **Anleitung öffnen** im Tray im Standardbrowser. Sie ist in der EXE enthalten. Sprache unter **Start › Sprache · Language** umschalten.
+> **Version 2.0.4:** Die bebilderte Anleitung öffnet sich über **Bebilderte Anleitung** in den Einstellungen oder **Anleitung öffnen** im Tray im Standardbrowser. Sie ist in der EXE enthalten. Sprache unter **Start › Sprache · Language** umschalten.
 
 Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastung, Temperaturen, Netzwerk), **Discord-Freunde**, **Freunde von Steam, Xbox und Discord** in einer Liste, eine **Battlefield-6-Rangliste** und **Blog-Updates**. Du brauchst keine Vorkenntnisse.
 
@@ -31,6 +31,10 @@ Die Einstellungen öffnest du später jederzeit mit einem **Doppelklick auf das 
 5. Danach **Erneut prüfen** wählen; bei Bedarf **Touch-Steuerung** einschalten und speichern. Nach links wischen = nächste Seite, nach rechts = vorherige; Tippen links = zurück, sonst weiter.
 
 Ohne erkannten Touchscreen ist der Einrichtungsbutton deaktiviert. Dann USB-Verbindung und Treiber prüfen. Die bisherige Prüfung nutzte injizierte Windows-Berührungen; echte Touch-Hardware und der vollständige Assistentenablauf bleiben offen.
+
+## Ansichten durchblättern (2.0.4)
+
+Unter **Einstellungen → Übersicht** kannst du mit **Vorherige Ansicht** und **Nächste Ansicht** direkt durch die laufenden Display-Ansichten blättern. Die Position und die sichtbaren Seiten stehen unter der Live-Vorschau. Lange Listen blättern mit ihren Unterseiten, breite Displays wechseln wie bei der Touchbedienung um eine Kachelgruppe. Nach einem manuellen Wechsel beginnt die eingestellte Anzeigedauer neu; danach läuft der automatische Wechsel weiter. Bei keiner oder nur einer vollständig sichtbaren Ansicht sind die Knöpfe deaktiviert. Dafür ist kein Speichern oder Neustart nötig. Geänderte Seitenauswahl und Reihenfolge gelten nach **Speichern & anwenden**.
 
 ## Die Seiten einrichten
 

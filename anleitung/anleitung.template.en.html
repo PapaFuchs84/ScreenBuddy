@@ -312,6 +312,7 @@ ${shot('start', [[1088, 280, 62, 40]], 'Tap this switch until it is orange.')}
 {t: 'Choose pages', html: () => `
 <p class="kicker">Choose</p><h1>Which pages does the display show?</h1>
 <p class="lead">Click <b>“Overview”</b> on the left. On the left you see what the display is showing right now. The pages are on the right.</p>
+<div class="box tip"><p>Starting with 2.0.4, use <b>Previous view</b> and <b>Next view</b> below the live preview to change the view on the display directly. The current position appears below the buttons. Long lists include their subpages. Automatic cycling continues afterwards. No save is needed.</p></div>
 ${shot('uebersicht', [[1090, 226, 58, 352, 'tr'], [1055, 226, 34, 352], [843, 735, 238, 34]])}
 <ol class="do">
 <li>Use the <b>orange switch</b> to turn a page on or off. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Turn off the pages you don\'t want.' : ''}${sel.friends ? ' For Steam and Xbox, turn on <b>“Friends (all platforms)”</b>.' : ''}</li>

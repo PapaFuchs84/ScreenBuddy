@@ -62,6 +62,9 @@ input[type=range]{accent-color:var(--orange);width:230px}
 .btn:disabled{opacity:.5;cursor:default}
 .preview{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:start}
 .preview img{width:480px;max-width:100%;border-radius:12px;border:6px solid #14213d;background:#14213d;display:block}
+.preview-screen{min-width:0;max-width:480px}
+.preview-controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.preview-status{color:var(--muted);font-size:13px;margin:8px 0}
 .colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin:6px 0 12px}
 .colors label{display:flex;align-items:center;gap:10px;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;font-weight:600}
 .colors label small{display:block;font-weight:400;color:var(--muted);font-family:Consolas,monospace;font-size:12px}
@@ -157,6 +160,11 @@ const EN = {
   'Fertig': 'Done', 'Mit „Speichern & anwenden“ startet die Anzeige mit deinen Einstellungen neu': '“Save & apply” restarts the display with your settings',
   'Einrichtungshilfe ausblenden': 'Hide setup help', 'Sprache und Design werden mit „Speichern & anwenden“ übernommen.': 'Language and design take effect with “Save & apply”.',
   // Übersicht
+  'Vorherige Ansicht': 'Previous view', 'Nächste Ansicht': 'Next view', 'Ansicht': 'View', 'von': 'of',
+  'Keine aktiven Ansichten': 'No active views', 'Ansichten werden geladen …': 'Loading views …',
+  'Ansichten konnten nicht geladen werden.': 'Could not load views.',
+  'Ansicht konnte nicht gewechselt werden.': 'Could not change view.',
+  'Blättert direkt auf dem Display. Der automatische Wechsel läuft danach weiter.': 'Changes the view on the display directly. Automatic cycling continues afterwards.',
   'Wird nicht gezeigt: Die Freunde-Seite enthält Discord schon': 'Not shown: the Friends page already includes Discord', 'Bot-Token fehlt': 'Bot token missing',
   'Noch keine Konten verbunden': 'No accounts connected yet', 'Keine Spieler eingetragen': 'No players added', 'Keine Blogs eingetragen': 'No blogs added',
   'Nach oben': 'Move up', 'Nach unten': 'Move down', 'So sieht dein Display gerade aus und in welcher Reihenfolge die Seiten wechseln.': 'What your display shows right now and in which order the pages change.',
@@ -376,6 +384,33 @@ function viewStart() {
 }
 
 /* ---------- Übersicht ---------- */
+let pageStepBusy = false;
+async function refreshOverviewPreview() {
+  const status = $('#page-nav-status');
+  if (!status || document.hidden) return;
+  try {
+    const state = await api('/api/pages');
+    if ($('#page-nav-status') !== status) return;
+    status.textContent = state.total ? `${T('Ansicht')} ${state.index + 1} ${T('von')} ${state.total}` +
+      ' · ' + state.current.map(p => T(PAGES[p]?.[0] || p)).join(' · ') : T('Keine aktiven Ansichten');
+    for (const button of document.querySelectorAll('.preview-controls button')) button.disabled = pageStepBusy || !state.can_step;
+    const image = $('#prev'); if (image) image.src = '/api/preview.png?t=' + Date.now();
+  } catch (e) {
+    if ($('#page-nav-status') !== status) return;
+    status.textContent = T('Ansichten konnten nicht geladen werden.');
+    for (const button of document.querySelectorAll('.preview-controls button')) button.disabled = true;
+  }
+}
+async function stepOverviewPage(delta) {
+  if (pageStepBusy) return;
+  pageStepBusy = true;
+  for (const button of document.querySelectorAll('.preview-controls button')) button.disabled = true;
+  try {
+    const r = await api('/api/pages/step', {delta});
+    if (!r.ok) throw new Error();
+  } catch (e) { toast(T('Ansicht konnte nicht gewechselt werden.')); }
+  finally { pageStepBusy = false; await refreshOverviewPreview(); }
+}
 function moveTo(i, d) { const p = cfg.display.pages; [p[i], p[i + d]] = [p[i + d], p[i]]; touch(); render(); }
 function viewOverview() {
   const list = h('div', {class: 'pagelist'}, cfg.display.pages.map((p, i) => {
@@ -392,7 +427,13 @@ function viewOverview() {
   const sw = list.querySelectorAll('.sw input'); sw.forEach(i => i.addEventListener('change', () => { render(); }));
   return [...head('Übersicht', 'So sieht dein Display gerade aus und in welcher Reihenfolge die Seiten wechseln.'),
     h('div', {class: 'card'}, h('div', {class: 'preview'},
-      h('img', {id: 'prev', alt: 'Live-Vorschau', src: '/api/preview.png?t=' + Date.now()}),
+      h('div', {class: 'preview-screen'},
+        h('img', {id: 'prev', alt: 'Live-Vorschau', src: '/api/preview.png?t=' + Date.now()}),
+        h('div', {class: 'preview-controls'},
+          h('button', {class: 'btn', disabled: true, onclick: () => stepOverviewPage(-1)}, 'Vorherige Ansicht'),
+          h('button', {class: 'btn', disabled: true, onclick: () => stepOverviewPage(1)}, 'Nächste Ansicht')),
+        h('p', {id: 'page-nav-status', class: 'preview-status', role: 'status'}, 'Ansichten werden geladen …'),
+        h('p', {class: 'hint'}, 'Blättert direkt auf dem Display. Der automatische Wechsel läuft danach weiter.')),
       h('div', {}, h('h3', {}, 'Seiten'), h('p', {class: 'hint'}, 'Mit den Pfeilen sortierst du, mit dem Schalter blendest du Seiten ein oder aus.'), list))),
     card('Wechsel & Helligkeit', null,
       row('Anzeigedauer pro Seite', 'Wie lange eine Seite stehen bleibt', range('display', 'page_seconds', 5, 60, 1, '% s')),
@@ -768,7 +809,7 @@ function render() {
     h('a', {href: 'https://www.paypal.me/SHerbst84', target: '_blank', rel: 'noopener noreferrer'}, '☕ Spendier mir einen Kaffee'), h('br'),
     'Version ' + meta.version + ' · © 2026 FuchsLabs');
   if (document.querySelector('.conn')) { updateConn(); connTimer = setInterval(() => document.hidden || updateConn(), 5000); }
-  if (tab === 'overview') previewTimer = setInterval(() => { const i = $('#prev'); if (i && !document.hidden) i.src = '/api/preview.png?t=' + Date.now(); }, 2000);
+  if (tab === 'overview') { refreshOverviewPreview(); previewTimer = setInterval(refreshOverviewPreview, 1000); }
 }
 
 async function apply(title, fn) {

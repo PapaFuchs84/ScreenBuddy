@@ -189,6 +189,11 @@ std::optional<Image> App::last_frame() {
     return last_frame_;
 }
 
+ojson App::page_navigation() {
+    std::lock_guard lk(mu_);
+    return navigation_;
+}
+
 bool App::display_ok() {
     std::lock_guard lk(mu_);
     return display_ok_;
@@ -318,10 +323,11 @@ bool App::connect_display() {
     return true;
 }
 
-void App::output(const Image& frame, bool transition) {
+void App::output(const Image& frame, bool transition, const ojson& navigation) {
     {
         std::lock_guard lk(mu_);
         last_frame_ = frame;
+        navigation_ = navigation;
     }
     if (preview_dir_) {
         std::ofstream f(*preview_dir_ / "live.png", std::ios::binary);
@@ -377,6 +383,7 @@ void App::display_loop() {
         if (discord_ && std::count(active.begin(), active.end(), "discord")) friends = discord_->friends();
         if (friends_) people = friends_->people();
         Image frame;
+        ojson navigation = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
         bool switched = false;
         {
             std::lock_guard rl(render::mutex());
@@ -417,9 +424,11 @@ void App::display_loop() {
                 auto [f, keys] = draw(pages, boxes, start);
                 frame = std::move(f);
                 current_ = keys;
+                navigation = {{"index", start}, {"total", total}, {"visible", cols},
+                              {"current", keys}, {"can_step", total > cols}};
             }
         }
-        output(frame, switched);
+        output(frame, switched, navigation);
         if (switched) page_switched_ = mono();  // Anzeigedauer ab Ende der Übertragung zählen
         for (int i = 0; i < 10 && !stop_; ++i) Sleep(50);  // max. ~2 Bilder/s, damit Status-Stürme das Display nicht fluten
     }
