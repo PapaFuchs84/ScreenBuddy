@@ -6,7 +6,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.0.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.0.3-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -53,7 +53,7 @@ Plus:
 - **German or English**: the settings page, display and tray menu can be switched; on first start the language follows Windows
 - **Design**: FuchsLabs style in light or dark, or **custom colours** via colour pickers with a contrast warning
 - **Any resolution**: pages are rendered sharply at the real size; wide bars show several pages side by side
-- **HDMI/USB-C screens** as borderless full screen, optionally with **touch** (swipe or tap to change pages)
+- **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages); Windows touch assignment checks and setup under **Display**
 - **Illustrated guide** to click through, easy enough for kids, embedded in the EXE in English and German
 - **Single EXE** for installation, updates and uninstallation; no Python or Visual C++ redistributable required. WebView2 Runtime remains a prerequisite.
 
@@ -75,13 +75,15 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **FuchsLabs-USB-Display.exe** from [Version 2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0). It is a prerelease and is not code-signed. `SHA256SUMS.txt` is provided alongside it.
+1. Download **FuchsLabs-USB-Display.exe** from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (current version: **2.0.3**). The EXE is unsigned. `SHA256SUMS.txt` is provided alongside it.
 2. Use Windows 10/11 x64 with Microsoft Edge WebView2 Evergreen Runtime installed. The runtime is not bundled and the installer does not install it automatically.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
 5. Configure pages and data sources. Reopen settings from the fox tray icon or by starting the installed app again. Closing the settings window leaves the display running; use **Quit** in the tray to stop it.
 
-The installer can import Version 1.x settings and retains the old folder with a `-1.x-alt` suffix. Updates keep an existing destination configuration. The illustrated guide opens from the settings window and is embedded in the EXE; no ZIP or `_internal` folder is needed.
+The installer can import Version 1.x settings and retains the old folder with a `-1.x-alt` suffix. Updates keep an existing destination configuration. The illustrated guide opens in your default browser from the settings window or **Open guide** in the tray and is embedded in the EXE; no ZIP or `_internal` folder is needed.
+
+For an HDMI/USB-C touchscreen, choose the intended monitor under **Display**. If taps appear on another screen, select **Assign touch display**, press Enter to skip other screens, and touch the intended touchscreen. Then select **Check again**. A USB touch connection is required. See [HDMI/USB-C and touch](cpp/README.md#hdmiusb-c-and-touch).
 
 ### Logins for the data sources
 
@@ -203,8 +205,10 @@ No open-source licence: © 2026 FuchsLabs, all rights reserved. The repository i
 
 Battlefield, Discord, Steam and Xbox are trademarks of their respective owners. FuchsLabs is not affiliated with them.
 
-## Validation of 2.0
+## Validation of 2.0.3
 
-On 22 October 2026, 86 checks passed and the native settings window was visibly verified. Version 1.x and 2.0 were compared on COM7 with the same settings; the user confirmed correct orientation, colours, readability and page changes. Installation and autostart configuration were checked. The user subsequently confirmed a successful Windows reboot with the tray icon appearing automatically. This is not a guarantee for every display model. See [test record](cpp/TESTPROTOKOLL.md).
+Release build, 86 core checks and 56 monitor/touch checks with injected Windows input passed (the 56 include 11 basic checks). Installed 2.0.3: actual file version, hash, API version, autostart entry and `display_ok=true` verified outside package redirection. Physical touch hardware, the complete Windows assignment wizard and a new Windows sign-in test for 2.0.3 remain untested. See [test record](cpp/TESTPROTOKOLL.md).
+
+The earlier 2.0 validation included comparison with 1.x on COM7 and user confirmation of the physical display and a successful Windows reboot with the tray icon.
 
 The first real reboot test failed due to packaged-host installation redirection. Installation and the actual Windows Run entry were subsequently corrected outside that context; the user subsequently confirmed a successful Windows reboot with the tray icon appearing automatically.

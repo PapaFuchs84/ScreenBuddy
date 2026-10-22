@@ -20,9 +20,9 @@ Run from a developer terminal with CMake/Ninja available. `cpp/build.bat` builds
 ## Workflow
 
 1. Branch from `main`, make focused changes and explain the resulting behavior.
-2. Compile and run checks appropriate to the change. `cpp/build/fl-tests.exe` covers core behavior; use `--demo --no-lcd --preview preview` for sample output.
+2. Compile and run checks appropriate to the change. `cpp/build/fl-tests.exe` covers core behavior and `cpp/build/fl-monitor-tests.exe` covers gesture basics; its `window` mode visibly tests a secondary screen with injected touch input; use `--demo --no-lcd --preview preview` for sample output.
 3. Check affected UI in German and English. Hardware tests require exclusive access to the COM port: stop the other display app first.
-4. Record visible changes in both root changelogs and update the reference. Report tests not run and unresolved issues explicitly.
+4. Documentation is part of every change: update affected READMEs, quick start, reference, version/download links, usage and test status in the same task, without a separate request. Keep existing German/English versions and both root changelogs consistent; for C++ also update `cpp/CHANGELOG.md`. See [project rules](AGENTS.md).
 5. Open a pull request against `main` with validation details; use sample data in screenshots.
 
 ## Code rules

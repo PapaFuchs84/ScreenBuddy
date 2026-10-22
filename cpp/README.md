@@ -1,10 +1,10 @@
-# FuchsLabs USB-Display 2.0
+# FuchsLabs USB-Display 2.0.3
 
 Native Windows C++20 port of FuchsLabs USB-Display. The application and installer are distributed as one EXE; it requires no Python runtime or Visual C++ redistributable. The settings window is a native Windows window backed by Microsoft Edge WebView2. The WebView2 Evergreen Runtime is a Windows prerequisite and is not bundled in this EXE.
 
 ## Install and first start
 
-1. Download the EXE from [v2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0), then start it from Downloads or another folder. This release is an unsigned prerelease.
+1. Download the EXE from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (currently 2.0.3), then start it from Downloads or another folder. The EXE is unsigned; verify it using the supplied `SHA256SUMS.txt`.
 2. Choose the options in the installer. The default location is `%LOCALAPPDATA%\FuchsLabs\USB-Display`; no administrator rights are required.
 3. On first start, settings open in their own Windows window. Open them later from the fox icon in the notification area. Configure the display and optional Discord, Steam, Xbox, Battlefield 6, and RSS data there.
 
@@ -19,15 +19,23 @@ The installer can import the Version 1.x `config.toml`. Secrets use Windows DPAP
 
 Discord uses D++ with the Members and Presence intents enabled. Enable both privileged intents in the Discord Developer Portal for the bot.
 
+## HDMI/USB-C and touch
+
+Choose **Screen over HDMI or USB-C** and the intended monitor under **Display**; set Windows to **Extend**. Fullscreen covers the taskbar without taking keyboard focus. A touchscreen also requires its USB touch connection.
+
+If taps affect another display, select **Assign touch display**. The fullscreen output pauses while the Windows wizard is open. Press Enter to skip other screens, then touch the intended touchscreen; Esc cancels. When finished, select **Check again**, enable **Touch control** if needed, and save. Assignment is a Windows setting. Physical touch hardware and the full wizard workflow remain untested.
+
 ## Build
 
-The checked-in `build.bat` expects Visual Studio Build Tools 2022, CMake/Ninja, and a vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`. It installs the pinned dependencies using the repository's vcpkg manifest and overlay port, builds x64 Release, runs `fl-tests.exe`, and copies the installer/app to `dist\FuchsLabs-USB-Display.exe`.
+The checked-in `build.bat` expects Visual Studio Build Tools 2022, CMake/Ninja, and a vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`. It installs the pinned dependencies using the repository's vcpkg manifest and overlay port, builds x64 Release, runs `fl-tests.exe` plus `fl-monitor-tests.exe`, and copies the installer/app to `dist\FuchsLabs-USB-Display.exe`.
 
 ```bat
 build.bat
 ```
 
 Dependencies are linked statically, including D++ and OpenSSL. OpenSSL on Windows loads trust roots from the Windows certificate store. The D++ vcpkg overlay records the corresponding build option and patches.
+
+Run `build\fl-monitor-tests.exe window` only for a controlled visible secondary-monitor test; it injects touch events and closes its test windows afterwards. This does not validate physical touch hardware.
 
 ## Diagnostics
 
@@ -38,7 +46,7 @@ Dependencies are linked statically, including D++ and OpenSSL. OpenSSL on Window
 
 ## Validation status
 
-Release build: 86 checks passed. The native settings window was opened and visibly verified on Windows. Version 1.x and C++ 2.0 both reported display_ok=true on COM7 using the same settings; the user confirmed correct orientation, colours, readability and page changes. The integrated installer migrated the settings and updated autostart. The user subsequently confirmed a successful Windows reboot with the tray icon appearing automatically. See [TESTPROTOKOLL.md](TESTPROTOKOLL.md). The EXE is unsigned and requires the WebView2 Evergreen Runtime.
+Version 2.0.3: release build, 86 core checks and 56 monitor/touch checks with injected Windows input passed (the 56 include 11 basic checks). Installation, actual file version/hash, API version, autostart entry and `display_ok=true` were verified outside package redirection. Physical touch hardware, the full assignment wizard and a new Windows sign-in test for 2.0.3 remain untested. Earlier 2.0 validation included the user-confirmed COM7 display comparison and Windows reboot. See [TESTPROTOKOLL.md](TESTPROTOKOLL.md). The EXE is unsigned and requires WebView2 Evergreen Runtime.
 
 ## Installing from automation
 

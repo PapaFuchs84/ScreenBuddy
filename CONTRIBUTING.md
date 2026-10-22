@@ -20,9 +20,9 @@ In einer Entwicklerkonsole müssen CMake/Ninja verfügbar sein. `cpp/build.bat` 
 ## Ablauf
 
 1. Branch von `main` anlegen und die resultierende Änderung verständlich beschreiben.
-2. Kompilieren und zur Änderung passende Prüfungen ausführen. `cpp/build/fl-tests.exe` prüft Kernfunktionen; `--demo --no-lcd --preview vorschau` erzeugt Beispielbilder.
+2. Kompilieren und zur Änderung passende Prüfungen ausführen. `cpp/build/fl-tests.exe` prüft Kernfunktionen und `cpp/build/fl-monitor-tests.exe` Gestengrundlagen; dessen Modus `window` prüft sichtbar einen Nebenmonitor mit injizierten Touch-Eingaben; `--demo --no-lcd --preview vorschau` erzeugt Beispielbilder.
 3. Betroffene Oberfläche auf Deutsch und Englisch prüfen. Vor Hardwaretests die andere Display-App beenden, damit der COM-Port exklusiv frei ist.
-4. Sichtbare Änderungen in beiden Haupt-Changelogs und der Referenz dokumentieren; nicht ausgeführte Tests und offene Probleme ausdrücklich nennen.
+4. Dokumentation gehört zu jeder Änderung: Betroffene READMEs, Schnellstart, Referenz, Versions-/Downloadlinks, Bedienung und Prüfstand im selben Arbeitsgang aktualisieren, ohne gesonderte Aufforderung. Vorhandene deutsche/englische Fassungen und beide Haupt-Changelogs konsistent halten; bei C++ auch `cpp/CHANGELOG.md` pflegen. Siehe [Projektregeln](AGENTS.md).
 5. PR gegen `main` mit Validierung öffnen; Screenshots nur mit Beispieldaten.
 
 ## Regeln für den Code

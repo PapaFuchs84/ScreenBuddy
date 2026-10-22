@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Documentation follow-up for 2.0.3: current download links, matching German/English HDMI/touch steps in the guide templates and HTML resources, validation status, and permanent documentation rules. Updated embedded guides will be included in the next app build; the existing 2.0.3 EXE is unchanged.
+
 ## 2.0.3 — 2026-10-22
 
 - HDMI/USB-C output now stays above the taskbar without taking keyboard focus, including after hiding/restoring the display and Explorer/taskbar changes.

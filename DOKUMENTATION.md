@@ -1,6 +1,6 @@
 # FuchsLabs USB-Display – Dokumentation
 
-Version 2.0.0 (Vorabversion) · Stand 22.10.2026 · © 2026 FuchsLabs
+Version 2.0.3 · Stand 22.10.2026 · © 2026 FuchsLabs
 
 Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein eigenes Windows-Einstellungsfenster mit WebView2. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
 
@@ -49,7 +49,7 @@ Ist keine Seite aktiv, zeigt das Display einen Willkommenshinweis mit der Adress
 
 Version 2.0: Windows 10/11 x64, angeschlossenes Display und installierte Microsoft Edge WebView2 Evergreen Runtime. Python und Visual-C++-Redistributable werden nicht benötigt. Die WebView2-Laufzeit ist nicht Teil der einzelnen EXE.
 
-Die [Release-EXE](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0) enthält App, Installer, Updater und Deinstaller. Der Installer verwendet `%LOCALAPPDATA%\FuchsLabs\USB-Display`, legt Verknüpfung und Deinstallationseintrag an und kann Einstellungen aus dem bisherigen Benutzerordner oder dem alten Roaming-AppData-Ordner übernehmen. Eine bestehende Zielkonfiguration bleibt erhalten; der alte Versionsordner wird bei der Übernahme mit `-1.x-alt` umbenannt.
+Die [Release-EXE](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) enthält App, Installer, Updater und Deinstaller. Der Installer verwendet `%LOCALAPPDATA%\FuchsLabs\USB-Display`, legt Verknüpfung und Deinstallationseintrag an und kann Einstellungen aus dem bisherigen Benutzerordner oder dem alten Roaming-AppData-Ordner übernehmen. Eine bestehende Zielkonfiguration bleibt erhalten; der alte Versionsordner wird bei der Übernahme mit `-1.x-alt` umbenannt.
 
 Das eigene Windows-Einstellungsfenster öffnet sich bei noch offener Ersteinrichtung. Später öffnet das Fuchs-Symbol oder ein erneuter Programmstart dieses Fenster. Schließen blendet es aus; **Beenden** im Infobereich stoppt die App. Beim Windows-Autostart bleibt das Fenster geschlossen.
 
@@ -190,6 +190,10 @@ Der Build benötigt Visual Studio Build Tools 2022, Windows SDK, CMake/Ninja und
 In Windows **Einstellungen → Apps → FuchsLabs USB-Display → Deinstallieren**. Der integrierte Deinstaller entfernt Autostart und Verknüpfung. Der Dialog bietet zusätzlich an, Einstellungen und gespeicherte Zugangsdaten zu entfernen. Ein aufbewahrter `-1.x-alt`-Ordner gehört zur alten Version und ist ein eigener Rückfallstand.
 
 ## 13. Prüfstand und Windows-Neustart
+
+**2.0.3:** Release-Build, 86 Kernprüfungen und 56 Monitor-/Touchprüfungen einschließlich 11 Basisprüfungen bestanden. Die 2.0.3-Installation wurde auf Datei-Version, Hash, API-Version, Autostart-Eintrag und `display_ok=true` geprüft. Touch wurde mit injizierten Windows-Eingaben getestet; echte Touch-Hardware, der vollständige Zuordnungsassistent und ein neuer Windows-Anmeldetest bleiben offen. Details im [Testprotokoll](cpp/TESTPROTOKOLL.md).
+
+**Frühere Abnahme von 2.0:**
 
 Hardware-Gegenvergleich am 22.10.2026 bestanden: 1.x und 2.0 meldeten an COM7 `display_ok=true`, der Nutzer bestätigte die physische Anzeige. Das native Einstellungsfenster wurde sichtbar geöffnet.
 
