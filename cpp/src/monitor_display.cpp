@@ -1,9 +1,9 @@
 // © 2026 FuchsLabs
 // Ausgabe auf einen normalen Bildschirm (HDMI/USB-C): randloses Vollbildfenster ohne Taskleisten-Eintrag.
-// Touch: Windows meldet Fingertipps an Fenster ohne eigene Touch-Behandlung zusätzlich als Mausklicks; daraus werden
-// Wischen (links/rechts) und Tippen auf den linken/rechten Rand.
+// Touch: native WM_POINTER-Ereignisse. Die Zuordnung Touchgerät -> Monitor wird von Windows verwaltet.
 #include <windows.h>
 #include <shellscalingapi.h>
+#include <shobjidl.h>
 
 #include <stdexcept>
 
@@ -13,8 +13,24 @@
 namespace fl {
 
 namespace {
-constexpr UINT WM_FRAME = WM_APP + 1, WM_QUIT_WINDOW = WM_APP + 2;
+constexpr UINT WM_FRAME = WM_APP + 1, WM_QUIT_WINDOW = WM_APP + 2,
+               WM_VISIBLE = WM_APP + 3, WM_SETUP_TOUCH = WM_APP + 4;
+constexpr UINT_PTR MONITOR_TIMER = 1;
 const wchar_t* CLASS_NAME = L"FuchsLabsUsbDisplayScreen";
+
+HANDLE launch_touch_setup() {
+    wchar_t dir[MAX_PATH];
+    UINT n = GetSystemDirectoryW(dir, MAX_PATH);
+    if (!n || n >= MAX_PATH) return nullptr;
+    std::wstring exe = std::wstring(dir) + L"\\multidigimon.exe";
+    std::wstring command = L"\"" + exe + L"\" -touch";
+    STARTUPINFOW si{sizeof si};
+    PROCESS_INFORMATION pi{};
+    // Absoluter Windows-Pfad und feste Argumente; keine Kommandozeile aus der Web-Anfrage.
+    if (!CreateProcessW(exe.c_str(), command.data(), nullptr, nullptr, FALSE, 0, nullptr, dir, &si, &pi)) return nullptr;
+    CloseHandle(pi.hThread);
+    return pi.hProcess;
+}
 
 LRESULT CALLBACK proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     auto* self = (MonitorDisplay*)GetWindowLongPtrW(hwnd, GWLP_USERDATA);
@@ -69,10 +85,44 @@ ojson monitors_json() {
 }
 
 ojson touch_info() {
-    // Meldet Windows einen Touchscreen? (Gilt für den ganzen PC)
     int v = GetSystemMetrics(SM_DIGITIZER);
     bool ok = (v & NID_READY) && (v & (NID_INTEGRATED_TOUCH | NID_EXTERNAL_TOUCH));
-    return {{"available", ok}, {"points", ok ? GetSystemMetrics(SM_MAXIMUMTOUCHES) : 0}};
+    ojson devices = ojson::array();
+    bool known = false;
+    // Beim An-/Abstecken kann sich die Anzahl zwischen den beiden Aufrufen ändern.
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        UINT32 count = 0;
+        if (!GetPointerDevices(&count, nullptr) || count > 256) break;
+        if (!count) { known = !ok; break; }
+        std::vector<POINTER_DEVICE_INFO> pointers(count);
+        if (!GetPointerDevices(&count, pointers.data())) {
+            if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) continue;
+            break;
+        }
+        known = true;
+        for (UINT32 i = 0; i < count; ++i) {
+            const auto& p = pointers[i];
+            if (p.pointerDeviceType != POINTER_DEVICE_TYPE_TOUCH) continue;
+            MONITORINFOEXW mi{};
+            mi.cbSize = sizeof mi;
+            bool mapped = p.monitor && GetMonitorInfoW(p.monitor, &mi);
+            devices.push_back({{"name", narrow(p.productString)}, {"monitor", mapped ? narrow(mi.szDevice) : ""},
+                               {"points", p.maxActiveContacts}});
+            if (!mapped) known = false;
+        }
+        // Manche Treiber melden nur die globale Touch-Fähigkeit, aber keine Gerätezuordnung.
+        if (ok && devices.empty()) known = false;
+        break;
+    }
+    return {{"available", ok || !devices.empty()}, {"points", GetSystemMetrics(SM_MAXIMUMTOUCHES)},
+            {"mapping_known", known}, {"devices", devices}};
+}
+
+bool open_touch_setup() {
+    HANDLE process = launch_touch_setup();
+    if (!process) return false;
+    CloseHandle(process);
+    return true;
 }
 
 static std::optional<MonitorInfo> pick_monitor(const std::string& device) {
@@ -109,6 +159,7 @@ MonitorDisplay::MonitorDisplay(std::string device, bool touch) : device_(std::mo
     }
     auto [w, h] = size();
     gesture_ = Gesture{w, h, {}};
+    mouse_gesture_ = Gesture{w, h, {}};
 }
 
 MonitorDisplay::~MonitorDisplay() { close(); }
@@ -119,19 +170,39 @@ std::pair<int, int> MonitorDisplay::size() const {
 
 void MonitorDisplay::connect() {
     if (!mon_) throw std::runtime_error(device_.empty() ? "Kein zweiter Bildschirm angeschlossen" : "Bildschirm nicht gefunden");
-    if (thread_.joinable() && hwnd_) {
-        ShowWindow((HWND)hwnd_, SW_SHOWNOACTIVATE);
+    if (thread_.joinable() && hwnd_.load()) {
+        PostMessageW((HWND)hwnd_.load(), WM_VISIBLE, TRUE, 0);
         return;
     }
     if (thread_.joinable()) thread_.join();
     ready_ = false;
     thread_ = std::thread([this] { run(); });
     for (int i = 0; i < 100 && !ready_; ++i) Sleep(50);
-    if (!ready_ || !hwnd_) throw std::runtime_error("Anzeigefenster konnte nicht geöffnet werden");
+    if (!ready_ || !hwnd_.load()) throw std::runtime_error("Anzeigefenster konnte nicht geöffnet werden");
     LOGI("monitor", "Ausgabe auf Bildschirm %s (%d × %d bei %d/%d)", mon_->device.c_str(), mon_->w, mon_->h, mon_->x, mon_->y);
 }
 
+bool MonitorDisplay::setup_touch() {
+    HWND hwnd = (HWND)hwnd_.load();
+    return hwnd && SendMessageW(hwnd, WM_SETUP_TOUCH, 0, 0) != 0;
+}
+
+void MonitorDisplay::fullscreen(bool show) {
+    HWND hwnd = (HWND)hwnd_.load();
+    if (!hwnd) return;
+    if (taskbar_) ((ITaskbarList2*)taskbar_)->MarkFullscreenWindow(hwnd, show);
+    if (show) {
+        // NOACTIVATE erhält den Fokus auf dem Arbeitsbildschirm. TOPMOST hält die sekundäre Taskleiste darunter.
+        SetWindowPos(hwnd, HWND_TOPMOST, mon_->x, mon_->y, mon_->w, mon_->h, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    } else ShowWindow(hwnd, SW_HIDE);
+}
+
 void MonitorDisplay::run() {
+    visible_ = true;
+    pointer_id_ = 0;
+    gesture_.start.reset();
+    mouse_gesture_.start.reset();
+    HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     HINSTANCE hinst = GetModuleHandleW(nullptr);
     WNDCLASSW wc{};
     wc.lpfnWndProc = proc;
@@ -139,15 +210,22 @@ void MonitorDisplay::run() {
     wc.lpszClassName = CLASS_NAME;
     RegisterClassW(&wc);
     // Randlos, ohne Taskleisten-Eintrag und ohne Fokus zu stehlen (Tippen aktiviert das Fenster nicht)
-    HWND hwnd = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, CLASS_NAME, L"FuchsLabs USB-Display", WS_POPUP,
+    HWND hwnd = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST, CLASS_NAME, L"FuchsLabs USB-Display", WS_POPUP,
                                 mon_->x, mon_->y, mon_->w, mon_->h, nullptr, nullptr, hinst, this);
     if (!hwnd) {
         LOGW("monitor", "Fenster nicht erstellt (Fehler %lu)", GetLastError());
         ready_ = true;
+        if (SUCCEEDED(com)) CoUninitialize();
         return;
     }
     hwnd_ = hwnd;
-    ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+    ITaskbarList2* taskbar = nullptr;
+    if (SUCCEEDED(com) && SUCCEEDED(CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&taskbar)))) {
+        if (SUCCEEDED(taskbar->HrInit())) taskbar_ = taskbar;
+        else { taskbar->Release(); taskbar = nullptr; }
+    }
+    fullscreen(true);
+    SetTimer(hwnd, MONITOR_TIMER, 1000, nullptr);
     ready_ = true;
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
@@ -155,6 +233,9 @@ void MonitorDisplay::run() {
         DispatchMessageW(&msg);
     }
     hwnd_ = nullptr;
+    taskbar_ = nullptr;
+    if (taskbar) taskbar->Release();
+    if (SUCCEEDED(com)) CoUninitialize();
 }
 
 bool MonitorDisplay::handle(void* hwnd_v, unsigned msg, unsigned long long wp, long long lp, long long& result) {
@@ -184,19 +265,83 @@ bool MonitorDisplay::handle(void* hwnd_v, unsigned msg, unsigned long long wp, l
         case WM_SETCURSOR: SetCursor(nullptr); result = 1; return true;  // Mauszeiger über der Anzeige ausblenden
         case WM_MOUSEACTIVATE: result = MA_NOACTIVATE; return true;
         case WM_LBUTTONDOWN:
-        case WM_LBUTTONUP:
-            if (!touch_) return false;
-            {
+        case WM_LBUTTONUP: {
+            // Echte Mausbedienung erhalten; aus Touch/Stift erzeugte Mausnachrichten nicht doppelt auswerten.
+            INPUT_MESSAGE_SOURCE source{};
+            bool pointer_mouse = GetCurrentInputMessageSource(&source) &&
+                                 (source.deviceType == IMDT_TOUCH || source.deviceType == IMDT_PEN);
+            if (touch_ && !setup_process_ && !pointer_id_ && !pointer_mouse &&
+                ((ULONG_PTR)GetMessageExtraInfo() & 0xFFFFFF00) != 0xFF515700) {
                 int x = (short)(lp & 0xFFFF), y = (short)((lp >> 16) & 0xFFFF);
-                if (msg == WM_LBUTTONDOWN) gesture_.down(x, y);
-                else if (int step = gesture_.end(x, y); step && on_step) on_step(step);
+                if (msg == WM_LBUTTONDOWN) mouse_gesture_.down(x, y);
+                else if (int step = mouse_gesture_.end(x, y); step && on_step) on_step(step);
+            }
+            result = 0; return true;
+        }
+        case WM_POINTERACTIVATE: result = PA_NOACTIVATE; return true;
+        case WM_POINTERDOWN:
+        case WM_POINTERUPDATE:
+        case WM_POINTERUP: {
+            POINTER_INFO info{};
+            unsigned id = GET_POINTERID_WPARAM(wp);
+            if (!GetPointerInfo(id, &info) || info.pointerType != PT_TOUCH) return false;
+            // Auch deaktivierten Touch konsumieren: kein zusätzlicher, synthetischer Mausklick.
+            if (touch_ && !setup_process_) {
+                POINT pt = info.ptPixelLocation;
+                ScreenToClient(hwnd, &pt);
+                if (info.pointerFlags & POINTER_FLAG_CANCELED) {
+                    if (pointer_id_ == id) { pointer_id_ = 0; gesture_.start.reset(); }
+                } else if (msg == WM_POINTERDOWN && !pointer_id_) {
+                    mouse_gesture_.start.reset();
+                    pointer_id_ = id;
+                    gesture_.down(pt.x, pt.y);
+                } else if (msg == WM_POINTERUP && pointer_id_ == id) {
+                    pointer_id_ = 0;
+                    if (int step = gesture_.end(pt.x, pt.y); step && on_step) on_step(step);
+                }
             }
             result = 0;
             return true;
+        }
+        case WM_POINTERCAPTURECHANGED:
+            if (pointer_id_ == GET_POINTERID_WPARAM(wp)) { pointer_id_ = 0; gesture_.start.reset(); }
+            result = 0; return true;
+        case WM_VISIBLE:
+            visible_ = wp != 0;
+            if (!visible_) { pointer_id_ = 0; gesture_.start.reset(); mouse_gesture_.start.reset(); }
+            fullscreen(visible_ && !setup_process_);
+            result = 0; return true;
+        case WM_SETUP_TOUCH:
+            if (setup_process_) { result = 1; return true; }
+            pointer_id_ = 0;
+            gesture_.start.reset();
+            mouse_gesture_.start.reset();
+            fullscreen(false);
+            setup_process_ = launch_touch_setup();
+            if (!setup_process_) fullscreen(visible_);
+            result = setup_process_ ? 1 : 0;
+            return true;
+        case WM_TIMER:
+            if (wp != MONITOR_TIMER) return false;
+            if (setup_process_) {
+                if (WaitForSingleObject((HANDLE)setup_process_, 0) == WAIT_OBJECT_0) {
+                    CloseHandle((HANDLE)setup_process_);
+                    setup_process_ = nullptr;
+                    fullscreen(visible_);
+                }
+            } else if (visible_) {
+                // Explorer-Neustart, Taskleisten-Aktivierung und Fokuswechsel dürfen die Leiste nicht freilegen.
+                SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            }
+            result = 0; return true;
         case WM_FRAME: InvalidateRect(hwnd, nullptr, FALSE); result = 0; return true;
         case WM_CLOSE: result = 0; return true;  // Alt+F4 schließt die Anzeige nicht; Beenden geht über das Tray-Symbol
         case WM_QUIT_WINDOW: DestroyWindow(hwnd); result = 0; return true;
-        case WM_DESTROY: PostQuitMessage(0); result = 0; return true;
+        case WM_DESTROY:
+            KillTimer(hwnd, MONITOR_TIMER);
+            fullscreen(false);
+            if (setup_process_) { CloseHandle((HANDLE)setup_process_); setup_process_ = nullptr; }
+            PostQuitMessage(0); result = 0; return true;
     }
     (void)wp;
     return false;
@@ -205,21 +350,22 @@ bool MonitorDisplay::handle(void* hwnd_v, unsigned msg, unsigned long long wp, l
 int MonitorDisplay::show(const Image& frame) {
     auto [w, h] = size();
     if (frame.w != w || frame.h != h) throw std::runtime_error("Bildgröße passt nicht zum Bildschirm");
-    if (!hwnd_) throw std::runtime_error("Anzeigefenster ist geschlossen");
+    HWND hwnd = (HWND)hwnd_.load();
+    if (!hwnd) throw std::runtime_error("Anzeigefenster ist geschlossen");
     {
         std::lock_guard lk(mu_);
         bits_ = frame.px;  // BGRA wie der Bildschirm
     }
-    PostMessageW((HWND)hwnd_, WM_FRAME, 0, 0);
+    PostMessageW(hwnd, WM_FRAME, 0, 0);
     return frame.h;
 }
 
 void MonitorDisplay::screen_off() {
-    if (hwnd_) ShowWindow((HWND)hwnd_, SW_HIDE);
+    if (auto hwnd = hwnd_.load()) PostMessageW((HWND)hwnd, WM_VISIBLE, FALSE, 0);
 }
 
 void MonitorDisplay::close() {
-    if (hwnd_) PostMessageW((HWND)hwnd_, WM_QUIT_WINDOW, 0, 0);
+    if (auto hwnd = hwnd_.load()) PostMessageW((HWND)hwnd, WM_QUIT_WINDOW, 0, 0);
     if (thread_.joinable()) thread_.join();
 }
 

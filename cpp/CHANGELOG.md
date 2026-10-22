@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.3 — 2026-10-22
+
+- HDMI/USB-C output now stays above the taskbar without taking keyboard focus, including after hiding/restoring the display and Explorer/taskbar changes.
+- Touch uses native Windows pointer events instead of mouse emulation, with one gesture per contact and cancellation handling.
+- Display settings show the Windows touch-to-monitor assignment and warn about another or unknown target monitor.
+- Added a Windows touch setup button. The fullscreen output pauses while the assignment wizard is open and resumes afterwards. Physical assignment requires touching the intended screen once in the wizard.
+
 ## 2.0.2 — 2026-10-22
 
 - Illustrated guide (DE/EN) updated for 2.0: new texts and new screenshots of the current settings page (previously still from 1.1).

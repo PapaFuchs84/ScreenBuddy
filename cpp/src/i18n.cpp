@@ -17,6 +17,8 @@ const std::string& lang() { return g_lang; }
 
 static const std::unordered_map<std::string, std::string>& en() {
     static const std::unordered_map<std::string, std::string> m = {
+        {"Windows meldet keinen Touchscreen. USB-Touchkabel und Treiber prüfen.", "Windows reports no touchscreen. Check the USB touch cable and driver."},
+        {"Die Windows-Touch-Einrichtung konnte nicht geöffnet werden.", "Windows touch setup could not be opened."},
         // Display: Titel, Kopf- und Fußzeilen, Hinweise
         {"Discord-Freunde", "Discord friends"},
         {"Freunde", "Friends"},

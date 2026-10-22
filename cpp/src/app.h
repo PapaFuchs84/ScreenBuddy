@@ -55,6 +55,7 @@ public:
     void step_page(int delta);                      // Touch: eine Seite vor (+1) oder zurück (-1)
     void mark_dirty();
     void show_settings();
+    bool setup_touch();
 
 private:
     struct RendererSet;

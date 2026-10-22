@@ -700,11 +700,40 @@ function viewDisplay() {
     if (d.monitor && !mons.some(m => m.device === d.monitor)) opts.push([d.monitor, d.monitor + T(' (gerade nicht angeschlossen)')]);
     const tg = toggle('display', 'touch');
     tg.querySelector('input').disabled = !t.available && !d.touch;
+    const chosen = mons.find(m => d.monitor ? m.device === d.monitor : !m.primary);
+    const mapped = chosen && (t.devices || []).some(p => p.monitor === chosen.device);
+    const mapping = !t.available
+      ? (L === 'en' ? 'No touchscreen detected. Check the USB touch cable and driver; HDMI only carries the picture.' : 'Kein Touchscreen erkannt. USB-Touchkabel und Treiber prüfen; HDMI überträgt nur das Bild.')
+      : mapped
+        ? (L === 'en' ? 'Windows has assigned a touchscreen to the selected display.' : 'Windows hat dem ausgewählten Bildschirm einen Touchscreen zugeordnet.')
+        : t.mapping_known
+          ? (L === 'en' ? 'Touch is assigned to a different display. Set up the touch display below.' : 'Touch ist einem anderen Bildschirm zugeordnet. Bitte den Touch-Bildschirm unten zuordnen.')
+          : (L === 'en' ? 'Windows does not report a reliable touch assignment. Set up the touch display if taps appear on another screen.' : 'Windows meldet keine eindeutige Touch-Zuordnung. Wenn Berührungen auf einem anderen Bildschirm erscheinen, den Touch-Bildschirm zuordnen.');
+    const refreshTouch = async () => {
+      try { cache.opts = await api('/api/display/options'); if (tab === 'display') render(); }
+      catch { toast(L === 'en' ? 'Could not refresh the display information.' : 'Bildschirmdaten konnten nicht aktualisiert werden.'); }
+    };
+    const setup = h('button', {class: 'btn', disabled: !t.available, onclick: async () => {
+      setup.disabled = true;
+      try {
+        const r = await api('/api/display/touch-setup', {});
+        toast(r.ok ? (L === 'en' ? 'Press Enter to skip other screens, then touch the intended touchscreen. Esc cancels.' : 'Andere Bildschirme mit Enter überspringen, dann den gewünschten Touchscreen berühren. Esc bricht ab.') : r.error);
+      } catch { toast(L === 'en' ? 'Could not open touch setup.' : 'Touch-Einrichtung konnte nicht geöffnet werden.'); }
+      finally { setup.disabled = !t.available; }
+    }}, L === 'en' ? 'Assign touch display' : 'Touch-Bildschirm zuordnen');
+    const monitorSelect = o ? select('display', 'monitor', opts) : h('span', {class: 'note'}, 'Suche Bildschirme …');
+    if (o) monitorSelect.addEventListener('change', () => render());
     screen = [
-      row('Bildschirm', 'Darauf erscheint die Anzeige als Vollbild ohne Rahmen', o ? select('display', 'monitor', opts) : h('span', {class: 'note'}, 'Suche Bildschirme …')),
+      row('Bildschirm', 'Darauf erscheint die Anzeige als Vollbild ohne Rahmen', monitorSelect),
       row('Touch-Steuerung', t.available ? (L === 'en' ? `Windows reports a touchscreen (${t.points} fingers). Swipe left = next page, right = previous. Tap on the left = back, elsewhere = next.`
         : `Windows meldet einen Touchscreen (${t.points} Finger). Nach links wischen = nächste Seite, nach rechts = vorige. Tippen links = zurück, sonst weiter.`)
         : 'Windows meldet keinen Touchscreen. Sobald einer angeschlossen ist, lässt sich das hier einschalten.', tg),
+      row(L === 'en' ? 'Touch assignment' : 'Touch-Zuordnung', mapping,
+        h('div', {style: 'display:flex;gap:8px;flex-wrap:wrap'}, setup,
+          h('button', {class: 'btn', onclick: refreshTouch}, L === 'en' ? 'Check again' : 'Erneut prüfen'))),
+      h('p', {class: 'note'}, L === 'en'
+        ? 'Touch assignment is a Windows setting. In the wizard, press Enter until its message appears on the intended touchscreen, then touch that screen. The display output pauses during setup and resumes afterwards. Check the assignment again when finished.'
+        : 'Die Touch-Zuordnung ist eine Windows-Einstellung. Im Assistenten Enter drücken, bis dessen Text auf dem gewünschten Touchscreen erscheint, dann diesen Bildschirm berühren. Die Display-Ausgabe pausiert während der Einrichtung und kehrt danach zurück. Anschließend „Erneut prüfen“ wählen.'),
       h('p', {class: 'note'}, 'Breite Leisten wie 1920 × 720 zeigen mehrere Seiten nebeneinander. Der Bildschirm sollte in Windows auf „Erweitern“ stehen, nicht auf „Duplizieren“.')];
   }
   return [...head('Display', 'Art des Displays, Farben und Verhalten.'),

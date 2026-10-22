@@ -68,11 +68,13 @@ Sie erscheint in einem Win32-Fenster mit eingebettetem WebView2. Der interne Die
 | **Battlefield 6** | Spieler hinzufügen (PC/PlayStation/Xbox), sofort **Prüfen**, Abrufintervall |
 | **Blogs** | Blog-Adressen hinzufügen und mit **Prüfen** testen, Anzahl Beiträge, Intervall |
 | **System** | Netzwerkadapter, Einheit (Mbit/s oder MB/s), Laufwerk, Sensoren für CPU-Temperatur und Lüfter |
-| **Display** | Ausrichtung, COM-Port, Zurücksetzen beim Start, Ausschalten beim Beenden, Port der Einstellungsseite, Neu starten, Beenden |
+| **Display** | Display-Typ, HDMI-/USB-C-Monitor, Touch-Steuerung und Touch-Zuordnung, Ausrichtung, COM-Port, Zurücksetzen beim Start, Ausschalten beim Beenden, Port der Einstellungsseite, Neu starten, Beenden |
 
 **Verbindungsstatus:** In den Reitern Discord und Freunde zeigt eine Statuszeile dauerhaft, ob der Zugang funktioniert: grün mit Kontoname, Anzahl der Freunde und Zeitpunkt der letzten erfolgreichen Abfrage (Discord: live), rot mit der Fehlermeldung, wenn etwas nicht klappt (bei Steam/Xbox mit dem Zeitpunkt des letzten Erfolgs), grau, wenn nichts eingerichtet ist. Sie aktualisiert sich alle 5 Sekunden von selbst.
 
 Der Bot-Token wird nie an den Browser zurückgegeben; das Feld zeigt nur, ob einer gespeichert ist. Leer lassen = behalten.
+
+**HDMI/USB-C und Touch ab 2.0.3:** Unter **Display** den vorgesehenen Bildschirm auswählen; die Vollbildausgabe bleibt über der Taskleiste, ohne den Tastaturfokus zu übernehmen. Die Touch-Zuordnung zeigt, welchem Bildschirm Windows ein Touchgerät zugeordnet hat. Erscheinen Berührungen auf einem anderen Monitor, **Touch-Bildschirm zuordnen** wählen. Im Windows-Assistenten andere Bildschirme mit Enter überspringen, dann den gewünschten Touchscreen berühren; Esc bricht ab. Die Vollbildausgabe pausiert währenddessen und kehrt nach Ende des Assistenten zurück. Anschließend **Erneut prüfen** wählen und bei Bedarf die Touch-Steuerung aktivieren und speichern. HDMI überträgt nur das Bild; für Touch muss zusätzlich die USB-Verbindung des Geräts bestehen. Echte Touch-Hardware und der vollständige Assistentenablauf sind noch nicht physisch abgenommen; siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
 
 ---
 
@@ -125,6 +127,9 @@ Das Protokoll steht in `usb-display.log` neben der EXE. Die meisten Probleme erk
 | „Die Hersteller-App des Displays läuft …“ | Auf **Start** → **Hersteller-App beenden**, danach deren Autostart **abschalten**. |
 | „Display nicht gefunden“ | Kabel prüfen, anderen USB-Anschluss probieren; notfalls bei **Display** den COM-Port von Hand eintragen (Geräte-Manager → Anschlüsse). Die App versucht es alle 10 Sekunden erneut. |
 | Bild steht auf dem Kopf | **Display → Ausrichtung** auf die gedrehte Variante stellen. |
+| Taskleiste liegt über der HDMI-/USB-C-Anzeige | Auf 2.0.3 aktualisieren; die Vollbildausgabe hält die Taskleiste auf dem gewählten Monitor darunter. |
+| Berührungen erscheinen auf einem anderen Bildschirm | **Display → Touch-Bildschirm zuordnen**; im Windows-Assistenten den vorgesehenen Touchscreen identifizieren. Danach **Erneut prüfen** wählen. |
+| Kein Touchscreen erkannt | USB-Touchverbindung und Windows-Treiber prüfen, dann **Erneut prüfen**. Das HDMI-Bild allein stellt keinen Touch-Eingang bereit. |
 | Display zu dunkel | **Übersicht → Helligkeit** erhöhen. |
 | Dünner Streifen an fester Stelle, auch bei einfarbigen Bildern | Hardware- oder Kabelproblem des Displays; Kabel neu stecken, anderen Anschluss probieren. |
 | Bildfehler, verschobene Zeilen | **Display → Beim Start zurücksetzen** an lassen, Display einmal ab- und anstecken. |

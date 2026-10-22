@@ -1,6 +1,6 @@
 # © 2026 FuchsLabs – FuchsLabs USB-Display 2.0 (C++)
 cmake_minimum_required(VERSION 3.24)
-project(FuchsLabsUsbDisplay VERSION 2.0.2 LANGUAGES CXX RC)
+project(FuchsLabsUsbDisplay VERSION 2.0.3 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -57,3 +57,7 @@ target_link_options(FuchsLabs-USB-Display PRIVATE /MANIFEST:NO /OPT:REF /OPT:ICF
 add_executable(fl-tests tests/tests.cpp res/app.rc)
 target_link_libraries(fl-tests PRIVATE flcore)
 target_link_options(fl-tests PRIVATE /MANIFEST:NO)
+
+add_executable(fl-monitor-tests tests/monitor_tests.cpp)
+target_link_libraries(fl-monitor-tests PRIVATE flcore)
+target_link_options(fl-monitor-tests PRIVATE /MANIFEST:NO)
