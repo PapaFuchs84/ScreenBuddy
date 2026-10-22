@@ -1,8 +1,8 @@
 # FuchsLabs USB-Display – Dokumentation
 
-Version 1.2 · Stand 21.10.2026 · © 2026 FuchsLabs
+Version 2.0.0 (Vorabversion) · Stand 22.10.2026 · © 2026 FuchsLabs
 
-Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt im Wechsel vier Seiten und wird komplett über eine Einstellungsseite im Browser bedient. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
+Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein eigenes Windows-Einstellungsfenster mit WebView2. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
 
 ## Inhalt
 
@@ -39,7 +39,7 @@ Ist keine Seite aktiv, zeigt das Display einen Willkommenshinweis mit der Adress
 
 - *System:* CPU-Last wie im Task-Manager („% Processor Utility“), Takt aus der Leistungsanzeige. Die GPU-Werte kommen über `nvidia-smi` (Nvidia-Treiber). Netzwerkraten stammen aus den 64-Bit-Zählern des Adapters, über den dein Internet läuft (automatisch gewählt), und stimmen mit Windows überein. Temperaturen ab 75 °C werden gelb, ab 85 °C rot.
 - *Discord:* sortiert nach Status, dann Name. Farbiger Punkt am Avatar = Status, Handy-Symbol = am Smartphone. Emojis werden ausgeblendet (die Windows-Schriften zeigen sie sonst als Kästchen).
-- *Freunde (alle Plattformen):* Quellen sind Discord (Bot, siehe unten), Steam (offizielle Web-API von Valve) und Xbox (Dienst [OpenXBL](https://xbl.io)). Gleiche Personen werden zusammengefasst: manuell über **Freunde → Personen zusammenführen** oder automatisch bei gleichem Namen (abschaltbar; nie werden zwei Konten derselben Plattform vermischt). Online hat Vorrang, das Spiel kommt von dem Konto, das gerade spielt. Für **Steam** brauchst du einen kostenlosen Schlüssel von <https://steamcommunity.com/dev/apikey> und die Freundesliste im Steam-Profil muss öffentlich sein. Für **Xbox** brauchst du einen OpenXBL-Schlüssel aus dem Dashboard auf xbl.io (kostenlose Stufe, rund 150 Abrufe pro Stunde; die App fragt nur alle 3 Minuten). **PlayStation** und **EA** sind bewusst nicht eingebaut: Es gibt keine offiziellen Schnittstellen für Freundeslisten; der inoffizielle PlayStation-Zugang kann zur Kontosperre führen. Die Schlüssel werden wie der Discord-Token verschlüsselt gespeichert, und **Verbindung prüfen** zeigt sofort, ob sie funktionieren. Damit niemand doppelt erscheint, entfällt die reine Seite „Discord-Freunde“ automatisch, solange die gemeinsame Liste Discord einbezieht. Bei Konten mit ähnlichen, aber nicht gleichen Namen (z. B. „Basti“ und „Bastian“) schlägt die Einstellungsseite unter **Personen zusammenführen** eine Verknüpfung vor, die du mit einem Klick bestätigst oder ablehnst. Das Zusammenführen ist mit `test_friends.py` abgesichert (u. a. gleichzeitig online auf allen Plattformen = genau eine Zeile mit allen Marken).
+- *Freunde (alle Plattformen):* Quellen sind Discord (Bot, siehe unten), Steam (offizielle Web-API von Valve) und Xbox (Dienst [OpenXBL](https://xbl.io)). Gleiche Personen werden zusammengefasst: manuell über **Freunde → Personen zusammenführen** oder automatisch bei gleichem Namen (abschaltbar; nie werden zwei Konten derselben Plattform vermischt). Online hat Vorrang, das Spiel kommt von dem Konto, das gerade spielt. Für **Steam** brauchst du einen kostenlosen Schlüssel von <https://steamcommunity.com/dev/apikey> und die Freundesliste im Steam-Profil muss öffentlich sein. Für **Xbox** brauchst du einen OpenXBL-Schlüssel aus dem Dashboard auf xbl.io (kostenlose Stufe, rund 150 Abrufe pro Stunde; die App fragt nur alle 3 Minuten). **PlayStation** und **EA** sind bewusst nicht eingebaut: Es gibt keine offiziellen Schnittstellen für Freundeslisten; der inoffizielle PlayStation-Zugang kann zur Kontosperre führen. Die Schlüssel werden wie der Discord-Token verschlüsselt gespeichert, und **Verbindung prüfen** zeigt sofort, ob sie funktionieren. Damit niemand doppelt erscheint, entfällt die reine Seite „Discord-Freunde“ automatisch, solange die gemeinsame Liste Discord einbezieht. Bei Konten mit ähnlichen, aber nicht gleichen Namen (z. B. „Basti“ und „Bastian“) schlägt die Einstellungsseite unter **Personen zusammenführen** eine Verknüpfung vor, die du mit einem Klick bestätigst oder ablehnst. Für Version 2.0 liegen Prüfungen unter `cpp/tests/tests.cpp` vor (u. a. gleichzeitig online auf allen Plattformen = genau eine Zeile mit allen Marken).
 - *Battlefield 6:* sortiert nach Rang, bei Gleichstand nach K/D. Fällt die Datenquelle kurz aus, bleiben die letzten Werte stehen.
 - *Blogs:* Titel laufen über höchstens zwei Zeilen, Rubrik-Präfixe wie „Anzeige:“ entfallen.
 
@@ -47,32 +47,17 @@ Ist keine Seite aktiv, zeigt das Display einen Willkommenshinweis mit der Adress
 
 ## 2. Installation und erster Start
 
-Voraussetzungen: Windows 10/11 (64 Bit), das Display per USB. Python wird **nicht** benötigt.
+Version 2.0: Windows 10/11 x64, angeschlossenes Display und installierte Microsoft Edge WebView2 Evergreen Runtime. Python und Visual-C++-Redistributable werden nicht benötigt. Die WebView2-Laufzeit ist nicht Teil der einzelnen EXE.
 
-1. Ordner `FuchsLabs-USB-Display` entpacken und an einen festen Ort legen (z. B. `Dokumente`). Liegt er in einem Ordner ohne Schreibrecht wie „Programme“, speichert die App Einstellungen und Protokoll stattdessen unter `%APPDATA%\FuchsLabs\USB-Display`.
-2. `FuchsLabs-USB-Display.exe` doppelklicken. Windows warnt, weil die Datei nicht mit einem kostenpflichtigen Zertifikat signiert ist: **Weitere Informationen → Trotzdem ausführen**.
-3. Die Einstellungsseite öffnet sich im Browser. Auf **Start** siehst du, ob das Display erkannt wurde.
-4. Bei Bedarf: **Hersteller-App beenden** und deren Autostart **abschalten** (beides per Klick auf der Seite Start; für das Abschalten fragt Windows einmal nach der Administratorbestätigung).
-5. **Mit Windows starten** einschalten, wenn die App immer laufen soll.
+Die [Release-EXE](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0) enthält App, Installer, Updater und Deinstaller. Der Installer verwendet `%LOCALAPPDATA%\FuchsLabs\USB-Display`, legt Verknüpfung und Deinstallationseintrag an und kann Einstellungen aus dem bisherigen Benutzerordner oder dem alten Roaming-AppData-Ordner übernehmen. Eine bestehende Zielkonfiguration bleibt erhalten; der alte Versionsordner wird bei der Übernahme mit `-1.x-alt` umbenannt.
 
-Die App läuft ohne Fenster im Hintergrund. Das Symbol im Infobereich öffnet per Doppelklick die Einstellungen, per Rechtsklick: Einstellungen öffnen · Neu starten · Beenden. Ein zweiter Programmstart öffnet nur die Einstellungsseite der laufenden App (es läuft immer nur eine Instanz).
+Das eigene Windows-Einstellungsfenster öffnet sich bei noch offener Ersteinrichtung. Später öffnet das Fuchs-Symbol oder ein erneuter Programmstart dieses Fenster. Schließen blendet es aus; **Beenden** im Infobereich stoppt die App. Beim Windows-Autostart bleibt das Fenster geschlossen.
 
-### Discord-Bot (nur für die Discord-Seite)
-
-Freundeslisten gibt Discord nur über den persönlichen Zugang heraus. Das wäre ein „Self-Bot“, verstößt gegen die Nutzungsbedingungen und kann zur Kontosperre führen. Deshalb nutzt die App einen eigenen Bot, der die Mitglieder der Server sieht, auf die er eingeladen ist.
-
-1. <https://discord.com/developers/applications> → **New Application**.
-2. **Bot** → **Reset Token** → Token kopieren. Unter *Privileged Gateway Intents* **Presence Intent** und **Server Members Intent** einschalten, *Public Bot* ausschalten.
-3. **OAuth2 → URL Generator** → Haken bei **bot** → Adresse öffnen und den Server wählen.
-4. In der Einstellungsseite bei **Discord** den Token einfügen und speichern. Unter **Personen** wählst du dann aus, wen du sehen willst.
-
-Der Name des Bots ist der Name der „Application“ und lässt sich im Developer Portal jederzeit ändern.
-
----
+Ausführliche Einrichtung der Datenquellen: [Schnellstart](ANLEITUNG.md).
 
 ## 3. Einstellungsseite
 
-Sie läuft in der App selbst und ist nur auf deinem PC erreichbar: `http://127.0.0.1:8765/` (Port einstellbar). Änderungen werden erst mit **Speichern & anwenden** übernommen; die Anzeige startet dann etwa 10 Sekunden neu.
+Sie erscheint in einem Win32-Fenster mit eingebettetem WebView2. Der interne Dienst läuft in der App und ist nur auf deinem PC erreichbar: `http://127.0.0.1:8765/` (Port einstellbar). Änderungen werden erst mit **Speichern & anwenden** übernommen; die Anzeige startet dann etwa 10 Sekunden neu.
 
 | Bereich | Einstellungen |
 |---|---|
@@ -93,12 +78,12 @@ Der Bot-Token wird nie an den Browser zurückgegeben; das Feld zeigt nur, ob ein
 
 ## 4. Konfigurationsdatei
 
-`config.toml` liegt neben der EXE und wird von der Einstellungsseite geschrieben (Sicherungskopie: `config.toml.bak`). Von Hand bearbeiten ist möglich; danach die App neu starten. Fehlende Einträge bekommen Standardwerte, ungültige Werte werden auf erlaubte Bereiche begrenzt.
+Bei regulärer Installation liegt `config.toml` unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` neben der EXE und wird von der Einstellungsseite geschrieben (Sicherungskopie: `config.toml.bak`). Von Hand bearbeiten ist möglich; danach die App neu starten. Fehlende Einträge bekommen Standardwerte, ungültige Werte werden auf erlaubte Bereiche begrenzt.
 
 | Abschnitt | Schlüssel (Standard) |
 |---|---|
 | `[discord]` | `enabled` (true), `token` (verschlüsselt), `guild_ids` ([]), `friend_ids` ([]), `ignore_ids` ([]), `show_offline` (false) |
-| `[display]` | `port` ("AUTO"), `orientation` ("landscape"; auch `reverse_landscape`, `portrait`, `reverse_portrait`), `brightness` (50), `reset_on_start` (true), `page_seconds` (15), `pages` (["system","discord","bf6","rss"]), `title`, `screen_off_on_exit` (true), `theme` ("hell"; oder "dunkel" – gilt für Display, Einstellungsseite und Anleitung; "eigen" = eigene Farben), `color_base` ("hell"/"dunkel", Vorlage für eigene Farben), `color_bg`, `color_card`, `color_header`, `color_accent`, `color_text`, `color_muted` ("#RRGGBB", leer = Vorlage), `output` ("serial" = 3,5"-USB-Display, "monitor" = HDMI/USB-C-Bildschirm als Vollbildfenster), `monitor` ("" = erster Nicht-Hauptbildschirm, sonst z. B. `\\.\DISPLAY2`), `touch` (false; Seitenwechsel per Wischen/Tippen, nur bei `output = "monitor"`) |
+| `[display]` | `port` ("AUTO"), `orientation` ("landscape"; auch `reverse_landscape`, `portrait`, `reverse_portrait`), `brightness` (50), `reset_on_start` (true), `page_seconds` (15), `pages` (["system","friends","discord","bf6","rss"]), `title`, `screen_off_on_exit` (true), `theme` ("hell"; oder "dunkel" – gilt für Display, Einstellungsseite und Anleitung; "eigen" = eigene Farben), `color_base` ("hell"/"dunkel", Vorlage für eigene Farben), `color_bg`, `color_card`, `color_header`, `color_accent`, `color_text`, `color_muted` ("#RRGGBB", leer = Vorlage), `output` ("serial" = 3,5"-USB-Display, "monitor" = HDMI/USB-C-Bildschirm als Vollbildfenster), `monitor` ("" = erster Nicht-Hauptbildschirm, sonst z. B. `\\.\DISPLAY2`), `touch` (false; Seitenwechsel per Wischen/Tippen, nur bei `output = "monitor"`) |
 | `[system]` | `enabled` (true), `net_adapter` ("" = automatisch), `net_unit` ("bit" oder "byte"), `disk` ("C:"), `cpu_temp_sensor`, `cpu_fan_sensor` ("" = automatisch), `title` |
 | `[friends]` | `enabled` (false), `title` ("Freunde"), `include_discord` (true), `auto_merge` (true), `show_offline` (false), `steam_api_key` (verschlüsselt), `steam_id` (Profil-Link oder 17-stellige ID), `xbox_api_key` (verschlüsselt), `links` ([], Verknüpfungen als `"Name\|discord:ID\|steam:ID\|xbox:Gamertag"`) |
 | `[bf6]` | `enabled` (false), `players` ([], PC-Namen; Konsole als `"Name@psn"` / `"Name@xbox"`), `refresh_minutes` (15), `title` |
@@ -117,49 +102,19 @@ Windows stellt diese Werte nicht ohne Hilfsprogramm bereit. Die App liest sie au
 
 ## 6. Sicherheit und Datenschutz
 
-**Was die App tut**
+Die App speichert Discord-, Steam- und Xbox-Zugangsdaten per Windows-DPAPI verschlüsselt. Das schützt die Datei nicht vor Prozessen im selben Windows-Benutzerkonto. Niemals Konfigurationen mit echten Zugangsdaten veröffentlichen.
 
-- Läuft **ohne Administratorrechte** (Standardbenutzer reicht). Nur das Abschalten der Autostart-Aufgabe der Hersteller-App braucht einmalig die Windows-Bestätigung, und die gibst du selbst.
-- Der Autostart wird im eigenen Benutzerkonto eingetragen (`HKCU\...\Run`), nicht systemweit.
-- Keine Telemetrie, kein Konto, keine Werbung. Die App liest weder Browserverlauf noch Passwörter.
+Der lokale Einstellungsdienst bindet an `127.0.0.1`, prüft Host und Fetch-Metadaten und verlangt für Schreibzugriffe `X-FL: 1`. RSS-Ziele und Weiterleitungen werden gegen nichtöffentliche IP-Bereiche geprüft. Die C++-Implementierung verwendet unter anderem WinHTTP, D++/OpenSSL und pugixml; Details stehen in `cpp/src/http.cpp`, `netguard.cpp`, `secure.cpp` und `webui.cpp`.
 
-**Schutz von Zugangsdaten**
+Abhängigkeiten sind über vcpkg-Manifest und D++-Overlay festgelegt; WebView2-SDK-Lizenzhinweise liegen unter `cpp/third_party/webview2`. Die WebView2 Evergreen Runtime wird separat bereitgestellt. Die EXE ist nicht signiert.
 
-- Der Discord-Bot-Token wird mit der Windows-Datenschutz-API (**DPAPI**) verschlüsselt gespeichert (`dpapi:…` in `config.toml`). Entschlüsseln kann ihn nur dasselbe Windows-Benutzerkonto auf demselben PC; eine kopierte Datei ist auf anderen PCs wertlos. Alte Klartext-Tokens werden beim Start automatisch verschlüsselt.
-- Der Token wird nie protokolliert und nie an den Browser ausgeliefert. Das Protokoll (`usb-display.log`, höchstens 2 × 0,5 MB) enthält keine Zugangsdaten.
-
-**Netzwerk**
-
-- Fremde Avatar-Bilder (Steam, Xbox) werden nur als PNG, JPEG oder WebP geöffnet und auf 2 MB begrenzt. Steam- und Xbox-Schlüssel werden wie der Discord-Token verschlüsselt gespeichert und nur an die jeweilige Schnittstelle gesendet.
-- Alle Verbindungen laufen über HTTPS mit Zertifikatsprüfung (Standard von aiohttp und discord.py; die Prüfung wird nirgends abgeschaltet).
-- Die Einstellungsseite lauscht **nur auf `127.0.0.1`**, ist also aus dem Netzwerk nicht erreichbar. Zusätzlich lehnt sie Anfragen mit fremdem Host-Namen ab (Schutz vor DNS-Rebinding) und verlangt für jede Änderung einen eigenen Header, den fremde Webseiten im Browser nicht senden dürfen (Schutz vor Angriffen über präparierte Webseiten).
-- Eingaben der Einstellungsseite werden auf Typ, erlaubte Werte und Wertebereiche geprüft und in der Länge begrenzt. Texte aus dem Netz (Blog-Titel, Spielernamen) werden nur als Text gezeichnet bzw. im Browser per `textContent` eingesetzt, nie als HTML.
-- Blog-Antworten werden auf 3 MB begrenzt; Feed-XML liest der Standardparser von Python.
-
-**Lieferkette und Build**
-
-- Alle Pakete sind in `requirements.txt` auf genaue Versionen festgelegt. Der Build läuft in einer frischen virtuellen Umgebung (`build.bat`); die EXE enthält Firmenname und Version.
-- Die EXE ist **nicht digital signiert**, weil dafür ein kostenpflichtiges Code-Signing-Zertifikat nötig ist. Daher die SmartScreen-Warnung beim ersten Start. Wer die Datei signieren möchte, kann das nach dem Build mit `signtool` tun.
-
-**Grenzen:** Wer Zugriff auf dein Windows-Benutzerkonto hat, kann den Token mit denselben Mitteln lesen wie die App. Die Einstellungsseite ist für jedes Programm auf deinem PC erreichbar (nicht für andere Geräte); den Token gibt sie aber nicht heraus.
-
----
+[SICHERHEITSREVIEW.md](SICHERHEITSREVIEW.md) dokumentiert den historischen Python-Stand und ist kein vollständiger C++-Audit. Sicherheitsmeldungen: [SECURITY.md](SECURITY.md).
 
 ## 7. Effizienz
 
-Gemessen auf Windows 11 mit allen vier Seiten, Discord verbunden:
+Die C++-Version verwendet Windows-Grafik-APIs und statisch gelinkte Bibliotheken. WebView2 erzeugt für das Einstellungsfenster zusätzliche Laufzeitprozesse. Alte Python-Messwerte und ursprüngliche C++-Schätzungen sind kein belegter Ressourcenverbrauch der 2.0-Version. Einen reproduzierbaren CPU-/Speichervergleich gibt es bisher nicht.
 
-| | Wert |
-|---|---|
-| Programmgröße | 36 MB (vorher 66 MB; numpy und ungenutzte Module entfernt) |
-| Arbeitsspeicher | rund 85–90 MB |
-| Start bis Einstellungsseite erreichbar | etwa 1,2 Sekunden (die Display-Verbindung läuft parallel) |
-| CPU | im Leerlauf nahe 0 %; wenige Prozent eines Kerns, solange die Systemseite sichtbar ist |
-| Bildumwandlung | etwa 2 ms pro Bild; übertragen werden nur geänderte Zeilenbänder |
-
-Wie das gelingt: Discord wird nur geladen, wenn die Seite aktiv ist. Datenabrufe laufen asynchron in einem einzigen Prozess. Die Einstellungsseite ist eine kleine Datei ohne externe Bibliotheken und belegt nichts, solange sie nicht geöffnet ist. Datenquellen werden nur in großen Abständen abgefragt (15/30 Minuten). Systemwerte liest ein eigener Thread einmal pro Sekunde. Das ganze Bild wird nur bei Seitenwechseln und alle 5 Minuten vollständig gesendet (heilt Übertragungsfehler), sonst nur Änderungen.
-
----
+Bestätigte Funktionsprüfungen: [cpp/TESTPROTOKOLL.md](cpp/TESTPROTOKOLL.md).
 
 ## 8. Fehlerbehebung
 
@@ -182,56 +137,55 @@ Das Protokoll steht in `usb-display.log` neben der EXE. Die meisten Probleme erk
 | Temperatur oder Lüfter „–“ | HWiNFO läuft nicht oder Shared Memory ist aus (Kapitel 5). |
 | GPU „–“ | Keine Nvidia-Karte oder `nvidia-smi` fehlt (kommt mit dem Treiber). |
 | Falscher Netzwerkadapter | **System → Netzwerkadapter** festlegen. |
-| Einstellungsseite öffnet nicht | Läuft die App? Symbol im Infobereich prüfen; Port bei **Display → Programm** ändern, falls er belegt ist. |
+| Einstellungsfenster öffnet nicht | WebView2 Evergreen Runtime prüfen; App-Prozess und Log kontrollieren. Bei belegtem Port UI-Port in der Konfiguration ändern. |
+| Nach Windows-Anmeldung kein Tray und nur altes Displaybild | Prüfen, ob der Autostart auf eine tatsächlich vorhandene EXE zeigt. Bei Installation aus einem paketierten Werkzeug Pfad und Run-Eintrag außerhalb dessen Paketkontexts prüfen; siehe Kapitel 13. |
 
 ---
 
 ## 9. Kommandozeile
 
-`FuchsLabs-USB-Display.exe [Optionen]`
-
 | Option | Wirkung |
 |---|---|
-| `-c DATEI` | andere Konfigurationsdatei verwenden |
-| `--demo` | Beispieldaten aller Seiten zeigen (beendet sich danach) |
-| `--no-lcd` | Display nicht ansteuern (z. B. zum Testen der Einstellungsseite) |
-| `--preview ORDNER` | jedes Bild zusätzlich als `live.png` speichern |
-| `--log DATEI` | Protokoll in eine bestimmte Datei schreiben |
-| `-v` | ausführliches Protokoll |
-| `--autostart` | still im Infobereich starten, keine Einstellungsseite öffnen (so trägt **Mit Windows starten** die App ein) |
+| `--install`, `--silent` | integrierten Installer starten, optional ohne Dialog |
+| `--uninstall` | integrierten Deinstaller starten |
+| `--run` | App statt Installer starten (für Entwicklung außerhalb des Installationsorts) |
+| `-c DATEI`, `--config DATEI` | eigene Konfiguration |
+| `--no-lcd` | ohne Displayausgabe |
+| `--demo` | Beispieldaten rendern |
+| `--preview ORDNER` | PNG-Vorschauen schreiben |
+| `--log DATEI`, `-v` | Logpfad und ausführliche Protokollierung |
+| `--autostart` | still im Infobereich starten |
 
----
+Beispiel ohne Hardware: `build\FuchsLabs-USB-Display.exe --run --no-lcd -c test.toml`. Für parallele Entwicklung ist zusätzlich ein eigener UI-Port und der nur für Tests gedachte Instanzname über `FUCHSLABS_INSTANCE` nötig.
 
 ## 10. Technischer Aufbau
 
-| Datei | Aufgabe |
+Die aktuelle Implementierung ist C++20 unter `cpp/`.
+
+| Datei unter `cpp/src/` | Aufgabe |
 |---|---|
-| `fuchslabs_display.py` | Hauptprogramm: Start, Einzelinstanz, Seitenrotation, Dienste, Neustart |
-| `display_driver.py` | Display-Treiber (serieller Port, 6-Byte-Befehle, RGB565, Teil-Updates in 8-Zeilen-Bändern) |
-| `render.py` | Zeichnet alle Seiten mit Pillow (Hell- und Dunkelmodus) |
-| `brand.py` | FuchsLabs-CI: Farben (Fuchs-Orange #F77F00, Creme #FFF4E6, Navy #14213D als Schrift) und das Fuchs-Logo für Display, Infobereich und EXE. Schriften: Bahnschrift für Titel und Zahlen, Segoe UI für Text (beide bei Windows dabei) |
-| `sysinfo.py` | Systemwerte: Windows-APIs per ctypes, `nvidia-smi`, HWiNFO-Shared-Memory |
-| `discord_feed.py` | Discord-Bot (wird nur bei aktiver Seite geladen) |
-| `bf6.py`, `rss.py` | Datenabruf Battlefield 6 und RSS/Atom |
-| `friends.py` | Gemeinsame Freundesliste: Steam, Xbox (OpenXBL), Zusammenführen mit Discord |
-| `appconfig.py`, `secure.py` | Konfiguration (Prüfung, Schreiben) und DPAPI-Verschlüsselung |
-| `webui.py`, `webui.html` | Einstellungsseite (kleiner lokaler Webserver und eine HTML-Datei) |
-| `tray.py`, `winsetup.py` | Symbol im Infobereich; Autostart und Umgang mit der Hersteller-App |
+| `main.cpp`, `app.cpp` | Start, Einzelinstanz, Dienste und Seitenrotation |
+| `settings_window.cpp`, `tray.cpp` | Win32/WebView2-Fenster und Infobereich |
+| `webui.cpp`, `config.cpp`, `secure.cpp` | lokaler Einstellungsdienst, TOML und DPAPI |
+| `serial_display.cpp`, `monitor_display.cpp` | USB-Display bzw. HDMI/USB-C und Touch |
+| `gfx.cpp`, `render.cpp` | Grafik und Seitenlayout |
+| `discord.cpp`, `friends.cpp`, `bf6.cpp`, `rss.cpp`, `sysinfo.cpp` | Datenquellen; Discord über D++ |
+| `installer.cpp`, `winsetup.cpp` | Installation, Updates, Deinstallation und Autostart |
 
-Ein Prozess, eine asyncio-Schleife: Anzeigeschleife, Datenabrufe, Discord und Webserver laufen darin; die Systemwerte misst ein Thread, das Symbol im Infobereich ein weiterer. **Neustart** nach dem Speichern: Die App beendet sich sauber (Anschluss frei), startet sich selbst neu und wartet dabei auf die Freigabe der Einzelinstanz.
-
-Display-Protokoll: USB-CDC (seriell, 115200 Baud), Befehle mit gepackten 10-Bit-Koordinaten, Bilddaten als RGB565 little-endian; ein volles Bild braucht rund eine Sekunde. Helligkeitsbefehle während einer Bildübertragung liest das Display fälschlich als Bilddaten, deshalb gibt es kein Ab- und Aufblenden.
-
----
+Einstellungen und Anleitungen unter `cpp/res/` sind als Ressourcen in die EXE eingebettet. Die Python-Dateien im Repository-Hauptordner bleiben der historische Stand 1.x.
 
 ## 11. Selbst bauen
 
-Voraussetzung: Python 3.11+ (64 Bit). Im Quellordner `build.bat` ausführen: legt eine eigene `.venv` an, installiert die festgelegten Pakete (`requirements.txt`, `requirements-build.txt`), erzeugt das Symbol und baut mit PyInstaller nach `dist\FuchsLabs-USB-Display\`. Der Build dauert etwa eine Minute. Den ganzen Ordner weitergeben (die EXE braucht `_internal`).
+Siehe [C++-Buildanleitung](cpp/README.md#build). Im Checkout **in den Ordner `cpp` wechseln**, dann `build.bat nopause` ausführen. Die `build.bat` im Hauptordner baut weiterhin den alten Python-Stand.
 
-Zum Entwickeln ohne EXE: `.venv\Scripts\python fuchslabs_display.py --no-lcd` startet die App ohne Display.
-
----
+Der Build benötigt Visual Studio Build Tools 2022, Windows SDK, CMake/Ninja und vcpkg unter `%USERPROFILE%\FuchsLabs\vcpkg`. Ergebnis: `cpp\dist\FuchsLabs-USB-Display.exe`.
 
 ## 12. Deinstallation
 
-Autostart auf der Seite **Start** ausschalten, die App über das Symbol im Infobereich beenden, den Ordner löschen. Weitere Spuren gibt es nicht (das Symbol liegt temporär in `%TEMP%`). Die Hersteller-App lässt sich bei Bedarf in der Aufgabenplanung („UsbMonitor“) wieder aktivieren.
+In Windows **Einstellungen → Apps → FuchsLabs USB-Display → Deinstallieren**. Der integrierte Deinstaller entfernt Autostart und Verknüpfung. Der Dialog bietet zusätzlich an, Einstellungen und gespeicherte Zugangsdaten zu entfernen. Ein aufbewahrter `-1.x-alt`-Ordner gehört zur alten Version und ist ein eigener Rückfallstand.
+
+## 13. Prüfstand und Windows-Neustart
+
+Hardware-Gegenvergleich am 22.10.2026 bestanden: 1.x und 2.0 meldeten an COM7 `display_ok=true`, der Nutzer bestätigte die physische Anzeige. Das native Einstellungsfenster wurde sichtbar geöffnet.
+
+Der anschließende Windows-Neustarttest schlug fehl: kein Tray-Prozess, altes Displaybild blieb stehen. Eine Diagnose außerhalb des Codex-Paketkontexts zeigte, dass die neue Installation nur in dessen Windows-Paketumleitung sichtbar war. Windows selbst sah am vorgesehenen Ziel keine EXE und noch den alten Run-Eintrag. Installation und Autostart werden deshalb außerhalb dieses Kontexts eingerichtet. Der abschließende reale Neustarttest bleibt bis zur Rückmeldung offen.

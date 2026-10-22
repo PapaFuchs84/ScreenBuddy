@@ -6,9 +6,9 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-1.2-F77F00)
+![Version](https://img.shields.io/badge/version-2.0.0-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
-![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
+![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
 ![Languages](https://img.shields.io/badge/languages-Deutsch%20%7C%20English-14213D)
 ![Licence](https://img.shields.io/badge/licence-all%20rights%20reserved-lightgrey)
@@ -20,7 +20,7 @@
 
 </div>
 
-A Windows app for 3.5" USB displays (480 × 320) and second screens over HDMI/USB-C at any resolution (e.g. 10.25" bars at 1920 × 720, touch included). It replaces the vendor software, runs quietly in the background and is set up entirely through a settings page in your browser. No Python or prior knowledge needed.
+A Windows app for 3.5" USB displays (480 × 320) and second screens over HDMI/USB-C at any resolution (e.g. 10.25" bars at 1920 × 720, touch included). It replaces the vendor software, runs quietly in the background and uses its own Windows settings window, powered by WebView2. Version 2.0 is a C++20 app with its installer in one EXE. Python is not required; the Microsoft Edge WebView2 Evergreen Runtime must be installed separately.
 
 ## Contents
 
@@ -48,14 +48,14 @@ A Windows app for 3.5" USB displays (480 × 320) and second screens over HDMI/US
 
 Plus:
 
-- **Settings page** at `http://127.0.0.1:8765/` with live preview, page order, connection status per platform and fold-out help next to every key field
+- **Own Windows settings window** (WebView2; internal local service at `http://127.0.0.1:8765/`) with live preview, page order, connection status per platform and fold-out help next to every key field
 - **First-run setup without prior knowledge**: detects the display, closes and disables the vendor app if you want, autostart without admin rights
 - **German or English**: the settings page, display and tray menu can be switched; on first start the language follows Windows
 - **Design**: FuchsLabs style in light or dark, or **custom colours** via colour pickers with a contrast warning
 - **Any resolution**: pages are rendered sharply at the real size; wide bars show several pages side by side
 - **HDMI/USB-C screens** as borderless full screen, optionally with **touch** (swipe or tap to change pages)
-- **Illustrated guide** to click through, easy enough for kids, in English (`GUIDE.html`) and German (`ANLEITUNG.html`)
-- **Lightweight**: about 1% of one CPU core and around 90 MB of RAM
+- **Illustrated guide** to click through, easy enough for kids, embedded in the EXE in English and German
+- **Single EXE** for installation, updates and uninstallation; no Python or Visual C++ redistributable required. WebView2 Runtime remains a prerequisite.
 
 ## Pictures
 
@@ -71,18 +71,17 @@ Plus:
 | <img src="docs/screenshots/en/settings-discord.png" width="380" alt="Discord settings with fold-out help"> | <img src="docs/screenshots/en/settings-bf6.png" width="380" alt="Adding Battlefield 6 players"> |
 | Discord with fold-out help | Add and check Battlefield 6 players |
 
-All pictures show sample data.
+All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. **Extract the ZIP** and put the folder somewhere permanent, e.g. `Documents\FuchsLabs-USB-Display`.
-2. **Plug in the display** (USB) or connect the second screen via HDMI/USB-C.
-3. **Start `FuchsLabs-USB-Display.exe`.** If Windows warns you (“Windows protected your PC”), click **More info → Run anyway**. The EXE is not code-signed.
-4. The **settings page** opens in your browser. Under **Sprache · Language**, choose **English** and click **Save & apply**. **Start** shows whether the display was found; this is also where you close the vendor app if needed and turn on **Start with Windows**.
-5. Turn on the pages you want under **Overview** and enter your logins. Every field has fold-out help.
-6. **Save & apply.**
+1. Download **FuchsLabs-USB-Display.exe** from [Version 2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0). It is a prerelease and is not code-signed. `SHA256SUMS.txt` is provided alongside it.
+2. Use Windows 10/11 x64 with Microsoft Edge WebView2 Evergreen Runtime installed. The runtime is not bundled and the installer does not install it automatically.
+3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
+4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
+5. Configure pages and data sources. Reopen settings from the fox tray icon or by starting the installed app again. Closing the settings window leaves the display running; use **Quit** in the tray to stop it.
 
-Later you open the settings by double-clicking the fox icon in the notification area. Illustrated, step by step: `GUIDE.html` in the ZIP.
+The installer can import Version 1.x settings and retains the old folder with a `-1.x-alt` suffix. Updates keep an existing destination configuration. The illustrated guide opens from the settings window and is embedded in the EXE; no ZIP or `_internal` folder is needed.
 
 ### Logins for the data sources
 
@@ -98,7 +97,7 @@ PlayStation and automatic EA friend lists are deliberately not included: there a
 
 ## Configuration
 
-Everything can be set on the settings page. It writes `config.toml` next to the EXE (or to `%APPDATA%\FuchsLabs\USB-Display` if the folder is read-only). An excerpt:
+Everything can be set on the settings page. The regular installation stores `config.toml` and `usb-display.log` in `%LOCALAPPDATA%\FuchsLabs\USB-Display`. Custom `-c` and `--log` paths override this. An excerpt:
 
 ```toml
 [display]
@@ -144,52 +143,28 @@ Tokens and keys are only stored encrypted (`dpapi:…`). All keys with their def
 
 ## Building and development
 
-Requirements: Windows 10/11 and Python 3.11+ (64-bit, from [python.org](https://www.python.org/)).
+Requirements: Windows x64, Visual Studio Build Tools 2022 with C++/Windows SDK and CMake/Ninja, plus a bootstrapped vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`.
 
 ```bat
 git clone https://github.com/PapaFuchs84/fuchslabs-usb-display.git
-cd fuchslabs-usb-display
-build.bat
+cd fuchslabs-usb-display\cpp
+build.bat nopause
 ```
 
-`build.bat` creates its own `.venv`, installs the pinned packages from `requirements.txt` and `requirements-build.txt` and builds with PyInstaller into `dist\FuchsLabs-USB-Display\`. Always pass on the whole folder (the EXE needs `_internal`).
+The C++ build installs dependencies from the pinned vcpkg manifest/overlay, builds Release, runs `fl-tests.exe` and writes `cpp\dist\FuchsLabs-USB-Display.exe`. The root `build.bat` belongs to the historical Python 1.x version. See [C++ build notes](cpp/README.md#build) and [contribution guide](CONTRIBUTING.en.md).
 
-Developing without the EXE:
-
-```bat
-.venv\Scripts\python fuchslabs_display.py --no-lcd        :: app without display, settings page runs
-.venv\Scripts\python fuchslabs_display.py --demo --no-lcd --preview preview   :: sample pictures of all pages
-.venv\Scripts\python test_friends.py                      :: tests for merging the friends lists
-```
-
-The illustrated guides are built with `anleitung/make_images.py`: `ANLEITUNG.html` from `anleitung/anleitung.template.html` and the screenshots in `anleitung/bilder`, `GUIDE.html` from `anleitung/anleitung.template.en.html` with `make_images.py <english screenshots> en`. `anleitung/screenshots.mjs` takes the screenshots (`FL_LANG=en` for English) and replaces private names with samples. `anleitung/bilder/freunde.png` is kept out of the repository as a precaution and is captured locally before building.
-
-Translations: app and display texts in `i18n.py`, settings page texts in the `EN` table in `webui.html`. The German texts in the code are the source.
-
-How to contribute: [`CONTRIBUTING.en.md`](CONTRIBUTING.en.md).
+The WebView2 SDK header/static loader and their licence notices are under `cpp/third_party/webview2`; the runtime itself is external. App translations are in `cpp/src/i18n.cpp`, settings translations in `cpp/res/webui.html`.
 
 ## Project layout
 
-```
-fuchslabs_display.py   main program: start, single instance, page rotation, services, restart
-display_driver.py      driver for the serial 3.5" display (RGB565, partial updates in row bands)
-monitor_output.py      output to an HDMI/USB-C screen as a full-screen window, touch
-render.py              draws all pages (logically 480 × 320, scaled to any resolution)
-brand.py               FuchsLabs design: colours and fox logo
-sysinfo.py             system stats: Windows APIs, nvidia-smi, HWiNFO
-discord_feed.py        Discord bot (only loaded when needed)
-friends.py             Steam, Xbox and merging the friends lists
-bf6.py, rss.py         Battlefield 6 and blogs
-i18n.py                language: German/English for display, messages and tray menu
-appconfig.py           read, validate and write the configuration
-secure.py              DPAPI encryption of credentials
-webui.py, webui.html   settings page (local web server, a single HTML file)
-tray.py, winsetup.py   tray icon, autostart, vendor app
-anleitung/             sources of the illustrated guides
-docs/screenshots/      pictures for the READMEs
-```
-
-One process with one asyncio loop for display, data fetching, Discord and web server; system stats and the tray icon run in their own threads. Details in [`DOKUMENTATION.md`](DOKUMENTATION.md#10-technischer-aufbau) (German).
+| Path | Purpose |
+|---|---|
+| `cpp/src/` | C++ application, display output, data sources, native settings host and installer |
+| `cpp/res/` | Embedded settings, guides, icon and version resources |
+| `cpp/tests/` | C++ checks |
+| `cpp/overlay-ports/`, `cpp/vcpkg.json` | Dependency versions and D++ build settings |
+| `cpp/TESTPROTOKOLL.md` | Local Windows/display validation record |
+| Root `*.py`, root `build.bat`, `anleitung/` | Historical Python 1.x sources and guide generation |
 
 ## Security and privacy
 
@@ -198,7 +173,7 @@ One process with one asyncio loop for display, data fetching, Discord and web se
 - The settings page is **only reachable on `127.0.0.1`** and protected against DNS rebinding, CSRF and framing by other sites.
 - All connections use HTTPS with certificate checks; packages are pinned to exact versions.
 
-Review report: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
+Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ 2.0 audit. Current validation: [test record](cpp/TESTPROTOKOLL.md). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
 
 ## Testing and feedback
 
@@ -224,6 +199,12 @@ Like the app? FuchsLabs appreciates a coffee: [☕ paypal.me/SHerbst84](https://
 
 ## Licence
 
-No open-source licence: © 2026 FuchsLabs, all rights reserved. The source code is only visible to invited contributors and testers and may not be passed on without permission.
+No open-source licence: © 2026 FuchsLabs, all rights reserved. The repository is publicly readable; visibility does not grant an open-source licence. Third-party components retain their own licences.
 
 Battlefield, Discord, Steam and Xbox are trademarks of their respective owners. FuchsLabs is not affiliated with them.
+
+## Validation of 2.0
+
+On 22 October 2026, 86 checks passed and the native settings window was visibly verified. Version 1.x and 2.0 were compared on COM7 with the same settings; the user confirmed correct orientation, colours, readability and page changes. Installation and autostart configuration were checked. A real Windows sign-in/reboot test remains pending. This is not a guarantee for every display model. See [test record](cpp/TESTPROTOKOLL.md).
+
+The first real reboot test failed due to packaged-host installation redirection. Installation and the actual Windows Run entry were subsequently corrected outside that context; a real reboot retest remains pending.

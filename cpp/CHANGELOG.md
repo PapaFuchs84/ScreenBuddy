@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 — 2026-10-22 (development build)
+## 2.0.0 — 2026-10-22 (prerelease)
 
 - Reimplemented the Windows display application in C++20.
 - Added a single-EXE installer, updater, and uninstaller with Version 1.x configuration migration.
@@ -9,4 +9,4 @@
 - Added a native Windows settings window using the Microsoft WebView2 SDK and static loader.
 - Added a local test suite and static dependency build.
 
-This is a development build. Physical USB serial output and release signing remain unverified.
+Hardware comparison on COM7 and the native settings window were validated on 2026-10-22. The first reboot test failed due to packaged-host installation redirection; the corrected normal-user installation still needs a reboot retest. The EXE remains unsigned. See [test record](TESTPROTOKOLL.md).

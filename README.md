@@ -6,9 +6,9 @@
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-1.2-F77F00)
+![Version](https://img.shields.io/badge/version-2.0.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
-![Python](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
+![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
 ![Sprachen](https://img.shields.io/badge/sprachen-Deutsch%20%7C%20English-14213D)
 ![Lizenz](https://img.shields.io/badge/lizenz-alle%20Rechte%20vorbehalten-lightgrey)
@@ -20,7 +20,7 @@
 
 </div>
 
-Windows-App für 3,5"-USB-Displays (480 × 320) und Zusatzbildschirme über HDMI/USB-C in jeder Auflösung (z. B. 10,25"-Leisten mit 1920 × 720, auch mit Touch). Sie ersetzt die Hersteller-App, läuft unauffällig im Hintergrund und wird komplett über eine Einstellungsseite im Browser bedient. Python oder Vorkenntnisse braucht dafür niemand.
+Windows-App für 3,5"-USB-Displays (480 × 320) und Zusatzbildschirme über HDMI/USB-C in jeder Auflösung (z. B. 10,25"-Leisten mit 1920 × 720, auch mit Touch). Sie ersetzt die Hersteller-App, läuft unauffällig im Hintergrund und wird über ein eigenes Windows-Einstellungsfenster mit WebView2 bedient. Version 2.0 ist in C++20 geschrieben und enthält den Installer in derselben EXE. Python wird nicht benötigt; die Microsoft Edge WebView2 Evergreen Runtime muss separat vorhanden sein.
 
 ## Inhalt
 
@@ -48,14 +48,14 @@ Windows-App für 3,5"-USB-Displays (480 × 320) und Zusatzbildschirme über HDMI
 
 Dazu kommen:
 
-- **Einstellungsseite** unter `http://127.0.0.1:8765/` mit Live-Vorschau, Seitenreihenfolge, Verbindungsstatus je Plattform und aufklappbaren Hilfen neben jedem Schlüsselfeld
+- **Eigenes Windows-Einstellungsfenster** (WebView2; interner lokaler Dienst unter `http://127.0.0.1:8765/`) mit Live-Vorschau, Seitenreihenfolge, Verbindungsstatus je Plattform und aufklappbaren Hilfen neben jedem Schlüsselfeld
 - **Ersteinrichtung ohne Vorkenntnisse**: erkennt das Display, beendet und deaktiviert auf Wunsch die Hersteller-App, Autostart ohne Administratorrechte
 - **Design**: FuchsLabs-CI in Hell oder Dunkel, oder **eigene Farben** per Farbwähler mit Kontrastwarnung
 - **Jede Auflösung**: Seiten werden scharf auf die echte Größe gerendert; breite Leisten zeigen mehrere Seiten nebeneinander
 - **HDMI/USB-C-Bildschirme** als randloses Vollbild, optional mit **Touch** (wischen oder tippen zum Blättern)
 - **Deutsch oder Englisch**: Einstellungsseite, Display und Infobereich lassen sich umschalten; beim ersten Start folgt die Sprache Windows
-- **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, auf Deutsch (`ANLEITUNG.html`) und Englisch (`GUIDE.html`)
-- **Sparsam**: rund 1 % eines CPU-Kerns und etwa 90 MB Arbeitsspeicher
+- **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, in der EXE eingebettet auf Deutsch und Englisch
+- **Eine EXE** für Installation, Updates und Deinstallation; kein Python und kein Visual-C++-Redistributable erforderlich. WebView2 bleibt eine Voraussetzung.
 
 ## Bilder
 
@@ -71,18 +71,17 @@ Dazu kommen:
 | <img src="anleitung/bilder/discord.png" width="380" alt="Discord-Einstellungen mit Hilfe zum Aufklappen"> | <img src="anleitung/bilder/bf6.png" width="380" alt="Battlefield-6-Spieler eintragen"> |
 | Discord mit Hilfe zum Aufklappen | Battlefield-6-Spieler eintragen und prüfen |
 
-Alle Bilder zeigen Beispieldaten.
+Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherigen Oberfläche 1.x.
 
 ## Schnellstart
 
-1. **ZIP entpacken** und den Ordner an einen festen Platz legen, z. B. `Dokumente\FuchsLabs-USB-Display`.
-2. **Display anstecken** (USB) oder den Zusatzbildschirm per HDMI/USB-C anschließen.
-3. **`FuchsLabs-USB-Display.exe` starten.** Warnt Windows („Der Computer wurde durch Windows geschützt“), auf **Weitere Informationen → Trotzdem ausführen** klicken. Die EXE ist nicht signiert.
-4. Die **Einstellungsseite** öffnet sich im Browser. Unter **Start** steht, ob das Display erkannt wurde. Dort beendest du bei Bedarf die Hersteller-App und schaltest **Mit Windows starten** ein.
-5. Gewünschte Seiten unter **Übersicht** einschalten und die Zugänge eintragen. Jedes Feld hat eine Hilfe zum Aufklappen.
-6. **Speichern & anwenden.**
+1. **FuchsLabs-USB-Display.exe** aus [Version 2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0) herunterladen. Die Veröffentlichung ist eine unsignierte Vorabversion. Daneben liegt `SHA256SUMS.txt` zur Dateiprüfung.
+2. Windows 10/11 x64 mit installierter **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit ist nicht in der EXE enthalten und wird vom Installer nicht automatisch installiert.
+3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
+4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
+5. Später öffnen das Fuchs-Symbol im Infobereich oder ein erneuter Start der installierten App das Einstellungsfenster. Dessen Schließen lässt das Display weiterlaufen; **Beenden** im Infobereich stoppt die App.
 
-Die Einstellungen öffnest du später per Doppelklick auf das Fuchs-Symbol im Infobereich. Ausführlich und bebildert: `ANLEITUNG.html` im ZIP (englisch: `GUIDE.html`).
+Der Installer kann Einstellungen aus Version 1.x übernehmen und bewahrt den alten Ordner mit dem Zusatz `-1.x-alt` auf. Bei einem Update bleibt eine vorhandene Zielkonfiguration erhalten. Die bebilderte Anleitung öffnet sich aus den Einstellungen und ist in der EXE eingebettet; ZIP und `_internal`-Ordner entfallen.
 
 ### Zugänge für die Datenquellen
 
@@ -98,7 +97,7 @@ PlayStation und ein automatischer EA-Freundesabruf sind bewusst nicht eingebaut:
 
 ## Konfiguration
 
-Alles lässt sich in der Einstellungsseite einstellen. Sie schreibt `config.toml` neben die EXE (oder nach `%APPDATA%\FuchsLabs\USB-Display`, wenn der Ordner schreibgeschützt ist). Ein Auszug:
+Alles lässt sich in der Einstellungsseite einstellen. Die reguläre Installation speichert `config.toml` und `usb-display.log` unter `%LOCALAPPDATA%\FuchsLabs\USB-Display`. Eigene Pfade per `-c` und `--log` haben Vorrang. Ein Auszug:
 
 ```toml
 [display]
@@ -143,52 +142,28 @@ Die Sprache steht unter `[ui]` als `language = "de"` oder `"en"`.
 
 ## Selbst bauen und entwickeln
 
-Voraussetzung: Windows 10/11 und Python 3.11+ (64 Bit, von [python.org](https://www.python.org/)).
+Voraussetzungen: Windows x64, Visual Studio Build Tools 2022 mit C++/Windows SDK und CMake/Ninja sowie ein eingerichteter vcpkg-Checkout unter `%USERPROFILE%\FuchsLabs\vcpkg`.
 
 ```bat
 git clone https://github.com/PapaFuchs84/fuchslabs-usb-display.git
-cd fuchslabs-usb-display
-build.bat
+cd fuchslabs-usb-display\cpp
+build.bat nopause
 ```
 
-`build.bat` legt eine eigene `.venv` an, installiert die genau festgelegten Pakete aus `requirements.txt` und `requirements-build.txt` und baut mit PyInstaller nach `dist\FuchsLabs-USB-Display\`. Weitergegeben wird immer der ganze Ordner (die EXE braucht `_internal`).
+Der C++-Build installiert die Abhängigkeiten aus dem festgelegten vcpkg-Manifest/Overlay, baut Release, führt `fl-tests.exe` aus und erzeugt `cpp\dist\FuchsLabs-USB-Display.exe`. Die `build.bat` im Repository-Hauptordner gehört zur historischen Python-Version 1.x. Details: [C++-Buildhinweise](cpp/README.md#build) und [Mitarbeiten](CONTRIBUTING.md).
 
-Ohne EXE entwickeln:
-
-```bat
-.venv\Scripts\python fuchslabs_display.py --no-lcd        :: App ohne Display, Einstellungsseite läuft
-.venv\Scripts\python fuchslabs_display.py --demo --no-lcd --preview vorschau   :: Beispielbilder aller Seiten
-.venv\Scripts\python test_friends.py                      :: Tests für das Zusammenführen der Freundeslisten
-```
-
-Die bebilderte Anleitung entsteht aus `anleitung/anleitung.template.html` und den Screenshots in `anleitung/bilder` mit `anleitung/make_images.py`; die englische `GUIDE.html` aus `anleitung/anleitung.template.en.html` mit `make_images.py <englische Screenshots> en`. Die Screenshots nimmt `anleitung/screenshots.mjs` auf (`FL_LANG=en` für Englisch) und ersetzt dabei private Namen durch Beispiele. `anleitung/bilder/freunde.png` ist vorsichtshalber nicht im Repository und wird vor dem Bauen lokal aufgenommen.
-
-Übersetzungen: App- und Display-Texte in `i18n.py`, Texte der Einstellungsseite in der Tabelle `EN` in `webui.html`. Die deutschen Texte im Code sind die Quelle.
-
-Wie du mitarbeitest, steht in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+WebView2-SDK-Header, statischer Loader und Lizenzhinweise liegen unter `cpp/third_party/webview2`; die Laufzeit selbst ist extern. Übersetzungen: `cpp/src/i18n.cpp` für App/Display und `cpp/res/webui.html` für die Einstellungen.
 
 ## Projektaufbau
 
-```
-fuchslabs_display.py   Hauptprogramm: Start, Einzelinstanz, Seitenrotation, Dienste, Neustart
-display_driver.py      Treiber für das serielle 3,5"-Display (RGB565, Teil-Updates in Zeilenbändern)
-monitor_output.py      Ausgabe auf HDMI/USB-C-Bildschirm als Vollbildfenster, Touch
-render.py              Zeichnet alle Seiten (logisch 480 × 320, skaliert auf jede Auflösung)
-brand.py               FuchsLabs-CI: Farben und Fuchs-Logo
-sysinfo.py             Systemwerte: Windows-APIs, nvidia-smi, HWiNFO
-discord_feed.py        Discord-Bot (nur geladen, wenn gebraucht)
-friends.py             Steam, Xbox und Zusammenführen der Freundeslisten
-bf6.py, rss.py         Battlefield 6 und Blogs
-i18n.py                Sprache: Deutsch/Englisch für Display, Meldungen und Infobereich
-appconfig.py           Konfiguration lesen, prüfen, schreiben
-secure.py              DPAPI-Verschlüsselung der Zugangsdaten
-webui.py, webui.html   Einstellungsseite (lokaler Webserver, eine HTML-Datei)
-tray.py, winsetup.py   Symbol im Infobereich, Autostart, Hersteller-App
-anleitung/             Quellen der bebilderten Anleitung
-docs/screenshots/      Bilder für diese README
-```
-
-Ein Prozess mit einer asyncio-Schleife für Anzeige, Datenabrufe, Discord und Webserver; Systemwerte und Infobereich laufen in eigenen Threads. Details in [`DOKUMENTATION.md`](DOKUMENTATION.md#10-technischer-aufbau).
+| Pfad | Aufgabe |
+|---|---|
+| `cpp/src/` | C++-App, Displayausgabe, Datenquellen, natives Einstellungsfenster und Installer |
+| `cpp/res/` | Eingebettete Einstellungen, Anleitungen, Symbol und Versionsressourcen |
+| `cpp/tests/` | C++-Prüfungen |
+| `cpp/overlay-ports/`, `cpp/vcpkg.json` | Abhängigkeiten und D++-Buildkonfiguration |
+| `cpp/TESTPROTOKOLL.md` | Lokaler Windows-/Displaytest |
+| `*.py`, `build.bat` im Hauptordner, `anleitung/` | Historischer Python-Stand 1.x und dessen Anleitungsgenerator |
 
 ## Sicherheit und Datenschutz
 
@@ -197,7 +172,7 @@ Ein Prozess mit einer asyncio-Schleife für Anzeige, Datenabrufe, Discord und We
 - Die Einstellungsseite ist **nur auf `127.0.0.1`** erreichbar und gegen DNS-Rebinding, CSRF und Einbetten in fremde Seiten geschützt.
 - Alle Verbindungen laufen über HTTPS mit Zertifikatsprüfung; Pakete sind auf genaue Versionen festgelegt.
 
-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md). Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
+Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md); er ist kein vollständiger Audit der C++-Version. Aktuelle Validierung: [Testprotokoll](cpp/TESTPROTOKOLL.md). Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
 
 ## Testphase und Rückmeldungen
 
@@ -223,10 +198,12 @@ Dir gefällt die App? Über einen Kaffee freut sich FuchsLabs: [☕ paypal.me/SH
 
 ## Lizenz
 
-Keine Open-Source-Lizenz: © 2026 FuchsLabs, alle Rechte vorbehalten. Der Quellcode ist nur für eingeladene Mitwirkende und Tester sichtbar und darf ohne Zustimmung nicht weitergegeben werden.
+Keine Open-Source-Lizenz: © 2026 FuchsLabs, alle Rechte vorbehalten. Das Repository ist öffentlich lesbar; daraus folgt keine Open-Source-Lizenz. Für eingebundene Drittkomponenten gelten deren eigene Lizenzen.
 
 Battlefield, Discord, Steam und Xbox sind Marken ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen.
 
-## C++-Version 2.0
+## Prüfstand 2.0
 
-Die native Windows-Version mit eigenem Einstellungsfenster und integriertem Installer liegt unter [cpp/](cpp/README.md). [Testprotokoll](cpp/TESTPROTOKOLL.md). WebView2 Evergreen Runtime erforderlich.
+Am 22.10.2026 bestanden 86 Prüfungen; das native Einstellungsfenster wurde sichtbar geprüft. Version 1.x und 2.0 liefen nacheinander mit denselben Einstellungen an COM7. Der Nutzer bestätigte Ausrichtung, Farben, Lesbarkeit und Seitenwechsel. Installation und Autostarteintrag wurden geprüft; ein echter Windows-Anmelde-/Neustarttest steht aus. Das ist keine Freigabe für jedes Displaymodell. Siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+
+Der erste reale Neustarttest scheiterte an der Paketumleitung des Installationshosts. Installation und tatsächlicher Windows-Autostarteintrag wurden danach außerhalb dieses Kontexts korrigiert; der erneute echte Neustarttest bleibt offen.

@@ -1,3 +1,5 @@
+> **Historischer Umsetzungsplan.** Architekturvorschläge und Verbrauchsschätzungen unten sind keine aktuellen Messergebnisse. Aktueller Stand: [README](README.md) und [Testprotokoll](TESTPROTOKOLL.md). Discord wurde mit D++ umgesetzt; das Einstellungsfenster verwendet WebView2.
+
 # FuchsLabs USB-Display 2.0 – Neubau in C++ (Plan)
 
 Stand: 22.10.2026 · Grundlage: Python-Version 1.2 (`usb-display-src`, ca. 4.800 Zeilen Python + 770 Zeilen webui.html)
@@ -90,5 +92,5 @@ Schnellerer Start, weniger RAM (geschätzt 20–40 MB statt 97 MB), eine Datei z
 - 86 lokale Prüfungen bestanden; DPAPI-Kompatibilität mit Version 1.x wurde separat geprüft.
 - Einstellungen, Browseroberfläche, lokale API-Schutzregeln, Discord, RSS, Monitor-Ausgabe und Touch wurden lokal erprobt.
 - Installerkopie und Konfigurationsübernahme liefen im Scratch-Test. Ein Problem im Teststart wurde behoben: `--no-lcd` wird nun durch den stillen Installerstart weitergegeben; danach antwortete die Testkopie auf Port 8766 und zeigte keine COM7-Zugriffsversuche.
-- Offen: echte USB-Seriell-Ausgabe am Display testen, sobald COM7 frei ist. Der letzte Zugriff endete mit Windows Fehler 5 (Zugriff verweigert).
+- COM7-Gegenvergleich inzwischen bestanden; Anzeige vom Nutzer bestätigt. Der erste reale Windows-Neustarttest schlug wegen Paketumleitung fehl. Installation außerhalb dieses Kontexts korrigiert; erneuter Neustarttest offen.
 - Offen: kompletter Install/Update/Deinstallationsdurchlauf, abschließende Sicherheitsprüfung und Release-Signierung. Der Build ist daher noch kein freigegebener 2.0-Release.

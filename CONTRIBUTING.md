@@ -1,53 +1,41 @@
-# Mitarbeiten am FuchsLabs USB-Display
+# Mitarbeiten an FuchsLabs USB-Display 2.0
 
 **Deutsch** · [English](CONTRIBUTING.en.md)
 
-Schön, dass du helfen willst! Das Repository ist privat; mitarbeiten kann, wer von FuchsLabs eingeladen wurde.
-
-## Fehler und Ideen
-
-- **Fehler** über *Issues → New issue → Fehlerbericht* melden, **Ideen** über *Idee oder Rückmeldung*. Was ein guter Bericht braucht und wo das Protokoll liegt, steht in [`TESTPHASE.md`](TESTPHASE.md).
-- **Sicherheitslücken** nie als Issue, sondern wie in [`SECURITY.md`](SECURITY.md) beschrieben.
+Die aktuelle Implementierung ist C++20 unter `cpp/`. Die Python-Dateien im Hauptordner bleiben als historischer Stand 1.x erhalten. Die öffentliche Sichtbarkeit ändert die Projektlizenz nicht.
 
 ## Entwicklungsumgebung
 
-Windows 10/11, Python 3.11+ (64 Bit), Git.
+Windows x64, Visual Studio Build Tools 2022 mit C++/Windows SDK und CMake/Ninja, Git und eingerichteter vcpkg-Checkout unter `%USERPROFILE%\FuchsLabs\vcpkg`.
 
 ```bat
 git clone https://github.com/PapaFuchs84/fuchslabs-usb-display.git
-cd fuchslabs-usb-display
-build.bat
-.venv\Scripts\python fuchslabs_display.py --no-lcd
+cd fuchslabs-usb-display\cpp
+build.bat nopause
+build\FuchsLabs-USB-Display.exe --run --no-lcd -c test.toml
 ```
 
-`build.bat` legt die `.venv` an und baut die EXE. Mit `--no-lcd` läuft die App ohne Display, die Einstellungsseite ist dann unter `http://127.0.0.1:8765/` erreichbar. Beispielbilder aller Seiten ohne Hardware: `--demo --no-lcd --preview vorschau`.
+In einer Entwicklerkonsole müssen CMake/Ninja verfügbar sein. `cpp/build.bat` baut Release, führt Prüfungen aus und kopiert die einzelne App-/Installer-EXE nach `cpp/dist/`. Die `build.bat` im Hauptordner baut weiterhin Python 1.x. Für das Einstellungsfenster muss WebView2 Evergreen Runtime separat installiert sein. Siehe [Buildhinweise](cpp/README.md#build).
 
 ## Ablauf
 
-1. Für jede Änderung einen eigenen Branch von `main` anlegen, z. B. `fix/display-reconnect` oder `feature/neue-seite`.
-2. Kleine, in sich geschlossene Commits mit aussagekräftiger Nachricht auf Deutsch („Display: Helligkeit nach Wiederverbindung setzen“).
-3. Vor dem Pull Request:
-   - `.venv\Scripts\python test_friends.py` läuft ohne Fehler.
-   - Die App startet mit `--no-lcd`, und betroffene Seiten sehen mit `--demo --preview` richtig aus (hell und dunkel).
-   - Sichtbare Änderungen stehen unter **[Unveröffentlicht]** in [`CHANGELOG.md`](CHANGELOG.md); neue Einstellungen zusätzlich in [`DOKUMENTATION.md`](DOKUMENTATION.md).
-4. Pull Request gegen `main` öffnen und kurz beschreiben: vorher, nachher, wie getestet. Bei Änderungen am Aussehen ein Bild anhängen.
+1. Branch von `main` anlegen und die resultierende Änderung verständlich beschreiben.
+2. Kompilieren und zur Änderung passende Prüfungen ausführen. `cpp/build/fl-tests.exe` prüft Kernfunktionen; `--demo --no-lcd --preview vorschau` erzeugt Beispielbilder.
+3. Betroffene Oberfläche auf Deutsch und Englisch prüfen. Vor Hardwaretests die andere Display-App beenden, damit der COM-Port exklusiv frei ist.
+4. Sichtbare Änderungen in beiden Haupt-Changelogs und der Referenz dokumentieren; nicht ausgeführte Tests und offene Probleme ausdrücklich nennen.
+5. PR gegen `main` mit Validierung öffnen; Screenshots nur mit Beispieldaten.
 
 ## Regeln für den Code
 
-- **Stil:** Python wie im vorhandenen Code, Kommentare und Quelltexte auf Deutsch. Texte in der Einstellungsseite so einfach, dass ein Kind sie versteht.
-- **Sprachen:** Jeder Text, den Anwender sehen, gibt es auf Deutsch und Englisch. App- und Display-Texte übersetzt `i18n.py`, Texte der Einstellungsseite die Tabelle `EN` in `webui.html`. Sichtbare Änderungen in beiden Changelogs eintragen.
-- **Sparsam:** Die App läuft dauerhaft im Hintergrund. Keine neuen Abhängigkeiten ohne guten Grund; Pakete werden in `requirements.txt` auf genaue Versionen festgelegt.
-- **Design:** Farben und Logo nur aus `brand.py`. Nur Windows-Schriften (Bahnschrift, Segoe UI), keine Web-Fonts.
-- **Display:** Seiten zeichnen in logischen 480 × 320-Koordinaten; `render.py` skaliert auf die echte Auflösung. Keine Helligkeitsbefehle während einer Bildübertragung.
-- **Datenquellen:** nur offizielle oder öffentliche Schnittstellen. Nichts, was gegen Nutzungsbedingungen verstößt oder Konten gefährdet (kein Discord-Self-Bot, kein inoffizieller PlayStation-Zugang).
-- **Neue Zugangsfelder** in der Einstellungsseite bekommen eine aufklappbare Hilfe mit Link zur richtigen Seite.
+- Vorhandenen C++20-Stil beibehalten, RAII verwenden und Hintergrundarbeit begrenzen.
+- App-/Display-Texte: `cpp/src/i18n.cpp`; Einstellungsübersetzungen: `cpp/res/webui.html`.
+- Farben/Logo: `cpp/src/brand.h`; Grafik: `gfx.cpp` und `render.cpp`. Windows-Schriften nutzen; keine Helligkeitsbefehle während einer Bildübertragung.
+- Abhängigkeiten: `cpp/vcpkg.json`, festgelegte Baseline und `cpp/overlay-ports/`; Drittanbieter-Lizenzhinweise erhalten.
+- Nur autorisierte/öffentliche Datenschnittstellen; keine Discord-Self-Bots oder inoffiziellen PlayStation-Zugänge.
+- Zugangsdaten über `cpp/src/secure.cpp` (Windows-DPAPI) speichern. Nie Konfigurationen, Zugangsdaten, Logs oder private Bilder einchecken; `git diff --cached` prüfen.
 
-## Geheimnisse und private Daten
+## Versionen und Meldungen
 
-- **Niemals einchecken:** `config.toml`, Tokens, API-Schlüssel, Logs, Build-Ordner. `.gitignore` deckt das ab; prüfe trotzdem `git status` vor jedem Commit.
-- Zugangsdaten nur über `secure.py` (DPAPI) speichern, nie ins Log schreiben, nie an den Browser zurückgeben.
-- **Screenshots** nur mit Beispielnamen. `anleitung/screenshots.mjs` ersetzt private Namen; jedes Bild vor dem Commit selbst ansehen.
+Bei einem Code-Release `cpp/CMakeLists.txt`, `cpp/src/util.h` und `cpp/res/app.rc` konsistent aktualisieren. EXE und SHA-256-Prüfsumme veröffentlichen; Laufzeitvoraussetzungen und offene Tests nennen. Reine Dokumentationsänderungen ersetzen keine bereits veröffentlichte EXE.
 
-## Versionen
-
-Versionen folgen [SemVer](https://semver.org/lang/de/). Für ein Release: Version in `webui.py` und `version-info.txt` anheben, `CHANGELOG.md` von *Unveröffentlicht* in die neue Version verschieben, Tag `vX.Y` setzen.
+Fehler: [Rückmeldungen](TESTPHASE.md). Sicherheitslücken: [SECURITY.md](SECURITY.md), keine Geheimnisse im öffentlichen Issue. Der alte [Prüfbericht](SICHERHEITSREVIEW.md) ist kein vollständiger C++-Audit.

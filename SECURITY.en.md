@@ -6,7 +6,8 @@
 
 | Version | Security fixes |
 |---|---|
-| 1.2 | ✅ |
+| 2.0.0 | prerelease |
+| 1.2 | historical |
 | 1.1 | on request only |
 | 1.0 | ❌ |
 
@@ -15,7 +16,7 @@
 Please **do not open a public issue**. Instead:
 
 - Message Basti (FuchsLabs) directly.
-- Once the repository is public, you can also use **Security → Report a vulnerability** on GitHub.
+- If enabled in the repository, you can also use **Security → Report a vulnerability** on GitHub.
 
 Helpful details: affected version, what an attacker could do, steps to reproduce, and a suggested fix if you have one. **Do not send real tokens or keys**, not even your own.
 
@@ -31,3 +32,5 @@ FuchsLabs confirms receipt as soon as possible, keeps you updated on the fix and
 **Out of scope:** anyone with access to your Windows user account can read stored credentials the same way the app does. Other programs on the same PC can open the settings page but do not receive any credentials.
 
 The latest review report is in [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German).
+
+> The linked review covers historical Python 1.x. It is not a full C++ 2.0 audit; see [current test record](cpp/TESTPROTOKOLL.md). WebView2 Runtime is a separate prerequisite.

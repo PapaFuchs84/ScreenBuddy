@@ -15,6 +15,14 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ### Behoben
 - Prozentwerte in der Einstellungsseite (Helligkeit zeigte nach einer automatischen Korrektur „90 90“).
 
+## [2.0.0] – 2026-10-22 (Vorabversion)
+
+- C++20-Neuimplementierung unter `cpp/`, Discord über D++ und eigenes Win32/WebView2-Einstellungsfenster.
+- Eine EXE enthält App, Installer, Updater und Deinstaller; Übernahme von 1.x-Einstellungen möglich. Python-Distributionsordner entfällt.
+- WebView2 Evergreen Runtime bleibt externe Voraussetzung; EXE unsigniert.
+- 86 Prüfungen bestanden; natives Fenster sichtbar geprüft, COM7-Gegenvergleich vom Nutzer bestätigt. Der erste echte Neustarttest scheiterte an der Windows-Paketumleitung von Installation/Autostart im Codex-Kontext; korrigierte Installation benötigt einen neuen Neustarttest.
+- Download und Prüfsummen: [v2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0). [Testprotokoll](cpp/TESTPROTOKOLL.md).
+
 ## [1.2] – 2026-10-21
 
 ### Hinzugefügt

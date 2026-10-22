@@ -1,16 +1,15 @@
 # FuchsLabs USB-Display – Schnellstart
 
-> **Am einfachsten:** `ANLEITUNG.html` doppelklicken (englisch: `GUIDE.html`; die App lässt sich unter **Start › Sprache · Language** auf Englisch umstellen). Das ist die bebilderte Anleitung, Schritt für Schritt mit Weiter-Knopf. Diese Datei hier ist die Kurzfassung.
+> **Version 2.0:** Die bebilderte Anleitung öffnet sich über **Bebilderte Anleitung** im eigenen Einstellungsfenster und ist in der EXE enthalten. Sprache unter **Start › Sprache · Language** umschalten.
 
 Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastung, Temperaturen, Netzwerk), **Discord-Freunde**, **Freunde von Steam, Xbox und Discord** in einer Liste, eine **Battlefield-6-Rangliste** und **Blog-Updates**. Du brauchst keine Vorkenntnisse.
 
 ## In 3 Minuten loslegen
 
-1. **Ordner entpacken** und an einen festen Platz legen, z. B. `Dokumente\FuchsLabs-USB-Display`.
-2. **Display anstecken** (USB).
-3. **`FuchsLabs-USB-Display.exe` doppelklicken.**
-   - Windows meldet eventuell „Der Computer wurde durch Windows geschützt“. Das ist normal, weil das Programm nicht signiert ist: auf **Weitere Informationen → Trotzdem ausführen** klicken.
-4. Es öffnet sich automatisch die **Einstellungsseite** im Browser. Dort steht oben, ob dein Display erkannt wurde, und du stellst alles Weitere per Klick ein.
+1. **EXE herunterladen:** [Version 2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0). Es ist eine unsignierte Vorabversion; kein ZIP entpacken.
+2. Windows 10/11 x64 mit **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit muss vorhanden sein; sie wird nicht mitgeliefert oder automatisch installiert.
+3. Display anschließen und `FuchsLabs-USB-Display.exe` starten. Der Installer richtet die App unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` ein. Er benötigt dafür keine Administratorrechte.
+4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster** für die Einstellungen.
 
 Die Einstellungen öffnest du später jederzeit mit einem **Doppelklick auf das Symbol im Infobereich** (unten rechts neben der Uhr, ggf. über den kleinen Pfeil ^) oder indem du die EXE noch einmal startest.
 
@@ -46,7 +45,9 @@ Auf der Seite **Start** den Schalter **Mit Windows starten** einschalten. Das ge
 ## Beenden und Entfernen
 
 - **Beenden:** Rechtsklick auf das Symbol im Infobereich → **Beenden**.
-- **Entfernen:** Autostart ausschalten, App beenden, Ordner löschen. Es bleibt nichts weiter auf dem PC zurück (Einstellungen liegen im Ordner der App).
+- **Entfernen:** In Windows **Einstellungen → Apps** den Eintrag **FuchsLabs USB-Display** deinstallieren. Zugangsdaten und Einstellungen lassen sich auf Wunsch zusätzlich entfernen.
+- **Fenster schließen:** Blendet nur die Einstellungen aus; die Anzeige läuft weiter.
+- **Update von 1.x:** Der Installer kann die alte Konfiguration übernehmen. Der alte Ordner wird mit `-1.x-alt` gesichert. Die Übernahme ist an die erkannten bisherigen Speicherorte gebunden.
 
 Mehr Details, Fehlerbehebung und technische Hintergründe: `DOKUMENTATION.md`.
 
