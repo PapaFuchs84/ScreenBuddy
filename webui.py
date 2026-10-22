@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import asyncio
 import io
+import ipaddress
 import logging
+import socket
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 import aiohttp
 from aiohttp import web
@@ -194,10 +197,46 @@ class SettingsServer:
         return _json({"ok": True, "name": p.name, "rank": p.rank, "rank_name": p.rank_name,
                       "kd": p.kd, "win_pct": p.win_pct})
 
-    async def check_rss(self, request: web.Request) -> web.Response:
-        url = request.query.get("url", "").strip()
+    def _is_public_host(self, host: str) -> bool:
+        try:
+            infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+        except socket.gaierror:
+            return False
+        for info in infos:
+            ip = info[4][0]
+            try:
+                addr = ipaddress.ip_address(ip)
+            except ValueError:
+                return False
+            if (addr.is_private or addr.is_loopback or addr.is_link_local or
+                    addr.is_multicast or addr.is_reserved or addr.is_unspecified):
+                return False
+        return True
+
+    def _validate_rss_url(self, raw: str) -> str | None:
+        url = raw.strip()
         if not url:
-            return _json({"ok": False, "error": "Adresse fehlt"}, 400)
+            return None
+        if "://" not in url:
+            url = f"https://{url}"
+        p = urlparse(url)
+        if p.scheme not in ("http", "https") or not p.hostname:
+            return None
+        # Direkte IP-Hosts sowie nicht-öffentliche Auflösungen blockieren.
+        try:
+            ipaddress.ip_address(p.hostname)
+            return None
+        except ValueError:
+            pass
+        if not self._is_public_host(p.hostname):
+            return None
+        return url
+
+    async def check_rss(self, request: web.Request) -> web.Response:
+        raw_url = request.query.get("url", "")
+        url = self._validate_rss_url(raw_url)
+        if not url:
+            return _json({"ok": False, "error": "Ungültige oder unsichere Adresse"}, 400)
         feeds = RssFeeds({"feeds": []})
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=25), headers=UA) as s:
             posts = await feeds._feed(s, url)
