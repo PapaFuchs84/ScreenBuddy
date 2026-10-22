@@ -15,6 +15,14 @@ Kurzer Verlauf, wie die App entstanden ist, und welche Entscheidungen dabei gefa
 | nachmittags | Quellcode als Git-Repository, CHANGELOG, dieses Protokoll, Vorlagen für Rückmeldungen in der Testphase. Anleitungs-Screenshots ohne echte Namen neu aufgenommen. |
 | abends | Version 1.2: eigene Farben, beliebige Auflösungen, HDMI/USB-C-Bildschirme mit optionalem Touch. Doku im Repository nach üblichem Standard ausgebaut (README, CONTRIBUTING, SECURITY). |
 
+## 22.10.2026
+
+| Zeit | Schritt |
+|---|---|
+| nachmittags | C++20-Neuimplementierung für Windows mit D++ für Discord und einem Ein-Datei-Installer fortgesetzt. Das Einstellungsfenster wird nun als eigenes Win32-Fenster mit eingebettetem Microsoft WebView2 geöffnet; Tray und Mehrfachstart fordern dieses Fenster bei der laufenden Instanz an. |
+| nachmittags | WebView2-SDK-Header und statischer x64-Loader eingebunden, Callback-Lebensdauer und externe Link-Schemata abgesichert. Release-EXE erfolgreich gebaut; die eingebauten 86 Prüfungen bestanden. |
+| nachmittags | Native Fensterdarstellung noch nicht zur Laufzeit geprüft. Die WebView2 Evergreen Runtime bleibt eine Windows-Voraussetzung und ist nicht in der EXE enthalten. COM7 wurde nicht angesprochen; Hardwarebetrieb bleibt offen. |
+
 ## Entscheidungen
 
 - **Discord nur über einen eigenen Bot.** Freundeslisten mit dem persönlichen Zugang wären ein „Self-Bot“ und können zur Kontosperre führen. Der Bot sieht die Mitglieder der Server, auf die er eingeladen ist.
@@ -30,5 +38,7 @@ Kurzer Verlauf, wie die App entstanden ist, und welche Entscheidungen dabei gefa
 
 - Steam-Schlüssel bzw. öffentliche Freundesliste fehlt noch (Status rot).
 - Steam- und Xbox-Abruf bisher nur mit Bastis Konten getestet.
+- C++-Port ist noch nicht als Quellcode in diesem Repository eingecheckt; diese Protokolländerung dokumentiert den lokalen Arbeitsstand.
+- Native WebView2-Fensterdarstellung und COM7-Hardwarebetrieb noch praktisch prüfen.
 - Alter Ordner der Skript-Vorversion und die alte Aufgabe „FuchsLabs Discord-Display“ können entfernt werden, wenn nichts mehr fehlt.
 - Zwei Anleitungs-Screenshots zeigen echte Namen (`anleitung/bilder/uebersicht.png` mit EA-Namen, `anleitung/bilder/freunde.png` und damit `ANLEITUNG.html` mit dem eigenen Xbox-Namen). Sie liegen deshalb nicht im Repository und sollten vor dem Weitergeben neu aufgenommen werden.
