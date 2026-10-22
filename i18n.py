@@ -77,6 +77,7 @@ EN = {
     "Spieler nicht gefunden": "Player not found",
     "Adresse fehlt": "Address missing",
     "Kein Feed gefunden": "No feed found",
+    "Ungültige oder unsichere Adresse": "Invalid or unsafe address",
     "Bitte zuerst den Schlüssel eintragen": "Please enter the key first",
     "Bitte den Link zu deinem Steam-Profil eintragen": "Please enter the link to your Steam profile",
     "Konnte die Hersteller-App nicht beenden": "Could not close the vendor app",

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import html
+import ipaddress
 import logging
 import re
 import time
@@ -87,6 +88,26 @@ def parse_feed(data: bytes, fallback_name: str) -> tuple[str, list[Post]] | None
     return name or fallback_name, posts
 
 
+async def public_url(url: str) -> bool:
+    """Nur http(s)-Adressen, deren Host ausschließlich auf öffentliche IPs zeigt (kein Heimnetz, kein localhost).
+    Schützt davor, dass eine Feed-Adresse oder ein Redirect Geräte im eigenen Netz abfragt (SSRF)."""
+    p = urlparse(url)
+    if p.scheme not in ("http", "https") or not p.hostname:
+        return False
+    try:
+        infos = await asyncio.get_running_loop().getaddrinfo(p.hostname, None, type=0, proto=0, flags=0)
+    except OSError:
+        return False
+    for info in infos:
+        try:
+            ip = ipaddress.ip_address(info[4][0].split("%")[0])
+        except ValueError:
+            return False
+        if not ip.is_global:
+            return False
+    return bool(infos)
+
+
 def _discover(page: str, base: str) -> list[str]:
     links = []
     for m in re.finditer(r"<link\b[^>]*>", page, re.I):
@@ -142,15 +163,23 @@ class RssFeeds:
 
     async def _get(self, s: aiohttp.ClientSession, url: str) -> tuple[bytes, str] | None:
         try:
-            async with s.get(url, allow_redirects=True) as r:
-                if r.status != 200:
+            for _ in range(6):  # Weiterleitungen selbst folgen, damit jedes Ziel geprüft wird
+                if not await public_url(url):
+                    log.warning("RSS: Adresse nicht öffentlich, übersprungen: %s", url)
                     return None
-                data = bytearray()
-                async for chunk in r.content.iter_chunked(65536):
-                    data += chunk
-                    if len(data) > 3_000_000:  # Schutz vor riesigen Seiten
-                        break
-                return bytes(data), str(r.url)
+                async with s.get(url, allow_redirects=False) as r:
+                    if r.status in (301, 302, 303, 307, 308) and r.headers.get("Location"):
+                        url = urljoin(str(r.url), r.headers["Location"])
+                        continue
+                    if r.status != 200:
+                        return None
+                    data = bytearray()
+                    async for chunk in r.content.iter_chunked(65536):
+                        data += chunk
+                        if len(data) > 3_000_000:  # Schutz vor riesigen Seiten
+                            break
+                    return bytes(data), str(r.url)
+            return None
         except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as e:
             log.debug("RSS %s → %s", url, e)
             return None
