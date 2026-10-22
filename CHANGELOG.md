@@ -7,6 +7,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ## [Unveröffentlicht]
 
 ### Geändert
+- Dokumentation auf 2.0.3 nachgezogen: README/Schnellstart, Downloadlinks, HDMI-/Touch-Anleitung, Prüfstand und Sicherheitsübersicht; vorhandene deutsche/englische Fassungen gemeinsam aktualisiert. Die Projektregeln und PR-Vorlage verlangen Doku-Pflege ab jetzt bei jeder Änderung.
 - Bebilderte Anleitung (ANLEITUNG.html / GUIDE.html) auf C++ 2.0 gebracht: Download der einen EXE statt ZIP, eingebauter Installer (ohne Administratorrechte, Übernahme von 1.x), eigenes Einstellungsfenster (WebView2), Tray-Autostart, Deinstallation über Windows-Apps.
 - Beim Start mit Windows startet die App still im Infobereich, ohne die Einstellungsseite zu öffnen (Autostart-Eintrag mit `--autostart`; ältere Einträge werden beim nächsten Start umgestellt). Auch nach einem Neustart aus den Einstellungen öffnet sich kein weiterer Browser-Tab.
 

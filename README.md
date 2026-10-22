@@ -6,7 +6,7 @@
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.0.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.0.3-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -52,7 +52,7 @@ Dazu kommen:
 - **Ersteinrichtung ohne Vorkenntnisse**: erkennt das Display, beendet und deaktiviert auf Wunsch die Hersteller-App, Autostart ohne Administratorrechte
 - **Design**: FuchsLabs-CI in Hell oder Dunkel, oder **eigene Farben** per Farbwähler mit Kontrastwarnung
 - **Jede Auflösung**: Seiten werden scharf auf die echte Größe gerendert; breite Leisten zeigen mehrere Seiten nebeneinander
-- **HDMI/USB-C-Bildschirme** als randloses Vollbild, optional mit **Touch** (wischen oder tippen zum Blättern)
+- **HDMI/USB-C-Bildschirme** als randloses Vollbild über der Taskleiste, optional mit **Touch** (wischen oder tippen zum Blättern); Prüfung und Einrichtung der Windows-Touch-Zuordnung unter **Display**
 - **Deutsch oder Englisch**: Einstellungsseite, Display und Infobereich lassen sich umschalten; beim ersten Start folgt die Sprache Windows
 - **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, in der EXE eingebettet auf Deutsch und Englisch
 - **Eine EXE** für Installation, Updates und Deinstallation; kein Python und kein Visual-C++-Redistributable erforderlich. WebView2 bleibt eine Voraussetzung.
@@ -75,13 +75,15 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **FuchsLabs-USB-Display.exe** aus [Version 2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0) herunterladen. Die Veröffentlichung ist eine unsignierte Vorabversion. Daneben liegt `SHA256SUMS.txt` zur Dateiprüfung.
+1. **FuchsLabs-USB-Display.exe** aus dem [aktuellen Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) herunterladen (Stand: **2.0.3**). Die EXE ist unsigniert. Daneben liegt `SHA256SUMS.txt` zur Dateiprüfung.
 2. Windows 10/11 x64 mit installierter **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit ist nicht in der EXE enthalten und wird vom Installer nicht automatisch installiert.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
 5. Später öffnen das Fuchs-Symbol im Infobereich oder ein erneuter Start der installierten App das Einstellungsfenster. Dessen Schließen lässt das Display weiterlaufen; **Beenden** im Infobereich stoppt die App.
 
-Der Installer kann Einstellungen aus Version 1.x übernehmen und bewahrt den alten Ordner mit dem Zusatz `-1.x-alt` auf. Bei einem Update bleibt eine vorhandene Zielkonfiguration erhalten. Die bebilderte Anleitung öffnet sich aus den Einstellungen und ist in der EXE eingebettet; ZIP und `_internal`-Ordner entfallen.
+Der Installer kann Einstellungen aus Version 1.x übernehmen und bewahrt den alten Ordner mit dem Zusatz `-1.x-alt` auf. Bei einem Update bleibt eine vorhandene Zielkonfiguration erhalten. Die bebilderte Anleitung öffnet sich über die Einstellungen oder **Anleitung öffnen** im Tray im Standardbrowser und ist in der EXE eingebettet; ZIP und `_internal`-Ordner entfallen.
+
+Für einen HDMI-/USB-C-Touchscreen unter **Display** den vorgesehenen Monitor wählen. Erscheinen Berührungen auf einem anderen Bildschirm, **Touch-Bildschirm zuordnen** öffnen: andere Bildschirme mit Enter überspringen und den vorgesehenen Touchscreen berühren. Danach **Erneut prüfen** wählen. Die USB-Touchverbindung muss bestehen. Details im [Schnellstart](ANLEITUNG.md#hdmiusb-c-und-touch).
 
 ### Zugänge für die Datenquellen
 
@@ -202,8 +204,10 @@ Keine Open-Source-Lizenz: © 2026 FuchsLabs, alle Rechte vorbehalten. Das Reposi
 
 Battlefield, Discord, Steam und Xbox sind Marken ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen.
 
-## Prüfstand 2.0
+## Prüfstand 2.0.3
 
-Am 22.10.2026 bestanden 86 Prüfungen; das native Einstellungsfenster wurde sichtbar geprüft. Version 1.x und 2.0 liefen nacheinander mit denselben Einstellungen an COM7. Der Nutzer bestätigte Ausrichtung, Farben, Lesbarkeit und Seitenwechsel. Installation und Autostarteintrag wurden geprüft; der Nutzer bestätigte danach einen erfolgreichen Windows-Neustart mit automatisch erscheinendem Tray-Symbol. Das ist keine Freigabe für jedes Displaymodell. Siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+Release-Build, 86 Kernprüfungen und 56 Monitor-/Touchprüfungen mit injizierten Windows-Eingaben bestanden (die 56 enthalten 11 Basisprüfungen). Installierte 2.0.3: tatsächliche Datei-Version, Hash, API-Version, Autostart-Eintrag und `display_ok=true` außerhalb der Paketumleitung geprüft. Echte Touch-Hardware, der vollständige Windows-Zuordnungsassistent und ein neuer Windows-Anmeldetest für 2.0.3 bleiben offen. Siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+
+Die frühere Abnahme von 2.0 umfasste den Gegenvergleich mit 1.x an COM7 und die vom Nutzer bestätigte physische Anzeige sowie einen erfolgreichen Windows-Neustart mit Tray-Symbol.
 
 Der erste reale Neustarttest scheiterte an der Paketumleitung des Installationshosts. Installation und tatsächlicher Windows-Autostarteintrag wurden danach außerhalb dieses Kontexts korrigiert; der Nutzer bestätigte anschließend den erfolgreichen Windows-Neustart mit Tray-Symbol.

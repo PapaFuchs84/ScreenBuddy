@@ -233,7 +233,7 @@ ${sel.bf6 ? '<li><b>The EA names</b> of you and your Battlefield friends.</li>' 
 <p class="kicker">Download</p><h1>Download the program</h1>
 <p class="lead">The program is <b>one single file</b>. There is nothing to unpack.</p>
 <ol class="do">
-<li>Open this page: <a href="https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0" target="_blank" rel="noopener">Version 2.0.0 on GitHub</a>. Or use the file from whoever sent you this guide.</li>
+<li>Open this page: <a href="https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest" target="_blank" rel="noopener">Latest release on GitHub</a>. Or use the file from whoever sent you this guide.</li>
 <li>Download the file <span class="key">FuchsLabs-USB-Display.exe</span>.</li>
 <li>It normally lands in your <b>Downloads</b> folder.</li>
 </ol>
@@ -264,7 +264,7 @@ ${help([['I can\'t find the file.', 'Look in the <b>Downloads</b> folder. You ca
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock win">
 <div class="tb">FuchsLabs USB-Display – Installation<span>— ☐ ✕</span></div>
 <div class="files" style="display:block;padding:16px;text-align:left">
-<p style="margin:0 0 8px"><b>Installation · Version 2.0.0</b></p>
+<p style="margin:0 0 8px"><b>Installation · current version</b></p>
 <p style="margin:0 0 8px">☑ Start with Windows (only the fox icon in the notification area)<br>☑ Start menu entry</p>
 <p style="margin:0;text-align:right"><span class="btnname hlbtn">Install</span></p></div></div></figure>
 <div class="box tip"><p><b>Did you have version 1.x?</b> Then one more tick box appears: <b>“Retire the old 1.x version”</b>. Leave it on: your settings and credentials are carried over. The old folder gets the suffix <span class="key">-1.x-alt</span> and stays as a backup.</p></div>
@@ -319,6 +319,19 @@ ${shot('uebersicht', [[1090, 226, 58, 352, 'tr'], [1055, 226, 34, 352], [843, 73
 <li>Use the <b>Brightness</b> slider to make the display brighter or darker.</li>
 </ol>
 <div class="box warn"><p>A bar with ${b('Save &amp; apply')} then appears at the bottom. You press it at the very end. But you can also press it now.</p></div>`},
+
+{t: 'HDMI/USB-C and touch', html: () => `
+<p class="kicker">Another display</p><h1>Set up an HDMI screen and touch</h1>
+<p class="lead">This step is for a normal screen connected over HDMI or USB-C, starting with version 2.0.3. Skip it for a small USB display using a COM port.</p>
+<ol class="do">
+<li>Connect the screen to your PC and set Windows to <b>Extend</b>. Touch also requires the <b>USB touch connection</b>.</li>
+<li>Open <b>Display</b> in settings. Choose the HDMI/USB-C output under <b>Display type</b> and select the intended screen. Select <b>Save &amp; apply</b>.</li>
+<li>Do taps appear on another screen? Select <b>Assign touch display</b>. The display output pauses while the Windows wizard is open.</li>
+<li>Press <b>Enter</b> to skip other screens. When the wizard message appears on the intended touchscreen, touch that screen. <b>Esc</b> cancels.</li>
+<li>Select <b>Check again</b> afterwards. Enable <b>Touch control</b> if needed and save. Swipe left = next page, right = previous; tap on the left = back, elsewhere = next.</li>
+</ol>
+<div class="box tip"><p>Fullscreen stays above the taskbar without taking keyboard focus. Windows stores the touch assignment.</p></div>
+<div class="box warn"><p>A disabled setup button means Windows does not detect a touchscreen. Check its USB connection and driver, then select <b>Check again</b>.</p></div>`},
 
 {t: 'Rotate picture and brightness', html: () => `
 <p class="kicker">Only if needed</p><h1>Is the picture upside down?</h1>
