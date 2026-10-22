@@ -298,7 +298,7 @@ const touch = () => { $('#bar').classList.toggle('show', dirty()); renderNav(); 
 function bind(sec, key, el, conv = v => v) {
   el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
     cfg[sec][key] = el.type === 'checkbox' ? el.checked : conv(el.value);
-    const v = el.parentElement.querySelector('.val'); if (v) v.textContent = el.dataset.fmt ? el.dataset.fmt.replace('%', el.value) : el.value;
+    const v = el.parentElement.querySelector('.val'); if (v) v.textContent = el.dataset.fmt ? el.dataset.fmt.replace(/%/g, el.value) : el.value;
     touch();
   });
   return el;
@@ -311,7 +311,7 @@ const select = (sec, key, opts) => { const s = h('select', {}, opts.map(([v, l])
 const range = (sec, key, min, max, step, fmt) => {
   const i = h('input', {type: 'range', min, max, step, value: cfg[sec][key], 'data-fmt': fmt});
   bind(sec, key, i, Number); return h('div', {style: 'display:flex;align-items:center;gap:12px'}, i,
-    h('span', {class: 'val'}, fmt.replace('%', cfg[sec][key]))); };
+    h('span', {class: 'val'}, fmt.replace(/%/g, cfg[sec][key]))); };
 const row = (label, hint, ctl) => h('div', {class: 'row'}, h('div', {class: 'lbl'}, h('b', {}, label), hint ? h('span', {}, hint) : null), ctl);
 const card = (title, hint, ...kids) => h('div', {class: 'card'}, h('h3', {}, title), hint ? h('p', {class: 'hint'}, hint) : null, ...kids);
 const head = (t, s) => [h('h1', {}, t), h('p', {class: 'sub'}, s)];
