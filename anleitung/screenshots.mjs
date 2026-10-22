@@ -135,7 +135,7 @@ for (const [label, file, height, open = []] of VIEWS) {
   if (!tabs.some(t => t.startsWith(label))) continue;
   await cmd('Emulation.setDeviceMetricsOverride', { width: 1280, height, deviceScaleFactor: 1, mobile: false });
   await go(label);
-  await js(`document.querySelectorAll('main .howto').forEach((d, i) => d.open = ${JSON.stringify(open)}.includes(i))`);
+  await js(`(args) => { const open = Array.isArray(args?.[0]) ? args[0] : []; document.querySelectorAll('main .howto').forEach((d, i) => d.open = open.includes(i)); }`, [open]);
   await sleep(1500); await js(anon); await sleep(200);  // Listen laden teils verzögert nach
   await shot(file);
   console.log('--- ' + file + '\n' + await js(RECTS));
