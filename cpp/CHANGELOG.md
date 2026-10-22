@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1 — 2026-10-22
+
+- Fixed: Discord stayed on "Connecting …" forever if there was no internet when the app started; it now retries after 90 seconds.
+- Fixed: services answering with `Content-Encoding: deflate` (e.g. Open-Meteo) failed to load; only gzip is requested now.
+
 ## 2.0.0 — 2026-10-22 (prerelease)
 
 - Reimplemented the Windows display application in C++20.

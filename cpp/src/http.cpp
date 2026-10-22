@@ -29,7 +29,7 @@ HINTERNET open_session(DWORD access) {
                 protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;  // ältere Windows-Versionen ohne TLS 1.3
                 WinHttpSetOption(h, WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof protocols);
             }
-            DWORD decomp = WINHTTP_DECOMPRESSION_FLAG_ALL;
+            DWORD decomp = WINHTTP_DECOMPRESSION_FLAG_GZIP;  // nur gzip: "deflate" mancher Server (z. B. Open-Meteo) bricht WinHTTP ab
             WinHttpSetOption(h, WINHTTP_OPTION_DECOMPRESSION, &decomp, sizeof decomp);
         }
         return h;

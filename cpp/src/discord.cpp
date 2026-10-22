@@ -287,7 +287,17 @@ struct DiscordFeed::Impl {
                 restart_wanted = true;
             }
             std::unique_lock lk(mu);
-            cv.wait(lk, [&] { return stop || restart_wanted; });
+            // Wächter: kommt keine Verbindung zustande (z. B. beim Windows-Start noch kein Internet, DNS-Fehler),
+            // nach 90 Sekunden neu verbinden – D++ versucht den ersten Abruf sonst nie wieder
+            double started = mono();
+            while (!stop && !restart_wanted) {
+                cv.wait_for(lk, std::chrono::seconds(5));
+                if (!ready && !fatal && mono() - started > 90) {
+                    LOGW("discord", "Discord: keine Verbindung nach 90 s – neuer Versuch");
+                    status = "Keine Verbindung zu Discord";
+                    restart_wanted = true;
+                }
+            }
             bool was_fatal = fatal;
             lk.unlock();
             if (bot) {
@@ -304,7 +314,7 @@ struct DiscordFeed::Impl {
                 guilds.clear();
             }
             // Fehler beim Token/Rechte: erst nach 10 Minuten erneut; Netzwerk: nach 60 Sekunden
-            double wait = was_fatal ? 600 : 60;
+            double wait = was_fatal ? 600 : 30;
             std::unique_lock lk3(mu);
             cv.wait_for(lk3, std::chrono::milliseconds((long long)(wait * 1000)), [&] { return stop.load(); });
         }
