@@ -1,0 +1,343 @@
+// © 2026 FuchsLabs – Tests ohne Netz und ohne Display: fl-tests.exe [render <ordner>]
+#include <windows.h>
+
+#include <cstdio>
+#include <filesystem>
+#include <fstream>
+
+#include "config.h"
+#include "friends.h"
+#include "gfx.h"
+#include "http.h"
+#include "i18n.h"
+#include "installer.h"
+#include "netguard.h"
+#include "render.h"
+#include "rss.h"
+#include "secure.h"
+#include "util.h"
+
+using namespace fl;
+namespace fs = std::filesystem;
+
+static int g_fail = 0, g_ok = 0;
+#define CHECK(cond)                                                              \
+    do {                                                                         \
+        if (cond) ++g_ok;                                                        \
+        else {                                                                   \
+            ++g_fail;                                                            \
+            std::printf("FEHLER %s:%d: %s\n", __FILE__, __LINE__, #cond);        \
+        }                                                                        \
+    } while (0)
+#define CHECK_EQ(a, b)                                                           \
+    do {                                                                         \
+        auto _a = (a);                                                           \
+        auto _b = (b);                                                           \
+        if (_a == _b) ++g_ok;                                                    \
+        else {                                                                   \
+            ++g_fail;                                                            \
+            std::printf("FEHLER %s:%d: %s\n", __FILE__, __LINE__, #a " == " #b); \
+        }                                                                        \
+    } while (0)
+
+static void save_png(const fs::path& p, const Image& img) {
+    std::ofstream f(p, std::ios::binary);
+    std::string png = encode_png(img);
+    f.write(png.data(), (std::streamsize)png.size());
+}
+
+static void test_config() {
+    auto tmp = fs::temp_directory_path() / "fl-test-config.toml";
+    fs::remove(tmp);
+    ojson cfg = config::load(tmp);
+    CHECK_EQ(cfg["ui"]["port"].get<int>(), 8765);
+    CHECK_EQ(cfg["display"]["pages"].size(), (size_t)5);
+    ojson in = {{"display", {{"brightness", "250"}, {"theme", "dunkel"}, {"color_bg", "#aabbcc"}}},
+                {"discord", {{"token", "geheim"}, {"guild_ids", {"123456789012345678", " ", "5"}}}},
+                {"rss", {{"feeds", {"a.de", "a.de", " b.de "}}}}};
+    ojson m = config::merge(cfg, in);
+    CHECK_EQ(m["display"]["brightness"].get<int>(), 100);
+    CHECK_EQ(m["display"]["color_bg"].get<std::string>(), std::string("#AABBCC"));
+    CHECK_EQ(m["discord"]["guild_ids"].size(), (size_t)2);
+    CHECK_EQ(m["rss"]["feeds"].size(), (size_t)2);
+    bool threw = false;
+    try {
+        config::merge(cfg, {{"display", {{"theme", "rosa"}}}});
+    } catch (const std::invalid_argument& e) {
+        threw = std::string(e.what()).find("display.theme: erlaubt:") == 0;
+    }
+    CHECK(threw);
+    threw = false;
+    try {
+        config::merge(cfg, {{"display", {{"touch", "ja"}}}});
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    CHECK(threw);
+    ojson pub = config::public_view(m);
+    CHECK_EQ(pub["discord"]["token"].get<std::string>(), std::string(""));
+    CHECK(pub["discord"]["token_set"].get<bool>());
+    CHECK(pub["discord"]["guild_ids"][0].is_string());
+    config::save(tmp, m);
+    std::string text;
+    {
+        std::ifstream f(tmp);
+        text.assign((std::istreambuf_iterator<char>(f)), {});
+    }
+    CHECK(text.find("geheim") == std::string::npos);  // Token nie im Klartext
+    CHECK(text.find("dpapi:") != std::string::npos);
+    ojson back = config::load(tmp);
+    CHECK_EQ(back["discord"]["token"].get<std::string>(), std::string("geheim"));
+    CHECK_EQ(back["display"]["theme"].get<std::string>(), std::string("dunkel"));
+    CHECK_EQ(back["discord"]["guild_ids"][1].get<uint64_t>(), 123456789012345678ull);
+    CHECK(!config::token_is_plaintext(tmp));
+    fs::remove(tmp);
+    // Zeichen, die TOML sprengen würden
+    ojson odd = config::merge(cfg, {{"display", {{"title", "a\"b\\c\td"}}}});
+    config::save(tmp, odd);
+    CHECK_EQ(config::load(tmp)["display"]["title"].get<std::string>(), std::string("a\"b\\c\td"));
+    fs::remove(tmp);
+    fs::path bak = tmp;
+    bak.replace_extension(".toml.bak");
+    fs::remove(bak);
+}
+
+static void test_secure() {
+    std::string p = secure::protect("Hallo Welt ✓");
+    CHECK(secure::is_protected(p));
+    CHECK_EQ(secure::unprotect(p), std::string("Hallo Welt ✓"));
+    CHECK_EQ(secure::unprotect("klartext"), std::string("klartext"));
+    CHECK_EQ(secure::unprotect("dpapi:!!!"), std::string(""));
+    CHECK_EQ(secure::base64_encode("abc"), std::string("YWJj"));
+    CHECK_EQ(secure::base64_decode("YWI="), std::string("ab"));
+    // Datei mit einem von Version 1.x (Python) verschlüsselten Wert, falls vorhanden
+    if (const char* f = std::getenv("FL_PY_DPAPI")) {
+        std::ifstream in(f);
+        std::string v;
+        std::getline(in, v);
+        CHECK_EQ(secure::unprotect(trim(v)), std::string("kompatibel-1.x"));
+    }
+}
+
+static void test_i18n() {
+    i18n::set_lang("en");
+    CHECK_EQ(tr("Spielt Battlefield 6 · 42 min"), std::string("Playing Battlefield 6 · 42 min"));
+    CHECK_EQ(tr("Hört Numb – Linkin Park"), std::string("Listening to Numb – Linkin Park"));
+    CHECK_EQ(tr("Seite 1/3 · Stand 20:15"), std::string("Page 1/3 · Updated 20:15"));
+    CHECK_EQ(tr("display.theme: erlaubt: hell, dunkel"), std::string("display.theme: allowed: hell, dunkel"));
+    CHECK_EQ(tr("12 Freunde, 3 online"), std::string("12 friends, 3 online"));
+    CHECK_EQ(tr("Unbekannt"), std::string("Unbekannt"));
+    i18n::set_lang("de");
+    CHECK_EQ(tr("Spielt X"), std::string("Spielt X"));
+}
+
+static void test_rss() {
+    std::string rss2 = R"(<?xml version="1.0"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel>
+<title>Mein &amp; Blog</title><item><title><![CDATA[Hallo <b>Welt</b>]]></title><pubDate>Wed, 02 Oct 2002 13:00:00 GMT</pubDate>
+<link> https://x.de/1 </link></item><item><title>Zwei</title><dc:date>2024-01-31T10:00:00+02:00</dc:date></item></channel></rss>)";
+    auto p = rss::parse_feed(rss2, "x.de");
+    CHECK(p.has_value());
+    if (p) {
+        CHECK_EQ(p->name, std::string("Mein & Blog"));
+        CHECK_EQ(p->posts.size(), (size_t)2);
+        CHECK_EQ(p->posts[0].title, std::string("Hallo Welt"));
+        CHECK_EQ(p->posts[0].link, std::string("https://x.de/1"));
+        CHECK(p->posts[0].published && *p->posts[0].published == 1033563600);
+        CHECK(p->posts[1].published && *p->posts[1].published == 1706688000);
+    }
+    std::string atom = R"(<feed xmlns="http://www.w3.org/2005/Atom"><title>Atom-Blog</title>
+<entry><title>Eintrag</title><updated>2024-01-31T08:00:00Z</updated><link href="https://a/b"/></entry></feed>)";
+    auto a = rss::parse_feed(atom, "a");
+    CHECK(a && a->name == "Atom-Blog" && a->posts.size() == 1 && a->posts[0].link == "https://a/b");
+    std::string rdf = R"(<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/">
+<channel><title>RDF</title></channel><item><title>R1</title></item></rdf:RDF>)";
+    auto r = rss::parse_feed(rdf, "fallback");
+    CHECK(r && r->posts.size() == 1 && r->posts[0].title == "R1" && r->name == "fallback");
+    std::string latin = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><rss><channel><title>Gr\xFC\xDF" "e</title>"
+                        "<item><title>\xC4pfel</title></item></channel></rss>";
+    auto l = rss::parse_feed(latin, "l");
+    CHECK(l && l->name == "Grüße" && l->posts[0].title == "Äpfel");
+    CHECK(!rss::parse_feed("<!DOCTYPE x [<!ENTITY a \"b\">]><rss/>", "x"));
+    CHECK(!rss::parse_feed("kein xml", "x"));
+    CHECK(rss::parse_date("Tue, 1 Oct 2024 10:00 +0200") == 1727769600);
+    CHECK(rss::parse_date("2024-10-01") == 1727740800);
+    auto links = rss::discover(R"(<html><link rel="alternate" type="application/rss+xml" href="/feed.xml?a=1&amp;b=2"></html>)",
+                               "https://blog.de/post/1");
+    CHECK(!links.empty() && links[0] == "https://blog.de/feed.xml?a=1&b=2");
+    CHECK_EQ(links.back(), std::string("https://blog.de/index.xml"));
+    CHECK_EQ(rss::html_unescape("&auml;&#228;&#xE4;&bogus;"), std::string("äää&bogus;"));
+}
+
+static void test_urls() {
+    CHECK_EQ(http::url_join("https://a.de/x/y.html", "z.xml"), std::string("https://a.de/x/z.xml"));
+    CHECK_EQ(http::url_join("https://a.de/x/y.html", "../z"), std::string("https://a.de/z"));
+    CHECK_EQ(http::url_join("https://a.de/x/", "/feed"), std::string("https://a.de/feed"));
+    CHECK_EQ(http::url_join("https://a.de/x", "//b.de/f"), std::string("https://b.de/f"));
+    CHECK_EQ(http::url_join("https://a.de/x", "http://c.de/"), std::string("http://c.de/"));
+    auto u = http::parse_url("https://www.heise.de:8443/rss?x=1");
+    CHECK(u.valid && u.host == "www.heise.de" && u.port == 8443 && u.path == "/rss?x=1");
+    CHECK(!http::parse_url("ftp://x").valid);
+}
+
+static void test_netguard() {
+    for (auto ip : {"127.0.0.1", "10.1.2.3", "192.168.178.1", "172.16.0.1", "169.254.1.1", "100.64.0.1", "0.0.0.0", "::1",
+                    "fe80::1", "fd00::1", "::ffff:192.168.0.1", "224.0.0.1", "2001:db8::1"})
+        CHECK(!netguard::is_global_ip(ip));
+    for (auto ip : {"1.1.1.1", "8.8.8.8", "2606:4700:4700::1111", "::ffff:8.8.8.8"}) CHECK(netguard::is_global_ip(ip));
+    CHECK(!netguard::public_url("http://localhost/feed"));
+    CHECK(!netguard::public_url("http://127.0.0.1:8765/api/quit"));
+    CHECK(!netguard::public_url("file:///c:/x"));
+}
+
+static void test_friends() {
+    // Werte wie difflib.SequenceMatcher(None, a, b).ratio()
+    CHECK(std::abs(friends::similarity("fuchsbau", "fuchsbaux") - 0.9411764705882353) < 1e-9);
+    CHECK(std::abs(friends::similarity("abcd", "bcde") - 0.75) < 1e-9);
+    CHECK(std::abs(friends::similarity("papafox", "papafuchs") - 0.625) < 1e-9);
+    CHECK_EQ(friends::norm("Ünïcödé-Fuchs_84"), std::string("unicodefuchs84"));
+    std::vector<friends::Account> acc = {
+        {"discord", "1", "Basti", "online", "Spielt BF6"}, {"steam", "765", "basti", "offline"}, {"xbox", "x1", "B4sti", "online"},
+        {"steam", "766", "Lena", "idle"}};
+    auto merged = friends::merge_accounts(acc, {}, true);
+    CHECK_EQ(merged.size(), (size_t)3);
+    CHECK(merged[0].name == "Basti" && merged[0].platforms.size() == 2 && merged[0].activity == "Spielt BF6");
+    auto linked = friends::merge_accounts(acc, {"Basti|discord:1|xbox:B4sti|steam:765"}, true);
+    CHECK_EQ(linked.size(), (size_t)2);
+    CHECK_EQ(linked[0].platforms.size(), (size_t)3);
+    ojson accounts = ojson::array();
+    for (auto& a : acc) accounts.push_back({{"platform", a.platform}, {"id", a.uid}, {"name", a.name}});
+    ojson sug = friends::suggest_links(accounts, {}, true);
+    CHECK(!sug.empty());
+    nlohmann::json steam = nlohmann::json::parse(
+        R"({"response":{"players":[{"steamid":"7656","personaname":"Fuchs 🦊","personastate":1,"gameextrainfo":"Battlefield 6","avatarmedium":"https://a/b.jpg"}]}})");
+    auto sp = friends::parse_steam_players(steam);
+    CHECK(sp.size() == 1 && sp[0].name == "Fuchs" && sp[0].activity == "Spielt Battlefield 6" && sp[0].status == "online");
+    nlohmann::json xbox = nlohmann::json::parse(
+        R"({"content":{"people":[{"xuid":"1","gamertag":"Fox","presenceState":"Online","presenceText":"Playing Halo"},{"xuid":"2","gamertag":"Off","presenceState":"Offline","presenceText":"Zuletzt online"}]}})");
+    auto xp = friends::parse_xbox_people(xbox);
+    CHECK(xp.size() == 2 && xp[0].activity == "Spielt Halo" && xp[1].status == "offline" && xp[1].activity.empty());
+}
+
+static void test_render(const fs::path& out) {
+    fs::create_directories(out);
+    std::lock_guard rl(render::mutex());
+    for (auto [w, h, tag] : {std::tuple{480, 320, "480x320"}, std::tuple{320, 480, "320x480"}, std::tuple{1920, 720, "1920x720"},
+                             std::tuple{637, 720, "637x720"}}) {
+        for (auto th : {"hell", "dunkel"}) {
+            render::set_theme(th);
+            std::string pre = std::string(tag) + "-" + th + "-";
+            render::Renderer r(w, h, "Discord-Freunde");
+            save_png(out / (pre + "freunde.png"), r.render_friends(render::demo_friends(), 0, true, "", 1792606500));
+            save_png(out / (pre + "welcome.png"), r.welcome("Willkommen!", "Öffne die Einstellungen über das Fuchs-Symbol im "
+                                                                           "Infobereich oder im Browser: 127.0.0.1:8765"));
+            render::Bf6Renderer b(w, h, "Battlefield 6 · Rangliste");
+            save_png(out / (pre + "bf6.png"), b.render(render::demo_players(), 0, 1792606500, 1792606500));
+            render::RssRenderer rr(w, h, "Blog-Updates");
+            std::vector<Post> posts = {{"Beispiel-Blog", "Ein kurzer Titel für die Vorschau", 1792606500 - 600, ""},
+                                       {"Noch ein Blog", "Zweiter Beitrag mit etwas längerem Titel, der umbricht und noch weiter geht als gedacht", 1792606500 - 7200, ""},
+                                       {"heise online", "heise+ | Test: Sehr langer Titel mit Präfix", std::nullopt, ""}};
+            save_png(out / (pre + "blogs.png"), rr.render(posts, 1792606500, 1792606500));
+            render::SysRenderer sr(w, h, "System", "bit");
+            SysSnapshot sn;
+            sn.cpu_name = "Ryzen 7 5700X";
+            sn.cpu_pct = 23; sn.cpu_ghz = 4.45; sn.cpu_temp = 61; sn.cpu_fan = 1180;
+            sn.gpu_name = "RTX 4070"; sn.gpu_pct = 91; sn.gpu_temp = 77; sn.gpu_fan = 45; sn.gpu_mem_used = 5300; sn.gpu_mem_total = 12282;
+            sn.ram_pct = 48; sn.ram_used = 15.4; sn.ram_total = 32;
+            sn.disk_pct = 71; sn.net_name = "Skynet"; sn.net_down = 2.5e6; sn.net_up = 180e3; sn.hwinfo = true;
+            for (int i = 0; i < 60; ++i) {
+                sn.down_hist.push_back(1e6 + 1e6 * std::sin(i / 6.0));
+                sn.up_hist.push_back(2e5 + 1e5 * std::cos(i / 5.0));
+            }
+            save_png(out / (pre + "system.png"), sr.render(sn, 1792606500));
+        }
+    }
+    auto write = [&](const char* name, const std::string& png) {
+        std::ofstream f(out / name, std::ios::binary);
+        f.write(png.data(), (std::streamsize)png.size());
+    };
+    write("setup-neu.png", installer::preview_png(false, false, 0, "", 1.0f));
+    write("setup-update.png", installer::preview_png(true, true, 0, "", 1.5f));
+    write("setup-arbeit.png", installer::preview_png(true, true, 1, tr("Dateien werden kopiert …"), 1.0f));
+    write("setup-fehler.png", installer::preview_png(false, false, 3,
+        tr("Die laufende App ließ sich nicht beenden. Bitte über das Fuchs-Symbol beenden und erneut versuchen."), 1.0f));
+    render::set_theme("eigen", {{"header", "#202020"}, {"bg", "#FFFFFF"}});
+    render::Renderer r(480, 320, "Eigen");
+    save_png(out / "480x320-eigen-freunde.png", r.render_friends(render::demo_friends(), 0, true, "", 1792606500));
+    render::set_theme("hell");
+}
+
+#include <dpp/dpp.h>
+
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+#include <openssl/x509_vfy.h>
+
+static void ssl_probe(bool winstore) {
+    SSL_CTX* ctx = SSL_CTX_new(TLS_client_method());
+    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, nullptr);
+    int dp = SSL_CTX_set_default_verify_paths(ctx);
+    int ws = winstore ? SSL_CTX_load_verify_store(ctx, "org.openssl.winstore://") : -1;
+    std::printf("default_paths=%d winstore=%d file=%s dir=%s\n", dp, ws, X509_get_default_cert_file(), X509_get_default_cert_dir());
+    BIO* b = BIO_new_ssl_connect(ctx);
+    SSL* ssl = nullptr;
+    BIO_get_ssl(b, &ssl);
+    SSL_set_tlsext_host_name(ssl, "discord.com");
+    SSL_set1_host(ssl, "discord.com");
+    BIO_set_conn_hostname(b, "discord.com:443");
+    int rc = BIO_do_handshake(b);
+    std::printf("handshake=%d verify=%ld (%s) err=%lu\n", rc, SSL_get_verify_result(ssl),
+                X509_verify_cert_error_string(SSL_get_verify_result(ssl)), ERR_get_error());
+    BIO_free_all(b);
+    SSL_CTX_free(ctx);
+}
+
+static bool argc_probe_winstore = false;
+static int dpp_probe() {
+    // Diagnose: kann D++ (OpenSSL) eine HTTPS-Verbindung zu Discord aufbauen?
+    if (argc_probe_winstore) _putenv_s("SSL_CERT_URI", "org.openssl.winstore://");
+    dpp::cluster c("x", 0, 0, 0, 1, true, dpp::cache_policy::cpol_none, 1);
+    c.on_log([](const dpp::log_t& e) { std::printf("[%d] %s\n", (int)e.severity, e.message.c_str()); });
+    std::atomic<bool> done{false};
+    c.start(dpp::st_return);
+    Sleep(3000);
+    c.request("https://discord.com/api/v10/gateway", dpp::m_get, [&](const dpp::http_request_completion_t& r) {
+        std::printf("Status %u, Fehler %d, %zu Bytes: %.200s\n", r.status, (int)r.error, r.body.size(), r.body.c_str());
+        done = true;
+    });
+    for (int i = 0; i < 100 && !done; ++i) Sleep(100);
+    return done ? 0 : 1;
+}
+
+int main(int argc, char** argv) {
+    SetConsoleOutputCP(CP_UTF8);
+    gfx_init();
+    if (argc >= 2 && std::string(argv[1]) == "dpp") {
+        argc_probe_winstore = argc >= 3;
+        ssl_probe(false);
+        ssl_probe(true);
+        return dpp_probe();
+    }
+    if (argc >= 3 && std::string(argv[1]) == "render") {
+        i18n::set_lang(argc >= 4 ? argv[3] : "de");
+        test_render(argv[2]);
+        std::printf("Bilder geschrieben: %s\n", argv[2]);
+        return 0;
+    }
+    setvbuf(stdout, nullptr, _IONBF, 0);
+    std::set_terminate([] {
+        try {
+            if (auto e = std::current_exception()) std::rethrow_exception(e);
+        } catch (const std::exception& ex) {
+            std::printf("Ausnahme: %s\n", ex.what());
+        } catch (...) {
+        }
+        std::abort();
+    });
+    for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}}) {
+        std::printf("· %s\n", name);
+        fn();
+    }
+    std::printf("%d Prüfungen bestanden, %d fehlgeschlagen\n", g_ok, g_fail);
+    return g_fail ? 1 : 0;
+}

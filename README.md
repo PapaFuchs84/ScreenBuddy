@@ -226,3 +226,7 @@ Dir gefällt die App? Über einen Kaffee freut sich FuchsLabs: [☕ paypal.me/SH
 Keine Open-Source-Lizenz: © 2026 FuchsLabs, alle Rechte vorbehalten. Der Quellcode ist nur für eingeladene Mitwirkende und Tester sichtbar und darf ohne Zustimmung nicht weitergegeben werden.
 
 Battlefield, Discord, Steam und Xbox sind Marken ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen.
+
+## C++-Version 2.0
+
+Die native Windows-Version mit eigenem Einstellungsfenster und integriertem Installer liegt unter [cpp/](cpp/README.md). [Testprotokoll](cpp/TESTPROTOKOLL.md). WebView2 Evergreen Runtime erforderlich.

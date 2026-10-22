@@ -1,0 +1,10 @@
+build/
+dist/
+vcpkg_installed/
+webview2_installed/
+*.log
+config.toml
+*.WebView2/
+!res/app.ico
+!res/ANLEITUNG.html
+!res/GUIDE.html
