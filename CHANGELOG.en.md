@@ -7,6 +7,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ## [Unreleased]
 
 ### Changed
+- Illustrated guide (ANLEITUNG.html / GUIDE.html) updated to C++ 2.0: download of the single EXE instead of a ZIP, built-in installer (no administrator rights, 1.x migration), dedicated settings window (WebView2), tray autostart, uninstall via Windows Apps.
 - When starting with Windows, the app starts quietly in the notification area without opening the settings page (autostart entry with `--autostart`; older entries are switched over on the next start). No extra browser tab opens after a restart from the settings either.
 
 ### Security

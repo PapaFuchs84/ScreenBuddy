@@ -219,31 +219,30 @@ const STEPS = [
 <p class="kicker">Get ready</p><h1>Here's what you need</h1>
 <ol class="do">
 <li><b>The display</b> with its <b>USB cable</b>.</li>
-<li><b>A Windows PC</b> with internet.</li>
-<li><b>The file <span class="key">FuchsLabs-USB-Display-1.2.zip</span></b>. You got it from whoever sent you this guide.</li>
+<li><b>A Windows PC</b> (Windows 10 or 11, 64-bit) with internet.</li>
+<li><b>The file <span class="key">FuchsLabs-USB-Display.exe</span></b>. You download it in the next step. There is no ZIP to unpack.</li>
+<li><b>Microsoft Edge WebView2</b>. It's a building block of Windows that the settings window needs. Most PCs already have it. If it's missing, the program tells you.</li>
 ${sel.discord ? '<li><b>Your Discord account</b> and a Discord server where you are the boss (admin). If you\'re not, ask the server\'s boss to help you.</li>' : ''}
 ${sel.friends ? '<li><b>Your Steam account</b> and/or <b>your Xbox account</b>.</li>' : ''}
 ${sel.bf6 ? '<li><b>The EA names</b> of you and your Battlefield friends.</li>' : ''}
 </ol>
+<div class="box tip"><p>You do <b>not</b> need administrator rights. The program is only installed for your own Windows account.</p></div>
 <div class="box tip"><p>It's best to ask a grown-up or an older brother or sister to help when Windows asks something you don't understand.</p></div>`},
 
-{t: 'Unpack the folder', html: () => `
-<p class="kicker">Unpack</p><h1>Unpack the ZIP file</h1>
-<p class="lead">The ZIP file is like a parcel. Before you can use the program, you need to unpack it.</p>
+{t: 'Get the program', html: () => `
+<p class="kicker">Download</p><h1>Download the program</h1>
+<p class="lead">The program is <b>one single file</b>. There is nothing to unpack.</p>
 <ol class="do">
-<li>Click the file <span class="key">FuchsLabs-USB-Display-1.2.zip</span> with the <b>right mouse button</b>.</li>
-<li>Click <b>“Extract All …”</b>.</li>
-<li>In the new window, click ${g('Extract')} at the bottom right.</li>
+<li>Open this page: <a href="https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0" target="_blank" rel="noopener">Version 2.0.0 on GitHub</a>. Or use the file from whoever sent you this guide.</li>
+<li>Download the file <span class="key">FuchsLabs-USB-Display.exe</span>.</li>
+<li>It normally lands in your <b>Downloads</b> folder.</li>
 </ol>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock win">
 <div class="tb">📁 Downloads<span>— ☐ ✕</span></div>
-<div class="files" style="min-height:230px;position:relative">
-<div class="file sel"><div class="fi">🗜️</div>FuchsLabs-USB-Display-1.2.zip
-<div class="ctx"><div>Open</div><div class="hl"><b>Extract All …</b></div><div>Copy</div><div>Rename</div><div>Properties</div></div></div>
-</div></div></figure>
-<div class="box tip"><p>Put the unpacked folder somewhere it can stay, for example in <b>Documents</b>. Not in the Recycle Bin and not on a USB stick you'll unplug again.</p></div>
-${help([['I can\'t find the ZIP file.', 'Look in the <b>Downloads</b> folder. You can find it in File Explorer (the yellow folder icon in the taskbar) in the list on the left.'],
-  ['There is no “Extract All”.', 'On Windows 11, first click <b>“Show more options”</b>. Or double-click the ZIP file and click <b>“Extract all”</b> at the top.']])}`},
+<div class="files"><div class="file sel hlbtn"><img src="${IMG.icon}" alt=""><br>FuchsLabs-USB-Display.exe</div></div></div></figure>
+<div class="box tip"><p>The file does <b>not</b> need to be in a special place. When you install, the program copies itself to the right spot.</p></div>
+${help([['I can\'t find the file.', 'Look in the <b>Downloads</b> folder. You can find it in File Explorer (the yellow folder icon in the taskbar) in the list on the left.'],
+  ['The browser says the file is “not commonly downloaded”.', 'The program is new and not known yet. If you got it from the right page, choose <b>Keep</b>.']])}`},
 
 {t: 'Plug in the display', html: () => `
 <p class="kicker">Connect</p><h1>Plug in the display</h1>
@@ -254,29 +253,33 @@ ${help([['I can\'t find the ZIP file.', 'Look in the <b>Downloads</b> folder. Yo
 <p>The display may stay dark or show its own picture. That's fine. You'll start the program in a moment, and then it lights up.</p>
 <div class="box tip"><p>Use a USB port <b>directly on the PC</b> if you can, not one on a USB hub.</p></div>`},
 
-{t: 'Start the program', html: () => `
-<p class="kicker">Start</p><h1>Start the program</h1>
+{t: 'Install', html: () => `
+<p class="kicker">Install</p><h1>Start the program and install it</h1>
 <ol class="do">
-<li>Open the unpacked folder <span class="key">FuchsLabs-USB-Display</span>.</li>
 <li><b>Double-click</b> <span class="key">FuchsLabs-USB-Display.exe</span>. That's the file with the orange icon.</li>
+<li>A small window opens. It shows where the program will go: <span class="key">%LOCALAPPDATA%\FuchsLabs\USB-Display</span>, so only into your own account.</li>
+<li>You can tick boxes: <b>Start with Windows</b> and <b>Start menu entry</b>. Both are a good idea.</li>
+<li>Click ${b('Install')}. Wait a moment. Then it says <b>“Done! The app is starting now.”</b></li>
 </ol>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock win">
-<div class="tb">📁 FuchsLabs-USB-Display<span>— ☐ ✕</span></div>
-<div class="files"><div class="file"><div class="fi">📁</div>_internal</div>
-<div class="file"><div class="fi">📄</div>GUIDE.html</div>
-<div class="file sel hlbtn"><img src="${IMG.icon}" alt=""><br>FuchsLabs-USB-Display.exe</div>
-<div class="file"><div class="fi">📄</div>README.en.md</div></div></div></figure>
+<div class="tb">FuchsLabs USB-Display – Installation<span>— ☐ ✕</span></div>
+<div class="files" style="display:block;padding:16px;text-align:left">
+<p style="margin:0 0 8px"><b>Installation · Version 2.0.0</b></p>
+<p style="margin:0 0 8px">☑ Start with Windows (only the fox icon in the notification area)<br>☑ Start menu entry</p>
+<p style="margin:0;text-align:right"><span class="btnname hlbtn">Install</span></p></div></div></figure>
+<div class="box tip"><p><b>Did you have version 1.x?</b> Then one more tick box appears: <b>“Retire the old 1.x version”</b>. Leave it on: your settings and credentials are carried over. The old folder gets the suffix <span class="key">-1.x-alt</span> and stays as a backup.</p></div>
 <h2>A blue window might pop up now</h2>
-<p>Windows doesn't know the program yet and prefers to ask once. That's normal. <b>Try it out here</b> by clicking in the window below:</p>
+<p>Windows doesn't know the program yet (it isn't digitally signed yet) and prefers to ask once. That's normal. <b>Try it out here</b> by clicking in the window below:</p>
 <figure><span class="real">✏️ For practice, this isn't the real window yet</span><div class="mock">
 <div class="ss" id="ss"><h3>Windows protected your PC</h3>
 <p>Microsoft Defender SmartScreen prevented an unrecognised app from starting.</p>
 <button class="lnk hlbtn" id="ssmore">More info</button>
 <div class="row"><button>Don't run</button></div></div></div></figure>
 <p id="ssdone" class="ok" hidden>Great, that's exactly how it works! Now do the same in the real window.</p>
-${help([['Nothing happens.', 'Wait 10 seconds. The program needs a moment the first time. Then check whether your browser has opened.'],
+${help([['Nothing happens.', 'Wait 10 seconds. The program needs a moment the first time. Then look for the orange icon at the bottom right next to the clock.'],
   ['It says “Windows protected your PC” and there is no “Run anyway”.', 'Then your PC is set up strictly. Ask the grown-up who looks after the PC.'],
-  ['My antivirus complains.', 'The program is new and not known yet. Ask whoever gave you the program whether everything is OK, and then allow it.']])}`,
+  ['My antivirus complains.', 'The program is new and not known yet. Ask whoever gave you the program whether everything is OK, and then allow it.'],
+  ['It says the running app could not be closed.', 'Quit the old app via the fox icon at the bottom right (right-click, <b>Quit</b>) and start the installation again.']])}`,
  init: () => {
   const ss = document.getElementById('ss'), more = document.getElementById('ssmore');
   more.onclick = () => {
@@ -287,23 +290,24 @@ ${help([['Nothing happens.', 'Wait 10 seconds. The program needs a moment the fi
  }},
 
 {t: 'The settings page', html: () => `
-<p class="kicker">Check</p><h1>Your browser opens by itself</h1>
-<p class="lead">A window opens in your browser. That's the <b>settings page</b>. You set everything up there. It belongs only to you and isn't on the internet.</p>
+<p class="kicker">Check</p><h1>The settings open by themselves</h1>
+<p class="lead">After installing, a window of its own opens. That's the <b>settings page</b>. You set everything up there. It belongs only to you and isn't on the internet.</p>
 <p>First switch the language: under <b>“Sprache · Language”</b> choose <b>English</b>. Then look at the <b>“Status”</b> box. Next to <b>Display</b> it should say <b>“Connected”</b>.</p>
 ${shot('start', [[286, 196, 869, 63]], 'It says “Connected” next to “Display”: all good!')}
 <p>If that works, your little display lights up now too. 🎉</p>
 ${help([['It says “The display\'s vendor app is running”.', `Click ${g('Close vendor app')} next to it. If <b>“Vendor app autostart”</b> appears below it, click ${g('Turn off')} there. Windows then asks once whether you allow it: click <b>Yes</b>.`],
   ['It says “Display not found”.', 'Unplug the USB cable and plug it back in. Try another USB port on the PC. Then wait a few seconds.'],
-  ['The browser didn\'t open.', 'At the bottom right next to the clock there is a small orange icon. Double-click it. The next step explains this in more detail. Or type this into your browser\'s address bar: <span class="key">127.0.0.1:8765</span>'],
+  ['A message says WebView2 is missing.', 'Then Windows lacks the “Microsoft Edge WebView2” building block. Install the <b>WebView2 runtime</b> from Microsoft and start the program again.'],
+  ['The window didn\'t open.', 'At the bottom right next to the clock there is a small orange icon (maybe behind the arrow <span class="key">^</span>). Double-click it.'],
   ['The picture on the display is upside down.', 'No problem, you\'ll fix that in the step “Rotate picture and brightness”.']])}`},
 
 {t: 'Start with Windows', html: () => `
 <p class="kicker">Turn on</p><h1>The display should always come on by itself</h1>
 <p class="lead">So you don't have to start the program yourself every time:</p>
-<ol class="do"><li>On the <b>Start</b> page, turn on the <b>“Start with Windows”</b> switch. It turns orange.</li></ol>
+<ol class="do"><li>On the <b>Start</b> page, turn on the <b>“Start with Windows”</b> switch. It turns orange. (If you ticked this during installation, it's already on.)</li></ol>
 ${shot('start', [[1088, 280, 62, 40]], 'Tap this switch until it is orange.')}
 <div class="box tip"><p>This page also has the ${b('Open guide ↗')} button. It brings you back to this guide at any time.</p></div>
-<div class="box tip"><p>From now on the program starts by itself when you sign in to Windows. You can turn it off here the same way.</p></div>`},
+<div class="box tip"><p>From now on the program starts by itself when you sign in to Windows. It then only shows the small fox icon at the bottom right; the settings don't open on their own. You can turn it off here the same way.</p></div>`},
 
 {t: 'Choose pages', html: () => `
 <p class="kicker">Choose</p><h1>Which pages does the display show?</h1>
@@ -428,7 +432,7 @@ ${help([['It says “No feed found”.', 'Some sites don\'t offer an article lis
 <p class="kicker">My PC</p><h1>The PC page is already running</h1>
 <p class="lead">You don't need to do anything here. The page immediately shows how hard your PC is working.</p>
 <figure><div class="shot" data-zoom style="max-width:520px"><img src="${IMG.page_system}" alt="System page"></div></figure>
-<div class="box tip"><p><b>For pros:</b> Is there only a dash “–” for CPU temperature and fan? For that the PC needs the free program <b>HWiNFO64</b>. Install it from <a href="https://www.hwinfo.com/" target="_blank" rel="noopener">hwinfo.com</a>, then right-click <span class="key">hwinfo-einrichten.bat</span> in the folder and choose <b>“Run as administrator”</b>. Best ask a grown-up for help with this.</p></div>`},
+<div class="box tip"><p><b>For pros:</b> Is there only a dash “–” for CPU temperature and fan? For that the PC needs the free program <b>HWiNFO64</b>. Install it from <a href="https://www.hwinfo.com/" target="_blank" rel="noopener">hwinfo.com</a>. Start it and turn on <b>Shared Memory Support</b> in its settings. Best ask a grown-up for help with this.</p></div>`},
 
 {t: 'Save', html: () => `
 <p class="kicker">Very important</p><h1>Don't forget to save!</h1>
@@ -439,30 +443,31 @@ ${shot('bar', [[828, 14, 190, 44]], 'Press this button.', 1050, 70)}
 <li>Wait about <b>10 seconds</b>. The display restarts briefly.</li>
 <li>Done! Your display now shows your pages, one after the other.</li>
 </ol>
-<div class="box warn"><p>If you close the page without saving, your change is lost. But your browser warns you first.</p></div>`},
+<div class="box warn"><p>If you close the window without saving, your change is lost.</p></div>`},
 
 {t: 'Find it again', html: () => `
 <p class="kicker">Later</p><h1>How to find the settings again</h1>
 <p class="lead">The program runs quietly in the background. It has a small <b>orange icon</b> at the bottom right next to the clock.</p>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
-<span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>21/10/2026</div></div></div></figure>
+<span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22/10/2026</div></div></div></figure>
 <ol class="do">
 <li>Can't see the icon? Click the little arrow <span class="key">^</span>.</li>
-<li><b>Double-click</b> the orange icon. The settings page opens.</li>
-<li>With a <b>right-click</b> on the icon you can also <b>quit</b> the program.</li>
+<li><b>Double-click</b> the orange icon. The settings open.</li>
+<li>With a <b>right-click</b> on the icon you see: <b>Open settings</b>, <b>Restart</b> and <b>Quit</b>.</li>
+<li>If you ticked the Start menu entry, you'll also find the program there: <b>FuchsLabs USB-Display</b>.</li>
 </ol>
-<div class="box tip"><p>You can also simply double-click <span class="key">FuchsLabs-USB-Display.exe</span> again. That opens the settings page too.</p></div>`},
+<div class="box tip"><p>Closing the window only hides the settings. The display keeps running.</p></div>`},
 
 {t: 'Done!', html: () => `
 <div class="party">🎉</div>
 <h1 style="text-align:center">You did it! Your display is ready.</h1>
 <p class="lead" style="text-align:center">You've set everything up. Now you can watch the pages change.</p>
 <h2>If something doesn't work later</h2>
-${help([['The display stays dark.', 'Check whether the orange icon is at the bottom right. If not: double-click <span class="key">FuchsLabs-USB-Display.exe</span>. Then see what it says under “Status” on the <b>Start</b> page.'],
+${help([['The display stays dark.', 'Check whether the orange icon is at the bottom right. If not: open the program from the Start menu (or double-click the EXE). Then see what it says under “Status” on the <b>Start</b> page.'],
   ['The picture looks shifted or strange.', 'Briefly unplug the cable and plug it back in. Or click <b>Restart</b> on the <b>Display</b> page.'],
   ['The display is too dark.', 'On the <b>Overview</b> page, slide <b>Brightness</b> to the right, then <b>Save &amp; apply</b>.'],
-  ['I want to get rid of the program.', 'On the <b>Start</b> page, turn off “Start with Windows”. Then right-click the orange icon and choose <b>Quit</b>. After that you can delete the folder.']], 'Help with problems')}
+  ['I want to get rid of the program.', 'Open Windows <b>Settings → Apps</b>, choose <b>FuchsLabs USB-Display</b> and click <b>Uninstall</b>. Windows asks whether your settings and credentials should be deleted too.']], 'Help with problems')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Have fun! · © 2026 FuchsLabs</p>`}
 ];
 
