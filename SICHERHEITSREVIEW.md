@@ -1,5 +1,7 @@
 # FuchsLabs USB-Display 1.1 – Sicherheits- und Performance-Review
 
+> **Historischer Prüfbericht zur Python-Version 1.x.** Keine vollständige Sicherheitsprüfung der C++-Version 2.0. Aktueller Funktionsprüfstand: [cpp/TESTPROTOKOLL.md](cpp/TESTPROTOKOLL.md).
+
 Stand 21.10.2026, geprüft auf Meanmachine (Quellcode `usb-display-src`, installierte EXE `USB-Display`).
 
 ## Ergebnis in Kürze

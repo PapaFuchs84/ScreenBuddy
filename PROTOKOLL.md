@@ -46,3 +46,7 @@ Kurzer Verlauf, wie die App entstanden ist, und welche Entscheidungen dabei gefa
 ## Abschluss 22.10.2026
 
 C++ 2.0 und bisherige App nacheinander an COM7 getestet: beide display_ok=true, physische Anzeige durch den Nutzer bestätigt. Natives Einstellungsfenster sichtbar geprüft. PC auf 2.0 umgestellt, Einstellungen übernommen und Autostart aktualisiert. Details: `cpp/TESTPROTOKOLL.md`.
+
+## Nachtrag: echter Windows-Neustarttest
+
+Der erste Neustarttest scheiterte. Installation und Registryeintrag waren im Windows-Paketkontext von Codex umgeleitet; außerhalb dieses Kontexts fehlte die 2.0-EXE am vorgesehenen Ziel. Installer anschließend als normaler Windows-Prozess ausgeführt, Einstellungen übernommen und tatsächlichen Pfad/Hash/Autostarteintrag sowie display_ok=true geprüft. Erneuter realer Neustarttest bis zur Rückmeldung offen.

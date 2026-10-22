@@ -4,7 +4,7 @@ Native Windows C++20 port of FuchsLabs USB-Display. The application and installe
 
 ## Install and first start
 
-1. Start `FuchsLabs-USB-Display.exe` from Downloads or another folder.
+1. Download the EXE from [v2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0), then start it from Downloads or another folder. This release is an unsigned prerelease.
 2. Choose the options in the installer. The default location is `%LOCALAPPDATA%\FuchsLabs\USB-Display`; no administrator rights are required.
 3. On first start, settings open in their own Windows window. Open them later from the fox icon in the notification area. Configure the display and optional Discord, Steam, Xbox, Battlefield 6, and RSS data there.
 
@@ -38,4 +38,8 @@ Dependencies are linked statically, including D++ and OpenSSL. OpenSSL on Window
 
 ## Validation status
 
-Release build: 86 checks passed. The native settings window was opened and visibly verified on Windows. Version 1.x and C++ 2.0 both reported display_ok=true on COM7 using the same settings; the user confirmed correct orientation, colours, readability and page changes. The integrated installer migrated the settings and updated autostart. A real Windows sign-in test remains pending. See TESTPROTOKOLL.md. The EXE is unsigned and requires the WebView2 Evergreen Runtime.
+Release build: 86 checks passed. The native settings window was opened and visibly verified on Windows. Version 1.x and C++ 2.0 both reported display_ok=true on COM7 using the same settings; the user confirmed correct orientation, colours, readability and page changes. The integrated installer migrated the settings and updated autostart. A real Windows sign-in test remains pending. See [TESTPROTOKOLL.md](TESTPROTOKOLL.md). The EXE is unsigned and requires the WebView2 Evergreen Runtime.
+
+## Installing from automation
+
+Run the installer in the ordinary Windows user context. A packaged host can redirect LocalAppData and registry writes into its package sandbox; its own file/registry checks then do not establish that Windows sign-in sees those files. The first real reboot test exposed this on 22 October 2026. Reinstallation from an ordinary Windows process verified the actual EXE, hash and Run entry outside the package context; the final reboot retest is pending.

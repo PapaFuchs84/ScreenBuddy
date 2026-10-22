@@ -1,53 +1,41 @@
-# Contributing to FuchsLabs USB-Display
+# Contributing to FuchsLabs USB-Display 2.0
 
 [Deutsch](CONTRIBUTING.md) · **English**
 
-Great that you want to help! The repository is private; anyone invited by FuchsLabs can contribute.
-
-## Bugs and ideas
-
-- Report **bugs** via *Issues → New issue → Bug report*, **ideas** via *Idea or feedback*. What a good report needs and where the log is: [`TESTPHASE.en.md`](TESTPHASE.en.md).
-- **Security vulnerabilities** never as an issue, but as described in [`SECURITY.en.md`](SECURITY.en.md).
+The current implementation is C++20 under `cpp/`. Root Python files remain the historical Version 1.x source. Public visibility does not change the project's licence.
 
 ## Development setup
 
-Windows 10/11, Python 3.11+ (64-bit), Git.
+Windows x64, Visual Studio Build Tools 2022 with C++/Windows SDK and CMake/Ninja, Git, and a bootstrapped vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`.
 
 ```bat
 git clone https://github.com/PapaFuchs84/fuchslabs-usb-display.git
-cd fuchslabs-usb-display
-build.bat
-.venv\Scripts\python fuchslabs_display.py --no-lcd
+cd fuchslabs-usb-display\cpp
+build.bat nopause
+build\FuchsLabs-USB-Display.exe --run --no-lcd -c test.toml
 ```
 
-`build.bat` creates the `.venv` and builds the EXE. With `--no-lcd` the app runs without a display, and the settings page is at `http://127.0.0.1:8765/`. Sample pictures of all pages without hardware: `--demo --no-lcd --preview preview`.
+Run from a developer terminal with CMake/Ninja available. `cpp/build.bat` builds Release, runs checks and copies the single app/installer EXE to `cpp/dist/`. The root `build.bat` still builds Python 1.x. WebView2 Evergreen Runtime must be installed separately to use the settings window. See [build notes](cpp/README.md#build).
 
 ## Workflow
 
-1. Create a branch from `main` for each change, e.g. `fix/display-reconnect` or `feature/new-page`.
-2. Small, self-contained commits with a clear message. The project's commit messages are German; English is fine too.
-3. Before the pull request:
-   - `.venv\Scripts\python test_friends.py` passes.
-   - The app starts with `--no-lcd`, and affected pages look right with `--demo --preview` (light and dark, German and English).
-   - Visible changes are listed under **[Unreleased]** in [`CHANGELOG.md`](CHANGELOG.md) and [`CHANGELOG.en.md`](CHANGELOG.en.md); new settings also in [`DOKUMENTATION.md`](DOKUMENTATION.md).
-4. Open a pull request against `main` and briefly describe: before, after, how you tested. Attach a picture for visual changes.
+1. Branch from `main`, make focused changes and explain the resulting behavior.
+2. Compile and run checks appropriate to the change. `cpp/build/fl-tests.exe` covers core behavior; use `--demo --no-lcd --preview preview` for sample output.
+3. Check affected UI in German and English. Hardware tests require exclusive access to the COM port: stop the other display app first.
+4. Record visible changes in both root changelogs and update the reference. Report tests not run and unresolved issues explicitly.
+5. Open a pull request against `main` with validation details; use sample data in screenshots.
 
 ## Code rules
 
-- **Style:** Python like the existing code. Code comments and source texts are German.
-- **Languages:** every text a user sees exists in German and English. App and display texts are translated in `i18n.py`, settings page texts in the `EN` table in `webui.html`. Settings page texts should be simple enough for a child to understand.
-- **Lightweight:** the app runs permanently in the background. No new dependencies without a good reason; packages are pinned to exact versions in `requirements.txt`.
-- **Design:** colours and logo only from `brand.py`. Windows fonts only (Bahnschrift, Segoe UI), no web fonts.
-- **Display:** pages draw in logical 480 × 320 coordinates; `render.py` scales to the real resolution. No brightness commands during an image transfer.
-- **Data sources:** official or public APIs only. Nothing that violates terms of service or puts accounts at risk (no Discord self-bot, no unofficial PlayStation access).
-- **New login fields** in the settings page get fold-out help with a link to the right page.
+- Follow existing C++20 style, use RAII and keep background work bounded.
+- App/display translations: `cpp/src/i18n.cpp`; settings translations: `cpp/res/webui.html`.
+- Colours/logo: `cpp/src/brand.h`; rendering: `gfx.cpp` and `render.cpp`. Windows fonts only; no brightness commands during a display frame transfer.
+- Dependency changes: `cpp/vcpkg.json`, its pinned baseline and `cpp/overlay-ports/`. Keep third-party licence notices.
+- Use only authorized/public data APIs; do not implement Discord self-bots or unofficial PlayStation logins.
+- Store credentials through `cpp/src/secure.cpp` (Windows DPAPI). Never commit configuration, credentials, logs or private screenshots; review `git diff --cached`.
 
-## Secrets and private data
+## Versions and reports
 
-- **Never commit:** `config.toml`, tokens, API keys, logs, build folders. `.gitignore` covers this; still check `git status` before every commit.
-- Store credentials only via `secure.py` (DPAPI), never write them to the log, never return them to the browser.
-- **Screenshots** with sample names only. `anleitung/screenshots.mjs` replaces private names (`FL_LANG=en` for English); look at every picture yourself before committing.
+Update `cpp/CMakeLists.txt`, `cpp/src/util.h` and `cpp/res/app.rc` consistently for a code release. Publish EXE plus SHA-256 checksum and state runtime prerequisites and outstanding tests. Documentation-only changes do not replace an already published EXE.
 
-## Versions
-
-Versions follow [SemVer](https://semver.org/). For a release: bump the version in `webui.py` and `version-info.txt`, move *Unreleased* in both changelogs to the new version, set the tag `vX.Y`.
+Bugs: [feedback guide](TESTPHASE.en.md). Vulnerabilities: [SECURITY.en.md](SECURITY.en.md); do not disclose secrets in a public issue. The old [review](SICHERHEITSREVIEW.md) is not a complete C++ audit.

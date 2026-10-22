@@ -15,8 +15,8 @@ What always matters: **what you did, what happened, and what you expected.** A p
 
 The app writes everything important to the file **`usb-display.log`**:
 
-- usually **in the app's folder**, next to `FuchsLabs-USB-Display.exe`,
-- if the app is in a folder without write access (e.g. “Program Files”), in `%APPDATA%\FuchsLabs\USB-Display\` instead.
+- Version 2.0 regular installation: `%LOCALAPPDATA%\FuchsLabs\USB-Display\usb-display.log`.
+- A custom `--log FILE` overrides the path.
 
 The file contains **no tokens or keys**. It may contain names of your friends, servers and games, though. Have a quick look and replace anything you don't want to share before attaching it. For more detail, start the app once with `-v` (shortcut or command prompt: `FuchsLabs-USB-Display.exe -v`).
 
@@ -25,3 +25,7 @@ The file contains **no tokens or keys**. It may contain names of your friends, s
 ## Wishes and ideas
 
 Under **Issues → New issue → Idea or feedback / Idee oder Rückmeldung** you can tell us anything you like, miss or find awkward.
+
+## Windows reboot test
+
+After signing in, check the physical display, fox tray icon and whether settings open in their own Windows window. Report the app version, whether images keep updating and any error. The first test failed; confirmation of the corrected installation is pending.
