@@ -26,18 +26,36 @@ def launch_command() -> str:
 
 
 # ---------- Autostart ----------
+AUTOSTART_FLAG = "--autostart"   # Start mit Windows: nur ins Tray, keine Einstellungsseite öffnen
+
+
+def autostart_command() -> str:
+    return f"{launch_command()} {AUTOSTART_FLAG}"
+
+
 def autostart_enabled() -> bool:
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as k:
-            return winreg.QueryValueEx(k, RUN_NAME)[0] == launch_command()
+            return winreg.QueryValueEx(k, RUN_NAME)[0] in (autostart_command(), launch_command())
     except OSError:
         return False
+
+
+def upgrade_autostart() -> None:
+    """Autostart-Einträge älterer Versionen (ohne --autostart) auf den stillen Start umstellen."""
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as k:
+            old = winreg.QueryValueEx(k, RUN_NAME)[0] == launch_command()
+    except OSError:
+        return
+    if old:
+        set_autostart(True)
 
 
 def set_autostart(enabled: bool) -> None:
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
         if enabled:
-            winreg.SetValueEx(k, RUN_NAME, 0, winreg.REG_SZ, launch_command())
+            winreg.SetValueEx(k, RUN_NAME, 0, winreg.REG_SZ, autostart_command())
         else:
             try:
                 winreg.DeleteValue(k, RUN_NAME)

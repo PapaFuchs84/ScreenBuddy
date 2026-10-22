@@ -6,6 +6,15 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unveröffentlicht]
 
+### Geändert
+- Beim Start mit Windows startet die App still im Infobereich, ohne die Einstellungsseite zu öffnen (Autostart-Eintrag mit `--autostart`; ältere Einträge werden beim nächsten Start umgestellt). Auch nach einem Neustart aus den Einstellungen öffnet sich kein weiterer Browser-Tab.
+
+### Sicherheit
+- CodeQL-Prüfung auf GitHub. Schutz vor Abrufen ins Heimnetz (SSRF) gilt für jeden Blog-Abruf und jede Weiterleitung (`rss.public_url`).
+
+### Behoben
+- Prozentwerte in der Einstellungsseite (Helligkeit zeigte nach einer automatischen Korrektur „90 90“).
+
 ## [1.2] – 2026-10-21
 
 ### Hinzugefügt

@@ -418,6 +418,8 @@ def main() -> int:
     ap.add_argument("--preview", metavar="ORDNER", help="Bilder zusätzlich als PNG speichern")
     ap.add_argument("--log", metavar="DATEI", help="Protokoll in diese Datei schreiben")
     ap.add_argument("--restarted", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument(winsetup.AUTOSTART_FLAG, dest="autostart", action="store_true",
+                    help="Start mit Windows: nur im Infobereich starten, keine Einstellungsseite öffnen")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
     _setup_logging(args)
@@ -431,9 +433,11 @@ def main() -> int:
     i18n.set_lang(cfg["ui"]["language"])
     if not args.demo:
         mutex = _single_instance(args.restarted)
-        if mutex is None:  # läuft schon: nur die Einstellungen öffnen
-            webbrowser.open(f"http://127.0.0.1:{cfg['ui']['port']}/")
+        if mutex is None:  # läuft schon: nur die Einstellungen öffnen (beim Autostart still beenden)
+            if not args.autostart:
+                webbrowser.open(f"http://127.0.0.1:{cfg['ui']['port']}/")
             return 0
+        winsetup.upgrade_autostart()  # alter Autostart-Eintrag ohne --autostart → stiller Start
         if appconfig.token_is_plaintext(cfg_path):
             appconfig.save_config(cfg_path, cfg)  # alten Klartext-Token verschlüsseln
             log.info("Bot-Token wird jetzt verschlüsselt gespeichert")
@@ -455,7 +459,8 @@ def main() -> int:
             run_demo(lcd, cfg, preview)
             return 0
         app = App(cfg, cfg_path, lcd, preview)
-        if first_run or not cfg["ui"]["setup_done"]:
+        # Einrichtung noch offen: Einstellungen zeigen, aber nicht beim Windows-Start und nicht nach einem Neustart
+        if (first_run or not cfg["ui"]["setup_done"]) and not (args.autostart or args.restarted):
             webbrowser.open(f"http://127.0.0.1:{cfg['ui']['port']}/")
         asyncio.run(app.run())
         return 0

@@ -6,6 +6,15 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Changed
+- When starting with Windows, the app starts quietly in the notification area without opening the settings page (autostart entry with `--autostart`; older entries are switched over on the next start). No extra browser tab opens after a restart from the settings either.
+
+### Security
+- CodeQL scanning on GitHub. Protection against requests into the home network (SSRF) now covers every blog fetch and every redirect (`rss.public_url`).
+
+### Fixed
+- Percent values on the settings page (brightness showed “90 90” after an automatic fix).
+
 ## [1.2] – 2026-10-21
 
 ### Added

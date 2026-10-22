@@ -198,6 +198,7 @@ Das Protokoll steht in `usb-display.log` neben der EXE. Die meisten Probleme erk
 | `--preview ORDNER` | jedes Bild zusätzlich als `live.png` speichern |
 | `--log DATEI` | Protokoll in eine bestimmte Datei schreiben |
 | `-v` | ausführliches Protokoll |
+| `--autostart` | still im Infobereich starten, keine Einstellungsseite öffnen (so trägt **Mit Windows starten** die App ein) |
 
 ---
 
