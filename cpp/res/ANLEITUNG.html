@@ -218,31 +218,30 @@ const STEPS = [
 <p class="kicker">Vorbereiten</p><h1>Das brauchst du</h1>
 <ol class="do">
 <li><b>Das Display</b> mit seinem <b>USB-Kabel</b>.</li>
-<li><b>Einen Windows-PC</b> mit Internet.</li>
-<li><b>Die Datei <span class="key">FuchsLabs-USB-Display-1.2.zip</span></b>. Die hast du von dem bekommen, der dir diese Anleitung geschickt hat.</li>
+<li><b>Einen Windows-PC</b> (Windows 10 oder 11, 64 Bit) mit Internet.</li>
+<li><b>Die Datei <span class="key">FuchsLabs-USB-Display.exe</span></b>. Die lädst du im nächsten Schritt herunter. Es gibt kein ZIP zum Auspacken.</li>
+<li><b>Microsoft Edge WebView2</b>. Das ist ein Baustein von Windows, den die Einstellungen brauchen. Bei den meisten PCs ist er schon da. Fehlt er, sagt dir das Programm Bescheid.</li>
 ${sel.discord ? '<li><b>Dein Discord-Konto</b> und einen Discord-Server, auf dem du Chef (Admin) bist. Bist du das nicht, frag den Chef des Servers, ob er dir hilft.</li>' : ''}
 ${sel.friends ? '<li><b>Dein Steam-Konto</b> und/oder <b>dein Xbox-Konto</b>.</li>' : ''}
 ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</li>' : ''}
 </ol>
+<div class="box tip"><p>Du brauchst <b>keine Administrator-Rechte</b>. Das Programm wird nur für dein eigenes Windows-Konto installiert.</p></div>
 <div class="box tip"><p>Hol dir am besten einen Erwachsenen oder großen Bruder dazu, wenn Windows etwas fragt, das du nicht verstehst.</p></div>`},
 
-{t: 'Ordner auspacken', html: () => `
-<p class="kicker">Auspacken</p><h1>Pack die ZIP-Datei aus</h1>
-<p class="lead">Die ZIP-Datei ist wie ein Paket. Bevor du das Programm benutzen kannst, musst du es auspacken.</p>
+{t: 'Programm holen', html: () => `
+<p class="kicker">Herunterladen</p><h1>Lade das Programm herunter</h1>
+<p class="lead">Das Programm ist <b>eine einzige Datei</b>. Du musst nichts auspacken.</p>
 <ol class="do">
-<li>Klicke mit der <b>rechten Maustaste</b> auf die Datei <span class="key">FuchsLabs-USB-Display-1.2.zip</span>.</li>
-<li>Klicke auf <b>„Alle extrahieren …“</b>.</li>
-<li>Klicke im neuen Fenster unten rechts auf ${g('Extrahieren')}.</li>
+<li>Öffne diese Seite: <a href="https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0" target="_blank" rel="noopener">Version 2.0.0 auf GitHub</a>. Oder nimm die Datei, die dir der geschickt hat, von dem du diese Anleitung hast.</li>
+<li>Lade die Datei <span class="key">FuchsLabs-USB-Display.exe</span> herunter.</li>
+<li>Sie landet normalerweise im Ordner <b>Downloads</b>.</li>
 </ol>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
 <div class="tb">📁 Downloads<span>— ☐ ✕</span></div>
-<div class="files" style="min-height:230px;position:relative">
-<div class="file sel"><div class="fi">🗜️</div>FuchsLabs-USB-Display-1.2.zip
-<div class="ctx"><div>Öffnen</div><div class="hl"><b>Alle extrahieren …</b></div><div>Kopieren</div><div>Umbenennen</div><div>Eigenschaften</div></div></div>
-</div></div></figure>
-<div class="box tip"><p>Leg den ausgepackten Ordner an einen Platz, wo er bleiben darf, zum Beispiel in <b>Dokumente</b>. Nicht im Papierkorb und nicht auf einem USB-Stick, den du wieder abziehst.</p></div>
-${help([['Ich finde die ZIP-Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den findest du im Explorer (gelbes Ordner-Symbol unten in der Taskleiste) links in der Liste.'],
-  ['Es steht kein „Alle extrahieren“ da.', 'Bei Windows 11 erst auf <b>„Weitere Optionen anzeigen“</b> klicken. Oder die ZIP-Datei doppelklicken und oben auf <b>„Alle extrahieren“</b> klicken.']])}`},
+<div class="files"><div class="file sel hlbtn"><img src="${IMG.icon}" alt=""><br>FuchsLabs-USB-Display.exe</div></div></div></figure>
+<div class="box tip"><p>Die Datei muss <b>nicht</b> an einem besonderen Platz liegen. Das Programm kopiert sich beim Installieren selbst an den richtigen Ort.</p></div>
+${help([['Ich finde die Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den findest du im Explorer (gelbes Ordner-Symbol unten in der Taskleiste) links in der Liste.'],
+  ['Der Browser meldet, die Datei sei „nicht häufig heruntergeladen“.', 'Das Programm ist neu und noch nicht bekannt. Wenn du es von der richtigen Seite hast, wähle <b>Behalten</b>.']])}`},
 
 {t: 'Display anstecken', html: () => `
 <p class="kicker">Anschließen</p><h1>Steck das Display an</h1>
@@ -253,29 +252,33 @@ ${help([['Ich finde die ZIP-Datei nicht.', 'Schau im Ordner <b>Downloads</b>. De
 <p>Das Display bleibt vielleicht noch dunkel oder zeigt ein eigenes Bild. Das ist in Ordnung. Gleich startest du das Programm, dann leuchtet es.</p>
 <div class="box tip"><p>Am besten einen USB-Anschluss <b>direkt am PC</b> nehmen, nicht an einem USB-Verteiler.</p></div>`},
 
-{t: 'Programm starten', html: () => `
-<p class="kicker">Starten</p><h1>Starte das Programm</h1>
+{t: 'Installieren', html: () => `
+<p class="kicker">Installieren</p><h1>Starte das Programm und installiere es</h1>
 <ol class="do">
-<li>Öffne den ausgepackten Ordner <span class="key">FuchsLabs-USB-Display</span>.</li>
 <li>Mach einen <b>Doppelklick</b> auf <span class="key">FuchsLabs-USB-Display.exe</span>. Das ist die Datei mit dem orangen Zeichen.</li>
+<li>Es öffnet sich ein kleines Fenster. Es zeigt, wohin installiert wird: in <span class="key">%LOCALAPPDATA%\FuchsLabs\USB-Display</span>, also nur in dein eigenes Konto.</li>
+<li>Du kannst Häkchen setzen: <b>Mit Windows starten</b> und <b>Eintrag im Startmenü</b>. Beides ist eine gute Idee.</li>
+<li>Klicke auf ${b('Installieren')}. Warte kurz. Dann steht dort <b>„Fertig! Die App startet jetzt.“</b></li>
 </ol>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
-<div class="tb">📁 FuchsLabs-USB-Display<span>— ☐ ✕</span></div>
-<div class="files"><div class="file"><div class="fi">📁</div>_internal</div>
-<div class="file"><div class="fi">📄</div>ANLEITUNG.html</div>
-<div class="file sel hlbtn"><img src="${IMG.icon}" alt=""><br>FuchsLabs-USB-Display.exe</div>
-<div class="file"><div class="fi">📄</div>DOKUMENTATION.md</div></div></div></figure>
+<div class="tb">FuchsLabs USB-Display – Installation<span>— ☐ ✕</span></div>
+<div class="files" style="display:block;padding:16px;text-align:left">
+<p style="margin:0 0 8px"><b>Installation · Version 2.0.0</b></p>
+<p style="margin:0 0 8px">☑ Mit Windows starten (nur das Fuchs-Symbol im Infobereich)<br>☑ Eintrag im Startmenü</p>
+<p style="margin:0;text-align:right"><span class="btnname hlbtn">Installieren</span></p></div></div></figure>
+<div class="box tip"><p><b>Hattest du schon Version 1.x?</b> Dann erscheint noch ein Häkchen <b>„Alte Version 1.x stilllegen“</b>. Lass es an: Deine Einstellungen und Zugangsdaten werden übernommen. Der alte Ordner bekommt den Zusatz <span class="key">-1.x-alt</span> und bleibt als Sicherung.</p></div>
 <h2>Vielleicht kommt jetzt ein blaues Fenster</h2>
-<p>Windows kennt das Programm noch nicht und fragt lieber einmal nach. Das ist normal. <b>Probier es hier aus</b>, klick in dem Fenster unten:</p>
+<p>Windows kennt das Programm noch nicht (es ist noch nicht digital unterschrieben) und fragt lieber einmal nach. Das ist normal. <b>Probier es hier aus</b>, klick in dem Fenster unten:</p>
 <figure><span class="real">✏️ Zum Üben, das ist noch nicht das echte Fenster</span><div class="mock">
 <div class="ss" id="ss"><h3>Der Computer wurde durch Windows geschützt</h3>
 <p>Von Microsoft Defender SmartScreen wurde der Start einer unbekannten App verhindert.</p>
 <button class="lnk hlbtn" id="ssmore">Weitere Informationen</button>
 <div class="row"><button>Nicht ausführen</button></div></div></div></figure>
 <p id="ssdone" class="ok" hidden>Super, genau so geht's! Mach das jetzt beim echten Fenster genauso.</p>
-${help([['Es passiert gar nichts.', 'Warte 10 Sekunden. Das Programm braucht beim ersten Mal kurz. Dann schau, ob sich der Browser geöffnet hat.'],
+${help([['Es passiert gar nichts.', 'Warte 10 Sekunden. Das Programm braucht beim ersten Mal kurz. Dann schau unten rechts neben der Uhr nach dem orangen Zeichen.'],
   ['Da steht „Windows hat Ihren PC geschützt“ und kein „Trotzdem ausführen“.', 'Dann ist dein PC streng eingestellt. Frag einen Erwachsenen, der den PC verwaltet.'],
-  ['Mein Virenschutz meldet sich.', 'Das Programm ist neu und noch nicht bekannt. Frag den, der dir das Programm gegeben hat, ob alles stimmt, und erlaube es dann.']])}`,
+  ['Mein Virenschutz meldet sich.', 'Das Programm ist neu und noch nicht bekannt. Frag den, der dir das Programm gegeben hat, ob alles stimmt, und erlaube es dann.'],
+  ['Da steht „Die laufende App ließ sich nicht beenden“.', 'Beende die alte App über das Fuchs-Symbol unten rechts (Rechtsklick, <b>Beenden</b>) und starte die Installation noch einmal.']])}`,
  init: () => {
   const ss = document.getElementById('ss'), more = document.getElementById('ssmore');
   more.onclick = () => {
@@ -286,23 +289,24 @@ ${help([['Es passiert gar nichts.', 'Warte 10 Sekunden. Das Programm braucht bei
  }},
 
 {t: 'Die Einstellungsseite', html: () => `
-<p class="kicker">Nachschauen</p><h1>Dein Browser öffnet sich von selbst</h1>
-<p class="lead">Es geht ein Fenster im Browser auf. Das ist die <b>Einstellungsseite</b>. Dort stellst du alles ein. Sie gehört nur dir und ist nicht im Internet.</p>
+<p class="kicker">Nachschauen</p><h1>Die Einstellungen öffnen sich von selbst</h1>
+<p class="lead">Nach dem Installieren geht ein eigenes Fenster auf. Das ist die <b>Einstellungsseite</b>. Dort stellst du alles ein. Sie gehört nur dir und ist nicht im Internet.</p>
 <p>Schau ins Feld <b>„Zustand“</b>. Bei <b>Display</b> soll <b>„Verbunden“</b> stehen.</p>
 ${shot('start', [[286, 196, 869, 63]], 'Bei „Display“ steht „Verbunden“: Alles gut!')}
 <p>Wenn das klappt, leuchtet jetzt auch dein kleines Display. 🎉</p>
 ${help([['Da steht „Die Hersteller-App des Displays läuft“.', `Klicke daneben auf ${g('Hersteller-App beenden')}. Wenn darunter noch <b>„Autostart der Hersteller-App“</b> steht, klicke dort auf ${g('Abschalten')}. Windows fragt dann einmal nach, ob du das erlaubst: <b>Ja</b> klicken.`],
   ['Da steht „Display nicht gefunden“.', 'Zieh das USB-Kabel ab und steck es wieder an. Probier einen anderen USB-Anschluss am PC. Warte dann ein paar Sekunden.'],
-  ['Der Browser ist nicht aufgegangen.', 'Unten rechts neben der Uhr ist ein kleines oranges Zeichen. Mach darauf einen Doppelklick. Den nächsten Schritt erklärt das noch genauer. Oder tippe im Browser oben ein: <span class="key">127.0.0.1:8765</span>'],
+  ['Es kommt die Meldung, dass WebView2 fehlt.', 'Dann fehlt Windows der Baustein „Microsoft Edge WebView2“. Installiere die <b>WebView2-Laufzeit</b> von Microsoft und starte das Programm danach noch einmal.'],
+  ['Das Fenster ist nicht aufgegangen.', 'Unten rechts neben der Uhr ist ein kleines oranges Zeichen (vielleicht hinter dem Pfeil <span class="key">^</span>). Mach darauf einen Doppelklick.'],
   ['Das Bild auf dem Display steht auf dem Kopf.', 'Kein Problem, das reparierst du gleich in Schritt „Bild drehen und Helligkeit“.']])}`},
 
 {t: 'Mit Windows starten', html: () => `
 <p class="kicker">Einschalten</p><h1>Das Display soll immer von selbst angehen</h1>
 <p class="lead">Damit du das Programm nicht jedes Mal selbst starten musst:</p>
-<ol class="do"><li>Schalte auf der Seite <b>Start</b> den Schalter <b>„Mit Windows starten“</b> ein. Er wird dann orange.</li></ol>
+<ol class="do"><li>Schalte auf der Seite <b>Start</b> den Schalter <b>„Mit Windows starten“</b> ein. Er wird dann orange. (Hast du das beim Installieren schon angehakt, ist er schon an.)</li></ol>
 ${shot('start', [[1088, 280, 62, 40]], 'Diesen Schalter antippen, bis er orange ist.')}
 <div class="box tip"><p>Auf dieser Seite gibt es auch den Knopf ${b('Anleitung öffnen ↗')}. Damit kommst du jederzeit zurück zu dieser Anleitung.</p></div>
-<div class="box tip"><p>Ab jetzt startet das Programm von selbst, wenn du dich bei Windows anmeldest. Ausschalten kannst du es hier genauso.</p></div>`},
+<div class="box tip"><p>Ab jetzt startet das Programm von selbst, wenn du dich bei Windows anmeldest. Es zeigt dann nur das kleine Fuchs-Symbol unten rechts, die Einstellungen gehen nicht von allein auf. Ausschalten kannst du es hier genauso.</p></div>`},
 
 {t: 'Seiten aussuchen', html: () => `
 <p class="kicker">Aussuchen</p><h1>Welche Seiten zeigt das Display?</h1>
@@ -428,7 +432,7 @@ ${help([['Da steht „Kein Feed gefunden“.', 'Manche Seiten machen keine Artik
 <p class="kicker">Mein PC</p><h1>Die PC-Seite läuft schon</h1>
 <p class="lead">Hier musst du nichts machen. Die Seite zeigt sofort, wie viel dein PC gerade arbeitet.</p>
 <figure><div class="shot" data-zoom style="max-width:520px"><img src="${IMG.page_system}" alt="Systemseite"></div></figure>
-<div class="box tip"><p><b>Für Profis:</b> Steht bei CPU-Temperatur und Lüfter nur ein Strich „–“? Dafür braucht der PC das kostenlose Programm <b>HWiNFO64</b>. Installiere es von <a href="https://www.hwinfo.com/" target="_blank" rel="noopener">hwinfo.com</a>, dann mach im Ordner einen Rechtsklick auf <span class="key">hwinfo-einrichten.bat</span> und wähle <b>„Als Administrator ausführen“</b>. Frag dafür am besten einen Erwachsenen.</p></div>`},
+<div class="box tip"><p><b>Für Profis:</b> Steht bei CPU-Temperatur und Lüfter nur ein Strich „–“? Dafür braucht der PC das kostenlose Programm <b>HWiNFO64</b>. Installiere es von <a href="https://www.hwinfo.com/" target="_blank" rel="noopener">hwinfo.com</a>. Starte es und schalte in seinen Einstellungen die <b>Shared Memory Unterstützung</b> ein. Frag dafür am besten einen Erwachsenen.</p></div>`},
 
 {t: 'Speichern', html: () => `
 <p class="kicker">Ganz wichtig</p><h1>Speichern nicht vergessen!</h1>
@@ -439,30 +443,37 @@ ${shot('bar', [[828, 14, 190, 44]], 'Diesen Knopf drücken.', 1050, 70)}
 <li>Warte etwa <b>10 Sekunden</b>. Das Display wird kurz neu gestartet.</li>
 <li>Fertig! Dein Display zeigt jetzt deine Seiten, eine nach der anderen.</li>
 </ol>
-<div class="box warn"><p>Wenn du die Seite schließt, ohne zu speichern, ist deine Änderung weg. Der Browser warnt dich dann aber vorher.</p></div>`},
+<div class="box warn"><p>Wenn du das Fenster schließt, ohne zu speichern, ist deine Änderung weg.</p></div>`},
 
 {t: 'Wiederfinden', html: () => `
 <p class="kicker">Später</p><h1>So findest du die Einstellungen wieder</h1>
 <p class="lead">Das Programm läuft leise im Hintergrund. Es hat ein kleines <b>oranges Zeichen</b> unten rechts neben der Uhr.</p>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
-<span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>21.10.2026</div></div></div></figure>
+<span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22.10.2026</div></div></div></figure>
 <ol class="do">
 <li>Siehst du das Zeichen nicht? Klicke auf den kleinen Pfeil <span class="key">^</span>.</li>
-<li>Mach einen <b>Doppelklick</b> auf das orange Zeichen. Die Einstellungsseite geht auf.</li>
-<li>Mit einem <b>Rechtsklick</b> auf das Zeichen kannst du das Programm auch <b>beenden</b>.</li>
+<li>Mach einen <b>Doppelklick</b> auf das orange Zeichen. Die Einstellungen gehen auf.</li>
+<li>Mit einem <b>Rechtsklick</b> auf das Zeichen siehst du: <b>Einstellungen öffnen</b>, <b>Neu starten</b> und <b>Beenden</b>.</li>
+<li>Wenn du den Eintrag im Startmenü angehakt hast, findest du das Programm auch dort: <b>FuchsLabs USB-Display</b>.</li>
 </ol>
-<div class="box tip"><p>Du kannst auch einfach noch einmal <span class="key">FuchsLabs-USB-Display.exe</span> doppelklicken. Dann geht auch die Einstellungsseite auf.</p></div>`},
+<div class="box tip"><p>Das Fenster zu schließen blendet nur die Einstellungen aus. Das Display läuft weiter.</p></div>`},
+
+{t: 'Plugins (ab 2.5)', html: () => `
+<p class="kicker">Ausblick · ab Version 2.5</p><h1>Zusatzseiten mit Plugins</h1>
+<div class="box warn"><p><b>Ab Version 2.5.</b> Das gibt es in Version 2.0 noch nicht. Es wird gerade getestet („in Erprobung“).</p></div>
+<p class="lead">Mit Version 2.5 soll sich das Display mit <b>Plugins</b> erweitern lassen. Ein Plugin ist ein kleiner Zusatz, der eigene Seiten oder Daten auf dein Display bringt.</p>
+<p>Wenn Version 2.5 freigegeben ist, steht hier Schritt für Schritt, wie du ein Plugin einschaltest. Bis dahin musst du nichts tun. Alles, was du in dieser Anleitung eingerichtet hast, bleibt so, wie es ist.</p>`},
 
 {t: 'Fertig!', html: () => `
 <div class="party">🎉</div>
 <h1 style="text-align:center">Geschafft! Dein Display ist fertig.</h1>
 <p class="lead" style="text-align:center">Du hast alles eingerichtet. Jetzt kannst du zuschauen, wie die Seiten wechseln.</p>
 <h2>Wenn später etwas nicht klappt</h2>
-${help([['Das Display bleibt dunkel.', 'Schau, ob das orange Zeichen unten rechts da ist. Wenn nicht: <span class="key">FuchsLabs-USB-Display.exe</span> doppelklicken. Danach auf der Seite <b>Start</b> schauen, was bei „Zustand“ steht.'],
+${help([['Das Display bleibt dunkel.', 'Schau, ob das orange Zeichen unten rechts da ist. Wenn nicht: das Programm im Startmenü öffnen (oder die EXE doppelklicken). Danach auf der Seite <b>Start</b> schauen, was bei „Zustand“ steht.'],
   ['Das Bild sieht verschoben oder komisch aus.', 'Kabel kurz abziehen und wieder anstecken. Oder auf der Seite <b>Display</b> auf <b>Neu starten</b> klicken.'],
   ['Das Display ist zu dunkel.', 'Seite <b>Übersicht</b>, Regler <b>Helligkeit</b> nach rechts schieben, dann <b>Speichern &amp; anwenden</b>.'],
-  ['Ich will das Programm loswerden.', 'Auf der Seite <b>Start</b> „Mit Windows starten“ ausschalten. Dann mit Rechtsklick auf das orange Zeichen <b>Beenden</b>. Danach kannst du den Ordner löschen.']], 'Hilfe bei Problemen')}
+  ['Ich will das Programm loswerden.', 'Öffne in Windows <b>Einstellungen → Apps</b>, wähle <b>FuchsLabs USB-Display</b> und klicke auf <b>Deinstallieren</b>. Windows fragt, ob auch deine Einstellungen und Zugangsdaten gelöscht werden sollen.']], 'Hilfe bei Problemen')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Viel Spaß! · © 2026 FuchsLabs</p>`}
 ];
 
