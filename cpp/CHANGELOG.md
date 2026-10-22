@@ -9,4 +9,4 @@
 - Added a native Windows settings window using the Microsoft WebView2 SDK and static loader.
 - Added a local test suite and static dependency build.
 
-Hardware comparison on COM7 and the native settings window were validated on 2026-10-22. The first reboot test failed due to packaged-host installation redirection; the corrected normal-user installation still needs a reboot retest. The EXE remains unsigned. See [test record](TESTPROTOKOLL.md).
+Hardware comparison on COM7 and the native settings window were validated on 2026-10-22. The first reboot test failed due to packaged-host installation redirection; the user confirmed the corrected normal-user installation starts automatically with its tray icon after a real Windows reboot. The EXE remains unsigned. See [test record](TESTPROTOKOLL.md).

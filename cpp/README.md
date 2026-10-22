@@ -38,8 +38,8 @@ Dependencies are linked statically, including D++ and OpenSSL. OpenSSL on Window
 
 ## Validation status
 
-Release build: 86 checks passed. The native settings window was opened and visibly verified on Windows. Version 1.x and C++ 2.0 both reported display_ok=true on COM7 using the same settings; the user confirmed correct orientation, colours, readability and page changes. The integrated installer migrated the settings and updated autostart. A real Windows sign-in test remains pending. See [TESTPROTOKOLL.md](TESTPROTOKOLL.md). The EXE is unsigned and requires the WebView2 Evergreen Runtime.
+Release build: 86 checks passed. The native settings window was opened and visibly verified on Windows. Version 1.x and C++ 2.0 both reported display_ok=true on COM7 using the same settings; the user confirmed correct orientation, colours, readability and page changes. The integrated installer migrated the settings and updated autostart. The user subsequently confirmed a successful Windows reboot with the tray icon appearing automatically. See [TESTPROTOKOLL.md](TESTPROTOKOLL.md). The EXE is unsigned and requires the WebView2 Evergreen Runtime.
 
 ## Installing from automation
 
-Run the installer in the ordinary Windows user context. A packaged host can redirect LocalAppData and registry writes into its package sandbox; its own file/registry checks then do not establish that Windows sign-in sees those files. The first real reboot test exposed this on 22 October 2026. Reinstallation from an ordinary Windows process verified the actual EXE, hash and Run entry outside the package context; the final reboot retest is pending.
+Run the installer in the ordinary Windows user context. A packaged host can redirect LocalAppData and registry writes into its package sandbox; its own file/registry checks then do not establish that Windows sign-in sees those files. The first real reboot test exposed this on 22 October 2026. Reinstallation from an ordinary Windows process verified the actual EXE, hash and Run entry outside the package context; the user confirmed the final Windows reboot retest succeeded, with the tray icon appearing automatically.

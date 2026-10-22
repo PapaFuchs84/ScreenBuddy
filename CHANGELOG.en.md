@@ -20,7 +20,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 - Reimplemented in C++20 under `cpp/`, using D++ for Discord and a native Win32/WebView2 settings window.
 - One EXE contains app, installer, updater and uninstaller; Version 1.x settings can be imported. No Python distribution folder is required.
 - WebView2 Evergreen Runtime remains external; EXE unsigned.
-- 86 checks passed; native window visibly tested and COM7 comparison confirmed by the user. The first real reboot test failed because installation/autostart were redirected into the Codex package context; the corrected installation requires a new reboot test.
+- 86 checks passed; native window visibly tested and COM7 comparison confirmed by the user. The first real reboot test failed because installation/autostart were redirected into the Codex package context; after correcting the installation, the user confirmed a successful Windows reboot with the tray icon appearing automatically.
 - Download and checksums: [v2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0). [Test record](cpp/TESTPROTOKOLL.md).
 
 ## [1.2] – 2026-10-21

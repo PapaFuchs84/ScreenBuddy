@@ -205,6 +205,6 @@ Battlefield, Discord, Steam and Xbox are trademarks of their respective owners. 
 
 ## Validation of 2.0
 
-On 22 October 2026, 86 checks passed and the native settings window was visibly verified. Version 1.x and 2.0 were compared on COM7 with the same settings; the user confirmed correct orientation, colours, readability and page changes. Installation and autostart configuration were checked. A real Windows sign-in/reboot test remains pending. This is not a guarantee for every display model. See [test record](cpp/TESTPROTOKOLL.md).
+On 22 October 2026, 86 checks passed and the native settings window was visibly verified. Version 1.x and 2.0 were compared on COM7 with the same settings; the user confirmed correct orientation, colours, readability and page changes. Installation and autostart configuration were checked. The user subsequently confirmed a successful Windows reboot with the tray icon appearing automatically. This is not a guarantee for every display model. See [test record](cpp/TESTPROTOKOLL.md).
 
-The first real reboot test failed due to packaged-host installation redirection. Installation and the actual Windows Run entry were subsequently corrected outside that context; a real reboot retest remains pending.
+The first real reboot test failed due to packaged-host installation redirection. Installation and the actual Windows Run entry were subsequently corrected outside that context; the user subsequently confirmed a successful Windows reboot with the tray icon appearing automatically.

@@ -204,6 +204,6 @@ Battlefield, Discord, Steam und Xbox sind Marken ihrer jeweiligen Inhaber. Fuchs
 
 ## Prüfstand 2.0
 
-Am 22.10.2026 bestanden 86 Prüfungen; das native Einstellungsfenster wurde sichtbar geprüft. Version 1.x und 2.0 liefen nacheinander mit denselben Einstellungen an COM7. Der Nutzer bestätigte Ausrichtung, Farben, Lesbarkeit und Seitenwechsel. Installation und Autostarteintrag wurden geprüft; ein echter Windows-Anmelde-/Neustarttest steht aus. Das ist keine Freigabe für jedes Displaymodell. Siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+Am 22.10.2026 bestanden 86 Prüfungen; das native Einstellungsfenster wurde sichtbar geprüft. Version 1.x und 2.0 liefen nacheinander mit denselben Einstellungen an COM7. Der Nutzer bestätigte Ausrichtung, Farben, Lesbarkeit und Seitenwechsel. Installation und Autostarteintrag wurden geprüft; der Nutzer bestätigte danach einen erfolgreichen Windows-Neustart mit automatisch erscheinendem Tray-Symbol. Das ist keine Freigabe für jedes Displaymodell. Siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
 
-Der erste reale Neustarttest scheiterte an der Paketumleitung des Installationshosts. Installation und tatsächlicher Windows-Autostarteintrag wurden danach außerhalb dieses Kontexts korrigiert; der erneute echte Neustarttest bleibt offen.
+Der erste reale Neustarttest scheiterte an der Paketumleitung des Installationshosts. Installation und tatsächlicher Windows-Autostarteintrag wurden danach außerhalb dieses Kontexts korrigiert; der Nutzer bestätigte anschließend den erfolgreichen Windows-Neustart mit Tray-Symbol.
