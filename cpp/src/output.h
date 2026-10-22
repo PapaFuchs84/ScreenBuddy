@@ -71,6 +71,7 @@ struct MonitorInfo {
 std::vector<MonitorInfo> list_monitors();
 ojson monitors_json();
 ojson touch_info();
+bool open_touch_setup();  // Windows-Assistent; keine automatische Änderung der Gerätezuordnung
 void dpi_aware();
 
 // HDMI/USB-C-Bildschirm (z. B. Leisten mit 1920 × 720): randloses Vollbildfenster, Touch per Wischen/Tippen
@@ -85,6 +86,7 @@ public:
     void screen_off() override;
     void close() override;
     bool is_monitor() const override { return true; }
+    bool setup_touch();
 
     std::function<void(int)> on_step;  // +1 nächste Seite, -1 vorige (aus dem Fenster-Thread)
 
@@ -101,16 +103,22 @@ public:
 
 private:
     void run();
+    void fullscreen(bool show);
 
     std::string device_;
     bool touch_;
     std::optional<MonitorInfo> mon_;
-    void* hwnd_ = nullptr;
+    std::atomic<void*> hwnd_{nullptr};
+    void* taskbar_ = nullptr;       // nur im Fenster-Thread
+    void* setup_process_ = nullptr;
+    bool visible_ = true;
+    unsigned pointer_id_ = 0;
     std::thread thread_;
     std::mutex mu_;
     std::vector<uint32_t> bits_;
     std::atomic<bool> ready_{false};
     Gesture gesture_{0, 0, {}};
+    Gesture mouse_gesture_{0, 0, {}};
 };
 
 }  // namespace fl

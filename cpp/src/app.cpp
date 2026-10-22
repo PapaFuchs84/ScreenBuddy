@@ -427,6 +427,11 @@ void App::display_loop() {
 
 void App::show_settings() { if (show_settings_callback_) show_settings_callback_(); }
 
+bool App::setup_touch() {
+    if (auto* mon = dynamic_cast<MonitorDisplay*>(out_.get())) return mon->setup_touch();
+    return open_touch_setup();
+}
+
 void App::run() {
     if (auto* mon = dynamic_cast<MonitorDisplay*>(out_.get())) mon->on_step = [this](int d) { step_page(d); };
     if (sys_) sys_->start();

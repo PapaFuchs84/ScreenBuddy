@@ -16,6 +16,13 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ### Behoben
 - Prozentwerte in der Einstellungsseite (Helligkeit zeigte nach einer automatischen Korrektur „90 90“).
 
+## [2.0.3] – 2026-10-22
+
+- HDMI/USB-C-Vollbild bleibt über der Taskleiste, ohne den Tastaturfokus zu übernehmen; Ausblenden und Wiederherstellen sind abgesichert.
+- Native Windows-Touch-Ereignisse statt Maus-Emulation; abgebrochene Gesten und doppelte Seitenwechsel werden abgefangen. Echte Mausbedienung bleibt erhalten.
+- Die Display-Einstellungen prüfen die Windows-Zuordnung der Touchgeräte zum gewählten Monitor. „Touch-Bildschirm zuordnen“ öffnet den Windows-Assistenten und pausiert die Vollbildausgabe während der Einrichtung.
+- Release-Build und 86 Kernprüfungen bestanden; 56 Monitor-/Touchprüfungen mit injizierten Windows-Eingaben bestanden. Echte Touch-Hardware und der vollständige Zuordnungsassistent bleiben offen. [Testprotokoll](cpp/TESTPROTOKOLL.md).
+
 ## [2.0.0] – 2026-10-22 (Vorabversion)
 
 - C++20-Neuimplementierung unter `cpp/`, Discord über D++ und eigenes Win32/WebView2-Einstellungsfenster.

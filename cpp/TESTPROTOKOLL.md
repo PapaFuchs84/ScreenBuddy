@@ -1,5 +1,22 @@
 # Testprotokoll vom 22.10.2026
 
+## Version 2.0.3: HDMI-Vollbild und Touch
+
+- Basis: aktueller C++-Quellstand 2.0.2 im Veröffentlichungs-Repository. Die älteren Änderungen an Discord, gzip und Anleitung bleiben enthalten.
+- Release-Build erfolgreich; Datei- und Produktversion `2.0.3.0` / `2.0.3`.
+- Bestehende Kernprüfungen: 86 bestanden. Zusätzliche Gesten-/Touch-Metadatenprüfungen: 11 bestanden.
+- Kontrollierter Windows-Test auf einem Nebenmonitor: 56 Prüfungen einschließlich der 11 Basisprüfungen bestanden. Geprüft wurden vollständige Monitorgeometrie, Abdeckung an allen vier Bildschirmrändern, Topmost/NoActivate/ToolWindow, Erhalt des Tastaturfokus, native injizierte Touch-Eingaben, genau ein Seitenwechsel je Tipp/Wischgeste, Abbruch, deaktivierter Touch, Mausbedienung und Ausblenden/Wiederherstellen. Alle eigenen Testfenster danach geschlossen.
+- Isolierte Instanz auf Port 8766 mit neutraler Konfiguration und `--no-lcd`: API meldet 2.0.3; neue Touch-Metadaten verfügbar. Deutsche Einstellungsseite im Browser visuell geprüft, Touch-Zuordnung und Aktualisieren-Button funktionieren; ohne Touchgerät ist der Einrichtungsbutton deaktiviert.
+- Neuer Einrichtungs-Endpunkt: GET 404, POST ohne Schutzheader 403, fremder Origin 403, Cross-Site 403, kein Touchgerät 400. Es wurde kein Windows-Assistent und keine echte Gerätezuordnung ausgelöst.
+- Auf diesem PC ist kein Touchscreen angeschlossen. Echte Touch-Hardware, die Gerätezuordnung im Windows-Assistenten sowie dessen vollständiger Ausblenden/Rückkehr-Ablauf bleiben als physische Abnahme offen. Windows kann die physische Identität eines separat per USB angeschlossenen Touchgeräts nicht allein aus dem HDMI-Bildsignal ableiten; die Zuordnung erfolgt im Assistenten durch einen Fingertipp auf den vorgesehenen Bildschirm.
+- Produktive App während der Tests unverändert: API 2.0.2, serielle Ausgabe, `display_ok=true`. Keine Installation, kein Autostart-/Registry-Eingriff und keine Veröffentlichung vorgenommen.
+
+### Anschließende Installation von 2.0.3
+
+Nach ausdrücklicher Nutzerfreigabe am 22.10.2026 über einen normalen Windows-Prozess außerhalb der Codex-Paketumleitung installiert. Unabhängige Abschlussprüfung: Datei-Version `2.0.3.0`, API-Version `2.0.3`, genau ein App-Prozess aus dem regulären LocalAppData-Installationsordner, serielle Ausgabe und `display_ok=true`. Installierter SHA-256 stimmt mit dem getesteten Build überein: `ADED00C0219623D75E4F15C485392C2CBCB0D9D0A443EB0E5A79BBABB914DD84`. Bestehende Einstellungsdatei vorhanden; HKCU-Run-Eintrag zeigt auf die installierte EXE mit `--autostart`. Ein neuer Windows-Anmeldetest und die physische HDMI-/Touch-Abnahme wurden nicht durchgeführt.
+
+## Version 2.0.0
+
 - Release-Build: 86 Prüfungen bestanden.
 - Eigenes Win32/WebView2-Fenster sichtbar geöffnet und korrekt gerendert.
 - Version 1.x und 2.0 nacheinander an COM7 mit derselben Konfiguration betrieben: beide display_ok=true. Nutzer bestätigte Ausrichtung, Farben, Lesbarkeit und Seitenwechsel für beide.

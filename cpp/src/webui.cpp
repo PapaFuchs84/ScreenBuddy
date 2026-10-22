@@ -177,6 +177,12 @@ bool SettingsServer::start() {
         auto [w, h] = app.size();
         json_reply(res, {{"monitors", monitors_json()}, {"touch", touch_info()}, {"presets", render::presets_json()}, {"size", {w, h}}});
     });
+    svr.Post("/api/display/touch-setup", [&app](const httplib::Request&, httplib::Response& res) {
+        if (!touch_info().value("available", false))
+            return json_reply(res, {{"ok", false}, {"error", "Windows meldet keinen Touchscreen. USB-Touchkabel und Treiber prüfen."}}, 400);
+        bool ok = app.setup_touch();
+        json_reply(res, {{"ok", ok}, {"error", ok ? "" : "Die Windows-Touch-Einrichtung konnte nicht geöffnet werden."}}, ok ? 200 : 500);
+    });
     svr.Get("/api/discord/members", [&app](const httplib::Request&, httplib::Response& res) {
         json_reply(res, {{"ready", app.discord_ready()}, {"members", app.member_list()}});
     });

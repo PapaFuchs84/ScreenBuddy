@@ -16,6 +16,13 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ### Fixed
 - Percent values on the settings page (brightness showed “90 90” after an automatic fix).
 
+## [2.0.3] – 2026-10-22
+
+- HDMI/USB-C fullscreen stays above the taskbar without taking keyboard focus; hiding and restoring the output are covered.
+- Native Windows touch events replace mouse emulation, handling cancelled gestures and duplicate page changes. Real mouse navigation is preserved.
+- Display settings check the Windows assignment of touch devices to the selected monitor. “Assign touch display” opens the Windows wizard and pauses fullscreen output during setup.
+- Release build and 86 core checks passed; 56 monitor/touch checks with injected Windows input passed. Physical touch hardware and the complete assignment wizard remain untested. [Test record](cpp/TESTPROTOKOLL.md).
+
 ## [2.0.0] – 2026-10-22 (prerelease)
 
 - Reimplemented in C++20 under `cpp/`, using D++ for Discord and a native Win32/WebView2 settings window.
