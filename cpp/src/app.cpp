@@ -2,6 +2,9 @@
 #include "app.h"
 
 #include <windows.h>
+#include <shellapi.h>
+
+#include <windows.h>
 
 #include <fstream>
 
@@ -447,6 +450,12 @@ void App::run() {
         "FuchsLabs USB-Display",
         [this] { show_settings(); },
         [this] { request_restart(); }, [this] { request_stop(); });
+    // Bebilderte Anleitung im Standardbrowser, unabhängig vom Einstellungsfenster
+    int guide_port = cfg_["ui"].value("port", 8765);
+    tray.on_guide = [guide_port] {
+        std::wstring url = L"http://127.0.0.1:" + std::to_wstring(guide_port) + L"/anleitung?lang=" + widen(i18n::lang());
+        ShellExecuteW(nullptr, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    };
     tray.start();
     display_loop();
     tray.stop();

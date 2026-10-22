@@ -12,7 +12,7 @@ namespace fl {
 
 namespace {
 constexpr UINT WM_TRAY = WM_USER + 20;
-constexpr UINT ID_OPEN = 1001, ID_RESTART = 1002, ID_QUIT = 1003;
+constexpr UINT ID_OPEN = 1001, ID_RESTART = 1002, ID_QUIT = 1003, ID_GUIDE = 1004;
 const wchar_t* CLASS_NAME = L"FuchsLabsUsbDisplayTray";
 
 LRESULT CALLBACK proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
@@ -158,6 +158,7 @@ void Tray::menu(void* hwnd_v) {
     HWND hwnd = (HWND)hwnd_v;
     HMENU m = CreatePopupMenu();
     AppendMenuW(m, MF_STRING, ID_OPEN, widen(tr("Einstellungen öffnen")).c_str());
+    if (on_guide) AppendMenuW(m, MF_STRING, ID_GUIDE, widen(tr("Anleitung öffnen")).c_str());
     AppendMenuW(m, MF_STRING, ID_RESTART, widen(tr("Neu starten")).c_str());
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(m, MF_STRING, ID_QUIT, widen(tr("Beenden")).c_str());
@@ -168,6 +169,7 @@ void Tray::menu(void* hwnd_v) {
     PostMessageW(hwnd, WM_NULL, 0, 0);
     DestroyMenu(m);
     if (cmd == ID_OPEN) on_open_();
+    else if (cmd == ID_GUIDE && on_guide) on_guide();
     else if (cmd == ID_RESTART) on_restart_();
     else if (cmd == ID_QUIT) on_quit_();
 }

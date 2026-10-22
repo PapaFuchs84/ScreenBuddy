@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.2 — 2026-10-22
+
+- Illustrated guide (DE/EN) updated for 2.0: new texts and new screenshots of the current settings page (previously still from 1.1).
+- The guide opens in the default browser, no longer inside the settings window; new tray menu entry *Open guide*.
+
 ## 2.0.1 — 2026-10-22
 
 - Fixed: Discord stayed on "Connecting …" forever if there was no internet when the app started; it now retries after 90 seconds.

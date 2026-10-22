@@ -149,8 +149,9 @@ struct SettingsWindow::Impl : std::enable_shared_from_this<SettingsWindow::Impl>
                     if (SUCCEEDED(args->get_Uri(&raw)) && raw) {
                         std::wstring target(raw);
                         CoTaskMemFree(raw);
-                        if (target.rfind(self->url, 0) == 0) self->webview->Navigate(target.c_str());
-                        else if (target.rfind(L"https://", 0) == 0 || target.rfind(L"http://", 0) == 0)
+                        // Neue Fenster (z. B. die bebilderte Anleitung) öffnen im Standardbrowser, nicht im
+                        // Einstellungsfenster: so bleiben Einstellungen und Anleitung nebeneinander offen
+                        if (target.rfind(L"https://", 0) == 0 || target.rfind(L"http://", 0) == 0)
                             ShellExecuteW(nullptr, L"open", target.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
                     }
                     args->put_Handled(TRUE);

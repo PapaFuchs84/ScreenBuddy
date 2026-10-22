@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const OUT = process.argv[2];
+const PORT = process.env.FL_PORT || '8765';  // Port der laufenden App (nur lesen, es wird nichts gespeichert)
 mkdirSync(OUT, { recursive: true });
 const edge = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const prof = join(tmpdir(), 'fl-shot-profile');
@@ -35,7 +36,7 @@ const LOCAL = process.argv[3];
 if (LOCAL) {
   const { readFileSync } = await import('node:fs');
   const body = Buffer.from(readFileSync(LOCAL)).toString('base64');
-  await cmd('Fetch.enable', { patterns: [{ urlPattern: 'http://127.0.0.1:8765/' }] });
+  await cmd('Fetch.enable', { patterns: [{ urlPattern: `http://127.0.0.1:${PORT}/` }] });
   ws.addEventListener('message', e => { const m = JSON.parse(e.data);
     if (m.method === 'Fetch.requestPaused') cmd('Fetch.fulfillRequest', { requestId: m.params.requestId, responseCode: 200,
       responseHeaders: [{ name: 'Content-Type', value: 'text/html; charset=utf-8' }], body }); });
@@ -73,7 +74,7 @@ await cmd('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
 })();` });
 
 await cmd('Emulation.setDeviceMetricsOverride', { width: 1280, height: 860, deviceScaleFactor: 1, mobile: false });
-await cmd('Page.navigate', { url: 'http://127.0.0.1:8765/' + (EN ? '?lang=en' : '') });
+await cmd('Page.navigate', { url: `http://127.0.0.1:${PORT}/` + (EN ? '?lang=en' : '') });
 await sleep(2500);
 
 // Private Namen durch Beispiele ersetzen, nichts an der App ändern
@@ -83,6 +84,8 @@ const anon = `(() => {
   document.querySelectorAll('.member span:not(.note)').forEach((s,i) => s.textContent = ex[i % ex.length]);
   document.querySelectorAll('.member small').forEach(s => s.textContent = EN ? 'My server' : 'Mein Server');
   document.querySelectorAll('main input').forEach(e => { if (/P4p4F0x/.test(e.placeholder)) e.placeholder = e.placeholder.replace('P4p4F0x', 'FuchsKumpel'); });
+  // Versionsangabe der Seite durch die Version ersetzen, für die die Anleitung gebaut wird (FL_VERSION)
+  if (${JSON.stringify(process.env.FL_VERSION || '')}) document.querySelectorAll('#foot').forEach(f => f.innerHTML = f.innerHTML.replace(/Version [0-9.]+/, 'Version ' + ${JSON.stringify(process.env.FL_VERSION || '')}));
   const h1 = document.querySelector('h1')?.textContent;
   const items = [...document.querySelectorAll('.list .item')];
   if (h1 === 'Battlefield 6') {

@@ -14,6 +14,7 @@ class Tray {
 public:
     Tray(std::string tip, std::function<void()> on_open, std::function<void()> on_restart, std::function<void()> on_quit);
     ~Tray();
+    std::function<void()> on_guide;  // „Anleitung öffnen“ im Menü (im Standardbrowser), vor start() setzen
     void start();
     void stop();
     bool handle(void* hwnd, unsigned msg, unsigned long long wp, long long lp, long long& result);

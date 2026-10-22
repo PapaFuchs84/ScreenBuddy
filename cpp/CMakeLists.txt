@@ -1,6 +1,6 @@
 # © 2026 FuchsLabs – FuchsLabs USB-Display 2.0 (C++)
 cmake_minimum_required(VERSION 3.24)
-project(FuchsLabsUsbDisplay VERSION 2.0.1 LANGUAGES CXX RC)
+project(FuchsLabsUsbDisplay VERSION 2.0.2 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -44,6 +44,10 @@ target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL Open
                                     d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
                                     comctl32 dwmapi bcrypt advapi32 user32 gdi32 ole32 shell32
                                     webview2_loader)
+
+# Eingebettete Dateien: bei Änderungen die Ressourcen neu bauen (CMake erkennt RCDATA-Abhängigkeiten nicht selbst)
+set_source_files_properties(res/app.rc PROPERTIES OBJECT_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/res/webui.html;${CMAKE_CURRENT_SOURCE_DIR}/res/ANLEITUNG.html;${CMAKE_CURRENT_SOURCE_DIR}/res/GUIDE.html;${CMAKE_CURRENT_SOURCE_DIR}/res/app.ico;${CMAKE_CURRENT_SOURCE_DIR}/res/app.manifest")
 
 add_executable(FuchsLabs-USB-Display WIN32 src/main.cpp res/app.rc)
 target_link_libraries(FuchsLabs-USB-Display PRIVATE flcore)

@@ -96,6 +96,7 @@ static const std::unordered_map<std::string, std::string>& en() {
         {"Zweiter Beitrag mit etwas längerem Titel, der umbricht", "Second post with a slightly longer title that wraps"},
         // Infobereich
         {"Einstellungen öffnen", "Open settings"},
+        {"Anleitung öffnen", "Open guide"},
         {"Neu starten", "Restart"},
         {"Beenden", "Quit"},
         // Installer
