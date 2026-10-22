@@ -28,4 +28,4 @@ Under **Issues → New issue → Idea or feedback / Idee oder Rückmeldung** you
 
 ## Windows reboot test
 
-After signing in, check the physical display, fox tray icon and whether settings open in their own Windows window. Report the app version, whether images keep updating and any error. The first test failed; confirmation of the corrected installation is pending.
+After signing in, check the physical display, fox tray icon and whether settings open in their own Windows window. Report the app version, whether images keep updating and any error. The first test failed; after correcting the installation, the user confirmed a successful Windows reboot with the tray icon appearing automatically on 22 October 2026.

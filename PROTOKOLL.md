@@ -39,7 +39,7 @@ Kurzer Verlauf, wie die App entstanden ist, und welche Entscheidungen dabei gefa
 - Steam-Schlüssel bzw. öffentliche Freundesliste fehlt noch (Status rot).
 - Steam- und Xbox-Abruf bisher nur mit Bastis Konten getestet.
 - C++-Version 2.0 liegt unter `cpp/`, einschließlich Testprotokoll.
-- Windows-Autostart nach echter Ab-/Anmeldung noch prüfen.
+- Windows-Autostart nach Korrektur durch echten Neustart mit Tray-Symbol am 22.10.2026 vom Nutzer bestätigt.
 - Alter Ordner der Skript-Vorversion und die alte Aufgabe „FuchsLabs Discord-Display“ können entfernt werden, wenn nichts mehr fehlt.
 - Zwei Anleitungs-Screenshots zeigen echte Namen (`anleitung/bilder/uebersicht.png` mit EA-Namen, `anleitung/bilder/freunde.png` und damit `ANLEITUNG.html` mit dem eigenen Xbox-Namen). Sie liegen deshalb nicht im Repository und sollten vor dem Weitergeben neu aufgenommen werden.
 
@@ -49,4 +49,4 @@ C++ 2.0 und bisherige App nacheinander an COM7 getestet: beide display_ok=true, 
 
 ## Nachtrag: echter Windows-Neustarttest
 
-Der erste Neustarttest scheiterte. Installation und Registryeintrag waren im Windows-Paketkontext von Codex umgeleitet; außerhalb dieses Kontexts fehlte die 2.0-EXE am vorgesehenen Ziel. Installer anschließend als normaler Windows-Prozess ausgeführt, Einstellungen übernommen und tatsächlichen Pfad/Hash/Autostarteintrag sowie display_ok=true geprüft. Erneuter realer Neustarttest bis zur Rückmeldung offen.
+Der erste Neustarttest scheiterte. Installation und Registryeintrag waren im Windows-Paketkontext von Codex umgeleitet; außerhalb dieses Kontexts fehlte die 2.0-EXE am vorgesehenen Ziel. Installer anschließend als normaler Windows-Prozess ausgeführt, Einstellungen übernommen und tatsächlichen Pfad/Hash/Autostarteintrag sowie display_ok=true geprüft. Erneuter realer Windows-Neustart am 22.10.2026 vom Nutzer bestätigt: Tray-Symbol erschien automatisch.

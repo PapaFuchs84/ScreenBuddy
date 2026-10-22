@@ -28,4 +28,4 @@ Unter **Issues → New issue → Idee oder Rückmeldung** kannst du alles loswer
 
 ## Windows-Neustarttest
 
-Nach der Anmeldung prüfen: Aktualisiert sich das physische Display, erscheint das Fuchs-Symbol im Infobereich und öffnen die Einstellungen in einem eigenen Windowsfenster? Version und beobachtetes Verhalten melden. Der erste Test scheiterte; die Bestätigung der korrigierten Installation steht aus.
+Nach der Anmeldung prüfen: Aktualisiert sich das physische Display, erscheint das Fuchs-Symbol im Infobereich und öffnen die Einstellungen in einem eigenen Windowsfenster? Version und beobachtetes Verhalten melden. Der erste Test scheiterte; nach Korrektur der Installation bestätigte der Nutzer am 22.10.2026 den erfolgreichen Windows-Neustart mit Tray-Symbol.

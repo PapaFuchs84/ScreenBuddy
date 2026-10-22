@@ -92,5 +92,5 @@ Schnellerer Start, weniger RAM (geschätzt 20–40 MB statt 97 MB), eine Datei z
 - 86 lokale Prüfungen bestanden; DPAPI-Kompatibilität mit Version 1.x wurde separat geprüft.
 - Einstellungen, Browseroberfläche, lokale API-Schutzregeln, Discord, RSS, Monitor-Ausgabe und Touch wurden lokal erprobt.
 - Installerkopie und Konfigurationsübernahme liefen im Scratch-Test. Ein Problem im Teststart wurde behoben: `--no-lcd` wird nun durch den stillen Installerstart weitergegeben; danach antwortete die Testkopie auf Port 8766 und zeigte keine COM7-Zugriffsversuche.
-- COM7-Gegenvergleich inzwischen bestanden; Anzeige vom Nutzer bestätigt. Der erste reale Windows-Neustarttest schlug wegen Paketumleitung fehl. Installation außerhalb dieses Kontexts korrigiert; erneuter Neustarttest offen.
+- COM7-Gegenvergleich inzwischen bestanden; Anzeige vom Nutzer bestätigt. Der erste reale Windows-Neustarttest schlug wegen Paketumleitung fehl. Installation außerhalb dieses Kontexts korrigiert; erneuter Windows-Neustart mit Tray-Symbol vom Nutzer bestätigt.
 - Offen: kompletter Install/Update/Deinstallationsdurchlauf, abschließende Sicherheitsprüfung und Release-Signierung. Der Build ist daher noch kein freigegebener 2.0-Release.
