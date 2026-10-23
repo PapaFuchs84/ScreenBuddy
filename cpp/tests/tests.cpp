@@ -7,6 +7,7 @@
 
 #include "config.h"
 #include "friends.h"
+#include "ha.h"
 #include "gfx.h"
 #include "http.h"
 #include "i18n.h"
@@ -52,7 +53,7 @@ static void test_config() {
     fs::remove(tmp);
     ojson cfg = config::load(tmp);
     CHECK_EQ(cfg["ui"]["port"].get<int>(), 8765);
-    CHECK_EQ(cfg["display"]["pages"].size(), (size_t)5);
+    CHECK_EQ(cfg["display"]["pages"].size(), (size_t)6);
     ojson in = {{"display", {{"brightness", "250"}, {"theme", "dunkel"}, {"color_bg", "#aabbcc"}}},
                 {"discord", {{"token", "geheim"}, {"guild_ids", {"123456789012345678", " ", "5"}}}},
                 {"rss", {{"feeds", {"a.de", "a.de", " b.de "}}}}};
@@ -128,6 +129,10 @@ static void test_i18n() {
     CHECK_EQ(tr("display.theme: erlaubt: hell, dunkel"), std::string("display.theme: allowed: hell, dunkel"));
     CHECK_EQ(tr("12 Freunde, 3 online"), std::string("12 friends, 3 online"));
     CHECK_EQ(tr("Unbekannt"), std::string("Unbekannt"));
+    CHECK_EQ(tr("Nicht verfügbar"), std::string("Unavailable"));
+    CHECK_EQ(tr("3 Entitäten"), std::string("3 entities"));
+    CHECK_EQ(tr("An"), std::string("An"));   // Namen wie "An" bleiben unverändert
+    CHECK_EQ(ha::format_value("on"), std::string("On"));
     i18n::set_lang("de");
     CHECK_EQ(tr("Spielt X"), std::string("Spielt X"));
 }
@@ -217,6 +222,103 @@ static void test_friends() {
         R"({"content":{"people":[{"xuid":"1","gamertag":"Fox","presenceState":"Online","presenceText":"Playing Halo"},{"xuid":"2","gamertag":"Off","presenceState":"Offline","presenceText":"Zuletzt online"}]}})");
     auto xp = friends::parse_xbox_people(xbox);
     CHECK(xp.size() == 2 && xp[0].activity == "Spielt Halo" && xp[1].status == "offline" && xp[1].activity.empty());
+}
+
+static void test_ha() {
+    auto sp = ha::parse_spec(" sensor.wohnzimmer_temp | Wohnzimmer ");
+    CHECK(sp && sp->id == "sensor.wohnzimmer_temp" && sp->label == "Wohnzimmer");
+    CHECK(!ha::parse_spec("Sensor.X"));
+    CHECK(!ha::parse_spec("kein id"));
+    CHECK(!ha::parse_spec("sensor.a/../b"));
+    CHECK(ha::toggle_domain("switch.x") && ha::toggle_domain("light.x") && ha::toggle_domain("input_boolean.x"));
+    CHECK(!ha::toggle_domain("lock.haustuer") && !ha::toggle_domain("cover.garage") && !ha::toggle_domain("sensor.x"));
+    CHECK_EQ(ha::base_url("http://homeassistant.local:8123/"), std::string("http://homeassistant.local:8123"));
+    CHECK_EQ(ha::base_url("192.168.1.5:8123"), std::string("http://192.168.1.5:8123"));
+    CHECK_EQ(ha::base_url("https://ha.example.org/lovelace/0"), std::string("https://ha.example.org"));
+    CHECK_EQ(ha::base_url("http://user:pw@host:8123"), std::string(""));
+    CHECK_EQ(ha::base_url(""), std::string(""));
+    CHECK_EQ(ha::format_value("21.53"), std::string("21,5"));
+    CHECK_EQ(ha::format_value("2840"), std::string("2840"));
+    CHECK_EQ(ha::format_value("0.05"), std::string("0,05"));
+    CHECK_EQ(ha::format_value("on"), std::string("An"));
+    CHECK_EQ(ha::format_value("Sonnig"), std::string("Sonnig"));
+    nlohmann::json st = {{"entity_id", "switch.kaffee"}, {"state", "on"}, {"attributes", {{"friendly_name", "Kaffeemaschine"}}}};
+    auto e = ha::parse_state(st, {"switch.kaffee", ""}, true);
+    CHECK(e.available && e.on && e.toggle && e.name == "Kaffeemaschine");
+    CHECK(!ha::parse_state(st, {"switch.kaffee", ""}, false).toggle);   // ohne Touch nie schaltbar
+    nlohmann::json off = {{"state", "unavailable"}, {"attributes", {}}};
+    CHECK(!ha::parse_state(off, {"switch.kaffee", "Eigen"}, true).available);
+    nlohmann::json se = {{"state", "21.5"}, {"attributes", {{"unit_of_measurement", "°C"}}}};
+    CHECK_EQ(ha::parse_state(se, {"sensor.t", ""}, true).unit, std::string("°C"));
+    CHECK(!ha::parse_state(se, {"sensor.t", ""}, true).toggle);
+    // Konfiguration: höchstens 4 Entitäten, Token verschlüsselt/verborgen, ohne Touch keine Schalter im Client
+    ojson cfg = config::load(fs::temp_directory_path() / "fl-test-ha-none.toml");
+    ojson m = config::merge(cfg, {{"homeassistant", {{"entities", {"sensor.a", "sensor.b", "sensor.c", "sensor.d", "sensor.e"}}, {"token", "geheim"}}}});
+    CHECK_EQ(m["homeassistant"]["entities"].size(), (size_t)4);
+    CHECK_EQ(config::public_view(m)["homeassistant"]["token"].get<std::string>(), std::string(""));
+    CHECK(config::public_view(m)["homeassistant"]["token_set"].get<bool>());
+    ojson hc = {{"url", "http://x:8123"}, {"token", "t"}, {"entities", {"sensor.a", "switch.b", "light.c|Lampe"}}};
+    ha::HaClient no_touch(hc, false, nullptr), with_touch(hc, true, nullptr);
+    CHECK_EQ(no_touch.entities().size(), (size_t)1);
+    CHECK_EQ(with_touch.entities().size(), (size_t)3);
+    // Kacheln und Treffer
+    auto cs = render::HaRenderer::cells(4, 480, 320);
+    CHECK_EQ(cs.size(), (size_t)4);
+    CHECK_EQ(render::HaRenderer::cell_at(480, 320, 4, 100, 80), 0);
+    CHECK_EQ(render::HaRenderer::cell_at(480, 320, 4, 400, 80), 1);
+    CHECK_EQ(render::HaRenderer::cell_at(480, 320, 4, 100, 250), 2);
+    CHECK_EQ(render::HaRenderer::cell_at(480, 320, 4, 400, 250), 3);
+    CHECK_EQ(render::HaRenderer::cell_at(480, 320, 4, 100, 10), -1);   // Kopfzeile
+    CHECK_EQ(render::HaRenderer::cell_at(480, 320, 3, 400, 250), 2);   // dritte Kachel über die ganze Breite
+    CHECK_EQ(render::HaRenderer::cell_at(960, 640, 4, 800, 500), 3);   // skaliertes Display
+}
+
+// Nur mit FL_HA_FAKE=http://127.0.0.1:PORT (Testserver, Token testtoken123): echte Abfrage und Schalten
+static void test_ha_live() {
+    char* fake = nullptr;
+    size_t n = 0;
+    if (_dupenv_s(&fake, &n, "FL_HA_FAKE") != 0 || !fake) return;
+    std::string url = fake;
+    free(fake);
+    ojson hc = {{"url", url}, {"token", "testtoken123"},
+                {"entities", {"sensor.wohnzimmer_temperatur", "binary_sensor.fenster", "light.schreibtisch", "switch.kaffee|Kaffee", "sensor.gibts_nicht"}}};
+    ha::HaClient cl(hc, true, nullptr);
+    CHECK_EQ(cl.entities().size(), (size_t)4);   // höchstens 4
+    cl.start();
+    for (int i = 0; i < 100 && !cl.has_data(); ++i) Sleep(100);
+    CHECK(cl.has_data());
+    auto es = cl.entities();
+    CHECK(es.size() == 4 && es[0].unit == "°C" && es[0].name == "Wohnzimmer Temperatur" && !es[0].toggle);
+    CHECK(es[2].toggle && es[2].on && es[2].name == "Schreibtischlampe");
+    CHECK(es[3].toggle && !es[3].on && es[3].name == "Kaffee");
+    cl.request_toggle("switch.kaffee");
+    bool flipped = false;
+    for (int i = 0; i < 100 && !flipped; ++i) {
+        Sleep(100);
+        auto e2 = cl.entities();
+        flipped = e2.size() == 4 && e2[3].on;
+    }
+    CHECK(flipped);
+    cl.request_toggle("lock.haustuer");   // kein Schalter-Bereich: wird nie gesendet
+    cl.request_toggle("sensor.wohnzimmer_temperatur");
+    Sleep(500);
+    cl.stop();
+    auto r = http::get(url + "/_calls");
+    CHECK_EQ(r.body, std::string("[\"switch.kaffee\"]"));
+    // Falsches Token
+    ojson bad = hc;
+    bad["token"] = "falsch";
+    try {
+        ha::list_entities(url, "falsch", true);
+        CHECK(false);
+    } catch (const ha::HaError& e) {
+        CHECK(std::string(e.what()).find("Token") != std::string::npos);
+    }
+    auto list = ha::list_entities(url, "testtoken123", false);
+    bool has_light = false, has_lock = false;
+    for (auto& e : list) { has_light |= e["id"] == "light.schreibtisch"; has_lock |= e["id"] == "lock.haustuer"; }
+    CHECK(!has_light && !has_lock);   // ohne Touch keine Schalter, Schlösser nie
+    CHECK(ha::list_entities(url, "testtoken123", true).size() == list.size() + 2);
 }
 
 static void test_touch_targets() {
@@ -342,6 +444,13 @@ static void test_render(const fs::path& out) {
                 sn.up_hist.push_back(2e5 + 1e5 * std::cos(i / 5.0));
             }
             save_png(out / (pre + "system.png"), sr.render(sn, 1792606500));
+            render::HaRenderer hr(w, h, "Home Assistant");
+            auto demo = render::demo_ha();
+            save_png(out / (pre + "ha.png"), hr.render(demo, true, "", 1792606500, 1792606500));
+            save_png(out / (pre + "ha3.png"), hr.render({demo[0], demo[1], demo[2]}, true, "", 1792606500, 1792606500));
+            save_png(out / (pre + "ha2.png"), hr.render({demo[2], demo[0]}, true, "", 1792606500, 1792606500));
+            save_png(out / (pre + "ha1.png"), hr.render({demo[0]}, true, "", 1792606500, 1792606500));
+            save_png(out / (pre + "ha-fehler.png"), hr.render({}, false, "Home Assistant ist nicht erreichbar – Adresse und Netzwerk prüfen", std::nullopt, 1792606500));
         }
     }
     auto write = [&](const char* name, const std::string& png) {
@@ -455,7 +564,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"touch-targets", test_touch_targets}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}}) {
         std::printf("· %s\n", name);
         fn();
     }

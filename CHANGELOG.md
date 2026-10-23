@@ -17,8 +17,13 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ### Behoben
 - Prozentwerte in der Einstellungsseite (Helligkeit zeigte nach einer automatischen Korrektur „90 90“).
 
-## [2.0.9] – lokal, noch nicht veröffentlicht
+## [2.1.0] – lokal, noch nicht veröffentlicht
 
+Gemeinsamer Stand aus den beiden zuletzt entwickelten Änderungen; 2.0.9 wird nicht einzeln veröffentlicht.
+
+### Neu
+- **Home-Assistant-Seite**: bis zu 4 Entitäten aus Home Assistant auf dem Display. Sensoren (und Binärsensoren) zeigen Wert und Einheit, Schalter (Schalter, Licht, Ventilator, Eingabe-Schalter) zeigen An/Aus und lassen sich bei aktivem Touch per Tipp umlegen. Einrichtung unter Einstellungen → Home Assistant: Adresse, langlebiges Zugriffstoken (DPAPI-verschlüsselt) und Auswahl der Entitäten aus einer Liste, die direkt aus Home Assistant geladen wird. Ohne Touch lassen sich nur Sensoren wählen; bereits gewählte Schalter erscheinen dann nicht. Zugriff über die REST-API, Abfrage alle 15 Sekunden. Schlösser, Rollläden und Alarmanlagen sind bewusst nicht schaltbar.
+### Geändert
 - Tipp auf einen Freund hat eine feste Reihenfolge: Steam-Chat, sonst das Discord-Profil (dort „Nachricht“ wählen), sonst das Xbox-Profil auf xbox.com im Browser. Fehlt die App eines Ziels (Steam, Discord), wird das nächste verwendet. Der Online-Status spielt keine Rolle mehr; in 2.0.8 öffnete nur Steam etwas.
 
 ## [2.0.8] – 2026-10-23

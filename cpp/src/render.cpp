@@ -736,7 +736,7 @@ void HaRenderer::cell(Canvas& d, const Cell& c, const HaEntity& e, bool compact)
         d.rounded_rectangle(x, y, x + tw, y + th, th / 2, e.on ? t.orange : t.line);
         float r = th / 2 - 3, kx = e.on ? x + tw - th / 2 : x + th / 2;
         d.ellipse(kx - r, cy - r, kx + r, cy + r, e.on ? t.head_text : t.muted);
-        d.text(x + tw + 12, cy, e.on ? "An" : "Aus", compact ? f_value_small : f_value, e.on ? t.text : t.muted, "lm");
+        d.text(x + tw + 12, cy, (e.on ? ha_format_value("on") : ha_format_value("off")), compact ? f_value_small : f_value, e.on ? t.text : t.muted, "lm");
         return;
     }
     std::string v = fit(d, ha_format_value(e.state), compact ? f_value_small : f_value, cw - 20);

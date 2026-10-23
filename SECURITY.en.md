@@ -26,7 +26,7 @@ FuchsLabs confirms receipt as soon as possible, keeps you updated on the fix and
 ## What the security model covers
 
 - The settings page only listens on `127.0.0.1` and must not be usable from the network or from other websites (host check, custom header for changes, `Sec-Fetch-Site` check, no framing).
-- The Discord token and the Steam and Xbox keys are stored only DPAPI-encrypted in `config.toml`, never appear in the log and are never sent to the browser.
+- The Discord token, the Steam and Xbox keys and the Home Assistant token are stored only DPAPI-encrypted in `config.toml`, never appear in the log and are never sent to the browser.
 - Data from the internet (feeds, avatars, player names) is size-limited and only drawn as text.
 - The app does not need admin rights.
 

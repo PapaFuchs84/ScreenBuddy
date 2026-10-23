@@ -17,12 +17,16 @@ struct Tile {
     render::Box box;
     bool rss = false;
     Rows rows;
+    bool ha = false;                              // Home-Assistant-Kacheln: je Kachel eine Aktion (Schalter umlegen) oder leer
+    std::vector<std::function<void()>> cells;
 };
 Targets friend_targets(const Friend& person);
 Targets player_targets(const Bf6Player& player);
 Rows friend_rows(std::vector<Friend> people, int page, int per);
 Rows player_rows(std::vector<Bf6Player> players, int page, int per);
 Rows post_rows(const std::vector<Post>& posts);
+// Schalt-Aktion der angetippten Home-Assistant-Kachel (nullptr = keine)
+const std::function<void()>* action_at(const std::vector<Tile>& tiles, int x, int y);
 const Targets* at(const std::vector<Tile>& tiles, int x, int y);
 // Abhängigkeiten injizierbar: Tests öffnen keine echten Chats/Browser.
 bool dispatch(const Targets& targets, const std::function<bool(const std::string&)>& available,

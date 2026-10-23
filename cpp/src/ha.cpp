@@ -8,6 +8,7 @@
 #include <regex>
 
 #include "http.h"
+#include "i18n.h"
 #include "util.h"
 
 namespace fl::ha {
@@ -89,12 +90,14 @@ std::string format_value(const std::string& state) {
         }
         return s == "-0" ? "0" : s;
     }
-    if (t == "on") return "An";
-    if (t == "off") return "Aus";
-    if (t == "open") return "Offen";
-    if (t == "closed") return "Zu";
-    if (t == "home") return "Zuhause";
-    if (t == "not_home") return "Unterwegs";
+    // Werte selbst übersetzen: tr() würde auch Namen wie "An" in Friend-Listen treffen
+    bool en = i18n::lang() == "en";
+    if (t == "on") return en ? "On" : "An";
+    if (t == "off") return en ? "Off" : "Aus";
+    if (t == "open") return en ? "Open" : "Offen";
+    if (t == "closed") return en ? "Closed" : "Zu";
+    if (t == "home") return en ? "Home" : "Zuhause";
+    if (t == "not_home") return en ? "Away" : "Unterwegs";
     return t;
 }
 

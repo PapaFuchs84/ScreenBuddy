@@ -6,7 +6,9 @@ Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt
 
 ## Touch-Ziele und Spielstunden (ab 2.0.7)
 
-2.0.9 ist ein lokaler Entwicklungsstand; der veröffentlichte Download bleibt 2.0.8. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
+2.1.0 ist ein lokaler Entwicklungsstand (enthält den Freunde-Tipp aus 2.0.9); der veröffentlichte Download bleibt 2.0.8. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
+
+## Home Assistant (ab 2.1.0)
 
 ## Ansichten durchblättern (2.0.4)
 
@@ -40,6 +42,7 @@ Die Anzeige wechselt alle `page_seconds` Sekunden (Standard 15). Reihenfolge und
 | **Discord-Freunde** | nur die Discord-Freunde, mit Avatar, Status und Aktivität („Spielt …“) | sofort bei Änderungen |
 | **Battlefield 6 · Rangliste** | Profile der eingetragenen Spieler nach Rang, mit Abzeichen, K/D, Siegquote | alle 15 Minuten |
 | **Blog-Updates** | neuester Beitrag je eingetragenem Blog | alle 30 Minuten |
+| **Home Assistant** | bis zu 4 Sensoren oder Schalter (Schalter nur mit Touch) | alle 15 Sekunden |
 
 Ist keine Seite aktiv, zeigt das Display einen Willkommenshinweis mit der Adresse der Einstellungsseite. Fehler (z. B. ungültiger Discord-Token) erscheinen als lesbarer Satz direkt auf der betroffenen Seite.
 
@@ -112,7 +115,7 @@ Windows stellt diese Werte nicht ohne Hilfsprogramm bereit. Die App liest sie au
 
 ## 6. Sicherheit und Datenschutz
 
-Die App speichert Discord-, Steam- und Xbox-Zugangsdaten per Windows-DPAPI verschlüsselt. Das schützt die Datei nicht vor Prozessen im selben Windows-Benutzerkonto. Niemals Konfigurationen mit echten Zugangsdaten veröffentlichen.
+Die App speichert Discord-, Steam-, Xbox- und Home-Assistant-Zugangsdaten per Windows-DPAPI verschlüsselt. Das schützt die Datei nicht vor Prozessen im selben Windows-Benutzerkonto. Niemals Konfigurationen mit echten Zugangsdaten veröffentlichen.
 
 Der lokale Einstellungsdienst bindet an `127.0.0.1`, prüft Host und Fetch-Metadaten und verlangt für Schreibzugriffe `X-FL: 1`. RSS-Ziele und Weiterleitungen werden gegen nichtöffentliche IP-Bereiche geprüft. Die C++-Implementierung verwendet unter anderem WinHTTP, D++/OpenSSL und pugixml; Details stehen in `cpp/src/http.cpp`, `netguard.cpp`, `secure.cpp` und `webui.cpp`.
 
@@ -181,6 +184,7 @@ Die aktuelle Implementierung ist C++20 unter `cpp/`.
 | `main.cpp`, `app.cpp` | Start, Einzelinstanz, Dienste und Seitenrotation |
 | `settings_window.cpp`, `tray.cpp` | Win32/WebView2-Fenster und Infobereich |
 | `webui.cpp`, `config.cpp`, `secure.cpp` | lokaler Einstellungsdienst, TOML und DPAPI |
+| `ha.cpp` | Home-Assistant-REST-Abfrage und Schalten |
 | `serial_display.cpp`, `monitor_display.cpp` | USB-Display bzw. HDMI/USB-C und Touch |
 | `gfx.cpp`, `render.cpp` | Grafik und Seitenlayout |
 | `discord.cpp`, `friends.cpp`, `bf6.cpp`, `rss.cpp`, `sysinfo.cpp` | Datenquellen; Discord über D++ |

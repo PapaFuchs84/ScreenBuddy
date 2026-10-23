@@ -17,7 +17,14 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ### Fixed
 - Percent values on the settings page (brightness showed “90 90” after an automatic fix).
 
-## [2.0.9] – local, not published
+## [2.1.0] – local, not published
+
+Combined state of the two latest changes; 2.0.9 is not released on its own.
+
+### Added
+- **Home Assistant page**: up to 4 entities from Home Assistant on the display. Sensors (and binary sensors) show value and unit; switches (switch, light, fan, input boolean) show On/Off and can be flipped by tapping when touch is active. Set up under Settings → Home Assistant: address, long-lived access token (DPAPI-encrypted) and an entity picker loaded straight from Home Assistant. Without touch only sensors can be chosen, and switches already chosen are not shown. Access uses the REST API, polled every 15 seconds. Locks, covers and alarm panels are deliberately not switchable.
+
+### Changed
 
 - Tapping a friend now follows a fixed order: Steam chat, otherwise the Discord profile (choose “Message” there), otherwise the Xbox profile on xbox.com in the browser. If the app for a target (Steam, Discord) is missing, the next target is used. Online status no longer matters; in 2.0.8 only Steam opened anything.
 

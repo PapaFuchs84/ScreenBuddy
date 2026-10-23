@@ -28,6 +28,7 @@ namespace rss { class RssFeeds; }
 namespace sysinfo { class SysMonitor; }
 namespace discord { class DiscordFeed; }
 namespace friends { class FriendsHub; }
+namespace ha { class HaClient; }
 
 class App {
 public:
@@ -51,6 +52,7 @@ public:
     std::string display_error();
     std::optional<std::string> discord_status();   // nullopt = Discord nicht eingerichtet
     ojson friend_accounts();
+    bool touch_enabled() const;                     // Touch an und Monitor-Ausgabe: nur dann lassen sich Schalter bedienen
     void request_stop(double delay = 0);
     void request_restart(double delay = 0);
     bool restart_requested() const { return restart_; }
@@ -68,6 +70,7 @@ private:
         int n;
         std::function<Image(int, RendererSet&)> fn;
         std::function<touch::Rows(int, RendererSet&)> targets;
+        std::vector<std::function<void()>> actions;   // Home Assistant: Schalt-Aktion je Kachel
     };
     struct DrawResult {
         Image frame;
@@ -118,6 +121,7 @@ private:
     std::unique_ptr<sysinfo::SysMonitor> sys_;
     std::unique_ptr<discord::DiscordFeed> discord_;
     std::unique_ptr<friends::FriendsHub> friends_;
+    std::unique_ptr<ha::HaClient> ha_;
 };
 
 }  // namespace fl

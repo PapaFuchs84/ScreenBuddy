@@ -77,6 +77,17 @@ const Targets* at(const std::vector<Tile>& tiles, int x, int y) {
     return nullptr;
 }
 
+const std::function<void()>* action_at(const std::vector<Tile>& tiles, int x, int y) {
+    for (const auto& t : tiles) {
+        const auto& b = t.box;
+        if (x < b.x || x >= b.x + b.w || y < b.y || y >= b.y + b.h) continue;
+        if (!t.ha) return nullptr;
+        int i = render::HaRenderer::cell_at(b.w, b.h, t.cells.size(), x - b.x, y - b.y);
+        return i >= 0 && i < (int)t.cells.size() && t.cells[i] ? &t.cells[i] : nullptr;
+    }
+    return nullptr;
+}
+
 bool dispatch(const Targets& targets, const std::function<bool(const std::string&)>& available,
               const std::function<bool(const std::string&)>& launch) {
     for (const auto& target : targets)

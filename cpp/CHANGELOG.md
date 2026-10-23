@@ -4,7 +4,11 @@
 
 - Documentation follow-up for 2.0.3: current download links, matching German/English HDMI/touch steps in the guide templates and HTML resources, validation status, and permanent documentation rules. Updated embedded guides will be included in the next app build; the existing 2.0.3 EXE is unchanged.
 
-## 2.0.9 – local, not published
+## 2.1.0 – local, not published
+
+Combined state of the two latest changes; 2.0.9 is not released on its own.
+
+- New Home Assistant page: up to 4 entities. Sensors show value and unit, switches/lights/fans/input booleans show On/Off and can be flipped by tap when touch is active (only sensors can be chosen without touch). REST API with a DPAPI-protected long-lived token, 15 s polling, entity picker in the settings. Locks, covers and alarms are not switchable.
 
 - Tapping a friend now follows a fixed order: Steam chat, otherwise the Discord profile (`discord://-/users/<id>`, choose Message there), otherwise the Xbox profile on xbox.com in the browser. Missing apps fall through to the next target; online status is no longer considered.
 

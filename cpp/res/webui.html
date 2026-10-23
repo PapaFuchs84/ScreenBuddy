@@ -149,7 +149,7 @@ const EN = {
   // Start
   'Verbunden': 'Connected', 'Aus': 'Off', 'Öffnen': 'Open', 'Hersteller-App beenden': 'Close vendor app',
   'Autostart der Hersteller-App': 'Vendor app autostart', 'Ist noch an und belegt das Display nach jedem Windows-Start.': 'Still on, and it takes over the display every time Windows starts.',
-  'Abschalten (Windows fragt nach)': 'Turn off (Windows will ask)', 'Mit Windows starten': 'Start with Windows',
+  'Abschalten (Windows fragt nach)': 'Turn off (Windows will ask)', 'VerbindungWindows starten': 'Start with Windows',
   'Die App startet beim Anmelden von selbst im Hintergrund.': 'The app starts by itself in the background when you sign in.',
   'Willkommen!': 'Welcome!', 'In wenigen Minuten ist dein Display eingerichtet. Du kannst alles später jederzeit ändern.': 'Your display will be set up in a few minutes. You can change everything later at any time.',
   'Zustand deiner Installation.': 'Status of your installation.', 'Zustand': 'Status', 'Hier siehst du, ob alles läuft. Fehler werden direkt erklärt.': 'See whether everything is running. Problems are explained right here.',
@@ -268,6 +268,37 @@ const EN = {
   'Du kannst dieses Fenster schließen.': 'You can close this window.', ' (gerade nicht angeschlossen)': ' (not connected right now)',
   'Einstellungsseite, Display und Infobereich': 'Settings page, display and tray menu',
   '📖 Bebilderte Anleitung': '📖 Illustrated guide', '☕ Spendier mir einen Kaffee': '☕ Buy me a coffee'};
+Object.assign(EN, {
+  'Home Assistant': 'Home Assistant', 'Sensoren und Schalter aus deinem Smart Home': 'Sensors and switches from your smart home',
+  'Adresse, Token oder Entitäten fehlen': 'Address, token or entities missing',
+  'Zugang gespeichert – er wird genutzt, sobald die Seite an und alles ausgefüllt ist': 'Access saved – it is used once the page is on and everything is filled in',
+  'Bis zu 4 Werte aus deinem Smart Home auf dem Display: Sensoren zeigen den Wert, Schalter lassen sich per Touch umlegen.': 'Up to 4 values from your smart home on the display: sensors show the value, switches can be flipped by touch.',
+  'Titel': 'Title', 'Überschrift auf dem Display': 'Heading on the display',
+  'Die Werte werden alle 15 Sekunden abgefragt, Schalter reagieren sofort.': 'Values are polled every 15 seconds, switches react immediately.',
+  'Adresse': 'Address', 'So wie im Browser, z. B. http://homeassistant.local:8123': 'As in your browser, e.g. http://homeassistant.local:8123',
+  'Zugriffstoken': 'Access token', 'Verbindung prüfen & Entitäten laden': 'Check connection & load entities',
+  'So bekommst du das Zugriffstoken': 'How to get the access token',
+  'Öffne Home Assistant im Browser und klicke links unten auf deinen ': 'Open Home Assistant in your browser and click your ', 'Namen': 'name', ' (Profil).': ' (profile) at the bottom left.',
+  'Oben zu ': 'At the top, go to ', 'Sicherheit': 'Security', ' wechseln. Ganz unten bei ': '. At the very bottom, under ', 'Langlebige Zugriffstoken': 'Long-lived access tokens', ' den Knopf ': ', click ', 'Token erstellen': 'Create token', ' klicken.': '.',
+  'Einen Namen eingeben (z. B. „Display“), ': 'Enter a name (e.g. “Display”), click ', 'OK': 'OK', ' klicken und das Token sofort kopieren – es wird nur einmal angezeigt.': ' and copy the token right away – it is shown only once.',
+  'Hier bei ': 'Paste it here into ', ' einfügen. Die App speichert es verschlüsselt, nur dein Windows-Konto kann es lesen.': '. The app stores it encrypted; only your Windows account can read it.',
+  'Tipp: Die Adresse mit „http://“ bleibt in deinem Heimnetz. Von unterwegs nutzt du die App nicht – das Display steht ja zu Hause.': 'Tip: an address with “http://” stays inside your home network. That is fine – the display sits at home anyway.',
+  'Entitäten': 'Entities', 'Sensoren zeigen den Wert mit Einheit. Schalter (Schalter, Licht, Ventilator, Eingabe-Schalter) legst du per Tipp auf das Display um.': 'Sensors show the value with its unit. You flip switches (switches, lights, fans, input booleans) by tapping them on the display.',
+  'Hier werden nur Sensoren gezeigt. Schalter lassen sich nur wählen, wenn ein Touch-Bildschirm angeschlossen und Touch eingeschaltet ist (Reiter Display).': 'Only sensors are shown here. Switches can only be chosen when a touchscreen is connected and touch is turned on (Display tab).',
+  'Höchstens 4 Entitäten. Die Kacheln stehen in der Reihenfolge der Liste.': 'At most 4 entities. Tiles follow the order of the list.',
+  'Anzeigename (optional)': 'Display name (optional)', 'Entität suchen …': 'Search entities …', 'Nichts gefunden.': 'Nothing found.',
+  'Noch nichts ausgewählt. Mit „Verbindung prüfen“ lädst du die Liste aus Home Assistant.': 'Nothing chosen yet. “Check connection” loads the list from Home Assistant.',
+  'Schalter: wird ohne Touch nicht angezeigt': 'Switch: not shown without touch', 'Schalter · ': 'Switch · ', 'Sensor · ': 'Sensor · ',
+  'Sensoren und Schalter aus deiner Installation': 'Sensors and switches from your installation',
+  'Sensoren aus deiner Installation (Schalter erscheinen hier, sobald Touch aktiv ist)': 'Sensors from your installation (switches appear once touch is active)',
+  'Das ist keine gültige Entität (so sieht eine aus: sensor.wohnzimmer_temperatur)': 'That is not a valid entity (example: sensor.living_room_temperature)',
+  'Es passen höchstens 4 Entitäten auf die Seite': 'At most 4 entities fit on the page',
+  'Schalter lassen sich nur wählen, wenn Touch aktiv ist (Reiter Display: Bildschirm mit Touch)': 'Switches can only be chosen when touch is active (Display tab: screen with touch)',
+  'Home Assistant ist nicht erreichbar – Adresse und Netzwerk prüfen': 'Home Assistant is not reachable – check the address and network',
+  'Home Assistant: Token ungültig oder abgelaufen': 'Home Assistant: token invalid or expired',
+  'Bitte zuerst die Adresse von Home Assistant eintragen': 'Please enter the Home Assistant address first',
+  'Bitte zuerst das Zugriffstoken eintragen': 'Please enter the access token first'
+});
 const T = s => (L === 'en' && typeof s === 'string' && EN[s] !== undefined) ? EN[s] : s;
 const h = (tag, attrs = {}, ...kids) => {
   const e = document.createElement(tag);
@@ -288,14 +319,15 @@ const api = (path, body) => fetch(path, body === undefined ? {} : {method: 'POST
   headers: {'X-FL': '1', 'Content-Type': 'application/json'}, body: JSON.stringify(body)}).then(r => r.json());
 
 const TABS = [
-  ['start', 'Start'], ['overview', 'Übersicht'], ['friends', 'Freunde'], ['discord', 'Discord'], ['bf6', 'Battlefield 6'], ['rss', 'Blogs'],
+  ['start', 'Start'], ['overview', 'Übersicht'], ['friends', 'Freunde'], ['discord', 'Discord'], ['bf6', 'Battlefield 6'], ['rss', 'Blogs'], ['homeassistant', 'Home Assistant'],
   ['system', 'System'], ['display', 'Display']];
 const PAGES = {
   system: ['System', 'CPU, GPU, RAM, Datenträger, Netzwerk'],
   friends: ['Freunde (alle Plattformen)', 'Discord, Steam und Xbox in einer Liste'],
   discord: ['Discord-Freunde', 'Wer ist online und was spielt er'],
   bf6: ['Battlefield 6 Rangliste', 'Profile deiner EA-Freunde nach Rang'],
-  rss: ['Blog-Updates', 'Neueste Beiträge deiner Blogs']};
+  rss: ['Blog-Updates', 'Neueste Beiträge deiner Blogs'],
+  homeassistant: ['Home Assistant', 'Sensoren und Schalter aus deinem Smart Home']};
 
 let saved = null, cfg = null, tab = 'start', meta = {}, previewTimer = null, cache = {};
 
@@ -334,6 +366,7 @@ function isActive(p) {
   if (p === 'discord') return c.enabled && (c.token_set || meta.discord_ready) && !(cfg.friends.enabled && cfg.friends.include_discord);
   if (p === 'friends') return c.enabled && ((c.include_discord && cfg.discord.token_set) || c.steam_api_key_set || c.xbox_api_key_set);
   if (p === 'bf6') return c.enabled && c.players.length > 0; if (p === 'rss') return c.enabled && c.feeds.length > 0;
+  if (p === 'homeassistant') return c.enabled && !!c.url && c.token_set && c.entities.length > 0;
   return c.enabled;
 }
 function renderNav() {
@@ -418,7 +451,8 @@ function viewOverview() {
     let note = PAGES[p][1];
     if (on && !act) note = p === 'discord' ? (cfg.friends.enabled && cfg.friends.include_discord
       ? 'Wird nicht gezeigt: Die Freunde-Seite enthält Discord schon' : 'Bot-Token fehlt')
-      : p === 'friends' ? 'Noch keine Konten verbunden' : p === 'bf6' ? 'Keine Spieler eingetragen' : 'Keine Blogs eingetragen';
+      : p === 'friends' ? 'Noch keine Konten verbunden' : p === 'bf6' ? 'Keine Spieler eingetragen'
+      : p === 'homeassistant' ? 'Adresse, Token oder Entitäten fehlen' : 'Keine Blogs eingetragen';
     return h('div', {class: 'page' + (on ? '' : ' off')},
       h('div', {class: 'n'}, String(i + 1)), h('div', {class: 't'}, h('b', {}, PAGES[p][0]), h('span', {}, note)),
       h('div', {class: 'arrows'}, h('button', {disabled: i === 0, title: 'Nach oben', onclick: () => moveTo(i, -1)}, '▲'),
@@ -521,6 +555,7 @@ function ago(ts) {
 }
 function connLine(p, c) {
   if (!c || c.state === 'off') return ['off', T('Noch nicht eingerichtet')];
+  if (c.state === 'idle' && p === 'homeassistant') return ['off', T('Zugang gespeichert – er wird genutzt, sobald die Seite an und alles ausgefüllt ist')];
   if (c.state === 'idle') return ['off', T(p === 'discord'
     ? 'Verbinde … oder Token gespeichert, aber gerade nicht genutzt'
     : 'Zugang gespeichert – er wird genutzt, sobald die Seite „Freunde“ an und alles ausgefüllt ist')];
@@ -647,6 +682,84 @@ function viewRss() {
         ['Klicke oben in die Adresszeile und kopiere die Adresse mit ', B('Strg + C'), '.'],
         ['Klicke hier ins Feld, füge sie mit ', B('Strg + V'), ' ein und klicke auf ', B('Hinzufügen'), '.'],
         ['Klicke auf ', B('Prüfen'), '. Grün heißt: Es wurden Beiträge gefunden.']]))];
+}
+
+/* ---------- Home Assistant ---------- */
+const HA_SWITCH = ['switch', 'input_boolean', 'light', 'fan'];
+const haDomain = id => id.split('|')[0].trim().split('.')[0];
+const haTouchOk = () => cfg.display.output === 'monitor' && !!cfg.display.touch && !!((cache.opts || {}).touch || {}).available;
+function viewHa() {
+  const c = cfg.homeassistant, box = h('div'), pick = h('div');
+  if (!cache.opts) api('/api/display/options').then(r => { cache.opts = r; if (tab === 'homeassistant') render(); });
+  let loaded = null;   // {entities, touch} nach „Verbindung prüfen“
+  const MAX = 4;
+  const split = e => { const [id, ...rest] = e.split('|'); return {id: id.trim(), label: rest.join('|').trim()}; };
+  const drawList = () => {
+    const ok = haTouchOk();
+    box.replaceChildren(...[h('div', {class: 'list'}, c.entities.map((e, i) => {
+      const {id, label} = split(e), sw = HA_SWITCH.includes(haDomain(id)), hidden = sw && !ok;
+      return h('div', {class: 'item'}, h('div', {class: 't'}, h('b', {}, label || id), h('span', {class: hidden ? 'bad' : ''},
+        hidden ? 'Schalter: wird ohne Touch nicht angezeigt' : (sw ? 'Schalter · ' : 'Sensor · ') + id)),
+        h('button', {class: 'btn sm', onclick: () => { c.entities.splice(i, 1); touch(); drawList(); }}, 'Entfernen'));
+    })), c.entities.length ? null : h('p', {class: 'note'}, 'Noch nichts ausgewählt. Mit „Verbindung prüfen“ lädst du die Liste aus Home Assistant.')].filter(Boolean));
+    renderNav();
+  };
+  const add = (id, label) => {
+    id = id.trim().toLowerCase();
+    if (!/^[a-z_]+\.[a-z0-9_]+$/.test(id)) return toast(T('Das ist keine gültige Entität (so sieht eine aus: sensor.wohnzimmer_temperatur)'));
+    if (c.entities.length >= MAX) return toast(T('Es passen höchstens 4 Entitäten auf die Seite'));
+    if (HA_SWITCH.includes(haDomain(id)) && !haTouchOk())
+      return toast(T('Schalter lassen sich nur wählen, wenn Touch aktiv ist (Reiter Display: Bildschirm mit Touch)'));
+    if (c.entities.some(e => split(e).id === id)) return;
+    c.entities.push(label && label.trim() ? id + '|' + label.trim() : id); touch(); drawList();
+  };
+  const drawPick = () => {
+    if (!loaded) return pick.replaceChildren();
+    const q = h('input', {type: 'text', placeholder: 'Entität suchen …', style: 'width:100%'}), res = h('div', {class: 'list', style: 'margin-top:8px;max-height:260px;overflow:auto'});
+    const show = () => {
+      const t = q.value.toLowerCase();
+      res.replaceChildren(...loaded.entities.filter(e => !t || (e.name + ' ' + e.id).toLowerCase().includes(t)).slice(0, 60).map(e =>
+        h('div', {class: 'item'}, h('div', {class: 't'}, h('b', {}, e.name), h('span', {}, `${e.id} · ${e.state}${e.unit ? ' ' + e.unit : ''}`)),
+          h('button', {class: 'btn sm', onclick: () => add(e.id, '')}, 'Hinzufügen'))));
+      if (!res.children.length) res.append(h('p', {class: 'note'}, 'Nichts gefunden.'));
+    };
+    q.addEventListener('input', show); show();
+    pick.replaceChildren(h('p', {class: 'hint'}, loaded.touch ? 'Sensoren und Schalter aus deiner Installation' : 'Sensoren aus deiner Installation (Schalter erscheinen hier, sobald Touch aktiv ist)'), q, res);
+  };
+  const out = h('span', {class: 'note'});
+  const check = h('button', {class: 'btn sm', onclick: async () => {
+    check.disabled = true; out.className = 'note'; out.textContent = T('Prüfe …');
+    try {
+      const r = await api('/api/ha/entities', {url: c.url, token: c.token, touch: haTouchOk()});
+      out.className = r.ok ? 'ok' : 'bad';
+      out.textContent = r.ok ? (L === 'en' ? `Connected: ${r.entities.length} entities found` : `Verbunden: ${r.entities.length} Entitäten gefunden`) : r.error;
+      loaded = r.ok ? r : null; drawPick();
+    } catch (e) { out.className = 'bad'; out.textContent = T('Fehler'); }
+    check.disabled = false; }}, 'Verbindung prüfen & Entitäten laden');
+  const idIn = h('input', {type: 'text', placeholder: 'sensor.wohnzimmer_temperatur'}), lbIn = h('input', {type: 'text', placeholder: 'Anzeigename (optional)', style: 'max-width:200px'});
+  const addIn = () => { add(idIn.value, lbIn.value); idIn.value = ''; lbIn.value = ''; };
+  idIn.addEventListener('keydown', e => e.key === 'Enter' && addIn());
+  drawList();
+  const ok = haTouchOk();
+  return [...head('Home Assistant', 'Bis zu 4 Werte aus deinem Smart Home auf dem Display: Sensoren zeigen den Wert, Schalter lassen sich per Touch umlegen.'),
+    card('Seite', null, row('Seite anzeigen', null, toggle('homeassistant', 'enabled')),
+      row('Titel', 'Überschrift auf dem Display', text('homeassistant', 'title', 'Home Assistant'))),
+    card('Verbindung', 'Die Werte werden alle 15 Sekunden abgefragt, Schalter reagieren sofort.', connBadge('homeassistant'),
+      row('Adresse', 'So wie im Browser, z. B. http://homeassistant.local:8123', text('homeassistant', 'url', 'http://homeassistant.local:8123')),
+      row('Zugriffstoken', c.token_set ? 'Gespeichert. Leer lassen, um ihn zu behalten.' : 'Wird gleich erklärt',
+        text('homeassistant', 'token', c.token_set ? '••••••••••••' : 'Token einfügen', 'password')),
+      h('div', {style: 'display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap'}, check, out),
+      howto('So bekommst du das Zugriffstoken', [
+        ['Öffne Home Assistant im Browser und klicke links unten auf deinen ', B('Namen'), ' (Profil).'],
+        ['Oben zu ', B('Sicherheit'), ' wechseln. Ganz unten bei ', B('Langlebige Zugriffstoken'), ' den Knopf ', B('Token erstellen'), ' klicken.'],
+        ['Einen Namen eingeben (z. B. „Display“), ', B('OK'), ' klicken und das Token sofort kopieren – es wird nur einmal angezeigt.'],
+        ['Hier bei ', B('Zugriffstoken'), ' einfügen. Die App speichert es verschlüsselt, nur dein Windows-Konto kann es lesen.']]),
+      h('p', {class: 'note'}, 'Tipp: Die Adresse mit „http://“ bleibt in deinem Heimnetz. Von unterwegs nutzt du die App nicht – das Display steht ja zu Hause.')),
+    card('Entitäten', ok ? 'Sensoren zeigen den Wert mit Einheit. Schalter (Schalter, Licht, Ventilator, Eingabe-Schalter) legst du per Tipp auf das Display um.'
+        : 'Hier werden nur Sensoren gezeigt. Schalter lassen sich nur wählen, wenn ein Touch-Bildschirm angeschlossen und Touch eingeschaltet ist (Reiter Display).',
+      box, pick,
+      h('div', {class: 'add', style: 'margin-top:12px'}, idIn, lbIn, h('button', {class: 'btn', onclick: addIn}, 'Hinzufügen')),
+      h('p', {class: 'hint'}, 'Höchstens 4 Entitäten. Die Kacheln stehen in der Reihenfolge der Liste.'))];
 }
 
 /* ---------- System ---------- */
@@ -800,7 +913,7 @@ function viewDisplay() {
             $('#ovt').textContent = T('App beendet'); $('#ovs').textContent = T('Du kannst dieses Fenster schließen.'); $('#overlay').classList.add('show'); } }}, 'Beenden'))))];
 }
 
-const VIEWS = {start: viewStart, overview: viewOverview, friends: viewFriends, discord: viewDiscord, bf6: viewBf6, rss: viewRss, system: viewSystem, display: viewDisplay};
+const VIEWS = {homeassistant: viewHa, start: viewStart, overview: viewOverview, friends: viewFriends, discord: viewDiscord, bf6: viewBf6, rss: viewRss, system: viewSystem, display: viewDisplay};
 function render() {
   clearInterval(previewTimer); clearInterval(statusTimer); clearInterval(connTimer);
   $('#main').replaceChildren(...VIEWS[tab]().filter(Boolean));

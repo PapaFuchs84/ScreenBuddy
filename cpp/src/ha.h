@@ -50,6 +50,7 @@ public:
     std::string status();                       // Fehlertext, leer = alles in Ordnung
     ojson info();                               // ok, count, at, error – für die Verbindungsanzeige
     bool has_data();
+    bool configured() const { return !url_.empty() && !token_.empty() && !specs_.empty(); }
     void request_toggle(const std::string& entity_id);   // asynchron; die Anzeige zeigt danach den echten Zustand
 
 private:

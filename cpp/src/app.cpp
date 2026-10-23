@@ -9,6 +9,7 @@
 #include "bf6.h"
 #include "discord.h"
 #include "friends.h"
+#include "ha.h"
 #include "i18n.h"
 #include "rss.h"
 #include "sysinfo.h"
@@ -25,12 +26,14 @@ struct App::RendererSet {
     render::Bf6Renderer bf6;
     render::RssRenderer rss;
     render::SysRenderer system;
+    render::HaRenderer ha;
     RendererSet(int w, int h, const ojson& cfg)
         : discord(w, h, cfg["display"].value("title", "Discord-Freunde")),
           friends(w, h, cfg["friends"].value("title", "Freunde")),
           bf6(w, h, cfg["bf6"].value("title", "Battlefield 6 · Rangliste")),
           rss(w, h, cfg["rss"].value("title", "Blog-Updates")),
-          system(w, h, cfg["system"].value("title", "System"), cfg["system"].value("net_unit", "bit")) {}
+          system(w, h, cfg["system"].value("title", "System"), cfg["system"].value("net_unit", "bit")),
+          ha(w, h, cfg["homeassistant"].value("title", "Home Assistant")) {}
 };
 
 static bool b(const ojson& j, const char* k, bool def = false) {
@@ -59,11 +62,21 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
     // Discord wird gebraucht, wenn seine Seite an ist oder die gemeinsame Freundesliste es einbezieht
     bool want_discord = b(dc, "enabled", true) || (b(fr, "enabled") && b(fr, "include_discord", true));
     if (want_discord && !trim(s(dc, "token")).empty()) discord_ = std::make_unique<discord::DiscordFeed>(dc, dirty);
+    if (b(cfg_["homeassistant"], "enabled")) {
+        ha_ = std::make_unique<ha::HaClient>(cfg_["homeassistant"], touch_enabled(), dirty);
+        if (!ha_->configured()) ha_.reset();
+    }
     if (b(fr, "enabled"))
         friends_ = std::make_unique<friends::FriendsHub>(fr, b(fr, "include_discord", true) ? discord_.get() : nullptr, dirty);
 }
 
+bool App::touch_enabled() const {
+    // Schalter brauchen Touch: nur bei Ausgabe auf einen Bildschirm, mit eingeschaltetem Touch und erkanntem Touchscreen
+    return dp_.value("output", "serial") == "monitor" && b(dp_, "touch", true) && touch_info().value("available", false);
+}
+
 App::~App() {
+    if (ha_) ha_->stop();
     if (friends_) friends_->stop();
     if (discord_) discord_->stop();
     if (bf6_) bf6_->stop();
@@ -145,7 +158,8 @@ std::vector<std::string> App::active_pages() {
                                         {"discord", discord_page && discord_ != nullptr},
                                         {"friends", friends_ != nullptr},
                                         {"bf6", bf6_ != nullptr},
-                                        {"rss", rss_ != nullptr}};
+                                        {"rss", rss_ != nullptr},
+                                        {"homeassistant", ha_ != nullptr}};
     std::vector<std::string> out;
     for (auto& p : dp_["pages"])
         if (p.is_string() && have[p.get<std::string>()]) out.push_back(p.get<std::string>());
@@ -166,6 +180,17 @@ ojson App::connections() {
             out["discord"] = {{"state", st.rfind("Verbinde", 0) == 0 ? "idle" : "bad"}, {"error", st}};
     } else {
         out["discord"] = {{"state", !s(dc, "token").empty() ? "idle" : "off"}};
+    }
+    {
+        const ojson& hc = cfg_["homeassistant"];
+        bool set = !s(hc, "url").empty() && !s(hc, "token").empty();
+        ojson info = ha_ ? ha_->info() : ojson();
+        if (info.is_object() && b(info, "ok"))
+            out["homeassistant"] = {{"state", "ok"}, {"detail", std::to_string(info.value("count", 0)) + " Entitäten"}, {"at", info["at"]}};
+        else if (info.is_object() && !s(info, "error").empty())
+            out["homeassistant"] = {{"state", "bad"}, {"error", s(info, "error")}, {"at", info.contains("at") ? info["at"] : ojson()}};
+        else
+            out["homeassistant"] = {{"state", set ? "idle" : "off"}};
     }
     for (auto plat : {"steam", "xbox"}) {
         bool key_set = std::string(plat) == "steam" ? !s(fr, "steam_api_key").empty() && !s(fr, "steam_id").empty()
@@ -267,6 +292,17 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                            }, [players, updated](int i, RendererSet& rs) {
                                return updated ? touch::player_rows(players, i, rs.bf6.rows_per_page()) : touch::Rows{};
                            }});
+        } else if (key == "homeassistant") {
+            auto entities = ha_->entities();
+            std::string err = ha_->status();
+            bool data = ha_->has_data();
+            ojson inf = ha_->info();
+            std::optional<std::time_t> updated;
+            if (data && inf.contains("at") && inf["at"].is_number()) updated = (std::time_t)inf["at"].get<long long>();
+            PageEntry pe{key, 1, [entities, err, data, updated](int, RendererSet& rs) { return rs.ha.render(entities, data, err, updated); }};
+            for (auto& e : entities)
+                pe.actions.push_back(e.toggle ? std::function<void()>([this, id = e.id] { ha_->request_toggle(id); }) : std::function<void()>());
+            out.push_back(std::move(pe));
         } else if (key == "rss") {
             auto posts = rss_->posts();
             auto updated = rss_->updated();
@@ -290,7 +326,10 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
             if (idx < p.n) {
                 frames.push_back(p.fn(idx, renderers_for(boxes[k].w, boxes[k].h)));
                 keys.push_back(p.key);
-                taps.push_back({boxes[k], p.key == "rss", p.targets ? p.targets(idx, renderers_for(boxes[k].w, boxes[k].h)) : touch::Rows{}});
+                touch::Tile tile{boxes[k], p.key == "rss", p.targets ? p.targets(idx, renderers_for(boxes[k].w, boxes[k].h)) : touch::Rows{}};
+                tile.ha = p.key == "homeassistant";
+                tile.cells = p.actions;
+                taps.push_back(std::move(tile));
                 break;
             }
             idx -= p.n;
@@ -452,6 +491,15 @@ void App::show_settings() { if (show_settings_callback_) show_settings_callback_
 bool App::open_item_at(int x, int y) {
     if (!b(dp_, "touch", true)) return false;
     touch::Targets targets;
+    std::function<void()> action;
+    {
+        std::lock_guard lk(tap_mu_);
+        if (auto* a = touch::action_at(tap_tiles_, x, y)) action = *a;
+    }
+    if (action) {
+        action();
+        return true;   // Schalter angetippt: nicht zusätzlich die Seite wechseln
+    }
     {
         std::lock_guard lk(tap_mu_);
         auto selected = touch::at(tap_tiles_, x, y);
@@ -478,6 +526,7 @@ void App::run() {
     auto dirty = [this] { mark_dirty(); };
     if (bf6_) bf6_->start(dirty);
     if (rss_) rss_->start(dirty);
+    if (ha_) ha_->start();
     if (discord_) discord_->start();
     if (friends_) friends_->start();
     int port = cfg_["ui"].value("port", 8765);
@@ -510,6 +559,7 @@ void App::run() {
     show_settings_callback_ = {};
     settings_window.reset();
     if (friends_) friends_->stop();
+    if (ha_) ha_->stop();
     if (discord_) discord_->stop();
     if (bf6_) bf6_->stop();
     if (rss_) rss_->stop();

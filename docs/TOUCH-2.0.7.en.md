@@ -2,7 +2,7 @@
 
 [Deutsch](TOUCH-2.0.7.md)
 
-**The friend behavior on this page applies from 2.0.9 (local development build, not published).** The current download remains [v2.0.8](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.8), where tapping a friend only opens the Steam chat.
+**The friend behavior on this page applies from 2.1.0 (local development build, not published; the change originates in 2.0.9).** New in 2.1.0: on the Home Assistant page, tapping a switch tile flips that switch (only with touch active; sensors do not react to taps). The current download remains [v2.0.8](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.8), where tapping a friend only opens the Steam chat.
 
 Enable **Display → Touch control**, then select **Save & apply**. Existing configurations with touch disabled keep that setting. HDMI/USB-C also needs the USB touch connection and correct Windows display assignment. Windows 10/11 x64 and WebView2 Evergreen for settings remain prerequisites.
 

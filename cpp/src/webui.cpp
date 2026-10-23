@@ -9,6 +9,7 @@
 #include "app.h"
 #include "bf6.h"
 #include "friends.h"
+#include "ha.h"
 #include "i18n.h"
 #include "netguard.h"
 #include "resources.h"
@@ -262,6 +263,25 @@ bool SettingsServer::start() {
         }
         int online = (int)std::count_if(accounts.begin(), accounts.end(), [](auto& a) { return a.status != "offline"; });
         json_reply(res, {{"ok", true}, {"count", accounts.size()}, {"online", online}});
+    });
+    svr.Post("/api/ha/entities", [&app](const httplib::Request& req, httplib::Response& res) {
+        // Verbindung prüfen und die wählbaren Entitäten laden. Leere Felder kommen aus den gespeicherten Einstellungen.
+        ojson body = body_json(req);
+        ojson saved = app.cfg()["homeassistant"];
+        auto str = [](const ojson& j, const std::string& k) {
+            return j.is_object() && j.contains(k) && j[k].is_string() ? trim(j[k].get<std::string>()) : std::string();
+        };
+        std::string url = str(body, "url"), token = str(body, "token");
+        if (url.empty()) url = str(saved, "url");
+        if (token.empty()) token = str(saved, "token");
+        // Schalter nur anbieten, wenn Touch (laut Formular) gewünscht ist und Windows einen Touchscreen meldet
+        bool touch = body.is_object() && body.value("touch", false) && touch_info().value("available", false);
+        try {
+            auto list = ha::list_entities(url, token, touch);
+            json_reply(res, {{"ok", true}, {"entities", list}, {"touch", touch}});
+        } catch (const ha::HaError& e) {
+            json_reply(res, {{"ok", false}, {"error", e.what()}});
+        }
     });
     svr.Get("/api/connections", [&app](const httplib::Request&, httplib::Response& res) { json_reply(res, app.connections()); });
     svr.Get("/api/friends/accounts", [&app](const httplib::Request&, httplib::Response& res) { json_reply(res, app.friend_accounts()); });

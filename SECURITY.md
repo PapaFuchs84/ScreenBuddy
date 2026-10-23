@@ -26,7 +26,7 @@ FuchsLabs bestätigt den Eingang so bald wie möglich, hält dich über die Behe
 ## Was zum Sicherheitsmodell gehört
 
 - Die Einstellungsseite lauscht nur auf `127.0.0.1` und darf aus dem Netzwerk und von fremden Webseiten aus nicht bedienbar sein (Host-Prüfung, eigener Header für Änderungen, `Sec-Fetch-Site`-Prüfung, kein Einbetten).
-- Discord-Token, Steam- und Xbox-Schlüssel liegen nur DPAPI-verschlüsselt in `config.toml`, erscheinen nie im Log und werden nie an den Browser ausgeliefert.
+- Discord-Token, Steam- und Xbox-Schlüssel sowie das Home-Assistant-Token liegen nur DPAPI-verschlüsselt in `config.toml`, erscheinen nie im Log und werden nie an den Browser ausgeliefert.
 - Daten aus dem Netz (Feeds, Avatare, Spielernamen) werden größenbegrenzt verarbeitet und nur als Text gezeichnet.
 - Die App braucht keine Administratorrechte.
 

@@ -18,7 +18,7 @@
 
 namespace fl::config {
 
-const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss"};
+const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss", "homeassistant"};
 
 using Key = std::pair<std::string, std::string>;
 
@@ -44,6 +44,8 @@ const ojson& defaults() {
                     {"title", "Battlefield 6 · Rangliste"}};
         j["rss"] = {{"enabled", false}, {"feeds", ojson::array()}, {"refresh_minutes", 30}, {"max_items", 4},
                     {"max_per_feed", 1}, {"title", "Blog-Updates"}};
+        j["homeassistant"] = {{"enabled", false}, {"title", "Home Assistant"}, {"url", ""}, {"token", ""},
+                              {"entities", ojson::array()}};
         j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}};
         return j;
     }();
@@ -66,7 +68,8 @@ static const std::map<Key, std::vector<std::string>> CHOICES = {
     {{"ui", "language"}, {"de", "en"}},
 };
 static const std::set<Key> ID_LISTS = {{"discord", "guild_ids"}, {"discord", "friend_ids"}, {"discord", "ignore_ids"}};
-static const std::vector<Key> SECRETS = {{"discord", "token"}, {"friends", "steam_api_key"}, {"friends", "xbox_api_key"}};
+static const std::vector<Key> SECRETS = {{"discord", "token"}, {"friends", "steam_api_key"}, {"friends", "xbox_api_key"},
+                                         {"homeassistant", "token"}};
 
 bool is_color_key(const std::string& key) {
     static const std::set<std::string> k = {"color_bg", "color_card", "color_header", "color_accent", "color_text",
@@ -207,13 +210,14 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
             return out;
         }
         std::vector<std::string> out;
+        const size_t cap = k == Key{"homeassistant", "entities"} ? 4 : 50;
         for (auto& x : value) {
             std::u32string u = to_u32(trim(py_str(x)));
             if (u.size() > 200) u.resize(200);
             std::string s = from_u32(u);
             if (!s.empty() && !std::count(out.begin(), out.end(), s)) out.push_back(s);
         }
-        if (out.size() > 50) out.resize(50);
+        if (out.size() > cap) out.resize(cap);
         return out;
     }
     std::u32string u = to_u32(trim(py_str(value)));
@@ -294,6 +298,7 @@ static const std::map<std::string, std::string> HEADERS = {
     {"discord", "Discord-Freunde (Bot-Token, Server, Personen)"},
     {"display", "Display und Seitenwechsel (pages = Reihenfolge der Seiten)"},
     {"system", "Systemansicht"},
+    {"homeassistant", "Home Assistant (Adresse, Zugriffstoken, bis zu 4 Entitäten; Schalter nur mit Touch)"},
     {"friends", "Gemeinsame Freundesliste (Discord, Steam, Xbox); links = manuell verknüpfte Personen"},
     {"bf6", "Battlefield-6-Rangliste (EA-IDs, Konsole mit Suffix @psn / @xbox)"},
     {"rss", "Blog-Updates (RSS)"},
