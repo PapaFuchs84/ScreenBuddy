@@ -8,6 +8,7 @@
 #include <regex>
 
 #include "brand.h"
+#include "ha.h"
 #include "i18n.h"
 #include "util.h"
 
@@ -670,6 +671,99 @@ Image RssRenderer::render(const std::vector<Post>& posts, std::optional<std::tim
     return d.finish();
 }
 
+// ---------- Home Assistant ----------
+static bool toggle_domain_name(const std::string& id) { return ha::toggle_domain(id); }
+static std::string ha_format_value(const std::string& s) { return ha::format_value(s); }
+
+HaRenderer::HaRenderer(int w_, int h_, std::string t) : Renderer(w_, h_, std::move(t)) {
+    f_value = font(38, true);
+    f_value_small = font(28, true);
+    f_unit = font(17);
+    f_name_ha = font(14, true);
+}
+
+std::vector<HaRenderer::Cell> HaRenderer::cells(size_t n, float w, float h) {
+    std::vector<Cell> out;
+    if (!n) return out;
+    n = std::min(n, (size_t)4);
+    float top = HEADER_H + 4, bot = h - FOOTER_H - 4, gap = 6;
+    if (w < h) {   // Hochformat: Kacheln untereinander
+        float ch = (bot - top - gap * (n - 1)) / n;
+        for (size_t i = 0; i < n; ++i) out.push_back({gap, top + i * (ch + gap), w - gap, top + i * (ch + gap) + ch});
+        return out;
+    }
+    float cw2 = (w - 3 * gap) / 2, ch2 = (bot - top - gap) / 2;
+    if (n == 1) out.push_back({gap, top, w - gap, bot});
+    else if (n == 2) {
+        for (size_t i = 0; i < 2; ++i) out.push_back({gap + i * (cw2 + gap), top, gap + i * (cw2 + gap) + cw2, bot});
+    } else {
+        for (size_t i = 0; i < n; ++i) {
+            size_t r = i / 2, c = i % 2;
+            bool wide = n == 3 && i == 2;   // dritte Kachel über die ganze Breite
+            float x0 = wide ? gap : gap + c * (cw2 + gap), x1 = wide ? w - gap : x0 + cw2;
+            float y0 = top + r * (ch2 + gap);
+            out.push_back({x0, y0, x1, y0 + ch2});
+        }
+    }
+    return out;
+}
+
+int HaRenderer::cell_at(int w_px, int h_px, size_t n, int x_px, int y_px) {
+    float sc = scale_for(w_px, h_px);
+    float lw = sc == 1 ? (float)w_px : (float)pyround_i(w_px / sc);
+    float lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
+    float x = x_px / sc, y = y_px / sc;
+    auto cs = cells(n, lw, lh);
+    for (size_t i = 0; i < cs.size(); ++i)
+        if (x >= cs[i].x0 && x < cs[i].x1 && y >= cs[i].y0 && y < cs[i].y1) return (int)i;
+    return -1;
+}
+
+void HaRenderer::cell(Canvas& d, const Cell& c, const HaEntity& e, bool compact) {
+    const Theme& t = g_theme;
+    float cw = c.x1 - c.x0, ch = c.y1 - c.y0;
+    d.rounded_rectangle(c.x0, c.y0, c.x1, c.y1, 8, t.card);
+    d.text(c.x0 + 10, c.y0 + 15, fit(d, e.name, f_name_ha, cw - 20), f_name_ha, t.accent, "lm");
+    float cy = c.y0 + 15 + (ch - 15) / 2 + 2;
+    if (!e.available) {
+        d.text(c.x0 + 10, cy - 4, e.state == "nicht gefunden" ? "nicht gefunden" : "Nicht verfügbar", f_unit, t.muted, "lm");
+        return;
+    }
+    bool is_switch = e.toggle || (toggle_domain_name(e.id) && (e.state == "on" || e.state == "off"));
+    if (is_switch) {
+        // Schiebeschalter: Orange = an
+        float tw = compact ? 40 : 52, th = compact ? 22 : 28, x = c.x0 + 12, y = cy - th / 2;
+        d.rounded_rectangle(x, y, x + tw, y + th, th / 2, e.on ? t.orange : t.line);
+        float r = th / 2 - 3, kx = e.on ? x + tw - th / 2 : x + th / 2;
+        d.ellipse(kx - r, cy - r, kx + r, cy + r, e.on ? t.head_text : t.muted);
+        d.text(x + tw + 12, cy, e.on ? "An" : "Aus", compact ? f_value_small : f_value, e.on ? t.text : t.muted, "lm");
+        return;
+    }
+    std::string v = fit(d, ha_format_value(e.state), compact ? f_value_small : f_value, cw - 20);
+    const Font& vf = compact ? f_value_small : f_value;
+    d.text(c.x0 + 10, cy, v, vf, t.text, "lm");
+    if (!e.unit.empty())
+        d.text(c.x0 + 10 + d.textlength(v, vf) + 5, cy + (compact ? 4 : 6), fit(d, e.unit, f_unit, std::max(10.f, cw - 30 - d.textlength(v, vf))), f_unit, t.muted, "lm");
+}
+
+Image HaRenderer::render(const std::vector<HaEntity>& entities, bool has_data, const std::string& error,
+                         std::optional<std::time_t> updated, std::time_t now) {
+    const Theme& t = g_theme;
+    Canvas d(W, H, s, t.bg);
+    header(d, now, "");
+    if (entities.empty()) {
+        message(d, "Keine Entitäten eingetragen");
+    } else if (!has_data) {
+        message(d, error.empty() ? "Lade Home Assistant …" : error);
+    } else {
+        auto cs = cells(entities.size(), w, h);
+        bool compact = entities.size() > 2 || w < h;
+        for (size_t i = 0; i < cs.size() && i < entities.size(); ++i) cell(d, cs[i], entities[i], compact);
+    }
+    std::string left = has_data && !error.empty() ? fit(d, error, f_small, w - 110) : updated ? "Stand " + clock_hhmm(*updated) : "";
+    footer(d, left);
+    return d.finish();
+}
 // ---------- Beispieldaten ----------
 std::vector<Friend> demo_friends() {
     auto f = [](uint64_t id, const char* name, const char* st, const char* act = "", bool mobile = false) {
@@ -681,6 +775,19 @@ std::vector<Friend> demo_friends() {
             f(3, "Lena", "idle", "🌙 gleich zurück"),                 f(4, "Kevin", "online", "Hört Numb – Linkin Park", true),
             f(5, "Mara", "online", ""),                                f(6, "Tom", "offline"),
             f(7, "Jonas", "online", "Spielt Counter-Strike 2 · 1 h 05 min"), f(8, "Sven", "idle", "")};
+}
+
+std::vector<HaEntity> demo_ha() {
+    auto mk = [](const char* id, const char* name, const char* state, const char* unit, bool toggle) {
+        HaEntity e;
+        e.id = id; e.name = name; e.state = state; e.unit = unit; e.available = true;
+        e.toggle = toggle; e.on = std::string(state) == "on";
+        return e;
+    };
+    return {mk("sensor.wohnzimmer_temperatur", "Wohnzimmer", "21.53", "°C", false),
+            mk("sensor.solar_leistung", "Solar", "2840", "W", false),
+            mk("light.schreibtisch", "Schreibtischlampe", "on", "", true),
+            mk("switch.kaffeemaschine", "Kaffeemaschine", "off", "", true)};
 }
 
 std::vector<Bf6Player> demo_players() {

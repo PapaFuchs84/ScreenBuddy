@@ -124,7 +124,26 @@ private:
     std::vector<std::string> wrap(Canvas& d, const std::string& text, const Font& f, float max_w, int lines = 2);
 };
 
+// Home Assistant: bis zu 4 Kacheln (Sensorwert mit Einheit oder Schalter mit Schiebeschalter-Symbol)
+class HaRenderer : public Renderer {
+public:
+    HaRenderer(int w, int h, std::string title);
+    Image render(const std::vector<HaEntity>& entities, bool has_data, const std::string& error,
+                 std::optional<std::time_t> updated, std::time_t now = 0);
+    struct Cell {
+        float x0, y0, x1, y1;   // logische Koordinaten
+    };
+    static std::vector<Cell> cells(size_t n, float w, float h);
+    // Welche Kachel liegt bei Pixel (x, y) einer Kachelfläche w × h? -1 = keine. Für „Tippen schaltet“.
+    static int cell_at(int w_px, int h_px, size_t n, int x_px, int y_px);
+
+private:
+    Font f_value, f_value_small, f_unit, f_name_ha;
+    void cell(Canvas& d, const Cell& c, const HaEntity& e, bool compact);
+};
+
 std::string ago(std::optional<std::time_t> t, std::time_t now = 0);
+std::vector<HaEntity> demo_ha();
 std::vector<Friend> demo_friends();
 std::vector<Bf6Player> demo_players();
 

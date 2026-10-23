@@ -42,6 +42,16 @@ struct Post {
     std::string link;
 };
 
+// Eine Home-Assistant-Entität (Sensor oder Schalter) in dem Zustand, den die Seite zeichnet
+struct HaEntity {
+    std::string id, name;
+    std::string state;               // Rohwert von Home Assistant, z. B. "21.5", "on", "unavailable"
+    std::string unit;                // z. B. "°C"
+    bool toggle = false;             // per Tipp schaltbar (Schalter, Licht, …) und Touch ist an
+    bool on = false;
+    bool available = false;          // false = noch nicht abgefragt oder Home Assistant meldet "unavailable"/"unknown"
+};
+
 struct SysSnapshot {
     std::string cpu_name = "CPU";
     std::optional<double> cpu_pct, cpu_ghz, cpu_temp, cpu_fan;  // Lüfter in RPM
