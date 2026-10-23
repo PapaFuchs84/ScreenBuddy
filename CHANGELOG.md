@@ -17,15 +17,19 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ### Behoben
 - Prozentwerte in der Einstellungsseite (Helligkeit zeigte nach einer automatischen Korrektur „90 90“).
 
-## [2.0.5] – 2026-10-23
+## [2.0.6] – 2026-10-23
 
 - Touch: Tippen auf einen Blogbeitrag öffnet ihn im Standardbrowser auf dem PC; Tippen anderswo und Wischen blättern wie bisher.
-- HDMI/USB-C: Solange die Anzeige läuft, wird die Windows-Taskleiste auf diesem Bildschirm ausgeblendet (vorher öffnete ein Tippen unten das Startmenü); beim Beenden kommt sie zurück.
-- Jede Touch-Geste steht im Protokoll; Hinweis, wenn Touch in den Einstellungen aus ist. Neue Konfigurationen starten mit Touch an.
 - Behoben: Nach „Speichern & anwenden“ verschwand das Einstellungsfenster in den Infobereich. Es öffnet sich nach dem Neustart jetzt wieder.
 - Behoben: Eine zweite Instanz (z. B. eine Testversion) konnte den Port der Einstellungsseite mitbenutzen; der Port wird jetzt exklusiv belegt.
 - `LICENSE.txt` und `THIRD-PARTY-NOTICES.md` sind in der EXE enthalten; der Installer legt sie in den Installationsordner.
-- Noch nicht veröffentlicht; Prüfstatus siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+- Download und Prüfsummen: [v2.0.6](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.6). Prüfstatus siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+
+## [2.0.5] – 2026-10-23
+
+- HDMI/USB-C: Solange die Anzeige läuft, wird die Windows-Taskleiste auf diesem Bildschirm ausgeblendet (vorher öffnete ein Tippen unten das Startmenü); beim Beenden kommt sie zurück.
+- Jede Touch-Geste steht im Protokoll; Hinweis, wenn Touch in den Einstellungen aus ist. Neue Konfigurationen starten mit Touch an.
+- Nur an einen Tester weitergegeben (Touch auf echter Hardware bestätigt), nicht einzeln veröffentlicht; enthalten in 2.0.6.
 
 ## [2.0.4] – 2026-10-22
 

@@ -4,15 +4,20 @@
 
 - Documentation follow-up for 2.0.3: current download links, matching German/English HDMI/touch steps in the guide templates and HTML resources, validation status, and permanent documentation rules. Updated embedded guides will be included in the next app build; the existing 2.0.3 EXE is unchanged.
 
+## 2.0.6 — 2026-10-23
+
+- Tapping a blog post on a touch display opens the article in the default browser (http/https links only).
+- Fixed: after saving, the settings window no longer disappears into the tray; the restarted app reopens it (`--settings`).
+- Settings server binds its port with SO_EXCLUSIVEADDRUSE (httplib set SO_REUSEADDR, so a second instance could bind the same port).
+- LICENSE and THIRD-PARTY-NOTICES.md are embedded as resources and written to the installation folder; removed on uninstall.
+- Published as v2.0.6.
+
 ## 2.0.5 — 2026-10-23
 
 - HDMI/USB-C output hides the Windows taskbar on the display's screen while the app shows there (restored when the output is hidden or the app quits). Before, a touch near the bottom edge opened the Start menu instead of reaching the app.
 - Touch on: new configurations start with touch enabled; a touch while it is switched off writes a hint to the log.
 - Every touch gesture is logged (distance and result), so problems on a touch display can be diagnosed from the log.
-- Tapping a blog post on a touch display opens the article in the default browser (http/https links only).
-- Fixed: after saving, the settings window no longer disappears into the tray; the restarted app reopens it (`--settings`).
-- Settings server binds its port with SO_EXCLUSIVEADDRUSE (httplib set SO_REUSEADDR, so a second instance could bind the same port).
-- LICENSE and THIRD-PARTY-NOTICES.md are embedded as resources and written to the installation folder; removed on uninstall.
+- Handed to a tester only (touch confirmed on real hardware); included in 2.0.6.
 
 ## 2.0.4 — 2026-10-22
 

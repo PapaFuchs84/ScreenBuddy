@@ -1,6 +1,6 @@
 # FuchsLabs USB-Display – Dokumentation
 
-Version 2.0.4 · Stand 22.10.2026 · © 2026 FuchsLabs
+Version 2.0.6 · Stand 23.10.2026 · © 2026 FuchsLabs
 
 Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein eigenes Windows-Einstellungsfenster mit WebView2. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
 
@@ -53,7 +53,7 @@ Ist keine Seite aktiv, zeigt das Display einen Willkommenshinweis mit der Adress
 
 Version 2.0: Windows 10/11 x64, angeschlossenes Display und installierte Microsoft Edge WebView2 Evergreen Runtime. Python und Visual-C++-Redistributable werden nicht benötigt. Die WebView2-Laufzeit ist nicht Teil der einzelnen EXE.
 
-Die [Release-EXE](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) enthält App, Installer, Updater und Deinstaller. Der Installer verwendet `%LOCALAPPDATA%\FuchsLabs\USB-Display`, legt Verknüpfung und Deinstallationseintrag an und kann Einstellungen aus dem bisherigen Benutzerordner oder dem alten Roaming-AppData-Ordner übernehmen. Eine bestehende Zielkonfiguration bleibt erhalten; der alte Versionsordner wird bei der Übernahme mit `-1.x-alt` umbenannt. Ab 2.0.5 legt der Installer außerdem `LICENSE.txt` (MIT) und `THIRD-PARTY-NOTICES.md` (Lizenzen der mitgelieferten Bibliotheken) in den Installationsordner.
+Die [Release-EXE](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) enthält App, Installer, Updater und Deinstaller. Der Installer verwendet `%LOCALAPPDATA%\FuchsLabs\USB-Display`, legt Verknüpfung und Deinstallationseintrag an und kann Einstellungen aus dem bisherigen Benutzerordner oder dem alten Roaming-AppData-Ordner übernehmen. Eine bestehende Zielkonfiguration bleibt erhalten; der alte Versionsordner wird bei der Übernahme mit `-1.x-alt` umbenannt. Ab 2.0.6 legt der Installer außerdem `LICENSE.txt` (MIT) und `THIRD-PARTY-NOTICES.md` (Lizenzen der mitgelieferten Bibliotheken) in den Installationsordner.
 
 Das eigene Windows-Einstellungsfenster öffnet sich bei noch offener Ersteinrichtung. Später öffnet das Fuchs-Symbol oder ein erneuter Programmstart dieses Fenster. Schließen blendet es aus; **Beenden** im Infobereich stoppt die App. Beim Windows-Autostart bleibt das Fenster geschlossen.
 

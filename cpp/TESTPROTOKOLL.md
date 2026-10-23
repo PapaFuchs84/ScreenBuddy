@@ -1,12 +1,12 @@
 # Testprotokoll vom 22.10.2026
 
-## Version 2.0.5 (23.10.2026): Touch, Taskleiste, Blogbeiträge, Einstellungsfenster
+## Version 2.0.6 (23.10.2026): Blogbeiträge per Touch, Einstellungsfenster, Lizenzdateien (enthält 2.0.5: Touch, Taskleiste)
 
 - Basis: veröffentlichter Stand 2.0.4 plus Lizenzdateien (main nach PR #12/#13).
-- Release-Build erfolgreich; Datei-/Produktversion 2.0.5.0 / 2.0.5. 86 Kernprüfungen und 11 Monitor-Basisprüfungen bestanden; sichtbarer Monitor-/Touchtest mit injizierten Windows-Berührungen: 56 bestanden.
+- Release-Build erfolgreich; Datei-/Produktversion 2.0.6.0 / 2.0.6. 86 Kernprüfungen und 11 Monitor-Basisprüfungen bestanden; sichtbarer Monitor-/Touchtest mit injizierten Windows-Berührungen: 56 bestanden.
 - Isolierte Instanz (eigene Instanzkennung, Port 18767, neutrale Konfiguration, Ausgabe auf einem Nebenmonitor): Taskleiste dieses Monitors wird ausgeblendet und nach dem Beenden wieder gezeigt; injiziertes Tippen auf einen Blogbeitrag öffnete den Artikel im Standardbrowser, Tippen außerhalb blätterte; beides im Protokoll vermerkt.
 - Einstellungsfenster geöffnet, dann „Speichern & anwenden“ per API ausgelöst: Die neu gestartete Instanz öffnete das Fenster wieder.
-- Nicht geprüft: echte Touch-Hardware (Test beim Nutzer läuft), Installation über 2.0.4, Windows-Anmeldetest. Noch nicht veröffentlicht.
+- Touch (Stand 2.0.5: Wischen, Taskleiste) laut Tester auf echter Touch-Hardware einwandfrei. Blog-Tippen und Fenster-Fix nur simuliert bzw. per API geprüft. Veröffentlicht als v2.0.6.
 
 ## Version 2.0.4: Ansichten in der Übersicht durchblättern
 

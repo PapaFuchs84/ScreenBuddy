@@ -1,10 +1,10 @@
-# FuchsLabs USB-Display 2.0.4
+# FuchsLabs USB-Display 2.0.6
 
 Native Windows C++20 port of FuchsLabs USB-Display. The application and installer are distributed as one EXE; it requires no Python runtime or Visual C++ redistributable. The settings window is a native Windows window backed by Microsoft Edge WebView2. The WebView2 Evergreen Runtime is a Windows prerequisite and is not bundled in this EXE.
 
 ## Install and first start
 
-1. Download the EXE from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (currently 2.0.4), then start it from Downloads or another folder. The EXE is unsigned; verify it using the supplied `SHA256SUMS.txt`.
+1. Download the EXE from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (currently 2.0.6), then start it from Downloads or another folder. The EXE is unsigned; verify it using the supplied `SHA256SUMS.txt`.
 2. Choose the options in the installer. The default location is `%LOCALAPPDATA%\FuchsLabs\USB-Display`; no administrator rights are required.
 3. On first start, settings open in their own Windows window. Open them later from the fox icon in the notification area. Configure the display and optional Discord, Steam, Xbox, Battlefield 6, and RSS data there.
 
