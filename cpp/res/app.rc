@@ -25,12 +25,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "FuchsLabs"
             VALUE "FileDescription", "FuchsLabs USB-Display"
-            VALUE "FileVersion", "2.0.7.0"
+            VALUE "FileVersion", "2.0.8.0"
             VALUE "InternalName", "FuchsLabs-USB-Display"
             VALUE "LegalCopyright", "\xA9 2026 FuchsLabs"
             VALUE "OriginalFilename", "FuchsLabs-USB-Display.exe"
             VALUE "ProductName", "FuchsLabs USB-Display"
-            VALUE "ProductVersion", "2.0.7"
+            VALUE "ProductVersion", "2.0.8"
         END
     END
     BLOCK "VarFileInfo"

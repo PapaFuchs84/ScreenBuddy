@@ -1,5 +1,11 @@
 # Testprotokoll – Stand 23.10.2026
 
+## Version 2.0.8 (23.10.2026): BF6-Profil-Link, nur Steam-Absprung – lokal, nicht installiert/veröffentlicht
+
+- Ursache der leeren Seite: Die Webseite kennt die Plattform `ea` nicht (Route bleibt leer); mit `pc` lädt z. B. P4p4F0x im Browser korrekt. Für `Schmieselbeehee` liefert die API bei `platform=ea` Daten, bei `pc` (das die Webseite verwendet) 404; die Webseite zeigt dort „Playername not found“. Der Name selbst wird nicht verändert (Konfiguration und API stimmen überein).
+- Freunde-Tipp auf Wunsch des Nutzers: nur Steam-Chat, Discord/Xbox ohne Absprung. Release-Build erfolgreich, 158 Prüfungen und 11 Monitor-Prüfungen bestanden. Keine Installation, kein Test gegen Port 8765.
+- Offen: Discord-Direktnachricht (der Bot kennt die DM-Kanal-ID zwischen Nutzer und Freund nicht) und Xbox-Chat (kein offizieller Deep-Link, Xbox-App nicht installiert).
+
 ## Version 2.0.7 (23.10.2026): Touch-Ziele und Spielstunden – lokal, noch nicht installiert/veröffentlicht
 
 - Übernahme von Claudes begonnenem Branch `codex/2.0.7`, Basis `3ef0ef3` (veröffentlichtes 2.0.6). Die begonnenen Plattform-ID-Ergänzungen wurden vervollständigt; die `Account`-Struktur bleibt mit bisherigen Aggregat-Initialisierungen kompatibel.

@@ -224,50 +224,38 @@ static void test_touch_targets() {
     f.ids = {{"discord", "123456789012345678"}, {"steam", "76561198000000001"}, {"xbox", "Fox #1234"}};
     f.online_on = {"discord", "steam", "xbox"};
     auto targets = touch::friend_targets(f);
-    CHECK(targets.size() == 3 && targets[0].protocol == "discord" && targets[1].protocol == "steam");
-    CHECK_EQ(targets[2].url, std::string("https://account.xbox.com/Profile?gamertag=Fox%20%231234"));
+    CHECK(targets.size() == 1 && targets[0].protocol == "steam");
+    CHECK_EQ(targets[0].url, std::string("steam://friends/message/76561198000000001"));
     std::vector<std::string> launches;
     auto launcher = [&](const std::string& url) { launches.push_back(url); return true; };
     CHECK(touch::dispatch(targets, [](auto&) { return true; }, launcher));
-    CHECK(launches.size() == 1 && launches[0] == "discord://-/users/123456789012345678");
-    launches.clear();
-    CHECK(touch::dispatch(targets, [](auto& p) { return p == "steam"; }, launcher));
-    CHECK(launches.size() == 1 && launches[0] == "steam://friends/message/76561198000000001");
-    launches.clear();
-    CHECK(touch::dispatch(targets, [](auto&) { return false; }, launcher));
-    CHECK(launches.size() == 1 && launches[0] == targets[2].url);
-    launches.clear();
-    CHECK(touch::dispatch(targets, [](auto&) { return true; }, [&](auto& url) {
-        launches.push_back(url); return launches.size() == 2;
-    }));
-    CHECK(launches.size() == 2 && launches.back() == targets[1].url);
+    CHECK(launches.size() == 1 && launches[0] == targets[0].url);
+    CHECK(!touch::dispatch(targets, [](auto&) { return false; }, launcher));
     CHECK(!touch::dispatch(targets, [](auto&) { return true; }, [](auto&) { return false; }));
     CHECK(!touch::dispatch({}, [](auto&) { return true; }, launcher));
-    f.online_on = {"steam", "xbox"};
-    CHECK_EQ(touch::friend_targets(f)[0].protocol, std::string("steam"));
-    f.online_on.clear();
-    CHECK_EQ(touch::friend_targets(f)[0].protocol, std::string("discord"));
-    f.ids = {{"discord", "1/../../bad"}, {"steam", "1?command=x"}};
+    f.ids = {{"discord", "123456789012345678"}, {"xbox", "Fox #1234"}};
+    CHECK(touch::friend_targets(f).empty());
+    f.ids = {{"steam", "1?command=x"}};
     CHECK(touch::friend_targets(f).empty());
 
     Bf6Player p;
     p.query = "Fox #1@xbox";
-    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/xboxseries/name/Fox%20%231?game=bf6"));
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/xboxone/name/Fox%20%231?game=bf6"));
     p.query = "Üni/code?x=1@psn";
-    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/psn/name/%C3%9Cni%2Fcode%3Fx%3D1?game=bf6"));
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/ps4/name/%C3%9Cni%2Fcode%3Fx%3D1?game=bf6"));
     p.query = "Fox@steam";
-    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/ea/name/Fox?game=bf6"));
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/pc/name/Fox?game=bf6"));
     p.error = "nicht gefunden";
     CHECK(touch::player_targets(p).empty());
     p.error.clear(); p.query.clear();
     CHECK(touch::player_targets(p).empty());
 
     auto people = render::demo_friends();
-    for (auto& person : people) person.ids["discord"] = std::to_string(person.user_id);
+    for (auto& person : people) person.ids["steam"] = std::to_string(person.user_id);
     auto rows = touch::friend_rows(people, 0, 6);
-    CHECK(rows.size() == 6 && rows[0][0].url == "discord://-/users/1");
+    CHECK(rows.size() == 6 && rows[0][0].url == "steam://friends/message/1");
     auto second = touch::friend_rows(people, 1, 6);
-    CHECK(second.size() == 2 && second[1][0].url == "discord://-/users/6"); // offline Tom last
+    CHECK(second.size() == 2 && second[1][0].url == "steam://friends/message/6"); // offline Tom last
     CHECK_EQ(touch::friend_rows(people, -1, 6)[1][0].url, second[1][0].url);
     CHECK_EQ(touch::friend_rows(people, 2, 6)[0][0].url, rows[0][0].url);
     CHECK(touch::friend_rows({}, 0, 6).empty());

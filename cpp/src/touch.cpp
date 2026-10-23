@@ -16,22 +16,9 @@ static bool digits(const std::string& s) {
 
 Targets friend_targets(const Friend& person) {
     Targets out;
-    // Bevorzugt online erreichbare Konten, innerhalb beider Gruppen Discord > Steam > Xbox.
-    for (bool online : {true, false}) {
-        for (const char* platform : {"discord", "steam", "xbox"}) {
-            bool present = std::find(person.online_on.begin(), person.online_on.end(), platform) != person.online_on.end();
-            if (present != online) continue;
-            auto it = person.ids.find(platform);
-            if (it == person.ids.end()) continue;
-            const auto& id = it->second;
-            if (std::string(platform) == "discord" && digits(id))
-                out.push_back({"discord://-/users/" + id, "discord"});
-            else if (std::string(platform) == "steam" && digits(id))
-                out.push_back({"steam://friends/message/" + id, "steam"});
-            else if (std::string(platform) == "xbox" && !trim(id).empty())
-                out.push_back({"https://account.xbox.com/Profile?gamertag=" + http::url_encode(id), ""});
-        }
-    }
+    // Nur Steam öffnet einen echten Chat. Discord (keine DM-Kanal-ID) und Xbox (kein Chat-Link) sind vorerst abgeschaltet.
+    auto it = person.ids.find("steam");
+    if (it != person.ids.end() && digits(it->second)) out.push_back({"steam://friends/message/" + it->second, "steam"});
     return out;
 }
 
@@ -39,8 +26,9 @@ Targets player_targets(const Bf6Player& player) {
     if (!player.error.empty()) return {};
     auto [name, platform] = bf6::parse_entry(player.query);
     if (name.empty()) return {};
-    std::string web_platform = platform == "ps" || platform == "psn" ? "psn" :
-                               platform == "xbox" || platform == "xbl" ? "xboxseries" : "ea";
+    // Die Webseite kennt andere Plattformkürzel als die Stats-API ("ea" ergibt dort eine leere Seite).
+    std::string web_platform = platform == "ps" || platform == "psn" ? "ps4" :
+                               platform == "xbox" || platform == "xbl" ? "xboxone" : "pc";
     return {{"https://gametools.network/stats/" + web_platform + "/name/" + http::url_encode(name) + "?game=bf6", ""}};
 }
 

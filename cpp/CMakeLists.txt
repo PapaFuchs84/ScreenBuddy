@@ -1,6 +1,6 @@
 # © 2026 FuchsLabs – FuchsLabs USB-Display 2.0 (C++)
 cmake_minimum_required(VERSION 3.24)
-project(FuchsLabsUsbDisplay VERSION 2.0.7 LANGUAGES CXX RC)
+project(FuchsLabsUsbDisplay VERSION 2.0.8 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

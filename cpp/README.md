@@ -21,7 +21,7 @@ Discord uses D++ with the Members and Presence intents enabled. Enable both priv
 
 ## Touch targets and playtime (2.0.7, local)
 
-2.0.7 is a local development build; the published download remains 2.0.6. With touch enabled, tapping a BF6 player opens their GameTools profile in the browser. The leaderboard also shows hours played. Tapping a friend tries online accounts first in Discord → Steam → Xbox order, then the remaining accounts in the same order. Missing apps are skipped. Steam opens the chat; Discord and Xbox open the profile with access to **Message**. Windows and tabs are controlled by the platform app/browser. [Usage, prerequisites and limits](../docs/TOUCH-2.0.7.en.md). [Validation](TESTPROTOKOLL.md).
+2.0.7 is a local development build; the published download remains 2.0.6. With touch enabled, tapping a BF6 player opens their GameTools profile in the browser. The leaderboard also shows hours played. Since 2.0.8, tapping a friend opens the Steam chat with that person; friends without a Steam account, and Discord and Xbox, open nothing for now (no chat link available). Windows and tabs are controlled by the platform app/browser. [Usage, prerequisites and limits](../docs/TOUCH-2.0.7.en.md). [Validation](TESTPROTOKOLL.md).
 
 ## Browse views (2.0.4)
 

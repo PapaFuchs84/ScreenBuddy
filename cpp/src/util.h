@@ -13,8 +13,8 @@
 
 namespace fl {
 
-inline constexpr const char* VERSION = "2.0.7";
-inline constexpr const char* UA = "FuchsLabs-USB-Display/2.0.7";
+inline constexpr const char* VERSION = "2.0.8";
+inline constexpr const char* UA = "FuchsLabs-USB-Display/2.0.8";
 
 // ---------- Text ----------
 std::wstring widen(std::string_view s);

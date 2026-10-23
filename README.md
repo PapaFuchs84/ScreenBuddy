@@ -61,7 +61,7 @@ Dazu kommen:
 
 ## Touch-Ziele und Spielstunden (2.0.7, lokal)
 
-2.0.7 ist ein lokaler Entwicklungsstand; der veröffentlichte Download bleibt 2.0.6. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund wählt zuerst online erreichbare Konten in der Reihenfolge Discord → Steam → Xbox, danach die übrigen Konten in derselben Reihenfolge. Fehlende Apps werden übersprungen. Steam öffnet den Chat; Discord und Xbox öffnen das Profil mit dem Weg zu **Nachricht**. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
+2.0.7 ist ein lokaler Entwicklungsstand; der veröffentlichte Download bleibt 2.0.6. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet ab 2.0.8 den Steam-Chat mit dieser Person; Freunde ohne Steam-Konto und die Dienste Discord und Xbox öffnen vorerst nichts (kein Chat-Link verfügbar). Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
 
 ## Ansichten durchblättern (2.0.4)
 
