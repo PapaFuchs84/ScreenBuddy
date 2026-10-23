@@ -59,7 +59,7 @@ Plus:
 
 ## Browse views (2.0.4)
 
-Version 2.0.4 is a local development version; the latest published version is 2.0.3.
+Version 2.0.4 is published.
 
 In **Settings → Overview**, use **Previous view** and **Next view** to cycle through the running display views directly. The position and visible pages appear below the live preview. Long lists include their subpages; wide displays advance by one tile group, as with touch navigation. Each manual change restarts the configured page duration, then automatic cycling continues. Buttons are disabled when there are no views or all views already fit on screen. No save or restart is needed. Changes to page selection and order take effect after **Save & apply**.
 
@@ -81,7 +81,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **FuchsLabs-USB-Display.exe** from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (current version: **2.0.3**). The EXE is unsigned. `SHA256SUMS.txt` is provided alongside it.
+1. Download **FuchsLabs-USB-Display.exe** from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (current version: **2.0.4**). The EXE is unsigned. `SHA256SUMS.txt` is provided alongside it.
 2. Use Windows 10/11 x64 with Microsoft Edge WebView2 Evergreen Runtime installed. The runtime is not bundled and the installer does not install it automatically.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.

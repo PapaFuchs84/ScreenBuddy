@@ -21,7 +21,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 - Overview: Previous view and Next view control the running display, with its current position below the live preview. Includes list subpages and wide tile groups; automatic cycling continues.
 - German/English controls are disabled when there are no views or all views fit on screen. No save or restart needed.
-- Local development version; see [test record](cpp/TESTPROTOKOLL.md) for build and validation status. Installed locally; version, hash, unchanged settings, autostart and display connection verified. Not published yet.
+- Download and checksums: [v2.0.4](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.4). See [test record](cpp/TESTPROTOKOLL.md) for build and validation status.
 
 ## [2.0.3] – 2026-10-22
 

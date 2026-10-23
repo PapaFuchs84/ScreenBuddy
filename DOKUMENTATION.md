@@ -1,6 +1,6 @@
 # FuchsLabs USB-Display – Dokumentation
 
-Version 2.0.4 (lokaler Entwicklungsstand) · Stand 22.10.2026 · © 2026 FuchsLabs
+Version 2.0.4 · Stand 22.10.2026 · © 2026 FuchsLabs
 
 Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein eigenes Windows-Einstellungsfenster mit WebView2. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
 

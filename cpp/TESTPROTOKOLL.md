@@ -14,7 +14,7 @@
 
 ### Anschließende Installation von 2.0.4
 
-Nach ausdrücklicher Nutzerfreigabe am 22.10.2026 im normalen Windows-Benutzerkontext außerhalb der Paketumleitung installiert. Bestehende EXE und Konfiguration zuvor lokal gesichert. Installer-Exitcode 0; installierte Datei-Version 2.0.4.0 und API-Version 2.0.4. SHA-256 stimmt mit dem geprüften Build überein: `EF7186C5ABF810DD1CC4D9F88E49883FC755AA10C65665D98FA61A39C54A177F`. Einstellungsdatei bytegleich erhalten, serielle Ausgabe und Autostart erhalten, genau ein Prozess aus dem regulären Installationsordner, `display_ok=true`. Neue Ansichten-Schnittstelle und Bedienelemente erreichbar. Unabhängige Abschlussprüfung erneut im normalen Windows-Kontext bestanden. Kein neuer Windows-Anmeldetest und keine visuelle/physische Touch-Abnahme durchgeführt. Noch nicht veröffentlicht.
+Nach ausdrücklicher Nutzerfreigabe am 22.10.2026 im normalen Windows-Benutzerkontext außerhalb der Paketumleitung installiert. Bestehende EXE und Konfiguration zuvor lokal gesichert. Installer-Exitcode 0; installierte Datei-Version 2.0.4.0 und API-Version 2.0.4. SHA-256 stimmt mit dem geprüften Build überein: `EF7186C5ABF810DD1CC4D9F88E49883FC755AA10C65665D98FA61A39C54A177F`. Einstellungsdatei bytegleich erhalten, serielle Ausgabe und Autostart erhalten, genau ein Prozess aus dem regulären Installationsordner, `display_ok=true`. Neue Ansichten-Schnittstelle und Bedienelemente erreichbar. Unabhängige Abschlussprüfung erneut im normalen Windows-Kontext bestanden. Kein neuer Windows-Anmeldetest und keine visuelle/physische Touch-Abnahme durchgeführt. Am 23.10.2026 unverändert (gleicher Hash) als v2.0.4 auf GitHub veröffentlicht.
 
 ## Version 2.0.3: HDMI-Vollbild und Touch
 

@@ -8,7 +8,7 @@
 
 - Overview adds Previous view / Next view, live page position, and disabled controls when no further view is available. Uses the existing touch navigation, including list subpages and wide tile groups. Automatic cycling resumes with a full page duration.
 - Added loopback-only GET /api/pages and validated POST /api/pages/step (delta -1 or 1), protected by the existing request checks. No config write or restart is needed.
-- German/English documentation and embedded guides updated. Installed locally with matching version/hash, unchanged settings, preserved autostart and display_ok=true; not published yet.
+- German/English documentation and embedded guides updated. Installed locally with matching version/hash, unchanged settings, preserved autostart and display_ok=true. Published as v2.0.4 on 2026-10-23.
 
 ## 2.0.3 — 2026-10-22
 

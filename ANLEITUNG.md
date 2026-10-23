@@ -6,7 +6,7 @@ Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastun
 
 ## In 3 Minuten loslegen
 
-1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest), derzeit **2.0.3**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
+1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest), derzeit **2.0.4**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
 2. Windows 10/11 x64 mit **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit muss vorhanden sein; sie wird nicht mitgeliefert oder automatisch installiert.
 3. Display anschließen und `FuchsLabs-USB-Display.exe` starten. Der Installer richtet die App unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` ein. Er benötigt dafür keine Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster** für die Einstellungen.
