@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🦊 FuchsLabs USB-Display
+<img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
+
+# FuchsLabs USB-Display
 
 **Deutsch** · [English](README.en.md)
 
