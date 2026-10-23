@@ -4,6 +4,14 @@
 
 - Documentation follow-up for 2.0.3: current download links, matching German/English HDMI/touch steps in the guide templates and HTML resources, validation status, and permanent documentation rules. Updated embedded guides will be included in the next app build; the existing 2.0.3 EXE is unchanged.
 
+## 2.0.7 – local, not published
+
+- Long page titles are shortened in narrow headers so the player count and clock remain readable.
+- Tapping a BF6 player opens their GameTools profile in the browser; the leaderboard also shows hours played.
+- Tapping friends prefers online accounts, using Discord → Steam → Xbox order within each group; checks registered apps and falls through on launch failures. Steam opens the chat; Discord/Xbox open the profile with access to Message (user-approved variant). Window/tab choice belongs to the platform app/browser.
+- Selection uses the displayed snapshot, sorting and subpage, including wide tiles. Blog targets also use the rendered snapshot.
+- German/English usage, troubleshooting and embedded guides updated. Automated checks open no real chats. Physical touch/platform acceptance remains open; see [test record](TESTPROTOKOLL.md).
+
 ## 2.0.6 — 2026-10-23
 
 - Tapping a blog post on a touch display opens the article in the default browser (http/https links only).

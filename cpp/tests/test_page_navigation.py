@@ -1,6 +1,6 @@
 """Exercise the real app/HTTP navigation without credentials or display hardware.
 
-Usage: python tests/test_page_navigation.py build/FuchsLabs-USB-Display.exe
+Usage: python tests/test_page_navigation.py build/FuchsLabs-USB-Display.exe [expected-version]
 The app runs on port 8766 with its test-instance guard and --no-lcd.
 """
 import contextlib
@@ -95,10 +95,10 @@ enabled = false
             check(hashlib.sha256(config.read_bytes()).digest() == before, 'navigation must not save config')
         finally:
             if proc.poll() is None:
-                request('/api/quit', {})
                 try:
+                    request('/api/quit', {})
                     proc.wait(timeout=15)
-                except subprocess.TimeoutExpired:
+                except (OSError, subprocess.TimeoutExpired):
                     proc.kill()
                     proc.wait()
                     raise
@@ -112,8 +112,9 @@ def step(delta, expected):
 
 def main():
     exe = Path(sys.argv[1]).resolve()
+    expected_version = sys.argv[2] if len(sys.argv) > 2 else '2.0.7'
     with instance(exe):
-        check(json.loads(request('/api/config')[1])['version'] == '2.0.4', 'API version')
+        check(json.loads(request('/api/config')[1])['version'] == expected_version, 'API version')
         check(state()['can_step'], 'multiple views enable navigation')
         check(state()['current'] == ['system'], 'initial system view')
         check(step(1, 1)['current'] == ['friends'], 'next view')

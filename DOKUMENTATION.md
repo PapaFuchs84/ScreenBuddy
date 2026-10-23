@@ -1,8 +1,12 @@
 # FuchsLabs USB-Display – Dokumentation
 
-Version 2.0.6 · Stand 23.10.2026 · © 2026 FuchsLabs
+Version 2.0.7 (lokaler Entwicklungsstand; Download: 2.0.6) · Stand 23.10.2026 · © 2026 FuchsLabs
 
 Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein eigenes Windows-Einstellungsfenster mit WebView2. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
+
+## Touch-Ziele und Spielstunden (2.0.7, lokal)
+
+2.0.7 ist ein lokaler Entwicklungsstand; der veröffentlichte Download bleibt 2.0.6. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund wählt zuerst online erreichbare Konten in der Reihenfolge Discord → Steam → Xbox, danach die übrigen Konten in derselben Reihenfolge. Fehlende Apps werden übersprungen. Steam öffnet den Chat; Discord und Xbox öffnen das Profil mit dem Weg zu **Nachricht**. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
 
 ## Ansichten durchblättern (2.0.4)
 
@@ -89,7 +93,7 @@ Bei regulärer Installation liegt `config.toml` unter `%LOCALAPPDATA%\FuchsLabs\
 | Abschnitt | Schlüssel (Standard) |
 |---|---|
 | `[discord]` | `enabled` (true), `token` (verschlüsselt), `guild_ids` ([]), `friend_ids` ([]), `ignore_ids` ([]), `show_offline` (false) |
-| `[display]` | `port` ("AUTO"), `orientation` ("landscape"; auch `reverse_landscape`, `portrait`, `reverse_portrait`), `brightness` (50), `reset_on_start` (true), `page_seconds` (15), `pages` (["system","friends","discord","bf6","rss"]), `title`, `screen_off_on_exit` (true), `theme` ("hell"; oder "dunkel" – gilt für Display, Einstellungsseite und Anleitung; "eigen" = eigene Farben), `color_base` ("hell"/"dunkel", Vorlage für eigene Farben), `color_bg`, `color_card`, `color_header`, `color_accent`, `color_text`, `color_muted` ("#RRGGBB", leer = Vorlage), `output` ("serial" = 3,5"-USB-Display, "monitor" = HDMI/USB-C-Bildschirm als Vollbildfenster), `monitor` ("" = erster Nicht-Hauptbildschirm, sonst z. B. `\\.\DISPLAY2`), `touch` (true; Seitenwechsel per Wischen/Tippen, Tippen auf einen Blogbeitrag öffnet ihn im Browser; nur bei `output = "monitor"`) |
+| `[display]` | `port` ("AUTO"), `orientation` ("landscape"; auch `reverse_landscape`, `portrait`, `reverse_portrait`), `brightness` (50), `reset_on_start` (true), `page_seconds` (15), `pages` (["system","friends","discord","bf6","rss"]), `title`, `screen_off_on_exit` (true), `theme` ("hell"; oder "dunkel" – gilt für Display, Einstellungsseite und Anleitung; "eigen" = eigene Farben), `color_base` ("hell"/"dunkel", Vorlage für eigene Farben), `color_bg`, `color_card`, `color_header`, `color_accent`, `color_text`, `color_muted` ("#RRGGBB", leer = Vorlage), `output` ("serial" = 3,5"-USB-Display, "monitor" = HDMI/USB-C-Bildschirm als Vollbildfenster), `monitor` ("" = erster Nicht-Hauptbildschirm, sonst z. B. `\\.\DISPLAY2`), `touch` (true; Seitenwechsel per Wischen/Tippen, Tippen öffnet Blogbeiträge, BF6-Profile oder Freundes-Chat/Profil gemäß der Anleitung für 2.0.7; nur bei `output = "monitor"`) |
 | `[system]` | `enabled` (true), `net_adapter` ("" = automatisch), `net_unit` ("bit" oder "byte"), `disk` ("C:"), `cpu_temp_sensor`, `cpu_fan_sensor` ("" = automatisch), `title` |
 | `[friends]` | `enabled` (false), `title` ("Freunde"), `include_discord` (true), `auto_merge` (true), `show_offline` (false), `steam_api_key` (verschlüsselt), `steam_id` (Profil-Link oder 17-stellige ID), `xbox_api_key` (verschlüsselt), `links` ([], Verknüpfungen als `"Name\|discord:ID\|steam:ID\|xbox:Gamertag"`) |
 | `[bf6]` | `enabled` (false), `players` ([], PC-Namen; Konsole als `"Name@psn"` / `"Name@xbox"`), `refresh_minutes` (15), `title` |

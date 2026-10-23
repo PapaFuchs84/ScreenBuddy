@@ -1,4 +1,28 @@
-# Testprotokoll vom 22.10.2026
+# Testprotokoll – Stand 23.10.2026
+
+## Version 2.0.7 (23.10.2026): Touch-Ziele und Spielstunden – lokal, noch nicht installiert/veröffentlicht
+
+- Übernahme von Claudes begonnenem Branch `codex/2.0.7`, Basis `3ef0ef3` (veröffentlichtes 2.0.6). Die begonnenen Plattform-ID-Ergänzungen wurden vervollständigt; die `Account`-Struktur bleibt mit bisherigen Aggregat-Initialisierungen kompatibel.
+- Release-Build mit MSVC/CMake/Ninja erfolgreich. Datei-Version `2.0.7.0`, Produktversion `2.0.7`, Größe 13.150.208 Bytes. SHA-256: `0A55662586E7C9C41CE9F944328CA3DCD5311D9CEF72A9AEA14EB82B11D50396`.
+- **164 Kernprüfungen bestanden**, einschließlich 78 neuer Prüfungen für Chat-/Profilziele, URL-Kodierung, Online-Priorität, fehlende Desktop-Apps, Startfehler/Fallback, Listen-Sortierung, Unterseiten und Umlauf, leere Zeilen, Kachelgrenzen und vier Displaygrößen. Die Startfunktion wird in diesen Prüfungen ersetzt: keine echten Chats oder Browser-Tabs geöffnet und keine Nachrichten gesendet.
+- **11 Monitor-Basisprüfungen bestanden.** Kein sichtbarer Monitor-/Touch-Injektionstest für 2.0.7 durchgeführt.
+- **49 API-/Navigationsprüfungen gegen die echte EXE bestanden**, einschließlich API-Version 2.0.7, manueller/automatischer Seitenwechsel, leerer/einzelner Ansichten, Eingabeprüfung, Host-/Origin-/Fetch-Metadata-/X-FL-Schutz und unveränderter neutraler Testkonfiguration. Eigene Testinstanz auf Port 8766, `--no-lcd`, ohne Zugangsdaten. Das Testskript unterstützt nun eine erwartete Version als Argument und beendet seine eigene Instanz auch bei Fehlern der lokalen Verbindung.
+- Der erste Kernprüfungsversuch konnte im umgeleiteten Sandbox-Temp-Ordner keine Testkonfiguration schreiben; Wiederholung mit eigenem Temp-Ordner unter `cpp/build` erfolgreich. Der erste API-Versuch wurde durch die Netzwerk-Sandbox (Windows 10013) blockiert; Wiederholung mit erweiterter Ausführungsberechtigung erfolgreich. Beides waren Testumgebungsprobleme, keine bestandenen Tests.
+- Deutsche/englische Beispielbilder in Querformat (480 × 320) und Hochformat (320 × 480) visuell geprüft: Spielstunden, K/D und Siegquote sichtbar. Überlappung von Titel und Spielerzahl in schmalen Kopfzeilen behoben. Weitere Bilder für 1920 × 720 und 637 × 720 erzeugt; keine physische Anzeigeabnahme daraus abgeleitet.
+- **88 lokale Markdown-Linkziele und 10 eingebettete JavaScript-Blöcke geprüft**; neue Anleitungstexte in Vorlagen und HTML-Ressourcen stimmen überein. README/Schnellstart, Referenz, beide Haupt-Changelogs und C++-Doku gemeinsam aktualisiert. Download bleibt v2.0.6, 2.0.7 ist ausdrücklich lokal gekennzeichnet.
+- Auswahlziele werden zusammen mit dem gezeichneten Datenstand erzeugt, einschließlich Sortierung und Unterseiten. Eine spätere Datenaktualisierung ändert das Ziel einer bereits angezeigten Zeile nicht. Tippen bei deaktivierter Touch-Steuerung öffnet kein Ziel; Wischen bleibt im bisherigen Gestenpfad.
+- Vom Nutzer bestätigte Plattformvariante: Steam öffnet den Chat direkt, Discord/Xbox öffnen das Profil mit dem Weg zu „Nachricht“. Online erreichbare Konten zuerst, innerhalb beider Gruppen Discord → Steam → Xbox; fehlende Apps oder Startfehler führen zum nächsten Ziel. Separates Fenster/Tab bestimmt die Plattform-App bzw. der Browser.
+- **Offen:** physische Touch-Abnahme der neuen Ziele und Öffnen in angemeldeten Discord-/Steam-/Xbox-Clients, Anmeldung, Chatberechtigungen und deren Fensterverhalten. Protokollzuordnung und Startübergabe sind kein Nachweis für einen erfolgreich geöffneten Chat. Installer, echte Installation, Autostart, COM-Port und laufende produktive App wurden für diesen Stand nicht verändert oder getestet. Installation und Veröffentlichung benötigen wie vereinbart die abschließende Nutzerfreigabe.
+
+Prüfungen wiederholen (Entwicklerkonsole, eigener beschreibbarer Temp-Ordner; API-Test benötigt lokalen Netzwerkzugriff):
+
+```bat
+build\fl-tests.exe
+build\fl-monitor-tests.exe
+python tests/test_page_navigation.py build/FuchsLabs-USB-Display.exe 2.0.7
+build\fl-tests.exe render build/preview-2.0.7-de de
+build\fl-tests.exe render build/preview-2.0.7-en en
+```
 
 ## Version 2.0.6 (23.10.2026): Blogbeiträge per Touch, Einstellungsfenster, Lizenzdateien (enthält 2.0.5: Touch, Taskleiste)
 

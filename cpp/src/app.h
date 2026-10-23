@@ -19,6 +19,7 @@
 #include "models.h"
 #include "output.h"
 #include "render.h"
+#include "touch.h"
 
 namespace fl {
 
@@ -54,7 +55,7 @@ public:
     void request_restart(double delay = 0);
     bool restart_requested() const { return restart_; }
     bool settings_open_at_exit() const { return settings_open_at_exit_; }
-    bool open_post_at(int x, int y);        // Tippen auf Blogbeitrag → Artikel im Browser (true = geöffnet)
+    bool open_item_at(int x, int y);        // Ein Ziel des tatsächlich angezeigten Bildes öffnen
     void step_page(int delta);                      // Touch/Einstellungen: eine Ansicht vor (+1) oder zurück (-1)
     void mark_dirty();
     void show_settings();
@@ -66,10 +67,16 @@ private:
         std::string key;
         int n;
         std::function<Image(int, RendererSet&)> fn;
+        std::function<touch::Rows(int, RendererSet&)> targets;
+    };
+    struct DrawResult {
+        Image frame;
+        std::vector<std::string> keys;
+        std::vector<touch::Tile> taps;
     };
     RendererSet& renderers_for(int w, int h);
     std::vector<PageEntry> page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r);
-    std::pair<Image, std::vector<std::string>> draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start);
+    DrawResult draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start);
     Image welcome();
     std::string friends_message();
     bool connect_display();
@@ -85,9 +92,8 @@ private:
     std::optional<std::filesystem::path> preview_dir_;
     bool show_settings_on_start_ = false;
     bool settings_open_at_exit_ = false;
-    std::mutex tap_mu_;                     // Lage der Kacheln beim letzten Bild (für Tippen auf Beiträge)
-    std::vector<render::Box> tap_boxes_;
-    std::vector<std::string> tap_keys_;
+    std::mutex tap_mu_;
+    std::vector<touch::Tile> tap_tiles_;     // Zeilenziele aus demselben Snapshot wie das letzte Bild
     std::function<void()> show_settings_callback_;
     std::pair<int, int> size_;
 

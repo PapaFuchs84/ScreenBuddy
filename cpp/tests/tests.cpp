@@ -16,6 +16,7 @@
 #include "rss.h"
 #include "secure.h"
 #include "util.h"
+#include "touch.h"
 
 using namespace fl;
 namespace fs = std::filesystem;
@@ -218,6 +219,99 @@ static void test_friends() {
     CHECK(xp.size() == 2 && xp[0].activity == "Spielt Halo" && xp[1].status == "offline" && xp[1].activity.empty());
 }
 
+static void test_touch_targets() {
+    Friend f;
+    f.ids = {{"discord", "123456789012345678"}, {"steam", "76561198000000001"}, {"xbox", "Fox #1234"}};
+    f.online_on = {"discord", "steam", "xbox"};
+    auto targets = touch::friend_targets(f);
+    CHECK(targets.size() == 3 && targets[0].protocol == "discord" && targets[1].protocol == "steam");
+    CHECK_EQ(targets[2].url, std::string("https://account.xbox.com/Profile?gamertag=Fox%20%231234"));
+    std::vector<std::string> launches;
+    auto launcher = [&](const std::string& url) { launches.push_back(url); return true; };
+    CHECK(touch::dispatch(targets, [](auto&) { return true; }, launcher));
+    CHECK(launches.size() == 1 && launches[0] == "discord://-/users/123456789012345678");
+    launches.clear();
+    CHECK(touch::dispatch(targets, [](auto& p) { return p == "steam"; }, launcher));
+    CHECK(launches.size() == 1 && launches[0] == "steam://friends/message/76561198000000001");
+    launches.clear();
+    CHECK(touch::dispatch(targets, [](auto&) { return false; }, launcher));
+    CHECK(launches.size() == 1 && launches[0] == targets[2].url);
+    launches.clear();
+    CHECK(touch::dispatch(targets, [](auto&) { return true; }, [&](auto& url) {
+        launches.push_back(url); return launches.size() == 2;
+    }));
+    CHECK(launches.size() == 2 && launches.back() == targets[1].url);
+    CHECK(!touch::dispatch(targets, [](auto&) { return true; }, [](auto&) { return false; }));
+    CHECK(!touch::dispatch({}, [](auto&) { return true; }, launcher));
+    f.online_on = {"steam", "xbox"};
+    CHECK_EQ(touch::friend_targets(f)[0].protocol, std::string("steam"));
+    f.online_on.clear();
+    CHECK_EQ(touch::friend_targets(f)[0].protocol, std::string("discord"));
+    f.ids = {{"discord", "1/../../bad"}, {"steam", "1?command=x"}};
+    CHECK(touch::friend_targets(f).empty());
+
+    Bf6Player p;
+    p.query = "Fox #1@xbox";
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/xboxseries/name/Fox%20%231?game=bf6"));
+    p.query = "Üni/code?x=1@psn";
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/psn/name/%C3%9Cni%2Fcode%3Fx%3D1?game=bf6"));
+    p.query = "Fox@steam";
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/ea/name/Fox?game=bf6"));
+    p.error = "nicht gefunden";
+    CHECK(touch::player_targets(p).empty());
+    p.error.clear(); p.query.clear();
+    CHECK(touch::player_targets(p).empty());
+
+    auto people = render::demo_friends();
+    for (auto& person : people) person.ids["discord"] = std::to_string(person.user_id);
+    auto rows = touch::friend_rows(people, 0, 6);
+    CHECK(rows.size() == 6 && rows[0][0].url == "discord://-/users/1");
+    auto second = touch::friend_rows(people, 1, 6);
+    CHECK(second.size() == 2 && second[1][0].url == "discord://-/users/6"); // offline Tom last
+    CHECK_EQ(touch::friend_rows(people, -1, 6)[1][0].url, second[1][0].url);
+    CHECK_EQ(touch::friend_rows(people, 2, 6)[0][0].url, rows[0][0].url);
+    CHECK(touch::friend_rows({}, 0, 6).empty());
+    CHECK(touch::friend_rows(people, 0, 0).empty());
+    auto players = render::demo_players();
+    std::reverse(players.begin(), players.end());
+    auto bfrows = touch::player_rows(players, 0, 6);
+    CHECK(bfrows.size() == 6 && bfrows[0][0].url.find("/name/Fuchs?") != std::string::npos && bfrows.back().empty());
+    auto saved = bfrows[0][0].url;
+    players[0].query = "Changed";
+    CHECK_EQ(bfrows[0][0].url, saved);  // Ziele bleiben an den angezeigten Snapshot gebunden
+
+    auto posts = touch::post_rows({{"", "", {}, "https://example.org/article"}, {"", "", {}, "file:///C:/evil.exe"},
+                                  {"", "", {}, "steam://run/123"}, {"", "", {}, "https://example.org/\n"},
+                                  {"", "", {}, "https://example.org/hidden"}});
+    CHECK(posts.size() == 4 && posts[0].size() == 1 && posts[1].empty() && posts[2].empty());
+    // Zeilengrenzen, Leerraum und Kopf-/Fußzeile dürfen keine fremde Zeile auswählen.
+    for (auto [w, h] : {std::pair{480, 320}, {320, 480}, {637, 720}, {1280, 720}}) {
+        render::Renderer renderer(w, h, "Test");
+        float scale = render::scale_for(w, h);
+        CHECK(render::Renderer::row_at(w, h, 0) == -1);
+        CHECK(render::Renderer::row_at(w, h, h - 1) == -1);
+        for (int i = 0; i < renderer.rows_per_page(); ++i)
+            CHECK(render::Renderer::row_at(w, h, (int)((36 + 44 * i + 22) * scale)) == i);
+    }
+    std::vector<touch::Tile> tiles = {{{0, 0, 480, 320}, false, rows}, {{480, 0, 480, 320}, false, second},
+                                      {{960, 0, 480, 320}, true, posts}};
+    CHECK(touch::at(tiles, 10, 58) && touch::at(tiles, 10, 58)->at(0).url == rows[0][0].url);
+    CHECK(touch::at(tiles, 490, 102) && touch::at(tiles, 490, 102)->at(0).url == second[1][0].url);
+    CHECK(touch::at(tiles, 970, 58) && touch::at(tiles, 970, 58)->at(0).url == posts[0][0].url);
+    CHECK(!touch::at(tiles, 490, 146)); // unbefüllte Zeile der letzten Unterseite
+    CHECK(!touch::at(tiles, 970, 120)); // RSS-Zeile mit Dateipfad
+    CHECK(!touch::at(tiles, 10, 301)); // Leerraum nach den sechs Zeilen
+    CHECK(!touch::at(tiles, 10, 10));
+    CHECK(!touch::at(tiles, -1, 58));
+    CHECK(!touch::at(tiles, 1440, 58));
+    CHECK(!touch::at(tiles, 10, 320));
+
+    auto xbox = friends::parse_xbox_people(nlohmann::json::parse(
+        R"({"people":[{"xuid":"1","gamertag":"Fox #1234","presenceState":"Online"}]})"));
+    auto merged = friends::merge_accounts(xbox, {}, true);
+    CHECK(merged.size() == 1 && merged[0].ids.at("xbox") == "Fox #1234" && merged[0].online_on.size() == 1);
+}
+
 static void test_render(const fs::path& out) {
     fs::create_directories(out);
     std::lock_guard rl(render::mutex());
@@ -362,7 +456,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"touch-targets", test_touch_targets}}) {
         std::printf("· %s\n", name);
         fn();
     }

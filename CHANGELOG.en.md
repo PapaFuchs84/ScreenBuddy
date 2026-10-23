@@ -17,6 +17,14 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ### Fixed
 - Percent values on the settings page (brightness showed “90 90” after an automatic fix).
 
+## [2.0.7] – local, not published
+
+- Long page titles are shortened in narrow headers so the player count and clock remain readable.
+- Tapping a BF6 player opens their GameTools profile in the browser; the leaderboard also shows hours played.
+- Tapping friends prefers online accounts, using Discord → Steam → Xbox order within each group; checks registered apps and falls through on launch failures. Steam opens the chat; Discord/Xbox open the profile with access to Message (user-approved variant). Window/tab choice belongs to the platform app/browser.
+- Selection uses the displayed snapshot, sorting and subpage, including wide tiles. Blog targets also use the rendered snapshot.
+- German/English usage, troubleshooting and embedded guides updated. Automated checks open no real chats. Physical touch/platform acceptance remains open; see [test record](cpp/TESTPROTOKOLL.md).
+
 ## [2.0.6] – 2026-10-23
 
 - Touch: tapping a blog post opens it in the default browser on the PC; tapping elsewhere and swiping change pages as before.

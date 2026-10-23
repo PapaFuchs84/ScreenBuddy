@@ -4,8 +4,6 @@
 #include <windows.h>
 #include <shellapi.h>
 
-#include <windows.h>
-
 #include <fstream>
 
 #include "bf6.h"
@@ -250,47 +248,55 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             std::string st = discord_->status();
             out.push_back({key, r.discord.pages(friends.size()), [friends, st](int i, RendererSet& rs) {
                                return rs.discord.render_friends(friends, i, st.empty(), st);
+                           }, [friends, st](int i, RendererSet& rs) {
+                               return st.empty() ? touch::friend_rows(friends, i, rs.discord.rows_per_page()) : touch::Rows{};
                            }});
         } else if (key == "friends") {
             std::string msg = friends_message();
             bool bad = !msg.empty() && people.empty();
             out.push_back({key, r.friends.pages(people.size()), [people, msg, bad](int i, RendererSet& rs) {
                                return rs.friends.render_friends(people, i, !bad, msg);
+                           }, [people, bad](int i, RendererSet& rs) {
+                               return bad ? touch::Rows{} : touch::friend_rows(people, i, rs.friends.rows_per_page());
                            }});
         } else if (key == "bf6") {
             auto players = bf6_->players();
             auto updated = bf6_->updated();
             out.push_back({key, r.bf6.pages(players.size()), [players, updated](int i, RendererSet& rs) {
                                return rs.bf6.render(players, i, updated);
+                           }, [players, updated](int i, RendererSet& rs) {
+                               return updated ? touch::player_rows(players, i, rs.bf6.rows_per_page()) : touch::Rows{};
                            }});
         } else if (key == "rss") {
             auto posts = rss_->posts();
             auto updated = rss_->updated();
-            out.push_back({key, 1, [posts, updated](int, RendererSet& rs) { return rs.rss.render(posts, updated); }});
+            out.push_back({key, 1, [posts, updated](int, RendererSet& rs) { return rs.rss.render(posts, updated); },
+                           [posts, updated](int, RendererSet&) { return updated ? touch::post_rows(posts) : touch::Rows{}; }});
         }
     }
     return out;
 }
 
-std::pair<Image, std::vector<std::string>> App::draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes,
-                                                     int start) {
+App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start) {
     // Seiten ab start auf die Kacheln verteilen (eine Kachel = normales Display)
     int total = 0;
     for (auto& p : pages) total += p.n;
     std::vector<Image> frames;
     std::vector<std::string> keys;
+    std::vector<touch::Tile> taps;
     for (size_t k = 0; k < boxes.size(); ++k) {
         int idx = (start + (int)k) % total;
         for (auto& p : pages) {
             if (idx < p.n) {
                 frames.push_back(p.fn(idx, renderers_for(boxes[k].w, boxes[k].h)));
                 keys.push_back(p.key);
+                taps.push_back({boxes[k], p.key == "rss", p.targets ? p.targets(idx, renderers_for(boxes[k].w, boxes[k].h)) : touch::Rows{}});
                 break;
             }
             idx -= p.n;
         }
     }
-    return {render::compose(size_.first, size_.second, boxes, frames), keys};
+    return {render::compose(size_.first, size_.second, boxes, frames), keys, taps};
 }
 
 Image App::welcome() {
@@ -383,6 +389,7 @@ void App::display_loop() {
         if (discord_ && std::count(active.begin(), active.end(), "discord")) friends = discord_->friends();
         if (friends_) people = friends_->people();
         Image frame;
+        std::vector<touch::Tile> taps;
         ojson navigation = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
         bool switched = false;
         {
@@ -406,11 +413,6 @@ void App::display_loop() {
                 }
                 frame = welcome();
                 current_.clear();
-                {
-                    std::lock_guard lk(tap_mu_);
-                    tap_boxes_.clear();
-                    tap_keys_.clear();
-                }
             } else {
                 int cols = std::min((int)boxes.size(), total);
                 if (page_due || step) {
@@ -424,21 +426,22 @@ void App::display_loop() {
                 int start = page_;
                 {
                     std::lock_guard lk(mu_);
-                    redraw_ = [this, pages, boxes, start] { return draw(pages, boxes, start).first; };
+                    redraw_ = [this, pages, boxes, start] { return draw(pages, boxes, start).frame; };
                 }
-                auto [f, keys] = draw(pages, boxes, start);
+                auto [f, keys, targets] = draw(pages, boxes, start);
                 frame = std::move(f);
                 current_ = keys;
-                {
-                    std::lock_guard lk(tap_mu_);  // für „Tippen öffnet Blogbeitrag“
-                    tap_boxes_ = boxes;
-                    tap_keys_ = keys;
-                }
+                taps = std::move(targets);
                 navigation = {{"index", start}, {"total", total}, {"visible", cols},
                               {"current", keys}, {"can_step", total > cols}};
             }
         }
-        output(frame, switched, navigation);
+        {
+            // Während der Bildübergabe kann kein Tipp noch die vorherigen Ziele treffen.
+            std::lock_guard lk(tap_mu_);
+            output(frame, switched, navigation);
+            tap_tiles_ = std::move(taps);
+        }
         if (switched) page_switched_ = mono();  // Anzeigedauer ab Ende der Übertragung zählen
         for (int i = 0; i < 10 && !stop_; ++i) Sleep(50);  // max. ~2 Bilder/s, damit Status-Stürme das Display nicht fluten
     }
@@ -446,30 +449,19 @@ void App::display_loop() {
 
 void App::show_settings() { if (show_settings_callback_) show_settings_callback_(); }
 
-bool App::open_post_at(int x, int y) {
-    // Tippen auf einen Blogbeitrag (Touch an): Artikel im Standardbrowser auf dem PC öffnen
-    if (!rss_) return false;
-    render::Box box{};
+bool App::open_item_at(int x, int y) {
+    if (!b(dp_, "touch", true)) return false;
+    touch::Targets targets;
     {
         std::lock_guard lk(tap_mu_);
-        size_t i = 0;
-        for (; i < tap_boxes_.size(); ++i) {
-            auto& b = tap_boxes_[i];
-            if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) break;
-        }
-        if (i >= tap_boxes_.size() || i >= tap_keys_.size() || tap_keys_[i] != "rss") return false;
-        box = tap_boxes_[i];
+        auto selected = touch::at(tap_tiles_, x, y);
+        if (!selected) return false;
+        targets = *selected;
     }
-    int row = render::RssRenderer::row_at(box.w, box.h, y - box.y);
-    auto posts = rss_->posts();
-    if (row < 0 || row >= (int)posts.size()) return false;
-    std::string link = trim(posts[row].link);
-    // Nur Webadressen aus dem Feed öffnen (keine Dateien oder anderen Programme)
-    std::string scheme = lower_ascii(link.substr(0, link.find(':')));
-    if (link.empty() || (scheme != "http" && scheme != "https") || link.find("://") == std::string::npos) return false;
-    LOGI("app", "Blogbeitrag per Tippen geöffnet: %s", posts[row].source.c_str());
-    ShellExecuteW(nullptr, L"open", widen(link).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-    return true;
+    bool opened = touch::open(targets);
+    if (opened) LOGI("app", "Touch-Ziel an Browser/Chat-App übergeben");
+    else LOGW("app", "Touch-Ziel nicht geöffnet: keine passende App oder Start fehlgeschlagen");
+    return true;  // Tipp verbraucht, auch bei Startfehler nicht unvermittelt die Seite wechseln
 }
 
 bool App::setup_touch() {
@@ -480,7 +472,7 @@ bool App::setup_touch() {
 void App::run() {
     if (auto* mon = dynamic_cast<MonitorDisplay*>(out_.get())) {
         mon->on_step = [this](int d) { step_page(d); };
-        mon->on_tap = [this](int x, int y) { return open_post_at(x, y); };
+        mon->on_tap = [this](int x, int y) { return open_item_at(x, y); };
     }
     if (sys_) sys_->start();
     auto dirty = [this] { mark_dirty(); };

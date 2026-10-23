@@ -139,6 +139,7 @@ std::vector<Account> parse_xbox_people(const json& data) {
         a.uid = jstr(p, "xuid");
         if (a.uid.empty()) a.uid = jstr(p, "gamertag");
         std::string name = jstr(p, "gamertag");
+        a.handle = name;
         if (name.empty()) name = jstr(p, "displayName");
         a.name = render::clean_text(name);
         if (a.name.empty()) a.name = "?";
@@ -302,10 +303,18 @@ std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const s
         else
             for (size_t a : accs)
                 if (accounts[a].avatar) { f.avatar = accounts[a].avatar; break; }
-        std::set<std::string> plats;
-        for (size_t a : accs) plats.insert(accounts[a].platform);
-        for (auto& p : PLATFORMS)
+        std::set<std::string> plats, online;
+        for (size_t a : accs) {
+            auto& acc = accounts[a];
+            plats.insert(acc.platform);
+            if (acc.status != "offline") online.insert(acc.platform);
+            std::string id = acc.platform == "xbox" ? (acc.handle.empty() ? acc.name : acc.handle) : acc.uid;
+            if (!id.empty()) f.ids.emplace(acc.platform, id);
+        }
+        for (auto& p : PLATFORMS) {
             if (plats.count(p)) f.platforms.push_back(p);
+            if (online.count(p)) f.online_on.push_back(p);
+        }
         out.push_back(std::move(f));
     }
     return out;

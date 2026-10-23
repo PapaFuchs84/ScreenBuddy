@@ -1,4 +1,4 @@
-# FuchsLabs USB-Display 2.0.6
+# FuchsLabs USB-Display 2.0.7 (local development build)
 
 Native Windows C++20 port of FuchsLabs USB-Display. The application and installer are distributed as one EXE; it requires no Python runtime or Visual C++ redistributable. The settings window is a native Windows window backed by Microsoft Edge WebView2. The WebView2 Evergreen Runtime is a Windows prerequisite and is not bundled in this EXE.
 
@@ -18,6 +18,10 @@ The installer can import the Version 1.x `config.toml`. Secrets use Windows DPAP
 - Settings server binds only to loopback. Requests are checked for local Host, browser fetch metadata, and the `X-FL: 1` write header. RSS targets and redirects are checked against non-public IP ranges.
 
 Discord uses D++ with the Members and Presence intents enabled. Enable both privileged intents in the Discord Developer Portal for the bot.
+
+## Touch targets and playtime (2.0.7, local)
+
+2.0.7 is a local development build; the published download remains 2.0.6. With touch enabled, tapping a BF6 player opens their GameTools profile in the browser. The leaderboard also shows hours played. Tapping a friend tries online accounts first in Discord → Steam → Xbox order, then the remaining accounts in the same order. Missing apps are skipped. Steam opens the chat; Discord and Xbox open the profile with access to **Message**. Windows and tabs are controlled by the platform app/browser. [Usage, prerequisites and limits](../docs/TOUCH-2.0.7.en.md). [Validation](TESTPROTOKOLL.md).
 
 ## Browse views (2.0.4)
 

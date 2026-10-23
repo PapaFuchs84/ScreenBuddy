@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <ctime>
 #include <deque>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -21,6 +22,8 @@ struct Friend {
     bool mobile = false;
     ImagePtr avatar;
     std::vector<std::string> platforms;  // z. B. {"discord", "steam"} – kleine Plattform-Marken rechts in der Zeile
+    std::map<std::string, std::string> ids;  // Plattform → Discord-ID, SteamID64 bzw. Xbox-Gamertag (für „Tippen öffnet Chat“)
+    std::vector<std::string> online_on;      // Plattformen, auf denen die Person gerade online ist
 };
 
 struct Bf6Player {

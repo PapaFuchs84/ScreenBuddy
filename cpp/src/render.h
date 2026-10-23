@@ -44,6 +44,8 @@ Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Ima
 float scale_for(int w, int h);
 
 extern const std::map<std::string, int> STATUS_ORDER;
+std::vector<Friend> sort_friends(std::vector<Friend> friends);
+std::vector<Bf6Player> sort_players(std::vector<Bf6Player> players);
 
 class Renderer {
 public:
@@ -51,6 +53,7 @@ public:
     virtual ~Renderer() = default;
 
     int rows_per_page() const;
+    static int row_at(int w, int h, int y);
     int pages(size_t items) const;
     Image welcome(const std::string& title, const std::string& text);
     Image render_friends(std::vector<Friend> friends, int page = 0, bool connected = true, const std::string& message = "",

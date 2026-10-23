@@ -30,6 +30,7 @@ struct Account {
     bool mobile = false;
     std::string avatar_url;
     ImagePtr avatar;
+    std::string handle;  // Xbox: Gamertag wie geliefert (name ist bereinigt)
 };
 
 struct FriendsError : std::runtime_error {  // Meldung, die der Nutzer versteht

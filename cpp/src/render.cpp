@@ -200,6 +200,15 @@ Font Renderer::font(int size, bool bold) const { return Font{(float)std::max(6, 
 
 int Renderer::rows_per_page() const { return std::max(1, ((int)h - HEADER_H - FOOTER_H) / ROW_H); }
 
+int Renderer::row_at(int w_px, int h_px, int y_px) {
+    float sc = scale_for(w_px, h_px);
+    float lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
+    float ly = y_px / sc, top = HEADER_H + 2;
+    int per = std::max(1, ((int)lh - HEADER_H - FOOTER_H) / ROW_H);
+    if (ly < top || ly >= lh - FOOTER_H || ly >= top + per * ROW_H) return -1;
+    return (int)((ly - top) / ROW_H);
+}
+
 int Renderer::pages(size_t items) const {
     int per = rows_per_page();
     return std::max(1, (int)((items + per - 1) / per));
@@ -273,10 +282,11 @@ void Renderer::header(Canvas& d, std::time_t now, const std::string& info) {
     float x = 8;
     d.fox(x, (float)((HEADER_H - ICON) / 2), pyround_i(ICON * s), false);
     x += ICON + 6;
-    d.text(x, HEADER_H / 2, title, f_title, t.head_text, "lm");
     std::string clock = clock_hhmm(now ? now : std::time(nullptr));
     d.text(w - 8, HEADER_H / 2, clock, f_title, t.head_text, "rm");
     float cx = w - 8 - d.textlength(clock, f_title) - 12;
+    float title_width = cx - x - (info.empty() ? 0 : d.textlength(tr(info), f_small) + 10);
+    d.text(x, HEADER_H / 2, fit(d, tr(title), f_title, std::max(0.f, title_width)), f_title, t.head_text, "lm");
     d.text(cx, HEADER_H / 2, info, f_small, t.head_text, "rm");
 }
 
@@ -288,15 +298,20 @@ void Renderer::footer(Canvas& d, const std::string& left) {
     d.text(w - 8, fy + FOOTER_H / 2, "FuchsLabs", f_small, t.accent, "rm");
 }
 
-Image Renderer::render_friends(std::vector<Friend> friends, int page, bool connected, const std::string& msg,
-                               std::time_t now) {
-    const Theme& t = g_theme;
+std::vector<Friend> sort_friends(std::vector<Friend> friends) {
     std::stable_sort(friends.begin(), friends.end(), [](const Friend& a, const Friend& b) {
         auto oa = STATUS_ORDER.count(a.status) ? STATUS_ORDER.at(a.status) : 9;
         auto ob = STATUS_ORDER.count(b.status) ? STATUS_ORDER.at(b.status) : 9;
         if (oa != ob) return oa < ob;
         return casefold(a.name) < casefold(b.name);
     });
+    return friends;
+}
+
+Image Renderer::render_friends(std::vector<Friend> friends, int page, bool connected, const std::string& msg,
+                               std::time_t now) {
+    const Theme& t = g_theme;
+    friends = sort_friends(std::move(friends));
     Canvas d(W, H, s, t.bg);
     int online = (int)std::count_if(friends.begin(), friends.end(), [](auto& f) { return f.status != "offline"; });
     header(d, now, std::to_string(online) + " online");
@@ -383,7 +398,7 @@ void Renderer::row(Canvas& d, const Friend& f, float y) {
 }
 
 // ---------- Battlefield 6 ----------
-static std::vector<Bf6Player> sort_players(std::vector<Bf6Player> p) {
+std::vector<Bf6Player> sort_players(std::vector<Bf6Player> p) {
     std::stable_sort(p.begin(), p.end(), [](const Bf6Player& a, const Bf6Player& b) {
         if (a.rank.has_value() != b.rank.has_value()) return a.rank.has_value();
         int ra = a.rank.value_or(0), rb = b.rank.value_or(0);
@@ -440,10 +455,14 @@ void Bf6Renderer::bf_row(Canvas& d, const Bf6Player& p, int pos, float y) {
         d.text(ix + 18, cy, std::to_string(*p.rank), f_small, t.text, "mm");
     }
     float tx = ix + AVATAR + 12;
-    // Rechte Spalte: K/D groß, Siegquote klein
-    float stat_w = 92, sx = w - 10;
+    // Rechte Spalte: K/D groß, Siegquote und Spielstunden klein.
+    std::string detail;
+    if (p.win_pct) detail = tr(strprintf("%.0f %% Siege", *p.win_pct));
+    if (p.hours && std::isfinite(*p.hours) && *p.hours >= 0)
+        detail += (detail.empty() ? "" : " · ") + strprintf("%.0f h", *p.hours);
+    float stat_w = std::max(92.f, d.textlength(tr(detail), f_act) + 8), sx = w - 10;
     if (p.kd) d.text(sx, y + 13, strprintf("K/D %.2f", *p.kd), f_stat, t.text, "rm");
-    if (p.win_pct) d.text(sx, y + 31, strprintf("%.0f %% Siege", *p.win_pct), f_act, t.muted, "rm");
+    if (!detail.empty()) d.text(sx, y + 31, detail, f_act, t.muted, "rm");
     float max_w = sx - stat_w - tx;
     d.text(tx, y + 13, fit(d, p.name, f_name, max_w), f_name, p.error.empty() ? t.text : t.muted, "lm");
     std::string line2;

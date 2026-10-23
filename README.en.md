@@ -13,7 +13,7 @@
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
 ![Languages](https://img.shields.io/badge/languages-Deutsch%20%7C%20English-14213D)
-![Licence](https://img.shields.io/badge/licence-all%20rights%20reserved-lightgrey)
+![Licence](https://img.shields.io/badge/licence-MIT-green)
 
 [![Buy me a coffee](https://img.shields.io/badge/☕_Buy_me_a_coffee-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/SHerbst84)
 
@@ -58,6 +58,10 @@ Plus:
 - **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages, tap a blog post to open it in the browser); Windows touch assignment checks and setup under **Display**
 - **Illustrated guide** to click through, easy enough for kids, embedded in the EXE in English and German
 - **Single EXE** for installation, updates and uninstallation; no Python or Visual C++ redistributable required. WebView2 Runtime remains a prerequisite.
+
+## Touch targets and playtime (2.0.7, local)
+
+2.0.7 is a local development build; the published download remains 2.0.6. With touch enabled, tapping a BF6 player opens their GameTools profile in the browser. The leaderboard also shows hours played. Tapping a friend tries online accounts first in Discord → Steam → Xbox order, then the remaining accounts in the same order. Missing apps are skipped. Steam opens the chat; Discord and Xbox open the profile with access to **Message**. Windows and tabs are controlled by the platform app/browser. [Usage, prerequisites and limits](docs/TOUCH-2.0.7.en.md). [Validation](cpp/TESTPROTOKOLL.md).
 
 ## Browse views (2.0.4)
 

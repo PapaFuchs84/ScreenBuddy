@@ -345,7 +345,7 @@ bool MonitorDisplay::handle(void* hwnd_v, unsigned msg, unsigned long long wp, l
                     // Protokoll: zeigt, ob Berührungen ankommen und wie sie gedeutet werden
                     bool opened = gesture_.tapped && on_tap && on_tap(pt.x, pt.y);
                     LOGI("monitor", "Touch: %d px waagerecht → %s", pt.x - x0,
-                         opened ? "Beitrag geöffnet" : step > 0 ? "nächste Seite" : step < 0 ? "vorige Seite" : "keine Geste");
+                         opened ? "Ziel ausgewählt" : step > 0 ? "nächste Seite" : step < 0 ? "vorige Seite" : "keine Geste");
                     if (step && !opened && on_step) on_step(step);
                 }
             }

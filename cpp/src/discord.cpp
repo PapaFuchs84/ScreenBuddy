@@ -478,6 +478,8 @@ std::vector<Friend> DiscordFeed::friends() {
         f.status = pick.p->status;
         f.activity = d_->describe(pick.p->activities);
         f.mobile = pick.p->mobile;
+        f.ids["discord"] = std::to_string(uid);
+        if (f.status != "offline") f.online_on = {"discord"};
         auto& mi = d_->guilds[pick.gid].members[uid];
         std::string url = !mi.avatar_url.empty() ? mi.avatar_url
                           : d_->users.count(uid) ? d_->users[uid].avatar_url

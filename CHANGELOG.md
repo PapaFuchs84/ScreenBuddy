@@ -17,6 +17,14 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ### Behoben
 - Prozentwerte in der Einstellungsseite (Helligkeit zeigte nach einer automatischen Korrektur „90 90“).
 
+## [2.0.7] – lokal, noch nicht veröffentlicht
+
+- Lange Seitentitel werden in schmalen Kopfzeilen gekürzt, damit Spielerzahl und Uhrzeit lesbar bleiben.
+- Touch auf einen BF6-Spieler öffnet sein GameTools-Profil im Browser; die Rangliste zeigt zusätzlich Spielstunden.
+- Touch auf Freunde: online erreichbare Konten bevorzugen, je Gruppe Discord → Steam → Xbox; registrierte Apps prüfen und bei Startfehlern weiterprobieren. Steam öffnet den Chat; Discord/Xbox das Profil mit dem Weg zu „Nachricht“ (vom Nutzer bestätigte Variante). Fensterwahl liegt bei der Plattform-App bzw. dem Browser.
+- Auswahl verwendet denselben Datenstand, dieselbe Sortierung und Unterseite wie die Anzeige, auch bei breiten Kacheln. Blog-Ziele verwenden ebenfalls den angezeigten Snapshot.
+- Deutsche und englische Bedienung, Fehlerbehebung und eingebettete Anleitungen aktualisiert. Automatische Tests öffnen keine echten Chats. Physische Touch-/Plattform-Abnahme offen; siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+
 ## [2.0.6] – 2026-10-23
 
 - Touch: Tippen auf einen Blogbeitrag öffnet ihn im Standardbrowser auf dem PC; Tippen anderswo und Wischen blättern wie bisher.

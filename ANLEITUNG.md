@@ -1,6 +1,6 @@
 # FuchsLabs USB-Display – Schnellstart
 
-> **Version 2.0.6:** Die bebilderte Anleitung öffnet sich über **Bebilderte Anleitung** in den Einstellungen oder **Anleitung öffnen** im Tray im Standardbrowser. Sie ist in der EXE enthalten. Sprache unter **Start › Sprache · Language** umschalten.
+> **Version 2.0.7 (lokal; Download weiterhin 2.0.6):** Die bebilderte Anleitung öffnet sich über **Bebilderte Anleitung** in den Einstellungen oder **Anleitung öffnen** im Tray im Standardbrowser. Sie ist in der EXE enthalten. Sprache unter **Start › Sprache · Language** umschalten.
 
 Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastung, Temperaturen, Netzwerk), **Discord-Freunde**, **Freunde von Steam, Xbox und Discord** in einer Liste, eine **Battlefield-6-Rangliste** und **Blog-Updates**. Du brauchst keine Vorkenntnisse.
 
@@ -31,6 +31,10 @@ Die Einstellungen öffnest du später jederzeit mit einem **Doppelklick auf das 
 5. Danach **Erneut prüfen** wählen; bei Bedarf **Touch-Steuerung** einschalten und speichern. Nach links wischen = nächste Seite, nach rechts = vorherige; Tippen links = zurück, sonst weiter. Tippen auf einen Blogbeitrag öffnet ihn im Browser auf dem PC (ab 2.0.6).
 
 Ohne erkannten Touchscreen ist der Einrichtungsbutton deaktiviert. Dann USB-Verbindung und Treiber prüfen. Die bisherige Prüfung nutzte injizierte Windows-Berührungen; echte Touch-Hardware und der vollständige Assistentenablauf bleiben offen.
+
+## Touch-Ziele und Spielstunden (2.0.7, lokal)
+
+2.0.7 ist ein lokaler Entwicklungsstand; der veröffentlichte Download bleibt 2.0.6. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund wählt zuerst online erreichbare Konten in der Reihenfolge Discord → Steam → Xbox, danach die übrigen Konten in derselben Reihenfolge. Fehlende Apps werden übersprungen. Steam öffnet den Chat; Discord und Xbox öffnen das Profil mit dem Weg zu **Nachricht**. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
 
 ## Ansichten durchblättern (2.0.4)
 
