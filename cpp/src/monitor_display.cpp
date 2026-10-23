@@ -5,6 +5,7 @@
 #include <shellscalingapi.h>
 #include <shobjidl.h>
 
+#include <algorithm>
 #include <stdexcept>
 
 #include "output.h"
@@ -16,6 +17,18 @@ namespace {
 constexpr UINT WM_FRAME = WM_APP + 1, WM_QUIT_WINDOW = WM_APP + 2,
                WM_VISIBLE = WM_APP + 3, WM_SETUP_TOUCH = WM_APP + 4;
 constexpr UINT_PTR MONITOR_TIMER = 1;
+
+// Taskleisten auf dem Anzeigebildschirm: Unser Fenster darf keinen Fokus nehmen (NOACTIVATE), deshalb schiebt Windows
+// die Taskleiste dieses Bildschirms bei jeder Berührung wieder nach vorn – ein Tipp unten öffnet dann das Startmenü.
+// Solange die Anzeige läuft, wird sie auf diesem Bildschirm ausgeblendet und beim Verlassen wieder gezeigt.
+std::vector<HWND> taskbars_on(HMONITOR mon) {
+    std::vector<HWND> out;
+    for (const wchar_t* cls : {L"Shell_SecondaryTrayWnd", L"Shell_TrayWnd"}) {
+        for (HWND h = FindWindowExW(nullptr, nullptr, cls, nullptr); h; h = FindWindowExW(nullptr, h, cls, nullptr))
+            if (MonitorFromWindow(h, MONITOR_DEFAULTTONULL) == mon) out.push_back(h);
+    }
+    return out;
+}
 const wchar_t* CLASS_NAME = L"FuchsLabsUsbDisplayScreen";
 
 HANDLE launch_touch_setup() {
@@ -195,6 +208,27 @@ void MonitorDisplay::fullscreen(bool show) {
         // NOACTIVATE erhält den Fokus auf dem Arbeitsbildschirm. TOPMOST hält die sekundäre Taskleiste darunter.
         SetWindowPos(hwnd, HWND_TOPMOST, mon_->x, mon_->y, mon_->w, mon_->h, SWP_NOACTIVATE | SWP_SHOWWINDOW);
     } else ShowWindow(hwnd, SW_HIDE);
+    hide_taskbars(show);
+}
+
+void MonitorDisplay::hide_taskbars(bool hide) {
+    HWND hwnd = (HWND)hwnd_.load();
+    if (hide && hwnd) {
+        HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONULL);
+        if (!mon) return;
+        for (HWND t : taskbars_on(mon)) {
+            if (!IsWindowVisible(t)) continue;
+            ShowWindow(t, SW_HIDE);
+            if (std::find(hidden_taskbars_.begin(), hidden_taskbars_.end(), (void*)t) == hidden_taskbars_.end()) {
+                hidden_taskbars_.push_back(t);
+                LOGI("monitor", "Taskleiste auf dem Anzeigebildschirm ausgeblendet");
+            }
+        }
+    } else {
+        for (void* t : hidden_taskbars_)
+            if (IsWindow((HWND)t)) ShowWindow((HWND)t, SW_SHOWNA);
+        hidden_taskbars_.clear();
+    }
 }
 
 void MonitorDisplay::run() {
@@ -286,6 +320,10 @@ bool MonitorDisplay::handle(void* hwnd_v, unsigned msg, unsigned long long wp, l
             unsigned id = GET_POINTERID_WPARAM(wp);
             if (!GetPointerInfo(id, &info) || info.pointerType != PT_TOUCH) return false;
             // Auch deaktivierten Touch konsumieren: kein zusätzlicher, synthetischer Mausklick.
+            if (msg == WM_POINTERDOWN && !touch_ && !touch_off_logged_) {
+                touch_off_logged_ = true;
+                LOGW("monitor", "Berührung auf dem Anzeigebildschirm, aber Touch ist in den Einstellungen aus (Display → Touch)");
+            }
             if (touch_ && !setup_process_) {
                 POINT pt = info.ptPixelLocation;
                 ScreenToClient(hwnd, &pt);
@@ -297,7 +335,12 @@ bool MonitorDisplay::handle(void* hwnd_v, unsigned msg, unsigned long long wp, l
                     gesture_.down(pt.x, pt.y);
                 } else if (msg == WM_POINTERUP && pointer_id_ == id) {
                     pointer_id_ = 0;
-                    if (int step = gesture_.end(pt.x, pt.y); step && on_step) on_step(step);
+                    int x0 = gesture_.start ? std::get<0>(*gesture_.start) : pt.x;
+                    int step = gesture_.end(pt.x, pt.y);
+                    // Protokoll: zeigt, ob Berührungen ankommen und wie sie gedeutet werden
+                    LOGI("monitor", "Touch: %d px waagerecht → %s", pt.x - x0,
+                         step > 0 ? "nächste Seite" : step < 0 ? "vorige Seite" : "keine Geste");
+                    if (step && on_step) on_step(step);
                 }
             }
             result = 0;
@@ -332,6 +375,7 @@ bool MonitorDisplay::handle(void* hwnd_v, unsigned msg, unsigned long long wp, l
             } else if (visible_) {
                 // Explorer-Neustart, Taskleisten-Aktivierung und Fokuswechsel dürfen die Leiste nicht freilegen.
                 SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                hide_taskbars(true);  // Explorer zeigt sie nach Neustart oder Einstellungsänderung wieder
             }
             result = 0; return true;
         case WM_FRAME: InvalidateRect(hwnd, nullptr, FALSE); result = 0; return true;

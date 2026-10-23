@@ -104,6 +104,7 @@ public:
 private:
     void run();
     void fullscreen(bool show);
+    void hide_taskbars(bool hide);
 
     std::string device_;
     bool touch_;
@@ -113,6 +114,8 @@ private:
     void* setup_process_ = nullptr;
     bool visible_ = true;
     unsigned pointer_id_ = 0;
+    bool touch_off_logged_ = false;
+    std::vector<void*> hidden_taskbars_;  // nur im Fenster-Thread
     std::thread thread_;
     std::mutex mu_;
     std::vector<uint32_t> bits_;

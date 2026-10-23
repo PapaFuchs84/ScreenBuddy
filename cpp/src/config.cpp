@@ -31,7 +31,7 @@ const ojson& defaults() {
                         {"page_seconds", 15}, {"pages", PAGES}, {"title", "Discord-Freunde"},
                         {"screen_off_on_exit", true}, {"theme", "hell"},
                         // Ausgabe: serial = USB-Display (3,5"), monitor = HDMI/USB-C-Bildschirm als Vollbildfenster
-                        {"output", "serial"}, {"monitor", ""}, {"touch", false},
+                        {"output", "serial"}, {"monitor", ""}, {"touch", true},
                         // Eigene Farben (theme = "eigen"): Vorlage plus #RRGGBB-Werte; leer = Farbe der Vorlage
                         {"color_base", "hell"}, {"color_bg", ""}, {"color_card", ""}, {"color_header", ""},
                         {"color_accent", ""}, {"color_text", ""}, {"color_muted", ""}};

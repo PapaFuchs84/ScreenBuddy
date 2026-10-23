@@ -4,6 +4,12 @@
 
 - Documentation follow-up for 2.0.3: current download links, matching German/English HDMI/touch steps in the guide templates and HTML resources, validation status, and permanent documentation rules. Updated embedded guides will be included in the next app build; the existing 2.0.3 EXE is unchanged.
 
+## 2.0.5 — 2026-10-23
+
+- HDMI/USB-C output hides the Windows taskbar on the display's screen while the app shows there (restored when the output is hidden or the app quits). Before, a touch near the bottom edge opened the Start menu instead of reaching the app.
+- Touch on: new configurations start with touch enabled; a touch while it is switched off writes a hint to the log.
+- Every touch gesture is logged (distance and result), so problems on a touch display can be diagnosed from the log.
+
 ## 2.0.4 — 2026-10-22
 
 - Overview adds Previous view / Next view, live page position, and disabled controls when no further view is available. Uses the existing touch navigation, including list subpages and wide tile groups. Automatic cycling resumes with a full page duration.
