@@ -40,6 +40,11 @@ imgs['bar'] = jpg(load('speichern').crop((230, 790, 1280, 860)), 90)
 imgs['page_system'] = jpg(load('prev0').crop((291, 138, 759, 451)), 90)
 imgs['page_blogs'] = jpg(load('prev4').crop((291, 138, 759, 451)), 90)
 imgs['freunde'] = jpg(load('freunde').crop((250, 460, 1190, 1420)))
+# Home Assistant (ab 2.1.0): Aufnahmen der Einstellungsseite (screenshots) und der Display-Seite (fl-tests render), je Sprache in bilder\ bzw. bilder\en
+_ha_src = HERE / 'bilder' / ('en' if len(sys.argv) > 2 and sys.argv[2] == 'en' else '')
+imgs['ha_display'] = png(Image.open(_ha_src / 'ha_display.png'))
+imgs['ha_setup'] = jpg(Image.open(_ha_src / 'ha.png').crop((250, 310, 1190, 860)), 90)
+imgs['ha_pick'] = jpg(Image.open(_ha_src / 'ha.png').crop((250, 868, 1190, 1560)), 90)
 imgs['icon'] = png(Image.open(RES / 'app.ico').convert('RGBA').resize((64, 64), Image.LANCZOS))
 
 EN = len(sys.argv) > 2 and sys.argv[2] == 'en'

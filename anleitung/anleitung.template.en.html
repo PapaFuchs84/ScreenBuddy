@@ -176,7 +176,7 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 const IMG = {
   start: '{{img:start}}', uebersicht: '{{img:uebersicht}}', discord: '{{img:discord}}', bf6: '{{img:bf6}}',
   blogs: '{{img:blogs}}', display: '{{img:display}}', bar: '{{img:bar}}', page_system: '{{img:page_system}}',
-  page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', icon: '{{img:icon}}'};
+  page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', ha_display: '{{img:ha_display}}', ha_setup: '{{img:ha_setup}}', ha_pick: '{{img:ha_pick}}', icon: '{{img:icon}}'};
 const W = 1280, H = 860;
 function shot(name, rings = [], cap = '', w = W, h = H, nums = true) {
   const r = rings.map(([x, y, rw, rh, pos = ''], i) => `<span class="ring ${pos}" style="left:${x / w * 100}%;top:${y / h * 100}%;width:${rw / w * 100}%;height:${rh / h * 100}%">${nums && rings.length > 1 ? `<b>${i + 1}</b>` : ''}</span>`).join('');
@@ -192,8 +192,9 @@ const FEAT = [
   ['discord', '💬', 'Discord friends', 'Which of your friends are online right now and what they are playing'],
   ['friends', '🎮', 'Steam and Xbox friends', 'Your friends from Steam, Xbox and Discord in one shared list'],
   ['bf6', '🎖️', 'Battlefield 6', 'A leaderboard of you and your friends'],
-  ['blogs', '📰', 'News', 'The newest articles from websites you like']];
-let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true}, cur = 0, seen = new Set();
+  ['blogs', '📰', 'News', 'The newest articles from websites you like'],
+  ['homeassistant', '🏠', 'Home Assistant', 'Values and switches from your smart home']];
+let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true, homeassistant: false}, cur = 0, seen = new Set();
 try { Object.assign(sel, JSON.parse(localStorage.getItem('fl-guide-sel') || '{}')); } catch (e) {}
 const saveSel = () => { try { localStorage.setItem('fl-guide-sel', JSON.stringify(sel)); } catch (e) {} };
 
@@ -332,7 +333,7 @@ ${shot('uebersicht', [[1090, 226, 58, 352, 'tr'], [1055, 226, 34, 352], [843, 73
 <li>Select <b>Check again</b> afterwards. Enable <b>Touch control</b> if needed and save. Swipe left = next page, right = previous; tap on the left = back, elsewhere = next. Tapping a blog post opens it in the browser on your PC (from 2.0.6).</li>
 </ol>
 <div class="box tip"><p><b>New in 2.0.7:</b> Tap a player in the Battlefield leaderboard to open their profile in the browser. Hours played now appear alongside their stats. Tap a friend: As of 2.1.0 the Steam chat with that person opens (the Steam app must be installed). Without Steam, their Discord profile opens (choose “Message” there), otherwise their Xbox profile in the browser. New windows and tabs depend on the platform app or browser. No message is sent. Swiping still changes pages.</p></div>
-<div class="box tip"><p><b>New in 2.1.0 – Home Assistant:</b> If you run a smart home with Home Assistant, the “Home Assistant” page shows up to 4 values (for example temperature or solar power). Open the “Home Assistant” tab in the settings, enter the address and a “long-lived access token” (in Home Assistant under your profile → Security), click “Check connection” and pick the values from the list. With touch you can also choose switches and lights and flip them by tapping the display.</p></div>
+<div class="box tip"><p><b>New in 2.1.0 – Home Assistant:</b> Up to 4 values or switches from your smart home on the display. With touch you can flip switches and lights by tapping. Setup is in the “Home Assistant” step.</p></div>
 <div class="box tip"><p>Fullscreen stays above the taskbar without taking keyboard focus. Windows stores the touch assignment.</p></div>
 <div class="box warn"><p>A disabled setup button means Windows does not detect a touchscreen. Check its USB connection and driver, then select <b>Check again</b>.</p></div>`},
 
@@ -449,6 +450,34 @@ ${help([['It says “No feed found”.', 'Some sites don\'t offer an article lis
 <p class="lead">You don't need to do anything here. The page immediately shows how hard your PC is working.</p>
 <figure><div class="shot" data-zoom style="max-width:520px"><img src="${IMG.page_system}" alt="System page"></div></figure>
 <div class="box tip"><p><b>For pros:</b> Is there only a dash “–” for CPU temperature and fan? For that the PC needs the free program <b>HWiNFO64</b>. Install it from <a href="https://www.hwinfo.com/" target="_blank" rel="noopener">hwinfo.com</a>. Start it and turn on <b>Shared Memory Support</b> in its settings. Best ask a grown-up for help with this.</p></div>`},
+
+{need: 'homeassistant', t: 'Home Assistant', html: () => `
+<p class="kicker">Smart home</p><h1>Home Assistant on the display</h1>
+<p class="lead">Your display shows up to <b>4 tiles</b> from your smart home: sensors, for example temperature or solar power, and with touch also switches and lights. You need Home Assistant in your home network and the app from version 2.1.0.</p>
+${shot('ha_display', [], 'How the page looks on the display: two sensors and two switches.', 480, 320)}
+<h2>1. Address and access token</h2>
+<ol class="do">
+<li>On the settings page, open the ${b('Home Assistant')} tab on the left.</li>
+<li>Under ${b('Address')} enter what you use in your browser, for example <b>http://homeassistant.local:8123</b>.</li>
+<li>Get a token in Home Assistant: click your <b>name</b> at the bottom left, switch to <b>Security</b> at the top, and at the very bottom under <b>Long-lived access tokens</b> click <b>Create token</b>. Enter a name, for example “Display”, click <b>OK</b> and copy the token right away. It is shown only once.</li>
+<li>Paste it into ${b('Access token')}.</li>
+<li>Click ${b('Check connection &amp; load entities')}. If it says “Connected” next to it, everything worked.</li>
+</ol>
+${shot('ha_setup', [[675, 146, 230, 42], [675, 210, 230, 42], [35, 275, 232, 31]], 'Address (1), access token (2) and check connection (3).', 940, 550)}
+<div class="box secret"><p>The <b>token</b> is like a <b>password</b> for your smart home. Show it to no one. The app stores it encrypted; only your Windows account can read it.</p></div>
+<h2>2. Choose tiles</h2>
+<ol class="do">
+<li>Under <b>Entities</b> you see the list from Home Assistant. Type part of a name into ${b('Search entities …')}, for example “living”.</li>
+<li>Click ${b('Add')} next to the value you want. At most <b>4</b> fit on the page; tiles follow the order of the list. ${b('Remove')} takes one out again.</li>
+<li>Turn on ${b('Show page')} at the top and click ${b('Save &amp; apply')} at the bottom.</li>
+</ol>
+${shot('ha_pick', [[35, 82, 870, 278], [35, 392, 870, 42], [847, 459, 47, 31]], 'Your selection (1), search field (2) and Add (3).', 940, 692)}
+<div class="box tip"><p><b>Switches</b> (switches, lights, fans, input booleans) can only be chosen if a touch screen is connected and <b>Touch control</b> is on (<b>Display</b> tab, see step “HDMI/USB-C and touch”). A tap on the tile then flips the switch. Without touch only sensors remain. Locks, covers and alarm systems deliberately cannot be switched.</p></div>
+${help([['Home Assistant is not reachable.', 'Check the address and that your PC and Home Assistant are on the same network. If you only use “homeassistant.local”, try the IP address, for example <b>http://192.168.1.20:8123</b>.'],
+  ['Token invalid or expired.', 'In Home Assistant create a new long-lived token under <b>Security</b> and paste it in.'],
+  ['Address is wrong (no API found).', 'Use Home Assistant’s own address with its port, for example <b>:8123</b>, and no path after it.'],
+  ['My switch is missing from the list.', 'Switches only appear when touch is active. Turn on <b>Touch control</b> under <b>Display</b>.'],
+  ['The page does not appear on the display.', `The page is only shown once it is switched on and address, token and at least one tile are filled in. Then do not forget ${b('Save &amp; apply')}.`]])}`},
 
 {t: 'Save', html: () => `
 <p class="kicker">Very important</p><h1>Don't forget to save!</h1>

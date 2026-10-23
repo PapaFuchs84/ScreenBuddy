@@ -7,6 +7,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ## [Unreleased]
 
 ### Changed
+- Documentation aligned with 2.1.0: README, docs, changelogs and download links updated; illustrated guide (DE/EN) with a new “Home Assistant” step (address, token, check connection, choose tiles). The already published EXE still embeds the old guide; the new one ships with the next build.
 - Documentation aligned with 2.0.3: README/quick start, download links, HDMI/touch guide, validation status and security version overview; existing German/English versions updated together. Project rules and the PR template now require documentation updates with every change.
 - Illustrated guide (ANLEITUNG.html / GUIDE.html) updated to C++ 2.0: download of the single EXE instead of a ZIP, built-in installer (no administrator rights, 1.x migration), dedicated settings window (WebView2), tray autostart, uninstall via Windows Apps.
 - When starting with Windows, the app starts quietly in the notification area without opening the settings page (autostart entry with `--autostart`; older entries are switched over on the next start). No extra browser tab opens after a restart from the settings either.
@@ -17,7 +18,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ### Fixed
 - Percent values on the settings page (brightness showed “90 90” after an automatic fix).
 
-## [2.1.0] – local, not published
+## [2.1.0] – 2026-10-23
 
 Combined state of the two latest changes; 2.0.9 is not released on its own.
 
@@ -33,7 +34,7 @@ Combined state of the two latest changes; 2.0.9 is not released on its own.
 - Tapping a BF6 player now opens the GameTools profile with the website's platform slug (`pc`, `xboxone`, `ps4`) instead of `ea`, which produced a blank page. Players GameTools does not know for PC still show "not found" on the website although the API returns them.
 - Tapping a friend now only opens the Steam chat; Discord and Xbox open nothing for now (no chat link available), the 2.0.7 profile variant is removed.
 
-## [2.0.7] – local, not published
+## [2.0.7] – not published on its own, included in 2.0.8
 
 - Long page titles are shortened in narrow headers so the player count and clock remain readable.
 - Tapping a BF6 player opens their GameTools profile in the browser; the leaderboard also shows hours played.

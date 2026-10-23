@@ -6,8 +6,8 @@
 
 | Version | Security fixes |
 |---|---|
-| 2.0.3 | current release |
-| 2.0.0–2.0.2 | update to 2.0.3 |
+| 2.1.0 | current release |
+| 2.0.0–2.0.8 | update to 2.1.0 |
 | 1.2 | historical |
 | 1.1 | on request only |
 | 1.0 | ❌ |

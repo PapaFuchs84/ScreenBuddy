@@ -176,7 +176,7 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 const IMG = {
   start: '{{img:start}}', uebersicht: '{{img:uebersicht}}', discord: '{{img:discord}}', bf6: '{{img:bf6}}',
   blogs: '{{img:blogs}}', display: '{{img:display}}', bar: '{{img:bar}}', page_system: '{{img:page_system}}',
-  page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', icon: '{{img:icon}}'};
+  page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', ha_display: '{{img:ha_display}}', ha_setup: '{{img:ha_setup}}', ha_pick: '{{img:ha_pick}}', icon: '{{img:icon}}'};
 const W = 1280, H = 860;
 function shot(name, rings = [], cap = '', w = W, h = H, nums = true) {
   const r = rings.map(([x, y, rw, rh, pos = ''], i) => `<span class="ring ${pos}" style="left:${x / w * 100}%;top:${y / h * 100}%;width:${rw / w * 100}%;height:${rh / h * 100}%">${nums && rings.length > 1 ? `<b>${i + 1}</b>` : ''}</span>`).join('');
@@ -192,8 +192,9 @@ const FEAT = [
   ['discord', '💬', 'Discord-Freunde', 'Wer von deinen Freunden gerade online ist und was er spielt'],
   ['friends', '🎮', 'Steam- und Xbox-Freunde', 'Deine Freunde von Steam, Xbox und Discord in einer gemeinsamen Liste'],
   ['bf6', '🎖️', 'Battlefield 6', 'Eine Rangliste von dir und deinen Freunden'],
-  ['blogs', '📰', 'Neuigkeiten', 'Die neuesten Artikel von Webseiten, die du magst']];
-let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true}, cur = 0, seen = new Set();
+  ['blogs', '📰', 'Neuigkeiten', 'Die neuesten Artikel von Webseiten, die du magst'],
+  ['homeassistant', '🏠', 'Home Assistant', 'Werte und Schalter aus deinem Smart Home']];
+let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true, homeassistant: false}, cur = 0, seen = new Set();
 try { Object.assign(sel, JSON.parse(localStorage.getItem('fl-guide-sel') || '{}')); } catch (e) {}
 const saveSel = () => { try { localStorage.setItem('fl-guide-sel', JSON.stringify(sel)); } catch (e) {} };
 
@@ -331,7 +332,7 @@ ${shot('uebersicht', [[1090, 226, 58, 352, 'tr'], [1055, 226, 34, 352], [843, 73
 <li>Klicke danach auf <b>Erneut prüfen</b>. Schalte bei Bedarf <b>Touch-Steuerung</b> ein und speichere. Nach links wischen = nächste Seite, nach rechts = vorherige; Tippen links = zurück, sonst weiter. Tippen auf einen Blogbeitrag öffnet ihn im Browser auf dem PC (ab 2.0.6).</li>
 </ol>
 <div class="box tip"><p><b>Neu in 2.0.7:</b> Tippe in der Battlefield-Rangliste auf einen Spieler: Sein Profil öffnet sich im Browser. Daneben siehst du jetzt die Spielstunden. Tippe auf einen Freund: Ab 2.1.0 öffnet sich der Steam-Chat mit dieser Person (die Steam-App muss installiert sein). Hat die Person kein Steam, öffnet sich ihr Discord-Profil (dort „Nachricht“ wählen), sonst ihr Xbox-Profil im Browser. Ob ein neues Fenster oder ein Tab aufgeht, entscheidet die Plattform-App bzw. dein Browser. Es wird keine Nachricht versendet. Wischen blättert weiterhin.</p></div>
-<div class="box tip"><p><b>Neu in 2.1.0 – Home Assistant:</b> Hast du ein Smart Home mit Home Assistant, zeigt die Seite „Home Assistant“ bis zu 4 Werte (zum Beispiel Temperatur oder Solarleistung). Öffne in den Einstellungen den Reiter „Home Assistant“, trage die Adresse und ein „langlebiges Zugriffstoken“ ein (in Home Assistant unter deinem Profil → Sicherheit), klicke „Verbindung prüfen“ und wähle die Werte aus der Liste. Mit Touch kannst du außerdem Schalter und Lampen wählen und durch Tippen auf dem Display ein- und ausschalten.</p></div>
+<div class="box tip"><p><b>Neu in 2.1.0 – Home Assistant:</b> Bis zu 4 Werte oder Schalter aus deinem Smart Home auf dem Display. Mit Touch lassen sich Schalter und Lampen durch Tippen umlegen. Die Einrichtung steht im Schritt „Home Assistant“.</p></div>
 <div class="box tip"><p>Die Vollbildanzeige liegt über der Taskleiste, ohne deinen Tastaturfokus zu übernehmen. Die Touch-Zuordnung wird von Windows gespeichert.</p></div>
 <div class="box warn"><p>Ist der Einrichtungsbutton grau, erkennt Windows keinen Touchscreen. Prüfe USB-Verbindung und Treiber und wähle <b>Erneut prüfen</b>.</p></div>`},
 
@@ -449,6 +450,34 @@ ${help([['Da steht „Kein Feed gefunden“.', 'Manche Seiten machen keine Artik
 <p class="lead">Hier musst du nichts machen. Die Seite zeigt sofort, wie viel dein PC gerade arbeitet.</p>
 <figure><div class="shot" data-zoom style="max-width:520px"><img src="${IMG.page_system}" alt="Systemseite"></div></figure>
 <div class="box tip"><p><b>Für Profis:</b> Steht bei CPU-Temperatur und Lüfter nur ein Strich „–“? Dafür braucht der PC das kostenlose Programm <b>HWiNFO64</b>. Installiere es von <a href="https://www.hwinfo.com/" target="_blank" rel="noopener">hwinfo.com</a>. Starte es und schalte in seinen Einstellungen die <b>Shared Memory Unterstützung</b> ein. Frag dafür am besten einen Erwachsenen.</p></div>`},
+
+{need: 'homeassistant', t: 'Home Assistant', html: () => `
+<p class="kicker">Smart Home</p><h1>Home Assistant auf dem Display</h1>
+<p class="lead">Dein Display zeigt bis zu <b>4 Kacheln</b> aus deinem Smart Home: Sensoren, zum Beispiel Temperatur oder Solarleistung, und mit Touch auch Schalter und Lampen. Du brauchst Home Assistant in deinem Heimnetz und die App ab Version 2.1.0.</p>
+${shot('ha_display', [], 'So sieht die Seite auf dem Display aus: zwei Sensoren und zwei Schalter.', 480, 320)}
+<h2>1. Adresse und Zugriffstoken</h2>
+<ol class="do">
+<li>Öffne links in der Einstellungsseite den Reiter ${b('Home Assistant')}.</li>
+<li>Trage bei ${b('Adresse')} ein, was du auch im Browser benutzt, zum Beispiel <b>http://homeassistant.local:8123</b>.</li>
+<li>Hol dir in Home Assistant ein Token: unten links auf deinen <b>Namen</b> klicken, oben auf <b>Sicherheit</b> wechseln, ganz unten bei <b>Langlebige Zugriffstoken</b> auf <b>Token erstellen</b> klicken. Einen Namen eingeben, zum Beispiel „Display“, auf <b>OK</b> klicken und das Token sofort kopieren. Es wird nur einmal angezeigt.</li>
+<li>Füge es bei ${b('Zugriffstoken')} ein.</li>
+<li>Klicke auf ${b('Verbindung prüfen &amp; Entitäten laden')}. Steht daneben „Verbunden“, hat alles geklappt.</li>
+</ol>
+${shot('ha_setup', [[675, 146, 230, 42], [675, 210, 230, 42], [35, 275, 232, 31]], 'Adresse (1), Zugriffstoken (2) und Verbindung prüfen (3).', 940, 550)}
+<div class="box secret"><p>Das <b>Token</b> ist wie ein <b>Passwort</b> für dein Smart Home. Zeig es niemandem. Die App speichert es verschlüsselt, nur dein Windows-Konto kann es lesen.</p></div>
+<h2>2. Kacheln wählen</h2>
+<ol class="do">
+<li>Unter <b>Entitäten</b> siehst du die Liste aus Home Assistant. Tippe im Feld ${b('Entität suchen …')} einen Teil des Namens ein, zum Beispiel „Wohnzimmer“.</li>
+<li>Klicke beim gewünschten Wert auf ${b('Hinzufügen')}. Es passen höchstens <b>4</b> auf die Seite, die Kacheln stehen in der Reihenfolge der Liste. Mit ${b('Entfernen')} nimmst du eine wieder heraus.</li>
+<li>Schalte ganz oben ${b('Seite anzeigen')} ein und klicke unten auf ${b('Speichern &amp; anwenden')}.</li>
+</ol>
+${shot('ha_pick', [[35, 82, 870, 278], [35, 392, 870, 42], [805, 459, 87, 31]], 'Deine Auswahl (1), Suchfeld (2) und Hinzufügen (3).', 940, 692)}
+<div class="box tip"><p><b>Schalter</b> (Schalter, Licht, Ventilator, Eingabe-Schalter) lassen sich nur wählen, wenn ein Touch-Bildschirm angeschlossen und <b>Touch-Steuerung</b> eingeschaltet ist (Reiter <b>Display</b>, siehe Schritt „HDMI/USB-C und Touch“). Dann legt ein Tipp auf die Kachel den Schalter um. Ohne Touch bleiben nur Sensoren. Schlösser, Rollläden und Alarmanlagen lassen sich bewusst nicht schalten.</p></div>
+${help([['Home Assistant ist nicht erreichbar.', 'Prüfe die Adresse und ob PC und Home Assistant im selben Netzwerk sind. Wenn du nur „homeassistant.local“ benutzt, probiere die IP-Adresse, zum Beispiel <b>http://192.168.1.20:8123</b>.'],
+  ['Token ungültig oder abgelaufen.', 'Erstelle in Home Assistant unter <b>Sicherheit</b> ein neues langlebiges Token und füge es ein.'],
+  ['Adresse stimmt nicht (keine API gefunden).', 'Die Adresse muss die von Home Assistant selbst sein, mit Port, zum Beispiel <b>:8123</b>, und ohne Pfad dahinter.'],
+  ['Mein Schalter fehlt in der Liste.', 'Schalter erscheinen nur, wenn Touch aktiv ist. Schalte unter <b>Display</b> die <b>Touch-Steuerung</b> ein.'],
+  ['Die Seite erscheint nicht auf dem Display.', `Die Seite wird erst gezeigt, wenn sie eingeschaltet ist und Adresse, Token und mindestens eine Kachel ausgefüllt sind. Danach ${b('Speichern &amp; anwenden')} nicht vergessen.`]])}`},
 
 {t: 'Speichern', html: () => `
 <p class="kicker">Ganz wichtig</p><h1>Speichern nicht vergessen!</h1>

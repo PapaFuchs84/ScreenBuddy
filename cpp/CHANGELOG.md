@@ -4,7 +4,7 @@
 
 - Documentation follow-up for 2.0.3: current download links, matching German/English HDMI/touch steps in the guide templates and HTML resources, validation status, and permanent documentation rules. Updated embedded guides will be included in the next app build; the existing 2.0.3 EXE is unchanged.
 
-## 2.1.0 – local, not published
+## 2.1.0 – 2026-10-23
 
 Combined state of the two latest changes; 2.0.9 is not released on its own.
 
@@ -17,7 +17,7 @@ Combined state of the two latest changes; 2.0.9 is not released on its own.
 - Tapping a BF6 player now opens the GameTools profile with the website's platform slug (`pc`, `xboxone`, `ps4`) instead of `ea`, which produced a blank page. Players GameTools does not know for PC still show "not found" on the website although the API returns them.
 - Tapping a friend now only opens the Steam chat; Discord and Xbox open nothing for now (no chat link available), the 2.0.7 profile variant is removed.
 
-## 2.0.7 – local, not published
+## 2.0.7 – not published on its own, included in 2.0.8
 
 - Long page titles are shortened in narrow headers so the player count and clock remain readable.
 - Tapping a BF6 player opens their GameTools profile in the browser; the leaderboard also shows hours played.

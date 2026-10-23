@@ -1,16 +1,16 @@
 # Testprotokoll – Stand 23.10.2026
 
-## Version 2.1.0 (23.10.2026): Home-Assistant-Seite, enthält den Freunde-Tipp aus 2.0.9 – lokal, nicht installiert/veröffentlicht
+## Version 2.1.0 (23.10.2026): Home-Assistant-Seite, enthält den Freunde-Tipp aus 2.0.9 – veröffentlicht als v2.1.0
 
 - Neue Seite Home Assistant (bis zu 4 Entitäten, REST-API, DPAPI-Token, Auswahlliste in den Einstellungen, Schalter nur mit Touch). Release-Build erfolgreich (Produktversion 2.1.0, 13258240 Bytes, SHA-256 `711F76DF3F8D5DF343E2C1FA6EE5944EB8D012EC7D776F35990D26C27ED5D53A`), **212 Kernprüfungen und 11 Monitor-Prüfungen bestanden**, dazu 49 Seitennavigations-Prüfungen. Neue Prüfungen: Entitäts-Syntax, Schalter-Bereiche (Schlösser/Rollläden ausgeschlossen), Adressprüfung, Wertformat, Kachel-Treffer inkl. skaliertem Display, Konfiguration (höchstens 4, Token verborgen), Zustandsauswertung.
 - Gegen einen lokalen Testserver (Python, Port 18123, kein echtes Home Assistant): Abfrage, falsches Token (Fehlermeldung), unbekannte Entität, nicht erreichbar, Umlegen eines Schalters (genau ein Aufruf; Schloss und Sensor werden nie gesendet), Entitätsliste ohne Touch ohne Schalter/Schlösser. Die Seite im Browser (DE und EN) und das Displaybild (Hell/Dunkel, 1–4 Kacheln, Fehlerfall) von Hand geprüft. Testinstanz auf Port 18770, ohne Display; Bastis laufende App und Port 8765 blieben unberührt.
 - **Nicht getestet:** Schalten per echtem Fingertipp auf dem Touchscreen und gegen ein echtes Home Assistant (nur die Trefferberechnung und der Serveraufruf einzeln).
-## Version 2.0.9 (23.10.2026): Freunde-Tipp Steam → Discord → Xbox – lokal, nicht installiert/veröffentlicht
+## Version 2.0.9 (23.10.2026): Freunde-Tipp Steam → Discord → Xbox – veröffentlicht als v2.1.0
 
 - Auf Wunsch des Nutzers feste Reihenfolge: Steam-Chat, sonst Discord-Profil, sonst Xbox-Profil im Browser; fehlende Apps führen zum nächsten Ziel. Release-Build erfolgreich (Produktversion 2.0.9, SHA-256 `60771E3FED6B69564B731E6C14D3B818CF0E807A7E1D0493303B3730802E592C`), **164 Kernprüfungen und 11 Monitor-Prüfungen bestanden**, darunter neue Prüfungen für Reihenfolge, Fallback bei fehlender Discord-/Steam-App, Xbox-Profil-URL und ungültige IDs. Die Startfunktion wird dabei ersetzt: keine echten Chats oder Profile geöffnet. Keine Installation, kein Test gegen Port 8765.
 - Offen: physische Abnahme am Display (Tipp auf Freund mit nur Discord bzw. nur Xbox) in angemeldeten Clients.
 
-## Version 2.0.8 (23.10.2026): BF6-Profil-Link, nur Steam-Absprung – lokal, nicht installiert/veröffentlicht
+## Version 2.0.8 (23.10.2026): BF6-Profil-Link, nur Steam-Absprung – veröffentlicht als v2.1.0
 
 - Ursache der leeren Seite: Die Webseite kennt die Plattform `ea` nicht (Route bleibt leer); mit `pc` lädt z. B. P4p4F0x im Browser korrekt. Für `Schmieselbeehee` liefert die API bei `platform=ea` Daten, bei `pc` (das die Webseite verwendet) 404; die Webseite zeigt dort „Playername not found“. Der Name selbst wird nicht verändert (Konfiguration und API stimmen überein).
 - Freunde-Tipp auf Wunsch des Nutzers: nur Steam-Chat, Discord/Xbox ohne Absprung. Release-Build erfolgreich, 158 Prüfungen und 11 Monitor-Prüfungen bestanden. Keine Installation, kein Test gegen Port 8765.
