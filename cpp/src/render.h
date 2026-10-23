@@ -113,6 +113,8 @@ public:
     RssRenderer(int w, int h, std::string title);
     Image render(const std::vector<Post>& posts, std::optional<std::time_t> updated, std::time_t now = 0);
     static constexpr int MAX_ROWS = 4;
+    // Welcher Beitrag liegt an Pixelzeile y (Kachel w × h)? -1 = keiner (Kopf-/Fußzeile). Für "Tippen öffnet Beitrag".
+    static int row_at(int w, int h, int y);
 
 private:
     Font f_post, f_src;

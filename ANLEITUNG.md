@@ -28,7 +28,7 @@ Die Einstellungen öffnest du später jederzeit mit einem **Doppelklick auf das 
 2. Unter **Display → Display-Typ** die Ausgabe **Bildschirm über HDMI oder USB-C** und den vorgesehenen Monitor wählen, dann **Speichern & anwenden**. Die Anzeige bleibt über der Taskleiste, ohne den Tastaturfokus zu übernehmen.
 3. Erscheinen Berührungen auf einem anderen Bildschirm, **Touch-Bildschirm zuordnen** wählen. Die Anzeige pausiert während des Windows-Assistenten.
 4. Andere Bildschirme mit **Enter** überspringen. Steht der Assistententext auf dem gewünschten Touchscreen, diesen berühren. **Esc** bricht ab.
-5. Danach **Erneut prüfen** wählen; bei Bedarf **Touch-Steuerung** einschalten und speichern. Nach links wischen = nächste Seite, nach rechts = vorherige; Tippen links = zurück, sonst weiter.
+5. Danach **Erneut prüfen** wählen; bei Bedarf **Touch-Steuerung** einschalten und speichern. Nach links wischen = nächste Seite, nach rechts = vorherige; Tippen links = zurück, sonst weiter. Tippen auf einen Blogbeitrag öffnet ihn im Browser auf dem PC (ab 2.0.5).
 
 Ohne erkannten Touchscreen ist der Einrichtungsbutton deaktiviert. Dann USB-Verbindung und Treiber prüfen. Die bisherige Prüfung nutzte injizierte Windows-Berührungen; echte Touch-Hardware und der vollständige Assistentenablauf bleiben offen.
 

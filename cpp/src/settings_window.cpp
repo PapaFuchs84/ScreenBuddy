@@ -247,4 +247,9 @@ SettingsWindow::SettingsWindow(int port) : d_(std::make_shared<Impl>(port)) { d_
 SettingsWindow::~SettingsWindow() = default;
 void SettingsWindow::show() { d_->show(); }
 
+bool SettingsWindow::visible() const {
+    HWND w = d_ ? d_->hwnd : nullptr;
+    return w && IsWindowVisible(w) && !IsIconic(w);
+}
+
 }  // namespace fl

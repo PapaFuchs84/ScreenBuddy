@@ -55,7 +55,7 @@ Plus:
 - **German or English**: the settings page, display and tray menu can be switched; on first start the language follows Windows
 - **Design**: FuchsLabs style in light or dark, or **custom colours** via colour pickers with a contrast warning
 - **Any resolution**: pages are rendered sharply at the real size; wide bars show several pages side by side
-- **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages); Windows touch assignment checks and setup under **Display**
+- **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages, tap a blog post to open it in the browser); Windows touch assignment checks and setup under **Display**
 - **Illustrated guide** to click through, easy enough for kids, embedded in the EXE in English and German
 - **Single EXE** for installation, updates and uninstallation; no Python or Visual C++ redistributable required. WebView2 Runtime remains a prerequisite.
 
@@ -117,7 +117,7 @@ brightness = 90
 page_seconds = 15
 pages = ["system", "friends", "discord", "bf6", "rss"]   # order
 theme = "hell"             # "hell" (light), "dunkel" (dark) or "eigen" (custom)
-touch = false              # only with output = "monitor"
+touch = true               # only with output = "monitor"
 
 [bf6]
 enabled = true

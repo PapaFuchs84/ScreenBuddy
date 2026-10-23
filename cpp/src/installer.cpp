@@ -19,6 +19,7 @@
 #include "gfx.h"
 #include "http.h"
 #include "i18n.h"
+#include "resources.h"
 #include "tray.h"
 #include "util.h"
 #include "winsetup.h"
@@ -179,6 +180,13 @@ Result install(const Options& o, const std::function<void(const std::string&)>& 
             r.error = tr("Kopieren fehlgeschlagen") + strprintf(" (%lu)", GetLastError());
             return r;
         }
+    }
+    // Lizenz und Drittanbieter-Hinweise neben die EXE legen (aus der EXE selbst, keine Zusatzdateien im Download)
+    for (auto [name, file] : {std::pair{res::LICENSE, L"LICENSE.txt"}, std::pair{res::NOTICES, L"THIRD-PARTY-NOTICES.md"}}) {
+        auto data = res::get(name);
+        if (data.empty()) continue;
+        std::ofstream f(dir / file, std::ios::binary | std::ios::trunc);
+        f.write(data.data(), (std::streamsize)data.size());
     }
     if (!fs::exists(cfg, ec) && fs::exists(old_cfg, ec)) {
         fs::copy_file(old_cfg, cfg, ec);
@@ -566,6 +574,8 @@ int finish_uninstall(const std::wstring& dir_s, unsigned long parent_pid) {
         fs::path old = dir / EXE_NAME;
         old += L".old";
         fs::remove(old, ec);
+        fs::remove(dir / L"LICENSE.txt", ec);
+        fs::remove(dir / L"THIRD-PARTY-NOTICES.md", ec);
         if (purge) {
             for (auto* f : {L"config.toml", L"config.toml.bak", L"config.toml.tmp", L"usb-display.log", L"usb-display.log.1"})
                 fs::remove(dir / f, ec);

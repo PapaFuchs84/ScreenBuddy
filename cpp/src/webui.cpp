@@ -73,6 +73,12 @@ bool SettingsServer::start() {
     App& app = d_->app;
     int port = d_->port;
     svr.set_payload_max_length(2 * 1024 * 1024);
+    // Port exklusiv belegen: httplib setzt sonst SO_REUSEADDR, und unter Windows könnte eine zweite Instanz denselben
+    // Port zusätzlich öffnen – Anfragen landeten dann zufällig bei der einen oder anderen App.
+    svr.set_socket_options([](socket_t sock) {
+        int yes = 1;
+        setsockopt(sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, reinterpret_cast<const char*>(&yes), sizeof yes);
+    });
     svr.set_keep_alive_max_count(20);
 
     svr.set_pre_routing_handler([port](const httplib::Request& req, httplib::Response& res) {

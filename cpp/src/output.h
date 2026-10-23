@@ -89,11 +89,14 @@ public:
     bool setup_touch();
 
     std::function<void(int)> on_step;  // +1 nächste Seite, -1 vorige (aus dem Fenster-Thread)
+    // Tippen an Bildschirmposition (x, y): true = von der App behandelt (z. B. Blogbeitrag geöffnet), dann kein Seitenwechsel
+    std::function<bool(int, int)> on_tap;
 
     // Geste: Wischen nach links = nächste Seite, nach rechts = vorige; Tippen links (Drittel) = vorige, sonst nächste
     struct Gesture {
         int w, h;
         std::optional<std::tuple<int, int, double>> start;
+        bool tapped = false;  // letzte Geste war ein Tippen (kein Wischen)
         void down(int x, int y);
         int end(int x, int y);
     };

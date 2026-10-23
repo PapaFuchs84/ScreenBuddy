@@ -406,6 +406,11 @@ void App::display_loop() {
                 }
                 frame = welcome();
                 current_.clear();
+                {
+                    std::lock_guard lk(tap_mu_);
+                    tap_boxes_.clear();
+                    tap_keys_.clear();
+                }
             } else {
                 int cols = std::min((int)boxes.size(), total);
                 if (page_due || step) {
@@ -424,6 +429,11 @@ void App::display_loop() {
                 auto [f, keys] = draw(pages, boxes, start);
                 frame = std::move(f);
                 current_ = keys;
+                {
+                    std::lock_guard lk(tap_mu_);  // für „Tippen öffnet Blogbeitrag“
+                    tap_boxes_ = boxes;
+                    tap_keys_ = keys;
+                }
                 navigation = {{"index", start}, {"total", total}, {"visible", cols},
                               {"current", keys}, {"can_step", total > cols}};
             }
@@ -436,13 +446,42 @@ void App::display_loop() {
 
 void App::show_settings() { if (show_settings_callback_) show_settings_callback_(); }
 
+bool App::open_post_at(int x, int y) {
+    // Tippen auf einen Blogbeitrag (Touch an): Artikel im Standardbrowser auf dem PC öffnen
+    if (!rss_) return false;
+    render::Box box{};
+    {
+        std::lock_guard lk(tap_mu_);
+        size_t i = 0;
+        for (; i < tap_boxes_.size(); ++i) {
+            auto& b = tap_boxes_[i];
+            if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) break;
+        }
+        if (i >= tap_boxes_.size() || i >= tap_keys_.size() || tap_keys_[i] != "rss") return false;
+        box = tap_boxes_[i];
+    }
+    int row = render::RssRenderer::row_at(box.w, box.h, y - box.y);
+    auto posts = rss_->posts();
+    if (row < 0 || row >= (int)posts.size()) return false;
+    std::string link = trim(posts[row].link);
+    // Nur Webadressen aus dem Feed öffnen (keine Dateien oder anderen Programme)
+    std::string scheme = lower_ascii(link.substr(0, link.find(':')));
+    if (link.empty() || (scheme != "http" && scheme != "https") || link.find("://") == std::string::npos) return false;
+    LOGI("app", "Blogbeitrag per Tippen geöffnet: %s", posts[row].source.c_str());
+    ShellExecuteW(nullptr, L"open", widen(link).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    return true;
+}
+
 bool App::setup_touch() {
     if (auto* mon = dynamic_cast<MonitorDisplay*>(out_.get())) return mon->setup_touch();
     return open_touch_setup();
 }
 
 void App::run() {
-    if (auto* mon = dynamic_cast<MonitorDisplay*>(out_.get())) mon->on_step = [this](int d) { step_page(d); };
+    if (auto* mon = dynamic_cast<MonitorDisplay*>(out_.get())) {
+        mon->on_step = [this](int d) { step_page(d); };
+        mon->on_tap = [this](int x, int y) { return open_post_at(x, y); };
+    }
     if (sys_) sys_->start();
     auto dirty = [this] { mark_dirty(); };
     if (bf6_) bf6_->start(dirty);
@@ -473,6 +512,8 @@ void App::run() {
     tray.start();
     display_loop();
     tray.stop();
+    // War das Einstellungsfenster beim Neustart offen (z. B. nach dem Speichern), öffnet es die neue Instanz wieder
+    settings_open_at_exit_ = settings_window && settings_window->visible();
     if (server) server->stop();
     show_settings_callback_ = {};
     settings_window.reset();

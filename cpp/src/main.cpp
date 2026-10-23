@@ -27,6 +27,7 @@ namespace {
 
 struct Args {
     std::optional<fs::path> config, preview, log;
+    bool reopen_settings = false;  // --settings: Einstellungsfenster gleich öffnen (nach Neustart aus dem Fenster)
     bool demo = false, no_lcd = false, restarted = false, autostart = false, verbose = false;
     bool install = false, silent = false, uninstall = false, run = false;
     std::optional<std::wstring> finish_dir;
@@ -44,6 +45,7 @@ Args parse(int argc, wchar_t** argv) {
         else if (s == L"--preview") a.preview = next();
         else if (s == L"--log") a.log = next();
         else if (s == L"--restarted") a.restarted = true;
+        else if (s == L"--settings") a.reopen_settings = true;
         else if (s == widen(winsetup::AUTOSTART_FLAG)) a.autostart = true;
         else if (s == L"-v" || s == L"--verbose") a.verbose = true;
         else if (s == L"--install") a.install = true;
@@ -109,13 +111,14 @@ HANDLE single_instance(bool wait) {
     return nullptr;
 }
 
-void relaunch(int argc, wchar_t** argv) {
+void relaunch(int argc, wchar_t** argv, bool reopen_settings) {
     std::wstring cmd = L"\"" + exe_path().wstring() + L"\"";
     for (int i = 1; i < argc; ++i) {
-        if (wcscmp(argv[i], L"--restarted") == 0) continue;
+        if (wcscmp(argv[i], L"--restarted") == 0 || wcscmp(argv[i], L"--settings") == 0) continue;
         cmd += L" \"" + std::wstring(argv[i]) + L"\"";
     }
     cmd += L" --restarted";
+    if (reopen_settings) cmd += L" --settings";
     STARTUPINFOW si{sizeof si};
     PROCESS_INFORMATION pi{};
     if (CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &si, &pi)) {
@@ -241,17 +244,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             lcd = std::make_unique<SerialDisplay>(dp.value("port", "AUTO"), orientation(dp.value("orientation", "landscape")),
                                                   dp.value("brightness", 50), dp.value("reset_on_start", true));
     }
-    bool restart = false;
+    bool restart = false, reopen = false;
     int rc = 0;
     try {
         if (args.demo) {
             run_demo(lcd.get(), cfg, args.preview);
         } else {
             bool setup_done = cfg["ui"].value("setup_done", false);
-            bool show_settings = (first_run || !setup_done) && !(args.autostart || args.restarted);
+            bool show_settings = ((first_run || !setup_done) && !(args.autostart || args.restarted)) || args.reopen_settings;
             App app(cfg, cfg_path, std::move(lcd), args.preview, show_settings);
             app.run();
             restart = app.restart_requested();
+            reopen = app.settings_open_at_exit();
             lcd = nullptr;
         }
     } catch (const std::exception& e) {
@@ -261,7 +265,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     if (restart) {
         if (mutex) CloseHandle(mutex);
         mutex = nullptr;
-        relaunch(argc, argv);
+        relaunch(argc, argv, reopen);
     }
     if (mutex) CloseHandle(mutex);
     LOGI("app", "beendet%s", restart ? " (Neustart)" : "");

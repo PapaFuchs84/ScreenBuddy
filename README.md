@@ -54,7 +54,7 @@ Dazu kommen:
 - **Ersteinrichtung ohne Vorkenntnisse**: erkennt das Display, beendet und deaktiviert auf Wunsch die Hersteller-App, Autostart ohne Administratorrechte
 - **Design**: FuchsLabs-CI in Hell oder Dunkel, oder **eigene Farben** per Farbwähler mit Kontrastwarnung
 - **Jede Auflösung**: Seiten werden scharf auf die echte Größe gerendert; breite Leisten zeigen mehrere Seiten nebeneinander
-- **HDMI/USB-C-Bildschirme** als randloses Vollbild über der Taskleiste, optional mit **Touch** (wischen oder tippen zum Blättern); Prüfung und Einrichtung der Windows-Touch-Zuordnung unter **Display**
+- **HDMI/USB-C-Bildschirme** als randloses Vollbild über der Taskleiste, optional mit **Touch** (wischen oder tippen zum Blättern, Tippen auf einen Blogbeitrag öffnet ihn im Browser); Prüfung und Einrichtung der Windows-Touch-Zuordnung unter **Display**
 - **Deutsch oder Englisch**: Einstellungsseite, Display und Infobereich lassen sich umschalten; beim ersten Start folgt die Sprache Windows
 - **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, in der EXE eingebettet auf Deutsch und Englisch
 - **Eine EXE** für Installation, Updates und Deinstallation; kein Python und kein Visual-C++-Redistributable erforderlich. WebView2 bleibt eine Voraussetzung.
@@ -117,7 +117,7 @@ brightness = 90
 page_seconds = 15
 pages = ["system", "friends", "discord", "bf6", "rss"]   # Reihenfolge
 theme = "hell"             # "hell", "dunkel" oder "eigen"
-touch = false              # nur bei output = "monitor"
+touch = true               # nur bei output = "monitor"
 
 [bf6]
 enabled = true

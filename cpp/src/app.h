@@ -53,6 +53,8 @@ public:
     void request_stop(double delay = 0);
     void request_restart(double delay = 0);
     bool restart_requested() const { return restart_; }
+    bool settings_open_at_exit() const { return settings_open_at_exit_; }
+    bool open_post_at(int x, int y);        // Tippen auf Blogbeitrag → Artikel im Browser (true = geöffnet)
     void step_page(int delta);                      // Touch/Einstellungen: eine Ansicht vor (+1) oder zurück (-1)
     void mark_dirty();
     void show_settings();
@@ -82,6 +84,10 @@ private:
     std::unique_ptr<Output> out_;
     std::optional<std::filesystem::path> preview_dir_;
     bool show_settings_on_start_ = false;
+    bool settings_open_at_exit_ = false;
+    std::mutex tap_mu_;                     // Lage der Kacheln beim letzten Bild (für Tippen auf Beiträge)
+    std::vector<render::Box> tap_boxes_;
+    std::vector<std::string> tap_keys_;
     std::function<void()> show_settings_callback_;
     std::pair<int, int> size_;
 

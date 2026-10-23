@@ -47,7 +47,7 @@ target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL Open
 
 # Eingebettete Dateien: bei Änderungen die Ressourcen neu bauen (CMake erkennt RCDATA-Abhängigkeiten nicht selbst)
 set_source_files_properties(res/app.rc PROPERTIES OBJECT_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/res/webui.html;${CMAKE_CURRENT_SOURCE_DIR}/res/ANLEITUNG.html;${CMAKE_CURRENT_SOURCE_DIR}/res/GUIDE.html;${CMAKE_CURRENT_SOURCE_DIR}/res/app.ico;${CMAKE_CURRENT_SOURCE_DIR}/res/app.manifest")
+    "${CMAKE_CURRENT_SOURCE_DIR}/res/webui.html;${CMAKE_CURRENT_SOURCE_DIR}/res/ANLEITUNG.html;${CMAKE_CURRENT_SOURCE_DIR}/res/GUIDE.html;${CMAKE_CURRENT_SOURCE_DIR}/res/app.ico;${CMAKE_CURRENT_SOURCE_DIR}/res/app.manifest;${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE;${CMAKE_CURRENT_SOURCE_DIR}/../THIRD-PARTY-NOTICES.md")
 
 add_executable(FuchsLabs-USB-Display WIN32 src/main.cpp res/app.rc)
 target_link_libraries(FuchsLabs-USB-Display PRIVATE flcore)

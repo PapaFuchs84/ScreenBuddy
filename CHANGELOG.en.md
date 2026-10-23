@@ -17,6 +17,16 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ### Fixed
 - Percent values on the settings page (brightness showed “90 90” after an automatic fix).
 
+## [2.0.5] – 2026-10-23
+
+- Touch: tapping a blog post opens it in the default browser on the PC; tapping elsewhere and swiping change pages as before.
+- HDMI/USB-C: while the display is shown, the Windows taskbar on that screen is hidden (a tap near the bottom used to open the Start menu); it comes back when the app quits.
+- Every touch gesture is logged, with a hint when touch is switched off in the settings. New configurations start with touch enabled.
+- Fixed: after “Save & apply” the settings window disappeared into the notification area. It now reopens after the restart.
+- Fixed: a second instance (e.g. a test build) could share the settings page port; the port is now bound exclusively.
+- `LICENSE.txt` and `THIRD-PARTY-NOTICES.md` are embedded in the EXE; the installer places them in the installation folder.
+- Not published yet; see [test record](cpp/TESTPROTOKOLL.md) for validation status.
+
 ## [2.0.4] – 2026-10-22
 
 - Overview: Previous view and Next view control the running display, with its current position below the live preview. Includes list subpages and wide tile groups; automatic cycling continues.

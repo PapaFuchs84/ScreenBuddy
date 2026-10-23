@@ -308,8 +308,36 @@ static int dpp_probe() {
     return done ? 0 : 1;
 }
 
+// Diagnose: fl-tests touch <x0> <y0> <x1> <y1> – eine Berührung (Tippen, wenn Start = Ende) per Windows-Touch-Injektion
+static int touch_probe(int x0, int y0, int x1, int y1) {
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    if (!InitializeTouchInjection(2, TOUCH_FEEDBACK_NONE)) return 2;
+    auto contact = [](DWORD flags, int x, int y) {
+        POINTER_TOUCH_INFO p{};
+        p.pointerInfo.pointerType = PT_TOUCH;
+        p.pointerInfo.pointerId = 1;
+        p.pointerInfo.pointerFlags = flags;
+        p.pointerInfo.ptPixelLocation = {x, y};
+        p.touchMask = TOUCH_MASK_CONTACTAREA | TOUCH_MASK_ORIENTATION | TOUCH_MASK_PRESSURE;
+        p.rcContact = {x - 2, y - 2, x + 2, y + 2};
+        p.orientation = 90;
+        p.pressure = 32000;
+        Sleep(25);
+        bool r = InjectTouchInput(1, &p) != FALSE;
+        if (!r) std::printf("InjectTouchInput Fehler %lu bei %d/%d\n", GetLastError(), x, y);
+        return r;
+    };
+    bool ok = contact(POINTER_FLAG_DOWN | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT, x0, y0);
+    if (x1 != x0 || y1 != y0) ok &= contact(POINTER_FLAG_UPDATE | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT, x1, y1);
+    ok &= contact(POINTER_FLAG_UP, x1, y1);
+    std::printf("touch %s\n", ok ? "ok" : "fehlgeschlagen");
+    return ok ? 0 : 1;
+}
+
 int main(int argc, char** argv) {
     SetConsoleOutputCP(CP_UTF8);
+    if (argc >= 6 && std::string(argv[1]) == "touch")
+        return touch_probe(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
     gfx_init();
     if (argc >= 2 && std::string(argv[1]) == "dpp") {
         argc_probe_winstore = argc >= 3;

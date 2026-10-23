@@ -149,13 +149,17 @@ static std::optional<MonitorInfo> pick_monitor(const std::string& device) {
 void MonitorDisplay::Gesture::down(int x, int y) { start = std::make_tuple(x, y, mono()); }
 
 int MonitorDisplay::Gesture::end(int x, int y) {
+    tapped = false;
     if (!start) return 0;
     auto [x0, y0, t0] = *start;
     start.reset();
     int dx = x - x0, dy = y - y0;
     double thr = std::max(30.0, w * 0.05);
     if (std::abs(dx) >= thr && std::abs(dx) > std::abs(dy)) return dx < 0 ? 1 : -1;
-    if (std::abs(dx) < thr && std::abs(dy) < thr && mono() - t0 < 1.0) return x < w / 3.0 ? -1 : 1;
+    if (std::abs(dx) < thr && std::abs(dy) < thr && mono() - t0 < 1.0) {
+        tapped = true;
+        return x < w / 3.0 ? -1 : 1;
+    }
     return 0;
 }
 
@@ -308,7 +312,8 @@ bool MonitorDisplay::handle(void* hwnd_v, unsigned msg, unsigned long long wp, l
                 ((ULONG_PTR)GetMessageExtraInfo() & 0xFFFFFF00) != 0xFF515700) {
                 int x = (short)(lp & 0xFFFF), y = (short)((lp >> 16) & 0xFFFF);
                 if (msg == WM_LBUTTONDOWN) mouse_gesture_.down(x, y);
-                else if (int step = mouse_gesture_.end(x, y); step && on_step) on_step(step);
+                else if (int step = mouse_gesture_.end(x, y); step && !(mouse_gesture_.tapped && on_tap && on_tap(x, y)) && on_step)
+                    on_step(step);
             }
             result = 0; return true;
         }
@@ -338,9 +343,10 @@ bool MonitorDisplay::handle(void* hwnd_v, unsigned msg, unsigned long long wp, l
                     int x0 = gesture_.start ? std::get<0>(*gesture_.start) : pt.x;
                     int step = gesture_.end(pt.x, pt.y);
                     // Protokoll: zeigt, ob Berührungen ankommen und wie sie gedeutet werden
+                    bool opened = gesture_.tapped && on_tap && on_tap(pt.x, pt.y);
                     LOGI("monitor", "Touch: %d px waagerecht → %s", pt.x - x0,
-                         step > 0 ? "nächste Seite" : step < 0 ? "vorige Seite" : "keine Geste");
-                    if (step && on_step) on_step(step);
+                         opened ? "Beitrag geöffnet" : step > 0 ? "nächste Seite" : step < 0 ? "vorige Seite" : "keine Geste");
+                    if (step && !opened && on_step) on_step(step);
                 }
             }
             result = 0;

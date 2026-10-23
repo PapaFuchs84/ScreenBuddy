@@ -612,6 +612,17 @@ std::vector<std::string> RssRenderer::wrap(Canvas& d, const std::string& text, c
     return out;
 }
 
+int RssRenderer::row_at(int w_px, int h_px, int y_px) {
+    // gleiche Aufteilung wie render(): logische Höhe, Zeilen zwischen Kopf- und Fußzeile
+    float sc = scale_for(w_px, h_px);
+    float lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
+    float top = HEADER_H + 2, bot = lh - FOOTER_H, ly = y_px / sc;
+    float rh = (float)floordiv(bot - top, MAX_ROWS);
+    if (ly < top || ly >= bot || rh <= 0) return -1;
+    int row = (int)((ly - top) / rh);
+    return row < MAX_ROWS ? row : -1;
+}
+
 Image RssRenderer::render(const std::vector<Post>& posts, std::optional<std::time_t> updated, std::time_t now) {
     const Theme& t = g_theme;
     Canvas d(W, H, s, t.bg);
