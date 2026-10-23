@@ -17,7 +17,11 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ### Behoben
 - Prozentwerte in der Einstellungsseite (Helligkeit zeigte nach einer automatischen Korrektur „90 90“).
 
-## [2.0.8] – lokal, noch nicht veröffentlicht
+## [2.0.9] – lokal, noch nicht veröffentlicht
+
+- Tipp auf einen Freund hat eine feste Reihenfolge: Steam-Chat, sonst das Discord-Profil (dort „Nachricht“ wählen), sonst das Xbox-Profil auf xbox.com im Browser. Fehlt die App eines Ziels (Steam, Discord), wird das nächste verwendet. Der Online-Status spielt keine Rolle mehr; in 2.0.8 öffnete nur Steam etwas.
+
+## [2.0.8] – 2026-10-23
 
 - Tipp auf einen BF6-Spieler öffnet das GameTools-Profil jetzt mit dem Plattformkürzel der Webseite (`pc`, `xboxone`, `ps4`) statt `ea`, das eine leere Seite ergab. Spieler, die GameTools für PC nicht kennt, zeigt die Webseite weiterhin als „nicht gefunden“, obwohl die API sie liefert.
 - Tipp auf einen Freund öffnet nur noch den Steam-Chat; Discord und Xbox öffnen vorerst nichts (kein Chat-Link verfügbar), die Profil-Variante aus 2.0.7 entfällt.

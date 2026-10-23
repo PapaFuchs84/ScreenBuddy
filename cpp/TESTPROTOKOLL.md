@@ -1,5 +1,10 @@
 # Testprotokoll – Stand 23.10.2026
 
+## Version 2.0.9 (23.10.2026): Freunde-Tipp Steam → Discord → Xbox – lokal, nicht installiert/veröffentlicht
+
+- Auf Wunsch des Nutzers feste Reihenfolge: Steam-Chat, sonst Discord-Profil, sonst Xbox-Profil im Browser; fehlende Apps führen zum nächsten Ziel. Release-Build erfolgreich (Produktversion 2.0.9, SHA-256 `60771E3FED6B69564B731E6C14D3B818CF0E807A7E1D0493303B3730802E592C`), **164 Kernprüfungen und 11 Monitor-Prüfungen bestanden**, darunter neue Prüfungen für Reihenfolge, Fallback bei fehlender Discord-/Steam-App, Xbox-Profil-URL und ungültige IDs. Die Startfunktion wird dabei ersetzt: keine echten Chats oder Profile geöffnet. Keine Installation, kein Test gegen Port 8765.
+- Offen: physische Abnahme am Display (Tipp auf Freund mit nur Discord bzw. nur Xbox) in angemeldeten Clients.
+
 ## Version 2.0.8 (23.10.2026): BF6-Profil-Link, nur Steam-Absprung – lokal, nicht installiert/veröffentlicht
 
 - Ursache der leeren Seite: Die Webseite kennt die Plattform `ea` nicht (Route bleibt leer); mit `pc` lädt z. B. P4p4F0x im Browser korrekt. Für `Schmieselbeehee` liefert die API bei `platform=ea` Daten, bei `pc` (das die Webseite verwendet) 404; die Webseite zeigt dort „Playername not found“. Der Name selbst wird nicht verändert (Konfiguration und API stimmen überein).

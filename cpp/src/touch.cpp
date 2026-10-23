@@ -16,9 +16,17 @@ static bool digits(const std::string& s) {
 
 Targets friend_targets(const Friend& person) {
     Targets out;
-    // Nur Steam öffnet einen echten Chat. Discord (keine DM-Kanal-ID) und Xbox (kein Chat-Link) sind vorerst abgeschaltet.
-    auto it = person.ids.find("steam");
-    if (it != person.ids.end() && digits(it->second)) out.push_back({"steam://friends/message/" + it->second, "steam"});
+    // Feste Reihenfolge: Steam-Chat, sonst Discord-Profil (mit "Nachricht"-Knopf), sonst Xbox-Profil im Browser.
+    // Ist die App eines Ziels nicht registriert oder startet nicht, rückt das nächste Ziel nach.
+    auto steam = person.ids.find("steam");
+    if (steam != person.ids.end() && digits(steam->second))
+        out.push_back({"steam://friends/message/" + steam->second, "steam"});
+    auto discord = person.ids.find("discord");
+    if (discord != person.ids.end() && digits(discord->second))
+        out.push_back({"discord://-/users/" + discord->second, "discord"});
+    auto xbox = person.ids.find("xbox");
+    if (xbox != person.ids.end() && !trim(xbox->second).empty())
+        out.push_back({"https://account.xbox.com/Profile?gamertag=" + http::url_encode(xbox->second), ""});
     return out;
 }
 

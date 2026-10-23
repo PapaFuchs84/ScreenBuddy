@@ -4,9 +4,9 @@ Version 2.0.7 (lokaler Entwicklungsstand; Download: 2.0.6) · Stand 23.10.2026 �
 
 Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein eigenes Windows-Einstellungsfenster mit WebView2. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
 
-## Touch-Ziele und Spielstunden (2.0.7, lokal)
+## Touch-Ziele und Spielstunden (ab 2.0.7)
 
-2.0.7 ist ein lokaler Entwicklungsstand; der veröffentlichte Download bleibt 2.0.6. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund wählt zuerst online erreichbare Konten in der Reihenfolge Discord → Steam → Xbox, danach die übrigen Konten in derselben Reihenfolge. Fehlende Apps werden übersprungen. Steam öffnet den Chat; Discord und Xbox öffnen das Profil mit dem Weg zu **Nachricht**. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
+2.0.9 ist ein lokaler Entwicklungsstand; der veröffentlichte Download bleibt 2.0.8. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
 
 ## Ansichten durchblättern (2.0.4)
 

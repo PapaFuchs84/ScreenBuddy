@@ -224,18 +224,29 @@ static void test_touch_targets() {
     f.ids = {{"discord", "123456789012345678"}, {"steam", "76561198000000001"}, {"xbox", "Fox #1234"}};
     f.online_on = {"discord", "steam", "xbox"};
     auto targets = touch::friend_targets(f);
-    CHECK(targets.size() == 1 && targets[0].protocol == "steam");
+    CHECK(targets.size() == 3 && targets[0].protocol == "steam" && targets[1].protocol == "discord");
     CHECK_EQ(targets[0].url, std::string("steam://friends/message/76561198000000001"));
+    CHECK_EQ(targets[1].url, std::string("discord://-/users/123456789012345678"));
+    CHECK_EQ(targets[2].url, std::string("https://account.xbox.com/Profile?gamertag=Fox%20%231234"));
     std::vector<std::string> launches;
     auto launcher = [&](const std::string& url) { launches.push_back(url); return true; };
     CHECK(touch::dispatch(targets, [](auto&) { return true; }, launcher));
     CHECK(launches.size() == 1 && launches[0] == targets[0].url);
-    CHECK(!touch::dispatch(targets, [](auto&) { return false; }, launcher));
+    launches.clear();
+    CHECK(touch::dispatch(targets, [](auto& p) { return p == "discord"; }, launcher)); // Steam fehlt -> Discord
+    CHECK(launches.size() == 1 && launches[0] == targets[1].url);
+    launches.clear();
+    CHECK(touch::dispatch(targets, [](auto&) { return false; }, launcher)); // keine App -> Xbox im Browser
+    CHECK(launches.size() == 1 && launches[0] == targets[2].url);
     CHECK(!touch::dispatch(targets, [](auto&) { return true; }, [](auto&) { return false; }));
     CHECK(!touch::dispatch({}, [](auto&) { return true; }, launcher));
     f.ids = {{"discord", "123456789012345678"}, {"xbox", "Fox #1234"}};
-    CHECK(touch::friend_targets(f).empty());
-    f.ids = {{"steam", "1?command=x"}};
+    targets = touch::friend_targets(f);
+    CHECK(targets.size() == 2 && targets[0].protocol == "discord"); // ohne Steam: Discord vor Xbox
+    f.ids = {{"xbox", "Fox #1234"}};
+    targets = touch::friend_targets(f);
+    CHECK(targets.size() == 1 && targets[0].protocol.empty());
+    f.ids = {{"steam", "1?command=x"}, {"discord", "1/../../bad"}};
     CHECK(touch::friend_targets(f).empty());
 
     Bf6Player p;

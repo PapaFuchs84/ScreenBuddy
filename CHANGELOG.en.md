@@ -17,7 +17,11 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ### Fixed
 - Percent values on the settings page (brightness showed “90 90” after an automatic fix).
 
-## [2.0.8] – local, not published
+## [2.0.9] – local, not published
+
+- Tapping a friend now follows a fixed order: Steam chat, otherwise the Discord profile (choose “Message” there), otherwise the Xbox profile on xbox.com in the browser. If the app for a target (Steam, Discord) is missing, the next target is used. Online status no longer matters; in 2.0.8 only Steam opened anything.
+
+## [2.0.8] – 2026-10-23
 
 - Tapping a BF6 player now opens the GameTools profile with the website's platform slug (`pc`, `xboxone`, `ps4`) instead of `ea`, which produced a blank page. Players GameTools does not know for PC still show "not found" on the website although the API returns them.
 - Tapping a friend now only opens the Steam chat; Discord and Xbox open nothing for now (no chat link available), the 2.0.7 profile variant is removed.
