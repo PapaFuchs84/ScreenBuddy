@@ -199,7 +199,7 @@ Like the app? FuchsLabs appreciates a coffee: [☕ paypal.me/SHerbst84](https://
 
 ## Licence
 
-No open-source licence: © 2026 FuchsLabs, all rights reserved. The repository is publicly readable; visibility does not grant an open-source licence. Third-party components retain their own licences.
+The code is released under the [MIT License](LICENSE), © 2026 FuchsLabs. The name and fox-head logo are excluded ([TRADEMARKS.md](TRADEMARKS.md)). Third-party components retain their own licences ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
 Battlefield, Discord, Steam and Xbox are trademarks of their respective owners. FuchsLabs is not affiliated with them.
 

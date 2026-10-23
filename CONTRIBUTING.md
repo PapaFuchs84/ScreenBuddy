@@ -2,7 +2,7 @@
 
 **Deutsch** · [English](CONTRIBUTING.en.md)
 
-Die aktuelle Implementierung ist C++20 unter `cpp/`. Die Python-Dateien im Hauptordner bleiben als historischer Stand 1.x erhalten. Die öffentliche Sichtbarkeit ändert die Projektlizenz nicht.
+Die aktuelle Implementierung ist C++20 unter `cpp/`. Die Python-Dateien im Hauptordner bleiben als historischer Stand 1.x erhalten. Der Code steht unter der MIT-Lizenz; mit einem Beitrag stimmst du zu, dass er unter dieser Lizenz veröffentlicht wird.
 
 ## Entwicklungsumgebung
 

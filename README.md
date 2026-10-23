@@ -11,7 +11,7 @@
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
 ![Sprachen](https://img.shields.io/badge/sprachen-Deutsch%20%7C%20English-14213D)
-![Lizenz](https://img.shields.io/badge/lizenz-alle%20Rechte%20vorbehalten-lightgrey)
+![Lizenz](https://img.shields.io/badge/lizenz-MIT-green)
 
 [![Spendier mir einen Kaffee](https://img.shields.io/badge/☕_Spendier_mir_einen_Kaffee-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/SHerbst84)
 
@@ -198,7 +198,7 @@ Dir gefällt die App? Über einen Kaffee freut sich FuchsLabs: [☕ paypal.me/SH
 
 ## Lizenz
 
-Keine Open-Source-Lizenz: © 2026 FuchsLabs, alle Rechte vorbehalten. Das Repository ist öffentlich lesbar; daraus folgt keine Open-Source-Lizenz. Für eingebundene Drittkomponenten gelten deren eigene Lizenzen.
+Der Code steht unter der [MIT-Lizenz](LICENSE), © 2026 FuchsLabs. Name und Fuchskopf-Logo sind ausgenommen ([TRADEMARKS.md](TRADEMARKS.md)). Für eingebundene Drittkomponenten gelten deren eigene Lizenzen ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
 Battlefield, Discord, Steam und Xbox sind Marken ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen.
 

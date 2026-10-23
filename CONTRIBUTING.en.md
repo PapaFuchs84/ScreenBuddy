@@ -2,7 +2,7 @@
 
 [Deutsch](CONTRIBUTING.md) · **English**
 
-The current implementation is C++20 under `cpp/`. Root Python files remain the historical Version 1.x source. Public visibility does not change the project's licence.
+The current implementation is C++20 under `cpp/`. Root Python files remain the historical Version 1.x source. The code is MIT-licensed; by contributing you agree that your contribution is published under that licence.
 
 ## Development setup
 
