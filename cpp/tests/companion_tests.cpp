@@ -6,7 +6,9 @@
 #include <ws2tcpip.h>
 #else
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <netinet/in.h>
+#include <sys/resource.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #endif
@@ -16,10 +18,13 @@
 #include <openssl/x509.h>
 
 #include <atomic>
+#include <cerrno>
 #include <chrono>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <functional>
+#include <mutex>
 #include <random>
 #include <thread>
 
@@ -176,6 +181,57 @@ static void test_frames() {
         s.feed(g);
         CHECK(s.next(m) == WsParser::Status::Error);
     }
+    // Länge muss minimal kodiert sein (RFC 6455 5.2)
+    auto long_frame = [](uint8_t b0, int mode, const std::string& payload) {
+        std::string f(1, (char)b0);
+        f += (char)(0x80 | mode);
+        if (mode == 126) {
+            f += (char)(payload.size() >> 8);
+            f += (char)(payload.size() & 0xFF);
+        } else {
+            for (int i = 7; i >= 0; --i) f += (char)((uint64_t)payload.size() >> (8 * i) & 0xFF);
+        }
+        f += std::string(4, '\0');  // Maske 0: Nutzdaten unverändert
+        return f + payload;
+    };
+    {
+        WsParser q;
+        q.feed(long_frame(0x81, 126, "kurz"));
+        CHECK(q.next(m, &err) == WsParser::Status::Error);
+        WsParser r(100000);
+        r.feed(long_frame(0x81, 127, std::string(300, 'x')));
+        CHECK(r.next(m) == WsParser::Status::Error);
+        WsParser t(100000);
+        t.feed(long_frame(0x81, 126, std::string(126, 'x')));  // 126 ist minimal mit 16 Bit
+        CHECK(t.next(m) == WsParser::Status::Message && m.payload.size() == 126);
+        WsParser u(100000);
+        u.feed(long_frame(0x82, 127, std::string(0x10000, 'x')));
+        CHECK(u.next(m) == WsParser::Status::Message && m.payload.size() == 0x10000);
+    }
+    // Close-Payload: leer oder Code + UTF-8
+    {
+        auto close_status = [&](const std::string& payload) {
+            WsParser q;
+            q.feed(client_frame(Op::Close, payload));
+            return q.next(m);
+        };
+        CHECK(close_status("") == WsParser::Status::Message);
+        CHECK(close_status(std::string("\x03\xE8", 2) + "tschüss") == WsParser::Status::Message);  // 1000
+        CHECK(close_status(std::string("\x0B\xB8", 2)) == WsParser::Status::Message);              // 3000
+        CHECK(close_status("x") == WsParser::Status::Error);                                         // 1 Byte
+        CHECK(close_status(std::string("\x03\xED", 2)) == WsParser::Status::Error);               // 1005 nie gesendet
+        CHECK(close_status(std::string("\x03\xEE", 2)) == WsParser::Status::Error);               // 1006
+        CHECK(close_status(std::string("\x03\xEC", 2)) == WsParser::Status::Error);               // 1004
+        CHECK(close_status(std::string("\x00\x00", 2)) == WsParser::Status::Error);
+        CHECK(close_status(std::string("\x13\x88", 2)) == WsParser::Status::Error);               // 5000
+        CHECK(close_status(std::string("\x03\xE8\xC3", 3)) == WsParser::Status::Error);         // kaputtes UTF-8
+    }
+    CHECK(valid_utf8("Grüße €"));
+    CHECK(valid_utf8("\xF0\x9F\xA6\x8A"));       // 🦊
+    CHECK(!valid_utf8("\xC0\xAF"));               // überlang
+    CHECK(!valid_utf8("\xED\xA0\x80"));           // Surrogat
+    CHECK(!valid_utf8("\xF4\x90\x80\x80"));       // > U+10FFFF
+    CHECK(!valid_utf8("\xE2\x82"));               // abgeschnitten
     // Serverrahmen: unmaskiert, Länge korrekt kodiert
     std::string big = ws_frame(Op::Binary, std::string(70000, 'y'));
     CHECK((unsigned char)big[0] == 0x82 && (unsigned char)big[1] == 127 && big.size() == 70000 + 10);
@@ -669,6 +725,314 @@ static void test_server() {
     fs::remove(path, ec);
 }
 
+// ---------- Härtung: Fristen, Ausnahmen, Entfernen während der Anmeldung, Neustart, große Deskriptoren ----------
+static std::unique_ptr<Server> start_on_random_port(Store& store, const Server::Hooks& hooks, int& port, double hs_seconds = HANDSHAKE_SECONDS) {
+    std::mt19937 rng((unsigned)std::random_device{}());
+    for (int attempt = 0; attempt < 20; ++attempt) {
+        port = 20000 + (int)(rng() % 40000);
+        if (port == SETTINGS_PORT || port == DEFAULT_PORT) continue;
+        Server::Options o;
+        o.bind = {"127.0.0.1"};
+        o.port = port;
+        o.allow_loopback = true;
+        o.handshake_seconds = hs_seconds;
+        auto s = std::make_unique<Server>(o, store, hooks);
+        try {
+            s->start();
+            return s;
+        } catch (const std::exception&) {
+        }
+    }
+    return nullptr;
+}
+
+static sock_t raw_connect(int port) {
+    sock_t s = socket(AF_INET, SOCK_STREAM, 0);
+    sockaddr_in sa{};
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons((uint16_t)port);
+    inet_pton(AF_INET, "127.0.0.1", &sa.sin_addr);
+    if (::connect(s, (sockaddr*)&sa, sizeof sa) != 0) {
+        sclose(s);
+        return (sock_t)-1;
+    }
+#ifdef _WIN32
+    DWORD tv = 4000;
+    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+#else
+    timeval tv{4, 0};
+    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
+#endif
+    return s;
+}
+
+static double secs_since(std::chrono::steady_clock::time_point t) {
+    return std::chrono::duration<double>(std::chrono::steady_clock::now() - t).count();
+}
+
+// liest, bis die Gegenseite schließt; true = geschlossen (nicht bloß Zeitüberschreitung)
+static bool wait_closed(sock_t s) {
+    char b[4096];
+    for (;;) {
+        int r = (int)recv(s, b, sizeof b, 0);
+        if (r == 0) return true;
+        if (r < 0) {
+#ifdef _WIN32
+            return WSAGetLastError() != WSAETIMEDOUT;
+#else
+            return errno != EAGAIN && errno != EWOULDBLOCK;
+#endif
+        }
+    }
+}
+
+static std::atomic<bool> g_store_broken{false};
+
+static void test_server_hardening() {
+    auto path = tmpfile("fl-companion-hardening.json");
+    Store::Codec enc_maybe = [](const std::string& s) {
+        if (g_store_broken) throw std::runtime_error("Speicher kaputt (Test)");
+        return enc(s);
+    };
+    Store store(path, enc_maybe, dec, [] { return 1.0; });
+    store.load();
+    std::atomic<int> encodes{0};
+    std::atomic<bool> encode_throws{false};
+    std::function<void(const std::string&)> before_auth;
+    std::mutex before_mu;
+    Server::Hooks hooks;
+    hooks.encode = [&] {
+        ++encodes;
+        if (encode_throws) throw 42;  // keine std::exception: darf trotzdem nicht std::terminate auslösen
+        return std::string("JPEG");
+    };
+    hooks.before_auth = [&](const std::string& id) {
+        std::lock_guard lk(before_mu);
+        if (before_auth) before_auth(id);
+    };
+    int port = 0;
+    auto srv = start_on_random_port(store, hooks, port, 1.0);
+    CHECK(srv != nullptr);
+    if (!srv) return;
+
+    // (4) Handshake-Frist: stummer TCP-Client wird nach ~1 s getrennt
+    {
+        auto t = std::chrono::steady_clock::now();
+        sock_t s = raw_connect(port);
+        CHECK(s != (sock_t)-1);
+        CHECK(wait_closed(s));
+        double el = secs_since(t);
+        CHECK(el > 0.7 && el < 3.0);
+        sclose(s);
+    }
+    // Langsamer Client nach TLS: HTTP-Request byteweise alle 200 ms – die Gesamtfrist greift trotzdem
+    {
+        auto t = std::chrono::steady_clock::now();
+        Client c;
+        c.s = raw_connect(port);
+        c.ctx = SSL_CTX_new(TLS_client_method());
+        c.ssl = SSL_new(c.ctx);
+        SSL_set_fd(c.ssl, (int)c.s);
+        CHECK(SSL_connect(c.ssl) == 1);
+        std::string req = "GET / HTTP/1.1\r\nHost: x\r\n";
+        bool cut = false;
+        for (size_t i = 0; i < req.size() && secs_since(t) < 4; ++i) {
+            if (SSL_write(c.ssl, &req[i], 1) <= 0) {
+                cut = true;
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
+        char b[256];
+        if (!cut) cut = SSL_read(c.ssl, b, sizeof b) <= 0;
+        CHECK(cut);
+        CHECK(secs_since(t) < 3.5);
+    }
+    // stop() wartet nicht auf hängende Handshakes (4 Worker belegt, Frist 10 s)
+    {
+        Store st2(tmpfile("fl-companion-stop.json"), enc, dec, [] { return 1.0; });
+        st2.load();
+        int p2 = 0;
+        auto s2 = start_on_random_port(st2, Server::Hooks{}, p2, 10.0);
+        CHECK(s2 != nullptr);
+        if (s2) {
+            std::vector<sock_t> idle;
+            for (int i = 0; i < 4; ++i) idle.push_back(raw_connect(p2));
+            std::this_thread::sleep_for(std::chrono::milliseconds(300));
+            auto t = std::chrono::steady_clock::now();
+            s2->stop();
+            double el = secs_since(t);
+            CHECK(el < 1.5);
+            std::printf("  stop() mit 4 hängenden Handshakes: %.2f s\n", el);
+            for (auto s : idle) sclose(s);
+        }
+        std::error_code ec;
+        fs::remove(tmpfile("fl-companion-stop.json"), ec);
+    }
+
+    // (5) Speicher wirft beim Koppeln: Fehler an den Client, Server läuft weiter
+    auto code = srv->pairing().start();
+    CHECK(code.has_value());
+    g_store_broken = true;
+    {
+        Client c;
+        CHECK(c.open(port));
+        c.send(R"({"t":"hello","v":1,"pin":")" + code->pin + R"("})");
+        CHECK_EQ(code_of(c.recv()), "storage");
+    }
+    g_store_broken = false;
+    CHECK(srv->running());
+    // Kopplung klappt danach wieder (neuer Code); dabei wirft encode() etwas, das keine std::exception ist
+    encode_throws = true;
+    code = srv->pairing().start();
+    std::string key_b64;
+    {
+        Client c;
+        CHECK(c.open(port));
+        c.send(R"({"t":"hello","v":1,"pin":")" + code->pin + R"(","name":"Härte"})");
+        auto m = c.recv();
+        auto j = json::parse(m ? m->payload : "{}", nullptr, false);
+        CHECK(j.value("t", "") == "paired");
+        key_b64 = j.value("key", "");
+        m = c.recv();
+        CHECK(m && m->payload == msg_ready(480, 320));
+        c.send(R"({"t":"ping"})");
+        m = c.recv();
+        CHECK(m && m->payload == msg_pong());  // Verbindung lebt trotz Ausnahme in encode()
+    }
+    encode_throws = false;
+
+    // (2) Viel Eingang vor der Anmeldung: wird in Häppchen verarbeitet, die Anmeldung danach klappt
+    {
+        Client c;
+        CHECK(c.open(port));
+        std::string flood;
+        while (flood.size() < (1u << 20)) flood += client_frame(Op::Text, R"({"t":"zukunft","pad":")" + std::string(200, 'p') + R"("})");
+        c.send_raw(flood);
+        c.send(R"({"t":"hello","v":1,"key":")" + key_b64 + R"("})");
+        auto m = c.recv();
+        CHECK(m && m->payload == msg_ready(480, 320));
+    }
+    // Fragmente, die zusammen zu groß werden: Protokollfehler statt unbegrenztem Puffern
+    {
+        Client c;
+        CHECK(c.open(port));
+        std::string first = client_frame(Op::Text, std::string(10000, 'a'));
+        first[0] = (char)0x01;
+        std::string cont = client_frame(Op::Cont, std::string(10000, 'b'));
+        cont[0] = (char)0x00;
+        c.send_raw(first + cont + cont);
+        auto m = c.recv();
+        CHECK(m && m->op == Op::Close);
+    }
+
+    // (11) Neustart: neuer Server, unverändertes Bild (kein frame_changed) – trotzdem sofort ein Initialbild
+    srv->stop();
+    srv = start_on_random_port(store, hooks, port, 1.0);
+    CHECK(srv != nullptr);
+    if (!srv) return;
+    {
+        Client c;
+        CHECK(c.open(port));
+        c.send(R"({"t":"hello","v":1,"key":")" + key_b64 + R"("})");
+        auto m = c.recv();
+        CHECK(m && m->payload == msg_ready(480, 320));
+        m = c.recv();
+        CHECK(m && m->op == Op::Binary && m->payload == std::string("\x01") + "JPEG");
+    }
+    // auch stop()/start() desselben Objekts
+    srv->stop();
+    srv->start();
+    {
+        Client c;
+        CHECK(c.open(port));
+        c.send(R"({"t":"hello","v":1,"key":")" + key_b64 + R"("})");
+        auto m = c.recv();
+        CHECK(m && m->payload == msg_ready(480, 320));
+        m = c.recv();
+        CHECK(m && m->op == Op::Binary);
+    }
+
+#ifndef _WIN32
+    // (12) Deskriptoren über FD_SETSIZE: Server und Client bekommen Sockets > 1024 (früher: FD_SET über das fd_set hinaus)
+    {
+        rlimit rl{};
+        getrlimit(RLIMIT_NOFILE, &rl);
+        if (rl.rlim_cur < 2048 && rl.rlim_max >= 2048) {
+            rl.rlim_cur = 2048;
+            setrlimit(RLIMIT_NOFILE, &rl);
+            getrlimit(RLIMIT_NOFILE, &rl);
+        }
+        if (rl.rlim_cur >= 2048) {
+            std::vector<int> fill;
+            int fd;
+            while ((fd = ::open("/dev/null", O_RDONLY)) >= 0 && fd < (int)FD_SETSIZE + 16) fill.push_back(fd);
+            if (fd >= 0) fill.push_back(fd);
+            Client c;
+            CHECK(c.open(port));
+            CHECK(c.s >= (int)FD_SETSIZE);
+            c.send(R"({"t":"hello","v":1,"key":")" + key_b64 + R"("})");
+            auto m = c.recv();
+            CHECK(m && m->payload == msg_ready(480, 320));
+            m = c.recv();
+            CHECK(m && m->op == Op::Binary);
+            c.close();
+            for (int f : fill) ::close(f);
+        } else {
+            std::printf("  FD_SETSIZE-Test übersprungen (RLIMIT_NOFILE zu klein)\n");
+        }
+    }
+#endif
+
+    // (6) Gerät wird genau zwischen Schlüsselprüfung und Anmeldung entfernt: Verbindung darf nicht bleiben
+    {
+        {
+            std::lock_guard lk(before_mu);
+            before_auth = [&](const std::string& id) {
+                if (store.remove(id)) srv->drop_device(id);
+            };
+        }
+        Client c;
+        CHECK(c.open(port));
+        c.send(R"({"t":"hello","v":1,"key":")" + key_b64 + R"("})");
+        auto m = c.recv();
+        CHECK_EQ(code_of(m), "unauthorized");
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        CHECK(srv->clients().empty());
+        {
+            std::lock_guard lk(before_mu);
+            before_auth = nullptr;
+        }
+    }
+    // Entfernen nach der Anmeldung: drop_device trennt die laufende Verbindung
+    {
+        code = srv->pairing().start();
+        Client c;
+        CHECK(c.open(port));
+        c.send(R"({"t":"hello","v":1,"pin":")" + code->pin + R"("})");
+        auto m = c.recv();
+        auto j = json::parse(m ? m->payload : "{}", nullptr, false);
+        CHECK(j.value("t", "") == "paired");
+        m = c.recv();
+        CHECK(m && m->payload == msg_ready(480, 320));
+        auto list = srv->clients();
+        CHECK_EQ(list.size(), (size_t)1);
+        std::string id = list.empty() ? "" : list[0]["id"].get<std::string>();
+        CHECK(store.remove(id));
+        srv->drop_device(id);
+        std::string got;
+        for (int i = 0; i < 5 && got.empty(); ++i) {
+            m = c.recv();
+            if (!m) break;
+            if (m->op == Op::Text) got = code_of(m);
+        }
+        CHECK_EQ(got, "unauthorized");
+    }
+    srv->stop();
+    std::error_code ec;
+    fs::remove(path, ec);
+}
+
 int main() {
     test_crypto();
     test_net();
@@ -681,6 +1045,7 @@ int main() {
     test_store();
     test_identity();
     test_server();
+    test_server_hardening();
     std::printf("%d Prüfungen ok, %d Fehler\n", g_ok, g_fail);
     return g_fail ? 1 : 0;
 }

@@ -174,7 +174,7 @@ private:
     std::string error_;
     std::mutex mu_;                        // server_, addresses_, frame_, error_
     std::optional<Image> frame_;
-    void* mdns_ = nullptr;                 // Registrierung (intern)
+    std::atomic<void*> mdns_{nullptr};     // Registrierung (intern, siehe Mdns in network_display.cpp)
     std::mutex tap_mu_;
     std::condition_variable tap_cv_;
     std::vector<std::pair<int, int>> taps_;

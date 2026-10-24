@@ -33,6 +33,7 @@ public:
         int w = 480, h = 320;            // Renderfläche für "ready"
         bool allow_loopback = false;     // nur für Tests
         int max_clients = 4;
+        double handshake_seconds = HANDSHAKE_SECONDS;  // TLS + Upgrade + hello, ab accept() (Tests: kürzer)
     };
     struct Hooks {
         std::function<std::string()> encode;           // aktuelles Bild als JPEG (leer = noch keins)
@@ -40,6 +41,7 @@ public:
         std::function<void(int, const std::string&)> log;  // 0 Debug, 1 Info, 2 Warnung
         std::function<void()> on_change;               // Clients/Kopplungen geändert (für die Einstellungsseite)
         std::function<double()> now;                   // monotone Sekunden (Tests: steuerbar)
+        std::function<void(const std::string&)> before_auth;  // nur Tests: nach Schlüssel-/PIN-Prüfung, vor der Anmeldung
     };
 
     Server(Options opt, Store& store, Hooks hooks);
@@ -60,7 +62,8 @@ public:
 private:
     struct Conn;
     void accept_loop();
-    void serve(std::shared_ptr<Conn> c);
+    void serve(std::shared_ptr<Conn> c);  // Thread-Einstieg: fängt alles, räumt auf
+    void session(Conn& c, void*& ssl, bool& was_authed);
     void log(int lv, const std::string& msg) const;
     double now() const;
 

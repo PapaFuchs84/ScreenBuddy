@@ -252,6 +252,40 @@ std::string ws_frame(Op op, const std::string& payload, std::optional<uint32_t> 
     return f;
 }
 
+bool valid_utf8(const std::string& s) {
+    const unsigned char* p = reinterpret_cast<const unsigned char*>(s.data());
+    size_t n = s.size();
+    for (size_t i = 0; i < n;) {
+        unsigned char c = p[i];
+        if (c < 0x80) {
+            ++i;
+            continue;
+        }
+        size_t len;
+        uint32_t cp, min;
+        if ((c & 0xE0) == 0xC0) len = 2, cp = c & 0x1F, min = 0x80;
+        else if ((c & 0xF0) == 0xE0) len = 3, cp = c & 0x0F, min = 0x800;
+        else if ((c & 0xF8) == 0xF0) len = 4, cp = c & 0x07, min = 0x10000;
+        else return false;
+        if (i + len > n) return false;
+        for (size_t k = 1; k < len; ++k) {
+            if ((p[i + k] & 0xC0) != 0x80) return false;
+            cp = cp << 6 | (p[i + k] & 0x3F);
+        }
+        if (cp < min || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) return false;
+        i += len;
+    }
+    return true;
+}
+
+bool valid_close_payload(const std::string& payload) {
+    if (payload.empty()) return true;
+    if (payload.size() < 2) return false;
+    unsigned code = (unsigned)(unsigned char)payload[0] << 8 | (unsigned char)payload[1];
+    bool ok = (code >= 1000 && code <= 1003) || (code >= 1007 && code <= 1014) || (code >= 3000 && code <= 4999);
+    return ok && valid_utf8(payload.substr(2));
+}
+
 std::string ws_close_frame(uint16_t code, const std::string& reason) {
     std::string p;
     p += (char)(code >> 8);
@@ -278,12 +312,14 @@ WsParser::Status WsParser::next(WsMessage& out, std::string* error) {
         if (len == 126) {
             if (buf_.size() < 4) return Status::NeedMore;
             len = (uint64_t)b[2] << 8 | b[3];
+            if (len < 126) return err("Länge nicht minimal kodiert");
             pos = 4;
         } else if (len == 127) {
             if (buf_.size() < 10) return Status::NeedMore;
             len = 0;
             for (int i = 0; i < 8; ++i) len = len << 8 | b[2 + i];
             if (len >> 63) return err("Länge");
+            if (len <= 0xFFFF) return err("Länge nicht minimal kodiert");
             pos = 10;
         }
         if (require_mask_ && !masked) return err("unmaskierter Client-Rahmen");
@@ -301,6 +337,7 @@ WsParser::Status WsParser::next(WsMessage& out, std::string* error) {
         }
         buf_.erase(0, need);
         if (control) {
+            if (op == 8 && !valid_close_payload(payload)) return err("ungültiger Close-Rahmen");
             out = {(Op)op, std::move(payload)};
             return Status::Message;
         }
@@ -619,6 +656,11 @@ std::optional<Device> Store::find(const std::string& raw_key) {
     for (auto& d : devices_)  // alle vergleichen, kein früher Abbruch
         if (equal_ct(d.key, raw_key) && !hit) hit = d;
     return hit;
+}
+
+bool Store::contains(const std::string& id) {
+    std::lock_guard lk(mu_);
+    return std::any_of(devices_.begin(), devices_.end(), [&](const Device& d) { return d.id == id; });
 }
 
 void Store::seen(const std::string& id) {

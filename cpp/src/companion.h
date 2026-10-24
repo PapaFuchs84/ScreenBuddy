@@ -32,6 +32,9 @@ inline constexpr double DEAD_SECONDS = 15;
 inline constexpr double MIN_FRAME_SECONDS = 0.2;    // höchstens 5 Bilder/s
 inline constexpr size_t MAX_DEVICES = 8;
 inline constexpr size_t MAX_TEXT_MESSAGE = 16 * 1024;
+inline constexpr size_t MAX_BUFFERED = 4 * MAX_TEXT_MESSAGE;  // ungeparste Eingangsdaten je Verbindung, danach Trennung
+inline constexpr size_t READ_BUDGET = 2 * MAX_TEXT_MESSAGE;   // höchstens so viel lesen, bevor wieder geparst wird
+inline constexpr double HANDSHAKE_SECONDS = 10;     // TLS + HTTP-Upgrade + hello zusammen, ab accept()
 inline constexpr uint8_t FRAME_JPEG = 1;
 
 // ---------- Krypto-Helfer (OpenSSL) ----------
@@ -48,6 +51,9 @@ bool is_loopback_ipv4(const std::string& ip);
 bool valid_port(int port, int settings_port = SETTINGS_PORT);  // 1024..65535, nie der Port der Einstellungsseite
 
 // ---------- WebSocket (RFC 6455, Serverseite) ----------
+bool valid_utf8(const std::string& s);              // streng: keine Überlangen, keine Surrogate, höchstens U+10FFFF
+// Close-Payload: leer, oder 2 Byte Code (1000–1003, 1007–1014, 3000–4999) plus UTF-8-Grund
+bool valid_close_payload(const std::string& payload);
 std::string ws_accept(const std::string& client_key);
 
 struct HttpRequest {
@@ -74,7 +80,8 @@ struct WsMessage {
     std::string payload;
 };
 
-// Zerlegt eingehende Client-Rahmen (maskiert, wie RFC 6455 verlangt), setzt Fragmente zusammen.
+// Zerlegt eingehende Client-Rahmen (maskiert, wie RFC 6455 verlangt), setzt Fragmente zusammen. Längen müssen
+// minimal kodiert sein, Close-Rahmen einen gültigen Code/Grund tragen; sonst Error.
 class WsParser {
 public:
     enum class Status { NeedMore, Message, Error };
@@ -169,6 +176,7 @@ public:
     void set_identity(const std::string& cert_pem, const std::string& key_pem);
     std::string add_device(const std::string& name, std::string* id = nullptr);  // liefert den rohen Schlüssel
     std::optional<Device> find(const std::string& raw_key);  // vergleicht in konstanter Zeit
+    bool contains(const std::string& id);
     void seen(const std::string& id);
     bool remove(const std::string& id);
     json list();                                     // ohne Schlüssel

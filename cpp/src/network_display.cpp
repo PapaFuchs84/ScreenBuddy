@@ -7,6 +7,7 @@
 #include <iphlpapi.h>
 #include <objbase.h>
 
+#include <atomic>
 #include <ctime>
 
 #include "companion.h"
@@ -80,21 +81,38 @@ using FnRegister = DWORD(WINAPI*)(SvcRegisterRequest*, void*);
 using FnFree = VOID(WINAPI*)(SvcInstance*);
 constexpr DWORD DNS_PENDING = 9506;  // DNS_REQUEST_PENDING
 
+// Lebensdauer: Windows ruft mdns_done auf einem eigenen Thread auf, auch noch nach unseren Wartezeiten (2 s) und
+// nach der Abmeldung. Deshalb zählt jede noch offene Anfrage (Registrierung, Abmeldung) eine Referenz; erst wenn
+// der letzte Rückruf durch ist und NetworkDisplay losgelassen hat, wird freigegeben. dnsapi.dll bleibt geladen
+// (Systembibliothek): würde sie entladen, während ein verspäteter Rückruf läuft, stünde dessen Code nicht mehr da.
 struct Mdns {
-    HMODULE dll = nullptr;
     FnRegister reg = nullptr, dereg = nullptr;
     FnFree free_instance = nullptr;
     SvcInstance* instance = nullptr;
     SvcRegisterRequest req{};
     HANDLE done = nullptr;
     DWORD ip = 0;
+    std::atomic<int> refs{1};  // 1 = NetworkDisplay
 };
+
+void mdns_release(Mdns* m) {
+    if (--m->refs != 0) return;
+    if (m->instance && m->free_instance) m->free_instance(m->instance);
+    if (m->done) CloseHandle(m->done);
+    delete m;
+}
 
 VOID WINAPI mdns_done(DWORD status, PVOID ctx, SvcInstance* inst) {
     auto* m = static_cast<Mdns*>(ctx);
     if (status != ERROR_SUCCESS) LOGW("companion", "mDNS-Ankündigung: Fehler %lu", status);
     if (inst && inst != m->instance && m->free_instance) m->free_instance(inst);
     if (m->done) SetEvent(m->done);
+    mdns_release(m);  // die Referenz der Anfrage, die hiermit fertig ist
+}
+
+HMODULE dnsapi() {
+    static HMODULE dll = LoadLibraryExW(L"dnsapi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);  // nie entladen
+    return dll;
 }
 
 }  // namespace
@@ -248,16 +266,15 @@ void NetworkDisplay::mdns_register() {
         if (!addresses_.empty()) first = addresses_[0];
     }
     if (mdns_ || first.empty()) return;
+    HMODULE dll = dnsapi();
     auto* m = new Mdns();
-    m->dll = LoadLibraryExW(L"dnsapi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-    auto construct = m->dll ? reinterpret_cast<FnConstruct>(GetProcAddress(m->dll, "DnsServiceConstructInstance")) : nullptr;
-    m->reg = m->dll ? reinterpret_cast<FnRegister>(GetProcAddress(m->dll, "DnsServiceRegister")) : nullptr;
-    m->dereg = m->dll ? reinterpret_cast<FnRegister>(GetProcAddress(m->dll, "DnsServiceDeRegister")) : nullptr;
-    m->free_instance = m->dll ? reinterpret_cast<FnFree>(GetProcAddress(m->dll, "DnsServiceFreeInstance")) : nullptr;
+    auto construct = dll ? reinterpret_cast<FnConstruct>(GetProcAddress(dll, "DnsServiceConstructInstance")) : nullptr;
+    m->reg = dll ? reinterpret_cast<FnRegister>(GetProcAddress(dll, "DnsServiceRegister")) : nullptr;
+    m->dereg = dll ? reinterpret_cast<FnRegister>(GetProcAddress(dll, "DnsServiceDeRegister")) : nullptr;
+    m->free_instance = dll ? reinterpret_cast<FnFree>(GetProcAddress(dll, "DnsServiceFreeInstance")) : nullptr;
     if (!construct || !m->reg || !m->dereg || !m->free_instance) {
         LOGI("companion", "mDNS-Ankündigung nicht verfügbar (Windows 10 1809 oder neuer nötig) – Verbindung über die IP-Adresse");
-        if (m->dll) FreeLibrary(m->dll);
-        delete m;
+        mdns_release(m);
         return;
     }
     std::wstring pc = computer_name();
@@ -270,42 +287,38 @@ void NetworkDisplay::mdns_register() {
     PCWSTR keys[] = {k1.c_str(), k2.c_str()};
     PCWSTR values[] = {v1.c_str(), v2.c_str()};
     m->instance = construct(instance.c_str(), host.c_str(), &m->ip, nullptr, (WORD)port_, 0, 0, 2, keys, values);
-    if (!m->instance) {
+    m->done = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    if (!m->instance || !m->done) {
         LOGW("companion", "mDNS-Ankündigung konnte nicht vorbereitet werden");
-        FreeLibrary(m->dll);
-        delete m;
+        mdns_release(m);
         return;
     }
-    m->done = CreateEventW(nullptr, FALSE, FALSE, nullptr);
     m->req.Version = 1;  // DNS_QUERY_REQUEST_VERSION1
     m->req.InterfaceIndex = 0;
     m->req.pServiceInstance = m->instance;
     m->req.pRegisterCompletionCallback = mdns_done;
     m->req.pQueryContext = m;
+    ++m->refs;  // für den Rückruf der Registrierung
     DWORD rc = m->reg(&m->req, nullptr);
+    if (rc != DNS_PENDING) mdns_release(m);  // kein Rückruf zu erwarten
     if (rc != DNS_PENDING && rc != ERROR_SUCCESS) {
         LOGW("companion", "mDNS-Ankündigung fehlgeschlagen (%lu) – Verbindung über die IP-Adresse", rc);
-        m->free_instance(m->instance);
-        CloseHandle(m->done);
-        FreeLibrary(m->dll);
-        delete m;
+        mdns_release(m);
         return;
     }
-    WaitForSingleObject(m->done, 2000);
+    if (rc == DNS_PENDING) WaitForSingleObject(m->done, 2000);  // kommt der Rückruf später, hält er seine Referenz
     mdns_ = m;
     LOGI("companion", "mDNS: %s", narrow(instance).c_str());
 }
 
 void NetworkDisplay::mdns_unregister() {
-    auto* m = static_cast<Mdns*>(mdns_);
+    auto* m = static_cast<Mdns*>(mdns_.exchange(nullptr));
     if (!m) return;
-    mdns_ = nullptr;
     ResetEvent(m->done);
+    ++m->refs;  // für den Rückruf der Abmeldung
     if (m->dereg(&m->req, nullptr) == DNS_PENDING) WaitForSingleObject(m->done, 2000);
-    m->free_instance(m->instance);
-    CloseHandle(m->done);
-    FreeLibrary(m->dll);
-    delete m;
+    else mdns_release(m);
+    mdns_release(m);  // freigegeben wird erst, wenn auch verspätete Rückrufe durch sind
 }
 
 ojson NetworkDisplay::status() {
@@ -318,7 +331,7 @@ ojson NetworkDisplay::status() {
         for (auto& a : addresses_) addrs.push_back(a);
     }
     out["addresses"] = addrs;
-    out["mdns"] = mdns_ != nullptr;
+    out["mdns"] = mdns_.load() != nullptr;
     out["devices"] = store_->list();
     if (up) {
         out["fingerprint"] = companion::format_fingerprint(srv->fingerprint());

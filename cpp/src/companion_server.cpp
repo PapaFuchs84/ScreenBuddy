@@ -9,8 +9,8 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <poll.h>
 #include <signal.h>
-#include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #endif
@@ -41,11 +41,6 @@ void set_nonblock(sock_t s, bool on) {
     u_long m = on ? 1 : 0;
     ioctlsocket(s, FIONBIO, &m);
 }
-void set_timeouts(sock_t s, int ms) {
-    DWORD t = (DWORD)ms;
-    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&t), sizeof t);
-    setsockopt(s, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char*>(&t), sizeof t);
-}
 struct WsaInit {
     WsaInit() {
         WSADATA d;
@@ -60,21 +55,43 @@ void set_nonblock(sock_t s, bool on) {
     int fl = fcntl(s, F_GETFL, 0);
     fcntl(s, F_SETFL, on ? fl | O_NONBLOCK : fl & ~O_NONBLOCK);
 }
-void set_timeouts(sock_t s, int ms) {
-    timeval tv{ms / 1000, (ms % 1000) * 1000};
-    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
-    setsockopt(s, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);
-}
 #endif
 
-// true = bereit; false = Zeit abgelaufen oder Fehler
+// true = bereit; false = Zeit abgelaufen oder Fehler.
+// POSIX: poll() statt select(), denn FD_SET mit einem Deskriptor >= FD_SETSIZE schreibt über das fd_set hinaus.
+// Windows: fd_set ist dort eine Liste von Sockets (kein Bitfeld), ein einzelner Socket passt immer.
 bool wait_sock(sock_t s, bool write, int ms) {
+#ifdef _WIN32
     fd_set set;
     FD_ZERO(&set);
     FD_SET(s, &set);
     timeval tv{ms / 1000, (ms % 1000) * 1000};
-    int r = select((int)s + 1, write ? nullptr : &set, write ? &set : nullptr, nullptr, &tv);
+    int r = select(0, write ? nullptr : &set, write ? &set : nullptr, nullptr, &tv);
     return r > 0;
+#else
+    pollfd p{s, (short)(write ? POLLOUT : POLLIN), 0};
+    return poll(&p, 1, ms) > 0;
+#endif
+}
+
+// Wartet auf eingehende Verbindungen an mehreren Sockets; ready[i] = Socket i hat eine Verbindung
+bool wait_listeners(const std::vector<intptr_t>& ls, std::vector<bool>& ready, int ms) {
+    ready.assign(ls.size(), false);
+#ifdef _WIN32
+    fd_set set;
+    FD_ZERO(&set);
+    for (size_t i = 0; i < ls.size() && i < FD_SETSIZE; ++i) FD_SET((sock_t)ls[i], &set);
+    timeval tv{ms / 1000, (ms % 1000) * 1000};
+    if (select(0, &set, nullptr, nullptr, &tv) <= 0) return false;
+    for (size_t i = 0; i < ls.size(); ++i) ready[i] = FD_ISSET((sock_t)ls[i], &set) != 0;
+    return true;
+#else
+    std::vector<pollfd> p;
+    for (auto l : ls) p.push_back({(int)l, POLLIN, 0});
+    if (poll(p.data(), (nfds_t)p.size(), ms) <= 0) return false;
+    for (size_t i = 0; i < p.size(); ++i) ready[i] = (p[i].revents & POLLIN) != 0;
+    return true;
+#endif
 }
 
 double steady() {
@@ -186,6 +203,7 @@ static SSL_CTX* make_ctx(const std::string& cert_pem, const std::string& key_pem
 struct Server::Conn {
     sock_t sock = BAD_SOCK;
     std::string ip;
+    double accepted = 0;                 // steady(), Beginn der Handshake-Frist
     std::atomic<bool> done{false}, kick{false};
     std::mutex mu;
     bool authed = false;
@@ -200,7 +218,11 @@ Server::~Server() { stop(); }
 double Server::now() const { return hooks_.now ? hooks_.now() : steady(); }
 
 void Server::log(int lv, const std::string& msg) const {
-    if (hooks_.log) hooks_.log(lv, msg);
+    if (!hooks_.log) return;
+    try {
+        hooks_.log(lv, msg);
+    } catch (...) {
+    }
 }
 
 void Server::start() {
@@ -230,6 +252,9 @@ void Server::start() {
             log(2, "Adresse " + addr + " ist keine Heimnetz-Adresse – übersprungen");
             continue;
         }
+#ifdef _WIN32
+        if (listeners_.size() >= FD_SETSIZE) break;  // mehr passt nicht in ein fd_set
+#endif
         sock_t s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (s == BAD_SOCK) continue;
         int yes = 1;
@@ -257,6 +282,14 @@ void Server::start() {
                                                    : "Companion-Port " + std::to_string(opt_.port) + " ist belegt");
     }
     opt_.bind = bound;
+    // Neuer Start: das aktuelle Bild ist für jeden neuen Client "neu", auch wenn sich seit dem letzten Lauf nichts
+    // geändert hat (sonst bekäme ein Client nach einem Neustart erst beim nächsten geänderten Bild etwas zu sehen).
+    {
+        std::lock_guard lk(jpeg_mu_);
+        jpeg_.reset();
+        jpeg_seq_ = 0;
+    }
+    ++seq_;
     stop_ = false;
     running_ = true;
     accept_thread_ = std::thread([this] { accept_loop(); });
@@ -296,22 +329,15 @@ void Server::reap(bool all) {
 }
 
 void Server::accept_loop() {
+    std::vector<bool> ready;
     while (!stop_) {
         reap(false);
-        fd_set set;
-        FD_ZERO(&set);
-        sock_t maxfd = 0;
-        for (auto l : listeners_) {
-            FD_SET((sock_t)l, &set);
-            if ((sock_t)l > maxfd) maxfd = (sock_t)l;
-        }
-        timeval tv{0, 200000};
-        if (select((int)maxfd + 1, &set, nullptr, nullptr, &tv) <= 0) continue;
-        for (auto l : listeners_) {
-            if (!FD_ISSET((sock_t)l, &set)) continue;
+        if (!wait_listeners(listeners_, ready, 200)) continue;
+        for (size_t i = 0; i < listeners_.size(); ++i) {
+            if (!ready[i]) continue;
             sockaddr_in peer{};
             socklen_t len = sizeof peer;
-            sock_t s = accept((sock_t)l, reinterpret_cast<sockaddr*>(&peer), &len);
+            sock_t s = accept((sock_t)listeners_[i], reinterpret_cast<sockaddr*>(&peer), &len);
             if (s == BAD_SOCK) continue;
             char ip[INET_ADDRSTRLEN] = "";
             inet_ntop(AF_INET, &peer.sin_addr, ip, sizeof ip);
@@ -326,11 +352,17 @@ void Server::accept_loop() {
                 sclose(s);
                 continue;
             }
-            auto c = std::make_shared<Conn>();
-            c->sock = s;
-            c->ip = ip;
-            std::lock_guard lk(mu_);
-            workers_.emplace_back(c, std::thread([this, c] { serve(c); }));
+            try {
+                auto c = std::make_shared<Conn>();
+                c->sock = s;
+                c->ip = ip;
+                c->accepted = steady();
+                std::lock_guard lk(mu_);
+                workers_.emplace_back(c, std::thread([this, c] { serve(c); }));
+            } catch (const std::exception& e) {  // z. B. kein Thread mehr möglich: Verbindung verwerfen, Server läuft weiter
+                log(2, std::string("Verbindung von ") + ip + " nicht angenommen: " + e.what());
+                sclose(s);
+            }
         }
     }
 }
@@ -355,61 +387,79 @@ void Server::drop_device(const std::string& id) {
     }
 }
 
+// Rahmen um session(): räumt in jedem Fall auf und lässt keine Ausnahme aus dem Thread (sonst std::terminate)
 void Server::serve(std::shared_ptr<Conn> c) {
-    sock_t s = c->sock;
-    SSL* ssl = nullptr;
+    void* ssl = nullptr;
     bool was_authed = false;
-    auto finish = [&] {
-        if (ssl) {
-            SSL_shutdown(ssl);
-            SSL_free(ssl);
-        }
+    try {
+        session(*c, ssl, was_authed);
+    } catch (const std::exception& e) {
+        log(2, "Companion " + c->ip + ": Verbindung wegen Fehler beendet: " + e.what());
+    } catch (...) {
+        log(2, "Companion " + c->ip + ": Verbindung wegen unbekanntem Fehler beendet");
+    }
+    sock_t s = c->sock;
+    if (ssl) {
+        SSL_shutdown((SSL*)ssl);
+        SSL_free((SSL*)ssl);
+    }
+    ERR_clear_error();
 #ifdef _WIN32
-        // Kein TIME_WAIT auf dem Server-Port: mit SO_EXCLUSIVEADDRUSE ließe sich 8777 nach einem Neustart der App
-        // sonst minutenlang nicht wieder binden. Vorher kurz auf das Schließen der Gegenseite warten.
-        wait_sock(s, false, 300);
-        linger lg{1, 0};
-        setsockopt(s, SOL_SOCKET, SO_LINGER, reinterpret_cast<const char*>(&lg), sizeof lg);
+    // Kein TIME_WAIT auf dem Server-Port: mit SO_EXCLUSIVEADDRUSE ließe sich 8777 nach einem Neustart der App
+    // sonst minutenlang nicht wieder binden. Vorher kurz auf das Schließen der Gegenseite warten.
+    if (!stop_) wait_sock(s, false, 300);
+    linger lg{1, 0};
+    setsockopt(s, SOL_SOCKET, SO_LINGER, reinterpret_cast<const char*>(&lg), sizeof lg);
 #endif
-        sclose(s);
-        c->done = true;
-        if (was_authed && hooks_.on_change) hooks_.on_change();
-    };
-    set_timeouts(s, 10000);
-    ssl = SSL_new((SSL_CTX*)ctx_);
-    if (!ssl) return finish();
-    SSL_set_fd(ssl, (int)s);
-    if (SSL_accept(ssl) != 1) {
-        log(0, "TLS-Handshake mit " + c->ip + " fehlgeschlagen: " + ssl_error());
-        SSL_free(ssl);
-        ssl = nullptr;
-        return finish();
+    sclose(s);
+    {
+        std::lock_guard ck(c->mu);
+        c->authed = false;
     }
-    // HTTP-Upgrade lesen (höchstens 8 KiB)
-    std::string req;
-    char buf[16384];
-    while (req.find("\r\n\r\n") == std::string::npos) {
-        int n = SSL_read(ssl, buf, sizeof buf);
-        if (n <= 0 || req.size() + n > 8192) {
-            ERR_clear_error();
-            return finish();
+    c->done = true;
+    if (was_authed && hooks_.on_change) {
+        try {
+            hooks_.on_change();
+        } catch (...) {
         }
-        req.append(buf, n);
     }
-    size_t head_end = req.find("\r\n\r\n") + 4;
-    Upgrade up = ws_upgrade(req.substr(0, head_end));
-    SSL_write(ssl, up.response.data(), (int)up.response.size());
-    if (!up.ok) {
-        log(0, "Upgrade von " + c->ip + " abgelehnt: " + up.reason);
-        return finish();
-    }
-    WsParser parser;
-    parser.feed(req.substr(head_end));
+}
+
+void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
+    Conn* c = &conn;
+    sock_t s = c->sock;
+    // Ab hier nicht blockierend: jeder Schritt bis zur Anmeldung zählt gegen eine gemeinsame Frist, und stop()
+    // wird spätestens nach ~100 ms bemerkt. Ein langsamer Client hält so weder einen Worker noch stop() auf.
     set_nonblock(s, true);
+    const double hs_deadline = c->accepted + opt_.handshake_seconds;
+    // false = aufgeben (Frist um, Server stoppt oder echter Fehler)
+    auto wait_hs = [&](int e) {
+        if (e != SSL_ERROR_WANT_READ && e != SSL_ERROR_WANT_WRITE) return false;
+        double left = hs_deadline - steady();
+        if (stop_ || left <= 0) return false;
+        wait_sock(s, e == SSL_ERROR_WANT_WRITE, (int)std::clamp(left * 1000, 1.0, 100.0));
+        return true;
+    };
+    SSL* ssl = SSL_new((SSL_CTX*)ctx_);
+    if (!ssl) return;
+    ssl_out = ssl;
+    SSL_set_fd(ssl, (int)s);
+    for (;;) {
+        int r = SSL_accept(ssl);
+        if (r == 1) break;
+        int e = SSL_get_error(ssl, r);
+        if (!wait_hs(e)) {
+            log(0, "TLS-Handshake mit " + c->ip + " fehlgeschlagen: " + (e == SSL_ERROR_SSL ? ssl_error() : "Zeit abgelaufen/abgebrochen"));
+            ERR_clear_error();
+            SSL_free(ssl);  // ohne fertigen Handshake kein close_notify
+            ssl_out = nullptr;
+            return;
+        }
+    }
 
     auto send_raw = [&](const std::string& data) {
         size_t off = 0;
-        double deadline = steady() + 5;
+        const double start = steady(), deadline = start + 5;
         while (off < data.size()) {
             int chunk = (int)std::min<size_t>(data.size() - off, 1 << 20);
             int n = SSL_write(ssl, data.data() + off, chunk);
@@ -418,7 +468,8 @@ void Server::serve(std::shared_ptr<Conn> c) {
                 continue;
             }
             int e = SSL_get_error(ssl, n);
-            if ((e == SSL_ERROR_WANT_WRITE || e == SSL_ERROR_WANT_READ) && steady() < deadline) {
+            double t = steady();
+            if ((e == SSL_ERROR_WANT_WRITE || e == SSL_ERROR_WANT_READ) && t < deadline && !(stop_ && t > start + 0.5)) {
                 wait_sock(s, e == SSL_ERROR_WANT_WRITE, 100);
                 continue;
             }
@@ -427,26 +478,60 @@ void Server::serve(std::shared_ptr<Conn> c) {
         }
         return true;
     };
+
+    // HTTP-Upgrade lesen (höchstens 8 KiB)
+    std::string req;
+    char buf[16384];
+    while (req.find("\r\n\r\n") == std::string::npos) {
+        int n = SSL_read(ssl, buf, sizeof buf);
+        if (n > 0) {
+            if (req.size() + (size_t)n > 8192) return;
+            req.append(buf, (size_t)n);
+            continue;
+        }
+        int e = SSL_get_error(ssl, n);
+        ERR_clear_error();
+        if (!wait_hs(e)) return;
+    }
+    size_t head_end = req.find("\r\n\r\n") + 4;
+    Upgrade up = ws_upgrade(req.substr(0, head_end));
+    send_raw(up.response);
+    if (!up.ok) {
+        log(0, "Upgrade von " + c->ip + " abgelehnt: " + up.reason);
+        return;
+    }
+    WsParser parser;
+    parser.feed(req.substr(head_end));
+
     auto send_text = [&](const std::string& t) { return send_raw(ws_frame(Op::Text, t)); };
     auto fail = [&](const std::string& code, const std::string& msg) {
         send_text(msg_error(code, msg));
         send_raw(ws_close_frame(1008, code));
     };
 
-    double t0 = now(), last_rx = t0, last_ping = t0, hello_deadline = t0 + 10;
+    double t0 = now(), last_rx = t0, last_ping = t0, hello_deadline = t0 + opt_.handshake_seconds;
     double touch_window = t0;
     int touches = 0;
     bool authed = false;
     FrameGate gate;
-    bool open = true;
+    bool open = true, more = false;
     while (open && !stop_ && !c->kick) {
-        if (SSL_pending(ssl) == 0 && parser.buffered() == 0) wait_sock(s, false, 50);
-        // lesen, bis nichts mehr da ist
+        // Nur warten, wenn weder OpenSSL noch der Socket (Lese-Budget ausgeschöpft) sofort etwas liefern.
+        // Ein unvollständiger Rahmen im Parser ist kein Grund, nicht zu warten (sonst Dauerschleife).
+        if (!more && SSL_pending(ssl) == 0) wait_sock(s, false, 50);
+        // Lesen mit Budget: nie mehr als READ_BUDGET je Durchlauf und nie mehr als MAX_BUFFERED ungeparst
         bool closed = false;
+        size_t got = 0;
+        more = false;
         for (;;) {
+            if (got >= READ_BUDGET || parser.buffered() >= MAX_BUFFERED) {
+                more = true;
+                break;
+            }
             int n = SSL_read(ssl, buf, sizeof buf);
             if (n > 0) {
                 parser.feed(buf, (size_t)n);
+                got += (size_t)n;
                 last_rx = now();
                 continue;
             }
@@ -457,7 +542,7 @@ void Server::serve(std::shared_ptr<Conn> c) {
         }
         WsMessage m;
         std::string perr;
-        WsParser::Status st;
+        WsParser::Status st = WsParser::Status::NeedMore;
         while (open && (st = parser.next(m, &perr)) == WsParser::Status::Message) {
             switch (m.op) {
                 case Op::Close:
@@ -500,7 +585,15 @@ void Server::serve(std::shared_ptr<Conn> c) {
                         } else {
                             switch (pairing_.check(cm.pin)) {
                                 case Pairing::Result::Ok: {
-                                    std::string key = store_.add_device(name, &id);
+                                    std::string key;
+                                    try {
+                                        key = store_.add_device(name, &id);
+                                    } catch (const std::exception& e) {
+                                        log(2, std::string("Kopplung konnte nicht gespeichert werden: ") + e.what());
+                                        fail("storage", "Kopplung konnte am PC nicht gespeichert werden");
+                                        open = false;
+                                        break;
+                                    }
                                     send_text(msg_paired(base64(key)));
                                     log(1, "Gerät „" + (name.empty() ? std::string("Android") : name) + "“ (" + c->ip + ") gekoppelt");
                                     break;
@@ -522,10 +615,23 @@ void Server::serve(std::shared_ptr<Conn> c) {
                             }
                             if (!open) break;
                         }
+                        if (hooks_.before_auth) hooks_.before_auth(id);
+                        // Erst die Geräte-ID eintragen, dann prüfen, ob das Gerät noch gekoppelt ist: Entfernt die
+                        // Einstellungsseite es gleichzeitig (Store::remove, danach drop_device), greift entweder diese
+                        // Prüfung oder drop_device findet die ID schon an der Verbindung und setzt kick.
+                        {
+                            std::lock_guard ck(c->mu);
+                            c->device_id = id;
+                        }
+                        if (!store_.contains(id)) {
+                            log(1, "Anmeldung von " + c->ip + " abgelehnt: Gerät wurde gerade entfernt");
+                            fail("unauthorized", "Gerät ist nicht (mehr) gekoppelt");
+                            open = false;
+                            break;
+                        }
                         {
                             std::lock_guard ck(c->mu);
                             c->authed = true;
-                            c->device_id = id;
                             c->name = name.empty() ? "Android" : name;
                         }
                         authed = was_authed = true;
@@ -549,6 +655,7 @@ void Server::serve(std::shared_ptr<Conn> c) {
                                 hooks_.on_touch(cm.x, cm.y);
                             } catch (const std::exception& e) {
                                 log(2, std::string("Touch: ") + e.what());
+                            } catch (...) {
                             }
                         }
                     }
@@ -561,9 +668,13 @@ void Server::serve(std::shared_ptr<Conn> c) {
             send_raw(ws_close_frame(1002, "protocol"));
             break;
         }
+        if (open && parser.buffered() >= MAX_BUFFERED) {  // kann mit den Parser-Grenzen nicht passieren; Schutz
+            send_raw(ws_close_frame(1009, "too big"));
+            break;
+        }
         if (!open || closed) break;
         double t = now();
-        if (!authed && t > hello_deadline) {
+        if (!authed && (t > hello_deadline || steady() > hs_deadline)) {
             fail("timeout", "Keine Anmeldung erhalten");
             break;
         }
@@ -587,6 +698,7 @@ void Server::serve(std::shared_ptr<Conn> c) {
                         data = hooks_.encode ? hooks_.encode() : std::string();
                     } catch (const std::exception& e) {
                         log(2, std::string("JPEG: ") + e.what());
+                    } catch (...) {
                     }
                     jpeg_ = std::make_shared<const std::string>(std::move(data));
                     jpeg_seq_ = seq;
@@ -600,11 +712,10 @@ void Server::serve(std::shared_ptr<Conn> c) {
         }
     }
     if (stop_ && open) send_raw(ws_close_frame(1001, "shutdown"));
-    if (c->kick) {
+    if (c->kick && open) {
         send_text(msg_error("unauthorized", "Kopplung am PC entfernt"));
         send_raw(ws_close_frame(1008, "removed"));
     }
-    finish();
 }
 
 }  // namespace fl::companion
