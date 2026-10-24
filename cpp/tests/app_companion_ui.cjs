@@ -52,7 +52,7 @@ function check(value,label) { if(!value)throw Error(label); checks++; }
     // Compile every embedded/template guide script, including the new guide step.
     for(const file of ['cpp/res/ANLEITUNG.html','cpp/res/GUIDE.html','anleitung/anleitung.template.html','anleitung/anleitung.template.en.html']) {
       const content=fs.readFileSync(path.join(root,file),'utf8');
-      for(const m of content.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new Function(m[1]);
+      for(const m of content.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi))new Function(m[1]);
       check(content.includes('Companion:'),file+': Companion guide included');
     }
     console.log(checks+' browser checks passed');
