@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FuchsLabs Display</string>
+    <string name="title_connect">Mit dem PC verbinden</string>
+    <string name="status_idle">Nicht verbunden</string>
+    <string name="status_connecting">Verbinde…</string>
+    <string name="status_connected">Verbunden</string>
+    <string name="status_reconnecting">Verbindung verloren – verbinde neu…</string>
+    <string name="status_pairing">Koppeln…</string>
+    <string name="btn_scan">QR-Code scannen</string>
+    <string name="btn_connect_last">Mit %1$s verbinden</string>
+    <string name="btn_manual_pair">Manuell koppeln</string>
+    <string name="btn_forget">Diesen PC vergessen</string>
+    <string name="hint_host">IP-Adresse oder Name des PCs</string>
+    <string name="hint_port">Port</string>
+    <string name="hint_pin">6-stellige PIN</string>
+    <string name="section_found">PCs im Netzwerk</string>
+    <string name="found_none">Suche… (Companion-Server muss am PC aktiviert sein)</string>
+    <string name="section_manual">Manuelle Verbindung</string>
+    <string name="section_launcher">Launcher-Modus</string>
+    <string name="setting_launcher">Als Startbildschirm nutzen</string>
+    <string name="setting_launcher_desc">Registriert die App als Home-App. Wähle sie danach im Android-Dialog als Standard.</string>
+    <string name="setting_boot">Beim Start des Geräts öffnen</string>
+    <string name="paired_ok">Mit %1$s gekoppelt</string>
+    <string name="err_qr_invalid">Dieser QR-Code ist kein FuchsLabs-Kopplungscode.</string>
+    <string name="err_input">Bitte gültige Adresse, Port und 6-stellige PIN eingeben.</string>
+    <string name="err_camera">Zum Scannen wird die Kamera-Berechtigung benötigt.</string>
+    <string name="err_server">Serverfehler: %1$s</string>
+    <string name="err_cert">Zertifikat passt nicht zum gespeicherten Fingerabdruck. Bitte neu koppeln.</string>
+    <string name="err_network">Verbindung fehlgeschlagen: %1$s</string>
+    <string name="dlg_fp_title">Diesem PC vertrauen?</string>
+    <string name="dlg_fp_msg">Vergleiche diesen Fingerabdruck mit der Anzeige am PC:\n\n%1$s</string>
+    <string name="dlg_trust">Vertrauen</string>
+    <string name="dlg_cancel">Abbrechen</string>
+    <string name="exit_hint">Zweimal Zurück zum Beenden</string>
+    <string name="open_settings">Einstellungen</string>
+</resources>

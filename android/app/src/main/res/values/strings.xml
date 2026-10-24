@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FuchsLabs Display</string>
+    <string name="title_connect">Connect to your PC</string>
+    <string name="status_idle">Not connected</string>
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_reconnecting">Connection lost – reconnecting…</string>
+    <string name="status_pairing">Pairing…</string>
+    <string name="btn_scan">Scan QR code</string>
+    <string name="btn_connect_last">Connect to %1$s</string>
+    <string name="btn_manual_pair">Pair manually</string>
+    <string name="btn_forget">Forget this PC</string>
+    <string name="hint_host">PC IP address or host name</string>
+    <string name="hint_port">Port</string>
+    <string name="hint_pin">6-digit PIN</string>
+    <string name="section_found">PCs found on the network</string>
+    <string name="found_none">Searching… (companion server must be enabled on the PC)</string>
+    <string name="section_manual">Manual connection</string>
+    <string name="section_launcher">Launcher mode</string>
+    <string name="setting_launcher">Use as home screen</string>
+    <string name="setting_launcher_desc">Registers this app as a home app. Then choose it as the default in the Android dialog.</string>
+    <string name="setting_boot">Start on boot</string>
+    <string name="paired_ok">Paired with %1$s</string>
+    <string name="err_qr_invalid">This QR code is not a FuchsLabs pairing code.</string>
+    <string name="err_input">Please enter a valid address, port and 6-digit PIN.</string>
+    <string name="err_camera">Camera permission is required for scanning.</string>
+    <string name="err_server">Server error: %1$s</string>
+    <string name="err_cert">Certificate does not match the pinned fingerprint. Pair again.</string>
+    <string name="err_network">Connection failed: %1$s</string>
+    <string name="dlg_fp_title">Trust this PC?</string>
+    <string name="dlg_fp_msg">Compare this fingerprint with the one shown on your PC:\n\n%1$s</string>
+    <string name="dlg_trust">Trust</string>
+    <string name="dlg_cancel">Cancel</string>
+    <string name="exit_hint">Press back twice to leave</string>
+    <string name="open_settings">Settings</string>
+</resources>

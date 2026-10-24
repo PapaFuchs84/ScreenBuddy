@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.FuchsLabs" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/fl_orange</item>
+        <item name="colorPrimaryDark">@color/fl_glut</item>
+        <item name="colorAccent">@color/fl_orange</item>
+        <item name="android:windowBackground">@color/fl_creme</item>
+        <item name="android:textColorPrimary">@color/fl_navy</item>
+        <item name="android:textColor">@color/fl_navy</item>
+        <item name="android:statusBarColor">@color/fl_orange</item>
+    </style>
+    <style name="Theme.FuchsLabs.Display" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/fl_navy_deep</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>

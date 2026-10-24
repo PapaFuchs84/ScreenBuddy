@@ -1,0 +1,147 @@
+package de.fuchslabs.display
+
+import android.content.Intent
+import android.os.Build
+import android.os.Bundle
+import android.view.View
+import android.view.WindowManager
+import android.widget.TextView
+import android.widget.FrameLayout
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.activity.OnBackPressedCallback
+
+/** Vollbild-Anzeige: immersiv, Bildschirm bleibt an, Auto-Reconnect. Extras: pairing (Kopplung) optional. */
+class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
+    private lateinit var store: Store
+    private lateinit var frameView: FrameView
+    private lateinit var status: TextView
+    private var client: DisplayClient? = null
+    private var pairingPin: String? = null
+    private var lastBack = 0L
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        store = Store(this)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        frameView = FrameView(this)
+        status = TextView(this).apply {
+            setTextColor(getColor(R.color.fl_creme)); textSize = 16f
+            setBackgroundColor(0xAA14213D.toInt()); setPadding(32, 16, 32, 16)
+        }
+        val root = FrameLayout(this)
+        root.addView(frameView, FrameLayout.LayoutParams(-1, -1))
+        root.addView(status, FrameLayout.LayoutParams(-2, -2, android.view.Gravity.CENTER))
+        setContentView(root)
+        frameView.onTouchRender = { x, y -> client?.sendTouch(x, y) }
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val n = System.currentTimeMillis()
+                if (n - lastBack < 2000) {
+                    // Zurueck zur Einrichtung (im Launcher-Modus der einzige Weg zu den Einstellungen).
+                    startActivity(Intent(this@DisplayActivity, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    finish()
+                } else { lastBack = n; Toast.makeText(this@DisplayActivity, R.string.exit_hint, Toast.LENGTH_SHORT).show() }
+            }
+        })
+        hideSystemUi()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        startClient()
+    }
+
+    override fun onStop() {
+        client?.stop(); client = null
+        super.onStop()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideSystemUi()
+    }
+
+    private fun hideSystemUi() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    private fun startClient() {
+        val dm = resources.displayMetrics
+        val name = Build.MODEL ?: "Android"
+        val t: DisplayClient.Target
+        val pin = intent.getStringExtra(EXTRA_PIN)
+        if (pin != null) {
+            pairingPin = pin
+            t = DisplayClient.Target(
+                intent.getStringExtra(EXTRA_HOST) ?: "", intent.getIntExtra(EXTRA_PORT, 8777),
+                intent.getStringExtra(EXTRA_FP), pin = pin,
+                screenW = dm.widthPixels, screenH = dm.heightPixels, deviceName = name
+            )
+        } else {
+            val p = store.paired()
+            if (p == null) { startActivity(Intent(this, MainActivity::class.java)); finish(); return }
+            t = DisplayClient.Target(p.host, p.port, p.fingerprint, key = p.key,
+                screenW = dm.widthPixels, screenH = dm.heightPixels, deviceName = name)
+        }
+        client = DisplayClient(t, this).also { it.start() }
+    }
+
+    // --- DisplayClient.Listener (Main-Thread) ---
+    override fun onState(state: DisplayClient.State) {
+        status.visibility = if (state == DisplayClient.State.CONNECTED) View.GONE else View.VISIBLE
+        status.setText(when (state) {
+            DisplayClient.State.CONNECTING -> if (pairingPin != null) R.string.status_pairing else R.string.status_connecting
+            DisplayClient.State.RECONNECTING -> R.string.status_reconnecting
+            else -> R.string.status_idle
+        })
+    }
+
+    override fun onUnverifiedFingerprint(fp: String, trust: () -> Unit) {
+        val shown = fp.chunked(2).joinToString(":").uppercase().chunked(48).joinToString("\n")
+        AlertDialog.Builder(this).setTitle(R.string.dlg_fp_title)
+            .setMessage(getString(R.string.dlg_fp_msg, shown))
+            .setPositiveButton(R.string.dlg_trust) { _, _ -> trust() }
+            .setNegativeButton(R.string.dlg_cancel) { _, _ -> finish() }
+            .setCancelable(false).show()
+    }
+
+    override fun onPaired(key: String, fingerprint: String) {
+        val host = intent.getStringExtra(EXTRA_HOST) ?: return
+        val port = intent.getIntExtra(EXTRA_PORT, 8777)
+        val name = intent.getStringExtra(EXTRA_NAME) ?: host
+        store.savePaired(PairedPc(host, port, fingerprint, name, key))
+        Toast.makeText(this, getString(R.string.paired_ok, name), Toast.LENGTH_SHORT).show()
+        // Danach normale Anmeldung mit Schluessel (Protokoll: "Danach hello mit key").
+        client?.stop(); client = null
+        intent.removeExtra(EXTRA_PIN); pairingPin = null
+        startClient()
+    }
+
+    override fun onReady(w: Int, h: Int) = frameView.setRenderSize(w, h)
+    override fun onFrame(jpeg: ByteArray) = frameView.setFrame(jpeg)
+
+    override fun onFatal(kind: DisplayClient.Fatal, detail: String) {
+        val msg = when (kind) {
+            DisplayClient.Fatal.CERT_MISMATCH -> getString(R.string.err_cert)
+            DisplayClient.Fatal.SERVER_ERROR -> getString(R.string.err_server, detail)
+        }
+        AlertDialog.Builder(this).setMessage(msg)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                startActivity(Intent(this, MainActivity::class.java)); finish()
+            }.setCancelable(false).show()
+    }
+
+    companion object {
+        const val EXTRA_HOST = "host"; const val EXTRA_PORT = "port"; const val EXTRA_FP = "fp"
+        const val EXTRA_PIN = "pin"; const val EXTRA_NAME = "name"
+    }
+}
