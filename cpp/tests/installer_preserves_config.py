@@ -111,7 +111,7 @@ def main() -> int:
     if not exe.is_file():
         raise SystemExit(f"missing application build: {exe}")
     BUILD.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="installer-config-", dir=BUILD) as temp:
+    with tempfile.TemporaryDirectory(prefix="installer-config-", dir=BUILD, ignore_cleanup_errors=True) as temp:
         root = Path(temp).resolve()
         if not root.is_relative_to(BUILD.resolve()):
             raise SystemExit("temporary installer test escaped the build folder")
