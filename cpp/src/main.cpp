@@ -240,6 +240,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     if (!args.no_lcd) {
         if (dp.value("output", "serial") == "monitor")  // HDMI/USB-C-Bildschirm: Vollbildfenster statt serieller Übertragung
             lcd = std::make_unique<MonitorDisplay>(dp.value("monitor", ""), dp.value("touch", false));
+        else if (dp.value("output", "serial") == "network")  // nur Companion-App (Android) im Heimnetz, Renderfläche 480 × 320
+            lcd = std::make_unique<NetworkDisplay>(cfg["companion"].value("port", 8777), port, cfg_path.parent_path() / L"companion.json",
+                                                   480, 320);
         else
             lcd = std::make_unique<SerialDisplay>(dp.value("port", "AUTO"), orientation(dp.value("orientation", "landscape")),
                                                   dp.value("brightness", 50), dp.value("reset_on_start", true));

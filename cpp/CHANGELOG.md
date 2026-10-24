@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Companion output (`NetworkDisplay`, `output.h`/`network_display.cpp`): `display.output = "network"` (480 × 320) or `[companion] enabled = true` as a mirror next to the serial/monitor output. Platform-neutral core in `companion.cpp` (RFC 6455 handshake/framing, JSON messages, `Pairing` with 6-digit PIN, 120 s validity, single use, lock for 300 s after 5 failures, `FrameGate` ≤ 5 fps, `Store` for `companion.json`, pairing URI and QR SVG) and `companion_server.cpp` (OpenSSL TLS ≥ 1.2, ECDSA P-256 self-signed certificate generated once, listeners only on private IPv4 addresses, peer must be private too, max. 4 connections, `Origin` header rejected, ping every 5 s, 15 s silence closes). Windows part: LAN addresses via `GetAdaptersAddresses`, mDNS via `DnsServiceRegister` (loaded at runtime), JPEG via WIC (`encode_jpeg`), keys via DPAPI, taps on an STA thread into `App::tap_at` / page step. Settings: tab **Companion** (DE/EN) with QR code, PIN countdown, fingerprint, connected and paired devices; endpoints `/api/companion/status|pair|pair/cancel|devices/remove`. Config `[companion] enabled=false, port=8777` (rejected: 8765 or the settings port while in use).
+- New dependency: Nayuki QR Code generator 1.8.0 (MIT), vendored in `third_party/qrcodegen`. OpenSSL is now listed directly in `vcpkg.json` (was already linked through D++).
+- Tests: `fl-companion-tests` (Windows) and `tests/build-linux.sh` (Linux): 244 checks incl. a TLS WebSocket round trip against the real server on 127.0.0.1 (pairing, wrong PIN, lock, key login, removed device, touch, ping/pong, frame rate, dead connection). Linux run also clean under ASan/UBSan and TSan. The Windows build and `network_display.cpp`, WIC JPEG, mDNS, DPAPI and the settings tab are not yet compiled with MSVC or run (only a MinGW syntax check).
+
 ## 2.2.0 – 2026-10-24
 
 - System page touch: `SysRenderer::zone_at` maps taps to the RAM, drive and network cards (same geometry as `render()`); `touch::open_system` opens Task Manager, `control.exe appwiz.cpl` or https://www.speedtest.net/de. Only the system page with touch active reacts.

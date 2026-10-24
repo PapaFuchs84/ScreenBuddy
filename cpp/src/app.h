@@ -66,6 +66,7 @@ public:
     bool setup_touch();
     ojson update_info();                            // Update-Hinweis für die Einstellungsseite (leer, wenn aus)
     bool update_check_now();                        // „Jetzt prüfen“; false = aus oder zu früh
+    NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 
 private:
     struct RendererSet;
@@ -89,6 +90,8 @@ private:
     bool connect_display();
     void output(const Image& frame, bool transition, const ojson& navigation);
     void display_loop();
+    bool tap_at(int x, int y);                      // Ziel/Aktion an (x, y) des angezeigten Bildes; true = behandelt
+    void companion_tap(int x, int y);
 
     std::mutex cfg_mu_;
     ojson cfg_;
@@ -96,6 +99,8 @@ private:
     ojson dp_;
     std::filesystem::path cfg_path_;
     std::unique_ptr<Output> out_;
+    std::unique_ptr<NetworkDisplay> companion_mirror_;   // zusätzlich zum USB-Display/Bildschirm
+    NetworkDisplay* companion_ = nullptr;               // out_ (Ausgabe „network“) oder companion_mirror_
     std::optional<std::filesystem::path> preview_dir_;
     bool show_settings_on_start_ = false;
     bool settings_open_at_exit_ = false;

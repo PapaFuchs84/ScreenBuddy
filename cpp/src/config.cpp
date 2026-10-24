@@ -46,6 +46,8 @@ const ojson& defaults() {
                     {"max_per_feed", 1}, {"title", "Blog-Updates"}};
         j["homeassistant"] = {{"enabled", false}, {"title", "Home Assistant"}, {"url", ""}, {"token", ""},
                               {"entities", ojson::array()}};
+        // Companion-App (Android) im Heimnetz: standardmäßig aus; Port nie der der Einstellungsseite
+        j["companion"] = {{"enabled", false}, {"port", 8777}};
         j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true}};
         return j;
     }();
@@ -58,13 +60,14 @@ static const std::map<Key, std::pair<long long, long long>> LIMITS = {
     {{"bf6", "refresh_minutes"}, {5, 240}}, {{"rss", "refresh_minutes"}, {10, 720}},
     {{"rss", "max_items"}, {1, 4}},        {{"rss", "max_per_feed"}, {1, 4}},
     {{"ui", "port"}, {1024, 65535}},
+    {{"companion", "port"}, {1024, 65535}},
 };
 static const std::map<Key, std::vector<std::string>> CHOICES = {
     {{"display", "orientation"}, {"landscape", "reverse_landscape", "portrait", "reverse_portrait"}},
     {{"system", "net_unit"}, {"bit", "byte"}},
     {{"display", "theme"}, {"hell", "dunkel", "eigen"}},
     {{"display", "color_base"}, {"hell", "dunkel"}},
-    {{"display", "output"}, {"serial", "monitor"}},
+    {{"display", "output"}, {"serial", "monitor", "network"}},
     {{"ui", "language"}, {"de", "en"}},
 };
 static const std::set<Key> ID_LISTS = {{"discord", "guild_ids"}, {"discord", "friend_ids"}, {"discord", "ignore_ids"}};
@@ -249,6 +252,11 @@ ojson merge(const ojson& cfg, const ojson& incoming) {
             }
         }
     }
+    // Companion-Server und Einstellungsseite brauchen verschiedene Ports; 8765 bleibt der Einstellungsseite vorbehalten
+    long long cport = out["companion"].value("port", 8777LL), uport = out["ui"].value("port", 8765LL);
+    bool companion_used = out["companion"].value("enabled", false) || out["display"].value("output", "serial") == "network";
+    if (companion_used && (cport == 8765 || cport == uport))
+        throw std::invalid_argument("companion.port: muss sich vom Port der Einstellungsseite unterscheiden (nie 8765)");
     return out;
 }
 
@@ -302,6 +310,7 @@ static const std::map<std::string, std::string> HEADERS = {
     {"friends", "Gemeinsame Freundesliste (Discord, Steam, Xbox); links = manuell verknüpfte Personen"},
     {"bf6", "Battlefield-6-Rangliste (EA-IDs, Konsole mit Suffix @psn / @xbox)"},
     {"rss", "Blog-Updates (RSS)"},
+    {"companion", "Companion-App (Android) im Heimnetz: WebSocket über TLS, Kopplung per QR-Code; Kopplungen in companion.json"},
     {"ui", "Einstellungsoberfläche (läuft nur lokal auf diesem PC)"},
 };
 

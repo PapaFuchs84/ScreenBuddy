@@ -211,6 +211,45 @@ std::string encode_png(const Image& img) {
     return out;
 }
 
+std::string encode_jpeg(const Image& img, float quality) {
+    // Companion-App: Vollbild als JPEG (WIC-JPEG-Encoder nimmt 24 bpp BGR; Alpha fällt weg, die Seiten sind deckend)
+    ensure_com();
+    ComPtr<IStream> stream;
+    check(CreateStreamOnHGlobal(nullptr, TRUE, &stream), "Stream");
+    ComPtr<IWICBitmapEncoder> enc;
+    check(g_wic->CreateEncoder(GUID_ContainerFormatJpeg, nullptr, &enc), "JPEG");
+    check(enc->Initialize(stream.Get(), WICBitmapEncoderNoCache), "JPEG");
+    ComPtr<IWICBitmapFrameEncode> frame;
+    ComPtr<IPropertyBag2> props;
+    check(enc->CreateNewFrame(&frame, &props), "JPEG");
+    PROPBAG2 opt{};
+    opt.pstrName = const_cast<LPOLESTR>(L"ImageQuality");
+    VARIANT v{};  // entspricht VariantInit (ohne oleaut32)
+    v.vt = VT_R4;
+    v.fltVal = quality < 0.f ? 0.f : quality > 1.f ? 1.f : quality;
+    check(props->Write(1, &opt, &v), "JPEG-Qualität");
+    check(frame->Initialize(props.Get()), "JPEG");
+    check(frame->SetSize(img.w, img.h), "JPEG");
+    WICPixelFormatGUID pf = GUID_WICPixelFormat24bppBGR;
+    check(frame->SetPixelFormat(&pf), "JPEG");
+    auto bmp = wic_from(img);
+    ComPtr<IWICFormatConverter> conv;
+    check(g_wic->CreateFormatConverter(&conv), "Konverter");
+    check(conv->Initialize(bmp.Get(), pf, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom), "Konverter");
+    check(frame->WriteSource(conv.Get(), nullptr), "JPEG");
+    check(frame->Commit(), "JPEG");
+    check(enc->Commit(), "JPEG");
+    HGLOBAL hg = nullptr;
+    GetHGlobalFromStream(stream.Get(), &hg);
+    STATSTG stat{};
+    stream->Stat(&stat, STATFLAG_NONAME);
+    std::string out((size_t)stat.cbSize.QuadPart, '\0');
+    void* p = GlobalLock(hg);
+    memcpy(out.data(), p, out.size());
+    GlobalUnlock(hg);
+    return out;
+}
+
 Image resize(const Image& img, int w, int h) {
     ensure_com();
     if (img.w == w && img.h == h) return img;

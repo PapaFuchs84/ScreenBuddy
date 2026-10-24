@@ -14,3 +14,15 @@ PC-App (Server) <-> Android-App (Client), nur lokales Netz.
 - Frames (Binary-Frames): Byte 0 = Typ (1 = vollständiges JPEG, Qualität ~80), danach JPEG-Daten. Der Server sendet nur bei Änderung, höchstens 5 fps; nach Verbindung sofort ein Vollbild.
 - Fehler: `{"t":"error","code":"...","msg":"..."}`, danach Close.
 - Launcher-Modus (Android): App deklariert HOME/DEFAULT-Intent, startet optional beim Booten, Vollbild (immersive), Bildschirm bleibt an, verbindet automatisch zum zuletzt gekoppelten PC neu.
+
+## Umsetzung PC (C++, `cpp/src/companion*.cpp`, `network_display.cpp`)
+
+- Aktivierung: `[companion] enabled = true` (zusätzlich zum USB-Display/Bildschirm; `ready` meldet dann dessen Größe, z. B. 1920 × 720) oder `[display] output = "network"` (nur Companion, 480 × 320). Standard aus. `companion.port` darf weder 8765 noch der Port der Einstellungsseite sein.
+- Gebunden wird je private IPv4-Adresse (10/8, 172.16/12, 192.168/16) eines aktiven Adapters; Verbindungen von anderen Adressen werden sofort geschlossen. Höchstens 4 gleichzeitige Verbindungen.
+- TLS ≥ 1.2, ECDSA P-256, selbstsigniert, 10 Jahre gültig, einmal erzeugt und in `companion.json` gespeichert (privater Schlüssel per DPAPI). `fp` im QR-Code: SHA-256 über das DER-Zertifikat, 64 Hex-Zeichen klein; die Einstellungsseite zeigt ihn zusätzlich mit Doppelpunkten.
+- WebSocket: beliebiger Pfad (die App nutzt `/`), `Sec-WebSocket-Version: 13`; Anfragen mit `Origin`-Header (Browser) werden mit 403 abgelehnt. Client-Rahmen müssen maskiert sein; Text höchstens 16 KiB; Binärnachrichten vom Client beenden die Verbindung.
+- Ablauf: `hello` innerhalb von 10 s. Mit `pin`: bei Erfolg `paired` und direkt danach `ready` auf derselben Verbindung, dann sofort ein Vollbild. Mit `key`: `ready`, dann Vollbild. Ein zweites `hello` wird ignoriert.
+- Fehlercodes (`error`, danach Close 1008): `pin_wrong`, `pin_expired` (kein/abgelaufener/verbrauchter Code), `locked` (5 Fehlversuche, 5 Minuten; gilt nur fürs Koppeln), `unauthorized` (unbekannter/entfernter Schlüssel, `touch` vor `hello`, Gerät am PC entfernt), `version`, `bad_message`, `timeout`.
+- `touch`: nur nach Anmeldung, Koordinaten außerhalb von `w`/`h` werden verworfen, höchstens 10 pro Sekunde. Wirkung wie ein Tipp auf dem Bildschirm-Ausgang.
+- Ping: Server sendet nach der Anmeldung alle 5 s `{"t":"ping"}`, beantwortet `ping` mit `pong` und WebSocket-Ping-Rahmen mit Pong; 15 s ohne empfangene Daten trennen die Verbindung.
+- Beenden der App: Close 1001; mit „Beim Beenden ausschalten“ vorher ein schwarzes Bild.

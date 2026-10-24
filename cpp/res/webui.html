@@ -301,7 +301,32 @@ Object.assign(EN, {
   'Home Assistant ist nicht erreichbar – Adresse und Netzwerk prüfen': 'Home Assistant is not reachable – check the address and network',
   'Home Assistant: Token ungültig oder abgelaufen': 'Home Assistant: token invalid or expired',
   'Bitte zuerst die Adresse von Home Assistant eintragen': 'Please enter the Home Assistant address first',
-  'Bitte zuerst das Zugriffstoken eintragen': 'Please enter the access token first'
+  'Bitte zuerst das Zugriffstoken eintragen': 'Please enter the access token first',
+  // Companion-App (Android)
+  'Companion': 'Companion', 'Companion-App (Android)': 'Companion app (Android)',
+  'Ein Android-Handy oder -Tablet im selben WLAN zeigt das Display und reagiert auf Tippen.': 'An Android phone or tablet on the same Wi-Fi shows the display and reacts to taps.',
+  'Companion einschalten': 'Turn on Companion',
+  'Startet einen verschlüsselten Dienst nur im Heimnetz (nie aus dem Internet erreichbar). Standard: aus.': 'Starts an encrypted service in your home network only (never reachable from the internet). Default: off.',
+  'Port': 'Port', 'Standard 8777. Nicht 8765 (Einstellungsseite).': 'Default 8777. Not 8765 (settings page).',
+  'Die Companion-App ist der Display-Typ und läuft deshalb immer.': 'The companion app is the display type and therefore always runs.',
+  'Windows fragt beim ersten Start eventuell nach der Firewall: „Private Netzwerke“ erlauben.': 'Windows may ask about the firewall on first start: allow “Private networks”.',
+  'Server': 'Server', 'Läuft auf': 'Running on', 'Startet …': 'Starting …',
+  'Ankündigung im Netz (mDNS)': 'Network announcement (mDNS)', 'Die App findet den PC von selbst': 'The app finds the PC by itself',
+  'Nicht verfügbar – in der App die IP-Adresse eingeben': 'Not available – enter the IP address in the app',
+  'Gerade ist kein Gerät verbunden': 'No device connected right now', 'Fingerabdruck des Zertifikats': 'Certificate fingerprint',
+  'Companion ist aus.': 'Companion is off.', 'Companion startet nach „Speichern & anwenden“.': 'Companion starts after “Save & apply”.',
+  'Gerät koppeln': 'Pair a device', 'Kopplungscode anzeigen': 'Show pairing code', 'Abbrechen': 'Cancel',
+  'In der App „Koppeln“ wählen und den QR-Code scannen. Der Code gilt 2 Minuten und nur einmal; nach 5 falschen Versuchen ist das Koppeln 5 Minuten gesperrt.': 'Choose “Pair” in the app and scan the QR code. The code is valid for 2 minutes and only once; after 5 wrong attempts pairing is locked for 5 minutes.',
+  'Erst Companion einschalten und speichern.': 'Turn on Companion and save first.',
+  'Code abgelaufen. Bei Bedarf einen neuen anzeigen.': 'Code expired. Show a new one if needed.',
+  'Code verwendet oder abgelaufen.': 'Code used or expired.', 'QR-Code zum Koppeln': 'Pairing QR code',
+  'Ohne Kamera: in der App Adresse und PIN eintippen und den Fingerabdruck vergleichen.': 'Without a camera: type the address and PIN in the app and compare the fingerprint.',
+  'Gekoppelte Geräte': 'Paired devices', 'Noch kein Gerät gekoppelt.': 'No device paired yet.',
+  'Kopplung entfernen? Das Gerät muss danach neu gekoppelt werden.': 'Remove pairing? The device must be paired again afterwards.',
+  'Gekoppelt am': 'Paired on', 'zuletzt': 'last seen', 'verbunden': 'connected',
+  'Kopplung gesperrt (zu viele Fehlversuche)': 'Pairing locked (too many failed attempts)',
+  'Companion-App (Android, über WLAN)': 'Companion app (Android, over Wi-Fi)',
+  'Die Anzeige erscheint in der Companion-App (480 × 320, die App skaliert). Einrichtung im Reiter Companion.': 'The display appears in the companion app (480 × 320, the app scales it). Set up in the Companion tab.'
 });
 const T = s => (L === 'en' && typeof s === 'string' && EN[s] !== undefined) ? EN[s] : s;
 const h = (tag, attrs = {}, ...kids) => {
@@ -324,7 +349,7 @@ const api = (path, body) => fetch(path, body === undefined ? {} : {method: 'POST
 
 const TABS = [
   ['start', 'Start'], ['overview', 'Übersicht'], ['friends', 'Freunde'], ['discord', 'Discord'], ['bf6', 'Battlefield 6'], ['rss', 'Blogs'], ['homeassistant', 'Home Assistant'],
-  ['system', 'System'], ['display', 'Display']];
+  ['system', 'System'], ['display', 'Display'], ['companion', 'Companion']];
 const PAGES = {
   system: ['System', 'CPU, GPU, RAM, Datenträger, Netzwerk'],
   friends: ['Freunde (alle Plattformen)', 'Discord, Steam und Xbox in einer Liste'],
@@ -481,7 +506,7 @@ function viewOverview() {
       h('div', {}, h('h3', {}, 'Seiten'), h('p', {class: 'hint'}, 'Mit den Pfeilen sortierst du, mit dem Schalter blendest du Seiten ein oder aus.'), list))),
     card('Wechsel & Helligkeit', null,
       row('Anzeigedauer pro Seite', 'Wie lange eine Seite stehen bleibt', range('display', 'page_seconds', 5, 60, 1, '% s')),
-      cfg.display.output !== 'monitor' ? row('Helligkeit', 'Display-Helligkeit', range('display', 'brightness', 10, 100, 5, '% %')) : null)];
+      cfg.display.output === 'serial' ? row('Helligkeit', 'Display-Helligkeit', range('display', 'brightness', 10, 100, 5, '% %')) : null)];
 }
 
 /* ---------- Discord ---------- */
@@ -697,7 +722,8 @@ function viewRss() {
 /* ---------- Home Assistant ---------- */
 const HA_SWITCH = ['switch', 'input_boolean', 'light', 'fan'];
 const haDomain = id => id.split('|')[0].trim().split('.')[0];
-const haTouchOk = () => cfg.display.output === 'monitor' && !!cfg.display.touch && !!((cache.opts || {}).touch || {}).available;
+const companionOn = () => !!cfg.companion.enabled || cfg.display.output === 'network';
+const haTouchOk = () => companionOn() || (cfg.display.output === 'monitor' && !!cfg.display.touch && !!((cache.opts || {}).touch || {}).available);
 function viewHa() {
   const c = cfg.homeassistant, box = h('div'), pick = h('div');
   if (!cache.opts) api('/api/display/options').then(r => { cache.opts = r; if (tab === 'homeassistant') render(); });
@@ -740,7 +766,7 @@ function viewHa() {
   const check = h('button', {class: 'btn sm', onclick: async () => {
     check.disabled = true; out.className = 'note'; out.textContent = T('Prüfe …');
     try {
-      const r = await api('/api/ha/entities', {url: c.url, token: c.token, touch: haTouchOk()});
+      const r = await api('/api/ha/entities', {url: c.url, token: c.token, touch: haTouchOk(), companion: companionOn()});
       out.className = r.ok ? 'ok' : 'bad';
       out.textContent = r.ok ? (L === 'en' ? `Connected: ${r.entities.length} entities found` : `Verbunden: ${r.entities.length} Entitäten gefunden`) : r.error;
       loaded = r.ok ? r : null; drawPick();
@@ -853,11 +879,13 @@ function colorCard() {
 function viewDisplay() {
   const d = cfg.display, o = cache.opts;
   if (!o) api('/api/display/options').then(r => { cache.opts = r; if (tab === 'display') render(); });
-  const serial = d.output !== 'monitor';
-  const outSel = select('display', 'output', [['serial', 'USB-Display 3,5" (über COM-Port)'], ['monitor', 'Bildschirm über HDMI oder USB-C']]);
+  const serial = d.output === 'serial';
+  const outSel = select('display', 'output', [['serial', 'USB-Display 3,5" (über COM-Port)'], ['monitor', 'Bildschirm über HDMI oder USB-C'],
+    ['network', 'Companion-App (Android, über WLAN)']]);
   outSel.addEventListener('change', () => render());
   let screen = null;
-  if (!serial) {
+  if (d.output === 'network') screen = [h('p', {class: 'note'}, 'Die Anzeige erscheint in der Companion-App (480 × 320, die App skaliert). Einrichtung im Reiter Companion.')];
+  if (d.output === 'monitor') {
     const mons = o ? o.monitors : [], t = o ? o.touch : {available: false};
     const opts = [['', 'Automatisch (erster Bildschirm, der nicht der Hauptbildschirm ist)'], ...mons.map(m =>
       [m.device, `${m.name || T('Bildschirm')} · ${m.w} × ${m.h}${m.primary ? (L === 'en' ? ' · main screen' : ' · Hauptbildschirm') : ''}`])];
@@ -923,9 +951,82 @@ function viewDisplay() {
             $('#ovt').textContent = T('App beendet'); $('#ovs').textContent = T('Du kannst dieses Fenster schließen.'); $('#overlay').classList.add('show'); } }}, 'Beenden'))))];
 }
 
-const VIEWS = {homeassistant: viewHa, start: viewStart, overview: viewOverview, friends: viewFriends, discord: viewDiscord, bf6: viewBf6, rss: viewRss, system: viewSystem, display: viewDisplay};
+/* ---------- Companion-App (Android) ---------- */
+let companionTimer = null, pairTimer = null;
+function viewCompanion() {
+  const c = cfg.companion, forced = cfg.display.output === 'network';
+  const savedOn = !!saved.companion.enabled || saved.display.output === 'network';
+  const box = h('div'), devBox = h('div'), pairBox = h('div');
+  const item = (title, state, detail, ...actions) => h('div', {class: 'item'},
+    h('div', {class: 't'}, h('b', {}, title), h('span', {class: state}, detail)), ...actions);
+  const when = ts => ts ? new Date(ts * 1000).toLocaleString(L === 'en' ? 'en-GB' : 'de-DE', {dateStyle: 'short', timeStyle: 'short'}) : '–';
+  const refresh = async () => {
+    let s;
+    try { s = await api('/api/companion/status'); } catch (e) { return; }
+    if (!s.enabled) {
+      box.replaceChildren(h('p', {class: 'note'}, savedOn ? 'Companion startet nach „Speichern & anwenden“.' : 'Companion ist aus.'));
+      devBox.replaceChildren(); return;
+    }
+    const list = h('div', {class: 'list'});
+    list.append(item('Server', s.running ? 'ok' : 'bad', s.running ? `${T('Läuft auf')} ${s.addresses.map(a => a + ':' + s.port).join(', ')}` : (s.error || T('Startet …'))));
+    if (s.running) list.append(item('Ankündigung im Netz (mDNS)', s.mdns ? 'ok' : '', s.mdns ? 'Die App findet den PC von selbst' : 'Nicht verfügbar – in der App die IP-Adresse eingeben'));
+    list.append(item(T('Verbunden'), s.clients.length ? 'ok' : '', s.clients.length ? s.clients.map(x => `${x.name} (${x.ip})`).join(', ') : T('Gerade ist kein Gerät verbunden')));
+    if (s.locked_for > 0) list.append(item('Kopplung gesperrt (zu viele Fehlversuche)', 'bad', `${Math.ceil(s.locked_for / 60)} min`));
+    if (s.fingerprint) list.append(h('div', {class: 'item'}, h('div', {class: 't'}, h('b', {}, 'Fingerabdruck des Zertifikats'),
+      h('span', {style: 'font-family:monospace;word-break:break-all;font-size:12px'}, s.fingerprint))));
+    box.replaceChildren(list);
+    if (pairTimer && !(s.pairing || {}).active) { stopPair(); pairBox.replaceChildren(h('p', {class: 'note'}, 'Code verwendet oder abgelaufen.')); }
+    const online = new Set(s.clients.map(x => x.id));
+    devBox.replaceChildren(s.devices.length ? h('div', {class: 'list'}, s.devices.map(d => item(d.name,
+      online.has(d.id) ? 'ok' : '', `${T('Gekoppelt am')} ${when(d.added)} · ${online.has(d.id) ? T('verbunden') : T('zuletzt') + ' ' + when(d.last_seen)}`,
+      h('button', {class: 'btn sm', onclick: async () => {
+        if (!confirm(T('Kopplung entfernen? Das Gerät muss danach neu gekoppelt werden.'))) return;
+        const r = await api('/api/companion/devices/remove', {id: d.id}); if (!r.ok) toast(r.error || T('Fehler')); refresh(); }}, 'Entfernen'))))
+      : h('p', {class: 'note'}, 'Noch kein Gerät gekoppelt.'));
+  };
+  const stopPair = () => { clearInterval(pairTimer); pairTimer = null; };
+  const showPair = r => {
+    stopPair();
+    const left = h('b', {}), until = Date.now() + r.expires_in * 1000;
+    const tick = () => {
+      const sec = Math.max(0, Math.round((until - Date.now()) / 1000));
+      left.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+      if (!sec) { stopPair(); pairBox.replaceChildren(h('p', {class: 'note'}, 'Code abgelaufen. Bei Bedarf einen neuen anzeigen.')); }
+    };
+    pairBox.replaceChildren(h('div', {style: 'display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin-top:12px'},
+      h('img', {src: r.qr, alt: 'QR-Code zum Koppeln', width: 220, height: 220,
+        style: 'width:220px;height:220px;image-rendering:pixelated;background:#fff;padding:8px;border-radius:8px'}),
+      h('div', {},
+        h('div', {style: 'font-size:34px;font-weight:700;letter-spacing:6px;font-family:monospace'}, r.pin.slice(0, 3) + ' ' + r.pin.slice(3)),
+        h('p', {class: 'note'}, `${r.host}:${r.port} · `, left),
+        h('p', {class: 'hint'}, 'Ohne Kamera: in der App Adresse und PIN eintippen und den Fingerabdruck vergleichen.'),
+        h('p', {style: 'font-family:monospace;word-break:break-all;font-size:12px'}, r.fingerprint),
+        h('button', {class: 'btn sm', onclick: async () => { stopPair(); await api('/api/companion/pair/cancel', {}); pairBox.replaceChildren(); }}, 'Abbrechen'))));
+    tick(); pairTimer = setInterval(tick, 1000);
+  };
+  const pairBtn = h('button', {class: 'btn pri', disabled: !savedOn, onclick: async () => {
+    pairBtn.disabled = true;
+    try { const r = await api('/api/companion/pair', {}); if (r.ok) { showPair(r); refresh(); } else toast(r.error || T('Fehler')); }
+    catch (e) { toast(T('Fehler')); }
+    pairBtn.disabled = false; }}, 'Kopplungscode anzeigen');
+  const tg = toggle('companion', 'enabled');
+  if (forced) tg.querySelector('input').disabled = true;
+  refresh(); companionTimer = setInterval(() => document.hidden || tab !== 'companion' || refresh(), 4000);
+  return [...head('Companion', 'Ein Android-Handy oder -Tablet im selben WLAN zeigt das Display und reagiert auf Tippen.'),
+    card('Companion-App (Android)', null,
+      row('Companion einschalten', forced ? 'Die Companion-App ist der Display-Typ und läuft deshalb immer.'
+        : 'Startet einen verschlüsselten Dienst nur im Heimnetz (nie aus dem Internet erreichbar). Standard: aus.', tg),
+      row('Port', 'Standard 8777. Nicht 8765 (Einstellungsseite).', text('companion', 'port', '8777')),
+      h('p', {class: 'note'}, 'Windows fragt beim ersten Start eventuell nach der Firewall: „Private Netzwerke“ erlauben.')),
+    card('Zustand', null, box),
+    card('Gerät koppeln', 'In der App „Koppeln“ wählen und den QR-Code scannen. Der Code gilt 2 Minuten und nur einmal; nach 5 falschen Versuchen ist das Koppeln 5 Minuten gesperrt.',
+      savedOn ? pairBtn : h('p', {class: 'note'}, 'Erst Companion einschalten und speichern.'), pairBox),
+    card('Gekoppelte Geräte', null, devBox)];
+}
+
+const VIEWS = {homeassistant: viewHa, companion: viewCompanion, start: viewStart, overview: viewOverview, friends: viewFriends, discord: viewDiscord, bf6: viewBf6, rss: viewRss, system: viewSystem, display: viewDisplay};
 function render() {
-  clearInterval(previewTimer); clearInterval(statusTimer); clearInterval(connTimer);
+  clearInterval(previewTimer); clearInterval(statusTimer); clearInterval(connTimer); clearInterval(companionTimer); clearInterval(pairTimer);
   $('#main').replaceChildren(...VIEWS[tab]().filter(Boolean));
   renderNav();
   $('#foot').replaceChildren(h('a', {href: '/anleitung?lang=' + L, target: '_blank'}, '📖 Bebilderte Anleitung'), h('br'),

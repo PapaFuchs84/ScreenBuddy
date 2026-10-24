@@ -6,6 +6,9 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Companion-App (Android), PC-Seite:** neuer Ausgang „Companion-App“. Ein Handy oder Tablet im selben WLAN zeigt das Display und meldet Tipps zurück (gleiche Touch-Logik wie beim Bildschirm-Ausgang: Ziele/Schalter, sonst links = zurück, sonst weiter). Standardmäßig **aus**; einschalten unter **Einstellungen → Companion** (zusätzlich zum USB-Display) oder als **Display-Typ** „Companion-App“. Dienst nur an Heimnetz-Adressen (Port 8777, nie 8765), TLS mit selbstsigniertem Zertifikat, Ankündigung per mDNS, Kopplung per QR-Code/PIN (2 Minuten, einmalig, nach 5 Fehlversuchen 5 Minuten gesperrt). Geräteschlüssel und TLS-Schlüssel liegen DPAPI-verschlüsselt in `companion.json` neben der `config.toml`; gekoppelte Geräte lassen sich dort einzeln entfernen. Bilder als JPEG nur bei Änderung, höchstens 5 pro Sekunde. Protokoll: [docs/COMPANION-PROTOKOLL.md](docs/COMPANION-PROTOKOLL.md). Noch nicht auf echter Hardware/Windows geprüft.
+
 ## [2.2.0] – 2026-10-24
 
 ### Neu

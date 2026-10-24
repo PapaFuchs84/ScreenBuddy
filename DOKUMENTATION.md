@@ -4,6 +4,18 @@ Version 2.2.0 · Stand 24.10.2026 · © 2026 FuchsLabs
 
 Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein eigenes Windows-Einstellungsfenster mit WebView2. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
 
+## Companion-App für Android (in Entwicklung, unveröffentlicht)
+
+Die PC-Seite ist eingebaut; die Android-App liegt als Prototyp unter `android/` und ist noch nicht veröffentlicht. Ein Handy oder Tablet im selben WLAN zeigt dann das Display (480 × 320 bzw. die Größe des eigentlichen Displays, die App skaliert mit Rand) und meldet Tipps zurück; diese wirken wie auf einem Touch-Bildschirm (Ziele und Home-Assistant-Schalter, sonst links = zurück, sonst weiter).
+
+- **Einschalten:** **Einstellungen → Companion → Companion einschalten** und speichern (läuft dann zusätzlich zum USB-Display) oder unter **Display → Display-Typ** „Companion-App (Android, über WLAN)“ wählen (nur das Handy, kein USB-Display). Standard: aus. Windows fragt beim ersten Start eventuell nach der Firewall: „Private Netzwerke“ erlauben.
+- **Koppeln:** **Kopplungscode anzeigen** zeigt QR-Code, 6-stellige PIN und den Fingerabdruck des Zertifikats. In der App den QR-Code scannen (oder Adresse und PIN eintippen und den Fingerabdruck vergleichen). Der Code gilt 2 Minuten und nur einmal; nach 5 falschen Versuchen ist das Koppeln 5 Minuten gesperrt.
+- **Netz:** nur private IPv4-Adressen des PCs (10.x, 172.16–31.x, 192.168.x), Port 8777 (`[companion] port`, nie 8765), Verbindung mit TLS. Der PC kündigt sich per mDNS als `_fuchslabs-display._tcp` an (Windows 10 1809 oder neuer); sonst die IP-Adresse in der App eintragen.
+- **Gespeichert:** `companion.json` neben der `config.toml` (TLS-Zertifikat, DPAPI-verschlüsselter TLS-Schlüssel, je Gerät ein DPAPI-verschlüsselter Schlüssel). Unter **Gekoppelte Geräte** lässt sich jedes Gerät entfernen; seine Verbindung wird sofort getrennt. Wer `companion.json` löscht, bekommt ein neues Zertifikat und muss alle Geräte neu koppeln.
+- **Last:** Bilder gehen nur bei Änderung als JPEG raus, höchstens 5 pro Sekunde.
+
+Protokoll: [docs/COMPANION-PROTOKOLL.md](docs/COMPANION-PROTOKOLL.md). Prüfstand: Protokoll, Kopplung und TLS-Server unter Linux getestet; Windows-Build, mDNS, Firewall-Dialog und die Einstellungsseite noch ungeprüft.
+
 ## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
 
 **Touch auf der Systemseite:** Bei aktivem Touch (nur bei Ausgabe auf einen Bildschirm) öffnet ein Tipp auf die Karte **RAM** den Task-Manager, auf **Datenträger** „Programme und Features“ (`appwiz.cpl`) und auf **Netzwerk** den Geschwindigkeitstest <https://www.speedtest.net/de> im Standardbrowser. Die CPU- und GPU-Karten reagieren nicht. Die Fenster öffnet Windows, meist auf dem Hauptbildschirm.

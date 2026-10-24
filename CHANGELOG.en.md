@@ -6,6 +6,9 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Added
+- **Companion app (Android), PC side:** new output “Companion app”. A phone or tablet on the same Wi-Fi shows the display and sends taps back (same touch logic as the screen output: targets/switches, otherwise left = back, else next). **Off** by default; turn it on under **Settings → Companion** (in addition to the USB display) or as **display type** “Companion app”. Service only on home-network addresses (port 8777, never 8765), TLS with a self-signed certificate, mDNS announcement, pairing via QR code/PIN (2 minutes, single use, locked for 5 minutes after 5 failed attempts). Device keys and the TLS key are stored DPAPI-encrypted in `companion.json` next to `config.toml`; paired devices can be removed individually. Frames as JPEG only on change, at most 5 per second. Protocol: [docs/COMPANION-PROTOKOLL.md](docs/COMPANION-PROTOKOLL.md). Not yet checked on real hardware/Windows.
+
 ## [2.2.0] – 2026-10-24
 
 ### Added

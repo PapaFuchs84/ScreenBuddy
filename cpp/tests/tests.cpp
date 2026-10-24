@@ -77,6 +77,21 @@ static void test_config() {
         threw = true;
     }
     CHECK(threw);
+    // Companion: standardmäßig aus, Port 8777; nie 8765 bzw. der Port der Einstellungsseite
+    CHECK(!cfg["companion"]["enabled"].get<bool>());
+    CHECK_EQ(cfg["companion"]["port"].get<int>(), 8777);
+    CHECK_EQ(config::merge(cfg, {{"display", {{"output", "network"}}}})["display"]["output"].get<std::string>(), std::string("network"));
+    for (ojson bad : {ojson{{"companion", {{"enabled", true}, {"port", 8765}}}},
+                      ojson{{"companion", {{"enabled", true}, {"port", 9000}}}, {"ui", {{"port", 9000}}}}}) {
+        threw = false;
+        try {
+            config::merge(cfg, bad);
+        } catch (const std::invalid_argument& e) {
+            threw = std::string(e.what()).find("companion.port") == 0;
+        }
+        CHECK(threw);
+    }
+    CHECK_EQ(config::merge(cfg, {{"companion", {{"port", 8765}}}})["companion"]["port"].get<int>(), 8765);  // aus: egal
     ojson pub = config::public_view(m);
     CHECK_EQ(pub["discord"]["token"].get<std::string>(), std::string(""));
     CHECK(pub["discord"]["token_set"].get<bool>());

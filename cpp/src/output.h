@@ -3,7 +3,11 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
+#include <filesystem>
 #include <functional>
+#include <memory>
+#include <vector>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -125,6 +129,57 @@ private:
     std::atomic<bool> ready_{false};
     Gesture gesture_{0, 0, {}};
     Gesture mouse_gesture_{0, 0, {}};
+};
+
+namespace companion { class Server; class Store; }
+
+// Companion-App (Android) im Heimnetz: WebSocket über TLS, Kopplung per QR-Code/PIN (docs/COMPANION-PROTOKOLL.md).
+// Als eigener Ausgang (display.output = "network") oder zusätzlich zum USB-Display/Bildschirm (companion.enabled).
+class NetworkDisplay : public Output {
+public:
+    // port: companion.port (nie der Port der Einstellungsseite); store: companion.json neben der config.toml
+    NetworkDisplay(int port, int settings_port, std::filesystem::path store, int w, int h);
+    ~NetworkDisplay() override;
+    std::pair<int, int> size() const override { return {w_, h_}; }
+    void connect() override;               // startet Server und mDNS; wirft bei fehlendem Heimnetz/belegtem Port
+    int show(const Image& frame) override; // nur bei Änderung weitergeben (Clients holen höchstens 5 Bilder/s)
+    void invalidate() override;
+    void screen_off() override;            // schwarzes Bild an die Clients
+    void close() override;
+
+    // Tipp in Renderkoordinaten (läuft in einem eigenen Thread mit COM, nicht im Netzwerk-Thread)
+    std::function<void(int, int)> on_tap;
+
+    bool running();
+    std::string error();
+
+    // ---------- für die Einstellungsseite ----------
+    ojson status();
+    ojson start_pairing();                 // {ok, pin, uri, qr, expires_in, …} oder {ok:false, error}
+    void cancel_pairing();
+    bool remove_device(const std::string& id);
+
+private:
+    void tap_loop();
+    void mdns_register();
+    void mdns_unregister();
+    std::string encode_current();
+
+    int port_, settings_port_, w_, h_;
+    std::filesystem::path store_path_;
+    std::unique_ptr<companion::Store> store_;
+    std::shared_ptr<companion::Server> server();
+    std::shared_ptr<companion::Server> server_;
+    std::vector<std::string> addresses_;
+    std::string error_;
+    std::mutex mu_;                        // server_, addresses_, frame_, error_
+    std::optional<Image> frame_;
+    void* mdns_ = nullptr;                 // Registrierung (intern)
+    std::mutex tap_mu_;
+    std::condition_variable tap_cv_;
+    std::vector<std::pair<int, int>> taps_;
+    bool tap_stop_ = false;
+    std::thread tap_thread_;
 };
 
 }  // namespace fl

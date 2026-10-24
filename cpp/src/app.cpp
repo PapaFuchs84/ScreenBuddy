@@ -52,6 +52,13 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
                                                                                          : std::make_pair(320, 480);
     display_ok_ = out_ == nullptr;
     page_switched_ = last_full_ = mono();
+    // Companion-App: entweder der Ausgang selbst (display.output = "network") oder zusätzlich zum Display
+    companion_ = dynamic_cast<NetworkDisplay*>(out_.get());
+    if (!companion_ && b(cfg_["companion"], "enabled") && !preview_dir_) {
+        companion_mirror_ = std::make_unique<NetworkDisplay>(cfg_["companion"].value("port", 8777), cfg_["ui"].value("port", 8765),
+                                                             cfg_path_.parent_path() / L"companion.json", size_.first, size_.second);
+        companion_ = companion_mirror_.get();
+    }
     render::apply_theme(dp_);
     const ojson &bf = cfg_["bf6"], &rs = cfg_["rss"], &sy = cfg_["system"], &dc = cfg_["discord"], &fr = cfg_["friends"];
     auto dirty = [this] { mark_dirty(); };
@@ -86,6 +93,8 @@ bool App::update_check_now() { return update_ && update_->check_now(); }
 
 bool App::touch_enabled() const {
     // Schalter brauchen Touch: nur bei Ausgabe auf einen Bildschirm, mit eingeschaltetem Touch und erkanntem Touchscreen
+    // Die Companion-App meldet Tipps immer (Touchscreen des Handys/Tablets)
+    if (companion_) return true;
     return dp_.value("output", "serial") == "monitor" && b(dp_, "touch", true) && touch_info().value("available", false);
 }
 
@@ -373,7 +382,10 @@ bool App::connect_display() {
         out_->connect();
     } catch (const std::exception& e) {
         std::string err;
-        if (out_->is_monitor()) {
+        if (out_.get() == companion_) {
+            err = std::string("Companion-App · ") + e.what();
+            LOGW("app", "Companion: %s", e.what());
+        } else if (out_->is_monitor()) {
             err = std::string(e.what()) + " – Bildschirm in den Einstellungen prüfen";
             LOGW("app", "Bildschirm: %s", e.what());
         } else {
@@ -402,6 +414,13 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
         std::string png = encode_png(frame);
         f.write(png.data(), (std::streamsize)png.size());
     }
+    if (companion_mirror_) {  // merkt sich das Bild auch, solange der Server noch nicht läuft
+        try {
+            companion_mirror_->show(frame);
+        } catch (const std::exception& e) {
+            LOGW("app", "Companion: %s", e.what());
+        }
+    }
     if (!out_ || !display_ok()) return;
     // Teil-Updates übertragen nur geänderte Bänder; ein verlorenes Datenpaket bliebe sonst als Streifen stehen.
     // Deshalb bei jedem Seitenwechsel und alle 5 Minuten ein Vollbild.
@@ -423,7 +442,7 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
 
 void App::display_loop() {
     std::string last_minute;
-    double next_try = 0;
+    double next_try = 0, companion_try = 0;
     if (out_) connect_display();
     double page_seconds = dp_.value("page_seconds", 15);
     while (!stop_) {
@@ -434,6 +453,16 @@ void App::display_loop() {
         if (stop_) break;
         if (out_ && !display_ok() && mono() >= next_try)
             if (!connect_display()) next_try = mono() + 10;
+        // Companion zusätzlich zum Display: ohne Heimnetz (z. B. WLAN noch nicht da) alle 30 s neu versuchen
+        if (companion_mirror_ && !companion_mirror_->running() && mono() >= companion_try) {
+            try {
+                companion_mirror_->connect();
+                mark_dirty();
+            } catch (const std::exception& e) {
+                LOGW("app", "Companion: %s", e.what());
+            }
+            companion_try = mono() + 30;
+        }
         std::string minute = clock_hhmm();
         bool page_due = mono() - page_switched_ >= page_seconds;
         // Die Systemansicht wird jede Sekunde neu gezeichnet, die anderen nur bei Änderungen
@@ -513,6 +542,16 @@ void App::show_settings() { if (show_settings_callback_) show_settings_callback_
 
 bool App::open_item_at(int x, int y) {
     if (!b(dp_, "touch", true)) return false;
+    return tap_at(x, y);
+}
+
+void App::companion_tap(int x, int y) {
+    // Wie Tippen auf dem Bildschirm-Ausgang: erst Ziel/Schalter, sonst links (Drittel) = zurück, sonst weiter
+    if (tap_at(x, y)) return;
+    step_page(x < size_.first / 3 ? -1 : 1);
+}
+
+bool App::tap_at(int x, int y) {
     touch::Targets targets;
     std::function<void()> action;
     {
@@ -545,6 +584,7 @@ void App::run() {
         mon->on_step = [this](int d) { step_page(d); };
         mon->on_tap = [this](int x, int y) { return open_item_at(x, y); };
     }
+    if (companion_) companion_->on_tap = [this](int x, int y) { companion_tap(x, y); };
     if (sys_) sys_->start();
     auto dirty = [this] { mark_dirty(); };
     if (bf6_) bf6_->start(dirty);
@@ -590,6 +630,10 @@ void App::run() {
     // War das Einstellungsfenster beim Neustart offen (z. B. nach dem Speichern), öffnet es die neue Instanz wieder
     settings_open_at_exit_ = settings_window && settings_window->visible();
     if (server) server->stop();
+    if (companion_mirror_) {
+        if (b(dp_, "screen_off_on_exit", true) && !restart_) companion_mirror_->screen_off();
+        companion_mirror_->close();
+    }
     show_settings_callback_ = {};
     settings_window.reset();
     if (friends_) friends_->stop();
