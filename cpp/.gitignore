@@ -8,3 +8,4 @@ config.toml
 !res/app.ico
 !res/ANLEITUNG.html
 !res/GUIDE.html
+build-linux/

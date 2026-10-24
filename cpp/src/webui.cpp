@@ -166,6 +166,21 @@ bool SettingsServer::start() {
     svr.Get("/api/pages", [&app](const httplib::Request&, httplib::Response& res) {
         json_reply(res, app.page_navigation());
     });
+    svr.Get("/api/companion/pages", [&app](const httplib::Request&, httplib::Response& res) {
+        json_reply(res, app.companion() ? app.page_navigation(true) : ojson{{"enabled", false}});
+    });
+    svr.Get("/api/companion/preview.png", [&app](const httplib::Request&, httplib::Response& res) {
+        png_reply(res, app.companion() ? app.last_frame(true) : std::nullopt);
+    });
+    svr.Post("/api/companion/pages/step", [&app](const httplib::Request& req, httplib::Response& res) {
+        ojson body;
+        try { body = body_json(req); } catch (...) { return json_reply(res, {{"ok", false}}, 400); }
+        if (!app.companion() || !body.is_object() || !body.contains("delta") || !body["delta"].is_number_integer() ||
+            (body["delta"] != -1 && body["delta"] != 1))
+            return json_reply(res, {{"ok", false}, {"error", "Companion und delta -1/+1 erwartet"}}, 400);
+        app.step_page(body["delta"].get<int>(), true);
+        json_reply(res, {{"ok", true}});
+    });
     svr.Post("/api/pages/step", [&app](const httplib::Request& req, httplib::Response& res) {
         ojson body;
         try {
@@ -275,13 +290,37 @@ bool SettingsServer::start() {
         if (url.empty()) url = str(saved, "url");
         if (token.empty()) token = str(saved, "token");
         // Schalter nur anbieten, wenn Touch (laut Formular) gewünscht ist und Windows einen Touchscreen meldet
-        bool touch = body.is_object() && body.value("touch", false) && touch_info().value("available", false);
+        // (die Companion-App zählt als Touch: sie meldet Tipps vom Handy)
+        bool touch = body.is_object() && body.value("touch", false) &&
+                     (touch_info().value("available", false) || body.value("companion", false));
         try {
             auto list = ha::list_entities(url, token, touch);
             json_reply(res, {{"ok", true}, {"entities", list}, {"touch", touch}});
         } catch (const ha::HaError& e) {
             json_reply(res, {{"ok", false}, {"error", e.what()}});
         }
+    });
+    // ---------- Companion-App (Android) ----------
+    svr.Get("/api/companion/status", [&app](const httplib::Request&, httplib::Response& res) {
+        auto* c = app.companion();
+        json_reply(res, c ? c->status() : ojson{{"enabled", false}});
+    });
+    svr.Post("/api/companion/pair", [&app](const httplib::Request&, httplib::Response& res) {
+        // Einmal-PIN (2 Minuten) und QR-Code; nur über diese lokale Seite abrufbar
+        auto* c = app.companion();
+        if (!c) return json_reply(res, {{"ok", false}, {"error", "Der Companion-Server läuft nicht – Companion einschalten und speichern"}});
+        json_reply(res, c->start_pairing());
+    });
+    svr.Post("/api/companion/pair/cancel", [&app](const httplib::Request&, httplib::Response& res) {
+        if (auto* c = app.companion()) c->cancel_pairing();
+        json_reply(res, {{"ok", true}});
+    });
+    svr.Post("/api/companion/devices/remove", [&app](const httplib::Request& req, httplib::Response& res) {
+        ojson body = body_json(req);
+        std::string id = body.is_object() && body.contains("id") && body["id"].is_string() ? body["id"].get<std::string>() : "";
+        auto* c = app.companion();
+        bool ok = c && !id.empty() && c->remove_device(id);
+        json_reply(res, {{"ok", ok}, {"error", ok ? "" : "Gerät nicht gefunden"}});
     });
     svr.Get("/api/connections", [&app](const httplib::Request&, httplib::Response& res) { json_reply(res, app.connections()); });
     svr.Get("/api/friends/accounts", [&app](const httplib::Request&, httplib::Response& res) { json_reply(res, app.friend_accounts()); });

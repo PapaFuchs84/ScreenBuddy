@@ -19,6 +19,14 @@ static const std::unordered_map<std::string, std::string>& en() {
     static const std::unordered_map<std::string, std::string> m = {
         {"Windows meldet keinen Touchscreen. USB-Touchkabel und Treiber prüfen.", "Windows reports no touchscreen. Check the USB touch cable and driver."},
         {"Die Windows-Touch-Einrichtung konnte nicht geöffnet werden.", "Windows touch setup could not be opened."},
+        // Companion-App (Android)
+        {"Kein Heimnetz gefunden (WLAN/LAN verbinden)", "No home network found (connect Wi-Fi/LAN)"},
+        {"Ungültiger Port für die Companion-App", "Invalid port for the companion app"},
+        {"TLS konnte nicht eingerichtet werden", "TLS could not be set up"},
+        {"Der Companion-Server läuft nicht – Companion einschalten und speichern",
+         "The companion server is not running – turn on Companion and save"},
+        {"muss sich vom Port der Einstellungsseite unterscheiden (nie 8765)", "must differ from the settings page port (never 8765)"},
+        {"Gerät nicht gefunden", "Device not found"},
         // Display: Titel, Kopf- und Fußzeilen, Hinweise
         {"Discord-Freunde", "Discord friends"},
         {"Freunde", "Friends"},
@@ -168,6 +176,8 @@ static const std::vector<std::pair<std::regex, std::string>>& patterns() {
             {R"(^OpenXBL antwortet mit Fehler (\d+)$)", "OpenXBL replied with error $1"},
             {R"(^(\w+): unerwarteter Fehler$)", "$1: unexpected error"},
             {R"(^erlaubt: (.+)$)", "allowed: $1"},
+            {R"(^Companion-Port (\d+) ist belegt$)", "Companion port $1 is in use"},
+            {R"(^Zu viele Fehlversuche – Kopplung in (\d+) Min\. wieder möglich$)", "Too many failed attempts – pairing possible again in $1 min"},
             {R"(^(.+) – Bildschirm in den Einstellungen prüfen$)", "$1 – check the screen in the settings"},
             {R"(^Öffne die Einstellungen über das Fuchs-Symbol im Infobereich\. Lokale Adresse: (.+)$)",
              "Open settings via the fox icon in the notification area. Local address: $1"},

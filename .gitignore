@@ -16,6 +16,7 @@ preview/
 # Persönliche Daten und Geheimnisse – niemals einchecken
 config.toml
 config*.toml
+companion.json
 *.toml.bak
 *.bak
 *.log

@@ -1,5 +1,7 @@
 # FuchsLabs USB-Display 2.1.0
 
+Unreleased Companion development: independent USB/HDMI and Android views, automatic phone dimensions and rotation. See [DE](../docs/COMPANION.md) / [EN](../docs/COMPANION.en.md). Tests include `python tests/app_companion_integration.py` on Windows (isolated processes with `--no-lcd`, no physical display).
+
 Native Windows C++20 port of FuchsLabs USB-Display. The application and installer are distributed as one EXE; it requires no Python runtime or Visual C++ redistributable. The settings window is a native Windows window backed by Microsoft Edge WebView2. The WebView2 Evergreen Runtime is a Windows prerequisite and is not bundled in this EXE.
 
 ## Install and first start
@@ -37,6 +39,10 @@ New **Home Assistant** page with up to 4 tiles. **Sensors** (including binary se
 
 In **Settings → Overview**, use **Previous view** and **Next view** to cycle through the running display views directly. The position and visible pages appear below the live preview. Long lists include their subpages; wide displays advance by one tile group, as with touch navigation. Each manual change restarts the configured page duration, then automatic cycling continues. Buttons are disabled when there are no views or all views already fit on screen. No save or restart is needed. Changes to page selection and order take effect after **Save & apply**.
 
+## Companion app (Android, PC side, unreleased)
+
+`[companion] enabled = true` (settings tab **Companion**) mirrors the display to a paired Android device; `display.output = "network"` uses the device as the only output (480 × 320). TLS WebSocket on port 8777, private IPv4 addresses only, mDNS `_fuchslabs-display._tcp`, QR/PIN pairing, keys DPAPI-protected in `companion.json`. Protocol: [../docs/COMPANION-PROTOKOLL.md](../docs/COMPANION-PROTOKOLL.md). The platform-neutral part (`companion.cpp`, `companion_server.cpp`) builds and tests on Linux: `tests/build-linux.sh` (needs g++, OpenSSL dev files, `NLOHMANN_INCLUDE` pointing to a folder with `nlohmann/json.hpp`).
+
 ## HDMI/USB-C and touch
 
 Choose **Screen over HDMI or USB-C** and the intended monitor under **Display**; set Windows to **Extend**. Fullscreen covers the taskbar without taking keyboard focus. A touchscreen also requires its USB touch connection.
@@ -45,7 +51,7 @@ If taps affect another display, select **Assign touch display**. The fullscreen 
 
 ## Build
 
-The checked-in `build.bat` expects Visual Studio Build Tools 2022, CMake/Ninja, and a vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`. It installs the pinned dependencies using the repository's vcpkg manifest and overlay port, builds x64 Release, runs `fl-tests.exe` plus `fl-monitor-tests.exe`, and copies the installer/app to `dist\FuchsLabs-USB-Display.exe`.
+The checked-in `build.bat` expects Visual Studio Build Tools 2022, CMake/Ninja, and a vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`. It installs the pinned dependencies using the repository's vcpkg manifest and overlay port, builds x64 Release, runs `fl-tests.exe`, `fl-monitor-tests.exe` and `fl-companion-tests.exe`, and copies the installer/app to `dist\FuchsLabs-USB-Display.exe`.
 
 ```bat
 build.bat

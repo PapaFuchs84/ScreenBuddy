@@ -14,12 +14,13 @@ Stand: 2.0.4 (C++), Python 1.2 (historisch). Die Versionen der vcpkg-Pakete erge
 | toml++ | MIT | Mark Gillard | https://github.com/marzer/tomlplusplus |
 | pugixml | MIT | Arseny Kapoulkine | https://pugixml.org |
 | cpp-httplib | MIT | yhirose | https://github.com/yhirose/cpp-httplib |
-| OpenSSL (Abhängigkeit von D++) | Apache-2.0 | The OpenSSL Project Authors | https://www.openssl.org |
+| OpenSSL (Abhängigkeit von D++; auch TLS der Companion-App) | Apache-2.0 | The OpenSSL Project Authors | https://www.openssl.org |
 | Opus (Abhängigkeit von D++) | BSD-3-Clause | Xiph.Org Foundation, Skype Limited u. a. | https://opus-codec.org |
 | zlib (Abhängigkeit von D++) | Zlib | Jean-loup Gailly, Mark Adler | https://zlib.net |
+| QR Code generator library (C++) 1.8.0 | MIT | Project Nayuki | https://www.nayuki.io/page/qr-code-generator-library · `cpp/third_party/qrcodegen` |
 | Microsoft Edge WebView2 SDK 1.0.4258.31 (Header, statischer Loader) | BSD-3-Clause | Microsoft Corporation | `cpp/third_party/webview2/LICENSE.txt`, `NOTICE.txt` |
 
-Die WebView2-Laufzeit selbst wird nicht mitgeliefert (Windows-Voraussetzung). Windows-Komponenten (Direct2D, DirectWrite, WinHTTP, DPAPI) sind Teil von Windows.
+Die WebView2-Laufzeit selbst wird nicht mitgeliefert (Windows-Voraussetzung). Windows-Komponenten (Direct2D, DirectWrite, WIC, WinHTTP, DPAPI, DNS-SD/mDNS) sind Teil von Windows.
 
 Schriften: Die App bündelt keine Schriften. Sie verwendet die auf dem PC vorhandenen Windows-Schriften Bahnschrift und Segoe UI (Microsoft).
 

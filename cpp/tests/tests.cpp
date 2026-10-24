@@ -77,6 +77,28 @@ static void test_config() {
         threw = true;
     }
     CHECK(threw);
+    // Companion: standardmäßig aus, Port 8777; nie 8765 bzw. der Port der Einstellungsseite
+    CHECK(!cfg["companion"]["enabled"].get<bool>());
+    CHECK_EQ(cfg["companion"]["port"].get<int>(), 8777);
+    CHECK_EQ(config::merge(cfg, {{"display", {{"output", "network"}}}})["display"]["output"].get<std::string>(), std::string("network"));
+    for (ojson bad : {ojson{{"companion", {{"enabled", true}, {"port", 8765}}}},
+                      ojson{{"companion", {{"enabled", true}, {"port", 9000}}}, {"ui", {{"port", 9000}}}}}) {
+        threw = false;
+        try {
+            config::merge(cfg, bad);
+        } catch (const std::invalid_argument& e) {
+            threw = std::string(e.what()).find("companion.port") == 0;
+        }
+        CHECK(threw);
+    }
+    CHECK_EQ(config::merge(cfg, {{"companion", {{"port", 8765}}}})["companion"]["port"].get<int>(), 8765);  // aus: egal
+    auto separate = config::merge(cfg, {{"display", {{"visible_pages", {"system"}}, {"page_seconds", 60}}},
+        {"companion", {{"pages", {"rss", "rss", "invalid", "system"}}, {"page_seconds", 5}}}});
+    CHECK_EQ(separate["display"]["visible_pages"], ojson::array({"system"}));
+    CHECK_EQ(separate["companion"]["pages"], ojson::array({"rss","system"}));
+    CHECK_EQ(separate["display"]["page_seconds"].get<int>(), 60);
+    CHECK_EQ(separate["companion"]["page_seconds"].get<int>(), 5);
+    CHECK(config::merge(cfg, {{"companion", {{"pages", ojson::array()}}}})["companion"]["pages"].empty());
     ojson pub = config::public_view(m);
     CHECK_EQ(pub["discord"]["token"].get<std::string>(), std::string(""));
     CHECK(pub["discord"]["token_set"].get<bool>());

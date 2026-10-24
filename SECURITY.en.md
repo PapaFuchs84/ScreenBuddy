@@ -28,6 +28,7 @@ FuchsLabs confirms receipt as soon as possible, keeps you updated on the fix and
 - The settings page only listens on `127.0.0.1` and must not be usable from the network or from other websites (host check, custom header for changes, `Sec-Fetch-Site` check, no framing).
 - The Discord token, the Steam and Xbox keys and the Home Assistant token are stored only DPAPI-encrypted in `config.toml`, never appear in the log and are never sent to the browser.
 - Data from the internet (feeds, avatars, player names) is size-limited and only drawn as text.
+- Companion app (off by default): listens only on private IPv4 addresses of the home network (port 8777, never 8765), accepts connections only from private address ranges and speaks TLS only (self-signed certificate; the app checks its fingerprint). Pairing only with the PIN shown on the settings page (2 minutes, single use, locked for 5 minutes after 5 failed attempts). Device keys (32 bytes) and the TLS key are stored DPAPI-encrypted in `companion.json`. A paired device can trigger the same touch targets as a touchscreen (open browser/chat, Home Assistant switches).
 - The app does not need admin rights.
 
 **Out of scope:** anyone with access to your Windows user account can read stored credentials the same way the app does. Other programs on the same PC can open the settings page but do not receive any credentials.

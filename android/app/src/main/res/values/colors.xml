@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="fl_orange">#F77F00</color>
+    <color name="fl_glut">#B05200</color>
+    <color name="fl_creme">#FFF4E6</color>
+    <color name="fl_sand">#FAE4C8</color>
+    <color name="fl_navy">#14213D</color>
+    <color name="fl_navy_deep">#0E1628</color>
+    <color name="fl_nebel">#68605C</color>
+    <color name="ic_launcher_background">#F77F00</color>
+</resources>

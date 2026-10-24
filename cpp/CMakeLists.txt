@@ -33,10 +33,11 @@ set(CORE_SOURCES
     src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/render.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/friends.cpp src/ha.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
-    src/installer.cpp src/resources.cpp src/settings_window.cpp src/touch.cpp src/update.cpp)
+    src/installer.cpp src/resources.cpp src/settings_window.cpp src/touch.cpp src/update.cpp
+    src/companion.cpp src/companion_server.cpp src/network_display.cpp third_party/qrcodegen/qrcodegen.cpp)
 
 add_library(flcore STATIC ${CORE_SOURCES})
-target_include_directories(flcore PUBLIC src)
+target_include_directories(flcore PUBLIC src third_party/qrcodegen)
 target_compile_definitions(flcore PUBLIC UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
 target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EHsc /MP)
 target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL OpenSSL::Crypto Opus::opus ZLIB::ZLIB
@@ -61,3 +62,8 @@ target_link_options(fl-tests PRIVATE /MANIFEST:NO)
 add_executable(fl-monitor-tests tests/monitor_tests.cpp)
 target_link_libraries(fl-monitor-tests PRIVATE flcore)
 target_link_options(fl-monitor-tests PRIVATE /MANIFEST:NO)
+
+# Companion-Protokoll (Kopplung, WebSocket, TLS-Server auf 127.0.0.1); unter Linux: tests/build-linux.sh
+add_executable(fl-companion-tests tests/companion_tests.cpp)
+target_link_libraries(fl-companion-tests PRIVATE flcore)
+target_link_options(fl-companion-tests PRIVATE /MANIFEST:NO)

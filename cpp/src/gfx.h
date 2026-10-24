@@ -33,6 +33,7 @@ void gfx_init();  // einmal pro Prozess, vor dem ersten Zeichnen
 // Bilder: nur gängige Webformate (PNG, JPEG, GIF, WebP) – fremde Daten, kleine Angriffsfläche
 std::optional<Image> decode_image(const std::string& bytes);
 std::string encode_png(const Image& img);
+std::string encode_jpeg(const Image& img, float quality = 0.8f);  // Companion-App (Qualität 0..1)
 Image resize(const Image& img, int w, int h);           // hochwertig (Fant/Kubisch)
 Image thumbnail(const Image& img, int max_w, int max_h);  // Seitenverhältnis bleibt, nur verkleinern
 void paste(Image& dst, const Image& src, int x, int y);   // ohne Mischen (Kacheln)
