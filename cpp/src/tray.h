@@ -2,6 +2,7 @@
 // Tray-Symbol (Infobereich): Doppelklick oder Menü „Einstellungen“ öffnet die Einstellungsseite; Rechtsklick zeigt das Menü.
 #pragma once
 
+#include <atomic>
 #include <functional>
 #include <string>
 #include <thread>
@@ -28,7 +29,9 @@ private:
     std::function<void()> on_open_, on_restart_, on_quit_;
     void* hwnd_ = nullptr;
     void* icon_ = nullptr;
+    std::atomic<bool> stopping_{false};
     bool added_ = false;
+    int retry_count_ = 0;
     unsigned taskbar_created_ = 0;
     std::thread th_;
 };

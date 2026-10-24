@@ -15,10 +15,14 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 - Windows-Version auf 2.3.0 aktualisiert; Deutsch-/Englisch-Anleitung, Testprotokoll und eingebettete Hilfe synchronisiert.
 - Die Installation übernimmt vorhandene Einstellungen neben einer portablen EXE. Vor einem Update wird eine lokale Einstellungs-Sicherung angelegt; Klartext-Zugangsdaten werden darin verschlüsselt abgelegt.
 
+### Behoben
+- Beenden und `POST /api/quit` blockieren nicht mehr bis zu 30 Sekunden im Infobereich (`Tray`), wenn die Taskleiste nicht verfügbar ist (nicht blockierender `WM_TIMER` statt synchronem `Sleep`).
+- Die Deinstallation mit Bereinigung (`--purge`) löscht nun auch `config.toml.install-backup`, `companion.json` (samt Sicherungen/Temporärdateien) und `update-check.json`.
+- Die Installation übernimmt neben einer portablen EXE vorhandene Companion-Kopplungen (`companion.json`).
+- Bebilderte Anleitungsvorlagen (`anleitung.template.html`, `anleitung.template.en.html`) mit den eingebetteten Ressourcen synchronisiert; Dokumentations- und Versionsverweise auf 2.3.0 korrigiert.
+
 ### Prüfumfang
 - Redmi 8 bestätigt: automatische Auflösung, Hoch-/Querformat, Seitenwechsel, Fingerwischen und Tippen, Kopplung und Wiederverbindung. Der physische USB-Ausgang gemeinsam mit dem Companion sowie WLAN, Start beim Android-Boot und mehrere reale Android-Geräte bleiben offen.
-
-## [Unveröffentlicht]
 
 ## [2.2.0] – 2026-10-24
 

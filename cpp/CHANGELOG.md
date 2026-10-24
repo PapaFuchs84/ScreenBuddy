@@ -6,6 +6,10 @@
 - `/api/companion/pages`, `/api/companion/pages/step`, `/api/companion/preview.png` provide independent local controls. Extra DE/EN settings appear only when Companion is active. Companion disabled preserves the existing main page order/visibility.
 - Installer now migrates settings beside a portable EXE when creating a local installation. Existing settings are snapshotted before updates; plaintext credentials are re-serialized with DPAPI encryption in the backup.
 - Supports `swipe.dir` strings left/right and the tested numeric quick fix. Swipe/touch share the 10-per-second limit; resize is authenticated and limited to 4 per second.
+- Fixed: Tray notification icon initialization uses non-blocking `WM_TIMER` retries instead of synchronous `Sleep`, preventing up to 30 seconds shutdown delays on `POST /api/quit` in headless/test environments.
+- Fixed: Uninstaller with `--purge` now removes `config.toml.install-backup`, `companion.json` (with temporary/backup files), and `update-check.json`.
+- Fixed: Installer copies existing `companion.json` when migrating settings alongside a portable EXE.
+- Fixed: Guide templates (`anleitung.template.*`) and documentation synchronized for 2.3.0 release consistency.
 - Current Windows and Android checks: see TESTPROTOKOLL.md. Historical pre-Windows prototype statements below describe the earlier implementation.
 
 ### Companion foundation

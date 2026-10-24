@@ -2,7 +2,7 @@
 
 ## Version 2.3.0 (24.10.2026): Companion-Vorschau
 
-- **Windows:** Release-Build erfolgreich. 236 Kernprüfungen, 11 Monitorprüfungen und 335 Companion-Protokoll-/TLS-Prüfungen bestanden. Neue TLS-Prüfungen: Anmeldung vor Größen-/Wischmeldungen, native Größen und Rotation, `ready` vor dem passenden JPEG, numerische Schnellfix-Kompatibilität und Schutz vor Größenänderungen durch einen zweiten Client.
+- **Windows:** Release-Build erfolgreich (Produktversion 2.3.0, 14.037.504 Bytes, SHA-256 `3a1ecbd20269afc78b3e5b63c129fa3460860c5720e195f2c1191104b0792a69`). 236 Kernprüfungen, 11 Monitorprüfungen und 335 Companion-Protokoll-/TLS-Prüfungen bestanden. Neue TLS-Prüfungen: Anmeldung vor Größen-/Wischmeldungen, native Größen und Rotation, `ready` vor dem passenden JPEG, numerische Schnellfix-Kompatibilität und Schutz vor Größenänderungen durch einen zweiten Client.
 - **Android:** `:protocol:test` (20 Tests, keine Fehler) und `:app:assembleDebug` erfolgreich mit Gradle 8.9/JDK 21. Die aktuelle Debug-APK wurde mit ausdrücklicher Freigabe auf dem Redmi 8 installiert.
 - **Isolierte App:** 39 Prüfungen mit echten PC-App-Prozessen, eigener Konfiguration und freien Ports: Start ohne Companion, unabhängige Seitenwahl, Navigation in beiden Richtungen, eigener Timer, native Größe, Rotation, Nur-Companion-Modus und sauberes Beenden. Hauptausgang mit `--no-lcd` simuliert; kein serieller Zugriff.
 - **Installation:** Zwei Windows-Integrationstests decken Upgrade mit vorhandener `config.toml` samt lokaler Sicherung und Neuinstallation aus einer portablen EXE mit Einstellungen neben der EXE ab. Alle Testpfade liegen in `cpp/build`; `--no-lcd`, eigene Ports und Testinstanz verhindern Hardware- oder Benutzerprofilzugriffe.

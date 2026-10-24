@@ -13,6 +13,7 @@ namespace fl {
 namespace {
 constexpr UINT WM_TRAY = WM_USER + 20;
 constexpr UINT ID_OPEN = 1001, ID_RESTART = 1002, ID_QUIT = 1003, ID_GUIDE = 1004;
+constexpr UINT_PTR ID_RETRY_TIMER = 1005;
 const wchar_t* CLASS_NAME = L"FuchsLabsUsbDisplayTray";
 
 LRESULT CALLBACK proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
@@ -73,10 +74,12 @@ Tray::Tray(std::string tip, std::function<void()> on_open, std::function<void()>
 Tray::~Tray() { stop(); }
 
 void Tray::start() {
+    stopping_ = false;
     th_ = std::thread([this] { run(); });
 }
 
 void Tray::stop() {
+    stopping_ = true;
     if (hwnd_) PostMessageW((HWND)hwnd_, WM_CLOSE, 0, 0);
     if (th_.joinable()) th_.join();
 }
@@ -102,26 +105,31 @@ void Tray::run() {
     wc.lpszClassName = CLASS_NAME;
     RegisterClassW(&wc);
     taskbar_created_ = RegisterWindowMessageW(L"TaskbarCreated");
+    if (stopping_) return;
     HWND hwnd = CreateWindowExW(0, CLASS_NAME, L"FuchsLabs USB-Display", 0, 0, 0, 0, 0, nullptr, nullptr, hinst, this);
-    if (!hwnd) return;
+    if (!hwnd || stopping_) {
+        if (hwnd) DestroyWindow(hwnd);
+        return;
+    }
     hwnd_ = hwnd;
     int px = GetSystemMetrics(SM_CXSMICON);  // passende Größe bei hoher Skalierung
     icon_ = make_hicon(px ? px : 16);
-    // Beim Windows-Start ist die Taskleiste manchmal noch nicht da: einige Male erneut versuchen
-    for (int i = 0; i < 30 && !added_; ++i) {
-        add_icon(hwnd, (HICON)icon_, tip_, added_);
-        if (!added_) Sleep(1000);
-    }
+    retry_count_ = 0;
+    add_icon(hwnd, (HICON)icon_, tip_, added_);
+    if (!added_) SetTimer(hwnd, ID_RETRY_TIMER, 1000, nullptr);
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
     }
     hwnd_ = nullptr;
-    if (icon_) DestroyIcon((HICON)icon_);
+    if (icon_) {
+        DestroyIcon((HICON)icon_);
+        icon_ = nullptr;
+    }
 }
 
-bool Tray::handle(void* hwnd_v, unsigned msg, unsigned long long, long long lp, long long& result) {
+bool Tray::handle(void* hwnd_v, unsigned msg, unsigned long long wp, long long lp, long long& result) {
     HWND hwnd = (HWND)hwnd_v;
     if (msg == WM_TRAY) {
         if (lp == WM_LBUTTONDBLCLK) on_open_();
@@ -130,16 +138,31 @@ bool Tray::handle(void* hwnd_v, unsigned msg, unsigned long long, long long lp, 
         result = 0;
         return true;
     }
+    if (msg == WM_TIMER && wp == ID_RETRY_TIMER) {
+        add_icon(hwnd, (HICON)icon_, tip_, added_);
+        if (added_ || ++retry_count_ >= 30) {
+            KillTimer(hwnd, ID_RETRY_TIMER);
+        }
+        result = 0;
+        return true;
+    }
     if (taskbar_created_ && msg == taskbar_created_) {  // Explorer neu gestartet: Symbol wieder anlegen
         add_icon(hwnd, (HICON)icon_, tip_, added_);
+        if (!added_) {
+            retry_count_ = 0;
+            SetTimer(hwnd, ID_RETRY_TIMER, 1000, nullptr);
+        }
+        result = 0;
         return true;
     }
     if (msg == WM_CLOSE) {
+        KillTimer(hwnd, ID_RETRY_TIMER);
         DestroyWindow(hwnd);
         result = 0;
         return true;
     }
     if (msg == WM_DESTROY) {
+        KillTimer(hwnd, ID_RETRY_TIMER);
         if (added_) {
             NOTIFYICONDATAW nid{};
             nid.cbSize = sizeof nid;

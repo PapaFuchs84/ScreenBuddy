@@ -195,6 +195,12 @@ Result install(const Options& o, const std::function<void(const std::string&)>& 
             return r;
         }
         LOGI("setup", "Vorhandene Einstellungen übernommen");
+        fs::path old_comp = old_cfg.parent_path() / L"companion.json";
+        fs::path new_comp = dir / L"companion.json";
+        if (!fs::exists(new_comp, ec) && fs::exists(old_comp, ec) && old_comp != new_comp) {
+            fs::copy_file(old_comp, new_comp, fs::copy_options::overwrite_existing, ec);
+            if (!ec) LOGI("setup", "Companion-Kopplungen übernommen");
+        }
     }
     if (fs::exists(cfg, ec)) {
         fs::path backup = cfg;
@@ -617,7 +623,9 @@ int finish_uninstall(const std::wstring& dir_s, unsigned long parent_pid) {
         fs::remove(dir / L"LICENSE.txt", ec);
         fs::remove(dir / L"THIRD-PARTY-NOTICES.md", ec);
         if (purge) {
-            for (auto* f : {L"config.toml", L"config.toml.bak", L"config.toml.tmp", L"usb-display.log", L"usb-display.log.1"})
+            for (auto* f : {L"config.toml", L"config.toml.bak", L"config.toml.tmp", L"config.toml.install-backup",
+                            L"companion.json", L"companion.json.bak", L"companion.json.tmp",
+                            L"update-check.json", L"usb-display.log", L"usb-display.log.1"})
                 fs::remove(dir / f, ec);
         }
         fs::remove(dir, ec);  // nur wenn leer

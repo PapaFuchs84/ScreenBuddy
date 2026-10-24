@@ -15,10 +15,14 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 - Windows version bumped to 2.3.0; German/English guides, test record and embedded help synchronized.
 - Local installation imports settings beside a portable EXE. Updates create a local settings snapshot first; plaintext credentials are encrypted in that snapshot.
 
+### Fixed
+- App shutdown and `POST /api/quit` no longer block for up to 30 seconds in the notification area (`Tray`) when the taskbar is unavailable (non-blocking `WM_TIMER` instead of synchronous `Sleep`).
+- Uninstallation with purge (`--purge`) now cleans up `config.toml.install-backup`, `companion.json` (including backups/temporary files) and `update-check.json`.
+- Local installation migrates existing Companion pairings (`companion.json`) alongside a portable EXE.
+- Illustrated guide templates (`anleitung.template.html`, `anleitung.template.en.html`) synchronized with embedded resources; documentation and version links aligned with 2.3.0.
+
 ### Validation
 - Redmi 8 confirmed: automatic dimensions, portrait/landscape rotation, page changes, finger swipes and taps, pairing and reconnect. Physical USB output alongside Companion, Wi-Fi, Android boot launch and multiple real devices remain open.
-
-## [Unreleased]
 
 ## [2.2.0] – 2026-10-24
 

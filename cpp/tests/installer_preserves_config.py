@@ -96,8 +96,11 @@ def check_portable_settings(exe: Path, root: Path) -> None:
     settings = (f'[display]\noutput = "serial"\n\n'
                 f'[ui]\nlanguage = "de"\nport = {port}\nupdate_check = false\n').encode()
     (source_dir / "config.toml").write_bytes(settings)
+    companion_data = b'{"version": 1, "devices": []}'
+    (source_dir / "companion.json").write_bytes(companion_data)
     run_install(portable_exe, install_dir, port, root / "portable.log")
     assert_snapshot(install_dir / "config.toml", settings)
+    assert (install_dir / "companion.json").read_bytes() == companion_data, "installer omitted companion store"
 
 
 def main() -> int:

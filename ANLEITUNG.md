@@ -1,14 +1,14 @@
 # FuchsLabs USB-Display – Schnellstart
 
-**Unveröffentlichter Companion-Prototyp:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
+**Companion-Vorschau (ab 2.3.0):** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
 
-> **Version 2.1.0:** Die bebilderte Anleitung öffnet sich über **Bebilderte Anleitung** in den Einstellungen oder **Anleitung öffnen** im Tray im Standardbrowser. Sie ist in der EXE enthalten. Sprache unter **Start › Sprache · Language** umschalten.
+> **Version 2.3.0:** Die bebilderte Anleitung öffnet sich über **Bebilderte Anleitung** in den Einstellungen oder **Anleitung öffnen** im Tray im Standardbrowser. Sie ist in der EXE enthalten. Sprache unter **Start › Sprache · Language** umschalten.
 
 Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastung, Temperaturen, Netzwerk), **Discord-Freunde**, **Freunde von Steam, Xbox und Discord** in einer Liste, eine **Battlefield-6-Rangliste** und **Blog-Updates**. Du brauchst keine Vorkenntnisse.
 
 ## In 3 Minuten loslegen
 
-1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest), derzeit **2.1.0**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
+1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest), derzeit **2.3.0**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
 2. Windows 10/11 x64 mit **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit muss vorhanden sein; sie wird nicht mitgeliefert oder automatisch installiert.
 3. Display anschließen und `FuchsLabs-USB-Display.exe` starten. Der Installer richtet die App unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` ein. Er benötigt dafür keine Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster** für die Einstellungen.

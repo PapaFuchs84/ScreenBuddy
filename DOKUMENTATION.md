@@ -1,14 +1,14 @@
 # FuchsLabs USB-Display – Dokumentation
 
-**Unveröffentlichter Companion-Prototyp:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
+**Companion-Vorschau ab 2.3.0:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
 
-Version 2.2.0 · Stand 24.10.2026 · © 2026 FuchsLabs
+Version 2.3.0 · Stand 24.10.2026 · © 2026 FuchsLabs
 
 Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein eigenes Windows-Einstellungsfenster mit WebView2. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
 
-## Companion-App für Android (in Entwicklung, unveröffentlicht)
+## Companion-App für Android (Companion-Vorschau ab 2.3.0)
 
-Die PC-Seite ist eingebaut; die Android-App liegt als Prototyp unter `android/` und ist noch nicht veröffentlicht. Ein Handy oder Tablet im selben WLAN zeigt dann das Display (480 × 320 bzw. die Größe des eigentlichen Displays, die App skaliert mit Rand) und meldet Tipps zurück; diese wirken wie auf einem Touch-Bildschirm (Ziele und Home-Assistant-Schalter, sonst links = zurück, sonst weiter).
+Die PC-Seite ist eingebaut; die Android-App liegt als Vorschau unter `android/` (`FuchsLabs-Companion-0.2.0-preview.apk`). Ein Handy oder Tablet im selben WLAN zeigt dann das Display (automatische Auflösung nach Meldung der App) und meldet Gesten/Tipps zurück.
 
 - **Einschalten:** **Einstellungen → Companion → Companion einschalten** und speichern (läuft dann zusätzlich zum USB-Display) oder unter **Display → Display-Typ** „Companion-App (Android, über WLAN)“ wählen (nur das Handy, kein USB-Display). Standard: aus. Windows fragt beim ersten Start eventuell nach der Firewall: „Private Netzwerke“ erlauben.
 - **Koppeln:** **Kopplungscode anzeigen** zeigt QR-Code, 6-stellige PIN und den Fingerabdruck des Zertifikats. In der App den QR-Code scannen (oder Adresse und PIN eintippen und den Fingerabdruck vergleichen). Der Code gilt 2 Minuten und nur einmal; nach 5 falschen Versuchen ist das Koppeln 5 Minuten gesperrt.
@@ -16,7 +16,7 @@ Die PC-Seite ist eingebaut; die Android-App liegt als Prototyp unter `android/` 
 - **Gespeichert:** `companion.json` neben der `config.toml` (TLS-Zertifikat, DPAPI-verschlüsselter TLS-Schlüssel, je Gerät ein DPAPI-verschlüsselter Schlüssel). Unter **Gekoppelte Geräte** lässt sich jedes Gerät entfernen; seine Verbindung wird sofort getrennt. Wer `companion.json` löscht, bekommt ein neues Zertifikat und muss alle Geräte neu koppeln.
 - **Last:** Bilder gehen nur bei Änderung als JPEG raus, höchstens 5 pro Sekunde.
 
-Protokoll: [docs/COMPANION-PROTOKOLL.md](docs/COMPANION-PROTOKOLL.md). Prüfstand: Protokoll, Kopplung und TLS-Server unter Linux getestet; Windows-Build, mDNS, Firewall-Dialog und die Einstellungsseite noch ungeprüft.
+Protokoll: [docs/COMPANION-PROTOKOLL.md](docs/COMPANION-PROTOKOLL.md). Prüfstand: siehe [Testprotokoll](cpp/TESTPROTOKOLL.md). Bestätigt auf Redmi 8 per USB-Tethering. Offen: physischer USB-Ausgang gemeinsam mit Companion in derselben neuen Instanz, WLAN, Android-Boot und mehrere Geräte.
 
 ## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
 
@@ -210,10 +210,12 @@ Die aktuelle Implementierung ist C++20 unter `cpp/`.
 | `settings_window.cpp`, `tray.cpp` | Win32/WebView2-Fenster und Infobereich |
 | `webui.cpp`, `config.cpp`, `secure.cpp` | lokaler Einstellungsdienst, TOML und DPAPI |
 | `ha.cpp` | Home-Assistant-REST-Abfrage und Schalten |
-| `serial_display.cpp`, `monitor_display.cpp` | USB-Display bzw. HDMI/USB-C und Touch |
+| `serial_display.cpp`, `monitor_display.cpp`, `network_display.cpp` | USB-Display, HDMI/USB-C und Companion (Android) |
+| `companion.cpp`, `companion_server.cpp` | Companion-Protokoll, TLS-Server, mDNS, QR/PIN-Kopplung |
 | `gfx.cpp`, `render.cpp` | Grafik und Seitenlayout |
 | `discord.cpp`, `friends.cpp`, `bf6.cpp`, `rss.cpp`, `sysinfo.cpp` | Datenquellen; Discord über D++ |
 | `installer.cpp`, `winsetup.cpp` | Installation, Updates, Deinstallation und Autostart |
+| `update.cpp` | GitHub-Release-Abfrage und Update-Hinweise |
 
 Einstellungen und Anleitungen unter `cpp/res/` sind als Ressourcen in die EXE eingebettet. Die Python-Dateien im Repository-Hauptordner bleiben der historische Stand 1.x.
 
@@ -228,6 +230,8 @@ Der Build benötigt Visual Studio Build Tools 2022, Windows SDK, CMake/Ninja und
 In Windows **Einstellungen → Apps → FuchsLabs USB-Display → Deinstallieren**. Der integrierte Deinstaller entfernt Autostart und Verknüpfung. Der Dialog bietet zusätzlich an, Einstellungen und gespeicherte Zugangsdaten zu entfernen. Ein aufbewahrter `-1.x-alt`-Ordner gehört zur alten Version und ist ein eigener Rückfallstand.
 
 ## 13. Prüfstand und Windows-Neustart
+
+**2.3.0:** Companion-Vorschau: unabhängige Anzeigen (USB/HDMI und Android gleichzeitig), automatische Auflösung und Drehung, Krypto/TLS-Härtung und Einstellungs-Migration/Sicherung. Release-Build, 236 Kernprüfungen, 11 Monitorprüfungen, 335 Companion-Prüfungen, 39 App-Integrationsprüfungen und 2 Installer-Sicherungsprüfungen bestanden. Bestätigt auf Redmi 8 per USB-Tethering. Offen: physischer USB-Ausgang gemeinsam mit Companion in derselben neuen Instanz, WLAN, Android-Boot und mehrere reale Geräte.
 
 **2.2.0:** Release-Build, 225 Kernprüfungen und 11 Monitor-Basisprüfungen bestanden (neu: Trefferflächen der Systemseite, Versionsvergleich, Auswertung der GitHub-Antwort; die Trefferflächen wurden gegen das gerenderte Vorschaubild geprüft). Offen: Tippen auf echter Touch-Hardware, Sprechblase und Einstellungsanzeige mit einer tatsächlich neueren Veröffentlichung, Windows-Anmeldetest für 2.2.0.
 

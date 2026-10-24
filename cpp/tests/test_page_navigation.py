@@ -112,7 +112,7 @@ def step(delta, expected):
 
 def main():
     exe = Path(sys.argv[1]).resolve()
-    expected_version = sys.argv[2] if len(sys.argv) > 2 else '2.0.7'
+    expected_version = sys.argv[2] if len(sys.argv) > 2 else '2.3.0'
     with instance(exe):
         check(json.loads(request('/api/config')[1])['version'] == expected_version, 'API version')
         check(state()['can_step'], 'multiple views enable navigation')
