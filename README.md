@@ -236,7 +236,7 @@ Battlefield, Discord, Steam und Xbox sind Marken ihrer jeweiligen Inhaber. Fuchs
 
 ## Prüfstand 2.3.0
 
-Release-Build: 236 Kern-, 11 Monitor- und 335 Companion-/TLS-Prüfungen bestanden. Außerdem 39 isolierte App-Integrationsprüfungen, 22 Browserprüfungen (DE/EN) und 20 Android-Protokolltests. Auf dem Redmi 8 wurden native Auflösung, Hoch-/Querformat, automatischer Seitenwechsel, Tippen, Wischen und Wiederverbindung bestätigt; der Nutzer bestätigte zusätzlich scharfes Bild und Fingerbedienung. **Offen:** physischer USB-Ausgang und Redmi gemeinsam in derselben neuen PC-Instanz, WLAN, Android-Start beim Booten und mehrere reale Geräte. Siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+Release-Build: 236 Kern-, 11 Monitor- und 335 Companion-/TLS-Prüfungen bestanden. Außerdem 39 isolierte App-Integrationsprüfungen, 2 Installer-Sicherungstests, 22 Browserprüfungen (DE/EN) und 20 Android-Protokolltests. Auf dem Redmi 8 wurden native Auflösung, Hoch-/Querformat, automatischer Seitenwechsel, Tippen, Wischen und Wiederverbindung bestätigt; der Nutzer bestätigte zusätzlich scharfes Bild und Fingerbedienung. **Offen:** physischer USB-Ausgang und Redmi gemeinsam in derselben neuen PC-Instanz, WLAN, Android-Start beim Booten und mehrere reale Geräte. Siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
 
 ## Prüfstand 2.2.0 (historisch)
 

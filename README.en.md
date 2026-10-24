@@ -237,7 +237,7 @@ Battlefield, Discord, Steam and Xbox are trademarks of their respective owners. 
 
 ## Validation of 2.3.0
 
-Release build: 236 core, 11 monitor and 335 Companion/TLS checks passed. Also passed: 39 isolated app-integration checks, 22 browser checks (DE/EN), and 20 Android protocol tests. On the Redmi 8, native dimensions, portrait/landscape rotation, automatic page changes, taps, swipes and reconnect were confirmed; the user also confirmed a sharp image and finger operation. **Open:** physical USB output and Redmi together in the same new PC instance, Wi-Fi, Android launch at boot and multiple real devices. See the [test record](cpp/TESTPROTOKOLL.md).
+Release build: 236 core, 11 monitor and 335 Companion/TLS checks passed. Also passed: 39 isolated app-integration checks, 2 installer config-preservation checks, 22 browser checks (DE/EN), and 20 Android protocol tests. On the Redmi 8, native dimensions, portrait/landscape rotation, automatic page changes, taps, swipes and reconnect were confirmed; the user also confirmed a sharp image and finger operation. **Open:** physical USB output and Redmi together in the same new PC instance, Wi-Fi, Android launch at boot and multiple real devices. See the [test record](cpp/TESTPROTOKOLL.md).
 
 ## Validation of 2.2.0 (historical)
 

@@ -4,6 +4,7 @@
 
 - Independent output state, page filters and timers; shared data sources/theme. Native resolution from authenticated `hello`/`resize`, bounded to 2560 pixels per edge and 4,194,304 pixels, first connected reporting device owns sizing. Each cached JPEG carries dimensions from the same snapshot; `ready` updates precede the corresponding JPEG. Touch coordinates from older dimensions are dropped.
 - `/api/companion/pages`, `/api/companion/pages/step`, `/api/companion/preview.png` provide independent local controls. Extra DE/EN settings appear only when Companion is active. Companion disabled preserves the existing main page order/visibility.
+- Installer now migrates settings beside a portable EXE when creating a local installation. Existing settings are snapshotted before updates; plaintext credentials are re-serialized with DPAPI encryption in the backup.
 - Supports `swipe.dir` strings left/right and the tested numeric quick fix. Swipe/touch share the 10-per-second limit; resize is authenticated and limited to 4 per second.
 - Current Windows and Android checks: see TESTPROTOKOLL.md. Historical pre-Windows prototype statements below describe the earlier implementation.
 

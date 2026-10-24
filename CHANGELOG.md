@@ -13,6 +13,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ### Geändert
 - Windows-Version auf 2.3.0 aktualisiert; Deutsch-/Englisch-Anleitung, Testprotokoll und eingebettete Hilfe synchronisiert.
+- Die Installation übernimmt vorhandene Einstellungen neben einer portablen EXE. Vor einem Update wird eine lokale Einstellungs-Sicherung angelegt; Klartext-Zugangsdaten werden darin verschlüsselt abgelegt.
 
 ### Prüfumfang
 - Redmi 8 bestätigt: automatische Auflösung, Hoch-/Querformat, Seitenwechsel, Fingerwischen und Tippen, Kopplung und Wiederverbindung. Der physische USB-Ausgang gemeinsam mit dem Companion sowie WLAN, Start beim Android-Boot und mehrere reale Android-Geräte bleiben offen.

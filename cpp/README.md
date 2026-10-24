@@ -70,7 +70,7 @@ Run `build\fl-monitor-tests.exe window` only for a controlled visible secondary-
 
 ## Validation status
 
-Version 2.3.0: release build, 236 core checks, 11 monitor checks and 335 Companion/TLS checks; 39 isolated app-integration checks; 22 DE/EN browser checks; Android has 20 protocol tests. The 2.3.0 settings page rendered on Windows with the Redmi 8 connected. Redmi preview validation confirms native portrait/landscape sizing, automatic page changes, touch/swipe and reconnect. The companion and physical USB display have not yet been tested together in the same new PC process; Wi-Fi, launcher/boot and multiple real devices remain open.
+Version 2.3.0: release build, 236 core checks, 11 monitor checks and 335 Companion/TLS checks; 39 isolated app-integration checks; 2 installer config-preservation checks; 22 DE/EN browser checks; Android has 20 protocol tests. The 2.3.0 settings page rendered on Windows with the Redmi 8 connected. Redmi preview validation confirms native portrait/landscape sizing, automatic page changes, touch/swipe and reconnect. The companion and physical USB display have not yet been tested together in the same new PC process; Wi-Fi, launcher/boot and multiple real devices remain open.
 
 Version 2.2.0: release build, 225 core checks (new: system-page hit areas, version comparison, GitHub response parsing) and 11 monitor basics passed. Open: tapping on real touch hardware, balloon/settings entry with a genuinely newer release, Windows sign-in test.
 

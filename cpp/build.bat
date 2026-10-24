@@ -21,6 +21,7 @@ cmake --build build || goto :fail
 build\fl-tests.exe || goto :fail
 build\fl-monitor-tests.exe || goto :fail
 build\fl-companion-tests.exe || goto :fail
+python tests\installer_preserves_config.py build\FuchsLabs-USB-Display.exe || goto :fail
 if not exist dist mkdir dist
 copy /y build\FuchsLabs-USB-Display.exe dist\ >nul || goto :fail
 echo.

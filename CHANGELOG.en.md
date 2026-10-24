@@ -13,6 +13,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Changed
 - Windows version bumped to 2.3.0; German/English guides, test record and embedded help synchronized.
+- Local installation imports settings beside a portable EXE. Updates create a local settings snapshot first; plaintext credentials are encrypted in that snapshot.
 
 ### Validation
 - Redmi 8 confirmed: automatic dimensions, portrait/landscape rotation, page changes, finger swipes and taps, pairing and reconnect. Physical USB output alongside Companion, Wi-Fi, Android boot launch and multiple real devices remain open.
