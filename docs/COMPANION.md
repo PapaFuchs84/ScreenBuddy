@@ -1,9 +1,9 @@
-## Companion-Prototyp: unabhängige Anzeigen (unveröffentlicht)
+## Companion-Vorschau (2.3.0): unabhängige Anzeigen
 
 USB-Display bzw. HDMI-Bildschirm und Android-Companion können gleichzeitig laufen. Beide haben eigene Seitenlisten, Seitenpositionen, Wechselintervalle und Touch-Ziele. Datenquellen, Konten und Design bleiben gemeinsam. Eine Seite muss in ihrem Datenquellen-Reiter eingeschaltet und eingerichtet sein, bevor sie auf einer Anzeige erscheinen kann.
 
 1. Den bisherigen Display-Typ beibehalten; unter **Companion** den Dienst einschalten und **Speichern & anwenden** wählen.
-2. Auf dem Android-Gerät die Debug-APK des Prototyps installieren. PC und Handy müssen sich im selben privaten IPv4-Netz erreichen können; USB-Tethering ist ebenfalls möglich. WLAN-/Router-Probleme werden dadurch nicht behoben.
+2. Auf dem Android-Gerät die Companion-Vorschau-APK installieren. PC und Handy müssen sich im selben privaten IPv4-Netz erreichen können; USB-Tethering ist ebenfalls möglich.
 3. Unter **Companion → Gerät koppeln** den Code anzeigen und in der Handy-App per QR-Code oder Adresse, Port und PIN koppeln; Zertifikat-Fingerabdruck vergleichen. PIN nur lokal verwenden, nicht in Berichten veröffentlichen.
 4. Unter **Companion → Unabhängige Companion-Anzeige** Seiten wählen und die Anzeigedauer einstellen (3–600 Sekunden). Die Pfeile schalten ausschließlich die Handy-Ansicht. Die Reihenfolge folgt der gespeicherten Auswahl; erneut angehakte Seiten stehen am Ende.
 5. Unter **Display → Seiten auf USB-Display / Bildschirm** die Auswahl für die andere Anzeige festlegen. Diese zusätzlichen Einstellungen erscheinen nur, wenn Companion eingeschaltet oder als Display-Typ gewählt ist. Ohne Companion gilt die bisherige Seitensteuerung.
@@ -29,4 +29,4 @@ page_seconds = 5
 
 Nur Handy: `[display] output = "network"`; Seiten und Wechselrhythmus kommen dann ebenfalls aus `[companion]`. Der Dienst bleibt standardmäßig aus. Port 8765 sowie der aktuelle Einstellungsport sind für Companion gesperrt. Kopplungen und Schlüssel bleiben lokal und werden nicht ins Repository übernommen.
 
-Prüfstand und Grenzen: siehe [Testprotokoll](../cpp/TESTPROTOKOLL.md). Die neue APK wurde auf dem echten Redmi 8 installiert und über USB-Tethering geprüft: native Hoch-/Querformat-Ausgabe, Android-injizierte Wisch-/Tippgesten, automatischer Wechsel und Wiederverbindung mit gespeichertem Schlüssel erfolgreich. Der Nutzer hat scharfes Bild sowie langsames/normales Wischen und Tippen mit dem Finger bestätigt. Physischer USB-Betrieb in derselben neuen PC-Instanz und WLAN bleiben gesonderte Abnahmepunkte. Die produktive PC-App wurde nicht ersetzt; der Stand bleibt unveröffentlicht.
+Prüfstand und Grenzen: siehe [Testprotokoll](../cpp/TESTPROTOKOLL.md). Die Vorschau-APK wurde auf dem echten Redmi 8 installiert und über USB-Tethering geprüft: native Hoch-/Querformat-Ausgabe, Android-injizierte Wisch-/Tippgesten, automatischer Wechsel und Wiederverbindung mit gespeichertem Schlüssel erfolgreich. Der Nutzer hat scharfes Bild sowie langsames/normales Wischen und Tippen mit dem Finger bestätigt. Physischer USB-Betrieb in derselben neuen PC-Instanz, WLAN, Start beim Android-Boot und mehrere echte Geräte bleiben offen.

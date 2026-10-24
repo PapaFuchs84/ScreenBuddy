@@ -1,6 +1,6 @@
 # FuchsLabs USB-Display 2.1.0
 
-Unreleased Companion development: independent USB/HDMI and Android views, automatic phone dimensions and rotation. See [DE](../docs/COMPANION.md) / [EN](../docs/COMPANION.en.md). Tests include `python tests/app_companion_integration.py` on Windows (isolated processes with `--no-lcd`, no physical display).
+Version 2.3.0 adds the Companion preview: independent USB/HDMI and Android views, automatic phone dimensions and rotation. See [DE](../docs/COMPANION.md) / [EN](../docs/COMPANION.en.md). Tests include `python tests/app_companion_integration.py` on Windows (isolated processes with `--no-lcd`, no physical display).
 
 Native Windows C++20 port of FuchsLabs USB-Display. The application and installer are distributed as one EXE; it requires no Python runtime or Visual C++ redistributable. The settings window is a native Windows window backed by Microsoft Edge WebView2. The WebView2 Evergreen Runtime is a Windows prerequisite and is not bundled in this EXE.
 
@@ -39,7 +39,7 @@ New **Home Assistant** page with up to 4 tiles. **Sensors** (including binary se
 
 In **Settings → Overview**, use **Previous view** and **Next view** to cycle through the running display views directly. The position and visible pages appear below the live preview. Long lists include their subpages; wide displays advance by one tile group, as with touch navigation. Each manual change restarts the configured page duration, then automatic cycling continues. Buttons are disabled when there are no views or all views already fit on screen. No save or restart is needed. Changes to page selection and order take effect after **Save & apply**.
 
-## Companion app (Android, PC side, unreleased)
+## Companion app (Android preview, PC side)
 
 `[companion] enabled = true` (settings tab **Companion**) mirrors the display to a paired Android device; `display.output = "network"` uses the device as the only output (480 × 320). TLS WebSocket on port 8777, private IPv4 addresses only, mDNS `_fuchslabs-display._tcp`, QR/PIN pairing, keys DPAPI-protected in `companion.json`. Protocol: [../docs/COMPANION-PROTOKOLL.md](../docs/COMPANION-PROTOKOLL.md). The platform-neutral part (`companion.cpp`, `companion_server.cpp`) builds and tests on Linux: `tests/build-linux.sh` (needs g++, OpenSSL dev files, `NLOHMANN_INCLUDE` pointing to a folder with `nlohmann/json.hpp`).
 
@@ -69,6 +69,8 @@ Run `build\fl-monitor-tests.exe window` only for a controlled visible secondary-
 - If the serial display cannot open its COM port, close the vendor monitor program and check that another app is not using that port.
 
 ## Validation status
+
+Version 2.3.0: release build, 236 core checks, 11 monitor checks and 335 Companion/TLS checks; 39 isolated app-integration checks; 2 installer config-preservation checks; 22 DE/EN browser checks; Android has 20 protocol tests. The 2.3.0 settings page rendered on Windows with the Redmi 8 connected. Redmi preview validation confirms native portrait/landscape sizing, automatic page changes, touch/swipe and reconnect. The companion and physical USB display have not yet been tested together in the same new PC process; Wi-Fi, launcher/boot and multiple real devices remain open.
 
 Version 2.2.0: release build, 225 core checks (new: system-page hit areas, version comparison, GitHub response parsing) and 11 monitor basics passed. Open: tapping on real touch hardware, balloon/settings entry with a genuinely newer release, Windows sign-in test.
 

@@ -1,6 +1,6 @@
 <div align="center">
 
-**Unveröffentlichter Companion-Prototyp:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
+**Neu in 2.3.0 – Companion-Vorschau:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
@@ -10,7 +10,7 @@
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.2.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.3.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -100,7 +100,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **FuchsLabs-USB-Display.exe** aus dem [aktuellen Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) herunterladen (Stand: **2.2.0**). Die EXE ist unsigniert. Daneben liegt `SHA256SUMS.txt` zur Dateiprüfung.
+1. **FuchsLabs-USB-Display.exe** aus dem [aktuellen Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) herunterladen (Stand: **2.3.0**). Die EXE ist unsigniert. Daneben liegt `SHA256SUMS.txt` zur Dateiprüfung.
 2. Windows 10/11 x64 mit installierter **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit ist nicht in der EXE enthalten und wird vom Installer nicht automatisch installiert.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
@@ -234,7 +234,11 @@ Der Code steht unter der [MIT-Lizenz](LICENSE), © 2026 FuchsLabs. Name und Fuch
 
 Battlefield, Discord, Steam und Xbox sind Marken ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen.
 
-## Prüfstand 2.2.0
+## Prüfstand 2.3.0
+
+Release-Build: 236 Kern-, 11 Monitor- und 335 Companion-/TLS-Prüfungen bestanden. Außerdem 39 isolierte App-Integrationsprüfungen, 2 Installer-Sicherungstests, 22 Browserprüfungen (DE/EN) und 20 Android-Protokolltests. Auf dem Redmi 8 wurden native Auflösung, Hoch-/Querformat, automatischer Seitenwechsel, Tippen, Wischen und Wiederverbindung bestätigt; der Nutzer bestätigte zusätzlich scharfes Bild und Fingerbedienung. **Offen:** physischer USB-Ausgang und Redmi gemeinsam in derselben neuen PC-Instanz, WLAN, Android-Start beim Booten und mehrere reale Geräte. Siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+
+## Prüfstand 2.2.0 (historisch)
 
 Release-Build, 225 Kernprüfungen (neu: Trefferflächen der Systemseite, Versionsvergleich und Auswertung der GitHub-Antwort) und 11 Monitor-Basisprüfungen bestanden; die Trefferflächen stimmen mit der gerenderten Systemseite überein (Vorschaubild). **Noch offen:** Tippen auf echter Touch-Hardware (Task-Manager, „Programme und Features“, Speedtest), die Sprechblase und die Anzeige in den Einstellungen mit einer tatsächlich neueren Veröffentlichung sowie ein Windows-Anmeldetest für 2.2.0. Siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
 

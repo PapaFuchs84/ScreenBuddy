@@ -156,11 +156,26 @@ Result install(const Options& o, const std::function<void(const std::string&)>& 
     fs::path cfg = dir / L"config.toml";
     // Einstellungen von Version 1.x übernehmen (dort lagen sie neben der EXE oder in %APPDATA%)
     fs::path old_cfg = legacy_dir() / L"config.toml";
-    if (!fs::exists(old_cfg, ec)) {
+    if (!fs::exists(old_cfg, ec) && !test_instance()) {
         PWSTR p = nullptr;
         if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &p))) old_cfg = fs::path(p) / L"FuchsLabs" / L"USB-Display" / L"config.toml";
         CoTaskMemFree(p);
     }
+    auto prefer_newer_config = [&](const fs::path& candidate) {
+        std::error_code exists_ec, current_ec, candidate_ec;
+        if (candidate == cfg || !fs::exists(candidate, exists_ec)) return;
+        auto current_time = fs::last_write_time(old_cfg, current_ec);
+        auto candidate_time = fs::last_write_time(candidate, candidate_ec);
+        if (!fs::exists(old_cfg, exists_ec) || (!candidate_ec && (current_ec || candidate_time > current_time)))
+            old_cfg = candidate;
+    };
+    // Recover the newest usable local copy if the target config is missing.
+    fs::path config_backup = cfg;
+    config_backup += L".bak";
+    prefer_newer_config(config_backup);
+    // A portable EXE can keep its settings beside the downloaded file.
+    fs::path portable_cfg = self.parent_path() / L"config.toml";
+    if (!same_file(self, exe)) prefer_newer_config(portable_cfg);
     progress(tr("Laufende App wird beendet …"));
     int port = fs::exists(cfg, ec) ? config_port(cfg) : config_port(old_cfg);
     if (!stop_running_app(port)) {
@@ -169,6 +184,35 @@ Result install(const Options& o, const std::function<void(const std::string&)>& 
     }
     progress(tr("Dateien werden kopiert …"));
     fs::create_directories(dir, ec);
+    if (ec) {
+        r.error = tr("Installationsordner konnte nicht angelegt werden");
+        return r;
+    }
+    if (!fs::exists(cfg, ec) && fs::exists(old_cfg, ec) && old_cfg != cfg) {
+        fs::copy_file(old_cfg, cfg, fs::copy_options::overwrite_existing, ec);
+        if (ec) {
+            r.error = tr("Vorhandene Einstellungen konnten nicht übernommen werden");
+            return r;
+        }
+        LOGI("setup", "Vorhandene Einstellungen übernommen");
+    }
+    if (fs::exists(cfg, ec)) {
+        fs::path backup = cfg;
+        backup += L".install-backup";
+        try {
+            if (config::token_is_plaintext(cfg)) {
+                // A plaintext token must never be duplicated into a backup. Serialize an encrypted snapshot instead.
+                config::save(backup, config::load(cfg));
+            } else {
+                fs::copy_file(cfg, backup, fs::copy_options::overwrite_existing, ec);
+                if (ec) throw std::runtime_error("copy failed");
+            }
+        } catch (...) {
+            r.error = tr("Einstellungen konnten vor der Installation nicht gesichert werden");
+            return r;
+        }
+        LOGI("setup", "Vorhandene Einstellungen vor der Installation gesichert");
+    }
     if (!same_file(self, exe)) {
         if (fs::exists(exe, ec)) {
             fs::path old = exe;
@@ -187,10 +231,6 @@ Result install(const Options& o, const std::function<void(const std::string&)>& 
         if (data.empty()) continue;
         std::ofstream f(dir / file, std::ios::binary | std::ios::trunc);
         f.write(data.data(), (std::streamsize)data.size());
-    }
-    if (!fs::exists(cfg, ec) && fs::exists(old_cfg, ec)) {
-        fs::copy_file(old_cfg, cfg, ec);
-        if (!ec) LOGI("setup", "Einstellungen von Version 1.x übernommen");
     }
     progress(tr("Verknüpfungen werden angelegt …"));
     if (!test_instance()) {
