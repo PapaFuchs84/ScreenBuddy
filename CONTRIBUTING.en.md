@@ -1,4 +1,4 @@
-# Contributing to FuchsLabs USB-Display 2.0
+# Contributing to ScreenBuddy
 
 [Deutsch](CONTRIBUTING.md) · **English**
 
@@ -12,10 +12,10 @@ Windows x64, Visual Studio Build Tools 2022 with C++/Windows SDK and CMake/Ninja
 git clone https://github.com/PapaFuchs84/fuchslabs-usb-display.git
 cd fuchslabs-usb-display\cpp
 build.bat nopause
-build\FuchsLabs-USB-Display.exe --run --no-lcd -c test.toml
+build\screenbuddy-release\ScreenBuddy.exe --run --no-lcd -c test.toml
 ```
 
-Run from a developer terminal with CMake/Ninja available. `cpp/build.bat` builds Release, runs checks and copies the single app/installer EXE to `cpp/dist/`. The root `build.bat` still builds Python 1.x. WebView2 Evergreen Runtime must be installed separately to use the settings window. See [build notes](cpp/README.md#build).
+`cpp/build.bat` builds Release, runs checks and copies the single app/installer EXE to `cpp/dist/`. The root `build.bat` still builds Python 1.x. Basic settings use native Win32 controls; WebView2 Evergreen Runtime must be installed separately for advanced settings. See [build notes](cpp/README.md#build).
 
 ## Workflow
 

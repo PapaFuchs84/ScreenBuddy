@@ -4,6 +4,17 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased] – ScreenBuddy 2.5 in Entwicklung
+
+### Implementiert im unveröffentlichten Entwicklungsbuild
+- ScreenBuddy-Branding für EXE, Installer und Autostart; bestehender Uninstall-Schlüssel für Upgrades erhalten.
+- Native Win32-Basiseinstellungen mit Vorschau und Plugin-Verwaltung; erweiterte WebView2-Einstellungen bleiben erreichbar.
+- Streng validiertes JSON-Manifest, Offline-Plugin-Speicher und eigenständige Offline-Seiten. Netzwerk-Plugins bleiben deaktiviert. Der Vertrag ist noch nicht stabil freigegeben.
+- Details zum Entwicklungsstand und zu den Kompatibilitätsgrenzen: [ScreenBuddy 2.5](docs/SCREENBUDDY-2.5.md).
+
+### Status
+- Kein 2.5-Release oder Download. Die bestehende 2.3.0 bleibt die letzte veröffentlichte Version. Kern-/Plugin-Tests: 236 + 220; isolierte App-/Navigationsprüfungen: 39 + 49; zwei Installer-Prüfungen bestanden. Native Fensteranzeige isoliert bestätigt, Layout, echtes Upgrade und Hardware offen.
+
 ## [2.3.0] – 2026-10-24
 
 ### Neu

@@ -1,4 +1,13 @@
-# Testprotokoll – Stand 24.10.2026
+# Testprotokoll – Stand 25.10.2026
+
+## ScreenBuddy 2.5.0-dev.1 (25.10.2026): unveröffentlichter Entwicklungsbuild
+
+- **Build:** `cpp/build.bat nopause` mit MSVC/CMake/Ninja vollständig erfolgreich; `dist/ScreenBuddy.exe` wurde nur lokal und ignoriert erzeugt. Kein Release, keine produktive Installation.
+- **Unit-Tests:** 236 Kernprüfungen, 129 Plugin-Parser-Prüfungen, 91 Plugin-Speicher-Prüfungen, 11 Monitorprüfungen und 335 Companion-Protokollprüfungen bestanden.
+- **Isolierte App:** 39 Companion-/App-Integrationsprüfungen und 49 Navigations-/API-Prüfungen bestanden; `--no-lcd`, eigene Konfigurationsdateien und lokale Testports, keine physische Displayausgabe.
+- **Isolierter Installer:** Zwei Prüfungen bestanden. Vorhandene Einstellungen und deren Snapshot bleiben bytegleich; eine alte EXE wird als `.pre-screenbuddy` gesichert. Für die Namensmigration wurde eine Testkopie des neuen Builds unter altem Dateinamen verwendet, keine installierte 2.3.0-EXE.
+- **Native UI:** Die isolierte `--no-lcd`-Testinstanz zeigte ein sichtbares Fenster der Klasse `ScreenBuddyNativeSettings`. Layout, Interaktionen, mehrere DPI-Stufen und Screenreader wurden nicht visuell abgenommen.
+- **Statisch/offen:** Netzwerkquellen für Plugins sind deaktiviert. Hardware, echtes Upgrade von 2.3.0, Performancevergleich und öffentliche Website fehlen.
 
 ## Version 2.3.0 (24.10.2026): Companion-Vorschau
 

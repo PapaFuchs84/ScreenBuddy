@@ -145,7 +145,7 @@ static const std::unordered_map<std::string, std::string>& en() {
         {"Einstellungen konnten vor der Installation nicht gesichert werden", "Could not back up the settings before installation"},
         {"Die laufende App ließ sich nicht beenden. Bitte über das Fuchs-Symbol beenden und erneut versuchen.",
          "Could not close the running app. Please quit it via the fox icon and try again."},
-        {"FuchsLabs USB-Display entfernen?", "Remove FuchsLabs USB-Display?"},
+        {"ScreenBuddy entfernen?", "Remove ScreenBuddy?"},
         {"Die App wird beendet und vom PC entfernt.", "The app will be closed and removed from this PC."},
         {"Auch Einstellungen und Zugangsdaten löschen", "Also delete settings and access keys"},
     };

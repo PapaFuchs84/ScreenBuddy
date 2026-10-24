@@ -1,8 +1,8 @@
-# FuchsLabs USB-Display 2.3.0
+# ScreenBuddy 2.5.0-dev.1 (unreleased)
 
 Version 2.3.0 adds the Companion preview: independent USB/HDMI and Android views, automatic phone dimensions and rotation. See [DE](../docs/COMPANION.md) / [EN](../docs/COMPANION.en.md). Tests include `python tests/app_companion_integration.py` on Windows (isolated processes with `--no-lcd`, no physical display).
 
-Native Windows C++20 port of FuchsLabs USB-Display. The application and installer are distributed as one EXE; it requires no Python runtime or Visual C++ redistributable. The settings window is a native Windows window backed by Microsoft Edge WebView2. The WebView2 Evergreen Runtime is a Windows prerequisite and is not bundled in this EXE.
+Native Windows C++20 application formerly released as FuchsLabs USB-Display. The application and installer are built as one EXE; it requires no Python runtime or Visual C++ redistributable. Basic settings use native Win32 controls. Advanced settings still use Microsoft Edge WebView2, whose Evergreen Runtime is not bundled. Version 2.5 is a development build; 2.3.0 remains the latest published release.
 
 ## Install and first start
 
@@ -16,7 +16,7 @@ The installer can import the Version 1.x `config.toml`. Secrets use Windows DPAP
 
 - System statistics, friends from Discord/Steam/Xbox, Battlefield 6 profiles, and RSS/Atom feeds.
 - USB serial display and full-screen monitor output, orientation, brightness, touch navigation, themes, and scalable multi-tile layouts.
-- Native Windows settings window (WebView2), tray controls, current-user autostart, installer, updater, and uninstaller.
+- Native Win32 basic settings, advanced WebView2 settings, tray controls, current-user autostart, installer, updater, and uninstaller.
 - Settings server binds only to loopback. Requests are checked for local Host, browser fetch metadata, and the `X-FL: 1` write header. RSS targets and redirects are checked against non-public IP ranges.
 
 Discord uses D++ with the Members and Presence intents enabled. Enable both privileged intents in the Discord Developer Portal for the bot.
@@ -51,7 +51,7 @@ If taps affect another display, select **Assign touch display**. The fullscreen 
 
 ## Build
 
-The checked-in `build.bat` expects Visual Studio Build Tools 2022, CMake/Ninja, and a vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`. It installs the pinned dependencies using the repository's vcpkg manifest and overlay port, builds x64 Release, runs `fl-tests.exe`, `fl-monitor-tests.exe` and `fl-companion-tests.exe`, and copies the installer/app to `dist\FuchsLabs-USB-Display.exe`.
+The checked-in `build.bat` expects Visual Studio Build Tools 2022, CMake/Ninja, and a vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`. It installs pinned dependencies using the repository's vcpkg manifest and overlay port, builds x64 Release in `build\screenbuddy-release`, runs core, plugin, monitor, Companion and isolated installer tests, and copies the installer/app to `dist\ScreenBuddy.exe`.
 
 ```bat
 build.bat

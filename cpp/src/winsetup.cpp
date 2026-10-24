@@ -10,7 +10,8 @@
 namespace fl::winsetup {
 
 static const wchar_t* RUN_KEY = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-static const wchar_t* RUN_NAME = L"FuchsLabs USB-Display";
+static const wchar_t* RUN_NAME = L"ScreenBuddy";
+static const wchar_t* LEGACY_RUN_NAME = L"FuchsLabs USB-Display";
 // Technische Kennungen der Hersteller-App (Prozess und Autostart-Aufgabe), nötig zum Beenden/Abschalten
 static const wchar_t* VENDOR_PROCESS = L"UsbMonitor.exe";
 static const wchar_t* VENDOR_TASK = L"UsbMonitor";
@@ -19,15 +20,20 @@ std::wstring launch_command() { return L"\"" + exe_path().wstring() + L"\""; }
 
 static std::wstring autostart_command() { return launch_command() + L" " + widen(AUTOSTART_FLAG); }
 
-static std::optional<std::wstring> run_value() {
+static std::optional<std::wstring> run_value_for(const wchar_t* name) {
     HKEY k;
     if (RegOpenKeyExW(HKEY_CURRENT_USER, RUN_KEY, 0, KEY_READ, &k) != ERROR_SUCCESS) return std::nullopt;
     wchar_t buf[2048] = {};
     DWORD sz = sizeof buf - sizeof(wchar_t), type = 0;
-    LSTATUS r = RegQueryValueExW(k, RUN_NAME, nullptr, &type, (BYTE*)buf, &sz);
+    LSTATUS r = RegQueryValueExW(k, name, nullptr, &type, (BYTE*)buf, &sz);
     RegCloseKey(k);
     if (r != ERROR_SUCCESS || (type != REG_SZ && type != REG_EXPAND_SZ)) return std::nullopt;
     return std::wstring(buf);
+}
+
+static std::optional<std::wstring> run_value() {
+    if (auto current = run_value_for(RUN_NAME)) return current;
+    return run_value_for(LEGACY_RUN_NAME);
 }
 
 bool autostart_enabled() {
@@ -57,6 +63,7 @@ void set_autostart_for(const std::wstring& exe, bool enabled) {
     } else {
         RegDeleteValueW(k, RUN_NAME);
     }
+    RegDeleteValueW(k, LEGACY_RUN_NAME);
     RegCloseKey(k);
 }
 

@@ -5,12 +5,15 @@
 #include <shellapi.h>
 
 #include <fstream>
+#include <ctime>
 
 #include "bf6.h"
 #include "discord.h"
 #include "friends.h"
 #include "ha.h"
 #include "i18n.h"
+#include "native_settings.h"
+#include "plugin_render.h"
 #include "rss.h"
 #include "sysinfo.h"
 #include "settings_window.h"
@@ -23,13 +26,14 @@
 namespace fl {
 
 struct App::RendererSet {
+    int width, height;
     render::Renderer discord, friends;
     render::Bf6Renderer bf6;
     render::RssRenderer rss;
     render::SysRenderer system;
     render::HaRenderer ha;
     RendererSet(int w, int h, const ojson& cfg)
-        : discord(w, h, cfg["display"].value("title", "Discord-Freunde")),
+        : width(w), height(h), discord(w, h, cfg["display"].value("title", "Discord-Freunde")),
           friends(w, h, cfg["friends"].value("title", "Freunde")),
           bf6(w, h, cfg["bf6"].value("title", "Battlefield 6 · Rangliste")),
           rss(w, h, cfg["rss"].value("title", "Blog-Updates")),
@@ -76,6 +80,8 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
     }
     if (b(fr, "enabled"))
         friends_ = std::make_unique<friends::FriendsHub>(fr, b(fr, "include_discord", true) ? discord_.get() : nullptr, dirty);
+    plugins_ = std::make_unique<plugins::Store>(cfg_path_.parent_path() / L"plugins");
+    if (auto result = plugins_->load(); !result) LOGW("plugins", "Plugin-Bibliothek: %s", result.error.c_str());
     // Update-Hinweis: nie in einer Testinstanz und nur, wenn in den Einstellungen nicht abgeschaltet
     if (b(cfg_["ui"], "update_check", true) && !test_instance() && !preview_dir_)
         update_ = std::make_unique<update::UpdateChecker>(cfg_path_.parent_path() / L"update-check.json", [this](const update::Release& rel) {
@@ -91,6 +97,63 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
 ojson App::update_info() { return update_ ? ojson::parse(update_->info().dump()) : ojson(); }
 bool App::update_check_now() { return update_ && update_->check_now(); }
 
+ojson App::plugin_catalog() {
+    ojson catalog = ojson::array();
+    if (!plugins_) return catalog;
+    for (const auto& entry : plugins_->entries()) {
+        ojson hosts = ojson::array();
+        for (const auto& source : entry.manifest.sources) hosts.push_back(source.host);
+        catalog.push_back({{"id", entry.manifest.id}, {"name", entry.manifest.name},
+                           {"version", entry.manifest.version}, {"description", entry.manifest.description},
+                           {"enabled", entry.enabled}, {"network_required", !entry.manifest.sources.empty()},
+                           {"source_hosts", hosts}});
+    }
+    return catalog;
+}
+
+bool App::plugin_import(std::string_view manifest, std::string& error) {
+    if (!plugins_) { error = "Plugin-Bibliothek nicht verfügbar"; return false; }
+    auto result = plugins_->import_manifest(manifest);
+    if (!result) { error = result.error; return false; }
+    mark_dirty();
+    return true;
+}
+
+bool App::plugin_set_enabled(const std::string& id, bool enabled, std::string& error) {
+    if (!plugins_) { error = "Plugin-Bibliothek nicht verfügbar"; return false; }
+    auto result = plugins_->set_enabled(id, enabled);
+    if (!result) { error = result.error; return false; }
+    mark_dirty();
+    return true;
+}
+
+bool App::plugin_remove(const std::string& id, std::string& error) {
+    if (!plugins_) { error = "Plugin-Bibliothek nicht verfügbar"; return false; }
+    auto result = plugins_->remove(id);
+    if (!result) { error = result.error; return false; }
+    mark_dirty();
+    return true;
+}
+
+std::optional<Image> App::plugin_preview(std::string_view manifest, std::string& error) {
+    auto result = plugins::parse_manifest(manifest);
+    if (!result) { error = result.error; return std::nullopt; }
+    plugins::RenderContext context;
+    context.sources = plugins::sample_data(*result.manifest);
+    context.time = clock_hhmm();
+    std::time_t now = std::time(nullptr);
+    std::tm local{};
+    localtime_s(&local, &now);
+    char date[32] = {};
+    std::strftime(date, sizeof date, "%Y-%m-%d", &local);
+    context.date = date;
+    auto page = plugins::render_page(*result.manifest, context);
+    std::lock_guard draw_lock(render::mutex());
+    render::apply_theme(dp_);
+    auto [width, height] = size();
+    return plugins::draw_page(page, width, height, true);
+}
+
 bool App::touch_enabled() const {
     // Schalter brauchen Touch: nur bei Ausgabe auf einen Bildschirm, mit eingeschaltetem Touch und erkanntem Touchscreen
     // Die Companion-App meldet Tipps immer (Touchscreen des Handys/Tablets)
@@ -99,6 +162,7 @@ bool App::touch_enabled() const {
 }
 
 App::~App() {
+    { std::lock_guard lock(stop_threads_mu_); stop_threads_.clear(); }
     if (update_) update_->stop();
     if (ha_) ha_->stop();
     if (friends_) friends_->stop();
@@ -129,11 +193,13 @@ void App::step_page(int delta, bool companion) {
 }
 
 void App::request_stop(double delay) {
-    std::thread([this, delay] {
-        if (delay > 0) Sleep((DWORD)(delay * 1000));
+    if (delay <= 0) { stop_ = true; cv_.notify_all(); return; }
+    std::lock_guard lock(stop_threads_mu_);
+    stop_threads_.emplace_back([this, delay] {
+        Sleep(static_cast<DWORD>(delay * 1000));
         stop_ = true;
         cv_.notify_all();
-    }).detach();
+    });
 }
 
 void App::request_restart(double delay) {
@@ -192,6 +258,9 @@ std::vector<std::string> App::active_pages(bool companion) {
     for (auto& p : order)
         if (p.is_string() && have[p.get<std::string>()] &&
             (!separate || std::find(selected.begin(), selected.end(), p) != selected.end())) out.push_back(p.get<std::string>());
+    // Only offline declarative plugins are shown as live pages. Sample data is exclusive to preview.
+    if (plugins_) for (const auto& entry : plugins_->entries())
+        if (entry.enabled && entry.manifest.sources.empty()) out.push_back("plugin:" + entry.manifest.id);
     return out;
 }
 
@@ -301,7 +370,24 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
     // [(Name, Seitenanzahl, Zeichenfunktion(seite, zeichner))] in der eingestellten Reihenfolge
     std::vector<PageEntry> out;
     for (auto& key : active_pages(companion)) {
-        if (key == "system") {
+        if (key.rfind("plugin:", 0) == 0) {
+            auto installed = plugins_ ? plugins_->find(key.substr(7)) : std::nullopt;
+            if (!installed || !installed->enabled || !installed->manifest.sources.empty()) continue;
+            auto manifest = std::move(installed->manifest);
+            plugins::RenderContext context;
+            context.time = clock_hhmm();
+            std::time_t now = std::time(nullptr);
+            std::tm local{};
+            localtime_s(&local, &now);
+            char date[32] = {};
+            std::strftime(date, sizeof date, "%Y-%m-%d", &local);
+            context.date = date;
+            const auto page = plugins::render_page(manifest, context);
+            out.push_back({key, 1, [page](int, RendererSet& rs) {
+                // RendererSet owns the tile size through its standard renderer.
+                return plugins::draw_page(page, rs.width, rs.height);
+            }});
+        } else if (key == "system") {
             PageEntry pe{key, 1, [this](int, RendererSet& rs) { return rs.system.render(sys_->snapshot()); }};
             // Tippen auf RAM / Datenträger / Netzwerk öffnet das passende Windows-Werkzeug bzw. den Geschwindigkeitstest
             for (int zone : {render::SysRenderer::ZONE_RAM, render::SysRenderer::ZONE_DISK, render::SysRenderer::ZONE_NET})
@@ -604,17 +690,55 @@ void App::run() {
     if (friends_) friends_->start();
     int port = cfg_["ui"].value("port", 8765);
     std::unique_ptr<SettingsWindow> settings_window;
+    std::unique_ptr<NativeSettings> native_settings;
     std::unique_ptr<SettingsServer> server;
     if (b(cfg_["ui"], "enabled", true)) {
-        server = std::make_unique<SettingsServer>(*this, [this, &settings_window] { if (settings_window) settings_window->show(); });
+        server = std::make_unique<SettingsServer>(*this, [this, &native_settings, &settings_window] {
+            if (native_settings) native_settings->show();
+            else if (settings_window) settings_window->show();
+        });
         if (server->start()) {
             settings_window = std::make_unique<SettingsWindow>(port);
-            show_settings_callback_ = [this, &settings_window] { if (settings_window) settings_window->show(); };
-            if (show_settings_on_start_) settings_window->show();
+            NativePluginActions actions;
+            actions.list = [this] {
+                std::vector<NativePluginEntry> result;
+                for (const auto& item : plugin_catalog())
+                    result.push_back({item.value("id", ""), item.value("name", ""),
+                                      item.value("version", ""), item.value("enabled", false)});
+                return result;
+            };
+            actions.import_manifest = [this](const std::filesystem::path& path) {
+                std::error_code ec;
+                auto length = std::filesystem::file_size(path, ec);
+                if (ec || length > plugins::manifest_limit) throw std::runtime_error("Manifest ist nicht lesbar oder zu groß.");
+                std::ifstream file(path, std::ios::binary);
+                if (!file) throw std::runtime_error("Manifest konnte nicht geöffnet werden.");
+                std::string content(static_cast<size_t>(length), '\0');
+                if (!file.read(content.data(), static_cast<std::streamsize>(content.size())))
+                    throw std::runtime_error("Manifest konnte nicht gelesen werden.");
+                std::string error;
+                if (!plugin_import(content, error)) throw std::runtime_error(error);
+            };
+            actions.set_enabled = [this](const std::string& id, bool enabled) {
+                std::string error;
+                if (!plugin_set_enabled(id, enabled, error)) throw std::runtime_error(error);
+            };
+            actions.remove = [this](const std::string& id) {
+                std::string error;
+                if (!plugin_remove(id, error)) throw std::runtime_error(error);
+            };
+            actions.open_advanced = [&settings_window] { if (settings_window) settings_window->show(); };
+            try { native_settings = std::make_unique<NativeSettings>(*this, std::move(actions)); }
+            catch (const std::exception& error) { LOGW("settings", "Native UI: %s", error.what()); }
+            show_settings_callback_ = [&native_settings, &settings_window] {
+                if (native_settings) native_settings->show();
+                else if (settings_window) settings_window->show();
+            };
+            if (show_settings_on_start_) show_settings();
         }
     }
     Tray tray(
-        "FuchsLabs USB-Display",
+        "ScreenBuddy",
         [this] { show_settings(); },
         [this] { request_restart(); }, [this] { request_stop(); });
     // Bebilderte Anleitung im Standardbrowser, unabhängig vom Einstellungsfenster
@@ -638,13 +762,15 @@ void App::run() {
     }
     tray.stop();
     // War das Einstellungsfenster beim Neustart offen (z. B. nach dem Speichern), öffnet es die neue Instanz wieder
-    settings_open_at_exit_ = settings_window && settings_window->visible();
+    settings_open_at_exit_ = (native_settings && native_settings->visible()) ||
+                             (settings_window && settings_window->visible());
     if (server) server->stop();
     if (companion_output_) {
         if (b(dp_, "screen_off_on_exit", true) && !restart_) companion_output_->screen_off();
         companion_output_->close();
     }
     show_settings_callback_ = {};
+    native_settings.reset();
     settings_window.reset();
     if (friends_) friends_->stop();
     if (ha_) ha_->stop();

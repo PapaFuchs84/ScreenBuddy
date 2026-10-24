@@ -107,7 +107,7 @@ enabled = true
         with urllib.request.urlopen(req,timeout=4) as r:data=r.read()
         return data if raw else json.loads(data)
     env=dict(os.environ,FUCHSLABS_INSTANCE=f'-companion-integration-{ui}')
-    args=[str(BUILD/'FuchsLabs-USB-Display.exe'),'--run','--config',str(config),'--log',str(work/'test.log')]
+    args=[str(BUILD/'ScreenBuddy.exe'),'--run','--config',str(config),'--log',str(work/'test.log')]
     if not network:args+=['--no-lcd']
     p=subprocess.Popen(args,env=env,creationflags=subprocess.CREATE_NO_WINDOW)
     ws=None

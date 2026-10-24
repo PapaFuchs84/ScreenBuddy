@@ -30,9 +30,12 @@ namespace fl::installer {
 
 namespace {
 
-const wchar_t* EXE_NAME = L"FuchsLabs-USB-Display.exe";
+const wchar_t* EXE_NAME = L"ScreenBuddy.exe";
+const wchar_t* LEGACY_EXE_NAME = L"FuchsLabs-USB-Display.exe";
+const wchar_t* LEGACY_SHORTCUT = L"FuchsLabs USB-Display.lnk";
+// Die Registry-ID bleibt für ein Upgrade der vorhandenen Installation stabil.
 const wchar_t* UNINSTALL_KEY = L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FuchsLabsUsbDisplay";
-const wchar_t* SHORTCUT = L"FuchsLabs USB-Display.lnk";
+const wchar_t* SHORTCUT = L"ScreenBuddy.lnk";
 
 fs::path installed_exe() { return install_dir() / EXE_NAME; }
 
@@ -86,7 +89,7 @@ bool make_shortcut(const fs::path& lnk, const fs::path& target) {
     if (FAILED(CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&sl)))) return false;
     sl->SetPath(target.c_str());
     sl->SetWorkingDirectory(target.parent_path().c_str());
-    sl->SetDescription(L"FuchsLabs USB-Display");
+    sl->SetDescription(L"ScreenBuddy");
     sl->SetIconLocation(target.c_str(), 0);
     IPersistFile* pf = nullptr;
     bool ok = false;
@@ -109,7 +112,7 @@ void write_uninstall_entry(const fs::path& exe) {
         return;
     std::error_code ec;
     DWORD kb = (DWORD)(fs::file_size(exe, ec) / 1024);
-    reg_set(k, L"DisplayName", L"FuchsLabs USB-Display");
+    reg_set(k, L"DisplayName", L"ScreenBuddy");
     reg_set(k, L"DisplayVersion", widen(VERSION));
     reg_set(k, L"Publisher", L"FuchsLabs");
     reg_set(k, L"DisplayIcon", L"\"" + exe.wstring() + L"\",0");
@@ -146,7 +149,7 @@ struct Result {
 
 bool legacy_present() {
     std::error_code ec;
-    return fs::exists(legacy_dir() / EXE_NAME, ec) && !same_file(legacy_dir(), install_dir());
+    return fs::exists(legacy_dir() / LEGACY_EXE_NAME, ec) && !same_file(legacy_dir(), install_dir());
 }
 
 Result install(const Options& o, const std::function<void(const std::string&)>& progress) {
@@ -219,6 +222,7 @@ Result install(const Options& o, const std::function<void(const std::string&)>& 
         }
         LOGI("setup", "Vorhandene Einstellungen vor der Installation gesichert");
     }
+    const bool new_exe_previously_present = fs::exists(exe, ec);
     if (!same_file(self, exe)) {
         if (fs::exists(exe, ec)) {
             fs::path old = exe;
@@ -228,6 +232,26 @@ Result install(const Options& o, const std::function<void(const std::string&)>& 
         }
         if (!CopyFileW(self.c_str(), exe.c_str(), FALSE)) {
             r.error = tr("Kopieren fehlgeschlagen") + strprintf(" (%lu)", GetLastError());
+            return r;
+        }
+    }
+    // 2.3.x hat im selben Installationsordner einen anderen EXE-Namen. Die alte Datei bleibt als
+    // Rückfallkopie erhalten, ist danach aber keine zweite startbare Installation mehr.
+    fs::path previous_exe = dir / LEGACY_EXE_NAME;
+    if (fs::exists(previous_exe, ec) && !same_file(previous_exe, exe)) {
+        fs::path backup = previous_exe;
+        backup += L".pre-screenbuddy";
+        for (int n = 2; fs::exists(backup, ec); ++n) {
+            backup = previous_exe;
+            backup += L".pre-screenbuddy-" + std::to_wstring(n);
+        }
+        fs::rename(previous_exe, backup, ec);
+        if (ec) {
+            if (!new_exe_previously_present && !same_file(self, exe)) {
+                std::error_code cleanup_ec;
+                fs::remove(exe, cleanup_ec);
+            }
+            r.error = tr("Vorherige App konnte nicht für die Rückkehr gesichert werden");
             return r;
         }
     }
@@ -244,6 +268,7 @@ Result install(const Options& o, const std::function<void(const std::string&)>& 
         fs::path lnk = start_menu_dir() / SHORTCUT;
         if (o.shortcut) make_shortcut(lnk, exe);
         else fs::remove(lnk, ec);
+        fs::remove(start_menu_dir() / LEGACY_SHORTCUT, ec);
     }
     winsetup::set_autostart_for(exe.wstring(), o.autostart);
     if (o.retire_old && legacy_present()) {
@@ -290,7 +315,7 @@ Image paint(Ui& ui) {
     ui.hits.clear();
     d.rectangle(0, 0, W, 79, brand::ORANGE);
     d.fox(24, 14, (int)std::lround(52 * ui.s), false);
-    d.text(90, 32, "FuchsLabs USB-Display", F(24, true), brand::NAVY, "lm");
+    d.text(90, 32, "ScreenBuddy", F(24, true), brand::NAVY, "lm");
     d.text(90, 58, tr(ui.update ? "Update auf Version " : "Installation · Version ") + VERSION, F(13), brand::NAVY, "lm");
     float y = 104;
     auto line = [&](const std::string& t, Color c = brand::NAVY, float size = 13, bool bold = false) {
@@ -486,7 +511,7 @@ int show_setup_window() {
     int ww = r.right - r.left, wh = r.bottom - r.top;
     RECT work;
     SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0);
-    std::wstring title = widen("FuchsLabs USB-Display – " + tr(ui.update ? "Update" : "Installation"));
+    std::wstring title = widen("ScreenBuddy – " + tr(ui.update ? "Update" : "Installation"));
     ui.hwnd = CreateWindowExW(0, wc.lpszClassName, title.c_str(), style, work.left + (work.right - work.left - ww) / 2,
                               work.top + (work.bottom - work.top - wh) / 2, ww, wh, nullptr, nullptr, hinst, nullptr);
     if (!ui.hwnd) return 1;
@@ -542,6 +567,7 @@ bool stop_running_app(int port) {
     }
     if (test_instance()) return false;  // im Test nie fremde Prozesse beenden
     kill_by_name(EXE_NAME);
+    kill_by_name(LEGACY_EXE_NAME);
     for (int i = 0; i < 20 && app_running(); ++i) Sleep(250);
     return !app_running();
 }
@@ -561,8 +587,8 @@ int run_uninstall(bool silent) {
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     bool purge = false;
     if (!silent) {
-        std::wstring title = L"FuchsLabs USB-Display";
-        std::wstring main = widen(tr("FuchsLabs USB-Display entfernen?"));
+        std::wstring title = L"ScreenBuddy";
+        std::wstring main = widen(tr("ScreenBuddy entfernen?"));
         std::wstring content = widen(tr("Die App wird beendet und vom PC entfernt."));
         std::wstring verify = widen(tr("Auch Einstellungen und Zugangsdaten löschen"));
         TASKDIALOGCONFIG tc{sizeof tc};
@@ -586,6 +612,7 @@ int run_uninstall(bool silent) {
     if (!test_instance()) {
         winsetup::set_autostart_for(installed_exe().wstring(), false);
         fs::remove(start_menu_dir() / SHORTCUT, ec);
+        fs::remove(start_menu_dir() / LEGACY_SHORTCUT, ec);
         RegDeleteTreeW(HKEY_CURRENT_USER, UNINSTALL_KEY);
     }
     // Die laufende EXE kann sich nicht selbst löschen: Kopie im Temp-Ordner räumt nach dem Beenden auf

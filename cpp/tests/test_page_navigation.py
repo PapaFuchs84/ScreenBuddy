@@ -1,6 +1,6 @@
 """Exercise the real app/HTTP navigation without credentials or display hardware.
 
-Usage: python tests/test_page_navigation.py build/FuchsLabs-USB-Display.exe [expected-version]
+Usage: python tests/test_page_navigation.py build/ScreenBuddy.exe [expected-version]
 The app runs on port 8766 with its test-instance guard and --no-lcd.
 """
 import contextlib
@@ -112,7 +112,7 @@ def step(delta, expected):
 
 def main():
     exe = Path(sys.argv[1]).resolve()
-    expected_version = sys.argv[2] if len(sys.argv) > 2 else '2.3.0'
+    expected_version = sys.argv[2] if len(sys.argv) > 2 else '2.5.0-dev.1'
     with instance(exe):
         check(json.loads(request('/api/config')[1])['version'] == expected_version, 'API version')
         check(state()['can_step'], 'multiple views enable navigation')

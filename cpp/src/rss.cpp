@@ -16,7 +16,7 @@
 
 namespace fl::rss {
 
-const char* UA_STRING = "Mozilla/5.0 (FuchsLabs-USB-Display RSS)";
+const char* UA_STRING = "Mozilla/5.0 (ScreenBuddy RSS)";
 static const char* ACCEPT = "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/html;q=0.8, */*;q=0.5";
 static const std::string ATOM = "{http://www.w3.org/2005/Atom}";
 static const std::string RSS1 = "{http://purl.org/rss/1.0/}";

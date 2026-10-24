@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – ScreenBuddy 2.5 development
+
+- Development build: ScreenBuddy executable and installer name, native basic settings, validated JSON manifests and offline plugin pages. Advanced WebView2 settings remain available; source plugins cannot run yet.
+- Core unit tests (236), plugin parser tests (129), store tests (91), isolated app checks (39), navigation checks (49) and installer checks (2) passed locally. The native window was shown in isolation; visual DPI, real upgrade and hardware acceptance remain open.
+- No 2.5 release or download; 2.3.0 remains the latest published version. See [development status](../docs/SCREENBUDDY-2.5.md).
+
 ## 2.3.0 – 2026-10-24
 
 - Independent output state, page filters and timers; shared data sources/theme. Native resolution from authenticated `hello`/`resize`, bounded to 2560 pixels per edge and 4,194,304 pixels, first connected reporting device owns sizing. Each cached JPEG carries dimensions from the same snapshot; `ready` updates precede the corresponding JPEG. Touch coordinates from older dimensions are dropped.

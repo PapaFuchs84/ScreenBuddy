@@ -76,7 +76,7 @@ void open_settings(int port) {
     std::wstring host = L"127.0.0.1";
     std::wstring path = L"/api/open-window";
     INTERNET_PORT p = static_cast<INTERNET_PORT>(port);
-    HINTERNET session = WinHttpOpen(L"FuchsLabs-USB-Display/2.0", WINHTTP_ACCESS_TYPE_NO_PROXY, nullptr, nullptr, 0);
+    HINTERNET session = WinHttpOpen(L"ScreenBuddy/2.5.0-dev.1", WINHTTP_ACCESS_TYPE_NO_PROXY, nullptr, nullptr, 0);
     if (!session) return;
     WinHttpSetTimeouts(session, 300, 300, 500, 500);
     for (int attempt = 0; attempt < 12; ++attempt) {
@@ -208,13 +208,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     } catch (const std::exception& e) {
         LOGE("app", "Konfiguration %s nicht lesbar: %s", u8(cfg_path).c_str(), e.what());
         std::wstring msg = widen("config.toml ist fehlerhaft:\n" + std::string(e.what()));
-        MessageBoxW(nullptr, msg.c_str(), L"FuchsLabs USB-Display", MB_ICONERROR);
+        MessageBoxW(nullptr, msg.c_str(), L"ScreenBuddy", MB_ICONERROR);
         return 1;
     }
     if (first_run) cfg["ui"]["language"] = (GetUserDefaultUILanguage() & 0x3FF) == 0x07 ? "de" : "en";
     i18n::set_lang(cfg["ui"].value("language", "de"));
     int port = cfg["ui"].value("port", 8765);
-    LOGI("app", "FuchsLabs USB-Display %s startet (%s)", VERSION, u8(cfg_path).c_str());
+    LOGI("app", "ScreenBuddy %s startet (%s)", VERSION, u8(cfg_path).c_str());
 
     HANDLE mutex = nullptr;
     if (!args.demo) {

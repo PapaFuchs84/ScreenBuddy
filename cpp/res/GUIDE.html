@@ -263,7 +263,7 @@ ${help([['I can\'t find the file.', 'Look in the <b>Downloads</b> folder. You ca
 <li>Click ${b('Install')}. Wait a moment. Then it says <b>“Done! The app is starting now.”</b></li>
 </ol>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock win">
-<div class="tb">FuchsLabs USB-Display – Installation<span>— ☐ ✕</span></div>
+<div class="tb">ScreenBuddy – Installation<span>— ☐ ✕</span></div>
 <div class="files" style="display:block;padding:16px;text-align:left">
 <p style="margin:0 0 8px"><b>Installation · current version</b></p>
 <p style="margin:0 0 8px">☑ Start with Windows (only the fox icon in the notification area)<br>☑ Start menu entry</p>
@@ -495,6 +495,7 @@ ${shot('bar', [[828, 14, 190, 44]], 'Press this button.', 1050, 70)}
 {t: 'Find it again', html: () => `
 <p class="kicker">Later</p><h1>How to find the settings again</h1>
 <p class="lead">The program runs quietly in the background. It has a small <b>orange icon</b> at the bottom right next to the clock.</p>
+<div class="box tip"><p><b>ScreenBuddy 2.5 development build:</b> Basic settings open in a native window. For the source and Companion tabs shown in this guide, choose <b>Advanced settings …</b>. The current 2.3.0 download still uses the previous interface.</p></div>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
 <span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22/10/2026</div></div></div></figure>
@@ -502,7 +503,7 @@ ${shot('bar', [[828, 14, 190, 44]], 'Press this button.', 1050, 70)}
 <li>Can't see the icon? Click the little arrow <span class="key">^</span>.</li>
 <li><b>Double-click</b> the orange icon. The settings open.</li>
 <li>With a <b>right-click</b> on the icon you see: <b>Open settings</b>, <b>Open guide</b>, <b>Restart</b> and <b>Quit</b>. <b>Open guide</b> shows this guide in your browser, even without the settings window. The <b>Open guide</b> button in the settings also opens it in your browser, so you can keep both side by side.</li>
-<li>If you ticked the Start menu entry, you'll also find the program there: <b>FuchsLabs USB-Display</b>.</li>
+<li>If you ticked the Start menu entry, you'll also find the program there: <b>ScreenBuddy</b>.</li>
 </ol>
 <div class="box tip"><p>Closing the window only hides the settings. The display keeps running.</p></div>`},
 
@@ -514,7 +515,7 @@ ${shot('bar', [[828, 14, 190, 44]], 'Press this button.', 1050, 70)}
 ${help([['The display stays dark.', 'Check whether the orange icon is at the bottom right. If not: open the program from the Start menu (or double-click the EXE). Then see what it says under “Status” on the <b>Start</b> page.'],
   ['The picture looks shifted or strange.', 'Briefly unplug the cable and plug it back in. Or click <b>Restart</b> on the <b>Display</b> page.'],
   ['The display is too dark.', 'On the <b>Overview</b> page, slide <b>Brightness</b> to the right, then <b>Save &amp; apply</b>.'],
-  ['I want to get rid of the program.', 'Open Windows <b>Settings → Apps</b>, choose <b>FuchsLabs USB-Display</b> and click <b>Uninstall</b>. Windows asks whether your settings and credentials should be deleted too.']], 'Help with problems')}
+  ['I want to get rid of the program.', 'Open Windows <b>Settings → Apps</b>, choose <b>ScreenBuddy</b> and click <b>Uninstall</b>. Windows asks whether your settings and credentials should be deleted too.']], 'Help with problems')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Have fun! · © 2026 FuchsLabs</p>`},
 {t: 'Companion: independent phone display', html: () => `<h1>USB display and phone at the same time</h1><p class="lead">Companion preview from version 2.3.0: both outputs have their own pages and timers.</p><ol><li>Keep the USB/HDMI display type. Enable Companion in its tab, then save and apply.</li><li>Install the preview APK. Use the same private network or USB tethering. Pair with the local code and compare the certificate fingerprint.</li><li>Choose pages and timing under Companion → Independent Companion display. Choose the other output under Display → Pages on USB display / monitor.</li><li>The extra controls appear only while Companion is enabled. Enable and configure each data source in its own tab.</li></ol><p>Swiping changes only the phone view. Native resolution follows connection and rotation. The first connected phone determines the shared Companion size; other phones share its pages. Larger requests are reduced proportionally to 2560 pixels per edge / 4,194,304 pixels. Real Redmi output, injected gestures and reconnect were tested over USB tethering. The user also confirmed sharp output, finger swipes and taps. Wi-Fi and physical USB output in the same new PC instance need separate acceptance.</p>`}
 ];
