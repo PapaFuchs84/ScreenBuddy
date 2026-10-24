@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import de.fuchslabs.display.protocol.HostPolicy
 import de.fuchslabs.display.protocol.PairingUri
 import de.fuchslabs.display.protocol.Protocol
 
@@ -99,8 +100,7 @@ class MainActivity : AppCompatActivity() {
         lastBtn.visibility = if (p != null) View.VISIBLE else View.GONE
         if (p != null) lastBtn.text = getString(R.string.btn_connect_last, p.name)
         forgetBtn.visibility = if (p != null) View.VISIBLE else View.GONE
-        // Gekoppelter PC per mDNS gefunden (z. B. neue IP): Adresse aktualisieren.
-        if (p != null) found.firstOrNull { it.name == p.name }?.let { if (it.host != p.host) store.updateHost(it.host, it.port) }
+        // mDNS-Funde ueberschreiben nie den gespeicherten Host/Port (Spoofing-Schutz); nur manuell neu koppeln.
         list.removeAllViews()
         if (found.isEmpty()) list.addView(TextView(this).apply { setText(R.string.found_none); setTextColor(getColor(R.color.fl_nebel)) })
         for (f in found) list.addView(Button(this).apply {
@@ -120,7 +120,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun manualPair() {
         val h = host.text.toString().trim(); val prt = port.text.toString().toIntOrNull(); val pn = pin.text.toString().trim()
-        if (h.isEmpty() || prt == null || prt !in 1..65535 || pn.length != 6 || !pn.all(Char::isDigit)) { toast(R.string.err_input); return }
+        if (!HostPolicy.isAllowed(h) || prt == null || !HostPolicy.isValidPort(prt) || pn.length != 6 || !pn.all(Char::isDigit)) { toast(R.string.err_input); return }
         // Ohne Fingerprint (null): DisplayActivity zeigt ihn zur Bestaetigung (TOFU), bevor die PIN gesendet wird.
         startActivity(Intent(this, DisplayActivity::class.java)
             .putExtra(DisplayActivity.EXTRA_HOST, h).putExtra(DisplayActivity.EXTRA_PORT, prt)

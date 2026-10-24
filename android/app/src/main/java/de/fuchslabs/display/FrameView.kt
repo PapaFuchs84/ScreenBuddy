@@ -6,6 +6,9 @@ import android.view.MotionEvent
 import android.view.View
 import de.fuchslabs.display.protocol.Letterbox
 import de.fuchslabs.display.protocol.Protocol
+import de.fuchslabs.display.protocol.ImageLimits
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 
 /** Zeichnet das JPEG-Frame mit Letterbox und sendet Taps in Renderkoordinaten. */
@@ -23,9 +26,24 @@ class FrameView(ctx: Context) : View(ctx) {
 
     fun setRenderSize(w: Int, h: Int) { rw = w; rh = h; invalidate() }
 
+    private val decoder = Executors.newSingleThreadExecutor { r -> Thread(r, "frame-decode").apply { isDaemon = true } }
+    private val latest = AtomicReference<ByteArray?>()
+
+    /** Nimmt das Frame an; Decodierung im Hintergrund, nur das neueste Frame wird dekodiert. */
     fun setFrame(jpeg: ByteArray) {
-        val b = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size) ?: return
-        bmp = b; invalidate()
+        if (!ImageLimits.bytesOk(jpeg.size)) return
+        if (latest.getAndSet(jpeg) == null) decoder.execute { decodeLatest() }
+    }
+
+    private fun decodeLatest() {
+        val jpeg = latest.getAndSet(null) ?: return
+        try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, bounds)
+            if (!ImageLimits.dimsOk(bounds.outWidth, bounds.outHeight)) return
+            val b = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size) ?: return
+            post { bmp = b; invalidate() }
+        } catch (_: Exception) {} catch (_: OutOfMemoryError) {}
     }
 
     override fun onDraw(c: Canvas) {

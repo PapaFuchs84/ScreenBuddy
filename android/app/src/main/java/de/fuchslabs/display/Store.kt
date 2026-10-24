@@ -23,9 +23,6 @@ class Store(private val ctx: Context) {
             .putString("name", p.name).putString("key_enc", KeyVault.encrypt(p.key)).apply()
     }
 
-    /** Aktualisiert nur den Host (z. B. nach mDNS-Fund mit neuer IP). */
-    fun updateHost(host: String, port: Int) { sp.edit().putString("host", host).putInt("port", port).apply() }
-
     fun forget() { sp.edit().clear().apply(); KeyVault.delete(); setLauncherEnabled(false) }
 
     var bootStart: Boolean

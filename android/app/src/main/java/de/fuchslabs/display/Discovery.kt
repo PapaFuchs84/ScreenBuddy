@@ -5,6 +5,7 @@ import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.os.Handler
 import android.os.Looper
+import de.fuchslabs.display.protocol.HostPolicy
 import de.fuchslabs.display.protocol.Protocol
 
 data class FoundPc(val serviceName: String, val name: String, val host: String, val port: Int)
@@ -54,9 +55,9 @@ class Discovery(ctx: Context, private val onChange: (List<FoundPc>) -> Unit) {
                     main.post {
                         val v = si.attributes["v"]?.toString(Charsets.UTF_8)
                         val addr = si.host?.hostAddress
-                        if (addr != null && (v == null || v == "1")) {
+                        if (addr != null && HostPolicy.isAllowed(addr) && HostPolicy.isValidPort(si.port) && (v == null || v == "1")) {
                             val name = si.attributes["name"]?.toString(Charsets.UTF_8) ?: si.serviceName
-                            found[si.serviceName] = FoundPc(si.serviceName, name, addr.substringBefore('%'), si.port)
+                            found[si.serviceName] = FoundPc(si.serviceName, name, addr, si.port)
                             onChange(found.values.toList())
                         }
                         resolving = false; next()

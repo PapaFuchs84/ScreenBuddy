@@ -23,6 +23,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
     private var client: DisplayClient? = null
     private var pairingPin: String? = null
     private var lastBack = 0L
+    private var trustDialog: AlertDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +58,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
     }
 
     override fun onStop() {
+        trustDialog?.dismiss(); trustDialog = null
         client?.stop(); client = null
         super.onStop()
     }
@@ -107,7 +109,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
 
     override fun onUnverifiedFingerprint(fp: String, trust: () -> Unit) {
         val shown = fp.chunked(2).joinToString(":").uppercase().chunked(48).joinToString("\n")
-        AlertDialog.Builder(this).setTitle(R.string.dlg_fp_title)
+        trustDialog = AlertDialog.Builder(this).setTitle(R.string.dlg_fp_title)
             .setMessage(getString(R.string.dlg_fp_msg, shown))
             .setPositiveButton(R.string.dlg_trust) { _, _ -> trust() }
             .setNegativeButton(R.string.dlg_cancel) { _, _ -> finish() }
@@ -133,6 +135,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         val msg = when (kind) {
             DisplayClient.Fatal.CERT_MISMATCH -> getString(R.string.err_cert)
             DisplayClient.Fatal.SERVER_ERROR -> getString(R.string.err_server, detail)
+            DisplayClient.Fatal.INVALID_TARGET -> getString(R.string.err_input)
         }
         AlertDialog.Builder(this).setMessage(msg)
             .setPositiveButton(android.R.string.ok) { _, _ ->
