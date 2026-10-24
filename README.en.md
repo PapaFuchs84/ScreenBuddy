@@ -8,7 +8,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.1.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.2.0-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -56,9 +56,16 @@ Plus:
 - **German or English**: the settings page, display and tray menu can be switched; on first start the language follows Windows
 - **Design**: FuchsLabs style in light or dark, or **custom colours** via colour pickers with a contrast warning
 - **Any resolution**: pages are rendered sharply at the real size; wide bars show several pages side by side
-- **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages, tap a blog post to open it in the browser); Windows touch assignment checks and setup under **Display**
+- **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages, tap a blog post to open it in the browser, tap RAM, Drive or Network on the system page to open Task Manager, “Programs and Features” or a speed test); Windows touch assignment checks and setup under **Display**
 - **Illustrated guide** to click through, easy enough for kids, embedded in the EXE in English and German
+- **Update notice** (can be turned off): reports a new GitHub version at most once a day in the tray and in the settings, but never installs by itself
 - **Single EXE** for installation, updates and uninstallation; no Python or Visual C++ redistributable required. WebView2 Runtime remains a prerequisite.
+
+## System page touch and update notice (from 2.2.0)
+
+**Touch on the system page:** With touch active (screen output only), tapping the **RAM** card opens Task Manager, **Drive** opens “Programs and Features” (`appwiz.cpl`), and **Network** opens the speed test <https://www.speedtest.net/de> in the default browser. The CPU and GPU cards do not react. Windows opens the windows, usually on the main screen.
+
+**Update notice:** At most once a day (at the earliest 45 seconds after start) the app queries the public GitHub releases, without a key or account. If a newer published version exists, a balloon appears at the fox icon (clicking it opens the settings) and **Settings → Start** shows “New version … available” with a link to the download page. **Check now** queries outside the schedule (at most every 5 minutes). Nothing is ever downloaded or installed; to update you download the new EXE yourself and start it. Turn it off under **Settings → Start → Notify about new versions** or with `update_check = false` in `[ui]`. Only an ordinary request with the program name and version in the user agent is sent; as with any request, GitHub sees your IP address. The time of the last check is stored in `update-check.json` next to `config.toml`.
 
 ## Touch targets and playtime (from 2.0.7)
 
@@ -91,7 +98,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **FuchsLabs-USB-Display.exe** from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (current version: **2.1.0**). The EXE is unsigned. `SHA256SUMS.txt` is provided alongside it.
+1. Download **FuchsLabs-USB-Display.exe** from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (current version: **2.2.0**). The EXE is unsigned. `SHA256SUMS.txt` is provided alongside it.
 2. Use Windows 10/11 x64 with Microsoft Edge WebView2 Evergreen Runtime installed. The runtime is not bundled and the installer does not install it automatically.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
@@ -191,7 +198,7 @@ The WebView2 SDK header/static loader and their licence notices are under `cpp/t
 
 ## Security and privacy
 
-- Runs **without admin rights**, no telemetry, no account.
+- Runs **without admin rights**, no telemetry, no account. The only request of its own besides your data sources is the update notice to the public GitHub releases (can be turned off; at most once a day, no key).
 - Credentials are stored encrypted with **Windows DPAPI**, never logged and never sent to the browser.
 - The settings page is **only reachable on `127.0.0.1`** and protected against DNS rebinding, CSRF and framing by other sites.
 - All connections use HTTPS with certificate checks; packages are pinned to exact versions.
@@ -225,6 +232,10 @@ Like the app? FuchsLabs appreciates a coffee: [☕ paypal.me/SHerbst84](https://
 The code is released under the [MIT License](LICENSE), © 2026 FuchsLabs. The name and fox-head logo are excluded ([TRADEMARKS.md](TRADEMARKS.md)). Third-party components retain their own licences ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
 Battlefield, Discord, Steam and Xbox are trademarks of their respective owners. FuchsLabs is not affiliated with them.
+
+## Validation of 2.2.0
+
+Release build, 225 core checks (new: hit areas of the system page, version comparison, parsing of the GitHub response) and 11 monitor basics passed; the hit areas match the rendered system page (preview image). **Still open:** tapping on real touch hardware (Task Manager, “Programs and Features”, speed test), the balloon and the settings entry with a genuinely newer release, and a Windows sign-in test for 2.2.0. See the [test record](cpp/TESTPROTOKOLL.md).
 
 ## Validation of 2.0.3
 

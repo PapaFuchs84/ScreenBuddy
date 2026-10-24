@@ -18,6 +18,7 @@
 #include "secure.h"
 #include "util.h"
 #include "touch.h"
+#include "update.h"
 
 using namespace fl;
 namespace fs = std::filesystem;
@@ -271,6 +272,47 @@ static void test_ha() {
     CHECK_EQ(render::HaRenderer::cell_at(480, 320, 4, 100, 10), -1);   // Kopfzeile
     CHECK_EQ(render::HaRenderer::cell_at(480, 320, 3, 400, 250), 2);   // dritte Kachel über die ganze Breite
     CHECK_EQ(render::HaRenderer::cell_at(960, 640, 4, 800, 500), 3);   // skaliertes Display
+}
+
+// Systemansicht: Tippen auf RAM / Datenträger / Netzwerk
+static void test_system_touch() {
+    using S = render::SysRenderer;
+    CHECK_EQ(S::zone_at(480, 320, 380, 60), (int)S::ZONE_RAM);
+    CHECK_EQ(S::zone_at(480, 320, 380, 120), (int)S::ZONE_DISK);
+    CHECK_EQ(S::zone_at(480, 320, 380, 250), (int)S::ZONE_NET);
+    CHECK_EQ(S::zone_at(480, 320, 100, 60), -1);    // CPU-Karte links
+    CHECK_EQ(S::zone_at(480, 320, 380, 10), -1);    // Kopfzeile
+    CHECK_EQ(S::zone_at(480, 320, 380, 315), -1);   // Fußzeile
+    CHECK_EQ(S::zone_at(960, 640, 760, 500), (int)S::ZONE_NET);   // skaliertes Display
+    int hit = -1;
+    touch::Tile t{{0, 0, 480, 320}};
+    t.sys = true;
+    for (int i = 0; i < 3; ++i) t.cells.push_back([&hit, i] { hit = i; });
+    std::vector<touch::Tile> tiles{t};
+    const auto* a = touch::action_at(tiles, 380, 120);
+    CHECK(a != nullptr);
+    if (a) (*a)();
+    CHECK_EQ(hit, 1);
+    CHECK(touch::action_at(tiles, 100, 120) == nullptr);
+}
+
+// Update-Hinweis: Versionsvergleich und Auswertung der GitHub-Antwort
+static void test_update() {
+    CHECK(update::is_newer("v2.2.0", "2.1.0"));
+    CHECK(update::is_newer("2.10.0", "2.9.5"));
+    CHECK(!update::is_newer("2.1.0", "2.1.0"));
+    CHECK(!update::is_newer("v2.0.9", "2.1.0"));
+    CHECK(!update::is_newer("2.2.0-rc1", "2.1.0"));   // Vorabversion
+    CHECK(!update::is_newer("kaputt", "2.1.0"));
+    auto ok = update::parse_release({{"tag_name", "v2.2.0"}, {"html_url", "https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.2.0"}});
+    CHECK(ok.has_value());
+    if (ok) CHECK_EQ(ok->version, std::string("2.2.0"));
+    auto foreign = update::parse_release({{"tag_name", "v2.2.0"}, {"html_url", "https://boese.example/x"}});
+    CHECK(foreign.has_value());
+    if (foreign) CHECK(foreign->url.rfind(update::RELEASES_PAGE_PREFIX, 0) == 0);   // fremde Adresse wird nicht übernommen
+    CHECK(!update::parse_release({{"tag_name", "v2.3.0"}, {"prerelease", true}}).has_value());
+    CHECK(!update::parse_release({{"tag_name", "v2.3.0"}, {"draft", true}}).has_value());
+    CHECK(!update::parse_release(nlohmann::json::array()).has_value());
 }
 
 // Nur mit FL_HA_FAKE=http://127.0.0.1:PORT (Testserver, Token testtoken123): echte Abfrage und Schalten
@@ -564,7 +606,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}}) {
         std::printf("· %s\n", name);
         fn();
     }

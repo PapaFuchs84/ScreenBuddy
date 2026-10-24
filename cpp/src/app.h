@@ -29,6 +29,8 @@ namespace sysinfo { class SysMonitor; }
 namespace discord { class DiscordFeed; }
 namespace friends { class FriendsHub; }
 namespace ha { class HaClient; }
+namespace update { class UpdateChecker; }
+class Tray;
 
 class App {
 public:
@@ -62,6 +64,8 @@ public:
     void mark_dirty();
     void show_settings();
     bool setup_touch();
+    ojson update_info();                            // Update-Hinweis für die Einstellungsseite (leer, wenn aus)
+    bool update_check_now();                        // „Jetzt prüfen“; false = aus oder zu früh
 
 private:
     struct RendererSet;
@@ -122,6 +126,9 @@ private:
     std::unique_ptr<discord::DiscordFeed> discord_;
     std::unique_ptr<friends::FriendsHub> friends_;
     std::unique_ptr<ha::HaClient> ha_;
+    std::unique_ptr<update::UpdateChecker> update_;
+    std::mutex notify_mu_;
+    Tray* tray_ = nullptr;                        // nur während run() gültig
 };
 
 }  // namespace fl

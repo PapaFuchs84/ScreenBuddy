@@ -14,6 +14,8 @@ class Tray {
 public:
     Tray(std::string tip, std::function<void()> on_open, std::function<void()> on_restart, std::function<void()> on_quit);
     ~Tray();
+    std::function<void()> on_balloon;  // Klick auf eine Sprechblase (z. B. Update-Hinweis)
+    void notify(const std::string& title, const std::string& text);   // Sprechblase am Tray-Symbol (aus jedem Thread)
     std::function<void()> on_guide;  // „Anleitung öffnen“ im Menü (im Standardbrowser), vor start() setzen
     void start();
     void stop();

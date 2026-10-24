@@ -1,4 +1,10 @@
-# Testprotokoll – Stand 23.10.2026
+# Testprotokoll – Stand 24.10.2026
+
+## Version 2.2.0 (24.10.2026): Systemseite per Touch, Update-Hinweis
+
+- Neu: Tipp auf RAM/Datenträger/Netzwerk der Systemseite (Task-Manager, „Programme und Features“, speedtest.net/de) und Update-Hinweis über die öffentlichen GitHub-Releases (höchstens 1× täglich, Sprechblase und Anzeige in den Einstellungen, Schalter `[ui] update_check`). Release-Build erfolgreich, **225 Kernprüfungen und 11 Monitor-Prüfungen bestanden**. Neue Prüfungen: Trefferflächen der Systemseite (inkl. skaliertem Display, Kopf-/Fußzeile, CPU-Karte, Aktionsaufruf je Zone), Versionsvergleich (Vorabversionen, ungültige Tags), Auswertung der GitHub-Antwort (Entwurf/Vorabversion verworfen, fremde Adresse ersetzt).
+- Trefferflächen gegen das mit `--demo --preview` gerenderte Systembild geprüft; das Format der echten Antwort von `releases/latest` (Tag `v2.1.0`) abgerufen und entspricht dem Auswerter. Keine Installation, kein Test gegen Port 8765; die Prüfungen starten weder Task-Manager noch Browser.
+- **Nicht getestet:** Tippen auf echter Touch-Hardware (Fenster erscheinen ggf. auf dem Hauptbildschirm statt auf dem Touch-Monitor), die Sprechblase und die Einstellungsanzeige mit einer tatsächlich neueren Veröffentlichung (Testinstanzen fragen bewusst nie ab), Windows-Anmeldetest.
 
 ## Version 2.1.0 (23.10.2026): Home-Assistant-Seite, enthält den Freunde-Tipp aus 2.0.9 – veröffentlicht als v2.1.0
 

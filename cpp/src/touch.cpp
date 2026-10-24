@@ -9,6 +9,7 @@
 #include "util.h"
 
 namespace fl::touch {
+static const wchar_t* const SPEEDTEST_URL = L"https://www.speedtest.net/de";
 static bool digits(const std::string& s) {
     return !s.empty() && s.size() <= 20 && s.find_first_not_of("0123456789") == std::string::npos &&
            s.find_first_not_of('0') != std::string::npos;
@@ -81,8 +82,9 @@ const std::function<void()>* action_at(const std::vector<Tile>& tiles, int x, in
     for (const auto& t : tiles) {
         const auto& b = t.box;
         if (x < b.x || x >= b.x + b.w || y < b.y || y >= b.y + b.h) continue;
-        if (!t.ha) return nullptr;
-        int i = render::HaRenderer::cell_at(b.w, b.h, t.cells.size(), x - b.x, y - b.y);
+        int i = t.sys ? render::SysRenderer::zone_at(b.w, b.h, x - b.x, y - b.y)
+                      : t.ha ? render::HaRenderer::cell_at(b.w, b.h, t.cells.size(), x - b.x, y - b.y) : -1;
+        if (!t.ha && !t.sys) return nullptr;
         return i >= 0 && i < (int)t.cells.size() && t.cells[i] ? &t.cells[i] : nullptr;
     }
     return nullptr;
@@ -109,5 +111,22 @@ bool open(const Targets& targets) {
         info.nShow = SW_SHOWNORMAL;
         return ShellExecuteExW(&info) != FALSE;
     });
+}
+bool open_system(int zone) {
+    const wchar_t* file = nullptr;
+    const wchar_t* params = nullptr;
+    switch (zone) {
+        case render::SysRenderer::ZONE_RAM: file = L"taskmgr.exe"; break;
+        case render::SysRenderer::ZONE_DISK: file = L"control.exe"; params = L"appwiz.cpl"; break;
+        case render::SysRenderer::ZONE_NET: file = SPEEDTEST_URL; break;
+        default: return false;
+    }
+    SHELLEXECUTEINFOW info{sizeof(info)};
+    info.fMask = SEE_MASK_FLAG_NO_UI;
+    info.lpVerb = L"open";
+    info.lpFile = file;
+    info.lpParameters = params;
+    info.nShow = SW_SHOWNORMAL;
+    return ShellExecuteExW(&info) != FALSE;
 }
 }  // namespace fl::touch

@@ -1,6 +1,6 @@
 # © 2026 FuchsLabs – FuchsLabs USB-Display 2.0 (C++)
 cmake_minimum_required(VERSION 3.24)
-project(FuchsLabsUsbDisplay VERSION 2.1.0 LANGUAGES CXX RC)
+project(FuchsLabsUsbDisplay VERSION 2.2.0 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -33,7 +33,7 @@ set(CORE_SOURCES
     src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/render.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/friends.cpp src/ha.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
-    src/installer.cpp src/resources.cpp src/settings_window.cpp src/touch.cpp)
+    src/installer.cpp src/resources.cpp src/settings_window.cpp src/touch.cpp src/update.cpp)
 
 add_library(flcore STATIC ${CORE_SOURCES})
 target_include_directories(flcore PUBLIC src)

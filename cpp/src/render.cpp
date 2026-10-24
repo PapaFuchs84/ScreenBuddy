@@ -17,6 +17,7 @@ namespace fl::render {
 namespace {
 
 constexpr int HEADER_H = 34, FOOTER_H = 18, ROW_H = 44, AVATAR = 32;
+constexpr float SYS_GAP = 6, SYS_SMALL = 62;   // Systemansicht: Abstand und Höhe der Karten RAM / Datenträger
 
 Theme g_theme;
 std::mutex g_mutex;
@@ -494,11 +495,25 @@ Color SysRenderer::temp_col(std::optional<double> t) const {
     return t && *t >= 85 ? th.hot : t && *t >= 75 ? th.warn : th.text;
 }
 
+int SysRenderer::zone_at(int w_px, int h_px, int x_px, int y_px) {
+    // gleiche Aufteilung wie render(): rechte Spalte mit RAM, Datenträger und Netzwerk
+    float sc = scale_for(w_px, h_px);
+    float lw_ = sc == 1 ? (float)w_px : (float)pyround_i(w_px / sc), lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
+    float lx = x_px / sc, ly = y_px / sc;
+    float top = HEADER_H + 4, bot = lh - FOOTER_H - 4, gap = SYS_GAP;
+    float rx = gap * 2 + (float)floordiv(lw_ - 3 * gap, 2);
+    if (lx < rx || lx >= lw_ - gap || ly < top || ly >= bot) return -1;
+    float disk = top + SYS_SMALL + gap, net = top + 2 * (SYS_SMALL + gap);
+    if (ly < top + SYS_SMALL) return ZONE_RAM;
+    if (ly >= disk && ly < disk + SYS_SMALL) return ZONE_DISK;
+    return ly >= net ? ZONE_NET : -1;
+}
+
 Image SysRenderer::render(const SysSnapshot& sn, std::time_t now) {
     const Theme& t = g_theme;
     Canvas d(W, H, s, t.bg);
     header(d, now, sn.hwinfo ? "" : "ohne HWiNFO");
-    float top = HEADER_H + 4, bot = h - FOOTER_H - 4, gap = 6;
+    float top = HEADER_H + 4, bot = h - FOOTER_H - 4, gap = SYS_GAP;
     float lw = (float)floordiv(w - 3 * gap, 2);
     float lx = gap, rx = gap * 2 + lw;
     float rw = w - rx - gap;
@@ -514,7 +529,7 @@ Image SysRenderer::render(const SysSnapshot& sn, std::time_t now) {
                {{"Temp", num(sn.gpu_temp, 0, "°C"), temp_col(sn.gpu_temp)},
                 {"Lüfter", num(sn.gpu_fan, 0, "%"), t.text},
                 {"VRAM", vram, t.text}});
-    float h_small = 62;
+    float h_small = SYS_SMALL;
     std::string ram = sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–";
     bar_card(d, rx, top, rw, h_small, "RAM", ram, sn.ram_pct);
     std::string disk = sn.disk_label + " " + (sn.disk_temp ? num(sn.disk_temp, 0, "°C") : tr("belegt"));

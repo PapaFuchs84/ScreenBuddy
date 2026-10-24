@@ -92,6 +92,9 @@ class SysRenderer : public Renderer {
 public:
     SysRenderer(int w, int h, std::string title, std::string net_unit);
     Image render(const SysSnapshot& snap, std::time_t now = 0);
+    enum Zone { ZONE_RAM = 0, ZONE_DISK = 1, ZONE_NET = 2 };
+    // Welche Karte der rechten Spalte liegt bei Pixel (x, y) einer Kachelfläche w × h? -1 = keine. Für „Tippen öffnet Windows-Werkzeug“.
+    static int zone_at(int w_px, int h_px, int x_px, int y_px);
 
 private:
     std::string net_unit;

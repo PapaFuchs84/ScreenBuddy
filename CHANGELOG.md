@@ -6,6 +6,15 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unveröffentlicht]
 
+## [2.2.0] – 2026-10-24
+
+### Neu
+- Systemseite per Touch: Tipp auf **RAM** öffnet den Task-Manager, auf **Datenträger** „Programme und Features“ (`appwiz.cpl`), auf **Netzwerk** den Geschwindigkeitstest speedtest.net/de im Standardbrowser. Nur bei aktivem Touch.
+- Update-Hinweis: höchstens einmal am Tag (45 s nach dem Start) werden die öffentlichen GitHub-Releases abgefragt, ohne Schlüssel. Eine neuere veröffentlichte Version erscheint als Sprechblase am Tray-Symbol und unter **Einstellungen → Start** (Link zur Download-Seite, **Jetzt prüfen**). Es wird nie etwas heruntergeladen oder installiert. Abschaltbar unter **Start → Auf neue Versionen hinweisen** (`[ui] update_check`). Zeitpunkt und gemeldete Version stehen in `update-check.json` neben der `config.toml`; Testinstanzen fragen nie ab.
+
+### Geändert
+- Bebilderte Anleitung (DE/EN) um Systemseite per Touch und Update-Hinweis ergänzt; Dokumentation auf 2.2.0.
+
 ### Geändert
 - Dokumentation auf 2.1.0: README, Doku, Changelogs und Download-Verweise aktualisiert; bebilderte Anleitung (DE/EN) mit neuem Schritt „Home Assistant“ (Adresse, Token, Verbindung prüfen, Kacheln wählen). Die schon veröffentlichte EXE enthält noch die alte Anleitung; die neue kommt mit dem nächsten Build.
 - Dokumentation auf 2.0.3 nachgezogen: README/Schnellstart, Downloadlinks, HDMI-/Touch-Anleitung, Prüfstand und Sicherheitsübersicht; vorhandene deutsche/englische Fassungen gemeinsam aktualisiert. Die Projektregeln und PR-Vorlage verlangen Doku-Pflege ab jetzt bei jeder Änderung.

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 2.2.0 – 2026-10-24
+
+- System page touch: `SysRenderer::zone_at` maps taps to the RAM, drive and network cards (same geometry as `render()`); `touch::open_system` opens Task Manager, `control.exe appwiz.cpl` or https://www.speedtest.net/de. Only the system page with touch active reacts.
+- New `update.cpp`/`update.h`: `UpdateChecker` queries `releases/latest` of the public repository at most once a day (first check 45 s after start, retry after 6 h on failure, manual check at most every 5 min), keeps the state in `update-check.json`, and reports only non-draft, non-prerelease versions with a github.com project URL. Tray balloon (`Tray::notify`, click opens settings), `/api/status` field `update`, `POST /api/update/check`, setting `[ui] update_check` (default true). Skipped in test instances and preview runs; nothing is downloaded or installed.
+- Tests: hit areas of the system page, version comparison, parsing of the GitHub response.
+
 - Documentation follow-up for 2.0.3: current download links, matching German/English HDMI/touch steps in the guide templates and HTML resources, validation status, and permanent documentation rules. Updated embedded guides will be included in the next app build; the existing 2.0.3 EXE is unchanged.
 
 ## 2.1.0 – 2026-10-23

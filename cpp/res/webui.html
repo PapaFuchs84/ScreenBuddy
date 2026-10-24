@@ -148,6 +148,10 @@ const EN = {
   'Profile deiner EA-Freunde nach Rang': 'Your EA friends ranked', 'Blog-Updates': 'Blog updates', 'Neueste Beiträge deiner Blogs': 'Latest posts from your blogs',
   // Start
   'Verbunden': 'Connected', 'Aus': 'Off', 'Öffnen': 'Open', 'Hersteller-App beenden': 'Close vendor app',
+  'Version': 'Version', 'Download-Seite öffnen ↗': 'Open download page ↗', 'Jetzt prüfen': 'Check now',
+  'Wird geprüft …': 'Checking …', 'Zuletzt vor Kurzem geprüft.': 'Checked a moment ago.',
+  'Auf neue Versionen hinweisen': 'Notify about new versions',
+  'Fragt höchstens einmal am Tag die GitHub-Releases ab. Es wird nie etwas automatisch installiert.': 'Checks the GitHub releases at most once a day. Nothing is ever installed automatically.',
   'Autostart der Hersteller-App': 'Vendor app autostart', 'Ist noch an und belegt das Display nach jedem Windows-Start.': 'Still on, and it takes over the display every time Windows starts.',
   'Abschalten (Windows fragt nach)': 'Turn off (Windows will ask)', 'VerbindungWindows starten': 'Start with Windows',
   'Die App startet beim Anmelden von selbst im Hintergrund.': 'The app starts by itself in the background when you sign in.',
@@ -393,6 +397,11 @@ function viewStart() {
     c.addEventListener('change', () => post('/api/autostart', {enabled: c.checked}));
     list.append(h('div', {class: 'item'}, h('div', {class: 't'}, h('b', {}, 'Mit Windows starten'),
       h('span', {}, 'Die App startet beim Anmelden von selbst im Hintergrund.')), h('label', {class: 'sw'}, c, h('i'))));
+    const u = s.update;
+    if (u && u.current) list.append(item('Version', u.available ? 'bad' : 'ok',
+      u.available ? `Neue Version ${u.latest} verfügbar (installiert: ${u.current})` : `Aktuell (${u.current})`,
+      u.available ? h('a', {class: 'btn sm pri', href: u.url, target: '_blank'}, 'Download-Seite öffnen ↗') : null,
+      h('button', {class: 'btn sm', onclick: async () => { const r = await api('/api/update/check', {}); toast(r.ok ? T('Wird geprüft …') : T('Zuletzt vor Kurzem geprüft.')); setTimeout(refresh, 4000); }}, 'Jetzt prüfen')));
     if (cfg.discord.enabled) list.append(item('Discord', s.discord === '' ? 'ok' : s.discord === null ? '' : 'bad',
       s.discord === '' ? 'Verbunden' : s.discord || 'Aus'));
     box.replaceChildren(list);
@@ -403,7 +412,8 @@ function viewStart() {
   return [...head(meta.first_run ? 'Willkommen!' : 'Start', meta.first_run
       ? 'In wenigen Minuten ist dein Display eingerichtet. Du kannst alles später jederzeit ändern.' : 'Zustand deiner Installation.'),
     card('Zustand', 'Hier siehst du, ob alles läuft. Fehler werden direkt erklärt.', box),
-    card('Sprache · Language', null, row('Deutsch oder English', 'Sprache und Design werden mit „Speichern & anwenden“ übernommen.', langSel())),
+    card('Sprache · Language', null, row('Deutsch oder English', 'Sprache und Design werden mit „Speichern & anwenden“ übernommen.', langSel()),
+      row('Auf neue Versionen hinweisen', 'Fragt höchstens einmal am Tag die GitHub-Releases ab. Es wird nie etwas automatisch installiert.', toggle('ui', 'update_check'))),
     card('Einrichtung in 3 Schritten', null,
       h('div', {class: 'item', style: 'margin-bottom:8px'}, h('div', {class: 't'}, h('b', {}, 'Lieber mit Bildern, Schritt für Schritt?'),
         h('span', {}, 'Die bebilderte Anleitung zeigt jeden Klick, auch für Discord, Steam und Xbox.')),

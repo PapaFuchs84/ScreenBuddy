@@ -1,8 +1,14 @@
 # FuchsLabs USB-Display – Dokumentation
 
-Version 2.1.0 · Stand 23.10.2026 · © 2026 FuchsLabs
+Version 2.2.0 · Stand 24.10.2026 · © 2026 FuchsLabs
 
 Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein eigenes Windows-Einstellungsfenster mit WebView2. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
+
+## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
+
+**Touch auf der Systemseite:** Bei aktivem Touch (nur bei Ausgabe auf einen Bildschirm) öffnet ein Tipp auf die Karte **RAM** den Task-Manager, auf **Datenträger** „Programme und Features“ (`appwiz.cpl`) und auf **Netzwerk** den Geschwindigkeitstest <https://www.speedtest.net/de> im Standardbrowser. Die CPU- und GPU-Karten reagieren nicht. Die Fenster öffnet Windows, meist auf dem Hauptbildschirm.
+
+**Update-Hinweis:** Die App fragt höchstens einmal am Tag (frühestens 45 Sekunden nach dem Start) die öffentlichen GitHub-Releases ab, ohne Zugangsschlüssel und ohne Konto. Gibt es eine neuere, veröffentlichte Version, erscheint eine Sprechblase am Fuchs-Symbol (ein Klick öffnet die Einstellungen), und **Einstellungen → Start** zeigt „Neue Version … verfügbar“ mit Link zur Download-Seite. **Jetzt prüfen** fragt außerplanmäßig nach (höchstens alle 5 Minuten). Es wird nie etwas heruntergeladen oder installiert; zum Aktualisieren lädst du die neue EXE selbst herunter und startest sie. Abschalten: **Einstellungen → Start → Auf neue Versionen hinweisen** bzw. `update_check = false` unter `[ui]`. Gesendet wird nur eine gewöhnliche Abfrage mit dem Programmnamen und der Version im User-Agent; GitHub sieht dabei wie bei jedem Abruf deine IP-Adresse. Der Zeitpunkt der letzten Abfrage steht in `update-check.json` neben der `config.toml`.
 
 ## Touch-Ziele und Spielstunden (ab 2.0.7)
 
@@ -52,7 +58,7 @@ Ist keine Seite aktiv, zeigt das Display einen Willkommenshinweis mit der Adress
 
 **Details der Seiten**
 
-- *System:* CPU-Last wie im Task-Manager („% Processor Utility“), Takt aus der Leistungsanzeige. Die GPU-Werte kommen über `nvidia-smi` (Nvidia-Treiber). Netzwerkraten stammen aus den 64-Bit-Zählern des Adapters, über den dein Internet läuft (automatisch gewählt), und stimmen mit Windows überein. Temperaturen ab 75 °C werden gelb, ab 85 °C rot.
+- *System:* Bei aktivem Touch öffnet ein Tipp auf RAM den Task-Manager, auf Datenträger „Programme und Features“ und auf Netzwerk speedtest.net/de im Browser (ab 2.2.0). CPU-Last wie im Task-Manager („% Processor Utility“), Takt aus der Leistungsanzeige. Die GPU-Werte kommen über `nvidia-smi` (Nvidia-Treiber). Netzwerkraten stammen aus den 64-Bit-Zählern des Adapters, über den dein Internet läuft (automatisch gewählt), und stimmen mit Windows überein. Temperaturen ab 75 °C werden gelb, ab 85 °C rot.
 - *Discord:* sortiert nach Status, dann Name. Farbiger Punkt am Avatar = Status, Handy-Symbol = am Smartphone. Emojis werden ausgeblendet (die Windows-Schriften zeigen sie sonst als Kästchen).
 - *Freunde (alle Plattformen):* Quellen sind Discord (Bot, siehe unten), Steam (offizielle Web-API von Valve) und Xbox (Dienst [OpenXBL](https://xbl.io)). Gleiche Personen werden zusammengefasst: manuell über **Freunde → Personen zusammenführen** oder automatisch bei gleichem Namen (abschaltbar; nie werden zwei Konten derselben Plattform vermischt). Online hat Vorrang, das Spiel kommt von dem Konto, das gerade spielt. Für **Steam** brauchst du einen kostenlosen Schlüssel von <https://steamcommunity.com/dev/apikey> und die Freundesliste im Steam-Profil muss öffentlich sein. Für **Xbox** brauchst du einen OpenXBL-Schlüssel aus dem Dashboard auf xbl.io (kostenlose Stufe, rund 150 Abrufe pro Stunde; die App fragt nur alle 3 Minuten). **PlayStation** und **EA** sind bewusst nicht eingebaut: Es gibt keine offiziellen Schnittstellen für Freundeslisten; der inoffizielle PlayStation-Zugang kann zur Kontosperre führen. Die Schlüssel werden wie der Discord-Token verschlüsselt gespeichert, und **Verbindung prüfen** zeigt sofort, ob sie funktionieren. Damit niemand doppelt erscheint, entfällt die reine Seite „Discord-Freunde“ automatisch, solange die gemeinsame Liste Discord einbezieht. Bei Konten mit ähnlichen, aber nicht gleichen Namen (z. B. „Basti“ und „Bastian“) schlägt die Einstellungsseite unter **Personen zusammenführen** eine Verknüpfung vor, die du mit einem Klick bestätigst oder ablehnst. Für Version 2.0 liegen Prüfungen unter `cpp/tests/tests.cpp` vor (u. a. gleichzeitig online auf allen Plattformen = genau eine Zeile mit allen Marken).
 - *Battlefield 6:* sortiert nach Rang, bei Gleichstand nach K/D. Fällt die Datenquelle kurz aus, bleiben die letzten Werte stehen.
@@ -76,7 +82,7 @@ Sie erscheint in einem Win32-Fenster mit eingebettetem WebView2. Der interne Die
 
 | Bereich | Einstellungen |
 |---|---|
-| **Start** | Zustand (Display, Discord), Hersteller-App beenden/abschalten, Autostart, Ersteinrichtung |
+| **Start** | Zustand (Display, Discord, Version mit Update-Hinweis und **Jetzt prüfen**), Hersteller-App beenden/abschalten, Autostart, Sprache, **Auf neue Versionen hinweisen**, Ersteinrichtung |
 | **Übersicht** | Live-Vorschau des Displays, Seiten ein/aus und Reihenfolge, Anzeigedauer, Helligkeit |
 | **Freunde** | gemeinsame Liste: Seite an/aus, Discord einbeziehen, Steam- und Xbox-Zugang mit „Verbindung prüfen“ und Anleitung, Personen zusammenführen |
 | **Discord** | Seite an/aus, Bot-Token, Offline-Freunde, Auswahl der Personen aus den Server-Mitgliedern, Server- und Ignorierlisten |
@@ -106,7 +112,7 @@ Bei regulärer Installation liegt `config.toml` unter `%LOCALAPPDATA%\FuchsLabs\
 | `[bf6]` | `enabled` (false), `players` ([], PC-Namen; Konsole als `"Name@psn"` / `"Name@xbox"`), `refresh_minutes` (15), `title` |
 | `[rss]` | `enabled` (false), `feeds` ([]), `refresh_minutes` (30), `max_items` (4), `max_per_feed` (1), `title` |
 | `[homeassistant]` | `enabled` (false), `title` ("Home Assistant"), `url` (z. B. "http://homeassistant.local:8123"), `token` (verschlüsselt), `entities` ([], höchstens 4, z. B. `"sensor.wohnzimmer_temperatur"`) |
-| `[ui]` | `enabled` (true), `port` (8765), `setup_done` (false), `language` ("de" oder "en"; beim ersten Start wie die Windows-Sprache – gilt für Einstellungsseite, Display und Infobereich) |
+| `[ui]` | `enabled` (true), `port` (8765), `setup_done` (false), `language` ("de" oder "en"; beim ersten Start wie die Windows-Sprache – gilt für Einstellungsseite, Display und Infobereich), `update_check` (true; höchstens einmal am Tag die GitHub-Releases abfragen und eine neuere Version melden, nie automatisch installieren) |
 
 ---
 
@@ -208,6 +214,8 @@ Der Build benötigt Visual Studio Build Tools 2022, Windows SDK, CMake/Ninja und
 In Windows **Einstellungen → Apps → FuchsLabs USB-Display → Deinstallieren**. Der integrierte Deinstaller entfernt Autostart und Verknüpfung. Der Dialog bietet zusätzlich an, Einstellungen und gespeicherte Zugangsdaten zu entfernen. Ein aufbewahrter `-1.x-alt`-Ordner gehört zur alten Version und ist ein eigener Rückfallstand.
 
 ## 13. Prüfstand und Windows-Neustart
+
+**2.2.0:** Release-Build, 225 Kernprüfungen und 11 Monitor-Basisprüfungen bestanden (neu: Trefferflächen der Systemseite, Versionsvergleich, Auswertung der GitHub-Antwort; die Trefferflächen wurden gegen das gerenderte Vorschaubild geprüft). Offen: Tippen auf echter Touch-Hardware, Sprechblase und Einstellungsanzeige mit einer tatsächlich neueren Veröffentlichung, Windows-Anmeldetest für 2.2.0.
 
 **2.0.3:** Release-Build, 86 Kernprüfungen und 56 Monitor-/Touchprüfungen einschließlich 11 Basisprüfungen bestanden. Die 2.0.3-Installation wurde auf Datei-Version, Hash, API-Version, Autostart-Eintrag und `display_ok=true` geprüft. Touch wurde mit injizierten Windows-Eingaben getestet; echte Touch-Hardware, der vollständige Zuordnungsassistent und ein neuer Windows-Anmeldetest bleiben offen. Details im [Testprotokoll](cpp/TESTPROTOKOLL.md).
 

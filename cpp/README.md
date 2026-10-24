@@ -19,6 +19,12 @@ The installer can import the Version 1.x `config.toml`. Secrets use Windows DPAP
 
 Discord uses D++ with the Members and Presence intents enabled. Enable both privileged intents in the Discord Developer Portal for the bot.
 
+## System page touch and update notice (from 2.2.0)
+
+**Touch on the system page:** With touch active (screen output only), tapping the **RAM** card opens Task Manager, **Drive** opens “Programs and Features” (`appwiz.cpl`), and **Network** opens the speed test <https://www.speedtest.net/de> in the default browser. The CPU and GPU cards do not react. Windows opens the windows, usually on the main screen.
+
+**Update notice:** At most once a day (at the earliest 45 seconds after start) the app queries the public GitHub releases, without a key or account. If a newer published version exists, a balloon appears at the fox icon (clicking it opens the settings) and **Settings → Start** shows “New version … available” with a link to the download page. **Check now** queries outside the schedule (at most every 5 minutes). Nothing is ever downloaded or installed; to update you download the new EXE yourself and start it. Turn it off under **Settings → Start → Notify about new versions** or with `update_check = false` in `[ui]`. Only an ordinary request with the program name and version in the user agent is sent; as with any request, GitHub sees your IP address. The time of the last check is stored in `update-check.json` next to `config.toml`.
+
 ## Touch targets and playtime (2.0.7, local)
 
 With touch enabled, tapping a BF6 player opens their GameTools profile in the browser. The leaderboard also shows hours played. Tapping a friend preferably opens the Steam chat with that person (Steam app required). Without a Steam account, their Discord profile opens (choose **Message** there), otherwise their Xbox profile on xbox.com in the browser. If the target's app is not installed, the next target is used. Windows and tabs are controlled by the platform app/browser. [Usage, prerequisites and limits](../docs/TOUCH-2.0.7.en.md). [Validation](TESTPROTOKOLL.md).
@@ -57,6 +63,8 @@ Run `build\fl-monitor-tests.exe window` only for a controlled visible secondary-
 - If the serial display cannot open its COM port, close the vendor monitor program and check that another app is not using that port.
 
 ## Validation status
+
+Version 2.2.0: release build, 225 core checks (new: system-page hit areas, version comparison, GitHub response parsing) and 11 monitor basics passed. Open: tapping on real touch hardware, balloon/settings entry with a genuinely newer release, Windows sign-in test.
 
 Version 2.0.4: release build, 86 core checks, 11 monitor basics and 49 navigation/API checks passed. The new controls and page changes were also checked in the German and English browser UI, using an isolated instance with no display output. Subsequently installed in the ordinary Windows user context: file/API version and hash match, settings are unchanged, autostart is preserved and display_ok=true. No new Windows sign-in or physical visual/touch check was performed. Run `python tests/test_page_navigation.py build/FuchsLabs-USB-Display.exe` to repeat the navigation checks on the reserved test port 8766.
 

@@ -291,7 +291,11 @@ bool SettingsServer::start() {
         auto ds = app.discord_status();
         json_reply(res, {{"display_ok", app.display_ok()}, {"display_error", app.display_error()},
                          {"discord", ds ? ojson(*ds) : ojson()}, {"vendor_running", winsetup::vendor_running()},
-                         {"vendor_autostart", winsetup::vendor_autostart_enabled()}, {"autostart", winsetup::autostart_enabled()}});
+                         {"vendor_autostart", winsetup::vendor_autostart_enabled()}, {"autostart", winsetup::autostart_enabled()},
+                         {"update", app.update_info()}});
+    });
+    svr.Post("/api/update/check", [&app](const httplib::Request&, httplib::Response& res) {
+        json_reply(res, {{"ok", app.update_check_now()}});
     });
     svr.Post("/api/autostart", [](const httplib::Request& req, httplib::Response& res) {
         ojson body = body_json(req);

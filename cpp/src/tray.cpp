@@ -125,6 +125,7 @@ bool Tray::handle(void* hwnd_v, unsigned msg, unsigned long long, long long lp, 
     HWND hwnd = (HWND)hwnd_v;
     if (msg == WM_TRAY) {
         if (lp == WM_LBUTTONDBLCLK) on_open_();
+        else if (lp == NIN_BALLOONUSERCLICK && on_balloon) on_balloon();
         else if (lp == WM_RBUTTONUP) menu(hwnd);
         result = 0;
         return true;
@@ -152,6 +153,19 @@ bool Tray::handle(void* hwnd_v, unsigned msg, unsigned long long, long long lp, 
         return true;
     }
     return false;
+}
+
+void Tray::notify(const std::string& title, const std::string& text) {
+    if (!hwnd_ || !added_) return;
+    NOTIFYICONDATAW nid{};
+    nid.cbSize = sizeof nid;
+    nid.hWnd = (HWND)hwnd_;
+    nid.uID = 1;
+    nid.uFlags = NIF_INFO;
+    nid.dwInfoFlags = NIIF_INFO;
+    wcsncpy_s(nid.szInfoTitle, widen(title).c_str(), _TRUNCATE);
+    wcsncpy_s(nid.szInfo, widen(text).c_str(), _TRUNCATE);
+    Shell_NotifyIconW(NIM_MODIFY, &nid);
 }
 
 void Tray::menu(void* hwnd_v) {

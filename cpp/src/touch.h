@@ -17,6 +17,7 @@ struct Tile {
     render::Box box;
     bool rss = false;
     Rows rows;
+    bool sys = false;                             // Systemansicht: cells[0..2] = RAM, Datenträger, Netzwerk
     bool ha = false;                              // Home-Assistant-Kacheln: je Kachel eine Aktion (Schalter umlegen) oder leer
     std::vector<std::function<void()>> cells;
 };
@@ -32,4 +33,6 @@ const Targets* at(const std::vector<Tile>& tiles, int x, int y);
 bool dispatch(const Targets& targets, const std::function<bool(const std::string&)>& available,
               const std::function<bool(const std::string&)>& launch);
 bool open(const Targets& targets);
+// Systemansicht: RAM → Task-Manager, Datenträger → „Programme und Features“, Netzwerk → Geschwindigkeitstest im Browser
+bool open_system(int zone);
 }  // namespace fl::touch

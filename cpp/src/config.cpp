@@ -46,7 +46,7 @@ const ojson& defaults() {
                     {"max_per_feed", 1}, {"title", "Blog-Updates"}};
         j["homeassistant"] = {{"enabled", false}, {"title", "Home Assistant"}, {"url", ""}, {"token", ""},
                               {"entities", ojson::array()}};
-        j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}};
+        j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true}};
         return j;
     }();
     return d;

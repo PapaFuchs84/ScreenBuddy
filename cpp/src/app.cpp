@@ -15,6 +15,7 @@
 #include "sysinfo.h"
 #include "settings_window.h"
 #include "tray.h"
+#include "update.h"
 #include "util.h"
 #include "webui.h"
 #include "winsetup.h"
@@ -68,7 +69,20 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
     }
     if (b(fr, "enabled"))
         friends_ = std::make_unique<friends::FriendsHub>(fr, b(fr, "include_discord", true) ? discord_.get() : nullptr, dirty);
+    // Update-Hinweis: nie in einer Testinstanz und nur, wenn in den Einstellungen nicht abgeschaltet
+    if (b(cfg_["ui"], "update_check", true) && !test_instance() && !preview_dir_)
+        update_ = std::make_unique<update::UpdateChecker>(cfg_path_.parent_path() / L"update-check.json", [this](const update::Release& rel) {
+            bool en = i18n::lang() == "en";
+            std::lock_guard lk(notify_mu_);
+            if (tray_)
+                tray_->notify(en ? "New version available" : "Neue Version verfügbar",
+                              strprintf(en ? "Version %s is available. Click for details." : "Version %s ist verfügbar. Zum Ansehen klicken.",
+                                        rel.version.c_str()));
+        });
 }
+
+ojson App::update_info() { return update_ ? ojson::parse(update_->info().dump()) : ojson(); }
+bool App::update_check_now() { return update_ && update_->check_now(); }
 
 bool App::touch_enabled() const {
     // Schalter brauchen Touch: nur bei Ausgabe auf einen Bildschirm, mit eingeschaltetem Touch und erkanntem Touchscreen
@@ -76,6 +90,7 @@ bool App::touch_enabled() const {
 }
 
 App::~App() {
+    if (update_) update_->stop();
     if (ha_) ha_->stop();
     if (friends_) friends_->stop();
     if (discord_) discord_->stop();
@@ -268,7 +283,14 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
     std::vector<PageEntry> out;
     for (auto& key : active_pages()) {
         if (key == "system") {
-            out.push_back({key, 1, [this](int, RendererSet& rs) { return rs.system.render(sys_->snapshot()); }});
+            PageEntry pe{key, 1, [this](int, RendererSet& rs) { return rs.system.render(sys_->snapshot()); }};
+            // Tippen auf RAM / Datenträger / Netzwerk öffnet das passende Windows-Werkzeug bzw. den Geschwindigkeitstest
+            for (int zone : {render::SysRenderer::ZONE_RAM, render::SysRenderer::ZONE_DISK, render::SysRenderer::ZONE_NET})
+                pe.actions.push_back([zone] {
+                    if (touch::open_system(zone)) LOGI("app", "Touch: Systemwerkzeug %d geöffnet", zone);
+                    else LOGW("app", "Touch: Systemwerkzeug %d ließ sich nicht öffnen", zone);
+                });
+            out.push_back(std::move(pe));
         } else if (key == "discord") {
             std::string st = discord_->status();
             out.push_back({key, r.discord.pages(friends.size()), [friends, st](int i, RendererSet& rs) {
@@ -328,6 +350,7 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
                 keys.push_back(p.key);
                 touch::Tile tile{boxes[k], p.key == "rss", p.targets ? p.targets(idx, renderers_for(boxes[k].w, boxes[k].h)) : touch::Rows{}};
                 tile.ha = p.key == "homeassistant";
+                tile.sys = p.key == "system";
                 tile.cells = p.actions;
                 taps.push_back(std::move(tile));
                 break;
@@ -550,8 +573,19 @@ void App::run() {
         std::wstring url = L"http://127.0.0.1:" + std::to_wstring(guide_port) + L"/anleitung?lang=" + widen(i18n::lang());
         ShellExecuteW(nullptr, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     };
+    tray.on_balloon = [this] { show_settings(); };
     tray.start();
+    {
+        std::lock_guard lk(notify_mu_);
+        tray_ = &tray;
+    }
+    if (update_) update_->start();
     display_loop();
+    if (update_) update_->stop();
+    {
+        std::lock_guard lk(notify_mu_);
+        tray_ = nullptr;
+    }
     tray.stop();
     // War das Einstellungsfenster beim Neustart offen (z. B. nach dem Speichern), öffnet es die neue Instanz wieder
     settings_open_at_exit_ = settings_window && settings_window->visible();

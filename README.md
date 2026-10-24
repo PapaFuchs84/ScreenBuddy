@@ -8,7 +8,7 @@
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.1.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.2.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -55,10 +55,17 @@ Dazu kommen:
 - **Ersteinrichtung ohne Vorkenntnisse**: erkennt das Display, beendet und deaktiviert auf Wunsch die Hersteller-App, Autostart ohne Administratorrechte
 - **Design**: FuchsLabs-CI in Hell oder Dunkel, oder **eigene Farben** per Farbwähler mit Kontrastwarnung
 - **Jede Auflösung**: Seiten werden scharf auf die echte Größe gerendert; breite Leisten zeigen mehrere Seiten nebeneinander
-- **HDMI/USB-C-Bildschirme** als randloses Vollbild über der Taskleiste, optional mit **Touch** (wischen oder tippen zum Blättern, Tippen auf einen Blogbeitrag öffnet ihn im Browser); Prüfung und Einrichtung der Windows-Touch-Zuordnung unter **Display**
+- **HDMI/USB-C-Bildschirme** als randloses Vollbild über der Taskleiste, optional mit **Touch** (wischen oder tippen zum Blättern, Tippen auf einen Blogbeitrag öffnet ihn im Browser, Tippen auf RAM, Datenträger oder Netzwerk der Systemseite öffnet Task-Manager, „Programme und Features“ bzw. den Geschwindigkeitstest); Prüfung und Einrichtung der Windows-Touch-Zuordnung unter **Display**
 - **Deutsch oder Englisch**: Einstellungsseite, Display und Infobereich lassen sich umschalten; beim ersten Start folgt die Sprache Windows
 - **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, in der EXE eingebettet auf Deutsch und Englisch
+- **Update-Hinweis** (abschaltbar): meldet höchstens einmal am Tag eine neue GitHub-Version im Infobereich und in den Einstellungen, installiert aber nie selbst
 - **Eine EXE** für Installation, Updates und Deinstallation; kein Python und kein Visual-C++-Redistributable erforderlich. WebView2 bleibt eine Voraussetzung.
+
+## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
+
+**Touch auf der Systemseite:** Bei aktivem Touch (nur bei Ausgabe auf einen Bildschirm) öffnet ein Tipp auf die Karte **RAM** den Task-Manager, auf **Datenträger** „Programme und Features“ (`appwiz.cpl`) und auf **Netzwerk** den Geschwindigkeitstest <https://www.speedtest.net/de> im Standardbrowser. Die CPU- und GPU-Karten reagieren nicht. Die Fenster öffnet Windows, meist auf dem Hauptbildschirm.
+
+**Update-Hinweis:** Die App fragt höchstens einmal am Tag (frühestens 45 Sekunden nach dem Start) die öffentlichen GitHub-Releases ab, ohne Zugangsschlüssel und ohne Konto. Gibt es eine neuere, veröffentlichte Version, erscheint eine Sprechblase am Fuchs-Symbol (ein Klick öffnet die Einstellungen), und **Einstellungen → Start** zeigt „Neue Version … verfügbar“ mit Link zur Download-Seite. **Jetzt prüfen** fragt außerplanmäßig nach (höchstens alle 5 Minuten). Es wird nie etwas heruntergeladen oder installiert; zum Aktualisieren lädst du die neue EXE selbst herunter und startest sie. Abschalten: **Einstellungen → Start → Auf neue Versionen hinweisen** bzw. `update_check = false` unter `[ui]`. Gesendet wird nur eine gewöhnliche Abfrage mit dem Programmnamen und der Version im User-Agent; GitHub sieht dabei wie bei jedem Abruf deine IP-Adresse. Der Zeitpunkt der letzten Abfrage steht in `update-check.json` neben der `config.toml`.
 
 ## Touch-Ziele und Spielstunden (ab 2.0.7)
 
@@ -91,7 +98,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **FuchsLabs-USB-Display.exe** aus dem [aktuellen Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) herunterladen (Stand: **2.1.0**). Die EXE ist unsigniert. Daneben liegt `SHA256SUMS.txt` zur Dateiprüfung.
+1. **FuchsLabs-USB-Display.exe** aus dem [aktuellen Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) herunterladen (Stand: **2.2.0**). Die EXE ist unsigniert. Daneben liegt `SHA256SUMS.txt` zur Dateiprüfung.
 2. Windows 10/11 x64 mit installierter **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit ist nicht in der EXE enthalten und wird vom Installer nicht automatisch installiert.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
@@ -190,7 +197,7 @@ WebView2-SDK-Header, statischer Loader und Lizenzhinweise liegen unter `cpp/thir
 
 ## Sicherheit und Datenschutz
 
-- Läuft **ohne Administratorrechte**, ohne Telemetrie, ohne Konto.
+- Läuft **ohne Administratorrechte**, ohne Telemetrie, ohne Konto. Die einzige App-eigene Anfrage ohne deine Datenquellen ist der abschaltbare Update-Hinweis an die öffentlichen GitHub-Releases (höchstens 1× am Tag, ohne Schlüssel).
 - Zugangsdaten werden mit **Windows-DPAPI** verschlüsselt gespeichert, nie protokolliert und nie an den Browser gegeben.
 - Die Einstellungsseite ist **nur auf `127.0.0.1`** erreichbar und gegen DNS-Rebinding, CSRF und Einbetten in fremde Seiten geschützt.
 - Alle Verbindungen laufen über HTTPS mit Zertifikatsprüfung; Pakete sind auf genaue Versionen festgelegt.
@@ -224,6 +231,10 @@ Dir gefällt die App? Über einen Kaffee freut sich FuchsLabs: [☕ paypal.me/SH
 Der Code steht unter der [MIT-Lizenz](LICENSE), © 2026 FuchsLabs. Name und Fuchskopf-Logo sind ausgenommen ([TRADEMARKS.md](TRADEMARKS.md)). Für eingebundene Drittkomponenten gelten deren eigene Lizenzen ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
 Battlefield, Discord, Steam und Xbox sind Marken ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen.
+
+## Prüfstand 2.2.0
+
+Release-Build, 225 Kernprüfungen (neu: Trefferflächen der Systemseite, Versionsvergleich und Auswertung der GitHub-Antwort) und 11 Monitor-Basisprüfungen bestanden; die Trefferflächen stimmen mit der gerenderten Systemseite überein (Vorschaubild). **Noch offen:** Tippen auf echter Touch-Hardware (Task-Manager, „Programme und Features“, Speedtest), die Sprechblase und die Anzeige in den Einstellungen mit einer tatsächlich neueren Veröffentlichung sowie ein Windows-Anmeldetest für 2.2.0. Siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
 
 ## Prüfstand 2.0.3
 

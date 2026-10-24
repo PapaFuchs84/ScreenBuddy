@@ -6,6 +6,15 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.2.0] – 2026-10-24
+
+### Added
+- System page by touch: tapping **RAM** opens Task Manager, **Drive** opens “Programs and Features” (`appwiz.cpl`), **Network** opens the speed test at speedtest.net/de in the default browser. Only with touch active.
+- Update notice: at most once a day (45 s after start) the public GitHub releases are queried, without a key. A newer published version shows as a balloon at the tray icon and under **Settings → Start** (link to the download page, **Check now**). Nothing is ever downloaded or installed. Can be turned off under **Start → Notify about new versions** (`[ui] update_check`). The time and reported version are stored in `update-check.json` next to `config.toml`; test instances never query.
+
+### Changed
+- Illustrated guide (DE/EN) extended with the system page by touch and the update notice; documentation aligned with 2.2.0.
+
 ### Changed
 - Documentation aligned with 2.1.0: README, docs, changelogs and download links updated; illustrated guide (DE/EN) with a new “Home Assistant” step (address, token, check connection, choose tiles). The already published EXE still embeds the old guide; the new one ships with the next build.
 - Documentation aligned with 2.0.3: README/quick start, download links, HDMI/touch guide, validation status and security version overview; existing German/English versions updated together. Project rules and the PR template now require documentation updates with every change.
