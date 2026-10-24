@@ -77,6 +77,15 @@ Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein Game
 
 Neue Seite **Home Assistant** mit bis zu 4 Kacheln. **Sensoren** (auch Binärsensoren) zeigen Wert und Einheit. **Schalter** (Schalter, Licht, Ventilator, Eingabe-Schalter) zeigen An/Aus und lassen sich bei aktivem Touch per Tipp umlegen. Ohne Touch kannst du in den Einstellungen nur Sensoren wählen. Einrichtung unter **Einstellungen → Home Assistant**: Adresse (z. B. http://homeassistant.local:8123), ein langlebiges Zugriffstoken (Profil in Home Assistant → Sicherheit) und die Entitäten aus der Liste, die **Verbindung prüfen** direkt aus Home Assistant lädt. Das Token liegt wie die anderen Schlüssel DPAPI-verschlüsselt in config.toml. Die App fragt die REST-API alle 15 Sekunden ab; ein Tipp auf einen Schalter wirkt sofort. Schlösser, Rollläden und Alarmanlagen lassen sich bewusst nicht schalten. Bei einer Adresse mit http:// laufen Token und Werte unverschlüsselt durchs Heimnetz; nutze dort https://, wenn Home Assistant es anbietet.
 
+## Android-Companion-App (ab 2.3.0)
+
+Mit der Android-Companion-App lässt sich ein Smartphone oder Tablet als unabhängige Zusatzanzeige parallel zum USB-/HDMI-Display einbinden:
+- **Getrennte Seiten & Intervalle:** Eigene Seitenliste und eigene Anzeigedauer für das Smartphone (unter **Companion → Unabhängige Companion-Anzeige**); Datenquellen und Design bleiben gemeinsam.
+- **Kopplung per QR-Code oder PIN:** Im Reiter **Companion** auf **Gerät koppeln** klicken. Die Android-App scannt den QR-Code oder verbindet sich über Adresse, Port (8777) und 6-stelligen PIN-Code; der SHA-256-Fingerabdruck sichert die TLS-Verbindung ab.
+- **Touch & Gesten:** Wischen schaltet nur das Smartphone-Display um. Interaktive Kacheln (Smart Home, Freunde, Systemaktionen) lassen sich per Fingertipp bedienen.
+- **Native Auflösung & Rotation:** Das Handy meldet Ausrichtung (Hoch-/Querformat) und Pixelmaße automatisch; der PC rendert die Ansicht passgenau.
+- [Schritt-für-Schritt-Anleitung zur Kopplung](ANLEITUNG.md#android-companion-app-koppeln-und-nutzen-ab-230) · [Einrichtung und Grenzen](docs/COMPANION.md)
+
 ## Ansichten durchblättern (2.0.4)
 
 

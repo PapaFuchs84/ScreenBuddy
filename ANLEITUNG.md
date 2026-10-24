@@ -48,6 +48,41 @@ Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein Game
 
 Neue Seite **Home Assistant** mit bis zu 4 Kacheln. **Sensoren** (auch Binärsensoren) zeigen Wert und Einheit. **Schalter** (Schalter, Licht, Ventilator, Eingabe-Schalter) zeigen An/Aus und lassen sich bei aktivem Touch per Tipp umlegen. Ohne Touch kannst du in den Einstellungen nur Sensoren wählen. Einrichtung unter **Einstellungen → Home Assistant**: Adresse (z. B. http://homeassistant.local:8123), ein langlebiges Zugriffstoken (Profil in Home Assistant → Sicherheit) und die Entitäten aus der Liste, die **Verbindung prüfen** direkt aus Home Assistant lädt. Das Token liegt wie die anderen Schlüssel DPAPI-verschlüsselt in config.toml. Die App fragt die REST-API alle 15 Sekunden ab; ein Tipp auf einen Schalter wirkt sofort. Schlösser, Rollläden und Alarmanlagen lassen sich bewusst nicht schalten. Bei einer Adresse mit http:// laufen Token und Werte unverschlüsselt durchs Heimnetz; nutze dort https://, wenn Home Assistant es anbietet.
 
+## Android Companion App koppeln und nutzen (ab 2.3.0)
+
+Mit der Companion-App kannst du dein Android-Smartphone oder Tablet als zusätzliches Display nutzen – entweder parallel zum USB-/HDMI-Display mit komplett eigenen Seiten und Wechselintervallen oder als alleinige Anzeige.
+
+### 1. Vorbereitung und Installation
+1. **Netzwerk:** Smartphone und PC müssen im selben lokalen Heimnetz (WLAN) oder per USB-Tethering verbunden sein.
+2. **APK installieren:** Die begleitende Vorschau-APK `FuchsLabs-Companion-0.2.0-preview.apk` aus dem [aktuellen GitHub-Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) herunterladen und auf dem Android-Gerät installieren (Android 8.0 oder neuer).
+
+### 2. Companion am PC aktivieren
+1. In den Einstellungen der Windows-App auf den Reiter **Companion** gehen.
+2. Den Schalter **Companion aktivieren** einschalten (Standard-Port: 8777).
+3. Auf **Speichern & anwenden** klicken. Der TLS-gesicherte Hintergrunddienst startet.
+
+### 3. Smartphone mit dem PC koppeln
+1. In den Windows-Einstellungen unter **Companion** auf **Gerät koppeln** klicken.
+2. Es öffnet sich ein Dialog mit einem **QR-Code**, einem 6-stelligen **PIN-Code** (gültig für 120 Sekunden) und dem SHA-256-Fingerabdruck des erzeugten Zertifikats.
+3. In der Android-App auf **Koppeln** tippen:
+   - **Per QR-Code:** Kamera-Berechtigung erteilen und den QR-Code am Monitor scannen. Adresse, Port, PIN und Fingerabdruck werden automatisch übernommen.
+   - **Manuell:** Lokale IP-Adresse des PCs, Port (8777) und 6-stelligen PIN-Code eintippen.
+4. Den in der App angezeigten **Zertifikats-Fingerabdruck** kurz mit dem am PC vergleichen und bestätigen.
+5. Nach erfolgreicher Kopplung speichert das Smartphone den kryptografischen Schlüssel lokal ab. Künftige Verbindungen erfolgen automatisch ohne erneute PIN-Eingabe.
+
+### 4. Eigene Seiten für das Smartphone festlegen
+1. Unter **Companion → Unabhängige Companion-Anzeige** die gewünschten Seiten für das Handy anhaken und die Anzeigedauer (3–600 Sekunden) einstellen.
+2. Das USB-Display bzw. der HDMI-Monitor behält seine eigene Seitenliste und Anzeigedauer unter **Display → Seiten auf USB-Display / Bildschirm**.
+3. Datenquellen (System, Discord, Freunde, Battlefield, Blogs, Home Assistant) werden in ihren jeweiligen Reitern aktiviert und konfiguriert; beide Anzeigen greifen gemeinsam darauf zu.
+
+### 5. Bedienung auf dem Smartphone
+- **Wischen:** Ein Wisch nach links wechselt zur nächsten Seite, nach rechts zur vorherigen Seite. Das Blättern wirkt nur auf dem Handy; das Hauptdisplay schaltet unbeeinflusst weiter.
+- **Tippen:** Interaktive Elemente lassen sich direkt antippen (z. B. Smart-Home-Schalter umlegen, Freunde-Chats öffnen oder System-Aktionen ausführen).
+- **Automatische Auflösung & Drehung:** Beim Drehen zwischen Hochformat und Querformat meldet die App die native Bildschirmauflösung automatisch an den PC. Der PC rendert das Bild scharf und passgenau für die jeweilige Handyausrichtung.
+
+Weitere technische Hintergründe und Grenzwerte: [docs/COMPANION.md](docs/COMPANION.md).
+
+
 ## Ansichten durchblättern (2.0.4)
 
 Unter **Einstellungen → Übersicht** kannst du mit **Vorherige Ansicht** und **Nächste Ansicht** direkt durch die laufenden Display-Ansichten blättern. Die Position und die sichtbaren Seiten stehen unter der Live-Vorschau. Lange Listen blättern mit ihren Unterseiten, breite Displays wechseln wie bei der Touchbedienung um eine Kachelgruppe. Nach einem manuellen Wechsel beginnt die eingestellte Anzeigedauer neu; danach läuft der automatische Wechsel weiter. Bei keiner oder nur einer vollständig sichtbaren Ansicht sind die Knöpfe deaktiviert. Dafür ist kein Speichern oder Neustart nötig. Geänderte Seitenauswahl und Reihenfolge gelten nach **Speichern & anwenden**.

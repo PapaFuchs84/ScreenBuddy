@@ -77,6 +77,15 @@ With touch enabled, tapping a BF6 player opens their GameTools profile in the br
 
 New **Home Assistant** page with up to 4 tiles. **Sensors** (including binary sensors) show value and unit. **Switches** (switch, light, fan, input boolean) show On/Off and can be flipped by tapping when touch is active. Without touch only sensors can be chosen in the settings. Set it up under **Settings → Home Assistant**: address (e.g. `http://homeassistant.local:8123`), a long-lived access token (profile in Home Assistant → Security) and the entities from the list that **Check connection** loads straight from Home Assistant. Like the other keys, the token is stored DPAPI-encrypted in `config.toml`. The app polls the REST API every 15 seconds; tapping a switch takes effect immediately. Locks, covers and alarm panels are deliberately not switchable. With an `http://` address the token and values cross your home network unencrypted; use `https://` if Home Assistant offers it.
 
+## Android Companion App (from 2.3.0)
+
+Use an Android phone or tablet as an independent secondary display alongside your USB/HDMI screen:
+- **Independent pages & rotation timers:** Configure separate page lists and intervals for the smartphone (under **Companion → Independent Companion display**); data sources and theme remain shared.
+- **Pairing via QR code or PIN:** Click **Pair device** under the **Companion** tab. The Android app scans the QR code or connects manually using address, port (8777) and a 6-digit PIN; a SHA-256 certificate fingerprint secures the TLS connection.
+- **Touch & gestures:** Swipes navigate pages only on the phone. Interactive tiles (smart home, friends, system actions) respond directly to finger taps.
+- **Native resolution & rotation:** The phone automatically reports orientation (portrait/landscape) and resolution; the PC renders matching frames at full clarity.
+- [Setup and limits](docs/COMPANION.en.md) · [Companion protocol details](docs/COMPANION-PROTOKOLL.md)
+
 ## Browse views (2.0.4)
 
 
