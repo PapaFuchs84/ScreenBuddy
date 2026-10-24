@@ -51,8 +51,13 @@ std::optional<std::string> SerialDisplay::find_port() {
         std::string up = inst;
         for (auto& c : up) c = (char)toupper((unsigned char)c);
         unsigned vid = 0, pid = 0;
-        if (auto p = up.find("VID_"); p != std::string::npos) vid = std::stoul(up.substr(p + 4, 4), nullptr, 16);
-        if (auto p = up.find("PID_"); p != std::string::npos) pid = std::stoul(up.substr(p + 4, 4), nullptr, 16);
+        try {
+            if (auto p = up.find("VID_"); p != std::string::npos && p + 8 <= up.size())
+                vid = std::stoul(up.substr(p + 4, 4), nullptr, 16);
+            if (auto p = up.find("PID_"); p != std::string::npos && p + 8 <= up.size())
+                pid = std::stoul(up.substr(p + 4, 4), nullptr, 16);
+        } catch (...) {
+        }
         std::string serial = inst.substr(inst.rfind('\\') + 1);
         bool match = serial == DEVICE_SERIAL;
         for (auto& [v, p] : DEVICE_IDS) match |= v == vid && p == pid;

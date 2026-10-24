@@ -84,7 +84,7 @@ void Tray::stop() {
     if (th_.joinable()) th_.join();
 }
 
-static void add_icon(HWND hwnd, HICON icon, const std::string& tip, bool& added) {
+static void add_icon(HWND hwnd, HICON icon, const std::string& tip, bool& added, bool warn = true) {
     NOTIFYICONDATAW nid{};
     nid.cbSize = sizeof nid;
     nid.hWnd = hwnd;
@@ -94,7 +94,12 @@ static void add_icon(HWND hwnd, HICON icon, const std::string& tip, bool& added)
     nid.hIcon = icon;
     wcsncpy_s(nid.szTip, widen(tip).c_str(), _TRUNCATE);
     added = Shell_NotifyIconW(NIM_ADD, &nid) != 0;
-    if (!added) LOGW("tray", "Tray-Symbol konnte nicht angelegt werden");
+    if (!added) {
+        if (warn) LOGW("tray", "Tray-Symbol konnte nicht angelegt werden");
+        else LOGD("tray", "Tray-Symbol noch nicht verfügbar");
+    } else {
+        LOGD("tray", "Tray-Symbol erfolgreich angelegt");
+    }
 }
 
 void Tray::run() {
@@ -115,7 +120,7 @@ void Tray::run() {
     int px = GetSystemMetrics(SM_CXSMICON);  // passende Größe bei hoher Skalierung
     icon_ = make_hicon(px ? px : 16);
     retry_count_ = 0;
-    add_icon(hwnd, (HICON)icon_, tip_, added_);
+    add_icon(hwnd, (HICON)icon_, tip_, added_, true);
     if (!added_) SetTimer(hwnd, ID_RETRY_TIMER, 1000, nullptr);
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
@@ -139,9 +144,10 @@ bool Tray::handle(void* hwnd_v, unsigned msg, unsigned long long wp, long long l
         return true;
     }
     if (msg == WM_TIMER && wp == ID_RETRY_TIMER) {
-        add_icon(hwnd, (HICON)icon_, tip_, added_);
+        add_icon(hwnd, (HICON)icon_, tip_, added_, false);
         if (added_ || ++retry_count_ >= 30) {
             KillTimer(hwnd, ID_RETRY_TIMER);
+            if (!added_) LOGW("tray", "Tray-Symbol nach 30 Versuchen nicht verfügbar");
         }
         result = 0;
         return true;

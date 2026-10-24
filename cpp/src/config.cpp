@@ -198,7 +198,11 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
                 if (s.empty()) continue;
                 if (s.find_first_not_of("0123456789") != std::string::npos || s.size() > 20)
                     throw std::invalid_argument("Zahl erwartet");
-                ids.insert(std::stoull(s));
+                try {
+                    ids.insert(std::stoull(s));
+                } catch (...) {
+                    throw std::invalid_argument("Zahl erwartet");
+                }
             }
             return ojson(std::vector<unsigned long long>(ids.begin(), ids.end()));
         }
