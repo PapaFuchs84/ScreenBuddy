@@ -34,7 +34,7 @@ def wait_for(fn, seconds=12):
 
 class WS:
     def __init__(self, host, port, fingerprint):
-        ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT);ctx.check_hostname=False;ctx.verify_mode=ssl.CERT_NONE
+        ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT);ctx.minimum_version=ssl.TLSVersion.TLSv1_2;ctx.check_hostname=False;ctx.verify_mode=ssl.CERT_NONE
         self.s=ctx.wrap_socket(socket.create_connection((host,port),timeout=4),server_hostname=host)
         import hashlib
         check(hashlib.sha256(self.s.getpeercert(binary_form=True)).hexdigest()==fingerprint.replace(':','').lower(),'TLS fingerprint matches isolated server')
