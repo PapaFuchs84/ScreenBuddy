@@ -60,13 +60,25 @@ std::mutex& mutex() { return g_mutex; }
 
 std::string hex_color(Color c) { return strprintf("#%02X%02X%02X", c.r, c.g, c.b); }
 
+static inline bool is_hex(char c) {
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+static inline uint8_t hex_val(char c) {
+    if (c >= '0' && c <= '9') return (uint8_t)(c - '0');
+    if (c >= 'a' && c <= 'f') return (uint8_t)(c - 'a' + 10);
+    if (c >= 'A' && c <= 'F') return (uint8_t)(c - 'A' + 10);
+    return 0;
+}
+
 std::optional<Color> parse_color(const std::string& in) {
     std::string s = trim(in);
-    while (!s.empty() && s[0] == '#') s.erase(0, 1);
-    static const std::regex rx("[0-9a-fA-F]{6}");
-    if (!std::regex_match(s, rx)) return std::nullopt;
-    auto h = [&](int i) { return (uint8_t)std::stoi(s.substr(i, 2), nullptr, 16); };
-    return Color{h(0), h(2), h(4)};
+    if (!s.empty() && s[0] == '#') s.erase(0, 1);
+    if (s.size() != 6) return std::nullopt;
+    for (char c : s) if (!is_hex(c)) return std::nullopt;
+    uint8_t r = (uint8_t)((hex_val(s[0]) << 4) | hex_val(s[1]));
+    uint8_t g = (uint8_t)((hex_val(s[2]) << 4) | hex_val(s[3]));
+    uint8_t b = (uint8_t)((hex_val(s[4]) << 4) | hex_val(s[5]));
+    return Color{r, g, b};
 }
 
 double contrast(Color a, Color b) {
@@ -747,7 +759,7 @@ void HaRenderer::cell(Canvas& d, const Cell& c, const HaEntity& e, bool compact)
     bool is_switch = e.toggle || (toggle_domain_name(e.id) && (e.state == "on" || e.state == "off"));
     if (is_switch) {
         // Schiebeschalter: Orange = an
-        float tw = compact ? 40 : 52, th = compact ? 22 : 28, x = c.x0 + 12, y = cy - th / 2;
+        float tw = compact ? 40.f : 52.f, th = compact ? 22.f : 28.f, x = static_cast<float>(c.x0 + 12), y = cy - th / 2.f;
         d.rounded_rectangle(x, y, x + tw, y + th, th / 2, e.on ? t.orange : t.line);
         float r = th / 2 - 3, kx = e.on ? x + tw - th / 2 : x + th / 2;
         d.ellipse(kx - r, cy - r, kx + r, cy + r, e.on ? t.head_text : t.muted);

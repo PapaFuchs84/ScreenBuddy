@@ -8,6 +8,7 @@
 #include <wrl/client.h>
 
 #include <cmath>
+#include <cstring>
 #include <map>
 #include <mutex>
 #include <stdexcept>
@@ -269,14 +270,20 @@ Image thumbnail(const Image& img, int max_w, int max_h) {
 }
 
 void paste(Image& dst, const Image& src, int x, int y) {
-    for (int yy = 0; yy < src.h; ++yy) {
+    int start_y = std::max(0, -y);
+    int end_y = std::min(src.h, dst.h - y);
+    if (start_y >= end_y) return;
+
+    int start_x = std::max(0, -x);
+    int end_x = std::min(src.w, dst.w - x);
+    if (start_x >= end_x) return;
+
+    size_t copy_pixels = (size_t)(end_x - start_x);
+    for (int yy = start_y; yy < end_y; ++yy) {
         int ty = y + yy;
-        if (ty < 0 || ty >= dst.h) continue;
-        for (int xx = 0; xx < src.w; ++xx) {
-            int tx = x + xx;
-            if (tx < 0 || tx >= dst.w) continue;
-            dst.px[size_t(ty) * dst.w + tx] = src.px[size_t(yy) * src.w + xx];
-        }
+        std::memcpy(&dst.px[size_t(ty) * dst.w + (x + start_x)],
+                    &src.px[size_t(yy) * src.w + start_x],
+                    copy_pixels * sizeof(uint32_t));
     }
 }
 
@@ -330,13 +337,25 @@ struct Canvas::Impl {
     int w, h;
     ComPtr<IWICBitmap> bmp;
     ComPtr<ID2D1RenderTarget> rt;
-    std::map<uint32_t, ComPtr<ID2D1SolidColorBrush>> brushes;
+    struct BrushEntry {
+        uint32_t color = 0;
+        ComPtr<ID2D1SolidColorBrush> brush;
+    };
+    BrushEntry brushes[16]{};
+    int brush_count = 0;
     bool done = false;
 
     ID2D1SolidColorBrush* brush(Color c) {
-        uint32_t k = c.r << 16 | c.g << 8 | c.b;
-        auto& b = brushes[k];
-        if (!b) rt->CreateSolidColorBrush(col(c), &b);
+        uint32_t k = (uint32_t)c.r << 16 | (uint32_t)c.g << 8 | (uint32_t)c.b;
+        for (int i = 0; i < brush_count; ++i) {
+            if (brushes[i].color == k) return brushes[i].brush.Get();
+        }
+        ComPtr<ID2D1SolidColorBrush> b;
+        rt->CreateSolidColorBrush(col(c), &b);
+        if (brush_count < 16) {
+            brushes[brush_count] = {k, b};
+            brush_count++;
+        }
         return b.Get();
     }
     ComPtr<ID2D1Bitmap> bitmap(const Image& img) {

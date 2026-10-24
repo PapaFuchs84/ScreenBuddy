@@ -13,6 +13,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ### Geändert
 - Windows-Version auf 2.3.0 aktualisiert; Deutsch-/Englisch-Anleitung, Testprotokoll und eingebettete Hilfe synchronisiert.
+- Performance & Verschlankung: Zeilenweises `std::memcpy` beim Kacheln (`paste()`), Stack-Puffer-Schnellpfad für `strprintf()` zur Vermeidung dynamischer Speicherbelegung, schneller Hex-Farb-Parser ohne Regex/Heap-Allokation, lokaler Inline-Pinsel-Cache in `Canvas::Impl`, Vermeidung von Formatierungsaufwand bei inaktivem Debug-Logging (`is_verbose()`), String-Pooling (`/GF`) sowie Beseitigung aller Compiler-Warnungen in `render.cpp` und `sysinfo.cpp`.
 - Die Installation übernimmt vorhandene Einstellungen neben einer portablen EXE. Vor einem Update wird eine lokale Einstellungs-Sicherung angelegt; Klartext-Zugangsdaten werden darin verschlüsselt abgelegt.
 
 ### Behoben

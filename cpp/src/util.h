@@ -57,7 +57,8 @@ inline std::string u8(const std::filesystem::path& p) { return narrow(p.wstring(
 enum class Level { Debug, Info, Warning, Error };
 void log_init(const std::filesystem::path& file, bool verbose);
 void log(Level lv, std::string_view name, std::string_view msg);
-#define LOGD(name, ...) ::fl::log(::fl::Level::Debug, name, ::fl::strprintf(__VA_ARGS__))
+bool is_verbose();
+#define LOGD(name, ...) do { if (::fl::is_verbose()) ::fl::log(::fl::Level::Debug, name, ::fl::strprintf(__VA_ARGS__)); } while (0)
 #define LOGI(name, ...) ::fl::log(::fl::Level::Info, name, ::fl::strprintf(__VA_ARGS__))
 #define LOGW(name, ...) ::fl::log(::fl::Level::Warning, name, ::fl::strprintf(__VA_ARGS__))
 #define LOGE(name, ...) ::fl::log(::fl::Level::Error, name, ::fl::strprintf(__VA_ARGS__))

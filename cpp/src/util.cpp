@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <shlobj.h>
 
+#include <atomic>
 #include <cstdarg>
 #include <cstdio>
 #include <ctime>
@@ -99,6 +100,7 @@ std::string replace_all(std::string s, std::string_view from, std::string_view t
 
 std::u32string to_u32(std::string_view s) {
     std::u32string out;
+    out.reserve(s.size());
     size_t i = 0;
     while (i < s.size()) {
         unsigned char c = (unsigned char)s[i];
@@ -125,6 +127,7 @@ std::u32string to_u32(std::string_view s) {
 
 std::string from_u32(std::u32string_view s) {
     std::string out;
+    out.reserve(s.size());
     for (char32_t cp : s) {
         if (cp < 0x80) out += char(cp);
         else if (cp < 0x800) { out += char(0xC0 | (cp >> 6)); out += char(0x80 | (cp & 0x3F)); }
@@ -141,6 +144,7 @@ std::string from_u32(std::u32string_view s) {
 std::string collapse_spaces(std::string_view s) {
     // wie Pythons " ".join(s.split()): auch Unicode-Leerraum (z. B. geschütztes Leerzeichen) trennt
     std::u32string u = to_u32(s), out;
+    out.reserve(u.size());
     bool pending = false;
     for (char32_t c : u) {
         bool sp = c == U' ' || (c >= 9 && c <= 13) || c == 0x1C || c == 0x1D || c == 0x1E || c == 0x1F || c == 0x85 ||
@@ -164,12 +168,17 @@ std::string format_num(double v, int decimals) {
 }
 
 std::string strprintf(const char* fmt, ...) {
+    char stack_buf[256];
     va_list ap;
     va_start(ap, fmt);
     va_list ap2;
     va_copy(ap2, ap);
-    int n = vsnprintf(nullptr, 0, fmt, ap);
+    int n = vsnprintf(stack_buf, sizeof(stack_buf), fmt, ap);
     va_end(ap);
+    if (n >= 0 && (size_t)n < sizeof(stack_buf)) {
+        va_end(ap2);
+        return std::string(stack_buf, (size_t)n);
+    }
     std::string s(n > 0 ? n : 0, '\0');
     if (n > 0) vsnprintf(s.data(), n + 1, fmt, ap2);
     va_end(ap2);
@@ -299,18 +308,22 @@ std::filesystem::path legacy_dir() {
 namespace {
 std::mutex g_log_mutex;
 std::filesystem::path g_log_file;
-bool g_verbose = false;
+std::atomic<bool> g_verbose{false};
 constexpr uintmax_t LOG_MAX = 500'000;
 }  // namespace
 
 void log_init(const std::filesystem::path& file, bool verbose) {
     std::lock_guard lk(g_log_mutex);
     g_log_file = file;
-    g_verbose = verbose;
+    g_verbose.store(verbose, std::memory_order_relaxed);
+}
+
+bool is_verbose() {
+    return g_verbose.load(std::memory_order_relaxed);
 }
 
 void log(Level lv, std::string_view name, std::string_view msg) {
-    if (lv == Level::Debug && !g_verbose) return;
+    if (lv == Level::Debug && !is_verbose()) return;
     static const char* names[] = {"DEBUG", "INFO", "WARNING", "ERROR"};
     SYSTEMTIME st;
     GetLocalTime(&st);

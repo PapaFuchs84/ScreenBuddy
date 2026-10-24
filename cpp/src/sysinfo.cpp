@@ -20,7 +20,7 @@ namespace fl::sysinfo {
 static std::optional<uint32_t> default_interface() {
     // ifIndex des Adapters, über den Internet-Verkehr läuft (wie Windows' eigene Routenwahl)
     DWORD idx = 0;
-    IPAddr dest = inet_addr("1.1.1.1");
+    IPAddr dest = 0x01010101;  // 1.1.1.1 (network byte order: 1.1.1.1)
     if (GetBestInterface(dest, &idx) == NO_ERROR) return idx;
     return std::nullopt;
 }

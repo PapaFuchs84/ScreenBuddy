@@ -39,7 +39,7 @@ set(CORE_SOURCES
 add_library(flcore STATIC ${CORE_SOURCES})
 target_include_directories(flcore PUBLIC src third_party/qrcodegen)
 target_compile_definitions(flcore PUBLIC UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
-target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EHsc /MP)
+target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EHsc /MP /GF)
 target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL OpenSSL::Crypto Opus::opus ZLIB::ZLIB
                                     nlohmann_json::nlohmann_json tomlplusplus::tomlplusplus pugixml::pugixml httplib::httplib
                                     d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
@@ -52,7 +52,7 @@ set_source_files_properties(res/app.rc PROPERTIES OBJECT_DEPENDS
 
 add_executable(FuchsLabs-USB-Display WIN32 src/main.cpp res/app.rc)
 target_link_libraries(FuchsLabs-USB-Display PRIVATE flcore)
-target_link_options(FuchsLabs-USB-Display PRIVATE /MANIFEST:NO /OPT:REF /OPT:ICF)
+target_link_options(FuchsLabs-USB-Display PRIVATE /MANIFEST:NO /OPT:REF /OPT:ICF /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA)
 
 # Tests (Konsole): Parser, Konfiguration, Zeichnen
 add_executable(fl-tests tests/tests.cpp res/app.rc)

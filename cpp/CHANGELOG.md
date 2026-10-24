@@ -10,6 +10,7 @@
 - Fixed: Uninstaller with `--purge` now removes `config.toml.install-backup`, `companion.json` (with temporary/backup files), and `update-check.json`.
 - Fixed: Installer copies existing `companion.json` when migrating settings alongside a portable EXE.
 - Fixed: Guide templates (`anleitung.template.*`) and documentation synchronized for 2.3.0 release consistency.
+- Performance & Cleanup: Optimized multi-tile frame pasting using row-level `std::memcpy` in `paste()`, added stack-buffer fast path to `strprintf()` eliminating dynamic allocations for common messages, replaced regex and substring conversions in `parse_color()` with fast zero-allocation hex parsing, added inline flat cache for Direct2D brushes in `Canvas::Impl`, avoided string formatting overhead when debug logging is disabled via relaxed atomic `is_verbose()`, enabled compiler string pooling (`/GF`) and linker security hardening (`/DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA`), and resolved all compiler conversion and deprecation warnings in `render.cpp` and `sysinfo.cpp`.
 - Current Windows and Android checks: see TESTPROTOKOLL.md. Historical pre-Windows prototype statements below describe the earlier implementation.
 
 ### Companion foundation

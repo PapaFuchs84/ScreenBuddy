@@ -13,6 +13,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Changed
 - Windows version bumped to 2.3.0; German/English guides, test record and embedded help synchronized.
+- Performance & cleanup: Row-level `std::memcpy` in `paste()`, stack-buffer fast-path in `strprintf()` eliminating heap allocations for common formatting, fast allocation-free hex color parsing without regex, inline flat brush cache in `Canvas::Impl`, eliminated formatting overhead when debug logging is inactive via `is_verbose()`, string pooling (`/GF`), and resolved compiler conversion/deprecation warnings in `render.cpp` and `sysinfo.cpp`.
 - Local installation imports settings beside a portable EXE. Updates create a local settings snapshot first; plaintext credentials are encrypted in that snapshot.
 
 ### Fixed
