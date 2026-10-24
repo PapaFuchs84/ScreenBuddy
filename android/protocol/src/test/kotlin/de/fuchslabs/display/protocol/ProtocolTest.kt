@@ -87,7 +87,7 @@ class ProtocolTest {
     @Test fun imageLimits() {
         assertTrue(ImageLimits.bytesOk(1)); assertTrue(ImageLimits.bytesOk(2 * 1024 * 1024))
         assertFalse(ImageLimits.bytesOk(0)); assertFalse(ImageLimits.bytesOk(2 * 1024 * 1024 + 1))
-        assertTrue(ImageLimits.dimsOk(2048, 2048)); assertFalse(ImageLimits.dimsOk(2049, 10))
+        assertTrue(ImageLimits.dimsOk(2048, 2048)); assertTrue(ImageLimits.dimsOk(2400, 1080)); assertFalse(ImageLimits.dimsOk(4097, 10)); assertFalse(ImageLimits.dimsOk(4096, 4096))
         assertFalse(ImageLimits.dimsOk(0, 10)); assertFalse(ImageLimits.dimsOk(10, -1))
     }
 
@@ -124,5 +124,32 @@ class ProtocolTest {
         g.onOpen(false); g.acceptText(ready)
         assertFalse(g.acceptText(paired))
         g.close(); assertFalse(g.acceptFrame()); assertFalse(g.acceptText(ServerMessage.Ping)); assertFalse(g.watchdogActive())
+    }
+    @Test fun swipeAndResizeMessages() {
+        val l = JSONObject(ClientMessage.swipe(SwipeDir.LEFT))
+        assertEquals("swipe", l.getString("t")); assertEquals("left", l.getString("dir"))
+        assertEquals("right", JSONObject(ClientMessage.swipe(SwipeDir.RIGHT)).getString("dir"))
+        val r = JSONObject(ClientMessage.resize(1520, 720))
+        assertEquals("resize", r.getString("t")); assertEquals(1520, r.getInt("w")); assertEquals(720, r.getInt("h"))
+    }
+    @Test fun readyUpdateWithNewSize() {
+        assertEquals(ServerMessage.Ready(1520, 720), ServerMessage.parse("""{"t":"ready","w":1520,"h":720}"""))
+        assertNull(ServerMessage.parse("""{"t":"ready","w":0,"h":720}"""))
+        val g = HandshakeGate()
+        g.onOpen(false)
+        assertTrue(g.acceptText(ServerMessage.Ready(720, 1520)))
+        assertTrue(g.acceptText(ServerMessage.Ready(1520, 720))) // Update nach resize bleibt erlaubt
+        assertTrue(g.acceptFrame())
+    }
+    @Test fun swipeClassification() {
+        val d = 100f; val v = 500f
+        assertEquals(SwipeDir.LEFT, SwipeClassifier.classify(-200f, 10f, -1500f, d, v))
+        assertEquals(SwipeDir.RIGHT, SwipeClassifier.classify(200f, -20f, 1500f, d, v))
+        assertNull(SwipeClassifier.classify(-50f, 0f, -1500f, d, v))   // zu kurz
+        assertNull(SwipeClassifier.classify(-200f, 0f, -100f, d, v))   // zu langsam
+        assertNull(SwipeClassifier.classify(-200f, 150f, -1500f, d, v)) // zu schraeg / vertikal
+        assertNull(SwipeClassifier.classify(0f, 300f, 0f, d, v))       // vertikal
+        assertNull(SwipeClassifier.classify(-200f, 0f, 1500f, d, v))   // Richtung widerspruechlich
+        assertEquals(SwipeDir.LEFT, SwipeClassifier.classify(-100f, 50f, -500f, d, v)) // genau an den Grenzen
     }
 }

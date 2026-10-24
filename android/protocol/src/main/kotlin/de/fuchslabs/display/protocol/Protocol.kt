@@ -86,11 +86,36 @@ object ClientMessage {
         hello(w, h, name).put("key", key).toString()
 
     fun touch(x: Int, y: Int): String = JSONObject().put("t", "touch").put("x", x).put("y", y).toString()
+    /** Wischgeste; [dir] = "left" (Finger nach links = naechste Seite) oder "right" (vorherige Seite). */
+    fun swipe(dir: SwipeDir): String = JSONObject().put("t", "swipe").put("dir", dir.wire).toString()
+    /** Neue tatsaechliche Groesse der Rendeflaeche in Pixeln (nach Rotation/Groessenaenderung). */
+    fun resize(w: Int, h: Int): String = JSONObject().put("t", "resize").put("w", w).put("h", h).toString()
     fun ping(): String = """{"t":"ping"}"""
     fun pong(): String = """{"t":"pong"}"""
 
     private fun hello(w: Int, h: Int, name: String) =
         JSONObject().put("t", "hello").put("v", Protocol.VERSION).put("w", w).put("h", h).put("name", name)
+}
+
+enum class SwipeDir(val wire: String) { LEFT("left"), RIGHT("right") }
+
+/** Klassifikation einer Wischgeste (reine Funktion, alle Werte in Pixel bzw. Pixel/Sekunde). */
+object SwipeClassifier {
+    /** Wie viel staerker die horizontale Bewegung gegenueber der vertikalen sein muss. */
+    const val HORIZONTAL_DOMINANCE = 2f
+
+    /**
+     * [dx]/[dy] = Weg von Down nach Up, [vx] = horizontale Geschwindigkeit. null = keine Wischgeste.
+     * dx < 0 (Finger nach links) = LEFT, dx > 0 = RIGHT.
+     */
+    fun classify(dx: Float, dy: Float, vx: Float, minDistance: Float, minVelocity: Float): SwipeDir? {
+        val adx = kotlin.math.abs(dx)
+        if (adx < minDistance) return null
+        if (adx < HORIZONTAL_DOMINANCE * kotlin.math.abs(dy)) return null
+        if (kotlin.math.abs(vx) < minVelocity) return null
+        if ((dx < 0) != (vx < 0)) return null // Bewegung und Endgeschwindigkeit muessen gleichgerichtet sein
+        return if (dx < 0) SwipeDir.LEFT else SwipeDir.RIGHT
+    }
 }
 
 /** Binary-Frame: Byte 0 = Typ (1 = JPEG), Rest = Nutzdaten. */
@@ -147,10 +172,11 @@ object HostPolicy {
 /** Grenzen fuer eingehende JPEG-Frames (Schutz vor Speicher-/Decompression-Bombs). */
 object ImageLimits {
     const val MAX_BYTES = 2 * 1024 * 1024
-    const val MAX_DIM = 2048
+    const val MAX_DIM = 4096
+    const val MAX_PIXELS = 12_000_000L // Landscape-Render grosser Handys (z. B. 2400x1080) passt, Bomben nicht
 
     fun bytesOk(size: Int) = size in 1..MAX_BYTES
-    fun dimsOk(w: Int, h: Int) = w in 1..MAX_DIM && h in 1..MAX_DIM
+    fun dimsOk(w: Int, h: Int) = w in 1..MAX_DIM && h in 1..MAX_DIM && w.toLong() * h <= MAX_PIXELS
 }
 
 /**

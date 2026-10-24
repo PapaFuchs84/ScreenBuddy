@@ -74,6 +74,18 @@ class MainActivity : AppCompatActivity() {
         col.addView(host); col.addView(port); col.addView(pin)
         col.addView(button(R.string.btn_manual_pair) { manualPair() })
 
+        col.addView(label(R.string.section_orientation))
+        val modes = listOf("landscape" to R.string.orient_landscape, "auto" to R.string.orient_auto, "portrait" to R.string.orient_portrait)
+        col.addView(RadioGroup(this).apply {
+            orientation = RadioGroup.VERTICAL
+            val ids = modes.map { (key, res) ->
+                RadioButton(this@MainActivity).apply { id = View.generateViewId(); setText(res); tag = key; setTextColor(navy) }
+                    .also { addView(it) }
+            }
+            ids.firstOrNull { it.tag == store.orientation }?.isChecked = true
+            setOnCheckedChangeListener { g, id -> store.orientation = g.findViewById<View>(id).tag as String }
+        })
+
         col.addView(label(R.string.section_launcher))
         val sw1 = Switch(this).apply {
             setText(R.string.setting_launcher); isChecked = store.launcherMode

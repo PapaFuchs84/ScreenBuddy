@@ -41,6 +41,10 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
     private var lastRx = 0L
     private var everConnected = false
     private var gate = HandshakeGate()
+    private var curW = target.screenW
+    private var curH = target.screenH
+    private var sentW = target.screenW // zuletzt dem Server mitgeteilte Groesse (hello bzw. resize)
+    private var sentH = target.screenH
 
     fun start() {
         if (!HostPolicy.isAllowed(target.host) || !HostPolicy.isValidPort(target.port)) {
@@ -60,6 +64,24 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
     }
 
     fun sendTouch(x: Int, y: Int) { ws?.send(ClientMessage.touch(x, y)) }
+    fun sendSwipe(dir: SwipeDir) { ws?.send(ClientMessage.swipe(dir)) }
+
+    /** Meldet die aktuelle Groesse der Rendeflaeche; entprellt, sendet {"t":"resize"} nur bei Aenderung und nach "ready". */
+    fun updateSize(w: Int, h: Int) {
+        if (w <= 0 || h <= 0 || (w == curW && h == curH)) return
+        curW = w; curH = h
+        main.removeCallbacks(resizeTask)
+        main.postDelayed(resizeTask, 250)
+    }
+
+    private val resizeTask = Runnable { flushResize() }
+
+    private fun flushResize() {
+        if (gate.phase != HandshakeGate.Phase.READY) return // vor ready: hello bzw. Nachholen nach ready
+        if (curW == sentW && curH == sentH) return
+        sentW = curW; sentH = curH
+        ws?.send(ClientMessage.resize(curW, curH))
+    }
 
     private fun connect() {
         if (!running) return
@@ -124,8 +146,9 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
 
     private fun sendHello(w: WebSocket) {
         val t = target
-        val msg = if (t.pin != null) ClientMessage.helloWithPin(t.pin, t.screenW, t.screenH, t.deviceName)
-        else ClientMessage.helloWithKey(t.key ?: "", t.screenW, t.screenH, t.deviceName)
+        sentW = curW; sentH = curH // hello traegt immer die aktuelle Groesse (auch bei Reconnect)
+        val msg = if (t.pin != null) ClientMessage.helloWithPin(t.pin, sentW, sentH, t.deviceName)
+        else ClientMessage.helloWithKey(t.key ?: "", sentW, sentH, t.deviceName)
         w.send(msg)
         lastRx = now() // Watchdog-Zeitbasis beginnt erst mit hello
     }
@@ -139,6 +162,7 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
             is ServerMessage.Ready -> {
                 attempt = 0; everConnected = true
                 listener.onState(State.CONNECTED); listener.onReady(m.w, m.h)
+                flushResize() // Groesse hat sich zwischen hello und ready geaendert
             }
             is ServerMessage.Ping -> w.send(ClientMessage.pong())
             is ServerMessage.Error -> {

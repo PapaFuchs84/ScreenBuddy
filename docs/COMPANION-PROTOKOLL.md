@@ -10,6 +10,8 @@ PC-App (Server) <-> Android-App (Client), nur lokales Netz.
   - C->S `{"t":"hello","v":1,"key"|"pin":...,"w":<px>,"h":<px>,"name":"..."}`
   - S->C `{"t":"ready","w":480,"h":320}` (Renderfläche; Prototyp fest 480x320, Client skaliert mit Seitenverhältnis-Letterbox)
   - C->S `{"t":"touch","x":..,"y":..}` in Renderkoordinaten (0..w-1, 0..h-1), je Tipp ein Event
+  - C->S `{"t":"swipe","dir":"left"|"right"}` (Android: Wischgeste; Finger nach links = `left` = nächste Seite, `right` = vorherige)
+  - C->S `{"t":"resize","w":..,"h":..}` bei Rotation/Größenänderung (Pixel der Rendefläche, Landscape: lange Kante = `w`; `hello` trägt dieselbe Größe). Server antwortet mit neuem `ready` (Renderkoordinaten); `touch` bleibt in diesen Koordinaten. (Android-Teil; Server-Seite siehe dortige Ergänzung.)
   - beidseitig `{"t":"ping"}` / `{"t":"pong"}` alle 5 s; 15 s Stille = Verbindung tot
 - Frames (Binary-Frames): Byte 0 = Typ (1 = vollständiges JPEG, Qualität ~80), danach JPEG-Daten. Der Server sendet nur bei Änderung, höchstens 5 fps; nach Verbindung sofort ein Vollbild.
 - Fehler: `{"t":"error","code":"...","msg":"..."}`, danach Close.

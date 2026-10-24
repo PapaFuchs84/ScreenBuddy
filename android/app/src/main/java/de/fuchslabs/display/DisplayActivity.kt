@@ -1,6 +1,9 @@
 package de.fuchslabs.display
 
 import android.content.Intent
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.util.DisplayMetrics
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -38,7 +41,14 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         root.addView(frameView, FrameLayout.LayoutParams(-1, -1))
         root.addView(status, FrameLayout.LayoutParams(-2, -2, android.view.Gravity.CENTER))
         setContentView(root)
+        requestedOrientation = when (store.orientation) {
+            "auto" -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+            "portrait" -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
         frameView.onTouchRender = { x, y -> client?.sendTouch(x, y) }
+        frameView.onSwipe = { dir -> client?.sendSwipe(dir) }
+        frameView.onSizeChangedPx = { w, h -> client?.updateSize(w, h) }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 val n = System.currentTimeMillis()
@@ -76,8 +86,23 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         }
     }
 
+    // configChanges faengt Rotation ab; die neue Groesse meldet FrameView.onSizeChanged. Layout neu anstossen.
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        hideSystemUi()
+    }
+
+    /** Tatsaechliche Pixelgroesse der Anzeige in aktueller Rotation (Vollbild, ohne Systemleisten-Abzug). */
+    private fun realSize(): Pair<Int, Int> {
+        val v = if (frameView.width > 0 && frameView.height > 0) frameView.width to frameView.height else null
+        if (v != null) return v
+        val dm = DisplayMetrics()
+        @Suppress("DEPRECATION") windowManager.defaultDisplay.getRealMetrics(dm)
+        return dm.widthPixels to dm.heightPixels
+    }
+
     private fun startClient() {
-        val dm = resources.displayMetrics
+        val (sw, sh) = realSize()
         val name = Build.MODEL ?: "Android"
         val t: DisplayClient.Target
         val pin = intent.getStringExtra(EXTRA_PIN)
@@ -86,13 +111,13 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
             t = DisplayClient.Target(
                 intent.getStringExtra(EXTRA_HOST) ?: "", intent.getIntExtra(EXTRA_PORT, 8777),
                 intent.getStringExtra(EXTRA_FP), pin = pin,
-                screenW = dm.widthPixels, screenH = dm.heightPixels, deviceName = name
+                screenW = sw, screenH = sh, deviceName = name
             )
         } else {
             val p = store.paired()
             if (p == null) { startActivity(Intent(this, MainActivity::class.java)); finish(); return }
             t = DisplayClient.Target(p.host, p.port, p.fingerprint, key = p.key,
-                screenW = dm.widthPixels, screenH = dm.heightPixels, deviceName = name)
+                screenW = sw, screenH = sh, deviceName = name)
         }
         client = DisplayClient(t, this).also { it.start() }
     }

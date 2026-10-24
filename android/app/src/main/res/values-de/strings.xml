@@ -34,4 +34,8 @@
     <string name="dlg_cancel">Abbrechen</string>
     <string name="exit_hint">Zweimal Zurück zum Beenden</string>
     <string name="open_settings">Einstellungen</string>
+    <string name="section_orientation">Bildschirmausrichtung</string>
+    <string name="orient_landscape">Quer (bevorzugt)</string>
+    <string name="orient_auto">Auto (Sensor)</string>
+    <string name="orient_portrait">Hoch</string>
 </resources>

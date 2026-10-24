@@ -34,4 +34,8 @@
     <string name="dlg_cancel">Cancel</string>
     <string name="exit_hint">Press back twice to leave</string>
     <string name="open_settings">Settings</string>
+    <string name="section_orientation">Screen orientation</string>
+    <string name="orient_landscape">Landscape (preferred)</string>
+    <string name="orient_auto">Auto (rotate with sensor)</string>
+    <string name="orient_portrait">Portrait</string>
 </resources>

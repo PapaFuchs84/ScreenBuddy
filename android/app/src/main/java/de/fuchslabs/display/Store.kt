@@ -29,6 +29,11 @@ class Store(private val ctx: Context) {
         get() = sp.getBoolean("boot", false)
         set(v) { sp.edit().putBoolean("boot", v).apply() }
 
+    /** "landscape" (Standard, sensorLandscape), "auto" (Sensor) oder "portrait". */
+    var orientation: String
+        get() = sp.getString("orientation", "landscape").takeIf { it in ORIENTATIONS } ?: "landscape"
+        set(v) { if (v in ORIENTATIONS) sp.edit().putString("orientation", v).apply() }
+
     var launcherMode: Boolean
         get() = sp.getBoolean("launcher", false)
         set(v) { sp.edit().putBoolean("launcher", v).apply(); setLauncherEnabled(v) }
@@ -40,4 +45,6 @@ class Store(private val ctx: Context) {
             PackageManager.DONT_KILL_APP
         )
     }
+
+    companion object { val ORIENTATIONS = setOf("landscape", "auto", "portrait") }
 }
