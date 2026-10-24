@@ -1,6 +1,6 @@
 # Testprotokoll – Stand 24.10.2026
 
-## Companion-Prototyp – Fortsetzung am 24.10.2026 (unveröffentlicht)
+## Version 2.3.0 (24.10.2026): Companion-Vorschau
 
 - **Windows:** Release-Build erfolgreich. 236 Kernprüfungen, 11 Monitorprüfungen und 335 Companion-Protokoll-/TLS-Prüfungen bestanden. Neue TLS-Prüfungen: Anmeldung vor Größen-/Wischmeldungen, native Größen und Rotation, `ready` vor dem passenden JPEG, numerische Schnellfix-Kompatibilität und Schutz vor Größenänderungen durch einen zweiten Client.
 - **Android:** `:protocol:test` (20 Tests, keine Fehler) und `:app:assembleDebug` erfolgreich mit Gradle 8.9/JDK 21. Die aktuelle Debug-APK wurde mit ausdrücklicher Freigabe auf dem Redmi 8 installiert.
@@ -8,7 +8,7 @@
 - **Oberfläche:** 22 Headless-Edge-Prüfungen mit ausschließlich synthetischen Daten (DE/EN, Zusatzoptionen bei Companion aus verborgen, getrennte Auswahllisten, keine JavaScript-Fehler, Syntax beider Anleitungs-Vorlagen und eingebetteter HTML-Dateien). Beispielansicht manuell visuell kontrolliert; keine echten Accountbilder im Repository.
 - **Echtes Redmi 8, USB-Tethering:** Verbindung zum eigenen PC-Testserver, TLS-Fingerabdruck vor Kopplung verglichen. Native Ausgabe und tatsächlicher Screenshot 1520 × 720. Automatischer Wechsel nach 5 Sekunden, Wischen in beide Richtungen und Tipp auf die Kopfzeile über Android-Eingabeinjektion; dabei bleibt die Hauptansicht des Testprozesses unverändert. Neustart der Android-App verbindet mit gespeichertem Schlüssel ohne neue PIN. Ausrichtungswahl in der App: Hochformat 720 × 1520, anschließend Querformat 1520 × 720 wiederhergestellt.
 - **Manuelle Abnahme durch den Nutzer:** Auf die ausdrückliche Prüfung von scharfem Bild, langsamem/normalem Wischen und Antippen am Redmi antwortete der Nutzer: „Alles funktioniert mit dem Finger“. Diese Bestätigung gilt dem aktuellen Gesamtstand.
-- **Abgrenzung:** Die automatischen Gesten wurden per ADB injiziert; die manuelle Bestätigung ist separat belegt. Die produktive USB-App wurde nicht ersetzt und ihr COM-Port nicht geöffnet. Ein gemeinsamer physischer USB-/Redmi-Test innerhalb derselben neuen PC-Instanz, echte WLAN-Verbindung, Launcher-/Boot-Verhalten und mehrere reale Android-Geräte wurden nicht geprüft. Keine Router-/Firewall-Änderung, kein Release und kein Merge.
+- **Abgrenzung:** Die automatischen Gesten wurden per ADB injiziert; die manuelle Bestätigung ist separat belegt. Die produktive USB-App wurde nicht ersetzt und ihr COM-Port nicht geöffnet. Ein gemeinsamer physischer USB-/Redmi-Test innerhalb derselben neuen PC-Instanz, WLAN, Launcher-/Boot-Verhalten und mehrere reale Android-Geräte wurden nicht geprüft.
 
 Reproduzieren: `cpp/build.bat nopause`; `python cpp/tests/app_companion_integration.py`; anschließend `node cpp/tests/app_companion_ui.cjs` mit installiertem Playwright und Edge. Android: `android/gradlew.bat :protocol:test :app:assembleDebug`. Lokale Konfigurationen, Testkopplungen, Logs und Gerätescreenshots bleiben unter ignorierten Build-Pfaden.
 

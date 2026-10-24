@@ -1,6 +1,6 @@
 <div align="center">
 
-**Unreleased Companion prototype:** simultaneous USB/HDMI and Android output with separate pages, timers and touch; native phone resolution including rotation. Extra controls are visible only while Companion is enabled. [Setup and current limits](docs/COMPANION.en.md).
+**New in 2.3.0 – Companion preview:** simultaneous USB/HDMI and Android output with separate pages, timers and touch; native phone resolution including rotation. Extra controls are visible only while Companion is enabled. [Setup and current limits](docs/COMPANION.en.md).
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
@@ -10,7 +10,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.2.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.3.0-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -100,7 +100,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **FuchsLabs-USB-Display.exe** from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (current version: **2.2.0**). The EXE is unsigned. `SHA256SUMS.txt` is provided alongside it.
+1. Download **FuchsLabs-USB-Display.exe** from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (current version: **2.3.0**). The EXE is unsigned. `SHA256SUMS.txt` is provided alongside it.
 2. Use Windows 10/11 x64 with Microsoft Edge WebView2 Evergreen Runtime installed. The runtime is not bundled and the installer does not install it automatically.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
@@ -235,7 +235,11 @@ The code is released under the [MIT License](LICENSE), © 2026 FuchsLabs. The na
 
 Battlefield, Discord, Steam and Xbox are trademarks of their respective owners. FuchsLabs is not affiliated with them.
 
-## Validation of 2.2.0
+## Validation of 2.3.0
+
+Release build: 236 core, 11 monitor and 335 Companion/TLS checks passed. Also passed: 39 isolated app-integration checks, 22 browser checks (DE/EN), and 20 Android protocol tests. On the Redmi 8, native dimensions, portrait/landscape rotation, automatic page changes, taps, swipes and reconnect were confirmed; the user also confirmed a sharp image and finger operation. **Open:** physical USB output and Redmi together in the same new PC instance, Wi-Fi, Android launch at boot and multiple real devices. See the [test record](cpp/TESTPROTOKOLL.md).
+
+## Validation of 2.2.0 (historical)
 
 Release build, 225 core checks (new: hit areas of the system page, version comparison, parsing of the GitHub response) and 11 monitor basics passed; the hit areas match the rendered system page (preview image). **Still open:** tapping on real touch hardware (Task Manager, “Programs and Features”, speed test), the balloon and the settings entry with a genuinely newer release, and a Windows sign-in test for 2.2.0. See the [test record](cpp/TESTPROTOKOLL.md).
 

@@ -4,12 +4,20 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
-## [Unveröffentlicht]
+## [2.3.0] – 2026-10-24
 
 ### Neu
-- Companion: USB/HDMI und Handy getrennt steuerbar (Seiten, Timer, Touch); zusätzliche Bedienung nur bei aktivem Companion. Android `left`/`right` und der numerische Schnellfix sind kompatibel. Auflösung aus `hello`/`resize`, bei Rotation aktualisiert; Größenbegrenzung und synchronisierte `ready`-/JPEG-Abmessungen. Siehe [Einrichtung](docs/COMPANION.md).
+- **Companion-Vorschau für Android:** USB/HDMI und Handy haben getrennte Seitenlisten, Seitenstände, Wechselintervalle und Touch-Ziele. Eigene Companion-Einstellungen erscheinen nur, wenn Companion aktiv ist; Datenquellen und Design bleiben gemeinsam.
+- Android meldet native Bildgröße und Rotation. PC sendet dazu passende Bilder und verwirft veraltete Touch-Koordinaten. Seitenwahl, Timer und Vorschau sind separat steuerbar. Siehe [Einrichtung und Grenzen](docs/COMPANION.md).
+- Begleitende Android-Vorschau-APK `FuchsLabs-Companion-0.2.0-preview.apk`.
 
-- **Companion-App (Android), PC-Seite:** neuer Ausgang „Companion-App“. Ein Handy oder Tablet im selben WLAN zeigt das Display und meldet Tipps zurück (gleiche Touch-Logik wie beim Bildschirm-Ausgang: Ziele/Schalter, sonst links = zurück, sonst weiter). Standardmäßig **aus**; einschalten unter **Einstellungen → Companion** (zusätzlich zum USB-Display) oder als **Display-Typ** „Companion-App“. Dienst nur an Heimnetz-Adressen (Port 8777, nie 8765), TLS mit selbstsigniertem Zertifikat, Ankündigung per mDNS, Kopplung per QR-Code/PIN (2 Minuten, einmalig, nach 5 Fehlversuchen 5 Minuten gesperrt). Geräteschlüssel und TLS-Schlüssel liegen DPAPI-verschlüsselt in `companion.json` neben der `config.toml`; gekoppelte Geräte lassen sich dort einzeln entfernen. Bilder als JPEG nur bei Änderung, höchstens 5 pro Sekunde. Protokoll: [docs/COMPANION-PROTOKOLL.md](docs/COMPANION-PROTOKOLL.md). Windows-Build und isolierte Prüfungen siehe cpp/TESTPROTOKOLL.md; neue physische Gesamtabnahme steht aus.
+### Geändert
+- Windows-Version auf 2.3.0 aktualisiert; Deutsch-/Englisch-Anleitung, Testprotokoll und eingebettete Hilfe synchronisiert.
+
+### Prüfumfang
+- Redmi 8 bestätigt: automatische Auflösung, Hoch-/Querformat, Seitenwechsel, Fingerwischen und Tippen, Kopplung und Wiederverbindung. Der physische USB-Ausgang gemeinsam mit dem Companion sowie WLAN, Start beim Android-Boot und mehrere reale Android-Geräte bleiben offen.
+
+## [Unveröffentlicht]
 
 ## [2.2.0] – 2026-10-24
 
@@ -159,6 +167,7 @@ Erste Fassung als Python-Skript, danach als EXE `FuchsLabs-USB-Display-1.0.zip`.
 - Helligkeit von 50 auf 90 angehoben.
 - Ganzes Bild wird bei jedem Seitenwechsel und alle 5 Minuten neu gesendet. Ein Streifen an fester Stelle bei einfarbigen Testbildern liegt an Display oder Kabel, nicht an der App.
 
-[Unveröffentlicht]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v1.2...HEAD
+[Unveröffentlicht]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v2.2.0...v2.3.0
 [1.2]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v1.1...v1.2
 [1.1]: https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v1.1
