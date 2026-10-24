@@ -28,7 +28,7 @@ const ojson& defaults() {
         j["discord"] = {{"enabled", true}, {"token", ""}, {"guild_ids", ojson::array()}, {"friend_ids", ojson::array()},
                         {"ignore_ids", ojson::array()}, {"show_offline", false}};
         j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"brightness", 50}, {"reset_on_start", true},
-                        {"page_seconds", 15}, {"pages", PAGES}, {"title", "Discord-Freunde"},
+                        {"page_seconds", 15}, {"pages", PAGES}, {"visible_pages", PAGES}, {"title", "Discord-Freunde"},
                         {"screen_off_on_exit", true}, {"theme", "hell"},
                         // Ausgabe: serial = USB-Display (3,5"), monitor = HDMI/USB-C-Bildschirm als Vollbildfenster
                         {"output", "serial"}, {"monitor", ""}, {"touch", true},
@@ -47,7 +47,7 @@ const ojson& defaults() {
         j["homeassistant"] = {{"enabled", false}, {"title", "Home Assistant"}, {"url", ""}, {"token", ""},
                               {"entities", ojson::array()}};
         // Companion-App (Android) im Heimnetz: standardmäßig aus; Port nie der der Einstellungsseite
-        j["companion"] = {{"enabled", false}, {"port", 8777}};
+        j["companion"] = {{"enabled", false}, {"port", 8777}, {"page_seconds", 15}, {"pages", PAGES}};
         j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true}};
         return j;
     }();
@@ -60,7 +60,7 @@ static const std::map<Key, std::pair<long long, long long>> LIMITS = {
     {{"bf6", "refresh_minutes"}, {5, 240}}, {{"rss", "refresh_minutes"}, {10, 720}},
     {{"rss", "max_items"}, {1, 4}},        {{"rss", "max_per_feed"}, {1, 4}},
     {{"ui", "port"}, {1024, 65535}},
-    {{"companion", "port"}, {1024, 65535}},
+    {{"companion", "port"}, {1024, 65535}}, {{"companion", "page_seconds"}, {3, 600}},
 };
 static const std::map<Key, std::vector<std::string>> CHOICES = {
     {{"display", "orientation"}, {"landscape", "reverse_landscape", "portrait", "reverse_portrait"}},
@@ -201,6 +201,13 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
                 ids.insert(std::stoull(s));
             }
             return ojson(std::vector<unsigned long long>(ids.begin(), ids.end()));
+        }
+        if (k == Key{"companion", "pages"} || k == Key{"display", "visible_pages"}) {
+            std::vector<std::string> out;
+            for (auto& p : value)
+                if (p.is_string() && std::count(PAGES.begin(), PAGES.end(), p.get<std::string>()) &&
+                    !std::count(out.begin(), out.end(), p.get<std::string>())) out.push_back(p.get<std::string>());
+            return out;
         }
         if (k == Key{"display", "pages"}) {
             std::vector<std::string> out;

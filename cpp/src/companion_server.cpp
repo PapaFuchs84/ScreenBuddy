@@ -398,6 +398,7 @@ void Server::serve(std::shared_ptr<Conn> c) {
     } catch (...) {
         log(2, "Companion " + c->ip + ": Verbindung wegen unbekanntem Fehler beendet");
     }
+    { std::lock_guard lk(mu_); if (size_owner_ == c.get()) size_owner_ = nullptr; }
     sock_t s = c->sock;
     if (ssl) {
         SSL_shutdown((SSL*)ssl);
@@ -511,7 +512,18 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
 
     double t0 = now(), last_rx = t0, last_ping = t0, hello_deadline = t0 + opt_.handshake_seconds;
     double touch_window = t0;
-    int touches = 0;
+    int touches = 0, resizes = 0;
+    double resize_window = t0;
+    int sent_w = opt_.w, sent_h = opt_.h;
+    auto resize = [&](int w, int h) {
+        if (!hooks_.on_resize || w <= 0 || h <= 0) return;
+        std::lock_guard lk(mu_);
+        if (!size_owner_) size_owner_ = c;
+        if (size_owner_ == c) {
+            auto [rw, rh] = render_size(w, h);
+            hooks_.on_resize(rw, rh);
+        }
+    };
     bool authed = false;
     FrameGate gate;
     bool open = true, more = false;
@@ -635,11 +647,16 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
                             c->name = name.empty() ? "Android" : name;
                         }
                         authed = was_authed = true;
-                        send_text(msg_ready(opt_.w, opt_.h));
+                        resize(cm.w, cm.h);
+                        send_text(msg_ready(sent_w, sent_h));
                         gate.reset();
                         last_ping = now();
                         if (hooks_.on_change) hooks_.on_change();
-                    } else if (cm.type == ClientMsg::Type::Touch) {
+                    } else if (cm.type == ClientMsg::Type::Resize) {
+                        if (!authed) { fail("unauthorized", "Erst anmelden (hello)"); open = false; break; }
+                        if (now() - resize_window >= 1) { resize_window = now(); resizes = 0; }
+                        if (++resizes <= 4) resize(cm.w, cm.h);
+                    } else if (cm.type == ClientMsg::Type::Touch || cm.type == ClientMsg::Type::Swipe) {
                         if (!authed) {
                             fail("unauthorized", "Erst anmelden (hello)");
                             open = false;
@@ -650,9 +667,13 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
                             touch_window = t;
                             touches = 0;
                         }
-                        if (cm.x < opt_.w && cm.y < opt_.h && ++touches <= 10 && hooks_.on_touch) {
+                        if (++touches <= 10 && cm.type == ClientMsg::Type::Swipe) {
+                            if (hooks_.on_swipe) hooks_.on_swipe(cm.dir);
+                        } else if (touches <= 10 && cm.type == ClientMsg::Type::Touch &&
+                                   cm.x < sent_w && cm.y < sent_h && (hooks_.on_touch_frame || hooks_.on_touch)) {
                             try {
-                                hooks_.on_touch(cm.x, cm.y);
+                                if (hooks_.on_touch_frame) hooks_.on_touch_frame(cm.x, cm.y, sent_w, sent_h);
+                                else hooks_.on_touch(cm.x, cm.y);
                             } catch (const std::exception& e) {
                                 log(2, std::string("Touch: ") + e.what());
                             } catch (...) {
@@ -689,24 +710,29 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
         }
         uint64_t seq = seq_;
         if (gate.due(seq, t)) {
-            std::shared_ptr<const std::string> jpeg;
+            std::shared_ptr<const Frame> jpeg;
             {
                 std::lock_guard lk(jpeg_mu_);
                 if (jpeg_seq_ != seq || !jpeg_) {
-                    std::string data;
+                    Frame data;
                     try {
-                        data = hooks_.encode ? hooks_.encode() : std::string();
+                        if (hooks_.encode_frame) data = hooks_.encode_frame();
+                        else { data.jpeg = hooks_.encode ? hooks_.encode() : std::string(); data.w = opt_.w; data.h = opt_.h; }
                     } catch (const std::exception& e) {
                         log(2, std::string("JPEG: ") + e.what());
                     } catch (...) {
                     }
-                    jpeg_ = std::make_shared<const std::string>(std::move(data));
+                    jpeg_ = std::make_shared<const Frame>(std::move(data));
                     jpeg_seq_ = seq;
                 }
                 jpeg = jpeg_;
             }
-            if (jpeg && !jpeg->empty()) {
-                if (!send_raw(ws_frame(Op::Binary, frame_payload(*jpeg)))) break;
+            if (jpeg && !jpeg->jpeg.empty()) {
+                if (sent_w != jpeg->w || sent_h != jpeg->h) {
+                    if (!send_text(msg_ready(jpeg->w, jpeg->h))) break;
+                    sent_w = jpeg->w; sent_h = jpeg->h;
+                }
+                if (!send_raw(ws_frame(Op::Binary, frame_payload(jpeg->jpeg)))) break;
             }
             gate.sent(seq, t);
         }

@@ -159,13 +159,21 @@ void NetworkDisplay::connect() {
     opt.bind = addrs;
     opt.port = port_;
     opt.settings_port = settings_port_;
-    opt.w = w_;
-    opt.h = h_;
+    auto [w, h] = size();
+    opt.w = w;
+    opt.h = h;
     companion::Server::Hooks hooks;
-    hooks.encode = [this] { return encode_current(); };
-    hooks.on_touch = [this](int x, int y) {
+    hooks.encode_frame = [this] {
+        std::optional<Image> image;
+        { std::lock_guard lk(mu_); image = frame_; }
+        if (!image || image->empty()) return companion::Server::Frame{};
+        return companion::Server::Frame{encode_jpeg(*image, 0.8f), image->w, image->h};
+    };
+    hooks.on_resize = [this](int w, int h) { request_size(w, h); };
+    hooks.on_swipe = [this](int dir) { if (on_swipe) on_swipe(dir); };
+    hooks.on_touch_frame = [this](int x, int y, int w, int h) {
         std::lock_guard lk(tap_mu_);
-        if (taps_.size() < 8) taps_.emplace_back(x, y);
+        if (taps_.size() < 8) taps_.emplace_back(x, y, w, h);
         tap_cv_.notify_one();
     };
     hooks.log = [](int lv, const std::string& msg) {
@@ -197,7 +205,7 @@ void NetworkDisplay::tap_loop() {
     // Touch-Ziele öffnen Browser/Apps per ShellExecute: dafür ein STA-Thread wie beim Fenster des Bildschirm-Ausgangs
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     for (;;) {
-        std::pair<int, int> tap;
+        std::tuple<int, int, int, int> tap;
         {
             std::unique_lock lk(tap_mu_);
             tap_cv_.wait(lk, [&] { return tap_stop_ || !taps_.empty(); });
@@ -206,7 +214,7 @@ void NetworkDisplay::tap_loop() {
             taps_.erase(taps_.begin());
         }
         try {
-            if (on_tap) on_tap(tap.first, tap.second);
+            if (on_tap) std::apply(on_tap, tap);
         } catch (const std::exception& e) {
             LOGW("companion", "Touch: %s", e.what());
         }
@@ -214,14 +222,13 @@ void NetworkDisplay::tap_loop() {
     CoUninitialize();
 }
 
-std::string NetworkDisplay::encode_current() {
-    std::optional<Image> img;
-    {
-        std::lock_guard lk(mu_);
-        img = frame_;
-    }
-    if (!img || img->empty()) return "";
-    return encode_jpeg(*img, 0.8f);
+std::pair<int, int> NetworkDisplay::size() const {
+    std::lock_guard lk(mu_); return {w_, h_};
+}
+
+void NetworkDisplay::request_size(int w, int h) {
+    { std::lock_guard lk(mu_); if (w_ == w && h_ == h) return; w_ = w; h_ = h; }
+    if (on_resize) on_resize();
 }
 
 int NetworkDisplay::show(const Image& frame) {
@@ -239,7 +246,7 @@ void NetworkDisplay::invalidate() {}  // TCP verliert keine Bilder; nach dem Ver
 void NetworkDisplay::screen_off() {
     {
         std::lock_guard lk(mu_);
-        frame_ = Image(w_, h_, Color{0, 0, 0});
+        frame_ = Image(frame_ ? frame_->w : w_, frame_ ? frame_->h : h_, Color{0, 0, 0});
     }
     auto srv = server();
     if (srv && srv->running()) {

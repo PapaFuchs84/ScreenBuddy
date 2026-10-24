@@ -1,5 +1,7 @@
 # FuchsLabs USB-Display 2.1.0
 
+Unreleased Companion development: independent USB/HDMI and Android views, automatic phone dimensions and rotation. See [DE](../docs/COMPANION.md) / [EN](../docs/COMPANION.en.md). Tests include `python tests/app_companion_integration.py` on Windows (isolated processes with `--no-lcd`, no physical display).
+
 Native Windows C++20 port of FuchsLabs USB-Display. The application and installer are distributed as one EXE; it requires no Python runtime or Visual C++ redistributable. The settings window is a native Windows window backed by Microsoft Edge WebView2. The WebView2 Evergreen Runtime is a Windows prerequisite and is not bundled in this EXE.
 
 ## Install and first start

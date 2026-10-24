@@ -1,5 +1,7 @@
 # Test phase – giving feedback
 
+**Unreleased Companion prototype:** simultaneous USB/HDMI and Android output with separate pages, timers and touch; native phone resolution including rotation. Extra controls are visible only while Companion is enabled. [Setup and current limits](docs/COMPANION.en.md).
+
 [Deutsch](TESTPHASE.md) · **English**
 
 Thanks for testing the app! This is how you help the most.

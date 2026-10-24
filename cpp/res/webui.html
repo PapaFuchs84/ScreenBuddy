@@ -326,7 +326,7 @@ Object.assign(EN, {
   'Gekoppelt am': 'Paired on', 'zuletzt': 'last seen', 'verbunden': 'connected',
   'Kopplung gesperrt (zu viele Fehlversuche)': 'Pairing locked (too many failed attempts)',
   'Companion-App (Android, über WLAN)': 'Companion app (Android, over Wi-Fi)',
-  'Die Anzeige erscheint in der Companion-App (480 × 320, die App skaliert). Einrichtung im Reiter Companion.': 'The display appears in the companion app (480 × 320, the app scales it). Set up in the Companion tab.'
+  'Die Companion-App übernimmt die Auflösung automatisch. Einrichtung und eigene Seiten im Reiter Companion.': 'The companion app reports its resolution automatically. Set up and choose its own pages in the Companion tab.'
 });
 const T = s => (L === 'en' && typeof s === 'string' && EN[s] !== undefined) ? EN[s] : s;
 const h = (tag, attrs = {}, ...kids) => {
@@ -505,7 +505,7 @@ function viewOverview() {
         h('p', {class: 'hint'}, 'Blättert direkt auf dem Display. Der automatische Wechsel läuft danach weiter.')),
       h('div', {}, h('h3', {}, 'Seiten'), h('p', {class: 'hint'}, 'Mit den Pfeilen sortierst du, mit dem Schalter blendest du Seiten ein oder aus.'), list))),
     card('Wechsel & Helligkeit', null,
-      row('Anzeigedauer pro Seite', 'Wie lange eine Seite stehen bleibt', range('display', 'page_seconds', 5, 60, 1, '% s')),
+      row('Anzeigedauer pro Seite', 'Wie lange eine Seite stehen bleibt', range(cfg.display.output === 'network' ? 'companion' : 'display', 'page_seconds', 3, 600, 1, '% s')),
       cfg.display.output === 'serial' ? row('Helligkeit', 'Display-Helligkeit', range('display', 'brightness', 10, 100, 5, '% %')) : null)];
 }
 
@@ -876,6 +876,17 @@ function colorCard() {
 }
 
 /* ---------- Display ---------- */
+function outputPagePicker(section, key) {
+  const selected = cfg[section][key];
+  return h('div', {class: 'list'}, Object.entries(PAGES).map(([id, [title]]) => {
+    const cb = h('input', {type: 'checkbox', checked: selected.includes(id), 'aria-label': T(title)});
+    cb.addEventListener('change', () => {
+      cfg[section][key] = cb.checked ? [...cfg[section][key], id] : cfg[section][key].filter(p => p !== id); touch();
+    });
+    return row(title, null, h('label', {class: 'sw'}, cb, h('i')));
+  }));
+}
+
 function viewDisplay() {
   const d = cfg.display, o = cache.opts;
   if (!o) api('/api/display/options').then(r => { cache.opts = r; if (tab === 'display') render(); });
@@ -884,7 +895,7 @@ function viewDisplay() {
     ['network', 'Companion-App (Android, über WLAN)']]);
   outSel.addEventListener('change', () => render());
   let screen = null;
-  if (d.output === 'network') screen = [h('p', {class: 'note'}, 'Die Anzeige erscheint in der Companion-App (480 × 320, die App skaliert). Einrichtung im Reiter Companion.')];
+  if (d.output === 'network') screen = [h('p', {class: 'note'}, 'Die Companion-App übernimmt die Auflösung automatisch. Einrichtung und eigene Seiten im Reiter Companion.')];
   if (d.output === 'monitor') {
     const mons = o ? o.monitors : [], t = o ? o.touch : {available: false};
     const opts = [['', 'Automatisch (erster Bildschirm, der nicht der Hauptbildschirm ist)'], ...mons.map(m =>
@@ -931,6 +942,10 @@ function viewDisplay() {
   return [...head('Display', 'Art des Displays, Farben und Verhalten.'),
     card('Bildschirm', o ? (L === 'en' ? `Current display: ${o.size[0]} × ${o.size[1]} pixels` : `Aktuelle Anzeige: ${o.size[0]} × ${o.size[1]} Pixel`) : null,
       row('Display-Typ', 'Kleines USB-Display oder ein normaler Bildschirm (z. B. eine 10,25"-Leiste)', outSel), screen),
+    companionOn() && d.output !== 'network' ? card(L === 'en' ? 'Pages on USB display / monitor' : 'Seiten auf USB-Display / Bildschirm',
+      L === 'en' ? 'Choose independently from Companion. Enable and configure the data sources in their tabs.' : 'Unabhängig von Companion wählen. Datenquellen in ihren Reitern einschalten und einrichten.',
+      outputPagePicker('display', 'visible_pages'),
+      row('Anzeigedauer pro Seite', null, range('display', 'page_seconds', 3, 600, 1, '% s'))) : null,
     card('Bild', null,
       serial ? row('Ausrichtung', 'Wenn das Bild auf dem Kopf steht, die andere Variante wählen',
         select('display', 'orientation', [['landscape', 'Querformat'], ['reverse_landscape', 'Querformat, gedreht'], ['portrait', 'Hochformat'], ['reverse_portrait', 'Hochformat, gedreht']])) : null,
@@ -1011,6 +1026,12 @@ function viewCompanion() {
     pairBtn.disabled = false; }}, 'Kopplungscode anzeigen');
   const tg = toggle('companion', 'enabled');
   if (forced) tg.querySelector('input').disabled = true;
+  tg.addEventListener('change', () => render());
+  const nav = h('div', {style: 'display:flex;gap:10px;margin-top:12px'});
+  for (const [delta, label] of [[-1, L === 'en' ? 'Previous page' : 'Vorige Seite'], [1, L === 'en' ? 'Next page' : 'Nächste Seite']])
+    nav.append(h('button', {class: 'btn', disabled: !savedOn, onclick: async () => {
+      const r = await api('/api/companion/pages/step', {delta}); if (!r.ok) toast(r.error || T('Fehler'));
+    }}, label));
   refresh(); companionTimer = setInterval(() => document.hidden || tab !== 'companion' || refresh(), 4000);
   return [...head('Companion', 'Ein Android-Handy oder -Tablet im selben WLAN zeigt das Display und reagiert auf Tippen.'),
     card('Companion-App (Android)', null,
@@ -1018,6 +1039,13 @@ function viewCompanion() {
         : 'Startet einen verschlüsselten Dienst nur im Heimnetz (nie aus dem Internet erreichbar). Standard: aus.', tg),
       row('Port', 'Standard 8777. Nicht 8765 (Einstellungsseite).', text('companion', 'port', '8777')),
       h('p', {class: 'note'}, 'Windows fragt beim ersten Start eventuell nach der Firewall: „Private Netzwerke“ erlauben.')),
+    companionOn() ? card(L === 'en' ? 'Independent Companion display' : 'Unabhängige Companion-Anzeige',
+      L === 'en' ? 'Swipe, taps and page timer affect only Companion. All paired phones share this view. Enable and configure the data sources in their tabs.'
+        : 'Wischen, Tippen und Wechselrhythmus wirken nur auf Companion. Alle gekoppelten Handys teilen diese Ansicht. Datenquellen in ihren Reitern einschalten und einrichten.',
+      outputPagePicker('companion', 'pages'),
+      row('Anzeigedauer pro Seite', null, range('companion', 'page_seconds', 3, 600, 1, '% s')), nav,
+      h('p', {class: 'note'}, L === 'en' ? 'Resolution is reported by the phone, including after rotation. The first connected phone determines it; other phones use letterboxing.'
+        : 'Das Handy meldet seine Auflösung auch nach dem Drehen. Das zuerst verbundene Handy bestimmt sie; weitere Handys nutzen eine Anzeige mit passendem Seitenverhältnis.')) : null,
     card('Zustand', null, box),
     card('Gerät koppeln', 'In der App „Koppeln“ wählen und den QR-Code scannen. Der Code gilt 2 Minuten und nur einmal; nach 5 falschen Versuchen ist das Koppeln 5 Minuten gesperrt.',
       savedOn ? pairBtn : h('p', {class: 'note'}, 'Erst Companion einschalten und speichern.'), pairBox),

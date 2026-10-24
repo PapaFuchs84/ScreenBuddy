@@ -87,6 +87,8 @@ class FrameView(ctx: Context) : View(ctx) {
         gestures.onTouchEvent(e)
         when (e.actionMasked) {
             MotionEvent.ACTION_UP -> if (!swiped && abs(e.x - downX) < slop && abs(e.y - downY) < slop) {
+                val shown = bmp ?: return true
+                if (shown.width != rw || shown.height != rh) return true
                 val lb = Letterbox.compute(width, height, rw, rh)
                 lb.toRender(e.x, e.y)?.let { (x, y) -> onTouchRender?.invoke(x, y) }
                 performClick()

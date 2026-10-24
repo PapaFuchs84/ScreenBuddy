@@ -258,6 +258,18 @@ static void test_messages() {
     CHECK(parse_client(R"({"t":"zukunft"})").type == ClientMsg::Type::Unknown);
     CHECK(parse_client("{kaputt").type == ClientMsg::Type::Invalid);
     CHECK(parse_client("[1]").type == ClientMsg::Type::Invalid);
+    CHECK(parse_client(R"({"t":"swipe","dir":"left"})").dir == 1);
+    CHECK(parse_client(R"({"t":"swipe","dir":"right"})").dir == -1);
+    CHECK(parse_client(R"({"t":"swipe","dir":1})").dir == 1); // installed quick-fix compatibility
+    CHECK(parse_client(R"({"t":"swipe","dir":0})").type == ClientMsg::Type::Invalid);
+    CHECK(parse_client(R"({"t":"swipe","dir":"up"})").type == ClientMsg::Type::Invalid);
+    CHECK(parse_client(R"({"t":"resize","w":1520,"h":720})").type == ClientMsg::Type::Resize);
+    CHECK(parse_client(R"({"t":"resize","w":0,"h":720})").type == ClientMsg::Type::Invalid);
+    CHECK(parse_client(R"({"t":"resize","w":1.5,"h":720})").type == ClientMsg::Type::Invalid);
+    CHECK(render_size(1520,720) == std::make_pair(1520,720));
+    CHECK(render_size(720,1520) == std::make_pair(720,1520));
+    auto limited = render_size(16384,16384);
+    CHECK(limited.first <= 2560 && limited.second <= 2560 && int64_t(limited.first)*limited.second <= 4194304);
     CHECK_EQ(msg_ready(480, 320), R"({"t":"ready","w":480,"h":320})");
     CHECK_EQ(msg_error("pin_wrong", "PIN falsch"), R"({"t":"error","code":"pin_wrong","msg":"PIN falsch"})");
     CHECK_EQ(frame_payload("J"), std::string("\x01J"));
@@ -1033,6 +1045,55 @@ static void test_server_hardening() {
     fs::remove(path, ec);
 }
 
+static void test_resize_swipe() {
+    auto path = tmpfile("fl-companion-resize.json");
+    Store store(path, enc, dec, [] { return 1.0; });
+    auto key = base64(store.add_device("Native"));
+    std::mutex frame_mu;
+    Server::Frame frame{"FRAME",480,320};
+    std::atomic<int> resize_count{0}, direction{0};
+    Server::Hooks hooks;
+    hooks.encode_frame = [&] { std::lock_guard lk(frame_mu); return frame; };
+    hooks.on_resize = [&](int w, int h) {
+        std::lock_guard lk(frame_mu); frame.w = w; frame.h = h; ++resize_count;
+    };
+    hooks.on_swipe = [&](int dir) { direction = dir; };
+    int port; auto srv = start_on_random_port(store, hooks, port);
+    CHECK(srv != nullptr); if (!srv) return;
+    {
+        Client c; CHECK(c.open(port));
+        c.send(R"({"t":"resize","w":1520,"h":720})");
+        CHECK_EQ(code_of(c.recv()), "unauthorized"); CHECK_EQ(resize_count.load(),0);
+    }
+    {
+        Client c; CHECK(c.open(port));
+        c.send(R"({"t":"swipe","dir":"left"})");
+        CHECK_EQ(code_of(c.recv()), "unauthorized"); CHECK_EQ(direction.load(),0);
+    }
+    {
+        Client c; CHECK(c.open(port));
+        c.send(R"({"t":"hello","v":1,"key":")" + key + R"(","w":1520,"h":720})");
+        auto m=c.recv(); CHECK(m && m->payload==msg_ready(480,320));
+        m=c.recv(); CHECK(m && m->payload==msg_ready(1520,720));
+        m=c.recv(); CHECK(m && m->op==Op::Binary && m->payload==std::string("\x01")+"FRAME");
+        c.send(R"({"t":"swipe","dir":"left"})"); c.send(R"({"t":"ping"})");
+        m=c.recv(); CHECK(m && m->payload==msg_pong()); CHECK_EQ(direction.load(),1);
+        Client other; CHECK(other.open(port));
+        other.send(R"({"t":"hello","v":1,"key":")" + key + R"(","w":1080,"h":2400})");
+        m=other.recv(); CHECK(m && m->payload==msg_ready(480,320));
+        m=other.recv(); CHECK(m && m->payload==msg_ready(1520,720));
+        m=other.recv(); CHECK(m && m->op==Op::Binary);
+        CHECK_EQ(resize_count.load(),1); // later clients cannot change the common render surface
+        c.send(R"({"t":"resize","w":720,"h":1520})"); c.send(R"({"t":"ping"})");
+        m=c.recv(); CHECK(m && m->payload==msg_pong()); srv->frame_changed();
+        m=c.recv(); CHECK(m && m->payload==msg_ready(720,1520));
+        m=c.recv(); CHECK(m && m->op==Op::Binary);
+        c.send(R"({"t":"swipe","dir":-1})"); c.send(R"({"t":"ping"})");
+        m=c.recv(); CHECK(m && m->payload==msg_pong()); CHECK_EQ(direction.load(),-1);
+    }
+    srv->stop(); std::error_code ec; fs::remove(path,ec);
+}
+
 int main() {
     test_crypto();
     test_net();
@@ -1046,6 +1107,7 @@ int main() {
     test_identity();
     test_server();
     test_server_hardening();
+    test_resize_swipe();
     std::printf("%d Prüfungen ok, %d Fehler\n", g_ok, g_fail);
     return g_fail ? 1 : 0;
 }

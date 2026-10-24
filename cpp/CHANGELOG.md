@@ -1,5 +1,12 @@
 # Changelog
 
+## Companion continuation – 2026-10-24 (unreleased)
+
+- Independent output state, page filters and timers; shared data sources/theme. Native resolution from authenticated `hello`/`resize`, bounded to 2560 pixels per edge and 4,194,304 pixels, first connected reporting device owns sizing. Each cached JPEG carries dimensions from the same snapshot; `ready` updates precede the corresponding JPEG. Touch coordinates from older dimensions are dropped.
+- `/api/companion/pages`, `/api/companion/pages/step`, `/api/companion/preview.png` provide independent local controls. Extra DE/EN settings appear only when Companion is active. Companion disabled preserves the existing main page order/visibility.
+- Supports `swipe.dir` strings left/right and the tested numeric quick fix. Swipe/touch share the 10-per-second limit; resize is authenticated and limited to 4 per second.
+- Current Windows and Android checks: see TESTPROTOKOLL.md. Historical pre-Windows prototype statements below describe the earlier implementation.
+
 ## Unreleased
 
 - Companion output (`NetworkDisplay`, `output.h`/`network_display.cpp`): `display.output = "network"` (480 × 320) or `[companion] enabled = true` as a mirror next to the serial/monitor output. Platform-neutral core in `companion.cpp` (RFC 6455 handshake/framing, JSON messages, `Pairing` with 6-digit PIN, 120 s validity, single use, lock for 300 s after 5 failures, `FrameGate` ≤ 5 fps, `Store` for `companion.json`, pairing URI and QR SVG) and `companion_server.cpp` (OpenSSL TLS ≥ 1.2, ECDSA P-256 self-signed certificate generated once, listeners only on private IPv4 addresses, peer must be private too, max. 4 connections, `Origin` header rejected, ping every 5 s, 15 s silence closes). Windows part: LAN addresses via `GetAdaptersAddresses`, mDNS via `DnsServiceRegister` (loaded at runtime), JPEG via WIC (`encode_jpeg`), keys via DPAPI, taps on an STA thread into `App::tap_at` / page step. Settings: tab **Companion** (DE/EN) with QR code, PIN countdown, fingerprint, connected and paired devices; endpoints `/api/companion/status|pair|pair/cancel|devices/remove`. Config `[companion] enabled=false, port=8777` (rejected: 8765 or the settings port while in use).

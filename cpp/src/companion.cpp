@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "companion.h"
+#include <cmath>
 
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
@@ -384,6 +385,12 @@ std::string clean_name(const std::string& name) {
     return a == std::string::npos ? "" : out.substr(a, b - a + 1);
 }
 
+std::pair<int, int> render_size(int w, int h) {
+    if (w < 1 || h < 1) return {480, 320};
+    double scale = std::min({1.0, 2560.0 / w, 2560.0 / h, std::sqrt(4194304.0 / (double(w) * h))});
+    return {std::max(1, int(w * scale)), std::max(1, int(h * scale))};
+}
+
 ClientMsg parse_client(const std::string& text) {
     ClientMsg m;
     json j;
@@ -427,6 +434,19 @@ ClientMsg parse_client(const std::string& text) {
             return m;
         }
         m.type = ClientMsg::Type::Touch;
+    } else if (t == "swipe") {
+        if (!j.contains("dir")) { m.error = "dir fehlt"; return m; }
+        if (j["dir"].is_string()) {
+            auto dir = j["dir"].get<std::string>();
+            m.dir = dir == "left" ? 1 : dir == "right" ? -1 : 0;
+        } else if (!int_field("dir", m.dir, -1, 1)) m.dir = 0;
+        if (!m.dir) { m.error = "dir: left/right oder -1/+1 erwartet"; return m; }
+        m.type = ClientMsg::Type::Swipe;
+    } else if (t == "resize") {
+        if (!int_field("w", m.w, 1, 16384) || !int_field("h", m.h, 1, 16384)) {
+            m.error = "w/h fehlen oder außerhalb"; return m;
+        }
+        m.type = ClientMsg::Type::Resize;
     } else if (t == "ping") {
         m.type = ClientMsg::Type::Ping;
     } else if (t == "pong") {

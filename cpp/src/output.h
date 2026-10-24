@@ -140,7 +140,7 @@ public:
     // port: companion.port (nie der Port der Einstellungsseite); store: companion.json neben der config.toml
     NetworkDisplay(int port, int settings_port, std::filesystem::path store, int w, int h);
     ~NetworkDisplay() override;
-    std::pair<int, int> size() const override { return {w_, h_}; }
+    std::pair<int, int> size() const override;
     void connect() override;               // startet Server und mDNS; wirft bei fehlendem Heimnetz/belegtem Port
     int show(const Image& frame) override; // nur bei Änderung weitergeben (Clients holen höchstens 5 Bilder/s)
     void invalidate() override;
@@ -148,7 +148,9 @@ public:
     void close() override;
 
     // Tipp in Renderkoordinaten (läuft in einem eigenen Thread mit COM, nicht im Netzwerk-Thread)
-    std::function<void(int, int)> on_tap;
+    std::function<void(int, int, int, int)> on_tap;
+    std::function<void(int)> on_swipe;
+    std::function<void()> on_resize;
 
     bool running();
     std::string error();
@@ -163,7 +165,7 @@ private:
     void tap_loop();
     void mdns_register();
     void mdns_unregister();
-    std::string encode_current();
+    void request_size(int w, int h);
 
     int port_, settings_port_, w_, h_;
     std::filesystem::path store_path_;
@@ -172,12 +174,12 @@ private:
     std::shared_ptr<companion::Server> server_;
     std::vector<std::string> addresses_;
     std::string error_;
-    std::mutex mu_;                        // server_, addresses_, frame_, error_
+    mutable std::mutex mu_;                // server_, addresses_, frame_, error_
     std::optional<Image> frame_;
     std::atomic<void*> mdns_{nullptr};     // Registrierung (intern, siehe Mdns in network_display.cpp)
     std::mutex tap_mu_;
     std::condition_variable tap_cv_;
-    std::vector<std::pair<int, int>> taps_;
+    std::vector<std::tuple<int, int, int, int>> taps_;
     bool tap_stop_ = false;
     std::thread tap_thread_;
 };

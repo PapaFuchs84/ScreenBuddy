@@ -166,6 +166,21 @@ bool SettingsServer::start() {
     svr.Get("/api/pages", [&app](const httplib::Request&, httplib::Response& res) {
         json_reply(res, app.page_navigation());
     });
+    svr.Get("/api/companion/pages", [&app](const httplib::Request&, httplib::Response& res) {
+        json_reply(res, app.companion() ? app.page_navigation(true) : ojson{{"enabled", false}});
+    });
+    svr.Get("/api/companion/preview.png", [&app](const httplib::Request&, httplib::Response& res) {
+        png_reply(res, app.companion() ? app.last_frame(true) : std::nullopt);
+    });
+    svr.Post("/api/companion/pages/step", [&app](const httplib::Request& req, httplib::Response& res) {
+        ojson body;
+        try { body = body_json(req); } catch (...) { return json_reply(res, {{"ok", false}}, 400); }
+        if (!app.companion() || !body.is_object() || !body.contains("delta") || !body["delta"].is_number_integer() ||
+            (body["delta"] != -1 && body["delta"] != 1))
+            return json_reply(res, {{"ok", false}, {"error", "Companion und delta -1/+1 erwartet"}}, 400);
+        app.step_page(body["delta"].get<int>(), true);
+        json_reply(res, {{"ok", true}});
+    });
     svr.Post("/api/pages/step", [&app](const httplib::Request& req, httplib::Response& res) {
         ojson body;
         try {

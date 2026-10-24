@@ -1,5 +1,7 @@
 # Testphase – Rückmeldungen geben
 
+**Unveröffentlichter Companion-Prototyp:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
+
 **Deutsch** · [English](TESTPHASE.en.md)
 
 Danke, dass du die App testest! So hilfst du am meisten.

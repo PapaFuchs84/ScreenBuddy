@@ -92,6 +92,13 @@ static void test_config() {
         CHECK(threw);
     }
     CHECK_EQ(config::merge(cfg, {{"companion", {{"port", 8765}}}})["companion"]["port"].get<int>(), 8765);  // aus: egal
+    auto separate = config::merge(cfg, {{"display", {{"visible_pages", {"system"}}, {"page_seconds", 60}}},
+        {"companion", {{"pages", {"rss", "rss", "invalid", "system"}}, {"page_seconds", 5}}}});
+    CHECK_EQ(separate["display"]["visible_pages"], ojson::array({"system"}));
+    CHECK_EQ(separate["companion"]["pages"], ojson::array({"rss","system"}));
+    CHECK_EQ(separate["display"]["page_seconds"].get<int>(), 60);
+    CHECK_EQ(separate["companion"]["page_seconds"].get<int>(), 5);
+    CHECK(config::merge(cfg, {{"companion", {{"pages", ojson::array()}}}})["companion"]["pages"].empty());
     ojson pub = config::public_view(m);
     CHECK_EQ(pub["discord"]["token"].get<std::string>(), std::string(""));
     CHECK(pub["discord"]["token_set"].get<bool>());

@@ -101,10 +101,11 @@ private:
 
 // ---------- Nachrichten ----------
 struct ClientMsg {
-    enum class Type { Hello, Touch, Ping, Pong, Unknown, Invalid } type = Type::Invalid;
-    int v = 0, w = 0, h = 0, x = 0, y = 0;
+    enum class Type { Hello, Touch, Swipe, Resize, Ping, Pong, Unknown, Invalid } type = Type::Invalid;
+    int v = 0, w = 0, h = 0, x = 0, y = 0, dir = 0;
     std::string key, pin, name, error;
 };
+std::pair<int, int> render_size(int w, int h);  // bounded, aspect-preserving client resolution
 ClientMsg parse_client(const std::string& text);
 std::string msg_ready(int w, int h);
 std::string msg_paired(const std::string& key_b64);

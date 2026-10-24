@@ -35,9 +35,14 @@ public:
         int max_clients = 4;
         double handshake_seconds = HANDSHAKE_SECONDS;  // TLS + Upgrade + hello, ab accept() (Tests: kürzer)
     };
+    struct Frame { std::string jpeg; int w = 480, h = 320; };
     struct Hooks {
+        std::function<Frame()> encode_frame;           // pixels and dimensions from the same snapshot
+        std::function<void(int, int)> on_resize;       // authenticated resolution owner only
+        std::function<void(int)> on_swipe;
         std::function<std::string()> encode;           // aktuelles Bild als JPEG (leer = noch keins)
         std::function<void(int, int)> on_touch;        // Renderkoordinaten, aus dem Verbindungs-Thread
+        std::function<void(int, int, int, int)> on_touch_frame;
         std::function<void(int, const std::string&)> log;  // 0 Debug, 1 Info, 2 Warnung
         std::function<void()> on_change;               // Clients/Kopplungen geändert (für die Einstellungsseite)
         std::function<double()> now;                   // monotone Sekunden (Tests: steuerbar)
@@ -82,7 +87,8 @@ private:
     void reap(bool all);
     std::mutex jpeg_mu_;
     uint64_t jpeg_seq_ = 0;
-    std::shared_ptr<const std::string> jpeg_;
+    std::shared_ptr<const Frame> jpeg_;
+    Conn* size_owner_ = nullptr;  // protected by mu_; released before Conn destruction
 };
 
 }  // namespace fl::companion
