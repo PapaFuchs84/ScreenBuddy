@@ -11,7 +11,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Implemented in the unpublished development build
 - ScreenBuddy branding for the executable, installer and startup entry; existing uninstall key preserved for upgrades.
-- Native Win32 settings with seven tabs, including the source editor, page ordering, updates and autostart; guided workflows, custom colors and Companion pairing remain in WebView2.
+- New native settings window (phase 1): self-drawn interface (Direct2D/DirectWrite) in FuchsLabs style with header, grouped navigation, key-figure tiles, live preview, light/dark and instant DE/EN switching, keyboard operation and names for screen readers; unsaved-changes counter, “Discard” and “Save & apply”. All previous native tabs (display, sources, page order, Companion basics, updates/autostart, plugins including settings) were carried over. Guided selection workflows (Discord members, Steam/Xbox accounts, Home Assistant entities), custom colors and Companion pairing/QR are marked “coming” and remain reachable via the WebView2 window until phase 2. New setting `ui.settings_theme` (auto/hell/dunkel).
 - Strictly validated plugin manifests, local management, bounded HTTPS fetching in a worker, persisted host consent, DPAPI-protected plugin settings and live rendering on the display thread. Source plugins can be enabled after required settings and per-host consent; no live requests to external HTTPS services have been tested.
 - Development status and compatibility limits: [ScreenBuddy 2.5](docs/SCREENBUDDY-2.5.en.md).
 

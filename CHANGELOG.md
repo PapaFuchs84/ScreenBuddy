@@ -11,7 +11,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ### Implementiert im unveröffentlichten Entwicklungsbuild
 - ScreenBuddy-Branding für EXE, Installer und Autostart; bestehender Uninstall-Schlüssel für Upgrades erhalten.
-- Native Win32-Einstellungen mit sieben Reitern, darunter Quellen-Editor, Seitenreihenfolge, Updates und Autostart; geführte Workflows, benutzerdefinierte Farben und Companion-Kopplung bleiben in WebView2.
+- Neues natives Einstellungsfenster (Phase 1): selbst gezeichnete Oberfläche (Direct2D/DirectWrite) im FuchsLabs-Design mit Kopfzeile, gruppierter Navigation, Kennzahl-Kacheln, Live-Vorschau, Hell/Dunkel und sofortigem DE/EN-Wechsel, Tastaturbedienung und Namen für Sprachausgaben; Zähler für ungespeicherte Änderungen, „Verwerfen“ und „Speichern & anwenden“. Alle bisherigen nativen Reiter (Anzeige, Quellen, Seitenreihenfolge, Companion-Grundwerte, Updates/Autostart, Plugins samt Konfiguration) sind übernommen. Geführte Auswahl-Workflows (Discord-Mitglieder, Steam-/Xbox-Konten, Home-Assistant-Entitäten), eigene Farben und Companion-Kopplung/QR sind als „folgt“ markiert und bis Phase 2 weiter über das WebView2-Fenster erreichbar. Neue Einstellung `ui.settings_theme` (auto/hell/dunkel).
 - Streng validierte Plugin-Manifeste, lokale Verwaltung, begrenzter HTTPS-Abruf im Worker, gespeicherte Host-Zustimmungen, DPAPI-geschützte Plugin-Einstellungen und Live-Rendering im Display-Thread. Quellen-Plugins sind nach Pflicht-Einstellungen und Einzelzustimmung pro Host aktivierbar; externe HTTPS-Liveabfragen wurden nicht geprüft.
 - Details zum Entwicklungsstand und zu den Kompatibilitätsgrenzen: [ScreenBuddy 2.5](docs/SCREENBUDDY-2.5.md).
 

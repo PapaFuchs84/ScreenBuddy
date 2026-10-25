@@ -5,7 +5,7 @@
 ## Implemented
 
 - The executable, installer metadata and startup entry use ScreenBuddy. The existing uninstall registry key stays stable for upgrades; the old executable is renamed as a fallback copy.
-- The native Win32 settings window provides seven tabs, including the source schema/editor, display and Companion page ordering, app updates and autostart. **Advanced settings** opens the WebView2 workflows for guided account/selection tasks, custom colors, and Companion pairing/QR.
+- The native settings window (phase 1, branch `feature/native-ui-framework`) is a self-drawn interface (Direct2D/DirectWrite) with a header, grouped navigation (General, Data sources, Connection, App), live preview, light/dark and instant DE/EN switching. It contains every previously native function: display, source fields, display/Companion page ordering, Companion basics, updates and autostart, and plugins including their settings. Changed values are counted and written with **Save & apply** (Ctrl+S) or reset with **Discard**. Guided account/selection workflows, custom colors and Companion pairing/QR are marked as coming; until phase 2 the respective card opens the existing WebView2 window. Further pages are added as `cpp/src/ui_page_<name>.cpp` (interface in `cpp/src/ui_kit.h`).
 - Declarative schema 1 plugin manifests are strictly validated. The local store can import, enable, disable and remove plugins. Source plugins can be enabled after their required settings are supplied and the user consents to every declared host. Bounded HTTPS fetching runs in its own worker; plugin settings are protected with DPAPI. Importing a manifest does not execute code.
 - Data fetching runs in its own worker; rendering remains on the display thread. No live requests to external HTTPS services have been tested.
 
@@ -22,3 +22,5 @@ Plugin manifests replace neither config.toml nor existing DPAPI credentials or c
 ## Verification
 
 The development build compiled locally on 25 October 2026. Passed: 236 core, 220 manifest-parser, 127 plugin-store, 133 plugin-transport, 135 plugin-settings, 11 monitor and 335 Companion-protocol checks; 39 isolated app, 49 navigation and two installer checks also passed. An isolated instance showed the native window. These checks do not establish live external HTTPS requests, physical display hardware, an upgrade from 2.3.0 or visual/interaction acceptance of the UI. [Test record](../cpp/TESTPROTOKOLL.md).
+
+New native window (phase 1, also 25 October 2026, separate build folder): 239 core checks (three new ones for `ui.settings_theme`) and all other test programs passed; the extended smoke test passed 14 checks in an isolated `--no-lcd` instance (names via MSAA, keyboard, discard, language switch, save with restart, enabling/disabling a plugin). Not accepted: a real screen reader (Narrator/NVDA), moving to a monitor with a different DPI, user operation.
