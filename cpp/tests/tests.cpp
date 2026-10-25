@@ -19,6 +19,7 @@
 #include "util.h"
 #include "touch.h"
 #include "update.h"
+#include "ui_logic.h"
 
 using namespace fl;
 namespace fs = std::filesystem;
@@ -257,6 +258,61 @@ static void test_friends() {
     CHECK(xp.size() == 2 && xp[0].activity == "Spielt Halo" && xp[1].status == "offline" && xp[1].activity.empty());
 }
 
+static void test_ui_logic() {
+    using namespace fl::ui::logic;
+    CHECK(normalize_hex("#aBc") == std::optional<std::string>("#AABBCC"));
+    CHECK(normalize_hex(" 12ef90 ") == std::optional<std::string>("#12EF90"));
+    CHECK(!normalize_hex("") && !normalize_hex("#12") && !normalize_hex("#GG0000") && !normalize_hex("#1234567"));
+    CHECK_EQ(lines_join(lines_of(" a \r\n\r\nb\nc\r")), std::string("a\r\nb\r\nc"));
+    CHECK_EQ(lines_of("").size(), (size_t)0);
+    CHECK_EQ(lines_join(id_list("12, 34;12\n5x6")), std::string("12\r\n34\r\n5\r\n6"));
+    CHECK_EQ(set_id("1\r\n2", "3", true), std::string("1\r\n2\r\n3"));
+    CHECK_EQ(set_id("1\r\n2", "2", true), std::string("1\r\n2"));
+    CHECK_EQ(set_id("1\r\n2\r\n3", "2", false), std::string("1\r\n3"));
+    CHECK_EQ(set_id("1", "9", false), std::string("1"));
+    // Verknüpfen: neue Zeile, vorhandene erweitern, keine Doppelten
+    auto l1 = link_accounts({}, {"steam", "765", "Basti"}, {"xbox", "B4sti", "B4sti"});
+    CHECK_EQ(l1.size(), (size_t)1);
+    CHECK_EQ(l1[0], std::string("Basti|steam:765|xbox:B4sti"));
+    auto l2 = link_accounts(l1, {"xbox", "b4sti", "B4sti"}, {"discord", "1", "Basti"});
+    CHECK_EQ(l2.size(), (size_t)1);
+    CHECK_EQ(l2[0], std::string("Basti|steam:765|xbox:B4sti|discord:1"));
+    auto l3 = link_accounts(l2, {"steam", "766", "Lena"}, {"xbox", "lena", "lena"});
+    CHECK_EQ(l3.size(), (size_t)2);
+    // Die Verknüpfung versteht friends.cpp
+    ojson accounts = ojson::array({{{"platform", "steam"}, {"id", "765"}, {"name", "basti"}},
+                                   {{"platform", "xbox"}, {"id", "B4sti"}, {"name", "B4sti"}},
+                                   {{"platform", "discord"}, {"id", "1"}, {"name", "Basti"}}});
+    std::vector<fl::friends::Account> acc = {{"steam", "765", "basti"}, {"xbox", "B4sti", "B4sti"}, {"discord", "1", "Basti"}};
+    CHECK_EQ(fl::friends::merge_accounts(acc, l2, false).size(), (size_t)1);
+    // Home-Assistant-Entitäten
+    std::vector<std::string> ents;
+    CHECK_EQ(add_entity(ents, "Sensor.Temp", 4), std::string());
+    CHECK_EQ(add_entity(ents, "sensor.temp", 4), std::string());  // schon da
+    CHECK_EQ(ents.size(), (size_t)1);
+    CHECK_EQ(add_entity(ents, "kein id", 4), std::string("invalid"));
+    CHECK_EQ(add_entity(ents, "sensor", 4), std::string("invalid"));
+    ents = {"sensor.a|Küche", "sensor.b", "light.c", "switch.d"};
+    CHECK_EQ(add_entity(ents, "sensor.e", 4), std::string("full"));
+    remove_entity(ents, "sensor.a");
+    CHECK(ents.size() == 3 && ents[0] == "sensor.b" && !has_entity(ents, "sensor.a"));
+    CHECK(entity_id_of("Sensor.A | Küche") == "sensor.a");
+    // Lesbarkeit
+    CHECK(color_warnings({{"text", "#111111"}, {"bg", "#FFFFFF"}, {"card", "#EEEEEE"}, {"muted", "#555555"}, {"accent", "#003366"}}).empty());
+    auto w = color_warnings({{"text", "#CCCCCC"}, {"bg", "#FFFFFF"}, {"card", "#EEEEEE"}});
+    CHECK(w.size() == 2 && w[0] == "text_bg" && w[1] == "text_card");
+    CHECK(color_warnings({{"text", "#CCCCCC"}}).empty());  // unvollständig: nichts zu prüfen
+    // Filter: Suche ohne Groß/Kleinschreibung, Angehakte zuerst, Obergrenze
+    std::vector<std::string> names = {"Anna", "Bernd", "Anja", "Clara"};
+    auto idx = filter_indices(names, {false, false, true, false}, "AN", 10);
+    CHECK(idx.size() == 2 && idx[0] == 2 && idx[1] == 0);
+    CHECK_EQ(filter_indices(names, {}, "", 3).size(), (size_t)3);
+    CHECK(filter_indices(names, {}, "xyz", 3).empty());
+    // QR: quadratisch, weiße Ruhezone, dunkle Module
+    Image qr = qr_image("screenbuddy://pair?x=1", 4);
+    CHECK(qr.w == qr.h && qr.w > 40 && qr.px.front() == 0xFFFFFFFFu);
+    CHECK(std::count(qr.px.begin(), qr.px.end(), 0xFF000000u) > 100);
+}
 static void test_ha() {
     auto sp = ha::parse_spec(" sensor.wohnzimmer_temp | Wohnzimmer ");
     CHECK(sp && sp->id == "sensor.wohnzimmer_temp" && sp->label == "Wohnzimmer");
@@ -638,7 +694,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}}) {
         std::printf("· %s\n", name);
         fn();
     }

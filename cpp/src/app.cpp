@@ -893,7 +893,6 @@ void App::run() {
                 std::string error;
                 if (!plugin_remove(id, error)) throw std::runtime_error(error);
             };
-            actions.open_advanced = [&settings_window] { if (settings_window) settings_window->show(); };
             try { native_settings = std::make_unique<NativeSettings>(*this, std::move(actions)); }
             catch (const std::exception& error) { LOGW("settings", "Native UI: %s", error.what()); }
             show_settings_callback_ = [&native_settings, &settings_window] {

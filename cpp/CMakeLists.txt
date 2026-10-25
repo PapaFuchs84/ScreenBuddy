@@ -34,7 +34,7 @@ set(CORE_SOURCES
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/friends.cpp src/ha.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/settings_window.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
-    src/ui_kit.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
+    src/ui_kit.cpp src/ui_logic.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
     src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_homeassistant.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_app.cpp
     src/companion.cpp src/companion_server.cpp src/network_display.cpp
     src/plugins.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)

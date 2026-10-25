@@ -265,6 +265,9 @@ public:
     float aspect = 0.625f;     // Höhe/Breite ohne Bild
     bool framed = true;
     uint64_t version = 0;      // nach Änderung von image erhöhen
+    float fixed_w = 0;         // > 0: feste Breite in DIP (links ausgerichtet), z. B. QR-Code
+    bool crisp = false;        // harte Pixelkanten statt weichzeichnen (QR-Code)
+    float layout(Ctx& c, float x, float y, float w) override;
     float height(Ctx& c, float w) override;
     void paint(Ctx& c) override;
     Role role() const override { return Role::Image; }
@@ -406,6 +409,31 @@ private:
     std::wstring pending_;
     bool created_ = false;
     void apply_hint(Surface& s);
+};
+
+// Farbfeld: Farbfläche (Klick öffnet den Windows-Farbwähler) plus Hex-Eingabe #RRGGBB. Leer = Farbe der Vorlage (fallback).
+class ColorField : public Widget {
+public:
+    TextField field;
+    std::string fallback;        // Vorlagenfarbe #RRGGBB, wenn das Feld leer ist
+    std::string original_hex;
+    explicit ColorField(const std::string& hex);
+    std::string hex() const;     // normalisiert (#RRGGBB) oder leer (leer oder ungültig)
+    bool valid() const;          // leer oder gültig
+    std::string effective() const { auto h = hex(); return h.empty() ? fallback : h; }
+    float pref_width(Ctx&) override { return 210; }
+    float height(Ctx&, float) override { return 34; }
+    float layout(Ctx& c, float x, float y, float w) override;
+    void paint(Ctx& c) override;
+    void children(std::vector<Widget*>& out) override { out.push_back(&field); }
+    bool focusable() const override { return true; }
+    bool key(UINT vk, Surface& s) override;
+    void release(Point p, Surface& s) override;
+    void activate(Surface& s) override { pick(s); }
+    Role role() const override { return Role::Button; }
+    std::wstring value(bool) const override;
+    void pick(Surface& s);
+    void set_hex(const std::string& hex);
 };
 
 // Liste: Auswahl, optional Ein/Aus-Haken und Umsortieren (▲/▼, Alt+Pfeil).
@@ -562,6 +590,7 @@ struct Status {
     ojson update = ojson::object();
     ojson navigation = ojson::object();
     std::optional<bool> autostart;  // einmalig geladen
+    ojson companion = ojson::object();  // NetworkDisplay::status(); leer, wenn Companion aus ist
     bool valid = false;
 };
 
@@ -621,7 +650,7 @@ private:
     static int index_of(const std::vector<std::string>& values, const std::string& v);
 };
 
-// Karte „folgt in Phase 2“ mit optionalem Übergangsweg (Browser-Fenster der erweiterten Einstellungen).
+// Platzhalterkarte „noch nicht nativ“ für künftige Seiten (aktuell von keiner Seite genutzt).
 Card* placeholder(Host& host, Column& root, Text title, Text text);
 
 // Entfernte Widgets (Column::clear) erst nach der laufenden Nachricht löschen; die Nachrichtenschleife ruft flush_retired.

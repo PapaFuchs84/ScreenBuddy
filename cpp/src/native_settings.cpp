@@ -207,6 +207,7 @@ struct NativeSettings::Impl : ui::Host {
                 s.update = app_.update_info();
                 s.navigation = app_.page_navigation();
                 s.output = output;
+                if (auto* companion = app_.companion()) s.companion = companion->status();
                 if (need_autostart) s.autostart = winsetup::autostart_enabled();
                 s.valid = true;
             } catch (...) {}

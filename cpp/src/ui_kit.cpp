@@ -3,6 +3,7 @@
 #include "ui_kit.h"
 
 #include <commctrl.h>
+#include <commdlg.h>
 #include <uxtheme.h>
 #include <initguid.h>  // CLSID_AccPropServices, PROPID_ACC_NAME
 #include <oleacc.h>
@@ -14,6 +15,7 @@
 
 #include "brand.h"
 #include "native_settings.h"
+#include "ui_logic.h"
 #include "util.h"
 
 namespace fl::ui {
@@ -344,6 +346,12 @@ std::wstring Tiles::value(bool en) const {
     return out;
 }
 
+float ImageView::layout(Ctx& c, float x, float y, float w) {
+    if (fixed_w > 0) w = std::min(w, fixed_w);
+    float h = height(c, w);
+    rc = {x, y, x + w, y + h};
+    return h;
+}
 float ImageView::height(Ctx&, float w) {
     if (image && !image->empty()) return w * float(image->h) / float(std::max(1, image->w));
     return w * aspect;
@@ -366,7 +374,7 @@ void ImageView::paint(Ctx& c) {
             ComPtr<ID2D1RoundedRectangleGeometry> clip;
             c.kit.d2d()->CreateRoundedRectangleGeometry(D2D1::RoundedRect(rc, 8, 8), clip.GetAddressOf());
             if (clip) c.rt->PushLayer(D2D1::LayerParameters(D2D1::InfiniteRect(), clip.Get()), nullptr);
-            c.rt->DrawBitmap(bitmap_.Get(), dst, c.dim, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+            c.rt->DrawBitmap(bitmap_.Get(), dst, c.dim, crisp ? D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR : D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
             if (clip) c.rt->PopLayer();
         }
     } else if (!empty_text.empty()) {
@@ -691,6 +699,58 @@ void TextField::place(Surface& s, bool shown) {
     else { top += (bottom - top - line) / 2; bottom = top + line; }
     SetWindowPos(edit_, nullptr, left, top, std::max(1, right - left), std::max(1, bottom - top),
                  SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+}
+
+// ---------------------------------------------------------------- Farbfeld
+static Rgba hex_rgba(const std::string& hex, Rgba none) {
+    auto n = logic::normalize_hex(hex);
+    if (!n) return none;
+    auto v = [&](size_t i) { return uint8_t(std::stoi(n->substr(i, 2), nullptr, 16)); };
+    return rgb(v(1), v(3), v(5));
+}
+ColorField::ColorField(const std::string& h) : field(TextField::Single, widen(h)), original_hex(h) {
+    field.limit = 7;
+    field.hint = Text(L"#RRGGBB");
+    field.name = T(L"Farbwert", L"Color value");
+}
+std::string ColorField::hex() const {
+    auto n = logic::normalize_hex(narrow(field.text()));
+    return n ? *n : std::string();
+}
+bool ColorField::valid() const {
+    std::string t = trim(narrow(field.text()));
+    return t.empty() || logic::normalize_hex(t).has_value();
+}
+std::wstring ColorField::value(bool) const { return widen(effective()); }
+void ColorField::set_hex(const std::string& h) { field.set_text(widen(h)); }
+float ColorField::layout(Ctx& c, float x, float y, float w) {
+    rc = {x, y, x + w, y + 34};
+    field.layout(c, x + 46, y, std::max(60.f, w - 46));
+    return 34;
+}
+void ColorField::paint(Ctx& c) {
+    Rect sw{rc.left, rc.top + 2, rc.left + 38, rc.bottom - 2};
+    c.fill(sw, hex_rgba(effective(), c.th.input), 8);
+    c.frame(sw, valid() ? c.th.line : c.th.danger, 8, valid() ? 1.f : 2.f);
+}
+bool ColorField::key(UINT vk, Surface& s) {
+    if (vk == VK_SPACE || vk == VK_RETURN) { pick(s); return true; }
+    return false;
+}
+void ColorField::release(Point p, Surface& s) {
+    if (p.x < rc.left + 40 && inside(rc, p)) pick(s);
+}
+void ColorField::pick(Surface& s) {
+    static COLORREF custom[16] = {};
+    Rgba cur = hex_rgba(effective(), rgb(0, 0, 0));
+    CHOOSECOLORW cc{sizeof cc};
+    cc.hwndOwner = GetAncestor(s.hwnd(), GA_ROOT);
+    cc.rgbResult = RGB(BYTE(cur.r * 255 + .5f), BYTE(cur.g * 255 + .5f), BYTE(cur.b * 255 + .5f));
+    cc.lpCustColors = custom;
+    cc.Flags = CC_RGBINIT | CC_FULLOPEN | CC_ANYCOLOR;
+    if (!ChooseColorW(&cc)) return;
+    set_hex(strprintf("#%02X%02X%02X", GetRValue(cc.rgbResult), GetGValue(cc.rgbResult), GetBValue(cc.rgbResult)));
+    s.invalidate();
 }
 
 // ---------------------------------------------------------------- Liste
@@ -1597,17 +1657,8 @@ void Form::collect(ojson& patch) const {
 Card* placeholder(Host& host, Column& root, Text title, Text text) {
     Card* card = root.add<Card>(std::move(title), std::move(text));
     card->placeholder = true;
-    card->add<Note>(T(L"Noch nicht nativ umgesetzt – folgt in Phase 2. Bis dahin bleibt dieser Ablauf im bisherigen Fenster "
-                      L"„Erweiterte Einstellungen“ erreichbar.",
-                      L"Not native yet – coming in phase 2. Until then this flow stays available in the existing "
-                      L"“Advanced settings” window."), Note::Soon);
-    if (host.plugins().open_advanced) {
-        auto row = card->add<ButtonRow>();
-        Host* h = &host;
-        row->add(T(L"Vorerst im Browser-Fenster öffnen", L"Open in browser window for now"), Button::Secondary, [h] {
-            h->run([h]() -> std::function<void()> { h->plugins().open_advanced(); return {}; });
-        });
-    }
+    card->add<Note>(T(L"Noch nicht nativ umgesetzt.", L"Not native yet."), Note::Soon);
+    (void)host;  // der frühere Übergangsweg ins Browser-Fenster ist entfernt (alle Seiten sind nativ)
     return card;
 }
 
