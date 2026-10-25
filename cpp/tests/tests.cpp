@@ -77,6 +77,16 @@ static void test_config() {
         threw = true;
     }
     CHECK(threw);
+    // Darstellung des nativen Einstellungsfensters: auto/hell/dunkel
+    CHECK_EQ(cfg["ui"]["settings_theme"].get<std::string>(), std::string("auto"));
+    CHECK_EQ(config::merge(cfg, {{"ui", {{"settings_theme", "dunkel"}}}})["ui"]["settings_theme"].get<std::string>(), std::string("dunkel"));
+    threw = false;
+    try {
+        config::merge(cfg, {{"ui", {{"settings_theme", "rosa"}}}});
+    } catch (const std::invalid_argument& e) {
+        threw = std::string(e.what()).find("ui.settings_theme") == 0;
+    }
+    CHECK(threw);
     // Companion: standardmäßig aus, Port 8777; nie 8765 bzw. der Port der Einstellungsseite
     CHECK(!cfg["companion"]["enabled"].get<bool>());
     CHECK_EQ(cfg["companion"]["port"].get<int>(), 8777);

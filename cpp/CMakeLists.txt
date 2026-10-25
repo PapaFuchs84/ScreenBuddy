@@ -34,6 +34,8 @@ set(CORE_SOURCES
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/friends.cpp src/ha.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/settings_window.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
+    src/ui_kit.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
+    src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_homeassistant.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_app.cpp
     src/companion.cpp src/companion_server.cpp src/network_display.cpp
     src/plugins.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
 
@@ -44,7 +46,7 @@ target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EH
 target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL OpenSSL::Crypto Opus::opus ZLIB::ZLIB
                                     nlohmann_json::nlohmann_json tomlplusplus::tomlplusplus pugixml::pugixml httplib::httplib
                                     d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
-                                    comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 shell32
+                                    comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 oleaut32 oleacc uuid uxtheme shell32
                                     webview2_loader)
 
 # Eingebettete Dateien: bei Änderungen die Ressourcen neu bauen (CMake erkennt RCDATA-Abhängigkeiten nicht selbst)
