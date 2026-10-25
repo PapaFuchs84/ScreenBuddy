@@ -1483,15 +1483,19 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     }
     case WM_LBUTTONUP: {
-        if (thumb_drag_ || GetCapture() == hwnd_) ReleaseCapture();
-        if (thumb_drag_) { thumb_drag_ = false; invalidate(); return 0; }
+        // ReleaseCapture sends WM_CAPTURECHANGED synchronously, which clears both fields.
         Widget* w = capture_;
+        const bool dragged_thumb = thumb_drag_;
         capture_ = nullptr;
+        thumb_drag_ = false;
+        if (GetCapture() == hwnd_) ReleaseCapture();
+        if (dragged_thumb) { invalidate(); return 0; }
         if (w) w->release(doc_point(lp), *this);
         return 0;
     }
     case WM_CAPTURECHANGED:
-        capture_ = nullptr; thumb_drag_ = false;
+        capture_ = nullptr;
+        if (thumb_drag_) { thumb_drag_ = false; invalidate(); }
         return 0;
     case WM_MOUSEWHEEL:
         if (scrollable_) {
