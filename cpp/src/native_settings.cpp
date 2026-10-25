@@ -263,6 +263,7 @@ struct NativeSettings::Impl : ui::Host {
         auto& slot = slots[size_t(index)];
         if (!slot.root) build(slot);
         if (current >= 0 && current != index) {
+            slots[size_t(current)].page->hidden(*this);
             slots[size_t(current)].nav->active = false;
             if (override_frame) preview(std::nullopt);
         }
@@ -353,6 +354,8 @@ struct NativeSettings::Impl : ui::Host {
     }
     void discard() {
         if (busy() || dirty_count == 0) return;
+        if (current >= 0) slots[size_t(current)].page->hidden(*this);
+        preview(std::nullopt);
         for (auto& s : slots) {
             if (!s.root) continue;
             std::vector<ui::WidgetPtr> old;

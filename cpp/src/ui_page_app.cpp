@@ -24,6 +24,8 @@ public:
         form_ = Form(host);
         host_ = &host;
         previewing_ = again_ = false;
+        visible_ = false;
+        ++preview_generation_;
         Card* card = root.add<Card>();
         theme_ = form_.segment(*card, "display", "theme", T(L"Farbschema", L"Color scheme"),
             T(L"Gilt für USB-Display, Bildschirm und Companion", L"Applies to USB display, monitor and Companion"),
@@ -68,6 +70,12 @@ public:
             patch["display"]["color_" + key] = f->hex();
         }
     }
+    void shown(Host&) override { visible_ = true; }
+    void hidden(Host&) override {
+        visible_ = false;
+        again_ = false;
+        ++preview_generation_;
+    }
 private:
     Form form_;
     Host* host_ = nullptr;
@@ -75,6 +83,8 @@ private:
     Note* readable_ = nullptr;
     std::vector<std::pair<std::string, ColorField*>> fields_;
     bool previewing_ = false, again_ = false;
+    bool visible_ = false;
+    uint64_t preview_generation_ = 0;
 
     std::string base_name() const { return base_ && base_->index == 1 ? "dunkel" : "hell"; }
     void refresh_fallbacks(bool layout = true) {
@@ -117,6 +127,7 @@ private:
     }
     // Live-Vorschau im Vorschaubereich; läuft nie doppelt, Änderungen währenddessen lösen genau einen Folgeaufruf aus.
     void preview() {
+        if (!visible_) return;
         for (auto& [key, f] : fields_) if (!f->valid()) return;
         if (previewing_) { again_ = true; return; }
         previewing_ = true;
@@ -125,12 +136,13 @@ private:
         ojson display = {{"theme", themes[std::clamp(theme_->index, 0, 2)]}, {"color_base", base_name()}};
         for (auto& [key, f] : fields_) display["color_" + key] = f->hex();
         Host* h = host_;
-        h->run([this, h, display]() -> std::function<void()> {
+        const auto generation = preview_generation_;
+        h->run([this, h, display, generation]() -> std::function<void()> {
             auto frame = h->app().preview_theme(display);
-            return [this, h, frame] {
+            return [this, h, frame, generation] {
                 previewing_ = false;
-                if (frame) h->preview(frame);
-                if (again_) preview();
+                if (visible_ && generation == preview_generation_ && frame) h->preview(frame);
+                if (visible_ && again_) preview();
             };
         });
     }

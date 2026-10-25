@@ -21,7 +21,8 @@
 //        void collect(Host&, ojson& patch) – nur geänderte/zuständige Schlüssel in den Patch schreiben
 //                                           (Form::collect erledigt das). Ungültige Eingabe: throw ui::Invalid.
 //        bool active(const ojson& cfg)    – grüner Punkt in der Navigation (z. B. Quelle aktiviert).
-//        void shown(Host&) / tick(Host&, const Status&) – beim Anzeigen bzw. einmal pro Sekunde.
+//        void shown(Host&) / hidden(Host&) – beim Anzeigen bzw. Verlassen einer Seite.
+//        void tick(Host&, const Status&)   – einmal pro Sekunde für die sichtbare Seite.
 //   2. In ui_pages.cpp eine Zeile in create_pages() ergänzen (Fabrikfunktion make_<name>_page()).
 //      Bewusst keine statische Selbstregistrierung: flcore ist eine statische Bibliothek, der Linker würde
 //      unreferenzierte Seiten verwerfen.
@@ -622,6 +623,7 @@ public:
     virtual void collect(Host&, ojson&) {}
     virtual bool active(const ojson&) const { return false; }
     virtual void shown(Host&) {}
+    virtual void hidden(Host&) {}
     virtual void tick(Host&, const Status&) {}
 };
 

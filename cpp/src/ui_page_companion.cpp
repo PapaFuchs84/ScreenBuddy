@@ -63,7 +63,7 @@ public:
         auto buttons = pair->add<ButtonRow>();
         pair_ = buttons->add(T(L"Kopplungscode anzeigen", L"Show pairing code"), Button::Primary, [this] { start_pairing(); });
         cancel_ = buttons->add(T(L"Abbrechen", L"Cancel"), Button::Ghost, [this] { cancel_pairing(); });
-        cancel_->visible = false;
+        cancel_->visible = pairing_;
         pair_note_ = pair->add<Label>(Text(), Font::Small, Label::Muted);
         pair_note_->visible = false;
         qr_ = pair->add<ImageView>();
@@ -72,13 +72,14 @@ public:
         qr_->crisp = true;
         qr_->framed = false;
         qr_->name = T(L"QR-Code zum Koppeln", L"Pairing QR code");
-        qr_->visible = false;
-        pin_ = pair->add<Label>(Text(), Font::H1, Label::Normal);
-        pin_->visible = false;
-        pin_info_ = pair->add<Label>(Text(), Font::Body, Label::Muted);
-        pin_info_->visible = false;
-        pin_print_ = pair->add<Label>(Text(), Font::Small, Label::Muted);
-        pin_print_->visible = false;
+        qr_->image = pairing_qr_;
+        qr_->visible = pairing_;
+        pin_ = pair->add<Label>(pairing_pin_, Font::H1, Label::Normal);
+        pin_->visible = pairing_;
+        pin_info_ = pair->add<Label>(Text(widen(host_text_)), Font::Body, Label::Muted);
+        pin_info_->visible = pairing_;
+        pin_print_ = pair->add<Label>(pairing_print_, Font::Small, Label::Muted);
+        pin_print_->visible = pairing_;
 
         Card* devices = root.add<Card>(T(L"Gekoppelte Geräte", L"Paired devices"));
         devices_ = devices->add<ItemList>(std::vector<ItemList::Item>{});
@@ -168,6 +169,9 @@ private:
     Button *pair_ = nullptr, *cancel_ = nullptr, *remove_ = nullptr, *prev_ = nullptr, *next_ = nullptr;
     ItemList *devices_ = nullptr, *list_ = nullptr;
     bool pairing_ = false;
+    // Die Kopplung ist eine sofortige Serveraktion und überlebt „Verwerfen“ der Formularwerte.
+    std::optional<Image> pairing_qr_;
+    Text pairing_pin_, pairing_print_;
     Clock::time_point deadline_, started_;
     std::string host_text_, signature_;
 
@@ -182,6 +186,8 @@ private:
         pair_note_->text = std::move(note);
         pair_note_->visible = true;
         qr_->image.reset();
+        pairing_qr_.reset();
+        pairing_pin_ = pairing_print_ = Text();
         host_->relayout();
     }
     void start_pairing() {
@@ -198,11 +204,14 @@ private:
             const std::string print = r.value("fingerprint", "");
             const int seconds = r.value("expires_in", 120);
             return [this, qr = std::move(qr), pin, host, print, seconds]() mutable {
-                qr_->image = std::move(qr);
+                pairing_qr_ = std::move(qr);
+                qr_->image = pairing_qr_;
                 ++qr_->version;
-                pin_->text = Text(widen(pin.size() == 6 ? pin.substr(0, 3) + " " + pin.substr(3) : pin));
+                pairing_pin_ = Text(widen(pin.size() == 6 ? pin.substr(0, 3) + " " + pin.substr(3) : pin));
+                pin_->text = pairing_pin_;
                 host_text_ = host;
-                pin_print_->text = Text(L"SHA-256: " + widen(print));
+                pairing_print_ = Text(L"SHA-256: " + widen(print));
+                pin_print_->text = pairing_print_;
                 pair_note_->visible = false;
                 pairing_ = true;
                 started_ = Clock::now();
