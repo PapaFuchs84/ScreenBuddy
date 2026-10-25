@@ -6,6 +6,7 @@
 
 #include <fstream>
 #include <ctime>
+#include <set>
 
 #include "bf6.h"
 #include "discord.h"
@@ -14,6 +15,7 @@
 #include "i18n.h"
 #include "native_settings.h"
 #include "plugin_render.h"
+#include "plugin_transport.h"
 #include "rss.h"
 #include "sysinfo.h"
 #include "settings_window.h"
@@ -82,6 +84,10 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
         friends_ = std::make_unique<friends::FriendsHub>(fr, b(fr, "include_discord", true) ? discord_.get() : nullptr, dirty);
     plugins_ = std::make_unique<plugins::Store>(cfg_path_.parent_path() / L"plugins");
     if (auto result = plugins_->load(); !result) LOGW("plugins", "Plugin-Bibliothek: %s", result.error.c_str());
+    plugin_settings_ = std::make_unique<plugins::SettingsStore>(cfg_path_.parent_path() / L"plugin-settings");
+    for (const auto& entry : plugins_->entries())
+        if (auto result = plugin_settings_->load(entry.manifest); !result)
+            LOGW("plugins", "Plugin-Einstellungen: %s", result.error.c_str());
     // Update-Hinweis: nie in einer Testinstanz und nur, wenn in den Einstellungen nicht abgeschaltet
     if (b(cfg_["ui"], "update_check", true) && !test_instance() && !preview_dir_)
         update_ = std::make_unique<update::UpdateChecker>(cfg_path_.parent_path() / L"update-check.json", [this](const update::Release& rel) {
@@ -113,22 +119,86 @@ ojson App::plugin_catalog() {
 
 bool App::plugin_import(std::string_view manifest, std::string& error) {
     if (!plugins_) { error = "Plugin-Bibliothek nicht verfügbar"; return false; }
+    auto parsed = plugins::parse_manifest(manifest);
+    if (!parsed) { error = parsed.error; return false; }
+    // Fingerprint of the installed version (if any) before the update replaces it.
+    const auto previous = plugins_->find(parsed.manifest->id);
     auto result = plugins_->import_manifest(manifest);
     if (!result) { error = result.error; return false; }
+    if (plugin_settings_) {
+        // Stored credentials were entered for the old hosts/URLs/headers. If those change (or no
+        // installed version is known), discard them so an update cannot redirect them to new hosts.
+        if (!previous || plugins::source_fingerprint(previous->manifest) != plugins::source_fingerprint(*parsed.manifest)) {
+            auto discarded = plugin_settings_->discard_secrets(parsed.manifest->id);
+            if (!discarded) {
+                error = "Plugin importiert, aber gespeicherte Zugangsdaten konnten nicht verworfen werden: " + discarded.error;
+                LOGW("plugins", "%s", error.c_str());
+                ++plugin_settings_revision_;
+                mark_dirty();
+                return false;
+            }
+        }
+        auto settings = plugin_settings_->load(*parsed.manifest);
+        if (!settings) {
+            error = "Plugin importiert, aber Einstellungen konnten nicht sicher geladen werden: " + settings.error;
+            LOGW("plugins", "%s", error.c_str());
+            mark_dirty();
+            return false;
+        }
+        ++plugin_settings_revision_;
+    }
     mark_dirty();
     return true;
 }
 
 bool App::plugin_set_enabled(const std::string& id, bool enabled, std::string& error) {
     if (!plugins_) { error = "Plugin-Bibliothek nicht verfügbar"; return false; }
+    if (enabled) {
+        auto entry = plugins_->find(id);
+        if (!entry) { error = "Plugin nicht installiert"; return false; }
+        if (!entry->manifest.sources.empty() && plugin_settings_) {
+            auto values = plugin_settings_->runtime_values(entry->manifest);
+            if (!values) { error = "Erforderliche Plugin-Einstellungen fehlen"; return false; }
+        }
+    }
     auto result = plugins_->set_enabled(id, enabled);
     if (!result) { error = result.error; return false; }
     mark_dirty();
     return true;
 }
 
+bool App::plugin_set_host_consent(const std::string& id, const std::string& host, bool allowed, std::string& error) {
+    if (!plugins_) { error = "Plugin-Bibliothek nicht verfügbar"; return false; }
+    auto result = plugins_->set_host_consent(id, host, allowed);
+    if (!result) { error = result.error; return false; }
+    mark_dirty();
+    return true;
+}
+
+ojson App::plugin_settings_view(const std::string& id) {
+    auto entry = plugins_ ? plugins_->find(id) : std::nullopt;
+    if (!entry || !plugin_settings_) return ojson::object();
+    return ojson::parse(plugin_settings_->public_view(entry->manifest).dump());
+}
+
+bool App::plugin_save_settings(const std::string& id, const ojson& patch, std::string& error) {
+    auto entry = plugins_ ? plugins_->find(id) : std::nullopt;
+    if (!entry || !plugin_settings_) { error = "Plugin nicht verfügbar"; return false; }
+    auto result = plugin_settings_->save(entry->manifest, plugins::Json::parse(patch.dump()));
+    if (!result) { error = result.error; return false; }
+    ++plugin_settings_revision_;
+    mark_dirty();
+    return true;
+}
+
 bool App::plugin_remove(const std::string& id, std::string& error) {
     if (!plugins_) { error = "Plugin-Bibliothek nicht verfügbar"; return false; }
+    if (!plugins_->find(id)) { error = "Plugin nicht installiert"; return false; }
+    if (plugin_settings_) {
+        auto settings = plugin_settings_->remove(id);
+        if (!settings) { error = settings.error; return false; }
+        ++plugin_settings_revision_;
+    }
     auto result = plugins_->remove(id);
     if (!result) { error = result.error; return false; }
     mark_dirty();
@@ -258,9 +328,10 @@ std::vector<std::string> App::active_pages(bool companion) {
     for (auto& p : order)
         if (p.is_string() && have[p.get<std::string>()] &&
             (!separate || std::find(selected.begin(), selected.end(), p) != selected.end())) out.push_back(p.get<std::string>());
-    // Only offline declarative plugins are shown as live pages. Sample data is exclusive to preview.
+    // Validated declarative plugins appear as pages. Live data remains absent until
+    // every source has a current host grant and the worker has fetched it.
     if (plugins_) for (const auto& entry : plugins_->entries())
-        if (entry.enabled && entry.manifest.sources.empty()) out.push_back("plugin:" + entry.manifest.id);
+        if (entry.enabled) out.push_back("plugin:" + entry.manifest.id);
     return out;
 }
 
@@ -372,9 +443,26 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
     for (auto& key : active_pages(companion)) {
         if (key.rfind("plugin:", 0) == 0) {
             auto installed = plugins_ ? plugins_->find(key.substr(7)) : std::nullopt;
-            if (!installed || !installed->enabled || !installed->manifest.sources.empty()) continue;
+            if (!installed || !installed->enabled) continue;
             auto manifest = std::move(installed->manifest);
             plugins::RenderContext context;
+            if (plugin_settings_) {
+                auto public_settings = plugin_settings_->public_view(manifest);
+                if (public_settings.contains("values") && public_settings["values"].is_object())
+                    context.settings = public_settings["values"];
+            }
+            if (!manifest.sources.empty()) {
+                std::lock_guard lk(plugin_data_mu_);
+                auto snapshot = plugin_data_.find(manifest.id);
+                if (snapshot != plugin_data_.end() && snapshot->second.generation == installed->generation &&
+                    snapshot->second.settings_revision == plugin_settings_revision_.load()) {
+                    for (const auto& source : manifest.sources)
+                        if (plugins_->source_authorized(manifest.id, source.id, installed->generation)) {
+                            auto value = snapshot->second.data.find(source.id);
+                            if (value != snapshot->second.data.end()) context.sources.emplace(source.id, value->second);
+                        }
+                }
+            }
             context.time = clock_hhmm();
             std::time_t now = std::time(nullptr);
             std::tm local{};
@@ -688,6 +776,46 @@ void App::run() {
     if (ha_) ha_->start();
     if (discord_) discord_->start();
     if (friends_) friends_->start();
+    // The network transport runs on one owned worker, never in rendering or
+    // settings callbacks. Store generations reject a response after revoke,
+    // disable, removal or manifest replacement.
+    std::jthread plugin_worker;
+    if (plugins_) plugin_worker = std::jthread([this](std::stop_token stop) {
+        plugins::Transport transport;
+        uint64_t settings_revision = plugin_settings_revision_.load();
+        while (!stop.stop_requested()) {
+            if (auto revision = plugin_settings_revision_.load(); revision != settings_revision) {
+                settings_revision = revision;
+                transport.clear();
+            }
+            for (const auto& entry : plugins_->entries()) {
+                if (stop.stop_requested()) break;
+                if (!entry.enabled || entry.manifest.sources.empty()) continue;
+                plugins::SourceData data;
+                auto settings = plugin_settings_ ? plugin_settings_->runtime_values(entry.manifest)
+                    : plugins::SettingsValuesResult{};
+                if (settings) data = transport.collect(*plugins_, entry.manifest.id, *settings.values,
+                    [this, settings_revision, stop] {
+                        return !stop.stop_requested() && plugin_settings_revision_.load() == settings_revision;
+                    });
+                if (stop.stop_requested() || plugin_settings_revision_.load() != settings_revision) continue;
+                auto current = plugins_->find(entry.manifest.id);
+                if (!current || !current->enabled || current->generation != entry.generation) continue;
+                bool changed = false;
+                {
+                    std::lock_guard lk(plugin_data_mu_);
+                    auto& snapshot = plugin_data_[entry.manifest.id];
+                    changed = snapshot.generation != entry.generation ||
+                              snapshot.settings_revision != settings_revision || snapshot.data != data;
+                    snapshot.generation = entry.generation;
+                    snapshot.settings_revision = settings_revision;
+                    snapshot.data = std::move(data);
+                }
+                if (changed) mark_dirty();
+            }
+            for (int i = 0; i < 10 && !stop.stop_requested(); ++i) Sleep(100);
+        }
+    });
     int port = cfg_["ui"].value("port", 8765);
     std::unique_ptr<SettingsWindow> settings_window;
     std::unique_ptr<NativeSettings> native_settings;
@@ -702,9 +830,39 @@ void App::run() {
             NativePluginActions actions;
             actions.list = [this] {
                 std::vector<NativePluginEntry> result;
-                for (const auto& item : plugin_catalog())
-                    result.push_back({item.value("id", ""), item.value("name", ""),
-                                      item.value("version", ""), item.value("enabled", false)});
+                if (!plugins_) return result;
+                for (const auto& installed : plugins_->entries()) {
+                    NativePluginEntry item;
+                    item.id = installed.manifest.id;
+                    item.name = installed.manifest.name;
+                    item.version = installed.manifest.version;
+                    item.enabled = installed.enabled;
+                    std::set<std::string> hosts, setting_keys;
+                    for (const auto& source : installed.manifest.sources) {
+                        hosts.insert(source.host);
+                        setting_keys.insert(source.setting_keys.begin(), source.setting_keys.end());
+                    }
+                    item.hosts.assign(hosts.begin(), hosts.end());
+                    item.consented_hosts.assign(installed.consented_hosts.begin(), installed.consented_hosts.end());
+                    item.setting_keys.assign(setting_keys.begin(), setting_keys.end());
+                    const auto public_settings = plugin_settings_view(installed.manifest.id);
+                    const auto values = public_settings.value("values", ojson::object());
+                    const auto secrets = public_settings.value("secrets", ojson::object());
+                    for (const auto& setting : installed.manifest.settings) {
+                        NativePluginSetting field;
+                        field.key = setting.key;
+                        field.label = setting.label;
+                        field.type = setting.type;
+                        field.required = setting.required;
+                        if (setting.type == "secret") field.secret_set = secrets.value(setting.key, false);
+                        else if (values.contains(setting.key)) {
+                            const auto& value = values.at(setting.key);
+                            field.value = value.is_string() ? value.get<std::string>() : value.dump();
+                        }
+                        item.settings.push_back(std::move(field));
+                    }
+                    result.push_back(std::move(item));
+                }
                 return result;
             };
             actions.import_manifest = [this](const std::filesystem::path& path) {
@@ -722,6 +880,14 @@ void App::run() {
             actions.set_enabled = [this](const std::string& id, bool enabled) {
                 std::string error;
                 if (!plugin_set_enabled(id, enabled, error)) throw std::runtime_error(error);
+            };
+            actions.set_host_consent = [this](const std::string& id, const std::string& host, bool allowed) {
+                std::string error;
+                if (!plugin_set_host_consent(id, host, allowed, error)) throw std::runtime_error(error);
+            };
+            actions.save_settings = [this](const std::string& id, const nlohmann::json& patch) {
+                std::string error;
+                if (!plugin_save_settings(id, ojson::parse(patch.dump()), error)) throw std::runtime_error(error);
             };
             actions.remove = [this](const std::string& id) {
                 std::string error;
@@ -755,6 +921,8 @@ void App::run() {
     }
     if (update_) update_->start();
     display_loop();
+    plugin_worker.request_stop();
+    if (plugin_worker.joinable()) plugin_worker.join();
     if (update_) update_->stop();
     {
         std::lock_guard lk(notify_mu_);

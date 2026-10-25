@@ -4,6 +4,7 @@
 #include <chrono>
 #include <fstream>
 #include <system_error>
+#include <openssl/sha.h>
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -132,6 +133,47 @@ bool marker_state(const fs::path& marker, bool& disabled) {
     return !disabled || (fs::file_size(marker, ec) == 0 && !ec);
 }
 StoreResult failure(const char* error) { return {false, error}; }
+std::string fingerprint(const Manifest& manifest) {
+    const auto bytes = manifest.definition.dump();
+    unsigned char digest[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char*>(bytes.data()), bytes.size(), digest);
+    std::string out;
+    for (auto b : digest) { out += "0123456789abcdef"[b >> 4]; out += "0123456789abcdef"[b & 15]; }
+    return out;
+}
+bool all_hosts_allowed(const Installed& entry) {
+    for (const auto& source : entry.manifest.sources)
+        if (!entry.consented_hosts.contains(source.host)) return false;
+    return true;
+}
+bool read_consent(const fs::path& path, Installed& entry) {
+    if (!regular_or_missing(path)) return false;
+    std::error_code ec;
+    if (!fs::exists(path, ec)) return !ec;
+    std::string text;
+    if (!read_bounded(path, text)) return false;
+    const auto parsed = parse_source_data(text);
+    if (!parsed) return false;
+    const auto& data = *parsed.data;
+    if (!data.is_object() || data.size() != 3 || data.value("schema_version", Json()) != 1 ||
+        !data.contains("manifest_sha256") || !data["manifest_sha256"].is_string() ||
+        !data.contains("hosts") || !data["hosts"].is_array() || data["hosts"].size() > 8) return false;
+    if (data["manifest_sha256"] != fingerprint(entry.manifest)) return true; // stale: no grant
+    std::set<std::string> hosts;
+    for (const auto& value : data["hosts"]) {
+        if (!value.is_string()) return false;
+        const auto host = value.get<std::string>();
+        bool declared = false;
+        for (const auto& source : entry.manifest.sources) declared |= source.host == host;
+        if (!declared || !hosts.insert(host).second) return false;
+    }
+    entry.consented_hosts = std::move(hosts);
+    return true;
+}
+bool write_consent(const fs::path& path, const Installed& entry) {
+    return atomic_write(path, Json({{"schema_version", 1}, {"manifest_sha256", fingerprint(entry.manifest)},
+        {"hosts", entry.consented_hosts}}).dump());
+}
 } // namespace
 
 Store::Store(std::filesystem::path directory) : directory_(fs::absolute(std::move(directory)).lexically_normal()) {}
@@ -160,10 +202,13 @@ StoreResult Store::load() {
                     !marker_state(directory_ / (parsed.manifest->id + ".disabled"), disabled)) invalid = true;
                 else {
                     auto id = parsed.manifest->id;
-                    // Offline build: even hand-edited files without a marker may
-                    // never activate sources before a safe transport exists.
-                    const bool enabled = !disabled && parsed.manifest->sources.empty();
-                    if (!installed_.emplace(id, Installed{std::move(*parsed.manifest), enabled}).second) invalid = true;
+                    // Missing/stale host grants always leave source plugins disabled.
+                    Installed entry{std::move(*parsed.manifest), false, {}, ++generation_};
+                    if (!read_consent(directory_ / (id + ".consent.json"), entry)) invalid = true;
+                    else {
+                        entry.enabled = !disabled && all_hosts_allowed(entry);
+                        if (!installed_.emplace(id, std::move(entry)).second) invalid = true;
+                    }
                 }
             }
         }
@@ -181,6 +226,12 @@ StoreResult Store::import_manifest(std::string_view utf8) {
     auto& manifest = *parsed.manifest;
     auto existing = installed_.find(manifest.id);
     if (existing == installed_.end() && installed_.size() >= installation_limit) return failure("At most 32 plugins may be installed.");
+    // An update invalidates in-flight work and grants even when persistence fails.
+    if (existing != installed_.end()) {
+        existing->second.enabled = false;
+        existing->second.consented_hosts.clear();
+        existing->second.generation = ++generation_;
+    }
     if (!ready_directory(directory_, true)) return failure("Plugin directory cannot be created safely.");
     bool disabled = false;
     if (!marker_state(directory_ / (manifest.id + ".disabled"), disabled)) return failure("Plugin state file is invalid.");
@@ -189,20 +240,32 @@ StoreResult Store::import_manifest(std::string_view utf8) {
         disabled = true;
         // The marker is already committed. Keep in-memory state consistent even
         // if replacing the manifest subsequently fails.
-        if (existing != installed_.end()) existing->second.enabled = false;
+        if (existing != installed_.end()) { existing->second.enabled = false; existing->second.generation = ++generation_; }
     }
-    // Persist the original validated bytes. Canonical reserialization can expand
-    // exponent notation beyond the input limit and must not produce unloadable files.
-    if (!atomic_write(directory_ / (manifest.id + suffix), utf8)) return failure("Plugin could not be saved atomically.");
     auto id = manifest.id;
-    installed_.insert_or_assign(id, Installed{std::move(manifest), !disabled});
+    // Persist an empty grant before replacing a source manifest, including exact
+    // reimports. A failed invalidation must never leave a reusable old grant.
+    Installed replacement{manifest, !disabled, {}, ++generation_};
+    if (!write_consent(directory_ / (id + ".consent.json"), replacement)) {
+        if (existing != installed_.end()) { existing->second.enabled = false; existing->second.generation = ++generation_; }
+        return failure("Plugin consent could not be reset safely.");
+    }
+    // Persist original validated bytes only after revoking any old grant. Even an
+    // exact reimport interrupted between writes must require fresh consent.
+    if (!atomic_write(directory_ / (manifest.id + suffix), utf8)) return failure("Plugin could not be saved atomically.");
+    installed_.insert_or_assign(id, std::move(replacement));
     return {true, {}};
 }
 StoreResult Store::set_enabled(const std::string& id, bool enabled) {
     std::lock_guard lock(mutex_);
     auto it = installed_.find(id);
     if (it == installed_.end()) return failure("Plugin is not installed.");
-    if (enabled && !it->second.manifest.sources.empty()) return failure("Live plugin sources are unavailable in this offline build.");
+    if (enabled && !all_hosts_allowed(it->second)) return failure("Approve every declared host before enabling this plugin.");
+    if (!enabled) {
+        // Stop in-flight requests immediately, including a failed disk update.
+        it->second.enabled = false;
+        it->second.generation = ++generation_;
+    }
     if (!ready_directory(directory_, false)) return failure("Plugin directory is unavailable.");
     auto marker = directory_ / (it->first + ".disabled");
     if (!regular_or_missing(marker)) return failure("Plugin state file is invalid.");
@@ -211,6 +274,7 @@ StoreResult Store::set_enabled(const std::string& id, bool enabled) {
         if (ec) return failure("Plugin could not be enabled.");
     } else if (!atomic_write(marker, "")) return failure("Plugin could not be disabled.");
     it->second.enabled = enabled;
+    it->second.generation = ++generation_;
     return {true, {}};
 }
 StoreResult Store::remove(const std::string& id) {
@@ -228,7 +292,41 @@ StoreResult Store::remove(const std::string& id) {
     installed_.erase(it);
     fs::remove(marker, ec);
     if (ec) return failure("Plugin was removed but its disabled marker could not be cleaned up.");
+    fs::remove(directory_ / (id + ".consent.json"), ec);
+    if (ec) return failure("Plugin was removed but its consent could not be cleaned up.");
     return {true, {}};
+}
+StoreResult Store::set_host_consent(const std::string& id, const std::string& host, bool allowed) {
+    std::lock_guard lock(mutex_);
+    auto it = installed_.find(id);
+    if (it == installed_.end()) return failure("Plugin is not installed.");
+    bool declared = false;
+    for (const auto& source : it->second.manifest.sources) declared |= source.host == host;
+    if (!declared) return failure("Host is not declared by this plugin.");
+    Installed next = it->second;
+    if (allowed) next.consented_hosts.insert(host); else next.consented_hosts.erase(host);
+    if (!allowed) {
+        // Revoke memory authorization immediately even if the disk write fails.
+        it->second.enabled = false;
+        it->second.consented_hosts.erase(host);
+        it->second.generation = ++generation_;
+        next.enabled = false;
+        if (!ready_directory(directory_, false)) return failure("Plugin directory is unavailable.");
+        if (!atomic_write(directory_ / (id + ".disabled"), "")) return failure("Plugin could not be disabled safely.");
+    }
+    if (!ready_directory(directory_, false)) return failure("Plugin directory is unavailable.");
+    if (!write_consent(directory_ / (id + ".consent.json"), next)) return failure("Plugin consent could not be saved.");
+    next.generation = ++generation_;
+    it->second = std::move(next);
+    return {true, {}};
+}
+bool Store::source_authorized(const std::string& id, const std::string& source_id, uint64_t generation) const {
+    std::lock_guard lock(mutex_);
+    const auto it = installed_.find(id);
+    if (it == installed_.end() || !it->second.enabled || it->second.generation != generation) return false;
+    for (const auto& source : it->second.manifest.sources)
+        if (source.id == source_id) return it->second.consented_hosts.contains(source.host);
+    return false;
 }
 std::vector<Installed> Store::entries() const {
     std::lock_guard lock(mutex_);

@@ -37,6 +37,19 @@ std::vector<std::string> split(std::string_view s) {
 bool clean(std::string_view s) {
     return std::none_of(s.begin(), s.end(), [](unsigned char c) { return c < 32 || c == 127; });
 }
+// Bidi controls and zero-width characters (U+200B-200F, U+2028-202E, U+2060, U+2066-2069, U+FEFF) allow
+// spoofed or invisible text in the approval UI and on the display.
+bool invisible_format(std::string_view s) {
+    for (size_t i = 0; i + 2 < s.size(); ++i) {
+        const auto a = static_cast<unsigned char>(s[i]), b = static_cast<unsigned char>(s[i + 1]),
+                   c = static_cast<unsigned char>(s[i + 2]);
+        if (a == 0xE2 && b == 0x80 && ((c >= 0x8B && c <= 0x8F) || (c >= 0xA8 && c <= 0xAE))) return true;
+        if (a == 0xE2 && ((b == 0x81 && (c == 0xA0 || (c >= 0xA6 && c <= 0xA9))))) return true;
+        if (a == 0xEF && b == 0xBB && c == 0xBF) return true;
+    }
+    return false;
+}
+bool display_clean(std::string_view s) { return clean(s) && !invisible_format(s); }
 size_t characters(std::string_view s) {
     return static_cast<size_t>(std::count_if(s.begin(), s.end(), [](unsigned char c) { return (c & 0xc0) != 0x80; }));
 }
@@ -198,6 +211,8 @@ std::string scalar(const Json* value, bool& missing) {
     return value->dump();
 }
 std::string encode_component(std::string_view value) {
+    // "." and ".." would become dot segments in a URL path (traversal after server/proxy normalization).
+    require(value != "." && value != "..", "Setting value is not allowed as a URL path segment.");
     const char* hex = "0123456789ABCDEF";
     std::string out;
     for (unsigned char c : value) {
@@ -206,7 +221,24 @@ std::string encode_component(std::string_view value) {
     }
     return out;
 }
+std::string checked_text(const Json& j, const char* key, size_t min = 0, size_t max = manifest_limit) {
+    auto s = str(j, key, min, max);
+    require(display_clean(s), "Control, bidirectional or zero-width characters are not allowed in display text.");
+    return s;
+}
 } // namespace
+
+bool reserved_device_name(std::string_view id) {
+    const auto name = lowercase(std::string(id));
+    if (name == "con" || name == "prn" || name == "aux" || name == "nul") return true;
+    return name.size() == 4 && (name.starts_with("com") || name.starts_with("lpt")) && name[3] >= '1' && name[3] <= '9';
+}
+std::string source_fingerprint(const Manifest& manifest) {
+    Json sources = Json::array();
+    for (const auto& s : manifest.sources)
+        sources.push_back({{"id", s.id}, {"url", s.url}, {"host", s.host}, {"headers", s.headers}});
+    return sources.dump(); // std::map keeps headers in a stable order
+}
 
 ParseResult parse_manifest(std::string_view utf8) {
     try {
@@ -216,9 +248,10 @@ ParseResult parse_manifest(std::string_view utf8) {
         Manifest m;
         m.id = str(j, "id", 1, 48);
         require(lower(m.id[0]) && m.id.back() != '-' && m.id.find("--") == m.id.npos &&
-                std::all_of(m.id.begin(), m.id.end(), [](char c) { return lower(c) || digit(c) || c == '-'; }), "Invalid plugin ID.");
-        m.name = str(j, "name", 1, 80);
-        m.description = j.contains("description") ? str(j, "description", 0, 500) : "";
+                std::all_of(m.id.begin(), m.id.end(), [](char c) { return lower(c) || digit(c) || c == '-'; }) &&
+                !reserved_device_name(m.id), "Invalid plugin ID.");
+        m.name = checked_text(j, "name", 1, 80);
+        m.description = j.contains("description") ? checked_text(j, "description", 0, 500) : "";
         m.version = str(j, "version", 5, 14);
         auto version = split(m.version);
         require(version.size() == 3 && std::all_of(version.begin(), version.end(), [](const auto& s) {
@@ -233,12 +266,16 @@ ParseResult parse_manifest(std::string_view utf8) {
             Setting s;
             s.key = str(v, "key");
             require(identifier(s.key) && setting_ids.insert(s.key).second, "Invalid or duplicate setting key.");
-            s.label = str(v, "label", 1, 80);
+            s.label = checked_text(v, "label", 1, 80);
             s.type = str(v, "type");
             require(s.type == "text" || s.type == "number" || s.type == "secret", "Unsupported setting type.");
             if (v.contains("required")) { require(v["required"].is_boolean(), "Required must be boolean."); s.required = v["required"].get<bool>(); }
             s.default_value = v.contains("default") ? v["default"] : (s.type == "number" ? Json(0) : Json(""));
             require(s.type == "number" ? s.default_value.is_number() && std::isfinite(s.default_value.get<double>()) : s.default_value.is_string(), "Invalid default value type.");
+            if (s.type != "number") {
+                const auto& default_text = s.default_value.get_ref<const std::string&>();
+                require(default_text.size() <= setting_value_limit && clean(default_text), "Invalid setting default.");
+            }
             require(s.type != "secret" || s.default_value == "", "Secret defaults must be empty.");
             m.settings.push_back(std::move(s));
         }
@@ -276,15 +313,15 @@ ParseResult parse_manifest(std::string_view utf8) {
         for (const auto& v : j["widgets"]) {
             Widget w;
             w.type = str(v, "type");
-            if (w.type == "text") { fields(v, {"type", "label", "text"}); w.text = str(v, "text"); }
-            else if (w.type == "metric") { fields(v, {"type", "label", "value", "unit"}); w.value = str(v, "value"); }
+            if (w.type == "text") { fields(v, {"type", "label", "text"}); w.text = checked_text(v, "text"); }
+            else if (w.type == "metric") { fields(v, {"type", "label", "value", "unit"}); w.value = checked_text(v, "value"); }
             else if (w.type == "bar") {
                 fields(v, {"type", "label", "value", "unit", "min", "max"});
-                w.value = str(v, "value"); w.min = number(v, "min"); w.max = number(v, "max");
+                w.value = checked_text(v, "value"); w.min = number(v, "min"); w.max = number(v, "max");
                 require(w.max > w.min, "Bar maximum must exceed minimum.");
             } else if (w.type == "list") {
                 fields(v, {"type", "label", "items", "item_template", "max_items"});
-                w.items = str(v, "items"); w.item_template = str(v, "item_template");
+                w.items = str(v, "items"); w.item_template = checked_text(v, "item_template");
                 w.max_items = integer(v, "max_items", 1, 5);
                 auto path = split(w.items);
                 require(path.size() >= 2 && source_exists(m, path[0]), "List path must start with a source.");
@@ -294,8 +331,8 @@ ParseResult parse_manifest(std::string_view utf8) {
                 fields(v, {"type", "label", "format"}); w.format = str(v, "format");
                 require(w.format == "time" || w.format == "date" || w.format == "datetime", "Unsupported clock format.");
             } else throw Invalid("Unsupported widget type.");
-            if (v.contains("label")) w.label = str(v, "label");
-            if (v.contains("unit")) w.unit = str(v, "unit");
+            if (v.contains("label")) w.label = checked_text(v, "label");
+            if (v.contains("unit")) w.unit = checked_text(v, "unit");
             for (const auto* text : {&w.label, &w.unit, &w.text, &w.value}) validate_template(m, *text, Usage::display);
             m.widgets.push_back(std::move(w));
         }

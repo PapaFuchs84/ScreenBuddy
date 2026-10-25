@@ -6,14 +6,26 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased] – ScreenBuddy 2.5 in Entwicklung
 
+### Architektur
+- Native Win32-Hülle nutzt den vorhandenen C++20-Kern für Rendering, USB und Companion; dadurch ist keine zusätzliche Electron-Laufzeit nötig. WebView2 bleibt für geführte Abläufe erhalten. Kein Flutter-/Tauri-Umbau in dev.2. Release-Gates sind UI-, Upgrade-, Hardware- und externe-Dienst-Abnahme. Der Installer sichert eine Vorgänger-EXE; ein echtes Rollback ist noch nicht abgenommen. Öffentliche Umbenennung von Repository und Homepage ist bis nach der Freigabe aufgeschoben.
+
 ### Implementiert im unveröffentlichten Entwicklungsbuild
 - ScreenBuddy-Branding für EXE, Installer und Autostart; bestehender Uninstall-Schlüssel für Upgrades erhalten.
-- Native Win32-Basiseinstellungen mit Vorschau und Plugin-Verwaltung; erweiterte WebView2-Einstellungen bleiben erreichbar.
-- Streng validiertes JSON-Manifest, Offline-Plugin-Speicher und eigenständige Offline-Seiten. Netzwerk-Plugins bleiben deaktiviert. Der Vertrag ist noch nicht stabil freigegeben.
+- Native Win32-Einstellungen mit sieben Reitern, darunter Quellen-Editor, Seitenreihenfolge, Updates und Autostart; geführte Workflows, benutzerdefinierte Farben und Companion-Kopplung bleiben in WebView2.
+- Streng validierte Plugin-Manifeste, lokale Verwaltung, begrenzter HTTPS-Abruf im Worker, gespeicherte Host-Zustimmungen, DPAPI-geschützte Plugin-Einstellungen und Live-Rendering im Display-Thread. Quellen-Plugins sind nach Pflicht-Einstellungen und Einzelzustimmung pro Host aktivierbar; externe HTTPS-Liveabfragen wurden nicht geprüft.
 - Details zum Entwicklungsstand und zu den Kompatibilitätsgrenzen: [ScreenBuddy 2.5](docs/SCREENBUDDY-2.5.md).
 
+### Sicherheitshärtung nach Review
+- Gespeicherte Plugin-Secrets werden verworfen, wenn ein Manifest-Update Quelle (Host, URL oder Header) ändert.
+- Windows-Gerätenamen wie `con`, `nul`, `com1`–`com9` und `lpt1`–`lpt9` werden als Plugin-ID abgelehnt.
+- Plugin-Secrets nutzen eine eigene DPAPI-Entropie; vorhandene Werte werden automatisch migriert.
+- Bidi- und Zero-Width-Zeichen in Manifesttexten werden abgelehnt.
+- `.` und `..` werden als Einstellungswert im URL-Pfad abgelehnt.
+- Der DNS-Abschluss ist gegen Doppelfreigabe abgesichert.
+- Offen: Zertifikats-Sperrprüfung (CRL/OCSP) fehlt noch; externe HTTPS-Liveabfragen sind weiterhin nicht abgenommen.
+
 ### Status
-- Kein 2.5-Release oder Download. Die bestehende 2.3.0 bleibt die letzte veröffentlichte Version. Kern-/Plugin-Tests: 236 + 220; isolierte App-/Navigationsprüfungen: 39 + 49; zwei Installer-Prüfungen bestanden. Native Fensteranzeige isoliert bestätigt, Layout, echtes Upgrade und Hardware offen.
+- Kein 2.5-Release oder Download. Die bestehende 2.3.0 bleibt die letzte veröffentlichte Version. Bestanden: 236 Kern-, 220 Parser-, 127 Speicher-, 133 Transport-, 135 Plugin-Einstellungs-, 11 Monitor- und 335 Companion-Prüfungen; außerdem 39 isolierte App-, 49 Navigations- und zwei Installer-Prüfungen. Externe HTTPS-Abfragen, interaktive/visuelle UI-Abnahme, echtes Upgrade und Hardware offen.
 
 ## [2.3.0] – 2026-10-24
 
@@ -44,8 +56,6 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ### Geändert
 - Bebilderte Anleitung (DE/EN) um Systemseite per Touch und Update-Hinweis ergänzt; Dokumentation auf 2.2.0.
-
-### Geändert
 - Dokumentation auf 2.1.0: README, Doku, Changelogs und Download-Verweise aktualisiert; bebilderte Anleitung (DE/EN) mit neuem Schritt „Home Assistant“ (Adresse, Token, Verbindung prüfen, Kacheln wählen). Die schon veröffentlichte EXE enthält noch die alte Anleitung; die neue kommt mit dem nächsten Build.
 - Dokumentation auf 2.0.3 nachgezogen: README/Schnellstart, Downloadlinks, HDMI-/Touch-Anleitung, Prüfstand und Sicherheitsübersicht; vorhandene deutsche/englische Fassungen gemeinsam aktualisiert. Die Projektregeln und PR-Vorlage verlangen Doku-Pflege ab jetzt bei jeder Änderung.
 - Bebilderte Anleitung (ANLEITUNG.html / GUIDE.html) auf C++ 2.0 gebracht: Download der einen EXE statt ZIP, eingebauter Installer (ohne Administratorrechte, Übernahme von 1.x), eigenes Einstellungsfenster (WebView2), Tray-Autostart, Deinstallation über Windows-Apps.
@@ -184,7 +194,7 @@ Erste Fassung als Python-Skript, danach als EXE `FuchsLabs-USB-Display-1.0.zip`.
 - Helligkeit von 50 auf 90 angehoben.
 - Ganzes Bild wird bei jedem Seitenwechsel und alle 5 Minuten neu gesendet. Ein Streifen an fester Stelle bei einfarbigen Testbildern liegt an Display oder Kabel, nicht an der App.
 
-[Unveröffentlicht]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v2.3.0...HEAD
 [2.3.0]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v2.2.0...v2.3.0
 [1.2]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v1.1...v1.2
 [1.1]: https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v1.1

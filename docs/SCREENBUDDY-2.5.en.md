@@ -1,19 +1,24 @@
 # ScreenBuddy 2.5 – Development status
 
-**Unpublished development build 2.5.0-dev.1.** Version 2.3.0 remains the latest published release.
+**Unpublished development build 2.5.0-dev.2.** Version 2.3.0 remains the latest published release.
 
 ## Implemented
 
 - The executable, installer metadata and startup entry use ScreenBuddy. The existing uninstall registry key stays stable for upgrades; the old executable is renamed as a fallback copy.
-- Native Win32 settings provide status, preview, basic options and local plugin management. **Advanced settings** keeps the existing WebView2 interface available for sources, Companion and more options.
-- Declarative schema 1 plugin manifests are strictly validated. A local store imports, disables and removes them. Offline plugins without sources can appear as pages. Source plugins remain disabled; network transport, host consent and plugin secret management are still missing. Import does not execute code.
+- The native Win32 settings window provides seven tabs, including the source schema/editor, display and Companion page ordering, app updates and autostart. **Advanced settings** opens the WebView2 workflows for guided account/selection tasks, custom colors, and Companion pairing/QR.
+- Declarative schema 1 plugin manifests are strictly validated. The local store can import, enable, disable and remove plugins. Source plugins can be enabled after their required settings are supplied and the user consents to every declared host. Bounded HTTPS fetching runs in its own worker; plugin settings are protected with DPAPI. Importing a manifest does not execute code.
+- Data fetching runs in its own worker; rendering remains on the display thread. No live requests to external HTTPS services have been tested.
+
+## Architecture and rollout
+
+The native Win32 shell reuses the existing C++20 implementation for rendering, USB and Companion, avoiding an additional Electron runtime. WebView2 remains for guided workflows. The dev.2 build was not rewritten in Flutter or Tauri. UI, upgrade, hardware and external-service validation are required before release. The installer saves the previous executable as a fallback; a real rollback has not been tested. The public repository and homepage rename remains deferred until after release.
 
 See [Plugin system](PLUGIN-SYSTEM.en.md) for an example and the provisional developer contract.
 
 ## Compatibility and open work
 
-Plugin manifests replace neither config.toml nor DPAPI credentials or companion.json. A stable 2.5 release still needs complete native feature parity, secure source fetching, UI and upgrade acceptance, hardware testing and a performance comparison with 2.3.0. The repository and homepage have not been publicly renamed.
+Plugin manifests replace neither config.toml nor existing DPAPI credentials or companion.json. A stable 2.5 release still needs complete native feature parity, acceptance of external HTTPS requests, visual and interaction acceptance of the UI, a real upgrade from 2.3.0, hardware testing and a performance comparison with 2.3.0. The repository and homepage have not been publicly renamed.
 
 ## Verification
 
-The development build compiled locally on 25 October 2026. 236 core checks, 220 plugin checks, 11 monitor checks, 335 Companion protocol checks, 39 isolated app/Companion checks, 49 navigation checks and two installer checks passed. An isolated `--no-lcd` instance showed the native settings window. The installer test used a copy of the new build under the legacy filename. This does not prove a production upgrade, native usability across DPI settings or physical output. [Test record](../cpp/TESTPROTOKOLL.md).
+The development build compiled locally on 25 October 2026. Passed: 236 core, 220 manifest-parser, 127 plugin-store, 133 plugin-transport, 135 plugin-settings, 11 monitor and 335 Companion-protocol checks; 39 isolated app, 49 navigation and two installer checks also passed. An isolated instance showed the native window. These checks do not establish live external HTTPS requests, physical display hardware, an upgrade from 2.3.0 or visual/interaction acceptance of the UI. [Test record](../cpp/TESTPROTOKOLL.md).

@@ -6,7 +6,7 @@
 
 # ScreenBuddy (in development)
 
-**ScreenBuddy 2.5.0-dev.1:** The source implements native basic settings and local offline plugins. The advanced WebView2 interface remains available. Version 2.5 is unpublished and the plugin contract is provisional. [Development and verification status](docs/SCREENBUDDY-2.5.en.md) · [Plugin guide](docs/PLUGIN-SYSTEM.en.md). The current 2.3.0 download is still named FuchsLabs USB-Display.
+**ScreenBuddy 2.5.0-dev.2:** The source implements native basic settings and local offline plugins. The advanced WebView2 interface remains available. Version 2.5 is unpublished and the plugin contract is provisional. [Development and verification status](docs/SCREENBUDDY-2.5.en.md) · [Plugin guide](docs/PLUGIN-SYSTEM.en.md). The current 2.3.0 download is still named FuchsLabs USB-Display.
 
 [Deutsch](README.md) · **English**
 

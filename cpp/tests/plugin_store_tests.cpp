@@ -18,6 +18,7 @@ static void write(const fs::path& path, const std::string& text) {
     std::ofstream stream(path, std::ios::binary); stream << text;
 }
 int main() {
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
     const auto root = fs::temp_directory_path() /
         ("fl-plugin-tests-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     if (!fs::create_directory(root)) return 2;
@@ -84,6 +85,53 @@ int main() {
     network_json["id"] = "clock";
     CHECK(offline_only.import_manifest(network_json.dump()));
     CHECK(!offline_only.find("clock")->enabled); // adding sources to an enabled page disables it
+    Store consent(root / "consent");
+    network_json["id"] = "network";
+    CHECK(consent.load());
+    CHECK(consent.import_manifest(network_json.dump()));
+    CHECK(!consent.set_host_consent("network", "undeclared.example.com", true));
+    CHECK(consent.set_host_consent("network", "api.example.com", true));
+    CHECK(!consent.find("network")->enabled); // host approval never silently enables
+    CHECK(consent.set_enabled("network", true));
+    const auto approved_generation = consent.find("network")->generation;
+    CHECK(consent.source_authorized("network", "feed", approved_generation));
+    CHECK(!consent.source_authorized("network", "missing", approved_generation));
+    CHECK(consent.load());
+    CHECK(consent.find("network")->enabled);
+    CHECK(!consent.source_authorized("network", "feed", approved_generation));
+    CHECK(consent.import_manifest(network_json.dump())); // exact reimport revokes consent
+    CHECK(!consent.find("network")->enabled);
+    CHECK(consent.find("network")->consented_hosts.empty());
+    CHECK(consent.load());
+    CHECK(!consent.set_enabled("network", true));
+    CHECK(consent.set_host_consent("network", "api.example.com", true));
+    CHECK(consent.set_enabled("network", true));
+    network_json["version"] = "1.0.1";
+    write(root / "consent/network.flplugin.json", network_json.dump());
+    CHECK(consent.load());
+    CHECK(!consent.find("network")->enabled); // disk edits invalidate the bound grant
+    CHECK(consent.find("network")->consented_hosts.empty());
+    CHECK(consent.set_host_consent("network", "api.example.com", true));
+    CHECK(consent.set_enabled("network", true));
+    const auto before_failure = consent.find("network")->generation;
+    // An unavailable store must not prevent immediate in-memory revocation.
+    fs::rename(root / "consent", root / "consent-moved");
+    CHECK(!consent.set_host_consent("network", "api.example.com", false));
+    CHECK(!consent.find("network")->enabled);
+    CHECK(!consent.source_authorized("network", "feed", before_failure));
+    CHECK(consent.find("network")->consented_hosts.empty());
+    fs::rename(root / "consent-moved", root / "consent");
+    CHECK(consent.set_host_consent("network", "api.example.com", false));
+    CHECK(consent.load());
+    CHECK(!consent.find("network")->enabled);
+    CHECK(consent.set_host_consent("network", "api.example.com", true));
+    CHECK(consent.set_enabled("network", true));
+    fs::remove(root / "consent/network.consent.json");
+    fs::create_directory(root / "consent/network.consent.json");
+    CHECK(!consent.import_manifest(network_json.dump()));
+    CHECK(!consent.find("network")->enabled);
+    CHECK(consent.find("network")->consented_hosts.empty());
+    CHECK(!consent.set_enabled("network", true));
     Store capped(root / "capped");
     CHECK(capped.load());
     for (size_t i = 0; i < Store::installation_limit; ++i) CHECK(capped.import_manifest(manifest("clock-" + std::to_string(i))));

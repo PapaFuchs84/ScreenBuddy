@@ -35,7 +35,7 @@ set(CORE_SOURCES
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/settings_window.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
     src/companion.cpp src/companion_server.cpp src/network_display.cpp
-    src/plugins.cpp src/plugin_store.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
+    src/plugins.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
 
 add_library(flcore STATIC ${CORE_SOURCES})
 target_include_directories(flcore PUBLIC src third_party/qrcodegen)
@@ -70,7 +70,17 @@ target_link_libraries(fl-plugin-tests PRIVATE nlohmann_json::nlohmann_json)
 
 add_executable(fl-plugin-store-tests tests/plugin_store_tests.cpp src/plugins.cpp src/plugin_store.cpp)
 target_include_directories(fl-plugin-store-tests PRIVATE src)
-target_link_libraries(fl-plugin-store-tests PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(fl-plugin-store-tests PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
+
+add_executable(fl-plugin-transport-tests tests/plugin_transport_tests.cpp src/plugins.cpp src/plugin_store.cpp src/plugin_transport.cpp)
+target_include_directories(fl-plugin-transport-tests PRIVATE src)
+target_compile_definitions(fl-plugin-transport-tests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
+target_link_libraries(fl-plugin-transport-tests PRIVATE nlohmann_json::nlohmann_json OpenSSL::SSL OpenSSL::Crypto ws2_32 crypt32)
+
+add_executable(fl-plugin-settings-tests tests/plugin_settings_tests.cpp src/plugins.cpp src/plugin_settings.cpp src/secure.cpp)
+target_include_directories(fl-plugin-settings-tests PRIVATE src)
+target_compile_definitions(fl-plugin-settings-tests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
+target_link_libraries(fl-plugin-settings-tests PRIVATE nlohmann_json::nlohmann_json crypt32)
 
 # Companion-Protokoll (Kopplung, WebSocket, TLS-Server auf 127.0.0.1); unter Linux: tests/build-linux.sh
 add_executable(fl-companion-tests tests/companion_tests.cpp)

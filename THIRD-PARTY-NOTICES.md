@@ -3,7 +3,7 @@
 FuchsLabs USB-Display enthält oder nutzt die folgenden Komponenten. Deren Lizenzen bleiben unverändert bestehen und gelten unabhängig von der Lizenz des FuchsLabs-eigenen Codes.
 This product includes or uses the components below. Their licenses remain unchanged and apply independently of the license of FuchsLabs' own code.
 
-Stand: 2.0.4 (C++), Python 1.2 (historisch). Die Versionen der vcpkg-Pakete ergeben sich aus der Baseline in `cpp/vcpkg.json`; maßgeblich sind die `copyright`-Dateien im vcpkg-Installationsordner (`share/<paket>/copyright`) des jeweiligen Builds.
+Stand: 2.5.0-dev.2 (C++), Python 1.2 (historisch). Die Versionen der vcpkg-Pakete ergeben sich aus der Baseline in `cpp/vcpkg.json`; maßgeblich sind die `copyright`-Dateien im vcpkg-Installationsordner (`share/<paket>/copyright`) des jeweiligen Builds.
 
 ## C++-Version 2.0 (in der EXE statisch gelinkt)
 

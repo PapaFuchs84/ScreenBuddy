@@ -6,14 +6,26 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased] – ScreenBuddy 2.5 in development
 
+### Architecture
+- The native Win32 shell reuses the existing C++20 core for rendering, USB and Companion, avoiding an additional Electron runtime. WebView2 remains for guided workflows. No Flutter/Tauri rewrite was made in dev.2. Release gates are UI, upgrade, hardware and external-service acceptance. The installer saves the previous executable; a real rollback has not been accepted. Public repository and homepage renaming is deferred until after release.
+
 ### Implemented in the unpublished development build
 - ScreenBuddy branding for the executable, installer and startup entry; existing uninstall key preserved for upgrades.
-- Native Win32 basic settings with preview and plugin management; advanced WebView2 settings remain available.
-- Strictly validated JSON manifest, offline plugin store and offline pages. Network plugins remain disabled. The contract is not yet stable.
+- Native Win32 settings with seven tabs, including the source editor, page ordering, updates and autostart; guided workflows, custom colors and Companion pairing remain in WebView2.
+- Strictly validated plugin manifests, local management, bounded HTTPS fetching in a worker, persisted host consent, DPAPI-protected plugin settings and live rendering on the display thread. Source plugins can be enabled after required settings and per-host consent; no live requests to external HTTPS services have been tested.
 - Development status and compatibility limits: [ScreenBuddy 2.5](docs/SCREENBUDDY-2.5.en.md).
 
+### Security hardening after review
+- Stored plugin secrets are discarded when a manifest update changes the source (host, URL or headers).
+- Windows device names such as `con`, `nul`, `com1`–`com9` and `lpt1`–`lpt9` are rejected as plugin IDs.
+- Plugin secrets use their own DPAPI entropy; existing values are migrated automatically.
+- Bidi and zero-width characters are rejected in manifest text.
+- `.` and `..` are rejected as setting values in URL paths.
+- DNS completion is protected against double approval.
+- Open: certificate revocation checks (CRL/OCSP) are still missing; external HTTPS live queries have not been accepted.
+
 ### Status
-- No 2.5 release or download. Version 2.3.0 remains the latest published version. Core/plugin tests: 236 + 220; isolated app/navigation checks: 39 + 49; two installer checks passed. The native window was shown in isolation; layout, a real upgrade and hardware acceptance remain open.
+- No 2.5 release or download. Version 2.3.0 remains the latest published version. Passed: 236 core, 220 parser, 127 store, 133 transport, 135 plugin-settings, 11 monitor and 335 Companion checks; plus 39 isolated app, 49 navigation and two installer checks. External HTTPS requests, visual/interaction acceptance of the UI, a real upgrade and hardware acceptance remain open.
 
 ## [2.3.0] – 2026-10-24
 
@@ -44,8 +56,6 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Changed
 - Illustrated guide (DE/EN) extended with the system page by touch and the update notice; documentation aligned with 2.2.0.
-
-### Changed
 - Documentation aligned with 2.1.0: README, docs, changelogs and download links updated; illustrated guide (DE/EN) with a new “Home Assistant” step (address, token, check connection, choose tiles). The already published EXE still embeds the old guide; the new one ships with the next build.
 - Documentation aligned with 2.0.3: README/quick start, download links, HDMI/touch guide, validation status and security version overview; existing German/English versions updated together. Project rules and the PR template now require documentation updates with every change.
 - Illustrated guide (ANLEITUNG.html / GUIDE.html) updated to C++ 2.0: download of the single EXE instead of a ZIP, built-in installer (no administrator rights, 1.x migration), dedicated settings window (WebView2), tray autostart, uninstall via Windows Apps.

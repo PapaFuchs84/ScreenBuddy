@@ -198,8 +198,55 @@ static void test_requests() {
         CHECK(q && q.request->url == "https://api.example.com/?key=a%26b%3Dc");
     }
 }
+static void test_security_hardening() {
+    // Windows device names are never valid plugin IDs.
+    for (const char* id : {"con", "prn", "aux", "nul", "com1", "com9", "lpt1", "lpt9"}) {
+        CHECK(reserved_device_name(id));
+        reject([&](auto& j) { j["id"] = id; });
+    }
+    for (const char* id : {"CON", "Nul", "COM3"}) CHECK(reserved_device_name(id));
+    for (const char* id : {"com0", "com10", "console", "my-con", "lpt", "offline-clock"}) CHECK(!reserved_device_name(id));
+    reject([](auto& j) { j["id"] = "com5"; });
+    auto ok_id = fixture(); ok_id["id"] = "console"; CHECK(parse_manifest(ok_id.dump()));
+
+    // Bidi / zero-width / control characters in display strings.
+    for (const char* bad : {"\xE2\x80\xAE" "evil", "a\xE2\x80\x8B" "b", "a\xE2\x80\x8F" "b", "\xE2\x80\xAA" "x", "x\xE2\x81\xA6",
+                            "x\xE2\x81\xA9", "x\xEF\xBB\xBF", "x\xE2\x80\xA8", "tab\there", "line\nbreak"}) {
+        reject([&](auto& j) { j["name"] = bad; });
+        reject([&](auto& j) { j["description"] = bad; });
+        reject([&](auto& j) { j["settings"][0]["label"] = bad; });
+        reject([&](auto& j) { j["widgets"][1]["label"] = bad; });
+        reject([&](auto& j) { j["widgets"][1]["unit"] = bad; });
+    }
+    auto readable = fixture(); readable["name"] = "Wetter \xC3\xBC \xE2\x82\xAC \xE2\x80\x93 \xF0\x9F\x8C\xA4"; readable["widgets"][1]["unit"] = "\xC2\xB0" "C";
+    CHECK(parse_manifest(readable.dump()));
+
+    // "." and ".." must never become URL dot segments.
+    auto parsed = parse_manifest(fixture().dump());
+    CHECK(parsed); if (!parsed) return;
+    const auto& m = *parsed.manifest;
+    CHECK(!prepare_request(m, m.sources[0], {{"city", "."}, {"token", "t"}}));
+    CHECK(!prepare_request(m, m.sources[0], {{"city", ".."}, {"token", "t"}}));
+    CHECK(prepare_request(m, m.sources[0], {{"city", "..."}, {"token", "t"}}));
+    CHECK(prepare_request(m, m.sources[0], {{"city", "a.b"}, {"token", "t"}}));
+    auto traversal = prepare_request(m, m.sources[0], {{"city", "../x"}, {"token", "t"}});
+    CHECK(traversal && traversal.request->url.find("/../") == std::string::npos);
+
+    // Source fingerprint: changes with host, URL, header, but not with unrelated fields.
+    const auto base = source_fingerprint(m);
+    CHECK(base == source_fingerprint(*parse_manifest(fixture().dump()).manifest));
+    auto other = [&](const std::function<void(Json&)>& mutation) {
+        auto j = fixture(); mutation(j); auto r = parse_manifest(j.dump()); return r ? source_fingerprint(*r.manifest) : std::string("<invalid>");
+    };
+    CHECK(other([](auto& j) { j["sources"][0]["url"] = "https://evil.example.org/v1/{{settings.city}}?n={{settings.limit}}"; }) != base);
+    CHECK(other([](auto& j) { j["sources"][0]["url"] = "https://API.Example.com:443/v2/{{settings.city}}?n={{settings.limit}}"; }) != base);
+    CHECK(other([](auto& j) { j["sources"][0]["headers"]["X-Extra"] = "{{settings.token}}"; }) != base);
+    CHECK(other([](auto& j) { j["sources"][0]["headers"]["Authorization"] = "Bearer x{{settings.token}}"; }) != base);
+    CHECK(other([](auto& j) { j["sources"].erase(0); j["widgets"] = Json::array({{{"type", "clock"}, {"format", "time"}}}); }) != base);
+    CHECK(other([](auto& j) { j["version"] = "2.0.0"; j["name"] = "Neu"; j["widgets"][0]["text"] = "x"; }) == base);
+}
 int main() {
-    test_validation(); test_render(); test_requests();
+    test_validation(); test_render(); test_requests(); test_security_hardening();
     std::printf("plugins: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;
 }

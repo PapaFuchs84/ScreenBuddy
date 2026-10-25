@@ -62,27 +62,32 @@ std::string base64_decode(const std::string& text, bool* ok) {
 
 bool is_protected(const std::string& value) { return value.rfind(PREFIX, 0) == 0; }
 
-std::string protect(const std::string& text) {
+std::string protect(const std::string& text) { return protect(text, std::string(ENTROPY, sizeof ENTROPY - 1)); }
+
+std::string protect(const std::string& text, const std::string& entropy) {
     if (text.empty()) return "";
     DATA_BLOB src{(DWORD)text.size(), (BYTE*)text.data()};
-    DATA_BLOB ent{(DWORD)(sizeof ENTROPY - 1), (BYTE*)ENTROPY};
+    DATA_BLOB ent{(DWORD)entropy.size(), (BYTE*)entropy.data()};
     DATA_BLOB out{};
-    if (!CryptProtectData(&src, L"FuchsLabs", &ent, nullptr, nullptr, 0, &out))
+    // UI_FORBIDDEN: nie einen Dialog öffnen (läuft auch in Hintergrund-Threads).
+    if (!CryptProtectData(&src, L"FuchsLabs", &ent, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &out))
         throw std::runtime_error("Verschlüsselung fehlgeschlagen");
     std::string raw((const char*)out.pbData, out.cbData);
     LocalFree(out.pbData);
     return PREFIX + base64_encode(raw);
 }
 
-std::string unprotect(const std::string& value) {
+std::string unprotect(const std::string& value) { return unprotect(value, std::string(ENTROPY, sizeof ENTROPY - 1)); }
+
+std::string unprotect(const std::string& value, const std::string& entropy) {
     if (!is_protected(value)) return value;
     bool ok = false;
     std::string raw = base64_decode(value.substr(sizeof PREFIX - 1), &ok);
     if (!ok) return "";
     DATA_BLOB src{(DWORD)raw.size(), (BYTE*)raw.data()};
-    DATA_BLOB ent{(DWORD)(sizeof ENTROPY - 1), (BYTE*)ENTROPY};
+    DATA_BLOB ent{(DWORD)entropy.size(), (BYTE*)entropy.data()};
     DATA_BLOB out{};
-    if (!CryptUnprotectData(&src, nullptr, &ent, nullptr, nullptr, 0, &out)) return "";
+    if (!CryptUnprotectData(&src, nullptr, &ent, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &out)) return "";
     std::string plain((const char*)out.pbData, out.cbData);
     SecureZeroMemory(out.pbData, out.cbData);
     LocalFree(out.pbData);
