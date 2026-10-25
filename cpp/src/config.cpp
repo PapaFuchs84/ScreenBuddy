@@ -332,7 +332,7 @@ static void write_file(const std::filesystem::path& p, const std::string& data) 
 }
 
 void save(const std::filesystem::path& path, const ojson& cfg) {
-    std::vector<std::string> lines = {"# FuchsLabs USB-Display – wird von der Einstellungsoberfläche geschrieben.",
+    std::vector<std::string> lines = {"# ScreenBuddy – wird von der Einstellungsoberfläche geschrieben.",
                                       "# Von Hand ändern ist möglich; die App danach neu starten.", ""};
     for (auto& [sec, keys] : defaults().items()) {
         lines.push_back("# " + HEADERS.at(sec));

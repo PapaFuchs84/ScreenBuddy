@@ -4,7 +4,9 @@
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
-# FuchsLabs USB-Display
+# ScreenBuddy (in Entwicklung)
+
+**ScreenBuddy 2.5.0-dev.2:** Im Quellcode sind native Grundeinstellungen und lokale Offline-Plugins implementiert. Die erweiterte WebView2-Oberfläche bleibt verfügbar. 2.5 ist nicht veröffentlicht; der Plugin-Vertrag ist vorläufig. [Entwicklungsstand und Prüfgrenzen](docs/SCREENBUDDY-2.5.md) · [Plugin-Anleitung](docs/PLUGIN-SYSTEM.md). Der aktuelle Download 2.3.0 heißt weiterhin FuchsLabs USB-Display.
 
 **Deutsch** · [English](README.en.md)
 
@@ -191,7 +193,7 @@ cd fuchslabs-usb-display\cpp
 build.bat nopause
 ```
 
-Der C++-Build installiert die Abhängigkeiten aus dem festgelegten vcpkg-Manifest/Overlay, baut Release, führt `fl-tests.exe` aus und erzeugt `cpp\dist\FuchsLabs-USB-Display.exe`. Die `build.bat` im Repository-Hauptordner gehört zur historischen Python-Version 1.x. Details: [C++-Buildhinweise](cpp/README.md#build) und [Mitarbeiten](CONTRIBUTING.md).
+Der C++-Build installiert die Abhängigkeiten aus dem festgelegten vcpkg-Manifest/Overlay, baut Release, führt Kern-, Plugin-, Monitor-, Companion- und isolierte Installer-Prüfungen aus und erzeugt lokal `cpp\dist\ScreenBuddy.exe`. Die `build.bat` im Repository-Hauptordner gehört zur historischen Python-Version 1.x. Details: [C++-Buildhinweise](cpp/README.md#build) und [Mitarbeiten](CONTRIBUTING.md).
 
 WebView2-SDK-Header, statischer Loader und Lizenzhinweise liegen unter `cpp/third_party/webview2`; die Laufzeit selbst ist extern. Übersetzungen: `cpp/src/i18n.cpp` für App/Display und `cpp/res/webui.html` für die Einstellungen.
 

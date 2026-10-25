@@ -1,6 +1,6 @@
-# © 2026 FuchsLabs – FuchsLabs USB-Display 2.0 (C++)
+# © 2026 FuchsLabs – ScreenBuddy (C++)
 cmake_minimum_required(VERSION 3.24)
-project(FuchsLabsUsbDisplay VERSION 2.3.0 LANGUAGES CXX RC)
+project(ScreenBuddy VERSION 2.5.0 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -33,8 +33,9 @@ set(CORE_SOURCES
     src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/render.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/friends.cpp src/ha.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
-    src/installer.cpp src/resources.cpp src/settings_window.cpp src/touch.cpp src/update.cpp
-    src/companion.cpp src/companion_server.cpp src/network_display.cpp third_party/qrcodegen/qrcodegen.cpp)
+    src/installer.cpp src/resources.cpp src/settings_window.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
+    src/companion.cpp src/companion_server.cpp src/network_display.cpp
+    src/plugins.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
 
 add_library(flcore STATIC ${CORE_SOURCES})
 target_include_directories(flcore PUBLIC src third_party/qrcodegen)
@@ -43,16 +44,16 @@ target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EH
 target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL OpenSSL::Crypto Opus::opus ZLIB::ZLIB
                                     nlohmann_json::nlohmann_json tomlplusplus::tomlplusplus pugixml::pugixml httplib::httplib
                                     d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
-                                    comctl32 dwmapi bcrypt advapi32 user32 gdi32 ole32 shell32
+                                    comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 shell32
                                     webview2_loader)
 
 # Eingebettete Dateien: bei Änderungen die Ressourcen neu bauen (CMake erkennt RCDATA-Abhängigkeiten nicht selbst)
 set_source_files_properties(res/app.rc PROPERTIES OBJECT_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/res/webui.html;${CMAKE_CURRENT_SOURCE_DIR}/res/ANLEITUNG.html;${CMAKE_CURRENT_SOURCE_DIR}/res/GUIDE.html;${CMAKE_CURRENT_SOURCE_DIR}/res/app.ico;${CMAKE_CURRENT_SOURCE_DIR}/res/app.manifest;${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE;${CMAKE_CURRENT_SOURCE_DIR}/../THIRD-PARTY-NOTICES.md")
 
-add_executable(FuchsLabs-USB-Display WIN32 src/main.cpp res/app.rc)
-target_link_libraries(FuchsLabs-USB-Display PRIVATE flcore)
-target_link_options(FuchsLabs-USB-Display PRIVATE /MANIFEST:NO /OPT:REF /OPT:ICF /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA)
+add_executable(ScreenBuddy WIN32 src/main.cpp res/app.rc)
+target_link_libraries(ScreenBuddy PRIVATE flcore)
+target_link_options(ScreenBuddy PRIVATE /MANIFEST:NO /OPT:REF /OPT:ICF /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA)
 
 # Tests (Konsole): Parser, Konfiguration, Zeichnen
 add_executable(fl-tests tests/tests.cpp res/app.rc)
@@ -62,6 +63,24 @@ target_link_options(fl-tests PRIVATE /MANIFEST:NO)
 add_executable(fl-monitor-tests tests/monitor_tests.cpp)
 target_link_libraries(fl-monitor-tests PRIVATE flcore)
 target_link_options(fl-monitor-tests PRIVATE /MANIFEST:NO)
+
+add_executable(fl-plugin-tests tests/plugins_tests.cpp src/plugins.cpp)
+target_include_directories(fl-plugin-tests PRIVATE src)
+target_link_libraries(fl-plugin-tests PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(fl-plugin-store-tests tests/plugin_store_tests.cpp src/plugins.cpp src/plugin_store.cpp)
+target_include_directories(fl-plugin-store-tests PRIVATE src)
+target_link_libraries(fl-plugin-store-tests PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
+
+add_executable(fl-plugin-transport-tests tests/plugin_transport_tests.cpp src/plugins.cpp src/plugin_store.cpp src/plugin_transport.cpp)
+target_include_directories(fl-plugin-transport-tests PRIVATE src)
+target_compile_definitions(fl-plugin-transport-tests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
+target_link_libraries(fl-plugin-transport-tests PRIVATE nlohmann_json::nlohmann_json OpenSSL::SSL OpenSSL::Crypto ws2_32 crypt32)
+
+add_executable(fl-plugin-settings-tests tests/plugin_settings_tests.cpp src/plugins.cpp src/plugin_settings.cpp src/secure.cpp)
+target_include_directories(fl-plugin-settings-tests PRIVATE src)
+target_compile_definitions(fl-plugin-settings-tests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
+target_link_libraries(fl-plugin-settings-tests PRIVATE nlohmann_json::nlohmann_json crypt32)
 
 # Companion-Protokoll (Kopplung, WebSocket, TLS-Server auf 127.0.0.1); unter Linux: tests/build-linux.sh
 add_executable(fl-companion-tests tests/companion_tests.cpp)

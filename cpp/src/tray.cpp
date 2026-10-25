@@ -111,7 +111,7 @@ void Tray::run() {
     RegisterClassW(&wc);
     taskbar_created_ = RegisterWindowMessageW(L"TaskbarCreated");
     if (stopping_) return;
-    HWND hwnd = CreateWindowExW(0, CLASS_NAME, L"FuchsLabs USB-Display", 0, 0, 0, 0, 0, nullptr, nullptr, hinst, this);
+    HWND hwnd = CreateWindowExW(0, CLASS_NAME, L"ScreenBuddy", 0, 0, 0, 0, 0, nullptr, nullptr, hinst, this);
     if (!hwnd || stopping_) {
         if (hwnd) DestroyWindow(hwnd);
         return;

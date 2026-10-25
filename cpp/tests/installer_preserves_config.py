@@ -77,12 +77,18 @@ def check_existing_settings(exe: Path, root: Path) -> None:
     port = free_port()
     install_dir = root / "existing-install"
     install_dir.mkdir()
+    legacy_exe = install_dir / "FuchsLabs-USB-Display.exe"
+    shutil.copy2(exe, legacy_exe)
+    legacy_bytes = legacy_exe.read_bytes()
     settings = (f'[display]\noutput = "serial"\n\n'
                 f'[ui]\nlanguage = "en"\nport = {port}\nupdate_check = false\n').encode()
     config = install_dir / "config.toml"
     config.write_bytes(settings)
     run_install(exe, install_dir, port, root / "existing.log")
     assert_snapshot(config, settings)
+    backup = install_dir / "FuchsLabs-USB-Display.exe.pre-screenbuddy"
+    assert not legacy_exe.exists(), "legacy executable was left as a second runnable installation"
+    assert backup.read_bytes() == legacy_bytes, "legacy executable backup differs from the original"
 
 
 def check_portable_settings(exe: Path, root: Path) -> None:
@@ -107,7 +113,7 @@ def main() -> int:
     if os.name != "nt":
         print("installer config checks are Windows-only; skipped")
         return 0
-    exe = Path(sys.argv[1] if len(sys.argv) > 1 else BUILD / "FuchsLabs-USB-Display.exe").resolve()
+    exe = Path(sys.argv[1] if len(sys.argv) > 1 else BUILD / "ScreenBuddy.exe").resolve()
     if not exe.is_file():
         raise SystemExit(f"missing application build: {exe}")
     BUILD.mkdir(exist_ok=True)
@@ -116,7 +122,7 @@ def main() -> int:
         if not root.is_relative_to(BUILD.resolve()):
             raise SystemExit("temporary installer test escaped the build folder")
         check_existing_settings(exe, root)
-        print("installer retained existing config and made a local snapshot")
+        print("installer retained config, made a snapshot and backed up the legacy executable")
         check_portable_settings(exe, root)
         print("local install migrated portable config and made a local snapshot")
     print("2 installer config checks passed")

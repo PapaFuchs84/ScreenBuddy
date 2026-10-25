@@ -262,7 +262,7 @@ ${help([['Ich finde die Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den fi
 <li>Klicke auf ${b('Installieren')}. Warte kurz. Dann steht dort <b>„Fertig! Die App startet jetzt.“</b></li>
 </ol>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
-<div class="tb">FuchsLabs USB-Display – Installation<span>— ☐ ✕</span></div>
+<div class="tb">ScreenBuddy – Installation<span>— ☐ ✕</span></div>
 <div class="files" style="display:block;padding:16px;text-align:left">
 <p style="margin:0 0 8px"><b>Installation · aktuelle Version</b></p>
 <p style="margin:0 0 8px">☑ Mit Windows starten (nur das Fuchs-Symbol im Infobereich)<br>☑ Eintrag im Startmenü</p>
@@ -495,6 +495,7 @@ ${shot('bar', [[828, 14, 190, 44]], 'Diesen Knopf drücken.', 1050, 70)}
 {t: 'Wiederfinden', html: () => `
 <p class="kicker">Später</p><h1>So findest du die Einstellungen wieder</h1>
 <p class="lead">Das Programm läuft leise im Hintergrund. Es hat ein kleines <b>oranges Zeichen</b> unten rechts neben der Uhr.</p>
+<div class="box tip"><p><b>ScreenBuddy 2.5-Entwicklungsbuild:</b> Die sieben nativen Reiter enthalten unter anderem Quellen-Editor, Seitenreihenfolge, Updates und Autostart. Für geführte Konto-/Auswahl-Abläufe, eigene Farben und Companion-Kopplung mit QR-Code wähle <b>Erweiterte Einstellungen …</b>. Quellen-Plugins benötigen Pflicht-Einstellungen und die Zustimmung zu jedem Host. Der aktuelle Download 2.3.0 nutzt weiterhin die bisherige Oberfläche.</p></div>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
 <span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22.10.2026</div></div></div></figure>
@@ -502,7 +503,7 @@ ${shot('bar', [[828, 14, 190, 44]], 'Diesen Knopf drücken.', 1050, 70)}
 <li>Siehst du das Zeichen nicht? Klicke auf den kleinen Pfeil <span class="key">^</span>.</li>
 <li>Mach einen <b>Doppelklick</b> auf das orange Zeichen. Die Einstellungen gehen auf.</li>
 <li>Mit einem <b>Rechtsklick</b> auf das Zeichen siehst du: <b>Einstellungen öffnen</b>, <b>Anleitung öffnen</b>, <b>Neu starten</b> und <b>Beenden</b>. <b>Anleitung öffnen</b> zeigt diese Anleitung in deinem Browser, auch ohne das Einstellungsfenster. Auch der Knopf <b>Anleitung öffnen</b> in den Einstellungen öffnet sie im Browser, so hast du beides nebeneinander.</li>
-<li>Wenn du den Eintrag im Startmenü angehakt hast, findest du das Programm auch dort: <b>FuchsLabs USB-Display</b>.</li>
+<li>Wenn du den Eintrag im Startmenü angehakt hast, findest du das Programm auch dort: <b>ScreenBuddy</b>.</li>
 </ol>
 <div class="box tip"><p>Das Fenster zu schließen blendet nur die Einstellungen aus. Das Display läuft weiter.</p></div>`},
 
@@ -514,7 +515,7 @@ ${shot('bar', [[828, 14, 190, 44]], 'Diesen Knopf drücken.', 1050, 70)}
 ${help([['Das Display bleibt dunkel.', 'Schau, ob das orange Zeichen unten rechts da ist. Wenn nicht: das Programm im Startmenü öffnen (oder die EXE doppelklicken). Danach auf der Seite <b>Start</b> schauen, was bei „Zustand“ steht.'],
   ['Das Bild sieht verschoben oder komisch aus.', 'Kabel kurz abziehen und wieder anstecken. Oder auf der Seite <b>Display</b> auf <b>Neu starten</b> klicken.'],
   ['Das Display ist zu dunkel.', 'Seite <b>Übersicht</b>, Regler <b>Helligkeit</b> nach rechts schieben, dann <b>Speichern &amp; anwenden</b>.'],
-  ['Ich will das Programm loswerden.', 'Öffne in Windows <b>Einstellungen → Apps</b>, wähle <b>FuchsLabs USB-Display</b> und klicke auf <b>Deinstallieren</b>. Windows fragt, ob auch deine Einstellungen und Zugangsdaten gelöscht werden sollen.']], 'Hilfe bei Problemen')}
+  ['Ich will das Programm loswerden.', 'Öffne in Windows <b>Einstellungen → Apps</b>, wähle <b>ScreenBuddy</b> und klicke auf <b>Deinstallieren</b>. Windows fragt, ob auch deine Einstellungen und Zugangsdaten gelöscht werden sollen.']], 'Hilfe bei Problemen')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Viel Spaß! · © 2026 FuchsLabs</p>`},
 {t: 'Companion: Handy unabhängig steuern', html: () => `<h1>USB-Display und Handy gleichzeitig</h1><p class="lead">Companion-Vorschau ab Version 2.3.0: Beide Anzeigen haben eigene Seiten und Wechselintervalle.</p><ol><li>USB/HDMI als Display-Typ beibehalten. Im Reiter Companion den Dienst einschalten, speichern und anwenden.</li><li>Companion-Vorschau-APK installieren. Dasselbe private Netz oder USB-Tethering verwenden. Mit dem lokalen Code koppeln und Zertifikat-Fingerabdruck vergleichen.</li><li>Unter Companion → Unabhängige Companion-Anzeige die Handy-Seiten und Dauer wählen. Die andere Anzeige unter Display → Seiten auf USB-Display / Bildschirm wählen.</li><li>Die zusätzlichen Einstellungen erscheinen nur bei aktivem Companion. Datenquellen in ihrem eigenen Reiter einschalten und einrichten.</li></ol><p>Wischen schaltet nur das Handy um. Die native Auflösung folgt Verbindung und Rotation. Das zuerst verbundene Handy bestimmt die gemeinsame Companion-Größe; weitere Handys teilen dessen Seiten. Größere Anfragen werden proportional auf höchstens 2560 Pixel je Kante / 4.194.304 Pixel verkleinert. Redmi-Ausgabe, injizierte Gesten und Wiederverbindung sind über USB-Tethering geprüft. Der Nutzer bestätigte außerdem scharfes Bild, Wischen und Tippen mit dem Finger. WLAN und physischer USB-Betrieb in derselben neuen PC-Instanz brauchen eine gesonderte Abnahme.</p>`}
 ];

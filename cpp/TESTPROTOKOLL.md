@@ -1,4 +1,14 @@
-# Testprotokoll – Stand 24.10.2026
+# Testprotokoll – Stand 25.10.2026
+
+## ScreenBuddy 2.5.0-dev.2 (25.10.2026): unveröffentlichter Entwicklungsbuild
+
+- **Build:** `cpp/build.bat nopause` mit MSVC/CMake/Ninja vollständig erfolgreich; `dist/ScreenBuddy.exe` wurde nur lokal und ignoriert erzeugt. Kein Release, keine produktive Installation.
+- **Unit-Tests:** 236 Kernprüfungen, 220 Plugin-Parser-, 127 Plugin-Speicher-, 133 Plugin-Transport-, 135 Plugin-Einstellungs-, 11 Monitor- und 335 Companion-Protokollprüfungen bestanden.
+- **Isolierte App:** 39 Companion-/App-Integrationsprüfungen und 49 Navigations-/API-Prüfungen bestanden; `--no-lcd`, eigene Konfigurationsdateien und lokale Testports, keine physische Displayausgabe.
+- **Isolierter Installer:** Zwei Prüfungen bestanden. Vorhandene Einstellungen und deren Snapshot bleiben bytegleich; eine alte EXE wird als `.pre-screenbuddy` gesichert. Für die Namensmigration wurde eine Testkopie des neuen Builds unter altem Dateinamen verwendet, keine installierte 2.3.0-EXE.
+- **Native UI:** Das Fenster bietet sieben native Reiter sowie den Rückweg zu ausgewählten erweiterten WebView2-Abläufen. Die isolierte `--no-lcd`-Testinstanz zeigte ein sichtbares Fenster der Klasse `ScreenBuddyNativeSettings`. Layout und Bedienung, mehrere DPI-Stufen und Screenreader wurden nicht visuell abgenommen.
+- **Plugin-Funktionen:** Begrenzter HTTPS-Abruf im eigenen Worker, gespeicherte Host-Zustimmungen, DPAPI-geschützte Einstellungen und Live-Rendering im Display-Thread sind implementiert. Quellen-Plugins können nach Pflicht-Einstellungen und Host-Zustimmung aktiviert werden. Die Transportprüfungen belegen keine Live-Abfrage externer Dienste.
+- **Offen:** Physische Hardware, echtes Upgrade von 2.3.0, interaktive/visuelle UI-Abnahme und Performancevergleich. Kein Release oder Download für 2.5; aktueller Download ist 2.3.0.
 
 ## Version 2.3.0 (24.10.2026): Companion-Vorschau
 

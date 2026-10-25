@@ -248,7 +248,7 @@ void MonitorDisplay::run() {
     wc.lpszClassName = CLASS_NAME;
     RegisterClassW(&wc);
     // Randlos, ohne Taskleisten-Eintrag und ohne Fokus zu stehlen (Tippen aktiviert das Fenster nicht)
-    HWND hwnd = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST, CLASS_NAME, L"FuchsLabs USB-Display", WS_POPUP,
+    HWND hwnd = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST, CLASS_NAME, L"ScreenBuddy", WS_POPUP,
                                 mon_->x, mon_->y, mon_->w, mon_->h, nullptr, nullptr, hinst, this);
     if (!hwnd) {
         LOGW("monitor", "Fenster nicht erstellt (Fehler %lu)", GetLastError());

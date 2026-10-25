@@ -10,6 +10,12 @@ namespace fl::secure {
 std::string protect(const std::string& text);
 // Entschlüsselt "dpapi:…"; Klartext (alte Konfigurationen) unverändert zurück; nicht entschlüsselbar → leer.
 std::string unprotect(const std::string& value);
+// Mit eigener Entropie (z. B. Plugin-ID + Schlüssel): Geheimnis ist nur mit exakt derselben Entropie lesbar.
+std::string protect(const std::string& text, const std::string& entropy);
+std::string unprotect(const std::string& value, const std::string& entropy);
+// Mit eigener Entropie (z. B. Plugin-ID + Schlüssel): nur mit exakt derselben Entropie lesbar.
+std::string protect(const std::string& text, const std::string& entropy);
+std::string unprotect(const std::string& value, const std::string& entropy);
 bool is_protected(const std::string& value);
 
 std::string base64_encode(const std::string& data);

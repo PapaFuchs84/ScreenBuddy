@@ -1,6 +1,6 @@
 {
   "name": "fuchslabs-usb-display",
-  "version-string": "2.0.0",
+  "version-string": "2.5.0-dev.2",
   "builtin-baseline": "67972e92edd181d433927b42d8ab4bfa52ac164a",
   "dependencies": [
     "dpp",

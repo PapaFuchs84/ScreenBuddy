@@ -80,7 +80,7 @@ struct SettingsWindow::Impl : std::enable_shared_from_this<SettingsWindow::Impl>
         swprintf_s(msg, L"Das Einstellungsfenster konnte nicht geladen werden.\n\n"
                          L"Bitte installiere die Microsoft Edge WebView2-Laufzeit und starte die App erneut.\n"
                          L"Fehlercode: 0x%08X", (unsigned)hr);
-        MessageBoxW(hwnd, msg, L"FuchsLabs USB-Display", MB_OK | MB_ICONERROR);
+        MessageBoxW(hwnd, msg, L"ScreenBuddy", MB_OK | MB_ICONERROR);
     }
 
     void initialize_webview() {
@@ -176,7 +176,7 @@ struct SettingsWindow::Impl : std::enable_shared_from_this<SettingsWindow::Impl>
             if (SUCCEEDED(com)) CoUninitialize();
             return;
         }
-        hwnd = CreateWindowExW(0, WINDOW_CLASS, L"FuchsLabs USB-Display – Einstellungen",
+        hwnd = CreateWindowExW(0, WINDOW_CLASS, L"ScreenBuddy – Einstellungen",
             WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1120, 780,
             nullptr, nullptr, instance, this);
         if (!hwnd) {

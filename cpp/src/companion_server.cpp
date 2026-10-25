@@ -236,7 +236,7 @@ void Server::start() {
     SSL_CTX* ctx = cert.empty() ? nullptr : make_ctx(cert, key);
     if (!ctx) {
         if (!cert.empty()) log(2, "TLS-Zertifikat unbrauchbar – erzeuge ein neues (Geräte müssen neu gekoppelt werden)");
-        Identity id = generate_identity("FuchsLabs USB-Display");
+        Identity id = generate_identity("ScreenBuddy");
         store_.set_identity(id.cert_pem, id.key_pem);
         cert = id.cert_pem;
         ctx = make_ctx(id.cert_pem, id.key_pem);

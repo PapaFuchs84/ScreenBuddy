@@ -12,12 +12,16 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <thread>
 #include <vector>
 
 #include "config.h"
 #include "gfx.h"
 #include "models.h"
 #include "output.h"
+#include "plugin_store.h"
+#include "plugin_settings.h"
 #include "render.h"
 #include "touch.h"
 
@@ -66,6 +70,16 @@ public:
     bool setup_touch();
     ojson update_info();                            // Update-Hinweis für die Einstellungsseite (leer, wenn aus)
     bool update_check_now();                        // „Jetzt prüfen“; false = aus oder zu früh
+
+    // Deklarative Plugins: Import, Vorschau und einzeln autorisierte Datenquellen.
+    ojson plugin_catalog();
+    bool plugin_import(std::string_view manifest, std::string& error);
+    bool plugin_set_enabled(const std::string& id, bool enabled, std::string& error);
+    bool plugin_set_host_consent(const std::string& id, const std::string& host, bool allowed, std::string& error);
+    ojson plugin_settings_view(const std::string& id);
+    bool plugin_save_settings(const std::string& id, const ojson& patch, std::string& error);
+    bool plugin_remove(const std::string& id, std::string& error);
+    std::optional<Image> plugin_preview(std::string_view manifest, std::string& error);
     NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 
 private:
@@ -124,6 +138,8 @@ private:
     bool dirty_ = false;
     std::atomic<bool> stop_{false};
     std::atomic<bool> restart_{false};
+    std::mutex stop_threads_mu_;
+    std::vector<std::jthread> stop_threads_;
     std::optional<Image> last_frame_, companion_frame_;
     ojson companion_navigation_;
     ojson navigation_ = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
@@ -140,6 +156,12 @@ private:
     std::unique_ptr<friends::FriendsHub> friends_;
     std::unique_ptr<ha::HaClient> ha_;
     std::unique_ptr<update::UpdateChecker> update_;
+    std::unique_ptr<plugins::Store> plugins_;
+    std::unique_ptr<plugins::SettingsStore> plugin_settings_;
+    std::atomic<uint64_t> plugin_settings_revision_{0};
+    struct PluginSnapshot { uint64_t generation = 0, settings_revision = 0; plugins::SourceData data; };
+    std::mutex plugin_data_mu_;
+    std::map<std::string, PluginSnapshot> plugin_data_;
     std::mutex notify_mu_;
     Tray* tray_ = nullptr;                        // nur während run() gültig
 };

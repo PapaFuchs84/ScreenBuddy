@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – ScreenBuddy 2.5 development
+
+- Development build: ScreenBuddy executable and installer name, native basic settings, validated JSON manifests and offline plugin pages. Advanced WebView2 settings remain available; source plugins can be enabled after required settings and per-host consent, but external HTTPS live queries are not yet accepted.
+- Core unit tests (236), plugin parser tests (220), store tests (127), isolated app checks (39), navigation checks (49) and installer checks (2) passed locally. The native window was shown in isolation; visual DPI, real upgrade and hardware acceptance remain open.
+- Security hardening after review: stored plugin secrets are discarded when a manifest update changes the source (host, URL or headers); Windows device names (`con`, `nul`, `com1`–`com9`, `lpt1`–`lpt9`) are rejected as plugin IDs; plugin secrets use their own DPAPI entropy with automatic migration; bidi and zero-width characters are rejected in manifest text; `.` and `..` are rejected as setting values in URL paths; DNS completion is protected against double approval. Open: certificate revocation checks (CRL/OCSP) are still missing; external HTTPS live queries have not been accepted.
+- No 2.5 release or download; 2.3.0 remains the latest published version. See [development status](../docs/SCREENBUDDY-2.5.md).
+
 ## 2.3.0 – 2026-10-24
 
 - Independent output state, page filters and timers; shared data sources/theme. Native resolution from authenticated `hello`/`resize`, bounded to 2560 pixels per edge and 4,194,304 pixels, first connected reporting device owns sizing. Each cached JPEG carries dimensions from the same snapshot; `ready` updates precede the corresponding JPEG. Touch coordinates from older dimensions are dropped.
