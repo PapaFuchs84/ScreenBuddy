@@ -1,0 +1,140 @@
+{
+  "generated_utc": "2026-10-26T15:09:47.108414+00:00",
+  "app_sha256": "61dc9d0e607284667afd1646f58474b59f545f17f2cbeae97f215d7f2470815a",
+  "renderer_sha256": "ebfce72ed1bc3cfd531f79369c57d842b5512cbd8282e65b079a936d58b40a79",
+  "hardware_evidence": false,
+  "note": "Native connection status belongs to --no-lcd. Display images are demo renderer exports, not device photographs.",
+  "images": [
+    {
+      "path": "docs/screenshots/display-bf6-dunkel.png",
+      "sha256": "2a8481d2ea8a1c886e7626024e3ee4131d58784295e503c9815458de54c76dcc",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "docs/screenshots/display-blogs-dunkel.png",
+      "sha256": "334d37401f662327acfd4ad139021798c3883fd43eaad7b64976b624691c5454",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "docs/screenshots/display-freunde.png",
+      "sha256": "8e62081d54904438ff1c25d4fe8ffd7a1d9fa470f494b00eb1b5f3c6bc5af5f8",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "docs/screenshots/display-system.png",
+      "sha256": "dac08603167fbcc8b515a1fe3f0638fad142f346a3a1869ceca6cd2204ed0c21",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/ha_display.png",
+      "sha256": "42a565aeb484c5a82d50954477bb661a655dd8743e94ba65e041287a862d3483",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/page_system.png",
+      "sha256": "dac08603167fbcc8b515a1fe3f0638fad142f346a3a1869ceca6cd2204ed0c21",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/page_blogs.png",
+      "sha256": "334d37401f662327acfd4ad139021798c3883fd43eaad7b64976b624691c5454",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/page_friends.png",
+      "sha256": "8e62081d54904438ff1c25d4fe8ffd7a1d9fa470f494b00eb1b5f3c6bc5af5f8",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/page_bf6.png",
+      "sha256": "2a8481d2ea8a1c886e7626024e3ee4131d58784295e503c9815458de54c76dcc",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "docs/screenshots/en/display-bf6-dark.png",
+      "sha256": "2c42b4a10da9517dd99352c1df5877f43322267b9f635a08fcd2559cefe7cff5",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "docs/screenshots/en/display-blogs-dark.png",
+      "sha256": "b517c32d46e747032ccb7c69ec2e7845aed29c4afce4c8bf3f71c429cbc08fc9",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "docs/screenshots/en/display-friends.png",
+      "sha256": "bf8884dfb15ffd84a80e02671b1a7b4f44324e004a8b428b186f480504036596",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "docs/screenshots/en/display-system.png",
+      "sha256": "17f42ae7ec1383383cb9d137a7553540416763d489554fdb5e5ffac154507e79",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/en/ha_display.png",
+      "sha256": "534f3377ff6d8193eff882d029f8ce4f112955b1bba1a903d3a54668ab3a8470",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/en/page_system.png",
+      "sha256": "17f42ae7ec1383383cb9d137a7553540416763d489554fdb5e5ffac154507e79",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/en/page_blogs.png",
+      "sha256": "b517c32d46e747032ccb7c69ec2e7845aed29c4afce4c8bf3f71c429cbc08fc9",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/en/page_friends.png",
+      "sha256": "bf8884dfb15ffd84a80e02671b1a7b4f44324e004a8b428b186f480504036596",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/en/page_bf6.png",
+      "sha256": "2c42b4a10da9517dd99352c1df5877f43322267b9f635a08fcd2559cefe7cff5",
+      "source": "current C++ renderer; fixed synthetic test fixture"
+    },
+    {
+      "path": "anleitung/bilder/friends-native.png",
+      "sha256": "e63463fd499581d064aa0865cf1ef74a26b79b1d07628140ebdfb6275119beed",
+      "source": "Anonymous native Friends capture; copy of pre-existing local capture, not a fresh capture"
+    }
+  ],
+  "missing_native_captures": [
+    "anleitung\\bilder\\start.png",
+    "anleitung\\bilder\\prev0.png",
+    "anleitung\\bilder\\prev4.png",
+    "anleitung\\bilder\\display.png",
+    "anleitung\\bilder\\pages.png",
+    "anleitung\\bilder\\system.png",
+    "anleitung\\bilder\\freunde.png",
+    "anleitung\\bilder\\discord.png",
+    "anleitung\\bilder\\bf6.png",
+    "anleitung\\bilder\\blogs.png",
+    "anleitung\\bilder\\ha.png",
+    "anleitung\\bilder\\speichern.png",
+    "anleitung\\bilder\\companion.png",
+    "anleitung\\bilder\\plugins.png",
+    "anleitung\\bilder\\design.png",
+    "anleitung\\bilder\\app.png",
+    "anleitung\\bilder\\en\\start.png",
+    "anleitung\\bilder\\en\\prev0.png",
+    "anleitung\\bilder\\en\\prev4.png",
+    "anleitung\\bilder\\en\\display.png",
+    "anleitung\\bilder\\en\\pages.png",
+    "anleitung\\bilder\\en\\system.png",
+    "anleitung\\bilder\\en\\freunde.png",
+    "anleitung\\bilder\\en\\discord.png",
+    "anleitung\\bilder\\en\\bf6.png",
+    "anleitung\\bilder\\en\\blogs.png",
+    "anleitung\\bilder\\en\\ha.png",
+    "anleitung\\bilder\\en\\speichern.png",
+    "anleitung\\bilder\\en\\companion.png",
+    "anleitung\\bilder\\en\\plugins.png",
+    "anleitung\\bilder\\en\\design.png",
+    "anleitung\\bilder\\en\\app.png"
+  ],
+  "verified_against_app_sha256": "17a3db7c517608068b2db2059a4e582edc6d0eedd31c580b3e01d03bfbb54b22",
+  "verification_note": "Image checksums refreshed during release preparation. Native captures retain earlier build provenance; comparison with the current candidate is not a recapture or hardware proof."
+}

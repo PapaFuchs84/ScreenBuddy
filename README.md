@@ -1,18 +1,19 @@
 <div align="center">
 
-**Neu in 2.3.0 – Companion-Vorschau:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
+**ScreenBuddy 2.5.0 – 27.10.2026:** native Windows-Einstellungen und signierte Companion-Vorschau 0.2.1-preview. Windows-Sicht-/Touch-Abnahme, Zielsystem-Upgrade/Rollback und Redmi-8-Tests bestanden. [Release-Notizen](docs/RELEASE-NOTES-2.5.md).
+
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
-# ScreenBuddy (in Entwicklung)
+# ScreenBuddy
 
-**ScreenBuddy 2.5.0-dev.2:** Im Quellcode sind native Grundeinstellungen und lokale Offline-Plugins implementiert. Die erweiterte WebView2-Oberfläche bleibt verfügbar. 2.5 ist nicht veröffentlicht; der Plugin-Vertrag ist vorläufig. [Entwicklungsstand und Prüfgrenzen](docs/SCREENBUDDY-2.5.md) · [Plugin-Anleitung](docs/PLUGIN-SYSTEM.md). Der aktuelle Download 2.3.0 heißt weiterhin FuchsLabs USB-Display.
+**Neu in 2.5:** native Direct2D/DirectWrite-Einstellungen, geführte Einrichtung, Display-/Touch-Konfiguration, Datenquellen, unabhängige Companion-Ausgabe und lokale deklarative Plugins. WebView2 wird nicht mehr benötigt. Online-Plugins bleiben experimentell: Host-Zustimmung ist erforderlich; CRL/OCSP-Sperrprüfung und vollständige UI-Paritätsprüfung stehen aus. [Stand und Grenzen](docs/SCREENBUDDY-2.5.md) · [Plugin-Anleitung](docs/PLUGIN-SYSTEM.md) · [Beispiele](cpp/examples/plugins/README.md).
 
 **Deutsch** · [English](README.en.md)
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.3.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.5.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -26,7 +27,7 @@
 
 </div>
 
-Windows-App für 3,5"-USB-Displays (480 × 320) und Zusatzbildschirme über HDMI/USB-C in jeder Auflösung (z. B. 10,25"-Leisten mit 1920 × 720, auch mit Touch). Sie ersetzt die Hersteller-App, läuft unauffällig im Hintergrund und wird über ein eigenes Windows-Einstellungsfenster mit WebView2 bedient. Version 2.0 ist in C++20 geschrieben und enthält den Installer in derselben EXE. Python wird nicht benötigt; die Microsoft Edge WebView2 Evergreen Runtime muss separat vorhanden sein.
+Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt. Die frühere Version 2.3.0 benötigte noch WebView2.
 
 ## Inhalt
 
@@ -63,7 +64,7 @@ Dazu kommen:
 - **Deutsch oder Englisch**: Einstellungsseite, Display und Infobereich lassen sich umschalten; beim ersten Start folgt die Sprache Windows
 - **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, in der EXE eingebettet auf Deutsch und Englisch
 - **Update-Hinweis** (abschaltbar): meldet höchstens einmal am Tag eine neue GitHub-Version im Infobereich und in den Einstellungen, installiert aber nie selbst
-- **Eine EXE** für Installation, Updates und Deinstallation; kein Python und kein Visual-C++-Redistributable erforderlich. WebView2 bleibt eine Voraussetzung.
+- **Eine EXE** für Installation, Updates und Deinstallation; kein Python und kein Visual-C++-Redistributable erforderlich. WebView2 wird nicht benötigt.
 
 ## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
 
@@ -111,7 +112,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **FuchsLabs-USB-Display.exe** aus dem [aktuellen Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) herunterladen (Stand: **2.3.0**). Die EXE ist unsigniert. Daneben liegt `SHA256SUMS.txt` zur Dateiprüfung.
+1. **ScreenBuddy.exe** aus [Release 2.5.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.5.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die signierte Android-Vorschau-APK ist ein separater Download.
 2. Windows 10/11 x64 mit installierter **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit ist nicht in der EXE enthalten und wird vom Installer nicht automatisch installiert.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
@@ -195,18 +196,18 @@ build.bat nopause
 
 Der C++-Build installiert die Abhängigkeiten aus dem festgelegten vcpkg-Manifest/Overlay, baut Release, führt Kern-, Plugin-, Monitor-, Companion- und isolierte Installer-Prüfungen aus und erzeugt lokal `cpp\dist\ScreenBuddy.exe`. Die `build.bat` im Repository-Hauptordner gehört zur historischen Python-Version 1.x. Details: [C++-Buildhinweise](cpp/README.md#build) und [Mitarbeiten](CONTRIBUTING.md).
 
-WebView2-SDK-Header, statischer Loader und Lizenzhinweise liegen unter `cpp/third_party/webview2`; die Laufzeit selbst ist extern. Übersetzungen: `cpp/src/i18n.cpp` für App/Display und `cpp/res/webui.html` für die Einstellungen.
+Die WebView2-SDK-Dateien und Lizenzhinweise liegen weiterhin unter `cpp/third_party/webview2`, werden von der aktuellen 2.5-Quellfassung aber nicht eingebunden. Der lokale HTTP-Dienst und die eingebettete Anleitung bleiben erhalten. Übersetzungen: `cpp/src/i18n.cpp` für App/Display, native Texte unter `cpp/src/ui_page_*.cpp`; die frühere HTML-Quelldatei liegt nur noch für historische Tests unter `cpp/res/webui.html` und wird nicht in die 2.5-EXE eingebettet. `/` liefert keine HTML-Einstellungen mehr aus.
 
 ## Projektaufbau
 
 | Pfad | Aufgabe |
 |---|---|
 | `cpp/src/` | C++-App, Displayausgabe, Datenquellen, natives Einstellungsfenster und Installer |
-| `cpp/res/` | Eingebettete Einstellungen, Anleitungen, Symbol und Versionsressourcen |
+| `cpp/res/` | Eingebettete Anleitungen, Symbol und Versionsressourcen |
 | `cpp/tests/` | C++-Prüfungen |
 | `cpp/overlay-ports/`, `cpp/vcpkg.json` | Abhängigkeiten und D++-Buildkonfiguration |
 | `cpp/TESTPROTOKOLL.md` | Lokaler Windows-/Displaytest |
-| `*.py`, `build.bat` im Hauptordner, `anleitung/` | Historischer Python-Stand 1.x und dessen Anleitungsgenerator |
+| `*.py`, `build.bat` im Hauptordner, `anleitung/` | Historischer Python-Stand 1.x und Generator für die aktuelle DE/EN-Anleitung |
 
 ## Sicherheit und Datenschutz
 

@@ -19,6 +19,7 @@
 #include "util.h"
 #include "touch.h"
 #include "update.h"
+#include "ui_logic.h"
 
 using namespace fl;
 namespace fs = std::filesystem;
@@ -75,6 +76,16 @@ static void test_config() {
         config::merge(cfg, {{"display", {{"touch", "ja"}}}});
     } catch (const std::invalid_argument&) {
         threw = true;
+    }
+    CHECK(threw);
+    // Darstellung des nativen Einstellungsfensters: auto/hell/dunkel
+    CHECK_EQ(cfg["ui"]["settings_theme"].get<std::string>(), std::string("auto"));
+    CHECK_EQ(config::merge(cfg, {{"ui", {{"settings_theme", "dunkel"}}}})["ui"]["settings_theme"].get<std::string>(), std::string("dunkel"));
+    threw = false;
+    try {
+        config::merge(cfg, {{"ui", {{"settings_theme", "rosa"}}}});
+    } catch (const std::invalid_argument& e) {
+        threw = std::string(e.what()).find("ui.settings_theme") == 0;
     }
     CHECK(threw);
     // Companion: standardmäßig aus, Port 8777; nie 8765 bzw. der Port der Einstellungsseite
@@ -154,6 +165,7 @@ static void test_i18n() {
     CHECK_EQ(tr("Unbekannt"), std::string("Unbekannt"));
     CHECK_EQ(tr("Nicht verfügbar"), std::string("Unavailable"));
     CHECK_EQ(tr("3 Entitäten"), std::string("3 entities"));
+    CHECK_EQ(tr("Rang 174 · First Lieutenant III"), std::string("Rank 174 · First Lieutenant III"));
     CHECK_EQ(tr("An"), std::string("An"));   // Namen wie "An" bleiben unverändert
     CHECK_EQ(ha::format_value("on"), std::string("On"));
     i18n::set_lang("de");
@@ -247,6 +259,61 @@ static void test_friends() {
     CHECK(xp.size() == 2 && xp[0].activity == "Spielt Halo" && xp[1].status == "offline" && xp[1].activity.empty());
 }
 
+static void test_ui_logic() {
+    using namespace fl::ui::logic;
+    CHECK(normalize_hex("#aBc") == std::optional<std::string>("#AABBCC"));
+    CHECK(normalize_hex(" 12ef90 ") == std::optional<std::string>("#12EF90"));
+    CHECK(!normalize_hex("") && !normalize_hex("#12") && !normalize_hex("#GG0000") && !normalize_hex("#1234567"));
+    CHECK_EQ(lines_join(lines_of(" a \r\n\r\nb\nc\r")), std::string("a\r\nb\r\nc"));
+    CHECK_EQ(lines_of("").size(), (size_t)0);
+    CHECK_EQ(lines_join(id_list("12, 34;12\n5x6")), std::string("12\r\n34\r\n5\r\n6"));
+    CHECK_EQ(set_id("1\r\n2", "3", true), std::string("1\r\n2\r\n3"));
+    CHECK_EQ(set_id("1\r\n2", "2", true), std::string("1\r\n2"));
+    CHECK_EQ(set_id("1\r\n2\r\n3", "2", false), std::string("1\r\n3"));
+    CHECK_EQ(set_id("1", "9", false), std::string("1"));
+    // Verknüpfen: neue Zeile, vorhandene erweitern, keine Doppelten
+    auto l1 = link_accounts({}, {"steam", "765", "Basti"}, {"xbox", "B4sti", "B4sti"});
+    CHECK_EQ(l1.size(), (size_t)1);
+    CHECK_EQ(l1[0], std::string("Basti|steam:765|xbox:B4sti"));
+    auto l2 = link_accounts(l1, {"xbox", "b4sti", "B4sti"}, {"discord", "1", "Basti"});
+    CHECK_EQ(l2.size(), (size_t)1);
+    CHECK_EQ(l2[0], std::string("Basti|steam:765|xbox:B4sti|discord:1"));
+    auto l3 = link_accounts(l2, {"steam", "766", "Lena"}, {"xbox", "lena", "lena"});
+    CHECK_EQ(l3.size(), (size_t)2);
+    // Die Verknüpfung versteht friends.cpp
+    ojson accounts = ojson::array({{{"platform", "steam"}, {"id", "765"}, {"name", "basti"}},
+                                   {{"platform", "xbox"}, {"id", "B4sti"}, {"name", "B4sti"}},
+                                   {{"platform", "discord"}, {"id", "1"}, {"name", "Basti"}}});
+    std::vector<fl::friends::Account> acc = {{"steam", "765", "basti"}, {"xbox", "B4sti", "B4sti"}, {"discord", "1", "Basti"}};
+    CHECK_EQ(fl::friends::merge_accounts(acc, l2, false).size(), (size_t)1);
+    // Home-Assistant-Entitäten
+    std::vector<std::string> ents;
+    CHECK_EQ(add_entity(ents, "Sensor.Temp", 4), std::string());
+    CHECK_EQ(add_entity(ents, "sensor.temp", 4), std::string());  // schon da
+    CHECK_EQ(ents.size(), (size_t)1);
+    CHECK_EQ(add_entity(ents, "kein id", 4), std::string("invalid"));
+    CHECK_EQ(add_entity(ents, "sensor", 4), std::string("invalid"));
+    ents = {"sensor.a|Küche", "sensor.b", "light.c", "switch.d"};
+    CHECK_EQ(add_entity(ents, "sensor.e", 4), std::string("full"));
+    remove_entity(ents, "sensor.a");
+    CHECK(ents.size() == 3 && ents[0] == "sensor.b" && !has_entity(ents, "sensor.a"));
+    CHECK(entity_id_of("Sensor.A | Küche") == "sensor.a");
+    // Lesbarkeit
+    CHECK(color_warnings({{"text", "#111111"}, {"bg", "#FFFFFF"}, {"card", "#EEEEEE"}, {"muted", "#555555"}, {"accent", "#003366"}}).empty());
+    auto w = color_warnings({{"text", "#CCCCCC"}, {"bg", "#FFFFFF"}, {"card", "#EEEEEE"}});
+    CHECK(w.size() == 2 && w[0] == "text_bg" && w[1] == "text_card");
+    CHECK(color_warnings({{"text", "#CCCCCC"}}).empty());  // unvollständig: nichts zu prüfen
+    // Filter: Suche ohne Groß/Kleinschreibung, Angehakte zuerst, Obergrenze
+    std::vector<std::string> names = {"Anna", "Bernd", "Anja", "Clara"};
+    auto idx = filter_indices(names, {false, false, true, false}, "AN", 10);
+    CHECK(idx.size() == 2 && idx[0] == 2 && idx[1] == 0);
+    CHECK_EQ(filter_indices(names, {}, "", 3).size(), (size_t)3);
+    CHECK(filter_indices(names, {}, "xyz", 3).empty());
+    // QR: quadratisch, weiße Ruhezone, dunkle Module
+    Image qr = qr_image("screenbuddy://pair?x=1", 4);
+    CHECK(qr.w == qr.h && qr.w > 40 && qr.px.front() == 0xFFFFFFFFu);
+    CHECK(std::count(qr.px.begin(), qr.px.end(), 0xFF000000u) > 100);
+}
 static void test_ha() {
     auto sp = ha::parse_spec(" sensor.wohnzimmer_temp | Wohnzimmer ");
     CHECK(sp && sp->id == "sensor.wohnzimmer_temp" && sp->label == "Wohnzimmer");
@@ -480,6 +547,7 @@ static void test_touch_targets() {
 static void test_render(const fs::path& out) {
     fs::create_directories(out);
     std::lock_guard rl(render::mutex());
+    bool english = i18n::lang() == "en";
     for (auto [w, h, tag] : {std::tuple{480, 320, "480x320"}, std::tuple{320, 480, "320x480"}, std::tuple{1920, 720, "1920x720"},
                              std::tuple{637, 720, "637x720"}}) {
         for (auto th : {"hell", "dunkel"}) {
@@ -492,9 +560,13 @@ static void test_render(const fs::path& out) {
             render::Bf6Renderer b(w, h, "Battlefield 6 · Rangliste");
             save_png(out / (pre + "bf6.png"), b.render(render::demo_players(), 0, 1792606500, 1792606500));
             render::RssRenderer rr(w, h, "Blog-Updates");
-            std::vector<Post> posts = {{"Beispiel-Blog", "Ein kurzer Titel für die Vorschau", 1792606500 - 600, ""},
-                                       {"Noch ein Blog", "Zweiter Beitrag mit etwas längerem Titel, der umbricht und noch weiter geht als gedacht", 1792606500 - 7200, ""},
-                                       {"heise online", "heise+ | Test: Sehr langer Titel mit Präfix", std::nullopt, ""}};
+            std::vector<Post> posts = english
+                ? std::vector<Post>{{"Example blog", "A short title for the preview", 1792606500 - 600, ""},
+                                    {"Another blog", "Second post with a slightly longer title that wraps onto another line", 1792606500 - 7200, ""},
+                                    {"Tech digest", "A longer headline for the example feed", std::nullopt, ""}}
+                : std::vector<Post>{{"Beispiel-Blog", "Ein kurzer Titel für die Vorschau", 1792606500 - 600, ""},
+                                    {"Noch ein Blog", "Zweiter Beitrag mit etwas längerem Titel, der umbricht und noch weiter geht als gedacht", 1792606500 - 7200, ""},
+                                    {"heise online", "heise+ | Test: Sehr langer Titel mit Präfix", std::nullopt, ""}};
             save_png(out / (pre + "blogs.png"), rr.render(posts, 1792606500, 1792606500));
             render::SysRenderer sr(w, h, "System", "bit");
             SysSnapshot sn;
@@ -510,6 +582,11 @@ static void test_render(const fs::path& out) {
             save_png(out / (pre + "system.png"), sr.render(sn, 1792606500));
             render::HaRenderer hr(w, h, "Home Assistant");
             auto demo = render::demo_ha();
+            if (english) {
+                demo[0].name = "Living room";
+                demo[2].name = "Desk lamp";
+                demo[3].name = "Coffee maker";
+            }
             save_png(out / (pre + "ha.png"), hr.render(demo, true, "", 1792606500, 1792606500));
             save_png(out / (pre + "ha3.png"), hr.render({demo[0], demo[1], demo[2]}, true, "", 1792606500, 1792606500));
             save_png(out / (pre + "ha2.png"), hr.render({demo[2], demo[0]}, true, "", 1792606500, 1792606500));
@@ -628,7 +705,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}}) {
         std::printf("· %s\n", name);
         fn();
     }

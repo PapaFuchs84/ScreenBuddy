@@ -76,7 +76,7 @@ void open_settings(int port) {
     std::wstring host = L"127.0.0.1";
     std::wstring path = L"/api/open-window";
     INTERNET_PORT p = static_cast<INTERNET_PORT>(port);
-    HINTERNET session = WinHttpOpen(L"ScreenBuddy/2.5.0-dev.2", WINHTTP_ACCESS_TYPE_NO_PROXY, nullptr, nullptr, 0);
+    HINTERNET session = WinHttpOpen(L"ScreenBuddy/2.5.0", WINHTTP_ACCESS_TYPE_NO_PROXY, nullptr, nullptr, 0);
     if (!session) return;
     WinHttpSetTimeouts(session, 300, 300, 500, 500);
     for (int attempt = 0; attempt < 12; ++attempt) {

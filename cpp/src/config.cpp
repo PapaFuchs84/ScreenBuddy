@@ -48,7 +48,9 @@ const ojson& defaults() {
                               {"entities", ojson::array()}};
         // Companion-App (Android) im Heimnetz: standardmäßig aus; Port nie der der Einstellungsseite
         j["companion"] = {{"enabled", false}, {"port", 8777}, {"page_seconds", 15}, {"pages", PAGES}};
-        j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true}};
+        j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true},
+                   // Darstellung des nativen Einstellungsfensters: auto = wie Windows
+                   {"settings_theme", "auto"}};
         return j;
     }();
     return d;
@@ -69,6 +71,7 @@ static const std::map<Key, std::vector<std::string>> CHOICES = {
     {{"display", "color_base"}, {"hell", "dunkel"}},
     {{"display", "output"}, {"serial", "monitor", "network"}},
     {{"ui", "language"}, {"de", "en"}},
+    {{"ui", "settings_theme"}, {"auto", "hell", "dunkel"}},
 };
 static const std::set<Key> ID_LISTS = {{"discord", "guild_ids"}, {"discord", "friend_ids"}, {"discord", "ignore_ids"}};
 static const std::vector<Key> SECRETS = {{"discord", "token"}, {"friends", "steam_api_key"}, {"friends", "xbox_api_key"},

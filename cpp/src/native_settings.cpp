@@ -1,112 +1,144 @@
 // © 2026 FuchsLabs
+// Natives Einstellungsfenster (Shell): Kopfzeile, Navigation, Inhaltsbereich, Live-Vorschau und Fußleiste.
+// Die Seiten selbst liegen in ui_page_*.cpp (Schnittstelle: ui_kit.h), das UI-Kit in ui_kit.cpp.
 #include "native_settings.h"
 
 #include <windows.h>
-#include <commctrl.h>
-#include <commdlg.h>
+#include <dwmapi.h>
 #include <objbase.h>
 
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
-#include <cmath>
-#include <cwchar>
 #include <deque>
 #include <exception>
 #include <mutex>
 #include <optional>
-#include <set>
-#include <sstream>
-#include <stdexcept>
 #include <thread>
 #include <utility>
 
 #include "app.h"
+#include "brand.h"
 #include "config.h"
+#include "ui_kit.h"
+#include "ui_pages.h"
 #include "util.h"
 #include "winsetup.h"
 
 namespace fl {
 namespace {
-constexpr wchar_t WindowClass[] = L"ScreenBuddyNativeSettings";
-constexpr UINT Show = WM_APP + 171, Stop = WM_APP + 172, Results = WM_APP + 173;
-enum Id : int { Tabs = 100, OutputControl, Port, Monitor, OrientationControl, Theme, Brightness, Seconds,
-    Touch, ResetOnStart, OffOnExit, Language, Updates, Save, Preview, PreviewTitle, Status,
-    PluginList, PluginImport, PluginToggle, PluginRemove, PluginRefresh, PluginNote, GeneralNote, Advanced,
-    Source, SourceNote, PageList, PageToggle, PageUp, PageDown, PageNote,
-    CompanionEnabled, CompanionPort, CompanionSeconds, CompanionPages, CompanionToggle, CompanionUp, CompanionDown, CompanionNote,
-    Autostart, ApplyAutostart, CheckUpdate, UpdateStatus, ApplicationNote, PluginConsent,
-    PluginConfigure, PluginSettingsSave, PluginSettingsNote, PluginSettingsTitle };
-enum Page : int { DisplayPage, SourcesPage, PagesPage, CompanionPage, ApplicationPage, PluginsPage, PluginSettingsPage };
-constexpr const char* Outputs[] = {"serial", "monitor", "network"};
-constexpr const char* Orientations[] = {"landscape", "reverse_landscape", "portrait", "reverse_portrait"};
-constexpr const char* Themes[] = {"hell", "dunkel", "eigen"};
-constexpr const char* Sources[] = {"system", "friends", "discord", "bf6", "rss", "homeassistant"};
-constexpr const char* NetUnits[] = {"bit", "byte"};
-enum class FieldKind { Text, Secret, List, Bool, Number, Unit };
-struct SourceField {
-    const char *section, *key;
-    const wchar_t *de, *en;
-    FieldKind kind = FieldKind::Text;
-    int minimum = 0, maximum = 0;
-    int id = 0, source = 0;
-};
-}
+constexpr UINT ShowMsg = WM_APP + 171, StopMsg = WM_APP + 172, ResultsMsg = WM_APP + 173;
+constexpr UINT_PTR PollTimer = 1, ToastTimer = 2;
+constexpr float HeaderH = 56, FooterH = 64, NavW = 232, PreviewW = 300;
 
-struct NativeSettings::Impl {
-    App& app;
-    NativePluginActions plugins;
-    ojson initial; // Public snapshot: credentials are never copied into edit controls.
-    bool english = false;
+// Rahmen-Widgets in Tab-Reihenfolge; die Lage berechnet die Shell.
+class FrameRoot : public ui::Widget {
+public:
+    std::vector<ui::Widget*> order;
+    void children(std::vector<ui::Widget*>& out) override { out.insert(out.end(), order.begin(), order.end()); }
+    ui::Role role() const override { return ui::Role::Group; }
+};
+}  // namespace
+
+struct NativeSettings::Impl : ui::Host {
+    App& app_;
+    NativePluginActions plugins_;
+    ojson initial_;  // öffentliche Sicht: Zugangsdaten kommen nie in Eingabefelder
     std::thread ui_thread, job_thread;
-    std::atomic<HWND> window{nullptr};
-    std::atomic<bool> stopping{false}, shown{false}, snapshot_pending{false};
+    std::atomic<HWND> live_window{nullptr};
+    std::atomic<bool> stopping{false}, shown{false}, poll_pending{false};
     std::mutex ready_mutex, jobs_mutex, results_mutex;
     std::condition_variable ready_cv, jobs_cv;
     bool ready = false;
     std::exception_ptr startup_error;
     std::deque<std::function<void()>> jobs;
-    struct Result {
-        enum Kind { Snapshot, Saved, PluginChanged, ApplicationChanged, Failure, PassiveFailure } kind = Snapshot;
-        std::optional<Image> frame;
-        std::wstring status;
-        std::vector<NativePluginEntry> entries;
-        ojson update;
-        bool application_snapshot = false;
-        std::optional<bool> autostart;
-        std::wstring update_status;
+    std::deque<std::function<void()>> results;
+
+    // Ab hier nur im UI-Thread
+    std::unique_ptr<ui::Kit> kit;
+    std::unique_ptr<ui::Surface> frame, content;
+    struct Slot {
+        std::unique_ptr<ui::Page> page;
+        ui::PageInfo info;
+        ui::WidgetPtr root;
+        ui::NavItem* nav = nullptr;
     };
-    std::deque<Result> results;
+    std::vector<Slot> slots;
+    int current = -1;
+    FrameRoot frame_root;
+    std::vector<ui::WidgetPtr> frame_widgets;
+    ui::Segment* lang = nullptr;
+    ui::Segment* theme = nullptr;
+    ui::Portal* portal = nullptr;
+    ui::ImageView* preview_view = nullptr;
+    ui::Label* device_title = nullptr;
+    ui::Label* device_detail = nullptr;
+    ui::Button* discard_button = nullptr;
+    ui::Button* save_button = nullptr;
+    ui::Status status_;
+    std::optional<Image> override_frame;
+    bool preview_visible = true;
+    int dirty_count = 0, busy_count = 0;
+    bool saving = false;
+    ui::Text toast_text;
+    ui::ToastKind toast_kind = ui::ToastKind::Info;
 
-    // UI-thread-owned state below.
-    HWND hwnd = nullptr;
-    UINT dpi = 96;
-    HFONT font = nullptr;
-    struct Control { HWND hwnd; int page, id; };
-    std::vector<Control> controls;
-    std::vector<NativePluginEntry> plugin_entries;
-    std::optional<Image> frame;
-    int page = 0;
-    bool action_pending = false, saving = false;
-    bool previewing_theme = false;
-    bool application_loaded = false;
-    int source = 0;
-    std::vector<SourceField> source_fields;
-    struct PageItem { std::string key; bool enabled; };
-    std::vector<PageItem> display_pages, companion_pages;
-    std::string editing_plugin;
-    std::vector<NativePluginSetting> plugin_settings;
+    Impl(App& a, NativePluginActions p) : app_(a), plugins_(std::move(p)), initial_(config::public_view(a.cfg())) {}
+    ~Impl() override { stop(); }
 
-    Impl(App& a, NativePluginActions p) : app(a), plugins(std::move(p)), initial(config::public_view(a.cfg())),
-        english(initial.at("ui").value("language", "de") == "en") {}
-    ~Impl() { stop(); }
-    const wchar_t* tr(const wchar_t* de, const wchar_t* en) const { return english ? en : de; }
-    int px(int value) const { return MulDiv(value, dpi, 96); }
-    HWND child(int id) const { return GetDlgItem(hwnd, id); }
+    // ---------------- Host
+    App& app() override { return app_; }
+    const ojson& config() const override { return initial_; }
+    NativePluginActions& plugins() override { return plugins_; }
+    bool english() const override { return kit && kit->english; }
+    bool busy() const override { return busy_count > 0 || saving; }
+    HWND window_handle() const { return frame ? frame->hwnd() : nullptr; }
+    HWND window() const override { return window_handle(); }
+    const ui::Status& status() const override { return status_; }
+    ui::Surface& surface() override { return *content; }
+    void relayout() override { if (content) content->relayout(); recount(); }
+    void toast(const ui::Text& text, ui::ToastKind kind = ui::ToastKind::Info) override {
+        toast_text = text; toast_kind = kind;
+        if (frame) {
+            SetTimer(frame->hwnd(), ToastTimer, kind == ui::ToastKind::Error ? 9000 : 4500, nullptr);
+            frame->invalidate();
+            // Sprachausgabe: Hinweis als Namensänderung des Fensters ankündigen
+            NotifyWinEvent(EVENT_OBJECT_NAMECHANGE, frame->hwnd(), OBJID_CLIENT, CHILDID_SELF);
+        }
+    }
+    void run(std::function<std::function<void()>()> job) override {
+        ++busy_count;
+        refresh_footer();
+        enqueue([this, job = std::move(job)] {
+            std::function<void()> next;
+            std::wstring error;
+            try { next = job(); }
+            catch (const std::exception& e) { error = widen(e.what()); }
+            catch (...) { error = L"?"; }
+            deliver([this, next = std::move(next), error] {
+                --busy_count;
+                if (!error.empty()) toast(ui::Text(error == L"?" ? std::wstring(english() ? L"The action failed." : L"Die Aktion ist fehlgeschlagen.") : error),
+                                          ui::ToastKind::Error);
+                else if (next) next();
+                recount();
+                refresh_footer();
+                if (content) content->invalidate();
+            });
+        });
+    }
+    void navigate(const std::string& id) override {
+        for (size_t i = 0; i < slots.size(); ++i) if (slots[i].info.id == id) { open(int(i), false); return; }
+    }
+    void preview(std::optional<Image> f) override {
+        override_frame = std::move(f);
+        show_frame(override_frame ? override_frame : app_frame);
+    }
+    std::optional<Image> app_frame;
 
+    // ---------------- Threads (wie bisher: UI-Thread + Arbeits-Thread)
     void start() {
         job_thread = std::thread([this] { work(); });
-        try { ui_thread = std::thread([this] { run(); }); }
+        try { ui_thread = std::thread([this] { run_ui(); }); }
         catch (...) { stop(); throw; }
         std::unique_lock lock(ready_mutex);
         ready_cv.wait(lock, [this] { return ready; });
@@ -120,7 +152,7 @@ struct NativeSettings::Impl {
     void stop() {
         stopping = true;
         jobs_cv.notify_all();
-        if (HWND w = window.load()) PostMessageW(w, Stop, 0, 0);
+        if (HWND w = live_window.load()) PostMessageW(w, StopMsg, 0, 0);
         if (ui_thread.joinable()) ui_thread.join();
         if (job_thread.joinable()) job_thread.join();
     }
@@ -132,20 +164,9 @@ struct NativeSettings::Impl {
         { std::lock_guard lock(jobs_mutex); if (stopping) return; jobs.push_back(std::move(action)); }
         jobs_cv.notify_one();
     }
-    void passive(std::function<void()> action) {
-        enqueue([this, action = std::move(action)] {
-            try { action(); }
-            catch (const std::exception& error) {
-                Result result; result.kind = Result::PassiveFailure; result.status = widen(error.what()); deliver(std::move(result));
-            } catch (...) {
-                Result result; result.kind = Result::PassiveFailure;
-                result.status = tr(L"Vorschau/Status konnte nicht aktualisiert werden.", L"Could not refresh preview/status."); deliver(std::move(result));
-            }
-        });
-    }
-    void deliver(Result result) {
-        { std::lock_guard lock(results_mutex); if (stopping) return; results.push_back(std::move(result)); }
-        if (HWND w = window.load()) PostMessageW(w, Results, 0, 0);
+    void deliver(std::function<void()> next) {
+        { std::lock_guard lock(results_mutex); if (stopping) return; results.push_back(std::move(next)); }
+        if (HWND w = live_window.load()) PostMessageW(w, ResultsMsg, 0, 0);
     }
     void work() {
         for (;;) {
@@ -156,809 +177,484 @@ struct NativeSettings::Impl {
                 if (stopping) { jobs.clear(); return; }
                 action = std::move(jobs.front()); jobs.pop_front();
             }
-            try { action(); }
-            catch (const std::exception& error) {
-                Result result; result.kind = Result::Failure; result.status = widen(error.what()); deliver(std::move(result));
-            } catch (...) {
-                Result result; result.kind = Result::Failure;
-                result.status = tr(L"Die Aktion ist fehlgeschlagen.", L"The action failed."); deliver(std::move(result));
-            }
+            try { action(); } catch (...) {}
         }
-    }
-
-    HWND add(const wchar_t* type, const wchar_t* text, DWORD style, int id, int group) {
-        HWND c = CreateWindowExW(0, type, text, WS_CHILD | WS_VISIBLE | style, 0, 0, 0, 0,
-                                  hwnd, reinterpret_cast<HMENU>(INT_PTR(id)), GetModuleHandleW(nullptr), nullptr);
-        if (!c) throw std::runtime_error("Native settings: CreateWindowExW");
-        controls.push_back({c, group, id});
-        return c;
-    }
-    void label(int target, const wchar_t* de, const wchar_t* en, int group) {
-        add(L"STATIC", tr(de, en), SS_LEFT, target + 1000, group);
-    }
-    void combo(int id, int group, std::initializer_list<const wchar_t*> items) {
-        HWND c = add(WC_COMBOBOXW, L"", CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL, id, group);
-        for (auto item : items) SendMessageW(c, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(item));
-    }
-    void edit(int id, int group, const std::string& value, bool number = false) {
-        add(L"EDIT", widen(value).c_str(), WS_BORDER | WS_TABSTOP | ES_AUTOHSCROLL | (number ? ES_NUMBER : 0), id, group);
-        SendMessageW(child(id), EM_SETLIMITTEXT, number ? 4 : 1024, 0);
-    }
-    void check(int id, int group, const wchar_t* de, const wchar_t* en, bool value) {
-        add(L"BUTTON", tr(de, en), BS_AUTOCHECKBOX | WS_TABSTOP, id, group);
-        SendMessageW(child(id), BM_SETCHECK, value ? BST_CHECKED : BST_UNCHECKED, 0);
-    }
-    template<size_t N> void select(int id, const char* const (&values)[N], const std::string& value) {
-        size_t index = 0;
-        for (size_t i = 0; i < N; ++i) if (value == values[i]) index = i;
-        SendMessageW(child(id), CB_SETCURSEL, index, 0);
-    }
-    const wchar_t* page_title(const std::string& key) const {
-        if (key == "system") return L"System";
-        if (key == "friends") return tr(L"Freunde", L"Friends");
-        if (key == "discord") return L"Discord";
-        if (key == "bf6") return L"Battlefield 6";
-        if (key == "rss") return tr(L"Blog-Updates (RSS)", L"Blog updates (RSS)");
-        return L"Home Assistant";
-    }
-    void source_field(SourceField field) {
-        field.id = 200 + static_cast<int>(source_fields.size());
-        for (int i = 0; i < int(std::size(Sources)); ++i) if (field.section == std::string(Sources[i])) field.source = i;
-        const auto& entry = initial.at(field.section).at(field.key);
-        if (field.kind == FieldKind::Bool) check(field.id, SourcesPage, field.de, field.en, entry.get<bool>());
-        else {
-            label(field.id, field.de, field.en, SourcesPage);
-            if (field.kind == FieldKind::Unit) {
-                combo(field.id, SourcesPage, {L"bit/s", L"Byte/s"}); select(field.id, NetUnits, entry.get<std::string>());
-            } else if (field.kind == FieldKind::List) {
-                std::string text;
-                for (const auto& item : entry) {
-                    if (!text.empty()) text += "\r\n";
-                    text += item.is_string() ? item.get<std::string>() : item.dump();
-                }
-                add(L"EDIT", widen(text).c_str(), WS_BORDER | WS_TABSTOP | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN,
-                    field.id, SourcesPage);
-                SendMessageW(child(field.id), EM_SETLIMITTEXT, 16384, 0);
-            } else {
-                const bool secret = field.kind == FieldKind::Secret;
-                edit(field.id, SourcesPage, secret ? "" : (entry.is_string() ? entry.get<std::string>() : entry.dump()), field.kind == FieldKind::Number);
-                SendMessageW(child(field.id), EM_SETLIMITTEXT, field.kind == FieldKind::Number ? 5 : 300, 0);
-                if (secret) {
-                    SendMessageW(child(field.id), EM_SETPASSWORDCHAR, L'\x25CF', 0);
-                    const bool existing = initial.at(field.section).value(std::string(field.key) + "_set", false);
-                    const wchar_t* hint = existing ? tr(L"Gespeichert – leer lassen zum Beibehalten", L"Saved – leave empty to keep")
-                                                   : tr(L"Noch nicht eingerichtet", L"Not configured yet");
-                    SendMessageW(child(field.id), EM_SETCUEBANNER, TRUE, reinterpret_cast<LPARAM>(hint));
-                }
-            }
-        }
-        source_fields.push_back(field);
-    }
-    void initialize_sources() {
-        label(Source, L"&Datenquelle", L"&Data source", SourcesPage);
-        combo(Source, SourcesPage, {L"System", tr(L"Freunde (Steam / Xbox / Discord)", L"Friends (Steam / Xbox / Discord)"), L"Discord", L"Battlefield 6", L"RSS", L"Home Assistant"});
-        SendMessageW(child(Source), CB_SETCURSEL, 0, 0);
-        using K = FieldKind;
-        for (SourceField field : {
-            SourceField{"system", "enabled", L"System aktivieren", L"Enable system", K::Bool},
-            {"system", "title", L"Titel", L"Title"},
-            {"system", "net_adapter", L"Netzwerkadapter (leer = automatisch)", L"Network adapter (empty = automatic)"},
-            {"system", "net_unit", L"Netzwerkeinheit", L"Network unit", K::Unit},
-            {"system", "disk", L"Laufwerk", L"Disk"},
-            {"system", "cpu_temp_sensor", L"CPU-Temperatursensor (leer = automatisch)", L"CPU temperature sensor (empty = automatic)"},
-            {"system", "cpu_fan_sensor", L"CPU-Lüftersensor (leer = automatisch)", L"CPU fan sensor (empty = automatic)"},
-            {"friends", "enabled", L"Freunde aktivieren", L"Enable friends", K::Bool},
-            {"friends", "title", L"Titel", L"Title"},
-            {"friends", "include_discord", L"Discord einbeziehen", L"Include Discord", K::Bool},
-            {"friends", "auto_merge", L"Gleiche Namen automatisch verbinden", L"Automatically merge matching names", K::Bool},
-            {"friends", "show_offline", L"Offline-Konten anzeigen", L"Show offline accounts", K::Bool},
-            {"friends", "steam_api_key", L"Steam-API-Schlüssel (leer = beibehalten)", L"Steam API key (empty = keep)", K::Secret},
-            {"friends", "steam_id", L"Steam-ID oder Profiladresse", L"Steam ID or profile URL"},
-            {"friends", "xbox_api_key", L"Xbox-API-Schlüssel (leer = beibehalten)", L"Xbox API key (empty = keep)", K::Secret},
-            {"friends", "links", L"Verknüpfungen: Name|discord:ID|steam:ID|xbox:Name", L"Links: Name|discord:ID|steam:ID|xbox:Name", K::List},
-            {"discord", "enabled", L"Discord aktivieren", L"Enable Discord", K::Bool},
-            {"display", "title", L"Titel der Discord-Seite", L"Discord page title"},
-            {"discord", "token", L"Bot-Token (leer = beibehalten)", L"Bot token (empty = keep)", K::Secret},
-            {"discord", "show_offline", L"Offline-Personen anzeigen", L"Show offline people", K::Bool},
-            {"discord", "guild_ids", L"Server-IDs (eine pro Zeile)", L"Server IDs (one per line)", K::List},
-            {"discord", "friend_ids", L"Personen-IDs (eine pro Zeile)", L"Person IDs (one per line)", K::List},
-            {"discord", "ignore_ids", L"Ausgeblendete IDs (eine pro Zeile)", L"Ignored IDs (one per line)", K::List},
-            {"bf6", "enabled", L"Battlefield 6 aktivieren", L"Enable Battlefield 6", K::Bool},
-            {"bf6", "title", L"Titel", L"Title"},
-            {"bf6", "players", L"EA-IDs (eine pro Zeile; Konsole: @psn / @xbox)", L"EA IDs (one per line; console: @psn / @xbox)", K::List},
-            {"bf6", "refresh_minutes", L"Aktualisieren (5–240 Minuten)", L"Refresh (5–240 minutes)", K::Number, 5, 240},
-            {"rss", "enabled", L"RSS aktivieren", L"Enable RSS", K::Bool},
-            {"rss", "title", L"Titel", L"Title"},
-            {"rss", "feeds", L"Feed-Adressen (eine pro Zeile)", L"Feed URLs (one per line)", K::List},
-            {"rss", "refresh_minutes", L"Aktualisieren (10–720 Minuten)", L"Refresh (10–720 minutes)", K::Number, 10, 720},
-            {"rss", "max_items", L"Einträge insgesamt (1–4)", L"Total items (1–4)", K::Number, 1, 4},
-            {"rss", "max_per_feed", L"Einträge je Feed (1–4)", L"Items per feed (1–4)", K::Number, 1, 4},
-            {"homeassistant", "enabled", L"Home Assistant aktivieren", L"Enable Home Assistant", K::Bool},
-            {"homeassistant", "title", L"Titel", L"Title"},
-            {"homeassistant", "url", L"Home-Assistant-Adresse", L"Home Assistant URL"},
-            {"homeassistant", "token", L"Zugriffstoken (leer = beibehalten)", L"Access token (empty = keep)", K::Secret},
-            {"homeassistant", "entities", L"Entitäts-IDs (höchstens 4; eine pro Zeile)", L"Entity IDs (up to 4; one per line)", K::List}
-        }) {
-            if (std::string(field.section) == "display") { source_field(field); source_fields.back().source = 2; }
-            else source_field(field);
-        }
-        add(L"STATIC", tr(L"Listen: ein Eintrag pro Zeile. Leere Zugangsfelder behalten gespeicherte Schlüssel bei. Auswahlhilfen und eigene Farben sind weiterhin unter Erweiterte Einstellungen verfügbar.",
-                           L"Lists: one entry per line. Empty credential fields keep saved keys. Selection helpers and custom colors remain available in Advanced settings."), SS_LEFT, SourceNote, SourcesPage);
-    }
-    void initialize_pages(int list, int toggle, int up, int down, int group, const ojson& order, const ojson& selected,
-                          std::vector<PageItem>& items) {
-        for (const auto& key : order) {
-            if (!key.is_string() || std::find(config::PAGES.begin(), config::PAGES.end(), key.get<std::string>()) == config::PAGES.end()) continue;
-            if (std::any_of(items.begin(), items.end(), [&](const auto& item) { return item.key == key.get<std::string>(); })) continue;
-            items.push_back({key.get<std::string>(), std::find(selected.begin(), selected.end(), key) != selected.end()});
-        }
-        for (const auto& key : config::PAGES)
-            if (std::none_of(items.begin(), items.end(), [&](const auto& item) { return item.key == key; })) items.push_back({key, false});
-        add(L"LISTBOX", L"", WS_BORDER | WS_TABSTOP | WS_VSCROLL | LBS_NOTIFY | LBS_NOINTEGRALHEIGHT, list, group);
-        add(L"BUTTON", tr(L"Ein-/ausblenden", L"Show / hide"), BS_PUSHBUTTON | WS_TABSTOP, toggle, group);
-        add(L"BUTTON", tr(L"Nach oben", L"Move up"), BS_PUSHBUTTON | WS_TABSTOP, up, group);
-        add(L"BUTTON", tr(L"Nach unten", L"Move down"), BS_PUSHBUTTON | WS_TABSTOP, down, group);
-        fill_pages(list, items, 0);
-    }
-    void fill_pages(int list, const std::vector<PageItem>& items, int selected) {
-        SendMessageW(child(list), LB_RESETCONTENT, 0, 0);
-        for (const auto& item : items) {
-            std::wstring text = item.enabled ? L"[✓] " : L"[ ] "; text += page_title(item.key);
-            SendMessageW(child(list), LB_ADDSTRING, 0, reinterpret_cast<LPARAM>(text.c_str()));
-        }
-        SendMessageW(child(list), LB_SETCURSEL, selected, 0);
-    }
-    void initialize() {
-        dpi = GetDpiForWindow(hwnd);
-        add(WC_TABCONTROLW, L"", WS_TABSTOP, Tabs, -1);
-        for (auto title : {tr(L"Anzeige", L"Display"), tr(L"Quellen", L"Sources"), tr(L"Seiten", L"Pages"), L"Companion", tr(L"Anwendung", L"Application"), L"Plugins", tr(L"Plugin-Konfiguration", L"Plugin configuration")}) {
-            TCITEMW item{}; item.mask = TCIF_TEXT; item.pszText = const_cast<wchar_t*>(title);
-            TabCtrl_InsertItem(child(Tabs), TabCtrl_GetItemCount(child(Tabs)), &item);
-        }
-        const auto& dp = initial.at("display");
-        label(OutputControl, L"&Ausgabe", L"&Output", 0);
-        combo(OutputControl, 0, {tr(L"USB-Display (seriell)", L"USB display (serial)"), tr(L"Windows-Bildschirm", L"Windows monitor"), tr(L"Android / Netzwerk", L"Android / network")});
-        select(OutputControl, Outputs, dp.value("output", "serial"));
-        label(Port, L"&Port (AUTO oder COM…)", L"&Port (AUTO or COM…)", 0);
-        edit(Port, 0, dp.value("port", "AUTO"));
-        label(Monitor, L"&Monitor-ID (leer = automatisch)", L"&Monitor ID (empty = automatic)", 0);
-        edit(Monitor, 0, dp.value("monitor", ""));
-        label(OrientationControl, L"A&usrichtung", L"O&rientation", 0);
-        combo(OrientationControl, 0, {tr(L"Querformat", L"Landscape"), tr(L"Querformat gedreht", L"Reverse landscape"), tr(L"Hochformat", L"Portrait"), tr(L"Hochformat gedreht", L"Reverse portrait")});
-        select(OrientationControl, Orientations, dp.value("orientation", "landscape"));
-        label(Theme, L"&Design", L"&Theme", 0);
-        combo(Theme, 0, {tr(L"Hell", L"Light"), tr(L"Dunkel", L"Dark"), tr(L"Eigene Farben (beibehalten)", L"Custom colors (preserved)")});
-        select(Theme, Themes, dp.value("theme", "hell"));
-        label(Brightness, L"&Helligkeit (0–100)", L"&Brightness (0–100)", 0);
-        edit(Brightness, 0, std::to_string(dp.value("brightness", 50)), true);
-        label(Seconds, L"&Seitenwechsel (3–600 Sekunden)", L"Page &interval (3–600 seconds)", 0);
-        edit(Seconds, 0, std::to_string(dp.value("page_seconds", 15)), true);
-        check(Touch, 0, L"&Touch aktivieren", L"Enable t&ouch", dp.value("touch", true));
-        check(ResetOnStart, 0, L"Display beim Start &zurücksetzen", L"&Reset display on startup", dp.value("reset_on_start", true));
-        check(OffOnExit, 0, L"Display beim Beenden ausschalten", L"Turn display off on exit", dp.value("screen_off_on_exit", true));
-        initialize_sources();
-        initialize_pages(PageList, PageToggle, PageUp, PageDown, PagesPage, dp.at("pages"), dp.at("visible_pages"), display_pages);
-        add(L"STATIC", tr(L"Die markierten Seiten erscheinen auf USB/HDMI in dieser Reihenfolge, wenn die zugehörige Quelle aktiv und eingerichtet ist. Bei reiner Netzwerk-Ausgabe gilt die Companion-Liste.",
-                           L"Selected pages appear on USB/HDMI in this order when their source is enabled and configured. Network-only output uses the Companion list."), SS_LEFT, PageNote, PagesPage);
-        const auto& companion = initial.at("companion");
-        check(CompanionEnabled, CompanionPage, L"Companion zusätzlich aktivieren", L"Enable additional Companion output", companion.value("enabled", false));
-        label(CompanionPort, L"TLS-Port (1024–65535; nie Port der Einstellungen)", L"TLS port (1024–65535; never the settings port)", CompanionPage);
-        edit(CompanionPort, CompanionPage, std::to_string(companion.value("port", 8777)), true);
-        SendMessageW(child(CompanionPort), EM_SETLIMITTEXT, 5, 0);
-        label(CompanionSeconds, L"Seitenwechsel (3–600 Sekunden)", L"Page interval (3–600 seconds)", CompanionPage);
-        edit(CompanionSeconds, CompanionPage, std::to_string(companion.value("page_seconds", 15)), true);
-        initialize_pages(CompanionPages, CompanionToggle, CompanionUp, CompanionDown, CompanionPage, companion.at("pages"), companion.at("pages"), companion_pages);
-        add(L"STATIC", tr(L"Companion verwendet eine eigene Seitenauswahl und Reihenfolge. Änderungen gelten nach Speichern und Neustart. Geräte koppeln/entfernen und QR-Code: Erweiterte Einstellungen → Companion.",
-                           L"Companion uses its own page selection and order. Changes apply after saving and restarting. Pair/remove devices and show the QR code: Advanced settings → Companion."), SS_LEFT, CompanionNote, CompanionPage);
-        label(Language, L"&Sprache (nach Neustart)", L"&Language (after restart)", ApplicationPage);
-        combo(Language, ApplicationPage, {L"Deutsch", L"English"});
-        SendMessageW(child(Language), CB_SETCURSEL, english ? 1 : 0, 0);
-        check(Updates, ApplicationPage, L"Automatisch nach &Updates suchen", L"Automatically check for &updates", initial.at("ui").value("update_check", true));
-        add(L"BUTTON", tr(L"Jetzt nach Updates suchen", L"Check for updates now"), BS_PUSHBUTTON | WS_TABSTOP, CheckUpdate, ApplicationPage);
-        add(L"STATIC", L"", SS_LEFT, UpdateStatus, ApplicationPage);
-        check(Autostart, ApplicationPage, L"Mit Windows starten (nur Infobereich)", L"Start with Windows (tray only)", false);
-        add(L"BUTTON", tr(L"Windows-Start übernehmen", L"Apply Windows startup"), BS_PUSHBUTTON | WS_TABSTOP, ApplyAutostart, ApplicationPage);
-        add(L"STATIC", tr(L"Windows-Start wird mit der eigenen Schaltfläche sofort übernommen. In Testinstanzen bleibt der echte Autostart gesperrt.\r\n\r\nSpeichern übernimmt die Einstellungen und startet ScreenBuddy neu. Leere Zugangsfelder und eigene Farben bleiben erhalten.",
-                           L"Windows startup applies immediately using its own button. Real autostart changes are disabled in test instances.\r\n\r\nSave applies settings and restarts ScreenBuddy. Empty credential fields and custom colors are preserved."), SS_LEFT, GeneralNote, ApplicationPage);
-        add(L"STATIC", tr(L"Live-Vorschau", L"Live preview"), SS_LEFT, PreviewTitle, -2);
-        add(L"STATIC", tr(L"Aktuelles Displaybild", L"Current display frame"), SS_OWNERDRAW, Preview, -2);
-        add(L"STATIC", tr(L"Status wird geladen …", L"Loading status …"), SS_LEFT, Status, -2);
-        add(L"BUTTON", tr(L"&Speichern und neu starten", L"&Save and restart"), BS_DEFPUSHBUTTON | WS_TABSTOP, Save, -1);
-        add(L"BUTTON", tr(L"Erweiterte Einstellungen …", L"Advanced settings …"), BS_PUSHBUTTON | WS_TABSTOP, Advanced, -1);
-        add(L"LISTBOX", L"", WS_BORDER | WS_TABSTOP | WS_VSCROLL | LBS_NOTIFY | LBS_NOINTEGRALHEIGHT, PluginList, PluginsPage);
-        add(L"BUTTON", tr(L"Manifest &importieren …", L"&Import manifest …"), BS_PUSHBUTTON | WS_TABSTOP, PluginImport, PluginsPage);
-        add(L"BUTTON", tr(L"&Aktivieren / deaktivieren", L"&Enable / disable"), BS_PUSHBUTTON | WS_TABSTOP, PluginToggle, PluginsPage);
-        add(L"BUTTON", tr(L"&Entfernen", L"&Remove"), BS_PUSHBUTTON | WS_TABSTOP, PluginRemove, PluginsPage);
-        add(L"BUTTON", tr(L"A&ktualisieren", L"Re&fresh"), BS_PUSHBUTTON | WS_TABSTOP, PluginRefresh, PluginsPage);
-        add(L"BUTTON", tr(L"Freigaben widerrufen", L"Revoke host consent"), BS_PUSHBUTTON | WS_TABSTOP, PluginConsent, PluginsPage);
-        add(L"BUTTON", tr(L"Plugin konfigurieren …", L"Configure plugin …"), BS_PUSHBUTTON | WS_TABSTOP, PluginConfigure, PluginsPage);
-        add(L"STATIC", tr(L"Zuerst unter Plugins ein Plugin auswählen und konfigurieren.", L"Select a plugin and choose Configure plugin first."), SS_LEFT, PluginSettingsTitle, PluginSettingsPage);
-        add(L"STATIC", tr(L"Leere Zugangsfelder behalten gespeicherte Werte. Zum Entfernen ausdrücklich Löschen markieren. Die Plugin-Konfiguration wird sofort gespeichert.",
-                           L"Empty credential fields keep saved values. Select Clear explicitly to remove a credential. Plugin settings save immediately."), SS_LEFT, PluginSettingsNote, PluginSettingsPage);
-        add(L"BUTTON", tr(L"Plugin-Konfiguration speichern", L"Save plugin settings"), BS_PUSHBUTTON | WS_TABSTOP, PluginSettingsSave, PluginSettingsPage);
-        add(L"STATIC", plugins.list ? tr(L"Plugins werden lokal verwaltet. Ein Import führt keinen Plugin-Code aus.", L"Plugins are managed locally. Import does not execute plugin code.")
-                                          : tr(L"Die Plugin-Verwaltung ist in diesem Build noch nicht verbunden.", L"Plugin management is not connected in this build yet."), SS_LEFT, PluginNote, PluginsPage);
-        fonts();
-        update_controls();
-        SetTimer(hwnd, 1, 1000, nullptr);
-    }
-
-    void fonts() {
-        HFONT next = CreateFontW(-px(14), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
-                                 OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
-        if (!next) throw std::runtime_error("Native settings: CreateFontW");
-        for (auto& c : controls) SendMessageW(c.hwnd, WM_SETFONT, reinterpret_cast<WPARAM>(next), TRUE);
-        if (font) DeleteObject(font);
-        font = next;
-    }
-    void move(int id, int x, int y, int w, int h) { MoveWindow(child(id), px(x), px(y), px(w), px(h), TRUE); }
-    void layout() {
-        RECT r{}; GetClientRect(hwnd, &r);
-        int w = MulDiv(r.right, 96, dpi), h = MulDiv(r.bottom, 96, dpi);
-        move(Tabs, 16, 12, w - 32, 34);
-        const int fields[] = {OutputControl, Port, Monitor, OrientationControl, Theme, Brightness, Seconds};
-        for (int i = 0; i < int(std::size(fields)); ++i) {
-            move(fields[i] + 1000, 24, 62 + i * 58, 320, 20);
-            bool combo_box = fields[i] == OutputControl || fields[i] == OrientationControl || fields[i] == Theme;
-            move(fields[i], 24, 84 + i * 58, 320, combo_box ? 180 : 28);
-        }
-        move(Touch, 24, 478, 320, 26); move(ResetOnStart, 24, 510, 320, 26); move(OffOnExit, 24, 542, 320, 26);
-        move(Language + 1000, 24, 62, 320, 22); move(Language, 24, 88, 320, 160);
-        move(Updates, 24, 136, 320, 40);
-        move(CheckUpdate, 24, 188, 320, 32); move(UpdateStatus, 24, 230, 320, 78);
-        move(Autostart, 24, 318, 320, 34); move(ApplyAutostart, 24, 360, 320, 32);
-        move(GeneralNote, 24, 408, 320, std::max(36, h - 480));
-        move(Source + 1000, 24, 62, w - 48, 22); move(Source, 24, 88, std::min(440, w - 48), 190);
-        const int field_width = (w - 72) / 2;
-        int positions[2] = {138, 138}, column = 0;
-        for (const auto& field : source_fields) {
-            if (field.source != source) continue;
-            int x = column == 0 ? 24 : 48 + field_width, y = positions[column];
-            if (field.kind == FieldKind::Bool) {
-                move(field.id, x, y, field_width, 30); positions[column] += 44;
-            } else {
-                move(field.id + 1000, x, y, field_width, 22);
-                const int height = field.kind == FieldKind::List ? 84 : 28;
-                move(field.id, x, y + 24, field_width, field.kind == FieldKind::Unit ? 150 : height);
-                positions[column] += height + 38;
-            }
-            column = positions[0] <= positions[1] ? 0 : 1;
-        }
-        move(SourceNote, 24, h - 112, w - 48, 48);
-        move(PageList, 24, 66, w - 300, h - 244);
-        move(PageToggle, w - 252, 66, 228, 34); move(PageUp, w - 252, 112, 228, 34); move(PageDown, w - 252, 158, 228, 34);
-        move(PageNote, 24, h - 160, w - 48, 70);
-        move(CompanionEnabled, 24, 62, w - 48, 30);
-        move(CompanionPort + 1000, 24, 108, field_width, 22); move(CompanionPort, 24, 134, field_width, 28);
-        move(CompanionSeconds + 1000, 48 + field_width, 108, field_width, 22); move(CompanionSeconds, 48 + field_width, 134, field_width, 28);
-        move(CompanionPages, 24, 184, w - 300, h - 362);
-        move(CompanionToggle, w - 252, 184, 228, 34); move(CompanionUp, w - 252, 230, 228, 34); move(CompanionDown, w - 252, 276, 228, 34);
-        move(CompanionNote, 24, h - 160, w - 48, 70);
-        move(PreviewTitle, 376, 62, w - 400, 24);
-        int available_w = std::max(1, w - 400), available_h = std::max(1, h - 320);
-        int source_w = frame ? frame->w : 480, source_h = frame ? frame->h : 320;
-        double scale = std::min(double(available_w) / std::max(1, source_w), double(available_h) / std::max(1, source_h));
-        move(Preview, 376, 96, std::max(1, int(source_w * scale)), std::max(1, int(source_h * scale)));
-        move(Status, 376, h - 205, w - 400, 140);
-        move(Save, 24, h - 54, 320, 34);
-        move(Advanced, 376, h - 54, 320, 34);
-        move(PluginList, 24, 66, w - 48, h - 285);
-        move(PluginImport, 24, h - 162, 230, 32); move(PluginToggle, 270, h - 162, 230, 32);
-        move(PluginRemove, 516, h - 162, 160, 32); move(PluginRefresh, 692, h - 162, 160, 32);
-        move(PluginConsent, 24, h - 204, 230, 32);
-        move(PluginConfigure, 270, h - 204, 230, 32);
-        move(PluginNote, 24, h - 112, w - 48, 50);
-        move(PluginSettingsTitle, 24, 62, w - 48, 28);
-        for (size_t i = 0; i < plugin_settings.size(); ++i) {
-            int x = i % 2 ? 48 + field_width : 24, y = 104 + int(i / 2) * 70;
-            move(1500 + int(i), x, y, field_width, 22);
-            int input_width = plugin_settings[i].type == "secret" ? field_width - 100 : field_width;
-            move(500 + int(i), x, y + 24, input_width, 28);
-            if (plugin_settings[i].type == "secret") move(600 + int(i), x + input_width + 8, y + 24, 92, 28);
-        }
-        move(PluginSettingsNote, 24, h - 146, w - 48, 60);
-        move(PluginSettingsSave, 24, h - 54, 320, 34);
-    }
-    void update_controls() {
-        for (auto& c : controls) {
-            bool visible = c.page == -1 || c.page == page || (c.page == -2 && (page == DisplayPage || page == ApplicationPage));
-            if (c.page == SourcesPage && c.id != Source && c.id != Source + 1000 && c.id != SourceNote) {
-                auto field = std::find_if(source_fields.begin(), source_fields.end(), [&](const auto& f) { return c.id == f.id || c.id == f.id + 1000; });
-                visible = page == SourcesPage && field != source_fields.end() && field->source == source;
-            }
-            if (c.id == Save && (page == PluginsPage || page == PluginSettingsPage)) visible = false;
-            ShowWindow(c.hwnd, visible ? SW_SHOW : SW_HIDE);
-        }
-        EnableWindow(child(Save), !action_pending && !saving);
-        EnableWindow(child(Advanced), bool(plugins.open_advanced) && !saving);
-        EnableWindow(child(ApplyAutostart), application_loaded && !test_instance() && !action_pending && !saving);
-        EnableWindow(child(Autostart), application_loaded && !test_instance() && !action_pending && !saving);
-        EnableWindow(child(CheckUpdate), initial.at("ui").value("update_check", true) && !action_pending && !saving);
-        EnableWindow(child(PluginImport), !action_pending && !saving && bool(plugins.import_manifest));
-        EnableWindow(child(PluginRefresh), !action_pending && !saving && bool(plugins.list));
-        bool selected = SendMessageW(child(PluginList), LB_GETCURSEL, 0, 0) != LB_ERR;
-        EnableWindow(child(PluginToggle), !action_pending && !saving && selected && bool(plugins.set_enabled));
-        EnableWindow(child(PluginRemove), !action_pending && !saving && selected && bool(plugins.remove));
-        EnableWindow(child(PluginConsent), !action_pending && !saving && selected && bool(plugins.set_host_consent));
-        EnableWindow(child(PluginConfigure), !action_pending && !saving && selected && bool(plugins.save_settings));
-        EnableWindow(child(PluginSettingsSave), !action_pending && !saving && !editing_plugin.empty() && bool(plugins.save_settings));
-        for (int list : {PageList, CompanionPages}) {
-            auto index = SendMessageW(child(list), LB_GETCURSEL, 0, 0);
-            const auto& items = list == PageList ? display_pages : companion_pages;
-            int toggle = list == PageList ? PageToggle : CompanionToggle;
-            int up = list == PageList ? PageUp : CompanionUp;
-            int down = list == PageList ? PageDown : CompanionDown;
-            bool valid = index >= 0 && size_t(index) < items.size();
-            EnableWindow(child(toggle), valid && !saving);
-            EnableWindow(child(up), valid && index > 0 && !saving);
-            EnableWindow(child(down), valid && size_t(index + 1) < items.size() && !saving);
-        }
-    }
-    std::string value(int id) const {
-        int count = GetWindowTextLengthW(child(id));
-        std::wstring text(size_t(count) + 1, L'\0');
-        GetWindowTextW(child(id), text.data(), count + 1); text.resize(count);
-        return narrow(text);
-    }
-    bool checked(int id) const { return SendMessageW(child(id), BM_GETCHECK, 0, 0) == BST_CHECKED; }
-    template<size_t N> const char* choice(int id, const char* const (&values)[N]) const {
-        LRESULT index = SendMessageW(child(id), CB_GETCURSEL, 0, 0);
-        if (index < 0 || size_t(index) >= N) throw std::invalid_argument("Invalid selection");
-        return values[index];
-    }
-    int number(int id, int minimum, int maximum) const {
-        std::string text = value(id); size_t end = 0;
-        int n;
-        try { n = std::stoi(text, &end); }
-        catch (...) { throw std::invalid_argument(english ? "Enter a valid number." : "Bitte eine gültige Zahl eingeben."); }
-        if (end != text.size() || n < minimum || n > maximum)
-            throw std::invalid_argument(english ? "Number is outside the permitted range." : "Die Zahl liegt außerhalb des erlaubten Bereichs.");
-        return n;
-    }
-    ojson patch() const {
-        ojson incoming = {{"display", {{"output", choice(OutputControl, Outputs)}, {"port", trim(value(Port))},
-            {"monitor", trim(value(Monitor))}, {"orientation", choice(OrientationControl, Orientations)}, {"theme", choice(Theme, Themes)},
-            {"brightness", number(Brightness, 0, 100)}, {"page_seconds", number(Seconds, 3, 600)},
-            {"touch", checked(Touch)}, {"reset_on_start", checked(ResetOnStart)}, {"screen_off_on_exit", checked(OffOnExit)}}},
-            {"ui", {{"language", SendMessageW(child(Language), CB_GETCURSEL, 0, 0) == 1 ? "en" : "de"},
-                     {"update_check", checked(Updates)}, {"setup_done", true}}}};
-        for (const auto& field : source_fields) {
-            auto& section = incoming[field.section];
-            if (field.kind == FieldKind::Bool) section[field.key] = checked(field.id);
-            else if (field.kind == FieldKind::Number) section[field.key] = number(field.id, field.minimum, field.maximum);
-            else if (field.kind == FieldKind::Unit) section[field.key] = choice(field.id, NetUnits);
-            else if (field.kind == FieldKind::List) {
-                section[field.key] = ojson::array();
-                std::istringstream lines(value(field.id));
-                std::string line;
-                while (std::getline(lines, line)) if (!trim(line).empty()) section[field.key].push_back(trim(line));
-            } else {
-                std::string text = trim(value(field.id));
-                // Do not put a placeholder or a blank credential into the patch.
-                if (field.kind != FieldKind::Secret || !text.empty()) section[field.key] = std::move(text);
-            }
-        }
-        incoming["display"]["pages"] = ojson::array();
-        incoming["display"]["visible_pages"] = ojson::array();
-        for (const auto& item : display_pages) {
-            incoming["display"]["pages"].push_back(item.key);
-            if (item.enabled) incoming["display"]["visible_pages"].push_back(item.key);
-        }
-        incoming["companion"] = {{"enabled", checked(CompanionEnabled)}, {"port", number(CompanionPort, 1024, 65535)},
-            {"page_seconds", number(CompanionSeconds, 3, 600)}, {"pages", ojson::array()}};
-        for (const auto& item : companion_pages) if (item.enabled) incoming["companion"]["pages"].push_back(item.key);
-        config::merge(initial, incoming); // Validate before placing a save job on the queue.
-        return incoming;
-    }
-
-    void poll() {
-        if (stopping || !shown || snapshot_pending.exchange(true)) return;
-        const bool use_live_frame = !previewing_theme, load_application = !application_loaded;
-        passive([this, use_live_frame, load_application] {
-            struct Reset { std::atomic<bool>& value; ~Reset() { value = false; } } reset{snapshot_pending};
-            Result result;
-            if (use_live_frame) result.frame = app.last_frame();
-            auto [width, height] = app.size();
-            result.status = tr(L"Display: ", L"Display: ");
-            result.status += app.display_ok() ? tr(L"verbunden", L"connected") : tr(L"nicht verbunden", L"not connected");
-            result.status += L" · " + std::to_wstring(width) + L" × " + std::to_wstring(height);
-            std::string error = app.display_error();
-            if (!error.empty()) result.status += L"\r\n" + widen(error);
-            ojson connections = app.connections();
-            for (auto name : {"discord", "steam", "xbox", "homeassistant"})
-                if (connections.contains(name)) result.status += L"\r\n" + widen(name) + L": " + widen(connections[name].value("state", "off"));
-            result.update = app.update_info();
-            result.application_snapshot = true;
-            if (load_application) result.autostart = winsetup::autostart_enabled();
-            deliver(std::move(result));
-        });
-    }
-    void application_action(int id) {
-        if (action_pending || saving) return;
-        const bool desired = checked(Autostart);
-        if (id == ApplyAutostart && (!application_loaded || test_instance())) return;
-        action_pending = true; update_controls();
-        enqueue([this, id, desired] {
-            Result result; result.kind = Result::ApplicationChanged;
-            if (id == ApplyAutostart) {
-                if (test_instance()) throw std::runtime_error("Autostart is disabled in test instances.");
-                winsetup::set_autostart(desired);
-                bool actual = winsetup::autostart_enabled();
-                if (actual != desired) throw std::runtime_error(english ? "Windows startup could not be changed." : "Windows-Start konnte nicht geändert werden.");
-                result.autostart = actual;
-                result.status = tr(L"Windows-Start übernommen.", L"Windows startup applied.");
-            } else {
-                bool started = app.update_check_now();
-                result.update = app.update_info();
-                result.update_status = started ? tr(L"Update-Prüfung angefordert …", L"Update check requested …")
-                    : tr(L"Update-Prüfung aus oder bereits kürzlich angefordert (5 Minuten Pause).", L"Update checks are disabled or were requested recently (5-minute interval).");
-            }
-            deliver(std::move(result));
-        });
-    }
-    void show_update(const ojson& info) {
-        std::wstring text;
-        if (info.is_null() || info.empty()) text = tr(L"Update-Prüfung deaktiviert. Zum Aktivieren speichern und neu starten.", L"Update checks are disabled. Save and restart to enable.");
-        else {
-            text = tr(L"Aktuell: ", L"Current: ") + widen(info.value("current", ""));
-            const std::string error = info.value("error", "");
-            if (!error.empty()) text += L"\r\n" + widen(error);
-            else if (info.value("available", false)) text += tr(L"\r\nNeue Version: ", L"\r\nNew version: ") + widen(info.value("latest", ""));
-            else if (info.value("checked_at", 0LL) > 0) text += tr(L"\r\nKeine neuere Version gefunden.", L"\r\nNo newer version found.");
-            else text += tr(L"\r\nNoch nicht geprüft.", L"\r\nNot checked yet.");
-        }
-        SetWindowTextW(child(UpdateStatus), text.c_str());
-    }
-    void refresh_plugins() {
-        if (!plugins.list || action_pending || saving) return;
-        action_pending = true; update_controls();
-        enqueue([this] { Result result; result.kind = Result::PluginChanged; result.entries = plugins.list(); deliver(std::move(result)); });
-    }
-    void configure_plugin(const NativePluginEntry& entry) {
-        if (entry.settings.size() > 12) throw std::runtime_error("At most 12 plugin settings allowed.");
-        for (auto it = controls.begin(); it != controls.end();) {
-            if (it->page == PluginSettingsPage && ((it->id >= 500 && it->id < 612) || (it->id >= 1500 && it->id < 1512))) {
-                DestroyWindow(it->hwnd); it = controls.erase(it);
-            } else ++it;
-        }
-        editing_plugin = entry.id; plugin_settings = entry.settings;
-        SetWindowTextW(child(PluginSettingsTitle), widen(entry.name + " (" + entry.id + ")").c_str());
-        for (size_t i = 0; i < plugin_settings.size(); ++i) {
-            auto& field = plugin_settings[i];
-            int id = 500 + int(i);
-            std::wstring title = widen(field.label + " (" + field.key + ")") + (field.required ? L" *" : L"");
-            add(L"STATIC", title.c_str(), SS_LEFT, id + 1000, PluginSettingsPage);
-            if (field.type == "secret") field.value.clear();
-            edit(id, PluginSettingsPage, field.value);
-            SendMessageW(child(id), EM_SETLIMITTEXT, 16384, 0);
-            if (field.type == "secret") {
-                SendMessageW(child(id), EM_SETPASSWORDCHAR, L'\x25CF', 0);
-                const wchar_t* hint = field.secret_set ? tr(L"Gespeichert – leer lassen zum Beibehalten", L"Saved – leave empty to keep")
-                                                      : tr(L"Noch nicht eingerichtet", L"Not configured yet");
-                SendMessageW(child(id), EM_SETCUEBANNER, TRUE, reinterpret_cast<LPARAM>(hint));
-                check(600 + int(i), PluginSettingsPage, L"Löschen", L"Clear", false);
-            }
-        }
-        fonts(); update_controls(); layout();
-    }
-    void save_plugin_settings() {
-        if (saving || action_pending || editing_plugin.empty() || !plugins.save_settings) return;
-        nlohmann::json patch = nlohmann::json::object();
-        for (size_t i = 0; i < plugin_settings.size(); ++i) {
-            const auto& field = plugin_settings[i];
-            std::string text = value(500 + int(i));
-            if (field.type == "secret") {
-                if (checked(600 + int(i))) { patch[field.key] = nullptr; continue; }
-                if (text.empty()) {
-                    if (field.required && !field.secret_set) throw std::invalid_argument(english ? "Enter the required plugin credential." : "Bitte das erforderliche Plugin-Zugangsfeld ausfüllen.");
-                    continue;
-                }
-            } else if (field.required && trim(text).empty()) {
-                throw std::invalid_argument(english ? "Fill in every required plugin field." : "Bitte alle erforderlichen Plugin-Felder ausfüllen.");
-            }
-            if (field.type == "number") {
-                auto number = nlohmann::json::parse(trim(text), nullptr, false);
-                if (number.is_discarded() || !number.is_number() || !std::isfinite(number.get<double>()))
-                    throw std::invalid_argument(english ? "Enter a finite plugin number." : "Bitte eine endliche Zahl eingeben.");
-                patch[field.key] = std::move(number);
-            } else patch[field.key] = std::move(text);
-        }
-        action_pending = true; update_controls();
-        enqueue([this, id = editing_plugin, patch = std::move(patch)] {
-            plugins.save_settings(id, patch);
-            Result result; result.kind = Result::PluginChanged;
-            result.status = tr(L"Plugin-Konfiguration gespeichert.", L"Plugin settings saved.");
-            if (plugins.list) result.entries = plugins.list();
-            deliver(std::move(result));
-        });
-    }
-    void plugin_action(int id) {
-        if (action_pending || saving) return;
-        std::filesystem::path path;
-        std::optional<NativePluginEntry> selected;
-        if (id == PluginImport) {
-            if (!plugins.import_manifest) return;
-            wchar_t filename[32768]{};
-            OPENFILENAMEW picker{sizeof(picker)};
-            picker.hwndOwner = hwnd; picker.lpstrFile = filename; picker.nMaxFile = DWORD(std::size(filename));
-            picker.lpstrFilter = L"JSON manifest (*.json)\0*.json\0\0";
-            picker.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_DONTADDTORECENT;
-            if (!GetOpenFileNameW(&picker)) {
-                if (CommDlgExtendedError()) throw std::runtime_error(english ? "Cannot open the file picker." : "Dateiauswahl konnte nicht geöffnet werden.");
-                return;
-            }
-            path = filename;
-            std::error_code ec;
-            auto size = std::filesystem::file_size(path, ec);
-            if (ec || size > 256 * 1024) throw std::runtime_error(english ? "Manifest must be a readable file of at most 256 KiB." : "Das Manifest muss eine lesbare Datei mit höchstens 256 KiB sein.");
-        } else {
-            LRESULT index = SendMessageW(child(PluginList), LB_GETCURSEL, 0, 0);
-            if (index < 0 || size_t(index) >= plugin_entries.size()) return;
-            selected = plugin_entries[size_t(index)];
-            if (id == PluginRemove && MessageBoxW(hwnd, tr(L"Dieses Plugin aus der lokalen Verwaltung entfernen?", L"Remove this plugin from local management?"),
-                    L"ScreenBuddy", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES) return;
-            if (id == PluginToggle && !selected->enabled && !selected->hosts.empty()) {
-                const bool missing = std::any_of(selected->settings.begin(), selected->settings.end(), [](const auto& field) {
-                    return field.required && (field.type == "secret" ? !field.secret_set : trim(field.value).empty());
-                });
-                if (missing) {
-                    MessageBoxW(hwnd, tr(L"Bitte zuerst die erforderlichen Plugin-Einstellungen unter „Plugin konfigurieren“ ausfüllen.",
-                        L"Fill in the required plugin settings using Configure plugin first."), L"ScreenBuddy – Plugin", MB_OK | MB_ICONINFORMATION);
-                    return;
-                }
-            }
-            if (id == PluginToggle && !selected->enabled && !selected->hosts.empty()) {
-                if (!plugins.set_host_consent) throw std::runtime_error(english ? "Host consent is not connected in this build." : "Host-Freigaben sind in diesem Build nicht angebunden.");
-                std::wstring prompt = tr(L"Dieses Plugin darf die folgenden Hosts abrufen. Dabei kann es Werte der aufgeführten Plugin-Einstellungen an diese Hosts senden.\r\n\r\nHosts:\r\n",
-                    L"This plugin may fetch from the following hosts. It may send values from the listed plugin settings to these hosts.\r\n\r\nHosts:\r\n");
-                for (const auto& host : selected->hosts) {
-                    bool consented = std::find(selected->consented_hosts.begin(), selected->consented_hosts.end(), host) != selected->consented_hosts.end();
-                    prompt += L"• " + widen(host) + (consented ? tr(L" (bereits freigegeben)", L" (already allowed)") : tr(L" (neue Freigabe)", L" (new consent)")) + L"\r\n";
-                }
-                prompt += tr(L"\r\nEinstellungsschlüssel:\r\n", L"\r\nSetting keys:\r\n");
-                if (selected->setting_keys.empty()) prompt += tr(L"(keine)\r\n", L"(none)\r\n");
-                for (const auto& key : selected->setting_keys) {
-                    const bool secret = std::any_of(selected->settings.begin(), selected->settings.end(),
-                        [&](const auto& field) { return field.key == key && field.type == "secret"; });
-                    prompt += L"• " + widen(key) + (secret ? tr(L" (Geheimnis – wird an die Hosts gesendet)", L" (secret – sent to the hosts)") : L"") + L"\r\n";
-                }
-                prompt += tr(L"\r\nDiese Hosts freigeben und das Plugin aktivieren?", L"\r\nAllow these hosts and enable the plugin?");
-                if (MessageBoxW(hwnd, prompt.c_str(), L"ScreenBuddy – Plugin", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES) return;
-            }
-            if (id == PluginConsent && MessageBoxW(hwnd,
-                    tr(L"Plugin deaktivieren und alle zugehörigen Host-Freigaben widerrufen?", L"Disable this plugin and revoke all its host grants?"),
-                    L"ScreenBuddy – Plugin", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES) return;
-        }
-        action_pending = true; update_controls();
-        enqueue([this, id, path = std::move(path), selected] {
-            if (id == PluginImport && plugins.import_manifest) plugins.import_manifest(path);
-            else if (id == PluginToggle && plugins.set_enabled) {
-                if (!selected->enabled && plugins.set_host_consent)
-                    for (const auto& host : selected->hosts)
-                        if (std::find(selected->consented_hosts.begin(), selected->consented_hosts.end(), host) == selected->consented_hosts.end())
-                            plugins.set_host_consent(selected->id, host, true);
-                plugins.set_enabled(selected->id, !selected->enabled);
-            } else if (id == PluginConsent && plugins.set_host_consent) {
-                // Stop fetching before revoking grants, including on a partial failure.
-                if (plugins.set_enabled) plugins.set_enabled(selected->id, false);
-                for (const auto& host : selected->consented_hosts) plugins.set_host_consent(selected->id, host, false);
-            }
-            else if (id == PluginRemove && plugins.remove) plugins.remove(selected->id);
-            Result result; result.kind = Result::PluginChanged;
-            if (plugins.list) result.entries = plugins.list();
-            deliver(std::move(result));
-        });
-    }
-    void command(WPARAM wp) {
-        int id = LOWORD(wp), event = HIWORD(wp);
-        if (id == PluginList && event == LBN_SELCHANGE) { update_controls(); return; }
-        if ((id == PageList || id == CompanionPages) && event == LBN_SELCHANGE) { update_controls(); return; }
-        if (id == Source && event == CBN_SELCHANGE) {
-            LRESULT next = SendMessageW(child(Source), CB_GETCURSEL, 0, 0);
-            if (next >= 0 && next < int(std::size(Sources))) source = int(next);
-            update_controls(); layout(); return;
-        }
-        if (id == Theme && event == CBN_SELCHANGE) {
-            std::string theme = choice(Theme, Themes);
-            previewing_theme = true;
-            passive([this, theme] { Result result; result.frame = app.preview_theme({{"theme", theme}}); deliver(std::move(result)); });
-            return;
-        }
-        if (event != BN_CLICKED) return;
-        if (id == PluginConfigure) {
-            if (action_pending || saving) return;
-            auto index = SendMessageW(child(PluginList), LB_GETCURSEL, 0, 0);
-            if (index < 0 || size_t(index) >= plugin_entries.size()) return;
-            configure_plugin(plugin_entries[size_t(index)]);
-            page = PluginSettingsPage; TabCtrl_SetCurSel(child(Tabs), page); update_controls(); return;
-        }
-        if (id == PluginSettingsSave) { save_plugin_settings(); return; }
-        if (id == PageToggle || id == PageUp || id == PageDown || id == CompanionToggle || id == CompanionUp || id == CompanionDown) {
-            bool companion = id == CompanionToggle || id == CompanionUp || id == CompanionDown;
-            int list = companion ? CompanionPages : PageList;
-            auto& items = companion ? companion_pages : display_pages;
-            LRESULT selected = SendMessageW(child(list), LB_GETCURSEL, 0, 0);
-            if (saving || selected < 0 || size_t(selected) >= items.size()) return;
-            size_t index = size_t(selected);
-            if (id == PageToggle || id == CompanionToggle) items[index].enabled = !items[index].enabled;
-            else if ((id == PageUp || id == CompanionUp) && index > 0) { std::swap(items[index], items[index - 1]); --index; }
-            else if ((id == PageDown || id == CompanionDown) && index + 1 < items.size()) { std::swap(items[index], items[index + 1]); ++index; }
-            fill_pages(list, items, int(index)); update_controls(); return;
-        }
-        if (id == ApplyAutostart || id == CheckUpdate) { application_action(id); return; }
-        if (id == PluginRefresh) { refresh_plugins(); return; }
-        if (id == Advanced && plugins.open_advanced) { passive([this] { plugins.open_advanced(); }); return; }
-        if (id == PluginImport || id == PluginToggle || id == PluginRemove || id == PluginConsent) { plugin_action(id); return; }
-        if (id != Save || saving || action_pending) return;
-        ojson incoming = patch();
-        saving = true; update_controls();
-        enqueue([this, incoming = std::move(incoming)] {
-            auto merged = config::merge(app.cfg(), incoming); // Preserve all existing secrets and unrelated fields.
-            config::save(app.cfg_path(), merged); // Existing DPAPI + atomic replace implementation.
-            Result result; result.kind = Result::Saved; deliver(std::move(result));
-            if (!stopping) app.request_restart(0.4);
-        });
     }
     void consume() {
-        std::deque<Result> pending;
+        std::deque<std::function<void()>> pending;
         { std::lock_guard lock(results_mutex); pending.swap(results); }
-        for (auto& result : pending) {
-            if (result.kind == Result::Snapshot) {
-                if (result.frame) frame = std::move(result.frame);
-                if (!result.status.empty()) SetWindowTextW(child(Status), result.status.c_str());
-                if (result.application_snapshot) show_update(result.update);
-                if (result.autostart && !application_loaded) {
-                    SendMessageW(child(Autostart), BM_SETCHECK, *result.autostart ? BST_CHECKED : BST_UNCHECKED, 0);
-                    application_loaded = true; update_controls();
-                }
-                layout(); InvalidateRect(child(Preview), nullptr, TRUE);
-            } else if (result.kind == Result::ApplicationChanged) {
-                action_pending = false;
-                if (result.autostart) SendMessageW(child(Autostart), BM_SETCHECK, *result.autostart ? BST_CHECKED : BST_UNCHECKED, 0);
-                if (!result.status.empty()) SetWindowTextW(child(Status), result.status.c_str());
-                if (!result.update_status.empty()) SetWindowTextW(child(UpdateStatus), result.update_status.c_str());
-                update_controls();
-            } else if (result.kind == Result::Saved) {
-                SetWindowTextW(child(Status), tr(L"Gespeichert. ScreenBuddy startet neu …", L"Saved. ScreenBuddy is restarting …"));
-            } else if (result.kind == Result::PluginChanged) {
-                action_pending = false; plugin_entries = std::move(result.entries);
-                SendMessageW(child(PluginList), LB_RESETCONTENT, 0, 0);
-                for (const auto& entry : plugin_entries) {
-                    std::wstring title = entry.enabled ? L"[✓] " : L"[ ] ";
-                    title += widen(entry.name + "  " + entry.version + "  (" + entry.id + ")");
-                    if (!entry.hosts.empty()) {
-                        size_t granted = 0;
-                        for (const auto& host : entry.hosts)
-                            if (std::find(entry.consented_hosts.begin(), entry.consented_hosts.end(), host) != entry.consented_hosts.end()) ++granted;
-                        title += tr(L" · Hosts freigegeben: ", L" · Hosts allowed: ") + std::to_wstring(granted) + L"/" + std::to_wstring(entry.hosts.size());
-                    }
-                    SendMessageW(child(PluginList), LB_ADDSTRING, 0, reinterpret_cast<LPARAM>(title.c_str()));
-                }
-                if (!result.status.empty()) {
-                    auto entry = std::find_if(plugin_entries.begin(), plugin_entries.end(), [this](const auto& e) { return e.id == editing_plugin; });
-                    if (entry != plugin_entries.end()) configure_plugin(*entry);
-                    SetWindowTextW(child(PluginSettingsNote), result.status.c_str());
-                }
-                update_controls();
-            } else if (result.kind == Result::PassiveFailure) {
-                SetWindowTextW(child(Status), result.status.c_str());
-            } else {
-                saving = false; action_pending = false; update_controls();
-                MessageBoxW(hwnd, result.status.c_str(), tr(L"ScreenBuddy – Fehler", L"ScreenBuddy – Error"), MB_OK | MB_ICONERROR);
-            }
+        for (auto& next : pending) {
+            try { next(); }
+            catch (const std::exception& e) { toast(ui::Text(widen(e.what())), ui::ToastKind::Error); }
         }
-    }
-    void paint(const DRAWITEMSTRUCT& item) {
-        FillRect(item.hDC, &item.rcItem, GetSysColorBrush(COLOR_WINDOW));
-        if (!frame || frame->empty()) {
-            SetBkMode(item.hDC, TRANSPARENT); SetTextColor(item.hDC, GetSysColor(COLOR_WINDOWTEXT));
-            RECT r = item.rcItem;
-            DrawTextW(item.hDC, tr(L"Noch kein Displaybild verfügbar.", L"No display frame available yet."), -1, &r, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-            return;
-        }
-        BITMAPINFO bitmap{}; bitmap.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bitmap.bmiHeader.biWidth = frame->w; bitmap.bmiHeader.biHeight = -frame->h;
-        bitmap.bmiHeader.biPlanes = 1; bitmap.bmiHeader.biBitCount = 32; bitmap.bmiHeader.biCompression = BI_RGB;
-        SetStretchBltMode(item.hDC, HALFTONE); SetBrushOrgEx(item.hDC, 0, 0, nullptr);
-        StretchDIBits(item.hDC, 0, 0, item.rcItem.right, item.rcItem.bottom, 0, 0,
-                      frame->w, frame->h, frame->px.data(), &bitmap, DIB_RGB_COLORS, SRCCOPY);
     }
 
-    static LRESULT CALLBACK procedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-        auto self = reinterpret_cast<Impl*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-        if (msg == WM_NCCREATE) {
-            self = static_cast<Impl*>(reinterpret_cast<CREATESTRUCTW*>(lp)->lpCreateParams);
-            self->hwnd = hwnd; SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
-        }
-        if (!self) return DefWindowProcW(hwnd, msg, wp, lp);
-        try {
-            switch (msg) {
-            case WM_CREATE: self->initialize(); return 0;
-            case Show:
-                ShowWindow(hwnd, IsIconic(hwnd) ? SW_RESTORE : SW_SHOW); SetForegroundWindow(hwnd);
-                self->shown = true; self->poll(); return 0;
-            case Stop: DestroyWindow(hwnd); return 0;
-            case WM_CLOSE: ShowWindow(hwnd, SW_HIDE); self->shown = false; return 0;
-            case WM_SIZE:
-                self->shown = IsWindowVisible(hwnd) && wp != SIZE_MINIMIZED;
-                self->layout(); return 0;
-            case WM_COMMAND: self->command(wp); return 0;
-            case WM_NOTIFY:
-                if (reinterpret_cast<NMHDR*>(lp)->idFrom == Tabs && reinterpret_cast<NMHDR*>(lp)->code == TCN_SELCHANGE) {
-                    self->page = TabCtrl_GetCurSel(self->child(Tabs)); self->update_controls();
-                    if (self->page == PluginsPage) self->refresh_plugins();
-                }
-                return 0;
-            case WM_TIMER: self->poll(); return 0;
-            case Results: self->consume(); return 0;
-            case WM_DRAWITEM: self->paint(*reinterpret_cast<DRAWITEMSTRUCT*>(lp)); return TRUE;
-            case WM_GETMINMAXINFO:
-                reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize = {self->px(960), self->px(700)}; return 0;
-            case WM_DPICHANGED: {
-                self->dpi = HIWORD(wp); self->fonts(); auto r = reinterpret_cast<RECT*>(lp);
-                SetWindowPos(hwnd, nullptr, r->left, r->top, r->right-r->left, r->bottom-r->top, SWP_NOACTIVATE | SWP_NOZORDER);
-                self->layout(); return 0;
-            }
-            case WM_DESTROY:
-                KillTimer(hwnd, 1); self->shown = false; self->window = nullptr; PostQuitMessage(0); return 0;
-            case WM_NCDESTROY: SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0); break;
-            }
-        } catch (...) {
-            if (msg == WM_CREATE) { self->startup_error = std::current_exception(); return -1; }
-            try { throw; }
-            catch (const std::exception& error) { MessageBoxW(hwnd, widen(error.what()).c_str(), L"ScreenBuddy", MB_OK | MB_ICONERROR); }
-            catch (...) { MessageBoxW(hwnd, L"Native settings error", L"ScreenBuddy", MB_OK | MB_ICONERROR); }
-            return 0;
-        }
-        return DefWindowProcW(hwnd, msg, wp, lp);
+    // ---------------- Status (einmal pro Sekunde, im Arbeits-Thread)
+    void poll() {
+        if (stopping || !shown || poll_pending.exchange(true)) return;
+        const bool need_autostart = !status_.autostart.has_value();
+        const std::string output = initial_.at("display").value("output", "serial");
+        enqueue([this, need_autostart, output] {
+            struct Reset { std::atomic<bool>& v; ~Reset() { v = false; } } reset{poll_pending};
+            ui::Status s;
+            std::optional<Image> f;
+            try {
+                f = app_.last_frame();
+                s.size = app_.size();
+                s.display_ok = app_.display_ok();
+                s.display_error = app_.display_error();
+                s.connections = app_.connections();
+                s.update = app_.update_info();
+                s.navigation = app_.page_navigation();
+                s.output = output;
+                if (auto* companion = app_.companion()) s.companion = companion->status();
+                if (need_autostart) s.autostart = winsetup::autostart_enabled();
+                s.valid = true;
+            } catch (...) {}
+            deliver([this, s = std::move(s), f = std::move(f)]() mutable {
+                auto autostart = status_.autostart;
+                status_ = std::move(s);
+                if (!status_.autostart) status_.autostart = autostart;
+                if (f) app_frame = std::move(f);
+                if (!override_frame) show_frame(app_frame);
+                update_device();
+                if (current >= 0) slots[size_t(current)].page->tick(*this, status_);
+                frame->invalidate();
+                content->invalidate();
+            });
+        });
     }
-    void run() {
+    void show_frame(const std::optional<Image>& f) {
+        if (!preview_view) return;
+        bool had = preview_view->image.has_value();
+        preview_view->image = f;
+        ++preview_view->version;
+        if (had != f.has_value()) frame->relayout();
+        else frame->invalidate();
+    }
+    std::wstring output_name(bool en) const {
+        const std::string o = initial_.at("display").value("output", "serial");
+        if (o == "monitor") return en ? L"Monitor" : L"Bildschirm";
+        if (o == "network") return en ? L"Companion / network" : L"Companion / Netzwerk";
+        return L"USB-Display";
+    }
+    void update_device() {
+        if (!device_title) return;
+        device_title->text = ui::T((L"Gerät: " + output_name(false)).c_str(), (L"Device: " + output_name(true)).c_str());
+        std::wstring size = status_.size.first > 0 ? std::to_wstring(status_.size.first) + L" × " + std::to_wstring(status_.size.second) : L"–";
+        std::wstring de = size + (status_.display_ok ? L" · verbunden" : L" · nicht verbunden");
+        std::wstring en = size + (status_.display_ok ? L" · connected" : L" · not connected");
+        if (!status_.display_error.empty()) { de += L"\n" + widen(status_.display_error); en += L"\n" + widen(status_.display_error); }
+        device_detail->text = ui::Text(de, en);
+        device_detail->tone = status_.display_ok ? ui::Label::Muted : ui::Label::Danger;
+        frame->relayout();
+    }
+
+    // ---------------- Seiten
+    void build(Slot& slot) {
+        auto root = std::make_unique<ui::Column>();
+        root->pad_x = 26; root->pad_y = 22; root->gap = 14;
+        root->add<ui::Heading>(slot.info.title, slot.info.subtitle);
+        slot.page->build(*this, *root);
+        slot.root = std::move(root);
+    }
+    void open(int index, bool keyboard) {
+        if (index < 0 || index >= int(slots.size())) return;
+        auto& slot = slots[size_t(index)];
+        if (!slot.root) build(slot);
+        if (current >= 0 && current != index) {
+            slots[size_t(current)].page->hidden(*this);
+            slots[size_t(current)].nav->active = false;
+            if (override_frame) preview(std::nullopt);
+        }
+        current = index;
+        slot.nav->active = true;
+        content->set_root(slot.root.get());
+        slot.page->shown(*this);
+        if (status_.valid) slot.page->tick(*this, status_);
+        frame->notify(slot.nav, EVENT_OBJECT_SELECTION);
+        frame->focus(slot.nav, keyboard);
+        frame->invalidate();
+        recount();
+    }
+    void step(int delta) {
+        int next = std::clamp(current + delta, 0, int(slots.size()) - 1);
+        open(next, true);
+    }
+
+    // ---------------- Änderungen, Speichern, Verwerfen
+    void recount() {
+        int n = 0;
+        for (auto& s : slots) n += ui::count_dirty(s.root.get());
+        if (lang && lang->dirty()) ++n;
+        if (theme && theme->dirty()) ++n;
+        dirty_count = n;
+        refresh_footer();
+    }
+    void refresh_footer() {
+        if (!save_button) return;
+        save_button->enabled = dirty_count > 0 && !busy();
+        discard_button->enabled = dirty_count > 0 && !busy();
+        save_button->name = english() ? ui::Text(L"Save & apply (" + std::to_wstring(dirty_count) + (dirty_count == 1 ? L" change)" : L" changes)"))
+                                      : ui::Text(L"Speichern & anwenden (" + std::to_wstring(dirty_count) + (dirty_count == 1 ? L" Änderung)" : L" Änderungen)"));
+        frame->invalidate();
+    }
+    void apply_language() {
+        kit->english = lang->index == 1;
+        SetWindowTextW(frame->hwnd(), kit->english ? L"ScreenBuddy – Settings" : L"ScreenBuddy – Einstellungen");
+        frame->restyle();
+        content->restyle();
+        update_device();
+    }
+    void apply_theme() {
+        kit->dark = theme->index == 1;
+        BOOL dark = kit->dark;
+        DwmSetWindowAttribute(frame->hwnd(), 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));
+        frame->restyle();
+        content->restyle();
+    }
+    void save() {
+        if (busy() || dirty_count == 0) return;
+        ojson patch = ojson::object();
+        for (size_t i = 0; i < slots.size(); ++i) {
+            auto& s = slots[i];
+            if (!s.root) continue;
+            try { s.page->collect(*this, patch); }
+            catch (const ui::Invalid& e) {
+                open(int(i), false);
+                if (e.widget) content->focus(e.widget, true);
+                toast(ui::Text(widen(e.what())), ui::ToastKind::Error);
+                return;
+            } catch (const std::exception& e) {
+                open(int(i), false);
+                toast(ui::Text(widen(e.what())), ui::ToastKind::Error);
+                return;
+            }
+        }
+        patch["ui"]["language"] = lang->index == 1 ? "en" : "de";
+        if (theme->dirty()) patch["ui"]["settings_theme"] = theme->index == 1 ? "dunkel" : "hell";
+        patch["ui"]["setup_done"] = true;
+        try { config::merge(initial_, patch); }  // vor dem Speichern prüfen
+        catch (const std::exception& e) { toast(ui::Text(widen(e.what())), ui::ToastKind::Error); return; }
+        saving = true;
+        refresh_footer();
+        toast(ui::T(L"Wird gespeichert …", L"Saving …"));
+        enqueue([this, patch = std::move(patch)] {
+            try {
+                auto merged = config::merge(app_.cfg(), patch);  // vorhandene Geheimnisse und fremde Felder bleiben
+                config::save(app_.cfg_path(), merged);           // DPAPI + atomares Ersetzen wie bisher
+            } catch (const std::exception& e) {
+                std::wstring error = widen(e.what());
+                deliver([this, error] { saving = false; refresh_footer(); toast(ui::Text(error), ui::ToastKind::Error); });
+                return;
+            }
+            deliver([this] { toast(ui::T(L"Gespeichert. ScreenBuddy startet neu …", L"Saved. ScreenBuddy is restarting …"), ui::ToastKind::Success); });
+            if (!stopping) app_.request_restart(0.4);
+        });
+    }
+    void discard() {
+        if (busy() || dirty_count == 0) return;
+        if (current >= 0) slots[size_t(current)].page->hidden(*this);
+        preview(std::nullopt);
+        for (auto& s : slots) {
+            if (!s.root) continue;
+            std::vector<ui::WidgetPtr> old;
+            old.push_back(std::move(s.root));
+            ui::retire(old);
+        }
+        if (lang->dirty()) { lang->index = lang->original; apply_language(); }
+        if (theme->dirty()) { theme->index = theme->original; apply_theme(); }
+        int keep = current;
+        current = -1;
+        content->set_root(nullptr);
+        open(keep < 0 ? 0 : keep, false);
+        toast(ui::T(L"Änderungen verworfen.", L"Changes discarded."));
+    }
+    bool confirm_close() {
+        if (dirty_count == 0 || saving) return true;
+        int answer = MessageBoxW(frame->hwnd(),
+            english() ? L"There are unsaved changes. Save and apply them now?\n\nNo = discard, Cancel = keep editing."
+                      : L"Es gibt ungespeicherte Änderungen. Jetzt speichern und anwenden?\n\nNein = verwerfen, Abbrechen = weiter bearbeiten.",
+            L"ScreenBuddy", MB_YESNOCANCEL | MB_ICONQUESTION);
+        if (answer == IDYES) { save(); return false; }
+        if (answer == IDNO) { discard(); return true; }
+        return false;
+    }
+
+    // ---------------- Rahmen: Aufbau, Layout, Zeichnen
+    template<class W, class... A> W* own(A&&... a) {
+        auto w = std::make_unique<W>(std::forward<A>(a)...);
+        W* raw = w.get(); frame_widgets.push_back(std::move(w)); return raw;
+    }
+    void build_frame() {
+        auto logo = own<ui::ImageView>();
+        logo->image = fox_image(56, false);
+        logo->framed = false;
+        logo->name = ui::Text(L"ScreenBuddy");
+        const std::string settings_theme = initial_.at("ui").value("settings_theme", "auto");
+        const bool dark = settings_theme == "dunkel" || (settings_theme != "hell" && ui::system_prefers_dark());
+        kit->dark = dark;
+        kit->english = initial_.at("ui").value("language", "de") == "en";
+        lang = own<ui::Segment>(std::vector<ui::Text>{ui::Text(L"DE"), ui::Text(L"EN")}, kit->english ? 1 : 0);
+        lang->header_style = true;
+        lang->name = ui::T(L"Sprache", L"Language");
+        lang->on_change = [this] { apply_language(); };
+        theme = own<ui::Segment>(std::vector<ui::Text>{ui::T(L"☀ Hell", L"☀ Light"), ui::T(L"☾ Dunkel", L"☾ Dark")}, dark ? 1 : 0);
+        theme->header_style = true;
+        theme->name = ui::T(L"Darstellung des Fensters", L"Window appearance");
+        theme->on_change = [this] { apply_theme(); };
+        frame_root.order = {lang, theme};
+        for (auto& page : ui::create_pages()) {
+            Slot slot;
+            slot.info = page->info();
+            slot.page = std::move(page);
+            slots.push_back(std::move(slot));
+        }
+        std::stable_sort(slots.begin(), slots.end(), [](const Slot& a, const Slot& b) { return int(a.info.group) < int(b.info.group); });
+        for (size_t i = 0; i < slots.size(); ++i) {
+            auto nav = own<ui::NavItem>(slots[i].info.title, slots[i].info.id);
+            nav->dot_on = slots[i].page->active(initial_);
+            nav->on_open = [this, i] { open(int(i), false); };
+            nav->on_step = [this](int d) { step(d); };
+            slots[i].nav = nav;
+            frame_root.order.push_back(nav);
+        }
+        portal = own<ui::Portal>();
+        portal->target = content.get();
+        frame_root.order.push_back(portal);
+        preview_view = own<ui::ImageView>();
+        preview_view->name = ui::T(L"Live-Vorschau des Displays", L"Live display preview");
+        preview_view->empty_text = ui::T(L"Noch kein Displaybild verfügbar.", L"No display frame available yet.");
+        device_title = own<ui::Label>(ui::Text(L""), ui::Font::Strong);
+        device_detail = own<ui::Label>(ui::Text(L""), ui::Font::Small, ui::Label::Muted);
+        discard_button = own<ui::Button>(ui::T(L"Verwerfen", L"Discard"), ui::Button::Secondary, [this] { discard(); });
+        save_button = own<ui::Button>(ui::T(L"Speichern & anwenden", L"Save & apply"), ui::Button::Primary, [this] { save(); });
+        frame_root.order.insert(frame_root.order.end(), {discard_button, save_button, preview_view, device_title, device_detail, logo});
+        logo_ = logo;
+        frame->set_root(&frame_root);
+        frame->on_layout = [this](ui::Ctx& c, D2D1_SIZE_F sz) { return layout_frame(c, sz); };
+        frame->on_background = [this](ui::Ctx& c, D2D1_SIZE_F sz) { paint_frame(c, sz); };
+        frame->on_overlay = [this](ui::Ctx& c, D2D1_SIZE_F sz) { paint_toast(c, sz); };
+        content->on_tab_out = [this](bool forward) {
+            frame->keyboard_cues = true;
+            SetFocus(frame->hwnd());
+            frame->mark(portal);
+            frame->tab(forward);
+        };
+        content->on_changed = [this](ui::Widget*) { recount(); };
+        frame->on_changed = [this](ui::Widget*) { recount(); };
+        content->on_focus_in = [this] { frame->invalidate(); };
+        update_device();
+    }
+    ui::ImageView* logo_ = nullptr;
+    float nav_y0 = 0;
+
+    float layout_frame(ui::Ctx& c, D2D1_SIZE_F sz) {
+        const float w = sz.width, h = sz.height;
+        preview_visible = w >= 1060;
+        logo_->layout(c, 22, (HeaderH - 26) / 2, 26);
+        float tw = theme->pref_width(c), lw = lang->pref_width(c);
+        theme->layout(c, w - 18 - tw, (HeaderH - 28) / 2, tw);
+        lang->layout(c, w - 18 - tw - 10 - lw, (HeaderH - 28) / 2, lw);
+        // Navigation in Gruppen
+        float y = HeaderH + 12;
+        int group = -1;
+        for (auto& s : slots) {
+            if (int(s.info.group) != group) { group = int(s.info.group); y += group == 0 ? 18 : 26; }
+            s.nav->layout(c, 10, y, NavW - 20);
+            y += 36;
+        }
+        nav_y0 = HeaderH + 12;
+        // Fußleiste
+        float sw = save_button->pref_width(c) + 8, dw = discard_button->pref_width(c);
+        float by = h - FooterH + (FooterH - 36) / 2;
+        save_button->layout(c, w - 18 - sw, by, sw);
+        discard_button->layout(c, w - 18 - sw - 12 - dw, by, dw);
+        // Vorschau
+        for (ui::Widget* x : {static_cast<ui::Widget*>(preview_view), static_cast<ui::Widget*>(device_title), static_cast<ui::Widget*>(device_detail)})
+            x->visible = preview_visible;
+        if (preview_visible) {
+            float px = w - PreviewW + 18, pw = PreviewW - 36;
+            float ph = preview_view->layout(c, px, HeaderH + 44, pw);
+            ph = std::min(ph, 300.f);
+            preview_view->rc.bottom = preview_view->rc.top + ph;
+            float dy = preview_view->rc.bottom + 62;
+            float th = device_title->layout(c, px + 14, dy + 12, pw - 28);
+            float dh = device_detail->layout(c, px + 14, dy + 14 + th, pw - 28);
+            device_card_ = {px, dy, px + pw, dy + 26 + th + dh};
+        }
+        // Inhaltsbereich als Kindfenster
+        RECT r{frame->px(NavW), frame->px(HeaderH), frame->px(preview_visible ? w - PreviewW : w), frame->px(h - FooterH)};
+        SetWindowPos(content->hwnd(), nullptr, r.left, r.top, std::max(1L, r.right - r.left), std::max(1L, r.bottom - r.top),
+                     SWP_NOZORDER | SWP_NOACTIVATE);
+        return h;
+    }
+    D2D1_RECT_F device_card_{};
+
+    void paint_frame(ui::Ctx& c, D2D1_SIZE_F sz) {
+        const auto& th = c.th;
+        const float w = sz.width, h = sz.height;
+        c.fill({0, HeaderH, NavW, h - FooterH}, th.side);
+        if (preview_visible) {
+            c.fill({w - PreviewW, HeaderH, w, h - FooterH}, th.side);
+            c.line({w - PreviewW, HeaderH}, {w - PreviewW, h - FooterH}, th.dark ? th.line : ui::from(brand::GLUT, .35f));
+        }
+        c.fill({0, 0, w, HeaderH}, th.header);
+        c.circle({35, HeaderH / 2}, 18, ui::from(brand::NAVY));
+        c.fill({0, h - FooterH, w, h}, th.bg);
+        c.line({0, h - FooterH}, {w, h - FooterH}, th.line);
+        // Kopfzeile
+        c.text(L"ScreenBuddy", {62, 0, 220, HeaderH}, ui::Font::Brand, th.header_text);
+        float bw = c.text_width(L"ScreenBuddy", ui::Font::Brand);
+        c.text(L"v" + widen(VERSION), {62 + bw + 8, 2, 62 + bw + 160, HeaderH}, ui::Font::Body, ui::from(brand::NAVY, .7f));
+        std::wstring pill = output_name(kit->english) + L" " + (status_.display_ok ? (kit->english ? L"connected" : L"verbunden")
+                                                                                 : (kit->english ? L"not connected" : L"nicht verbunden"));
+        if (!status_.valid) pill = kit->english ? L"Status loading …" : L"Status wird geladen …";
+        float pw = c.text_width(pill, ui::Font::Label) + 34;
+        float right = lang->rc.left - 10;
+        D2D1_RECT_F p{right - pw, (HeaderH - 28) / 2, right, (HeaderH + 28) / 2};
+        c.fill(p, status_.display_ok ? ui::from(brand::NAVY) : ui::from(brand::NAVY, .13f), 14);
+        c.circle({p.left + 14, (p.top + p.bottom) / 2}, 4, status_.display_ok ? ui::rgb(46, 204, 113) : ui::rgb(178, 34, 34));
+        c.text(pill, {p.left + 24, p.top, p.right - 8, p.bottom}, ui::Font::Label, status_.display_ok ? ui::from(brand::CREME) : ui::from(brand::NAVY));
+        // Gruppenüberschriften
+        static const wchar_t* group_de[] = {L"ALLGEMEIN", L"DATENQUELLEN", L"VERBINDUNG", L"APP"};
+        static const wchar_t* group_en[] = {L"GENERAL", L"DATA SOURCES", L"CONNECTION", L"APP"};
+        int group = -1;
+        for (auto& s : slots) {
+            if (int(s.info.group) == group) continue;
+            group = int(s.info.group);
+            float y = s.nav->rc.top - 22;
+            c.text(kit->english ? group_en[group] : group_de[group], {20, y, NavW - 10, y + 18}, ui::Font::Section, th.side_muted);
+        }
+        // Vorschau
+        if (preview_visible) {
+            float x = w - PreviewW + 18;
+            c.text(kit->english ? L"LIVE PREVIEW" : L"LIVE-VORSCHAU", {x, HeaderH + 16, w - 18, HeaderH + 36}, ui::Font::Section, th.side_muted);
+            const ojson& nav = status_.navigation;
+            int total = std::min(12, nav.is_object() ? nav.value("total", 0) : 0), index = nav.is_object() ? nav.value("index", 0) : 0;
+            float dots_y = preview_view->rc.bottom + 14, dots_w = total * 24.f - 6;
+            float dx = (w - PreviewW / 2) - dots_w / 2;
+            for (int i = 0; i < total; ++i)
+                c.fill({dx + i * 24.f, dots_y, dx + i * 24.f + 18, dots_y + 5}, i == index ? th.accent : ui::from(brand::NAVY, th.dark ? .6f : .27f), 2.5f);
+            c.text(kit->english ? L"DEVICE" : L"GERÄT", {x, device_card_.top - 26, w - 18, device_card_.top - 6}, ui::Font::Section, th.side_muted);
+            c.fill(device_card_, th.dark ? th.card : th.bg, 12);
+            c.frame(device_card_, th.line, 12);
+        }
+        // Fußleiste: ungespeicherte Änderungen
+        std::wstring dirty_text;
+        if (saving) dirty_text = kit->english ? L"Saving …" : L"Wird gespeichert …";
+        else if (dirty_count == 0) dirty_text = kit->english ? L"No unsaved changes" : L"Keine ungespeicherten Änderungen";
+        else if (kit->english) dirty_text = L"● " + std::to_wstring(dirty_count) + (dirty_count == 1 ? L" unsaved change" : L" unsaved changes");
+        else dirty_text = L"● " + std::to_wstring(dirty_count) + (dirty_count == 1 ? L" ungespeicherte Änderung" : L" ungespeicherte Änderungen");
+        c.text(dirty_text, {18, h - FooterH, 320, h}, ui::Font::Strong, dirty_count ? th.accent_text : th.muted);
+    }
+    void paint_toast(ui::Ctx& c, D2D1_SIZE_F sz) {
+        if (toast_text.empty()) return;
+        const auto& th = c.th;
+        const std::wstring& t = c.s(toast_text);
+        float left = 330, right = discard_button->rc.left - 16;
+        if (right - left < 120) return;
+        float tw = std::min(right - left, c.text_width(t, ui::Font::Body) + 44);
+        float th_ = std::min(48.f, c.text_height(t, tw - 44, ui::Font::Body) + 16);
+        D2D1_RECT_F r{left, sz.height - FooterH / 2 - th_ / 2, left + tw, sz.height - FooterH / 2 + th_ / 2};
+        ui::Rgba accent = toast_kind == ui::ToastKind::Error ? th.danger : toast_kind == ui::ToastKind::Success ? th.success : th.accent;
+        c.fill(r, th.dark ? th.card : th.input, 10);
+        c.frame(r, accent, 10, 1.5f);
+        c.circle({r.left + 16, (r.top + r.bottom) / 2}, 5, accent);
+        c.text(t, {r.left + 30, r.top + 4, r.right - 10, r.bottom - 4}, ui::Font::Body, th.text, DWRITE_TEXT_ALIGNMENT_LEADING, true, true);
+    }
+
+    // ---------------- Fenster und Nachrichten
+    bool message(UINT msg, WPARAM wp, LPARAM, LRESULT&) {
+        switch (msg) {
+        case ShowMsg:
+            ShowWindow(frame->hwnd(), IsIconic(frame->hwnd()) ? SW_RESTORE : SW_SHOW);
+            SetForegroundWindow(frame->hwnd());
+            shown = true;
+            if (current >= 0) frame->focus(slots[size_t(current)].nav, false);
+            poll();
+            return true;
+        case StopMsg: DestroyWindow(frame->hwnd()); return true;
+        case WM_CLOSE:
+            if (confirm_close()) { ShowWindow(frame->hwnd(), SW_HIDE); shown = false; }
+            return true;
+        case WM_SIZE:
+            shown = IsWindowVisible(frame->hwnd()) && wp != SIZE_MINIMIZED;
+            return false;
+        case WM_TIMER:
+            if (wp == PollTimer) poll();
+            if (wp == ToastTimer) { KillTimer(frame->hwnd(), ToastTimer); toast_text = {}; frame->invalidate(); }
+            return true;
+        case ResultsMsg: consume(); return true;
+        case WM_DESTROY:
+            KillTimer(frame->hwnd(), PollTimer); shown = false; live_window = nullptr; PostQuitMessage(0);
+            return true;
+        }
+        return false;
+    }
+
+    void run_ui() {
         HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         bool signaled = false;
         try {
-            INITCOMMONCONTROLSEX init{sizeof(init), ICC_TAB_CLASSES | ICC_STANDARD_CLASSES}; InitCommonControlsEx(&init);
-            HINSTANCE instance = GetModuleHandleW(nullptr);
-            WNDCLASSEXW klass{sizeof(klass)}; klass.lpfnWndProc = procedure; klass.hInstance = instance;
-            klass.hCursor = LoadCursorW(nullptr, IDC_ARROW); klass.hbrBackground = GetSysColorBrush(COLOR_WINDOW);
-            klass.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(1)); klass.lpszClassName = WindowClass;
-            if (!RegisterClassExW(&klass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
-                throw std::runtime_error("Native settings: RegisterClassExW");
-            HWND created = CreateWindowExW(WS_EX_CONTROLPARENT, WindowClass, tr(L"ScreenBuddy – Einstellungen", L"ScreenBuddy – Settings"),
-                WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1120, 840, nullptr, nullptr, instance, this);
-            if (!created) {
-                if (startup_error) std::rethrow_exception(startup_error);
-                throw std::runtime_error("Native settings: CreateWindowExW");
-            }
-            RECT desired{0, 0, 1040, 680};
-            AdjustWindowRectExForDpi(&desired, WS_OVERLAPPEDWINDOW, FALSE, WS_EX_CONTROLPARENT, dpi);
+            kit = std::make_unique<ui::Kit>();
+            frame = std::make_unique<ui::Surface>(*kit, nullptr, L"ScreenBuddy – Einstellungen", false);
+            content = std::make_unique<ui::Surface>(*kit, frame->hwnd(), L"Inhalt", true);
+            frame->on_message = [this](UINT m, WPARAM wp, LPARAM lp, LRESULT& r) {
+                if (m == WM_GETMINMAXINFO) {
+                    reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize = {frame->px(980), frame->px(680)};
+                    return true;
+                }
+                return message(m, wp, lp, r);
+            };
+            build_frame();
+            if (kit->english) SetWindowTextW(frame->hwnd(), L"ScreenBuddy – Settings");
+            COLORREF caption = RGB(brand::ORANGE.r, brand::ORANGE.g, brand::ORANGE.b), text = RGB(brand::NAVY.r, brand::NAVY.g, brand::NAVY.b);
+            DwmSetWindowAttribute(frame->hwnd(), 35 /* DWMWA_CAPTION_COLOR */, &caption, sizeof(caption));
+            DwmSetWindowAttribute(frame->hwnd(), 36 /* DWMWA_TEXT_COLOR */, &text, sizeof(text));
+            BOOL dark = kit->dark;
+            DwmSetWindowAttribute(frame->hwnd(), 20, &dark, sizeof(dark));
+            const UINT dpi = GetDpiForWindow(frame->hwnd());
+            RECT desired{0, 0, MulDiv(1180, int(dpi), 96), MulDiv(760, int(dpi), 96)};
+            AdjustWindowRectExForDpi(&desired, WS_OVERLAPPEDWINDOW, FALSE, 0, dpi);
             MONITORINFO monitor{sizeof monitor};
-            if (GetMonitorInfoW(MonitorFromWindow(created, MONITOR_DEFAULTTONEAREST), &monitor)) {
-                const int available_w = monitor.rcWork.right - monitor.rcWork.left;
-                const int available_h = monitor.rcWork.bottom - monitor.rcWork.top;
-                const int outer_w = std::min(static_cast<int>(desired.right - desired.left), available_w);
-                const int outer_h = std::min(static_cast<int>(desired.bottom - desired.top), available_h);
-                const int x = monitor.rcWork.left + std::max(0, (available_w - outer_w) / 2);
-                const int y = monitor.rcWork.top + std::max(0, (available_h - outer_h) / 2);
-                SetWindowPos(created, nullptr, x, y, outer_w, outer_h, SWP_NOACTIVATE | SWP_NOZORDER);
+            if (GetMonitorInfoW(MonitorFromWindow(frame->hwnd(), MONITOR_DEFAULTTONEAREST), &monitor)) {
+                const int aw = monitor.rcWork.right - monitor.rcWork.left, ah = monitor.rcWork.bottom - monitor.rcWork.top;
+                const int ow = std::min(int(desired.right - desired.left), aw), oh = std::min(int(desired.bottom - desired.top), ah);
+                SetWindowPos(frame->hwnd(), nullptr, monitor.rcWork.left + std::max(0, (aw - ow) / 2),
+                             monitor.rcWork.top + std::max(0, (ah - oh) / 2), ow, oh, SWP_NOACTIVATE | SWP_NOZORDER);
             }
-            window = created;
+            frame->set_dpi(GetDpiForWindow(frame->hwnd()));
+            content->set_dpi(GetDpiForWindow(content->hwnd()));
+            open(0, false);
+            SetTimer(frame->hwnd(), PollTimer, 1000, nullptr);
+            live_window = frame->hwnd();
             signal_ready(); signaled = true;
             MSG msg{};
             while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
-                if (!IsDialogMessageW(created, &msg)) { TranslateMessage(&msg); DispatchMessageW(&msg); }
+                if (msg.message == WM_KEYDOWN && msg.wParam == 'S' && GetKeyState(VK_CONTROL) < 0) { save(); continue; }
+                TranslateMessage(&msg);
+                DispatchMessageW(&msg);
+                ui::flush_retired();
             }
         } catch (...) {
             if (!signaled) signal_ready(std::current_exception());
         }
-        if (hwnd && IsWindow(hwnd)) DestroyWindow(hwnd);
-        window = nullptr; shown = false;
-        if (font) { DeleteObject(font); font = nullptr; }
+        live_window = nullptr; shown = false;
+        // Seiten (mit EDIT-Fenstern) vor den Fenstern abbauen, danach Kit und COM
+        for (auto& s : slots) s.root.reset();
+        ui::flush_retired();
+        content.reset();
+        frame.reset();
+        frame_widgets.clear();
+        slots.clear();
+        kit.reset();
         if (SUCCEEDED(com)) CoUninitialize();
     }
 };
 
 NativeSettings::NativeSettings(App& app, NativePluginActions plugins) : d_(std::make_unique<Impl>(app, std::move(plugins))) { d_->start(); }
 NativeSettings::~NativeSettings() = default;
-void NativeSettings::show() { if (HWND hwnd = d_->window.load()) PostMessageW(hwnd, Show, 0, 0); }
+void NativeSettings::show() { if (HWND hwnd = d_->live_window.load()) PostMessageW(hwnd, ShowMsg, 0, 0); }
 bool NativeSettings::visible() const { return d_->shown; }
 }  // namespace fl

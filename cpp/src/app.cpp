@@ -18,7 +18,6 @@
 #include "plugin_transport.h"
 #include "rss.h"
 #include "sysinfo.h"
-#include "settings_window.h"
 #include "tray.h"
 #include "update.h"
 #include "util.h"
@@ -816,92 +815,89 @@ void App::run() {
             for (int i = 0; i < 10 && !stop.stop_requested(); ++i) Sleep(100);
         }
     });
-    int port = cfg_["ui"].value("port", 8765);
-    std::unique_ptr<SettingsWindow> settings_window;
     std::unique_ptr<NativeSettings> native_settings;
     std::unique_ptr<SettingsServer> server;
     if (b(cfg_["ui"], "enabled", true)) {
-        server = std::make_unique<SettingsServer>(*this, [this, &native_settings, &settings_window] {
-            if (native_settings) native_settings->show();
-            else if (settings_window) settings_window->show();
-        });
-        if (server->start()) {
-            settings_window = std::make_unique<SettingsWindow>(port);
-            NativePluginActions actions;
-            actions.list = [this] {
-                std::vector<NativePluginEntry> result;
-                if (!plugins_) return result;
-                for (const auto& installed : plugins_->entries()) {
-                    NativePluginEntry item;
-                    item.id = installed.manifest.id;
-                    item.name = installed.manifest.name;
-                    item.version = installed.manifest.version;
-                    item.enabled = installed.enabled;
-                    std::set<std::string> hosts, setting_keys;
-                    for (const auto& source : installed.manifest.sources) {
-                        hosts.insert(source.host);
-                        setting_keys.insert(source.setting_keys.begin(), source.setting_keys.end());
-                    }
-                    item.hosts.assign(hosts.begin(), hosts.end());
-                    item.consented_hosts.assign(installed.consented_hosts.begin(), installed.consented_hosts.end());
-                    item.setting_keys.assign(setting_keys.begin(), setting_keys.end());
-                    const auto public_settings = plugin_settings_view(installed.manifest.id);
-                    const auto values = public_settings.value("values", ojson::object());
-                    const auto secrets = public_settings.value("secrets", ojson::object());
-                    for (const auto& setting : installed.manifest.settings) {
-                        NativePluginSetting field;
-                        field.key = setting.key;
-                        field.label = setting.label;
-                        field.type = setting.type;
-                        field.required = setting.required;
-                        if (setting.type == "secret") field.secret_set = secrets.value(setting.key, false);
-                        else if (values.contains(setting.key)) {
-                            const auto& value = values.at(setting.key);
-                            field.value = value.is_string() ? value.get<std::string>() : value.dump();
-                        }
-                        item.settings.push_back(std::move(field));
-                    }
-                    result.push_back(std::move(item));
+        NativePluginActions actions;
+        actions.list = [this] {
+            std::vector<NativePluginEntry> result;
+            if (!plugins_) return result;
+            for (const auto& installed : plugins_->entries()) {
+                NativePluginEntry item;
+                item.id = installed.manifest.id;
+                item.name = installed.manifest.name;
+                item.version = installed.manifest.version;
+                item.enabled = installed.enabled;
+                std::set<std::string> hosts, setting_keys;
+                for (const auto& source : installed.manifest.sources) {
+                    hosts.insert(source.host);
+                    setting_keys.insert(source.setting_keys.begin(), source.setting_keys.end());
                 }
-                return result;
-            };
-            actions.import_manifest = [this](const std::filesystem::path& path) {
-                std::error_code ec;
-                auto length = std::filesystem::file_size(path, ec);
-                if (ec || length > plugins::manifest_limit) throw std::runtime_error("Manifest ist nicht lesbar oder zu groß.");
-                std::ifstream file(path, std::ios::binary);
-                if (!file) throw std::runtime_error("Manifest konnte nicht geöffnet werden.");
-                std::string content(static_cast<size_t>(length), '\0');
-                if (!file.read(content.data(), static_cast<std::streamsize>(content.size())))
-                    throw std::runtime_error("Manifest konnte nicht gelesen werden.");
-                std::string error;
-                if (!plugin_import(content, error)) throw std::runtime_error(error);
-            };
-            actions.set_enabled = [this](const std::string& id, bool enabled) {
-                std::string error;
-                if (!plugin_set_enabled(id, enabled, error)) throw std::runtime_error(error);
-            };
-            actions.set_host_consent = [this](const std::string& id, const std::string& host, bool allowed) {
-                std::string error;
-                if (!plugin_set_host_consent(id, host, allowed, error)) throw std::runtime_error(error);
-            };
-            actions.save_settings = [this](const std::string& id, const nlohmann::json& patch) {
-                std::string error;
-                if (!plugin_save_settings(id, ojson::parse(patch.dump()), error)) throw std::runtime_error(error);
-            };
-            actions.remove = [this](const std::string& id) {
-                std::string error;
-                if (!plugin_remove(id, error)) throw std::runtime_error(error);
-            };
-            actions.open_advanced = [&settings_window] { if (settings_window) settings_window->show(); };
-            try { native_settings = std::make_unique<NativeSettings>(*this, std::move(actions)); }
-            catch (const std::exception& error) { LOGW("settings", "Native UI: %s", error.what()); }
-            show_settings_callback_ = [&native_settings, &settings_window] {
-                if (native_settings) native_settings->show();
-                else if (settings_window) settings_window->show();
-            };
-            if (show_settings_on_start_) show_settings();
-        }
+                item.hosts.assign(hosts.begin(), hosts.end());
+                item.consented_hosts.assign(installed.consented_hosts.begin(), installed.consented_hosts.end());
+                item.setting_keys.assign(setting_keys.begin(), setting_keys.end());
+                const auto public_settings = plugin_settings_view(installed.manifest.id);
+                const auto values = public_settings.value("values", ojson::object());
+                const auto secrets = public_settings.value("secrets", ojson::object());
+                for (const auto& setting : installed.manifest.settings) {
+                    NativePluginSetting field;
+                    field.key = setting.key;
+                    field.label = setting.label;
+                    field.type = setting.type;
+                    field.required = setting.required;
+                    if (setting.type == "secret") field.secret_set = secrets.value(setting.key, false);
+                    else if (values.contains(setting.key)) {
+                        const auto& value = values.at(setting.key);
+                        field.value = value.is_string() ? value.get<std::string>() : value.dump();
+                    }
+                    item.settings.push_back(std::move(field));
+                }
+                result.push_back(std::move(item));
+            }
+            return result;
+        };
+        actions.import_manifest = [this](const std::filesystem::path& path) {
+            std::error_code ec;
+            auto length = std::filesystem::file_size(path, ec);
+            if (ec || length > plugins::manifest_limit) throw std::runtime_error("Manifest ist nicht lesbar oder zu groß.");
+            std::ifstream file(path, std::ios::binary);
+            if (!file) throw std::runtime_error("Manifest konnte nicht geöffnet werden.");
+            std::string content(static_cast<size_t>(length), '\0');
+            if (!file.read(content.data(), static_cast<std::streamsize>(content.size())))
+                throw std::runtime_error("Manifest konnte nicht gelesen werden.");
+            std::string error;
+            if (!plugin_import(content, error)) throw std::runtime_error(error);
+        };
+        actions.set_enabled = [this](const std::string& id, bool enabled) {
+            std::string error;
+            if (!plugin_set_enabled(id, enabled, error)) throw std::runtime_error(error);
+        };
+        actions.set_host_consent = [this](const std::string& id, const std::string& host, bool allowed) {
+            std::string error;
+            if (!plugin_set_host_consent(id, host, allowed, error)) throw std::runtime_error(error);
+        };
+        actions.save_settings = [this](const std::string& id, const nlohmann::json& patch) {
+            std::string error;
+            if (!plugin_save_settings(id, ojson::parse(patch.dump()), error)) throw std::runtime_error(error);
+        };
+        actions.remove = [this](const std::string& id) {
+            std::string error;
+            if (!plugin_remove(id, error)) throw std::runtime_error(error);
+        };
+        try { native_settings = std::make_unique<NativeSettings>(*this, std::move(actions)); }
+        catch (const std::exception& error) { LOGE("settings", "Native UI konnte nicht gestartet werden: %s", error.what()); }
+        catch (...) { LOGE("settings", "Native UI konnte nicht gestartet werden: unbekannter Fehler"); }
+        show_settings_callback_ = [&native_settings] {
+            if (native_settings) native_settings->show();
+            else MessageBoxW(nullptr,
+                i18n::lang() == "en" ? L"Native settings could not be opened. See the ScreenBuddy log for details."
+                                     : L"Die nativen Einstellungen konnten nicht geöffnet werden. Einzelheiten stehen im ScreenBuddy-Protokoll.",
+                L"ScreenBuddy", MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
+        };
+        // The loopback API and embedded guide are independent of the native settings window.
+        server = std::make_unique<SettingsServer>(*this, [this] { show_settings(); });
+        if (!server->start()) server.reset();
+        if (show_settings_on_start_) show_settings();
     }
     Tray tray(
         "ScreenBuddy",
@@ -930,8 +926,7 @@ void App::run() {
     }
     tray.stop();
     // War das Einstellungsfenster beim Neustart offen (z. B. nach dem Speichern), öffnet es die neue Instanz wieder
-    settings_open_at_exit_ = (native_settings && native_settings->visible()) ||
-                             (settings_window && settings_window->visible());
+    settings_open_at_exit_ = native_settings && native_settings->visible();
     if (server) server->stop();
     if (companion_output_) {
         if (b(dp_, "screen_off_on_exit", true) && !restart_) companion_output_->screen_off();
@@ -939,7 +934,6 @@ void App::run() {
     }
     show_settings_callback_ = {};
     native_settings.reset();
-    settings_window.reset();
     if (friends_) friends_->stop();
     if (ha_) ha_->stop();
     if (discord_) discord_->stop();

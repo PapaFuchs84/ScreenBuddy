@@ -112,8 +112,14 @@ def step(delta, expected):
 
 def main():
     exe = Path(sys.argv[1]).resolve()
-    expected_version = sys.argv[2] if len(sys.argv) > 2 else '2.5.0-dev.2'
+    expected_version = sys.argv[2] if len(sys.argv) > 2 else '2.5.0'
     with instance(exe):
+        root_code, root_body = request('/')
+        check(root_code == 410 and b'text/html' not in root_body and b'<nav' not in root_body,
+              'legacy HTML settings page is unavailable')
+        guide_code, guide_body = request('/anleitung?lang=de')
+        check(guide_code == 200 and b'<!doctype html>' in guide_body[:100].lower(),
+              'embedded guide remains available')
         check(json.loads(request('/api/config')[1])['version'] == expected_version, 'API version')
         check(state()['can_step'], 'multiple views enable navigation')
         check(state()['current'] == ['system'], 'initial system view')

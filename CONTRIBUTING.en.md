@@ -15,7 +15,7 @@ build.bat nopause
 build\screenbuddy-release\ScreenBuddy.exe --run --no-lcd -c test.toml
 ```
 
-`cpp/build.bat` builds Release, runs checks and copies the single app/installer EXE to `cpp/dist/`. The root `build.bat` still builds Python 1.x. Basic settings use native Win32 controls; WebView2 Evergreen Runtime must be installed separately for advanced settings. See [build notes](cpp/README.md#build).
+`cpp/build.bat` builds Release, runs checks and copies the single app/installer EXE to `cpp/dist/`. The root `build.bat` still builds Python 1.x. Current 2.5 source uses a self-drawn native Win32 window for all settings and does not link WebView2. Earlier version 2.3.0 still requires WebView2 Evergreen. See [build notes](cpp/README.md#build).
 
 ## Workflow
 
@@ -28,7 +28,7 @@ build\screenbuddy-release\ScreenBuddy.exe --run --no-lcd -c test.toml
 ## Code rules
 
 - Follow existing C++20 style, use RAII and keep background work bounded.
-- App/display translations: `cpp/src/i18n.cpp`; settings translations: `cpp/res/webui.html`.
+- App/display translations: `cpp/src/i18n.cpp`; native settings text: `cpp/src/ui_page_*.cpp`. The former HTML settings page `cpp/res/webui.html` remains in the source tree only for historical tests.
 - Colours/logo: `cpp/src/brand.h`; rendering: `gfx.cpp` and `render.cpp`. Windows fonts only; no brightness commands during a display frame transfer.
 - Dependency changes: `cpp/vcpkg.json`, its pinned baseline and `cpp/overlay-ports/`. Keep third-party licence notices.
 - Use only authorized/public data APIs; do not implement Discord self-bots or unofficial PlayStation logins.

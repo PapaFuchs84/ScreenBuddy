@@ -15,10 +15,6 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_package(pugixml CONFIG REQUIRED)
 find_package(httplib CONFIG REQUIRED)
-add_library(webview2_loader STATIC IMPORTED GLOBAL)
-set_target_properties(webview2_loader PROPERTIES
-    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/third_party/webview2/lib/WebView2LoaderStatic.lib"
-    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/webview2/include")
 
 # MLS-Bibliotheken von D++ (statisch mitgebaut, siehe overlay-ports/dpp)
 set(DPP_EXTRA_LIBS)
@@ -33,7 +29,9 @@ set(CORE_SOURCES
     src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/render.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/friends.cpp src/ha.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
-    src/installer.cpp src/resources.cpp src/settings_window.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
+    src/installer.cpp src/resources.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
+    src/ui_kit.cpp src/ui_logic.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
+    src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_homeassistant.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_app.cpp
     src/companion.cpp src/companion_server.cpp src/network_display.cpp
     src/plugins.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
 
@@ -44,12 +42,11 @@ target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EH
 target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL OpenSSL::Crypto Opus::opus ZLIB::ZLIB
                                     nlohmann_json::nlohmann_json tomlplusplus::tomlplusplus pugixml::pugixml httplib::httplib
                                     d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
-                                    comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 shell32
-                                    webview2_loader)
+                                    comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 oleaut32 oleacc uuid uxtheme shell32)
 
 # Eingebettete Dateien: bei Änderungen die Ressourcen neu bauen (CMake erkennt RCDATA-Abhängigkeiten nicht selbst)
 set_source_files_properties(res/app.rc PROPERTIES OBJECT_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/res/webui.html;${CMAKE_CURRENT_SOURCE_DIR}/res/ANLEITUNG.html;${CMAKE_CURRENT_SOURCE_DIR}/res/GUIDE.html;${CMAKE_CURRENT_SOURCE_DIR}/res/app.ico;${CMAKE_CURRENT_SOURCE_DIR}/res/app.manifest;${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE;${CMAKE_CURRENT_SOURCE_DIR}/../THIRD-PARTY-NOTICES.md")
+    "${CMAKE_CURRENT_SOURCE_DIR}/res/ANLEITUNG.html;${CMAKE_CURRENT_SOURCE_DIR}/res/GUIDE.html;${CMAKE_CURRENT_SOURCE_DIR}/res/app.ico;${CMAKE_CURRENT_SOURCE_DIR}/res/app.manifest;${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE;${CMAKE_CURRENT_SOURCE_DIR}/../THIRD-PARTY-NOTICES.md")
 
 add_executable(ScreenBuddy WIN32 src/main.cpp res/app.rc)
 target_link_libraries(ScreenBuddy PRIVATE flcore)
@@ -68,11 +65,17 @@ add_executable(fl-plugin-tests tests/plugins_tests.cpp src/plugins.cpp)
 target_include_directories(fl-plugin-tests PRIVATE src)
 target_link_libraries(fl-plugin-tests PRIVATE nlohmann_json::nlohmann_json)
 
+add_executable(fl-plugin-example-tests tests/plugin_examples_tests.cpp src/plugins.cpp)
+target_include_directories(fl-plugin-example-tests PRIVATE src)
+target_link_libraries(fl-plugin-example-tests PRIVATE nlohmann_json::nlohmann_json)
+target_compile_definitions(fl-plugin-example-tests PRIVATE FL_PLUGIN_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/plugins")
+
 add_executable(fl-plugin-store-tests tests/plugin_store_tests.cpp src/plugins.cpp src/plugin_store.cpp)
 target_include_directories(fl-plugin-store-tests PRIVATE src)
 target_link_libraries(fl-plugin-store-tests PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
 
 add_executable(fl-plugin-transport-tests tests/plugin_transport_tests.cpp src/plugins.cpp src/plugin_store.cpp src/plugin_transport.cpp)
+target_compile_definitions(fl-plugin-transport-tests PRIVATE FL_PLUGIN_TRANSPORT_TEST)
 target_include_directories(fl-plugin-transport-tests PRIVATE src)
 target_compile_definitions(fl-plugin-transport-tests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
 target_link_libraries(fl-plugin-transport-tests PRIVATE nlohmann_json::nlohmann_json OpenSSL::SSL OpenSSL::Crypto ws2_32 crypt32)

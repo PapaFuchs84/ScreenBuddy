@@ -86,27 +86,40 @@ constexpr DWORD DNS_PENDING = 9506;  // DNS_REQUEST_PENDING
 // der letzte Rückruf durch ist und NetworkDisplay losgelassen hat, wird freigegeben. dnsapi.dll bleibt geladen
 // (Systembibliothek): würde sie entladen, während ein verspäteter Rückruf läuft, stünde dessen Code nicht mehr da.
 struct Mdns {
+    enum class Registration : int { pending, active, failed };
+    enum class Operation : int { register_service, unregister_service };
+    struct CallbackContext { Mdns* owner; Operation operation; HANDLE done; };
     FnRegister reg = nullptr, dereg = nullptr;
     FnFree free_instance = nullptr;
     SvcInstance* instance = nullptr;
-    SvcRegisterRequest req{};
-    HANDLE done = nullptr;
+    SvcRegisterRequest req{}, dereg_req{};
+    HANDLE register_done = nullptr, deregister_done = nullptr;
+    CallbackContext register_context{}, deregister_context{};
     DWORD ip = 0;
     std::atomic<int> refs{1};  // 1 = NetworkDisplay
+    std::atomic<Registration> registration{Registration::pending};
 };
 
 void mdns_release(Mdns* m) {
     if (--m->refs != 0) return;
     if (m->instance && m->free_instance) m->free_instance(m->instance);
-    if (m->done) CloseHandle(m->done);
+    if (m->register_done) CloseHandle(m->register_done);
+    if (m->deregister_done) CloseHandle(m->deregister_done);
     delete m;
 }
 
 VOID WINAPI mdns_done(DWORD status, PVOID ctx, SvcInstance* inst) {
-    auto* m = static_cast<Mdns*>(ctx);
-    if (status != ERROR_SUCCESS) LOGW("companion", "mDNS-Ankündigung: Fehler %lu", status);
+    auto* callback = static_cast<Mdns::CallbackContext*>(ctx);
+    auto* m = callback->owner;
+    if (callback->operation == Mdns::Operation::register_service) {
+        m->registration.store(status == ERROR_SUCCESS ? Mdns::Registration::active : Mdns::Registration::failed);
+        if (status == ERROR_SUCCESS) LOGI("companion", "mDNS-Ankündigung erfolgreich");
+        else LOGW("companion", "mDNS-Ankündigung fehlgeschlagen (%lu) – Verbindung über die IP-Adresse", status);
+    } else if (status != ERROR_SUCCESS) {
+        LOGW("companion", "mDNS-Abmeldung fehlgeschlagen (%lu)", status);
+    }
     if (inst && inst != m->instance && m->free_instance) m->free_instance(inst);
-    if (m->done) SetEvent(m->done);
+    if (callback->done) SetEvent(callback->done);
     mdns_release(m);  // die Referenz der Anfrage, die hiermit fertig ist
 }
 
@@ -272,7 +285,8 @@ void NetworkDisplay::mdns_register() {
         std::lock_guard lk(mu_);
         if (!addresses_.empty()) first = addresses_[0];
     }
-    if (mdns_ || first.empty()) return;
+    std::unique_lock mdns_lock(mdns_mu_);
+    if (mdns_.load() || first.empty()) return;
     HMODULE dll = dnsapi();
     auto* m = new Mdns();
     auto construct = dll ? reinterpret_cast<FnConstruct>(GetProcAddress(dll, "DnsServiceConstructInstance")) : nullptr;
@@ -294,8 +308,9 @@ void NetworkDisplay::mdns_register() {
     PCWSTR keys[] = {k1.c_str(), k2.c_str()};
     PCWSTR values[] = {v1.c_str(), v2.c_str()};
     m->instance = construct(instance.c_str(), host.c_str(), &m->ip, nullptr, (WORD)port_, 0, 0, 2, keys, values);
-    m->done = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-    if (!m->instance || !m->done) {
+    m->register_done = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    m->deregister_done = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    if (!m->instance || !m->register_done || !m->deregister_done) {
         LOGW("companion", "mDNS-Ankündigung konnte nicht vorbereitet werden");
         mdns_release(m);
         return;
@@ -304,26 +319,36 @@ void NetworkDisplay::mdns_register() {
     m->req.InterfaceIndex = 0;
     m->req.pServiceInstance = m->instance;
     m->req.pRegisterCompletionCallback = mdns_done;
-    m->req.pQueryContext = m;
+    m->register_context = {m, Mdns::Operation::register_service, m->register_done};
+    m->req.pQueryContext = &m->register_context;
     ++m->refs;  // für den Rückruf der Registrierung
     DWORD rc = m->reg(&m->req, nullptr);
     if (rc != DNS_PENDING) mdns_release(m);  // kein Rückruf zu erwarten
     if (rc != DNS_PENDING && rc != ERROR_SUCCESS) {
+        m->registration.store(Mdns::Registration::failed);
         LOGW("companion", "mDNS-Ankündigung fehlgeschlagen (%lu) – Verbindung über die IP-Adresse", rc);
         mdns_release(m);
         return;
     }
-    if (rc == DNS_PENDING) WaitForSingleObject(m->done, 2000);  // kommt der Rückruf später, hält er seine Referenz
+    if (rc == ERROR_SUCCESS) m->registration.store(Mdns::Registration::active);
+    if (rc == DNS_PENDING) WaitForSingleObject(m->register_done, 2000);  // verspätete Rückrufe halten ihre Referenz
     mdns_ = m;
-    LOGI("companion", "mDNS: %s", narrow(instance).c_str());
+    if (m->registration.load() == Mdns::Registration::active) LOGI("companion", "mDNS: %s", narrow(instance).c_str());
 }
 
 void NetworkDisplay::mdns_unregister() {
-    auto* m = static_cast<Mdns*>(mdns_.exchange(nullptr));
+    Mdns* m = nullptr;
+    {
+        std::lock_guard lk(mdns_mu_);
+        m = static_cast<Mdns*>(mdns_.exchange(nullptr));
+    }
     if (!m) return;
-    ResetEvent(m->done);
+    ResetEvent(m->deregister_done);
+    m->deregister_context = {m, Mdns::Operation::unregister_service, m->deregister_done};
+    m->dereg_req = m->req;
+    m->dereg_req.pQueryContext = &m->deregister_context;
     ++m->refs;  // für den Rückruf der Abmeldung
-    if (m->dereg(&m->req, nullptr) == DNS_PENDING) WaitForSingleObject(m->done, 2000);
+    if (m->dereg(&m->dereg_req, nullptr) == DNS_PENDING) WaitForSingleObject(m->deregister_done, 2000);
     else mdns_release(m);
     mdns_release(m);  // freigegeben wird erst, wenn auch verspätete Rückrufe durch sind
 }
@@ -338,7 +363,11 @@ ojson NetworkDisplay::status() {
         for (auto& a : addresses_) addrs.push_back(a);
     }
     out["addresses"] = addrs;
-    out["mdns"] = mdns_.load() != nullptr;
+    {
+        std::lock_guard lk(mdns_mu_);
+        auto* mdns = static_cast<Mdns*>(mdns_.load());
+        out["mdns"] = mdns && mdns->registration.load() == Mdns::Registration::active;
+    }
     out["devices"] = store_->list();
     if (up) {
         out["fingerprint"] = companion::format_fingerprint(srv->fingerprint());

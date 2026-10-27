@@ -21,6 +21,9 @@ static std::string response(const std::string& body, const std::string& headers 
     return "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n" + headers + "\r\n" + body;
 }
 int main() {
+#ifdef _WIN32
+    CHECK(dns_completion_contract_for_test()); // numeric localhost: no external DNS or network
+#endif
     for (const auto* ip : {"8.8.8.8", "1.1.1.1", "93.184.216.34", "2001:4860:4860::8888", "2606:4700:4700::1111"})
         CHECK(public_source_ip(ip));
     for (const auto* ip : {"0.0.0.0", "0.1.2.3", "10.2.3.4", "100.64.0.1", "100.127.255.255", "127.0.0.1",

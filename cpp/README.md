@@ -1,16 +1,20 @@
-# ScreenBuddy 2.5.0-dev.2 (unreleased)
+# ScreenBuddy 2.5.0
 
 Version 2.3.0 adds the Companion preview: independent USB/HDMI and Android views, automatic phone dimensions and rotation. See [DE](../docs/COMPANION.md) / [EN](../docs/COMPANION.en.md). Tests include `python tests/app_companion_integration.py` on Windows (isolated processes with `--no-lcd`, no physical display).
 
-Native Windows C++20 application formerly released as FuchsLabs USB-Display. The application and installer are built as one EXE; it requires no Python runtime or Visual C++ redistributable. Basic settings use native Win32 controls. Advanced settings still use Microsoft Edge WebView2, whose Evergreen Runtime is not bundled. Version 2.5 is a development build; 2.3.0 remains the latest published release.
+Native Windows C++20 application formerly released as FuchsLabs USB-Display. The application and installer are built as one EXE; it requires no Python runtime or Visual C++ redistributable. Current 2.5 source opens settings only in the self-drawn native Win32 interface and no longer links WebView2. The loopback API and embedded guide remain; `/` no longer serves the former HTML settings page. ScreenBuddy 2.5.0 requires no WebView2; earlier 2.3.0 still does.
 
-## ScreenBuddy 2.5 development build
+## ScreenBuddy 2.5.0
 
-The unpublished `2.5.0-dev.2` build has seven native settings tabs, including a source editor, display/Companion page ordering, updates and autostart. **Advanced settings** opens WebView2 for guided account/selection workflows, custom colors and Companion pairing/QR. The Win32 shell reuses the existing C++20 rendering, USB and Companion core without adding an Electron runtime; dev.2 did not rewrite it in Flutter or Tauri. Plugin manifests are validated locally; source plugins can be enabled after required settings and per-host consent. Bounded HTTPS fetching runs in its own worker; plugin settings are DPAPI-protected, and rendering stays on the display thread. External HTTPS behavior, the real 2.3.0 upgrade, hardware and interactive UI have not been accepted. The installer saves the previous executable as a fallback, but a real rollback has not been accepted. Public repository/homepage renaming is deferred. Do not use this section as an install or release notice; the download remains 2.3.0.
+Native Direct2D/DirectWrite settings without WebView2, guided setup, display/touch selection and declarative plugins. Signed Companion preview 0.2.1-preview included separately. Windows visual/touch/interaction acceptance, real 2.3.0 → 2.5.0 upgrade and rollback to saved 2.3.0 passed; settings and pairing file preserved. Redmi 8: USB tethering, landscape/portrait, real finger gestures, 5-second timer and reconnect without a new PIN passed. Automated: 1,429 Windows checks and 20 Android protocol tests.
+
+Limits: online plugins remain experimental; CRL/OCSP revocation checking and the complete UI import/consent workflow are not accepted. DPI/screen-reader and complete feature parity are not fully tested. The English guide explicitly identifies its German native screenshots. Windows sign-in, Wi-Fi, launcher/boot and multiple Android devices remain untested.
+
+The sample manifests and tutorials are in [examples/plugins](examples/plugins/README.md), [German](../docs/PLUGIN-TUTORIAL.md) and [English](../docs/PLUGIN-TUTORIAL.en.md). They include an offline clock, an offline focus board and an optional public weather source. The 41 example checks validate and render manifests; they do not contact external services or prove hardware output.
 
 ## Install and first start
 
-1. Download the EXE from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (currently 2.3.0), then start it from Downloads or another folder. The EXE is unsigned; verify it using the supplied `SHA256SUMS.txt`.
+1. Download the EXE from the [latest release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) (2.5.0: `ScreenBuddy.exe`), then start it from Downloads or another folder. The EXE is unsigned; verify it using the supplied `SHA256SUMS.txt`.
 2. Choose the options in the installer. The default location is `%LOCALAPPDATA%\FuchsLabs\USB-Display`; no administrator rights are required.
 3. On first start, settings open in their own Windows window. Open them later from the fox icon in the notification area. Configure the display and optional Discord, Steam, Xbox, Battlefield 6, and RSS data there.
 
@@ -20,7 +24,7 @@ The installer can import the Version 1.x `config.toml`. Secrets use Windows DPAP
 
 - System statistics, friends from Discord/Steam/Xbox, Battlefield 6 profiles, and RSS/Atom feeds.
 - USB serial display and full-screen monitor output, orientation, brightness, touch navigation, themes, and scalable multi-tile layouts.
-- Native Win32 basic settings, advanced WebView2 settings, tray controls, current-user autostart, installer, updater, and uninstaller.
+- Tray controls, current-user autostart, installer, updater and uninstaller. ScreenBuddy 2.5 has native Win32 settings; earlier 2.3.0 used WebView2. The loopback API and embedded guide remain available.
 - Settings server binds only to loopback. Requests are checked for local Host, browser fetch metadata, and the `X-FL: 1` write header. RSS targets and redirects are checked against non-public IP ranges.
 
 Discord uses D++ with the Members and Presence intents enabled. Enable both privileged intents in the Discord Developer Portal for the bot.
@@ -76,7 +80,7 @@ Run `build\fl-monitor-tests.exe window` only for a controlled visible secondary-
 
 Version 2.3.0: release build, 236 core checks, 11 monitor checks and 335 Companion/TLS checks; 39 isolated app-integration checks; 2 installer config-preservation checks; 22 DE/EN browser checks; Android has 20 protocol tests. The 2.3.0 settings page rendered on Windows with the Redmi 8 connected. Redmi preview validation confirms native portrait/landscape sizing, automatic page changes, touch/swipe and reconnect. The companion and physical USB display have not yet been tested together in the same new PC process; Wi-Fi, launcher/boot and multiple real devices remain open.
 
-ScreenBuddy 2.5.0-dev.2 (unreleased): 236 core, 220 parser, 127 plugin-store, 133 plugin-transport, 135 plugin-settings, 11 monitor and 335 Companion checks; 39 isolated app, 49 navigation and two installer checks passed. External HTTPS behavior, hardware, real upgrade and interactive visual acceptance of the native UI remain open. See [development status](../docs/SCREENBUDDY-2.5.en.md) and the [test record](TESTPROTOKOLL.md).
+Development checks before release (27 October 2026): 272 core, 223 parser, 127 plugin-store, 134 plugin-transport, 135 plugin-settings, 41 plugin-example, 11 monitor and 335 Companion checks; 27 native UI, 16 mouse, 16 Companion rebuild, 39 isolated app, 51 navigation/API and two installer checks passed. One isolated public HTTPS fetch passed; the full in-app consent flow, hardware, real upgrade and full interactive visual acceptance of the native UI remain open. See [development status](../docs/SCREENBUDDY-2.5.en.md) and the [test record](TESTPROTOKOLL.md).
 
 Version 2.2.0: release build, 225 core checks (new: system-page hit areas, version comparison, GitHub response parsing) and 11 monitor basics passed. Open: tapping on real touch hardware, balloon/settings entry with a genuinely newer release, Windows sign-in test.
 

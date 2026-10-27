@@ -129,9 +129,12 @@ bool SettingsServer::start() {
 
     // ---------- Seiten ----------
     svr.Get("/", [](const httplib::Request&, httplib::Response& res) {
-        auto html = res::get(res::WEBUI);
+        res.status = 410;
         res.set_header("Cache-Control", "no-store");
-        res.set_content(std::string(html), "text/html; charset=utf-8");
+        res.set_content(i18n::lang() == "en"
+                            ? "ScreenBuddy settings are available in the native window."
+                            : "Die ScreenBuddy-Einstellungen sind im nativen Fenster verfügbar.",
+                        "text/plain; charset=utf-8");
     });
     svr.Get("/anleitung", [](const httplib::Request& req, httplib::Response& res) {
         std::string lang = req.has_param("lang") ? req.get_param_value("lang") : i18n::lang();

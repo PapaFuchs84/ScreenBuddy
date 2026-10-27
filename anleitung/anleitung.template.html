@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>USB-Display einrichten</title>
+<title>ScreenBuddy einrichten</title>
 <link rel="icon" href="{{img:icon}}">
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('fl_theme')||'hell'}catch(e){}</script>
 <style>
@@ -154,7 +154,7 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 </head>
 <body>
 <div class="top"><div class="topin">
-  <div class="brand"><img src="{{img:icon}}" alt="">FuchsLabs</div>
+  <div class="brand"><img src="{{img:icon}}" alt="">ScreenBuddy</div>
   <div class="count" id="count"></div>
   <a class="menu" id="lang" href="GUIDE.html" style="text-decoration:none;color:var(--text)">English</a>
   <button class="menu" id="menu" aria-label="Alle Schritte anzeigen">☰ Alle Schritte</button>
@@ -172,17 +172,15 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 <div class="zoom" id="zoom"></div>
 
 <script>
-/* Bilder: echte Aufnahmen der Einstellungsseite. Ringe in Prozent des Bildes (links, oben, Breite, Höhe). */
-const IMG = {
-  start: '{{img:start}}', uebersicht: '{{img:uebersicht}}', discord: '{{img:discord}}', bf6: '{{img:bf6}}',
-  blogs: '{{img:blogs}}', display: '{{img:display}}', bar: '{{img:bar}}', page_system: '{{img:page_system}}',
-  page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', ha_display: '{{img:ha_display}}', ha_setup: '{{img:ha_setup}}', ha_pick: '{{img:ha_pick}}', icon: '{{img:icon}}'};
-const W = 1280, H = 860;
-function shot(name, rings = [], cap = '', w = W, h = H, nums = true) {
-  const r = rings.map(([x, y, rw, rh, pos = ''], i) => `<span class="ring ${pos}" style="left:${x / w * 100}%;top:${y / h * 100}%;width:${rw / w * 100}%;height:${rh / h * 100}%">${nums && rings.length > 1 ? `<b>${i + 1}</b>` : ''}</span>`).join('');
-  return `<figure><span class="real">📷 So sieht es bei dir aus</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${cap}">${r}</div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
-}
-const help = (items, title = 'Klappt nicht? Hier klicken') =>
+/* Anonymisierte native 2.5-Entwicklungsaufnahmen; die Statuswerte sind ein isoliertes Testbeispiel, kein Hardware-Nachweis. */
+ const IMG = {
+   start: '{{img:start}}', app: '{{img:app}}', uebersicht: '{{img:uebersicht}}', discord: '{{img:discord}}', bf6: '{{img:bf6}}',
+   blogs: '{{img:blogs}}', display: '{{img:display}}', bar: '{{img:bar}}', page_system: '{{img:page_system}}',
+   page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', ha_display: '{{img:ha_display}}', ha_setup: '{{img:ha_setup}}', ha_pick: '{{img:ha_pick}}', icon: '{{img:icon}}'};
+ function shot(name, rings = [], cap = '') {
+   return `<figure><span class="real">📷 Native Oberfläche 2.5 · anonymisiertes Testbeispiel</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${cap}"></div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
+ }
+ const help = (items, title = 'Klappt nicht? Hier klicken') =>
   `<details class="help"><summary>${title}</summary><div class="in"><dl>${items.map(([q, a]) => `<dt>${q}</dt><dd>${a}</dd>`).join('')}</dl></div></details>`;
 const b = t => `<span class="btnname">${t}</span>`, g = t => `<span class="btnname grey">${t}</span>`;
 
@@ -200,7 +198,7 @@ const saveSel = () => { try { localStorage.setItem('fl-guide-sel', JSON.stringif
 
 const STEPS = [
 {t: 'Hallo!', html: () => `
-<p class="kicker">Los geht's</p><h1>Hallo! Wir richten jetzt zusammen dein USB-Display ein.</h1>
+<p class="kicker">Los geht's</p><h1>Hallo! Wir richten jetzt zusammen ScreenBuddy ein.</h1>
 <p class="lead">Das kleine Display zeigt dir Sachen an, ohne dass du dafür ein Fenster auf deinem großen Bildschirm brauchst. Zum Beispiel so:</p>
 <div class="pages">
   <figure><div class="shot" data-zoom><img src="${IMG.page_system}" alt="Systemseite"></div><figcaption>Wie fleißig dein PC gerade arbeitet</figcaption></figure>
@@ -220,8 +218,8 @@ const STEPS = [
 <ol class="do">
 <li><b>Das Display</b> mit seinem <b>USB-Kabel</b>.</li>
 <li><b>Einen Windows-PC</b> (Windows 10 oder 11, 64 Bit) mit Internet.</li>
-<li><b>Die Datei <span class="key">FuchsLabs-USB-Display.exe</span></b>. Die lädst du im nächsten Schritt herunter. Es gibt kein ZIP zum Auspacken.</li>
-<li><b>Microsoft Edge WebView2</b>. Das ist ein Baustein von Windows, den die Einstellungen brauchen. Bei den meisten PCs ist er schon da. Fehlt er, sagt dir das Programm Bescheid.</li>
+<li><b>Die Datei <span class="key">ScreenBuddy.exe</span></b>. Die lädst du im nächsten Schritt herunter. Es gibt kein ZIP zum Auspacken.</li>
+<li><b>Keine Zusatzlaufzeit für ScreenBuddy 2.5</b>. Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt. Die frühere Version 2.3.0 braucht noch WebView2.</li>
 ${sel.discord ? '<li><b>Dein Discord-Konto</b> und einen Discord-Server, auf dem du Chef (Admin) bist. Bist du das nicht, frag den Chef des Servers, ob er dir hilft.</li>' : ''}
 ${sel.friends ? '<li><b>Dein Steam-Konto</b> und/oder <b>dein Xbox-Konto</b>.</li>' : ''}
 ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</li>' : ''}
@@ -231,15 +229,16 @@ ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</l
 
 {t: 'Programm holen', html: () => `
 <p class="kicker">Herunterladen</p><h1>Lade das Programm herunter</h1>
-<p class="lead">Das Programm ist <b>eine einzige Datei</b>. Du musst nichts auspacken.</p>
+<p class="lead">ScreenBuddy ist <b>eine einzige Datei</b>. Du musst nichts auspacken.</p>
+<div class="box tip"><p><b>ScreenBuddy 2.5:</b> Lade <span class="key">ScreenBuddy.exe</span> herunter. Die Bilder zeigen die native Oberfläche mit anonymen Beispieldaten. Die frühere Version 2.3.0 hat andere Menüs; nutze dafür ihre eigene eingebettete Anleitung.</p></div>
 <ol class="do">
 <li>Öffne diese Seite: <a href="https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest" target="_blank" rel="noopener">Aktueller Release auf GitHub</a>. Oder nimm die Datei, die dir der geschickt hat, von dem du diese Anleitung hast.</li>
-<li>Lade die Datei <span class="key">FuchsLabs-USB-Display.exe</span> herunter.</li>
+<li>Lade <span class="key">ScreenBuddy.exe</span> aus Release 2.5.0 herunter und prüfe die SHA-256-Prüfsumme mit der beiliegenden Prüfsummendatei.</li>
 <li>Sie landet normalerweise im Ordner <b>Downloads</b>.</li>
 </ol>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
 <div class="tb">📁 Downloads<span>— ☐ ✕</span></div>
-<div class="files"><div class="file sel hlbtn"><img src="${IMG.icon}" alt=""><br>FuchsLabs-USB-Display.exe</div></div></div></figure>
+<div class="files"><div class="file sel hlbtn"><img src="${IMG.icon}" alt=""><br>ScreenBuddy.exe</div></div></div></figure>
 <div class="box tip"><p>Die Datei muss <b>nicht</b> an einem besonderen Platz liegen. Das Programm kopiert sich beim Installieren selbst an den richtigen Ort.</p></div>
 ${help([['Ich finde die Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den findest du im Explorer (gelbes Ordner-Symbol unten in der Taskleiste) links in der Liste.'],
   ['Der Browser meldet, die Datei sei „nicht häufig heruntergeladen“.', 'Das Programm ist neu und noch nicht bekannt. Wenn du es von der richtigen Seite hast, wähle <b>Behalten</b>.']])}`},
@@ -255,16 +254,17 @@ ${help([['Ich finde die Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den fi
 
 {t: 'Installieren', html: () => `
 <p class="kicker">Installieren</p><h1>Starte das Programm und installiere es</h1>
+<p>Starte <span class="key">ScreenBuddy.exe</span>. Die Beispiele zeigen anonyme Beispieldaten.</p>
 <ol class="do">
-<li>Mach einen <b>Doppelklick</b> auf <span class="key">FuchsLabs-USB-Display.exe</span>. Das ist die Datei mit dem orangen Zeichen.</li>
+<li>Mach einen <b>Doppelklick</b> auf <span class="key">ScreenBuddy.exe</span>. Das ist die Datei mit dem orangen Zeichen.</li>
 <li>Es öffnet sich ein kleines Fenster. Es zeigt, wohin installiert wird: in <span class="key">%LOCALAPPDATA%\FuchsLabs\USB-Display</span>, also nur in dein eigenes Konto.</li>
 <li>Du kannst Häkchen setzen: <b>Mit Windows starten</b> und <b>Eintrag im Startmenü</b>. Beides ist eine gute Idee.</li>
 <li>Klicke auf ${b('Installieren')}. Warte kurz. Dann steht dort <b>„Fertig! Die App startet jetzt.“</b></li>
 </ol>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
-<div class="tb">ScreenBuddy – Installation<span>— ☐ ✕</span></div>
+<div class="tb">ScreenBuddy 2.5 – Installation (Entwicklung)<span>— ☐ ✕</span></div>
 <div class="files" style="display:block;padding:16px;text-align:left">
-<p style="margin:0 0 8px"><b>Installation · aktuelle Version</b></p>
+<p style="margin:0 0 8px"><b>Installation · ScreenBuddy 2.5</b></p>
 <p style="margin:0 0 8px">☑ Mit Windows starten (nur das Fuchs-Symbol im Infobereich)<br>☑ Eintrag im Startmenü</p>
 <p style="margin:0;text-align:right"><span class="btnname hlbtn">Installieren</span></p></div></div></figure>
 <div class="box tip"><p><b>Hattest du schon Version 1.x?</b> Dann erscheint noch ein Häkchen <b>„Alte Version 1.x stilllegen“</b>. Lass es an: Deine Einstellungen und Zugangsdaten werden übernommen. Der alte Ordner bekommt den Zusatz <span class="key">-1.x-alt</span> und bleibt als Sicherung.</p></div>
@@ -283,7 +283,7 @@ ${help([['Es passiert gar nichts.', 'Warte 10 Sekunden. Das Programm braucht bei
  init: () => {
   const ss = document.getElementById('ss'), more = document.getElementById('ssmore');
   more.onclick = () => {
-    more.outerHTML = '<p>App: FuchsLabs-USB-Display.exe<br>Herausgeber: Unbekannter Herausgeber</p>';
+    more.outerHTML = '<p>App: ScreenBuddy.exe<br>Herausgeber: Unbekannter Herausgeber</p>';
     ss.querySelector('.row').innerHTML = '<button class="go hlbtn" id="ssrun">Trotzdem ausführen</button><button>Nicht ausführen</button>';
     document.getElementById('ssrun').onclick = () => { ss.innerHTML = '<h3>✓ Geschafft!</h3><p>Das Programm startet jetzt.</p>'; document.getElementById('ssdone').hidden = false; };
   };
@@ -292,33 +292,33 @@ ${help([['Es passiert gar nichts.', 'Warte 10 Sekunden. Das Programm braucht bei
 {t: 'Die Einstellungsseite', html: () => `
 <p class="kicker">Nachschauen</p><h1>Die Einstellungen öffnen sich von selbst</h1>
 <p class="lead">Nach dem Installieren geht ein eigenes Fenster auf. Das ist die <b>Einstellungsseite</b>. Dort stellst du alles ein. Sie gehört nur dir und ist nicht im Internet.</p>
-<p>Schau ins Feld <b>„Zustand“</b>. Bei <b>Display</b> soll <b>„Verbunden“</b> stehen.</p>
-${shot('start', [[286, 196, 869, 63]], 'Bei „Display“ steht „Verbunden“: Alles gut!')}
+<p>Auf <b>Übersicht</b> steht der Displaystatus in der ersten Kachel. Nach dem Anschluss soll er <b>„Verbunden“</b> anzeigen. Das Bild unten stammt aus einer isolierten Testinstanz ohne angeschlossene Hardware; sein Status ist kein Nachweis für dein Gerät.</p>
+${shot('start', [[286, 196, 869, 63]], 'Die Statuskachel steht links oben. Prüfe den Wert an deinem eigenen Gerät.')}
 <p>Wenn das klappt, leuchtet jetzt auch dein kleines Display. 🎉</p>
 ${help([['Da steht „Die Hersteller-App des Displays läuft“.', `Klicke daneben auf ${g('Hersteller-App beenden')}. Wenn darunter noch <b>„Autostart der Hersteller-App“</b> steht, klicke dort auf ${g('Abschalten')}. Windows fragt dann einmal nach, ob du das erlaubst: <b>Ja</b> klicken.`],
   ['Da steht „Display nicht gefunden“.', 'Zieh das USB-Kabel ab und steck es wieder an. Probier einen anderen USB-Anschluss am PC. Warte dann ein paar Sekunden.'],
-  ['Es kommt die Meldung, dass WebView2 fehlt.', 'Dann fehlt Windows der Baustein „Microsoft Edge WebView2“. Installiere die <b>WebView2-Laufzeit</b> von Microsoft und starte das Programm danach noch einmal.'],
+  ['Version 2.3.0 meldet fehlendes WebView2.', 'Installiere die <b>Microsoft Edge WebView2-Laufzeit</b> und starte die veröffentlichte 2.3.0 erneut. ScreenBuddy 2.5 nutzt ein natives Einstellungsfenster.'],
   ['Das Fenster ist nicht aufgegangen.', 'Unten rechts neben der Uhr ist ein kleines oranges Zeichen (vielleicht hinter dem Pfeil <span class="key">^</span>). Mach darauf einen Doppelklick.'],
   ['Das Bild auf dem Display steht auf dem Kopf.', 'Kein Problem, das reparierst du gleich in Schritt „Bild drehen und Helligkeit“.']])}`},
 
 {t: 'Mit Windows starten', html: () => `
 <p class="kicker">Einschalten</p><h1>Das Display soll immer von selbst angehen</h1>
 <p class="lead">Damit du das Programm nicht jedes Mal selbst starten musst:</p>
-<ol class="do"><li>Schalte auf der Seite <b>Start</b> den Schalter <b>„Mit Windows starten“</b> ein. Er wird dann orange. (Hast du das beim Installieren schon angehakt, ist er schon an.)</li></ol>
-${shot('start', [[1088, 280, 62, 40]], 'Diesen Schalter antippen, bis er orange ist.')}
+<ol class="do"><li>Öffne <b>Updates &amp; Autostart</b> und schalte <b>„Mit Windows starten“</b> ein. Er wird dann orange. (Hast du das beim Installieren schon angehakt, ist er schon an.)</li></ol>
+${shot('app', [], '„Updates &amp; Autostart“. In der isolierten Testinstanz ist der Windows-Start gesperrt; in der normalen App ist er verfügbar.')}
 <div class="box tip"><p>Auf dieser Seite gibt es auch den Knopf ${b('Anleitung öffnen ↗')}. Damit kommst du jederzeit zurück zu dieser Anleitung.</p></div>
-<div class="box tip"><p><b>Neu in 2.2.0 – neue Version:</b> Das Programm schaut höchstens einmal am Tag bei GitHub nach, ob es eine neuere Version gibt. Dann erscheint eine Sprechblase am Fuchs-Symbol, und auf der Seite <b>Start</b> steht „Neue Version verfügbar“ mit einem Link zur Download-Seite. Es wird nie etwas von allein installiert. Mit <b>Jetzt prüfen</b> fragst du selbst nach; der Schalter <b>„Auf neue Versionen hinweisen“</b> schaltet das Nachschauen aus.</p></div>
-<div class="box tip"><p>Ab jetzt startet das Programm von selbst, wenn du dich bei Windows anmeldest. Es zeigt dann nur das kleine Fuchs-Symbol unten rechts, die Einstellungen gehen nicht von allein auf. Ausschalten kannst du es hier genauso.</p></div>`},
+<div class="box tip"><p><b>Neu in 2.2.0 – neue Version:</b> Das Programm schaut höchstens einmal am Tag bei GitHub nach, ob es eine neuere Version gibt. Dann erscheint eine Sprechblase am Fuchs-Symbol, und unter <b>Updates &amp; Autostart</b> steht „Neue Version verfügbar“ mit einem Link zur Download-Seite. Es wird nie etwas von allein installiert. Mit <b>Jetzt prüfen</b> fragst du selbst nach; der Schalter <b>„Auf neue Versionen hinweisen“</b> schaltet das Nachschauen aus.</p></div>
+<div class="box tip"><p>Ab jetzt startet das Programm von selbst, wenn du dich bei Windows anmeldest. Es zeigt dann nur das kleine Fuchs-Symbol unten rechts, die Einstellungen gehen nicht von allein auf. Ausschalten kannst du es auf derselben Seite.</p></div>`},
 
 {t: 'Seiten aussuchen', html: () => `
 <p class="kicker">Aussuchen</p><h1>Welche Seiten zeigt das Display?</h1>
-<p class="lead">Klicke links auf <b>„Übersicht“</b>. Links siehst du, was das Display gerade zeigt. Rechts sind die Seiten.</p>
-<div class="box tip"><p>Ab Version 2.0.4 kannst du unter der Live-Vorschau mit <b>Vorherige Ansicht</b> und <b>Nächste Ansicht</b> direkt auf dem Display blättern. Die aktuelle Position steht darunter. Auch Unterseiten langer Listen werden berücksichtigt. Der automatische Wechsel läuft danach weiter. Dafür musst du nicht speichern.</p></div>
-${shot('uebersicht', [[1090, 226, 58, 352, 'tr'], [1055, 226, 34, 352], [843, 735, 238, 34]])}
+<p class="lead">Klicke links auf <b>„Seiten &amp; Reihenfolge“</b>. Dort wählst du Seiten aus und sortierst sie. Die Live-Vorschau steht rechts.</p>
+<div class="box tip"><p>Ab Version 2.0.4 kannst du mit den Steuerelementen der Live-Vorschau durch die Seiten blättern. Die aktuelle Position steht darunter. Auch Unterseiten langer Listen werden berücksichtigt. Der automatische Wechsel läuft danach weiter. Dafür musst du nicht speichern.</p></div>
+${shot('uebersicht', [], 'Die native Seite „Seiten &amp; Reihenfolge“ mit Häkchen und Pfeilen.')}
 <ol class="do">
-<li>Mit dem <b>orangen Schalter</b> machst du eine Seite an oder aus. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Mach die Seiten aus, die du nicht willst.' : ''}${sel.friends ? ' Für Steam und Xbox schaltest du <b>„Freunde (alle Plattformen)“</b> ein.' : ''}</li>
-<li>Mit den <b>Pfeilen ▲ ▼</b> änderst du die Reihenfolge.</li>
-<li>Mit dem Regler <b>Helligkeit</b> machst du das Display heller oder dunkler.</li>
+<li>Mit dem <b>Häkchen</b> machst du eine Seite an oder aus. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Mach die Seiten aus, die du nicht willst.' : ''}${sel.friends ? ' Für Steam und Xbox schaltest du <b>„Freunde (alle Plattformen)“</b> ein.' : ''}</li>
+<li>Mit den <b>Pfeilen ▲ ▼</b> änderst du die Reihenfolge auf „Seiten &amp; Reihenfolge“.</li>
+<li>Den Regler <b>Helligkeit</b> findest du unter <b>Anzeige</b>.</li>
 </ol>
 <div class="box warn"><p>Unten erscheint dann ein Balken mit ${b('Speichern &amp; anwenden')}. Den drückst du ganz am Ende. Du kannst ihn aber auch jetzt schon drücken.</p></div>`},
 
@@ -327,7 +327,7 @@ ${shot('uebersicht', [[1090, 226, 58, 352, 'tr'], [1055, 226, 34, 352], [843, 73
 <p class="lead">Dieser Schritt gilt für einen normalen Bildschirm über HDMI oder USB-C ab Version 2.0.3. Für ein kleines USB-Display über COM-Port kannst du weitergehen.</p>
 <ol class="do">
 <li>Verbinde den Bildschirm mit dem PC. Stelle Windows auf <b>Erweitern</b>. Für Touch muss auch die <b>USB-Touchverbindung</b> bestehen.</li>
-<li>Öffne <b>Display</b> in den Einstellungen. Wähle unter <b>Display-Typ</b> die Ausgabe <b>Bildschirm über HDMI oder USB-C</b> und den vorgesehenen Bildschirm. Klicke auf <b>Speichern &amp; anwenden</b>.</li>
+<li>Öffne <b>Anzeige</b> in den Einstellungen. Wähle unter <b>Display-Typ</b> die Ausgabe <b>Bildschirm über HDMI oder USB-C</b> und den vorgesehenen Bildschirm. Klicke auf <b>Speichern &amp; anwenden</b>.</li>
 <li>Erscheinen Berührungen auf einem anderen Bildschirm? Klicke auf <b>Touch-Bildschirm zuordnen</b>. Die Anzeige pausiert während des Windows-Assistenten.</li>
 <li>Überspringe andere Bildschirme mit <b>Enter</b>. Sobald der Text des Assistenten auf dem gewünschten Touchscreen steht, berühre diesen Bildschirm. <b>Esc</b> bricht ab.</li>
 <li>Klicke danach auf <b>Erneut prüfen</b>. Schalte bei Bedarf <b>Touch-Steuerung</b> ein und speichere. Nach links wischen = nächste Seite, nach rechts = vorherige; Tippen links = zurück, sonst weiter. Tippen auf einen Blogbeitrag öffnet ihn im Browser auf dem PC (ab 2.0.6).</li>
@@ -342,8 +342,8 @@ ${shot('uebersicht', [[1090, 226, 58, 352, 'tr'], [1055, 226, 34, 352], [843, 73
 <p class="kicker">Nur wenn nötig</p><h1>Steht das Bild auf dem Kopf?</h1>
 <p class="lead">Wenn das Bild auf deinem Display richtig herum ist, drück einfach auf ${b('Weiter →')}.</p>
 <p>Wenn es auf dem Kopf steht:</p>
-<ol class="do"><li>Klicke links auf <b>„Display“</b>.</li><li>Wähle bei <b>Ausrichtung</b> die andere Variante, also <b>„Querformat“</b> statt <b>„Querformat, gedreht“</b> oder andersherum.</li></ol>
-${shot('display', [[925, 175, 231, 43]], 'Hier stellst du um, wie herum das Bild ist.')}`},
+<ol class="do"><li>Klicke links auf <b>„Anzeige“</b>.</li><li>Wähle bei <b>Ausrichtung</b> die andere Variante, also <b>„Quer“</b> statt <b>„Quer 180°“</b> oder andersherum.</li></ol>
+${shot('display', [], 'Die Ausrichtung steht auf der Seite „Anzeige“ unter dem Helligkeitsregler.')}`},
 
 {need: 'discord', t: 'Discord 1: Bot anlegen', html: () => `
 <p class="kicker">Discord · Teil 1 von 3</p><h1>Mach dir einen kleinen Discord-Helfer</h1>
@@ -399,7 +399,7 @@ ${help([['Mein Server steht nicht in der Liste.', 'Du darfst nur Bots auf Server
 <li>Drück unten auf ${b('Speichern &amp; anwenden')}. Warte etwa 10 Sekunden.</li>
 <li>Jetzt erscheinen bei <b>Personen</b> die Leute von deinem Server. Setz einen Haken bei deinen Freunden.</li>
 </ol>
-${shot('discord', [[925, 277, 231, 42], [286, 860, 869, 318]], 'Beispiel-Namen. Unter dem Token-Feld steht die Hilfe noch einmal zum Aufklappen.', W, 1180)}
+${shot('discord', [], 'Bot-Token und Personen stehen auf der nativen Discord-Seite. Die Beispieldaten enthalten keinen echten Token.')}
 <div class="box tip"><p>Wenn du <b>niemanden</b> anhakst, zeigt das Display alle Leute vom Server. Wenn du Freunde anhakst, nur diese.</p></div>
 ${help([['Bei „Personen“ steht „Der Bot ist gerade nicht verbunden“.', 'Prüfe, ob du den ganzen Token eingefügt hast, und ob du in Teil 1 die beiden Schalter (Intents) grün gemacht und gespeichert hast. Klicke dann noch einmal auf <b>Speichern &amp; anwenden</b>.'],
   ['Meine Freunde fehlen in der Liste.', 'Der Bot sieht nur Leute auf Servern, auf denen er selbst ist. Lade ihn auch auf den Server ein, auf dem deine Freunde sind (Teil 2).'],
@@ -416,7 +416,7 @@ ${help([['Bei „Personen“ steht „Der Bot ist gerade nicht verbunden“.', '
 <li><b>Xbox:</b> Klapp <b>„So bekommst du den Xbox-Schlüssel“</b> auf und folge den Schritten dort.</li>
 <li>Klicke jeweils auf ${g('Verbindung prüfen')}. Grün heißt: klappt. Dann ${b('Speichern &amp; anwenden')}.</li>
 </ol>
-${shot('freunde', [[675, 157, 231, 42], [675, 222, 231, 42], [35, 329, 870, 390], [675, 900, 231, 42]], 'Die Hilfe zum Aufklappen hat Knöpfe, die gleich die richtige Seite öffnen.', 940, 960, false)}
+${shot('freunde', [], 'Die native Freunde-Seite enthält Steam- und Xbox-Einstellungen. Scrolle für weitere Felder nach unten.')}
 <div class="box secret"><p>Die Schlüssel sind wie <b>Passwörter</b>. Zeig sie niemandem.</p></div>
 <div class="box tip"><p>Für PlayStation gibt es leider keinen erlaubten Weg. Darum fehlt sie hier.</p></div>
 ${help([['Da steht, die Freundesliste ist privat.', 'Bei Steam die Freundesliste auf <b>Öffentlich</b> stellen (Schritt 4) und dann noch einmal prüfen.'],
@@ -432,7 +432,7 @@ ${help([['Da steht, die Freundesliste ist privat.', 'Bei Steam die Freundesliste
 <li>Klicke auf ${g('Hinzufügen')}. Mach das genauso für jeden Freund.</li>
 <li>Klicke bei einem Namen auf ${g('Prüfen')}. Steht dort grün ein <b>Rang</b>, ist der Name richtig.</li>
 </ol>
-${shot('bf6', [[286, 751, 869, 43], [990, 405, 62, 33], [286, 806, 869, 203]], 'Beispiel-Namen. Grün heißt: gefunden. Bei 3 steht, wo du die EA-ID findest.', W, 1180)}
+${shot('bf6', [], 'Battlefield-6-Einstellungen in der nativen Oberfläche. Scrolle für die Spielerliste nach unten.')}
 ${help([['Da steht „Spieler nicht gefunden“.', 'Schau genau auf die Schreibweise. Groß- und Kleinbuchstaben und Null und O werden oft verwechselt. Frag deinen Freund nach seinem genauen EA-Namen.'],
   ['Mein Freund spielt auf der Konsole.', 'Wähle beim Eintragen rechts neben dem Feld <b>PlayStation</b> oder <b>Xbox</b> aus.']])}`},
 
@@ -444,7 +444,7 @@ ${help([['Da steht „Spieler nicht gefunden“.', 'Schau genau auf die Schreibw
 <li>Kopier die Adresse der Webseite aus deinem Browser und füge sie unten ins Feld ein.</li>
 <li>Klicke auf ${g('Hinzufügen')} und dann auf ${g('Prüfen')}. Grün heißt: klappt.</li>
 </ol>
-${shot('blogs', [[286, 765, 869, 42], [286, 476, 869, 63]], 'Beispiel-Webseiten. Grün heißt: Es wurden Artikel gefunden.', W, 1180)}
+${shot('blogs', [], 'Die native RSS-Seite. Scrolle für die Adressliste und Prüffunktion nach unten.')}
 ${help([['Da steht „Kein Feed gefunden“.', 'Manche Seiten machen keine Artikel-Liste für Programme. Probier eine andere Seite oder häng an die Adresse <span class="key">/feed/</span> an.']])}`},
 
 {need: 'system', t: 'Mein PC', html: () => `
@@ -465,7 +465,7 @@ ${shot('ha_display', [], 'So sieht die Seite auf dem Display aus: zwei Sensoren 
 <li>Füge es bei ${b('Zugriffstoken')} ein.</li>
 <li>Klicke auf ${b('Verbindung prüfen &amp; Entitäten laden')}. Steht daneben „Verbunden“, hat alles geklappt.</li>
 </ol>
-${shot('ha_setup', [[675, 146, 230, 42], [675, 210, 230, 42], [35, 275, 232, 31]], 'Adresse (1), Zugriffstoken (2) und Verbindung prüfen (3).', 940, 550)}
+${shot('ha_setup', [], 'Adresse, Zugriffstoken und Verbindungsprüfung auf der nativen Home-Assistant-Seite.')}
 <div class="box secret"><p>Das <b>Token</b> ist wie ein <b>Passwort</b> für dein Smart Home. Zeig es niemandem. Die App speichert es verschlüsselt, nur dein Windows-Konto kann es lesen.</p></div>
 <h2>2. Kacheln wählen</h2>
 <ol class="do">
@@ -473,7 +473,7 @@ ${shot('ha_setup', [[675, 146, 230, 42], [675, 210, 230, 42], [35, 275, 232, 31]
 <li>Klicke beim gewünschten Wert auf ${b('Hinzufügen')}. Es passen höchstens <b>4</b> auf die Seite, die Kacheln stehen in der Reihenfolge der Liste. Mit ${b('Entfernen')} nimmst du eine wieder heraus.</li>
 <li>Schalte ganz oben ${b('Seite anzeigen')} ein und klicke unten auf ${b('Speichern &amp; anwenden')}.</li>
 </ol>
-${shot('ha_pick', [[35, 82, 870, 278], [35, 392, 870, 42], [805, 459, 87, 31]], 'Deine Auswahl (1), Suchfeld (2) und Hinzufügen (3).', 940, 692)}
+<p>Die Entitäten-Auswahl liegt auf derselben Seite weiter unten. Scrolle im mittleren Bereich nach unten.</p>
 <div class="box tip"><p><b>Schalter</b> (Schalter, Licht, Ventilator, Eingabe-Schalter) lassen sich nur wählen, wenn ein Touch-Bildschirm angeschlossen und <b>Touch-Steuerung</b> eingeschaltet ist (Reiter <b>Display</b>, siehe Schritt „HDMI/USB-C und Touch“). Dann legt ein Tipp auf die Kachel den Schalter um. Ohne Touch bleiben nur Sensoren. Schlösser, Rollläden und Alarmanlagen lassen sich bewusst nicht schalten.</p></div>
 ${help([['Home Assistant ist nicht erreichbar.', 'Prüfe die Adresse und ob PC und Home Assistant im selben Netzwerk sind. Wenn du nur „homeassistant.local“ benutzt, probiere die IP-Adresse, zum Beispiel <b>http://192.168.1.20:8123</b>.'],
   ['Token ungültig oder abgelaufen.', 'Erstelle in Home Assistant unter <b>Sicherheit</b> ein neues langlebiges Token und füge es ein.'],
@@ -484,7 +484,7 @@ ${help([['Home Assistant ist nicht erreichbar.', 'Prüfe die Adresse und ob PC u
 {t: 'Speichern', html: () => `
 <p class="kicker">Ganz wichtig</p><h1>Speichern nicht vergessen!</h1>
 <p class="lead">Wenn du etwas geändert hast, erscheint unten auf der Einstellungsseite ein Balken.</p>
-${shot('bar', [[828, 14, 190, 44]], 'Diesen Knopf drücken.', 1050, 70)}
+${shot('bar', [], '„Speichern &amp; anwenden“ befindet sich rechts unten im nativen Fenster.')}
 <ol class="do">
 <li>Drück auf ${b('Speichern &amp; anwenden')}.</li>
 <li>Warte etwa <b>10 Sekunden</b>. Das Display wird kurz neu gestartet.</li>
@@ -495,7 +495,7 @@ ${shot('bar', [[828, 14, 190, 44]], 'Diesen Knopf drücken.', 1050, 70)}
 {t: 'Wiederfinden', html: () => `
 <p class="kicker">Später</p><h1>So findest du die Einstellungen wieder</h1>
 <p class="lead">Das Programm läuft leise im Hintergrund. Es hat ein kleines <b>oranges Zeichen</b> unten rechts neben der Uhr.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.5-Entwicklungsbuild:</b> Die sieben nativen Reiter enthalten unter anderem Quellen-Editor, Seitenreihenfolge, Updates und Autostart. Für geführte Konto-/Auswahl-Abläufe, eigene Farben und Companion-Kopplung mit QR-Code wähle <b>Erweiterte Einstellungen …</b>. Quellen-Plugins benötigen Pflicht-Einstellungen und die Zustimmung zu jedem Host. Der aktuelle Download 2.3.0 nutzt weiterhin die bisherige Oberfläche.</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.5:</b> Die native Oberfläche enthält bereits die Phase-2-Seiten für Discord, Freunde, Home Assistant, Companion-Kopplung mit QR-Code und Geräteverwaltung sowie Farben &amp; Design. Quellen-Editor, Seitenreihenfolge, Updates und Autostart sind ebenfalls nativ verfügbar. Alle Einstellungen öffnen sich im nativen Fenster; die bebilderte Anleitung selbst bleibt als HTML-Hilfe im Browser verfügbar. Quellen-Plugins benötigen Pflicht-Einstellungen und die Zustimmung zu jedem Host. Die frühere Version 2.3.0 nutzt die bisherige Oberfläche.</p></div>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
 <span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22.10.2026</div></div></div></figure>
@@ -503,7 +503,7 @@ ${shot('bar', [[828, 14, 190, 44]], 'Diesen Knopf drücken.', 1050, 70)}
 <li>Siehst du das Zeichen nicht? Klicke auf den kleinen Pfeil <span class="key">^</span>.</li>
 <li>Mach einen <b>Doppelklick</b> auf das orange Zeichen. Die Einstellungen gehen auf.</li>
 <li>Mit einem <b>Rechtsklick</b> auf das Zeichen siehst du: <b>Einstellungen öffnen</b>, <b>Anleitung öffnen</b>, <b>Neu starten</b> und <b>Beenden</b>. <b>Anleitung öffnen</b> zeigt diese Anleitung in deinem Browser, auch ohne das Einstellungsfenster. Auch der Knopf <b>Anleitung öffnen</b> in den Einstellungen öffnet sie im Browser, so hast du beides nebeneinander.</li>
-<li>Wenn du den Eintrag im Startmenü angehakt hast, findest du das Programm auch dort: <b>ScreenBuddy</b>.</li>
+<li>Wenn du den Eintrag im Startmenü angehakt hast, findest du das Programm auch dort: <b>ScreenBuddy</b> (Version 2.3.0: <b>FuchsLabs USB-Display</b>).</li>
 </ol>
 <div class="box tip"><p>Das Fenster zu schließen blendet nur die Einstellungen aus. Das Display läuft weiter.</p></div>`},
 
@@ -512,12 +512,12 @@ ${shot('bar', [[828, 14, 190, 44]], 'Diesen Knopf drücken.', 1050, 70)}
 <h1 style="text-align:center">Geschafft! Dein Display ist fertig.</h1>
 <p class="lead" style="text-align:center">Du hast alles eingerichtet. Jetzt kannst du zuschauen, wie die Seiten wechseln.</p>
 <h2>Wenn später etwas nicht klappt</h2>
-${help([['Das Display bleibt dunkel.', 'Schau, ob das orange Zeichen unten rechts da ist. Wenn nicht: das Programm im Startmenü öffnen (oder die EXE doppelklicken). Danach auf der Seite <b>Start</b> schauen, was bei „Zustand“ steht.'],
+${help([['Das Display bleibt dunkel.', 'Schau, ob das orange Zeichen unten rechts da ist. Wenn nicht: das Programm im Startmenü öffnen (oder die EXE doppelklicken). Danach auf <b>Übersicht</b> den Displaystatus prüfen.'],
   ['Das Bild sieht verschoben oder komisch aus.', 'Kabel kurz abziehen und wieder anstecken. Oder auf der Seite <b>Display</b> auf <b>Neu starten</b> klicken.'],
-  ['Das Display ist zu dunkel.', 'Seite <b>Übersicht</b>, Regler <b>Helligkeit</b> nach rechts schieben, dann <b>Speichern &amp; anwenden</b>.'],
-  ['Ich will das Programm loswerden.', 'Öffne in Windows <b>Einstellungen → Apps</b>, wähle <b>ScreenBuddy</b> und klicke auf <b>Deinstallieren</b>. Windows fragt, ob auch deine Einstellungen und Zugangsdaten gelöscht werden sollen.']], 'Hilfe bei Problemen')}
+  ['Das Display ist zu dunkel.', 'Seite <b>Anzeige</b>, Regler <b>Helligkeit</b> nach rechts schieben, dann <b>Speichern &amp; anwenden</b>.'],
+  ['Ich will das Programm loswerden.', 'Öffne in Windows <b>Einstellungen → Apps</b>, wähle <b>ScreenBuddy</b> (Version 2.3.0: <b>FuchsLabs USB-Display</b>) und klicke auf <b>Deinstallieren</b>. Windows fragt, ob auch deine Einstellungen und Zugangsdaten gelöscht werden sollen.']], 'Hilfe bei Problemen')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Viel Spaß! · © 2026 FuchsLabs</p>`},
-{t: 'Companion: Handy unabhängig steuern', html: () => `<h1>USB-Display und Handy gleichzeitig</h1><p class="lead">Companion-Vorschau ab Version 2.3.0: Beide Anzeigen haben eigene Seiten und Wechselintervalle.</p><ol><li>USB/HDMI als Display-Typ beibehalten. Im Reiter Companion den Dienst einschalten, speichern und anwenden.</li><li>Companion-Vorschau-APK installieren. Dasselbe private Netz oder USB-Tethering verwenden. Mit dem lokalen Code koppeln und Zertifikat-Fingerabdruck vergleichen.</li><li>Unter Companion → Unabhängige Companion-Anzeige die Handy-Seiten und Dauer wählen. Die andere Anzeige unter Display → Seiten auf USB-Display / Bildschirm wählen.</li><li>Die zusätzlichen Einstellungen erscheinen nur bei aktivem Companion. Datenquellen in ihrem eigenen Reiter einschalten und einrichten.</li></ol><p>Wischen schaltet nur das Handy um. Die native Auflösung folgt Verbindung und Rotation. Das zuerst verbundene Handy bestimmt die gemeinsame Companion-Größe; weitere Handys teilen dessen Seiten. Größere Anfragen werden proportional auf höchstens 2560 Pixel je Kante / 4.194.304 Pixel verkleinert. Redmi-Ausgabe, injizierte Gesten und Wiederverbindung sind über USB-Tethering geprüft. Der Nutzer bestätigte außerdem scharfes Bild, Wischen und Tippen mit dem Finger. WLAN und physischer USB-Betrieb in derselben neuen PC-Instanz brauchen eine gesonderte Abnahme.</p>`}
+{t: 'Companion: Handy unabhängig steuern', html: () => `<h1>USB-Display und Handy gleichzeitig</h1><p class="lead">Companion-Vorschau ab Version 2.3.0: Beide Anzeigen haben eigene Seiten und Wechselintervalle.</p><ol><li>USB/HDMI als Display-Typ beibehalten. Im Reiter Companion den Dienst einschalten, speichern und anwenden.</li><li>Signierte Companion-Vorschau 0.2.1-preview installieren. Eine ältere Debug-APK hat eine andere Signatur und lässt sich nicht direkt aktualisieren; vor ihrer Deinstallation Sicherung und Umstieg abstimmen. Nach Neuinstallation erneut koppeln. Dasselbe private Netz oder USB-Tethering verwenden. Mit dem lokalen Code koppeln und Zertifikat-Fingerabdruck vergleichen.</li><li>Unter Companion → Unabhängige Companion-Anzeige die Handy-Seiten und Dauer wählen. Die andere Anzeige unter Display → Seiten auf USB-Display / Bildschirm wählen.</li><li>Die zusätzlichen Einstellungen erscheinen nur bei aktivem Companion. Datenquellen in ihrem eigenen Reiter einschalten und einrichten.</li></ol><p>Wischen schaltet nur das Handy um. Die native Auflösung folgt Verbindung und Rotation. Das zuerst verbundene Handy bestimmt die gemeinsame Companion-Größe; weitere Handys teilen dessen Seiten. Größere Anfragen werden proportional auf höchstens 2560 Pixel je Kante / 4.194.304 Pixel verkleinert. Redmi-Ausgabe, injizierte Gesten und Wiederverbindung sind über USB-Tethering geprüft. Der Nutzer bestätigte außerdem scharfes Bild, Wischen und Tippen mit dem Finger. WLAN und physischer USB-Betrieb in derselben neuen PC-Instanz brauchen eine gesonderte Abnahme.</p>`}
 ];
 
 const $ = s => document.querySelector(s);
@@ -532,7 +532,7 @@ function show(i) {
   $('#prog').style.width = ((cur + 1) / list.length * 100) + '%';
   $('#back').disabled = cur === 0;
   $('#next').textContent = cur === list.length - 1 ? 'Nochmal von vorn ↺' : 'Weiter →';
-  document.title = `${s.t} · USB-Display einrichten`;
+  document.title = `${s.t} · ScreenBuddy einrichten`;
   try { history.replaceState(null, '', '#' + (cur + 1)); } catch (e) {}
   window.scrollTo({top: 0});
   $('#main').querySelectorAll('[data-feat]').forEach(el => el.onclick = () => {
