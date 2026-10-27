@@ -12,7 +12,7 @@ Native Direct2D/DirectWrite settings without WebView2, guided setup, display/tou
 
 ## Final publication
 
-- [ ] Verify final installed executable hash and configuration after the documentation-resource build.
+- [x] Verify final installed executable hash and configuration after the documentation-resource build.
 - [ ] Merge reviewed PR with passing CI; publish tag v2.5.0, Windows EXE, signed preview APK and SHA256SUMS.txt.
 - [ ] Download published assets and verify their checksums.
 - [ ] Refresh website release data and deploy the existing website.
