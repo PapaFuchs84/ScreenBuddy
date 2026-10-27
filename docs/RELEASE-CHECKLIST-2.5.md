@@ -13,12 +13,14 @@ Native Direct2D/DirectWrite-Einstellungen ohne WebView2, geführte Einrichtung, 
 ## Veröffentlichung abschließen
 
 - [x] Finalen installierten EXE-Hash und Konfiguration nach dem Build der Anleitungsressourcen prüfen.
-- [ ] Geprüften PR mit bestandener CI integrieren; Tag v2.5.0, Windows-EXE, signierte Vorschau-APK und SHA256SUMS.txt veröffentlichen.
-- [ ] Veröffentlichte Downloads erneut laden und Prüfsummen vergleichen.
-- [ ] Website-Release-Daten aktualisieren und bestehende Website deployen.
+- [x] Geprüften PR mit bestandener CI integrieren; Tag v2.5.0, Windows-EXE, signierte Vorschau-APK und SHA256SUMS.txt veröffentlichen.
+- [x] Veröffentlichte Downloads erneut laden und Prüfsummen vergleichen.
+- [x] Website-Release-Daten aktualisieren und bestehende Website deployen.
 
 Prüfgrenzen: Online-Plugins bleiben experimentell; CRL/OCSP-Sperrprüfungen und der vollständige UI-Import-/Consent-Ablauf sind nicht abgenommen. DPI-/Screenreader- und vollständige Funktionsparität sind nicht vollständig geprüft. EN-Anleitung mit ausdrücklich gekennzeichneten deutschen nativen Beispielbildern. Windows-Anmeldetest, WLAN, Launcher-/Boot-Modus und mehrere Android-Geräte bleiben offen.
 
 Entscheidung zu Zertifikatssperren: Zertifikatskette und Hostname werden geprüft; CRL/OCSP ist nicht implementiert. Online-Plugins sind ausdrücklich experimentell. Das ist eine dokumentierte Grenze und keine vollständige Plugin-Abnahme.
 
 Android-Release-Schlüssel und Passwörter sicher zusätzlich sichern; künftige APK-Updates benötigen dasselbe Zertifikat. Für Rückfall App beenden und die privat gesicherte, geprüfte 2.3.0-EXE, config.toml, companion.json und appbezogenen Autostart-/Uninstall-Zustand wiederherstellen. [Testprotokoll](../cpp/TESTPROTOKOLL.md).
+
+Veröffentlicht und erneut heruntergeladen: [v2.5.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.5.0). Alle drei Asset-Prüfsummen stimmen überein. Bestehender Website-Update-Dienst erfolgreich; öffentliche DE/EN-Seiten lieferten HTTP 200 mit v2.5.0-Downloadlink. Keine Firewall-, Container- oder Proxy-Einstellungen geändert.
