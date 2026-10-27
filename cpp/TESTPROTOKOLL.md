@@ -2,6 +2,13 @@
 
 ## ScreenBuddy 2.5.0 candidate + Companion 0.2.1-preview (27.10.2026): Fortsetzung
 
+### Integrierter Commit 8492c54 – Wiederholungsbuild und Tests
+
+- Nach Integration gebaut: Windows 2.5.0, 14.971.392 Bytes, SHA-256 `5706E50E0C3F41054E715C2DF1012D5F48F366583BD258B33E6E10CD899E64F0`. Build, dist und lokales Kandidatenpaket synchronisiert. Android-APK bleibt bytegleich `E06F57AAF7CC51906C5E6626BE1BE44C119034F1AD04B2FE529282520A76EB47`.
+- Erneut bestanden auf dem Commit: 272 Kern-, 223 Parser-, 41 Beispiel-, 127 Speicher-, 134 Transport-, 135 Plugin-Einstellungs-, 11 Monitor- und 335 Companion-Prüfungen; 27 native Einstellungs-, 16 Maus-, 16 Companion-Rebuild-, 51 Navigations/API-, 39 Integrations- und zwei Installerprüfungen. Android-Protokolltest und signierter Release-Build bestätigt; 204 lokale Markdown-Linkziele ohne fehlendes Ziel geprüft.
+- Die aktuell am Zielsystem beobachtete EXE hat weiterhin den separat dokumentierten Hash `17A3DB7C…`. PE-Vergleich: kompletter Neubuild bytegleich nach Maskierung ausschließlich von PE-Zeitstempel, PE-Prüfsumme und Debug-Metadaten; insbesondere .text, .data und .rsrc unverändert. Die Hashes werden nicht gleichgesetzt. Finales Installations-/Sichttestergebnis und Rückfallprüfung bleiben offen.
+- Kein Tag oder Release veröffentlicht, Website unverändert. Lokaler Kandidaten-Commit enthält kein Signiermaterial, keine privaten Konfigurationen/Logs und keine App-Binärdateien. Nicht zum Release gehörende Marketing-Entwürfe bleiben unangetastet im Arbeitsbaum.
+
 ### Windows-Zielsystem: Upgrade und Sicherung verifiziert; Sichtprüfung läuft
 
 - Codex-Dateizugriffe wurden nachweislich auf eine alte Paketkopie (2.0) umgeleitet. Eine einmalige Aufgabe mit normalen Benutzerrechten außerhalb des Paketkontexts bestätigte die echte Ausgangsinstallation: API und Datei 2.3.0, SHA-256 `3A1ECBD20269AFC78B3E5B63C129FA3460860C5720E195F2C1191104B0792A69`. EXE, config.toml und companion.json bytegleich privat gesichert; Registry-Zustand für Rückfall lokal erfasst.
