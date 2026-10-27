@@ -13,12 +13,14 @@ Native Direct2D/DirectWrite settings without WebView2, guided setup, display/tou
 ## Final publication
 
 - [x] Verify final installed executable hash and configuration after the documentation-resource build.
-- [ ] Merge reviewed PR with passing CI; publish tag v2.5.0, Windows EXE, signed preview APK and SHA256SUMS.txt.
-- [ ] Download published assets and verify their checksums.
-- [ ] Refresh website release data and deploy the existing website.
+- [x] Merge reviewed PR with passing CI; publish tag v2.5.0, Windows EXE, signed preview APK and SHA256SUMS.txt.
+- [x] Download published assets and verify their checksums.
+- [x] Refresh website release data and deploy the existing website.
 
 Limits: online plugins remain experimental; CRL/OCSP revocation checking and the complete UI import/consent workflow are not accepted. DPI/screen-reader and complete feature parity are not fully tested. The English guide explicitly identifies its German native screenshots. Windows sign-in, Wi-Fi, launcher/boot and multiple Android devices remain untested.
 
 Revocation decision: chain and hostname verification remain enabled; CRL/OCSP is not implemented. Online plugins are explicitly experimental. This is a documented limit, not a claim of full plugin acceptance.
 
 Keep the Android release key and its passwords securely backed up; future APK updates require the same certificate. For rollback stop the app and restore the private, verified 2.3.0 executable, config.toml, companion.json and app-specific startup/uninstall state. [Test record](../cpp/TESTPROTOKOLL.md).
+
+Published and downloaded again: [v2.5.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.5.0). All three asset checksums match. Existing website update service completed successfully; public DE/EN pages returned HTTP 200 with the v2.5.0 download link. No firewall, container or proxy settings changed.

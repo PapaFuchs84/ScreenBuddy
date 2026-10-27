@@ -1,5 +1,13 @@
 # Testprotokoll – Stand 27.10.2026
 
+## Veröffentlichung ScreenBuddy 2.5.0 (27.10.2026)
+
+- PR #17 und Dokumentations-PR #18 mit bestandenen Python-/JavaScript-CodeQL-Prüfungen integriert. Tag `v2.5.0` zeigt auf Merge-Commit `0351234707f7bbfb92e8754b6991535d97a0b499`. [Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.5.0).
+- Drei öffentliche Downloads erneut abgerufen und bytegleich verifiziert: `ScreenBuddy.exe` (14.970.368 Bytes, SHA-256 `BF63FB91118FF1E16DB718D9EE9448301CCFDAA477A857A37F375A144AA2AA0C`), signierte Companion-APK (3.265.144 Bytes, `E06F57AAF7CC51906C5E6626BE1BE44C119034F1AD04B2FE529282520A76EB47`) und SHA256SUMS.txt. GitHub markiert v2.5.0 als neuesten stabilen Release; Android bleibt ausdrücklich Vorschau.
+- Finale unabhängige Windows-Prüfung: Datei/API 2.5.0, exakter veröffentlichter EXE-Hash, ein installierter Prozess und korrekter Autostart; config.toml bytegleich zum Ausgangsstand. Kopplungsdatei unmittelbar nach Installation bytegleich, später im Betrieb abweichende Geräteliste. Lesender C++-Gegentest lädt alle gesicherten Alt-Kopplungen korrekt; Zertifikat und privater Serverschlüssel sind unverändert. Ursache der später geänderten Liste nicht abschließend zugeordnet. Produktions-Kopplungen nicht zusammengeführt oder zurückgesetzt; eine zusätzliche Schlüssel-Wiederherstellung wurde von der automatischen Freigabeprüfung mangels ausdrücklicher Zustimmung abgelehnt. Sicherung bleibt privat vorhanden. Dies ist kein Nachweis dauerhafter Bytegleichheit einer laufend veränderten Kopplungsdatei.
+- Bestehender Website-Update-Dienst erfolgreich; gecachter Release v2.5.0, neue atomare Veröffentlichung aktiv. Öffentliche DE/EN-Seiten HTTP 200 und v2.5.0-Downloadlink bestätigt. Keine Änderung an Firewall, Proxy oder Containerkonfiguration.
+- Eigene isolierte Testinstanzen beendet; eigene einmalige Prüftasks entfernt. Nicht zum Release gehörende Marketing-Entwürfe bleiben unberührt. Schlüssel, Konfigurationen, Logs und lokale Prüfprogramme werden nicht veröffentlicht.
+
 ## Release-Abnahme ScreenBuddy 2.5.0 (27.10.2026)
 
 - **Finale Installationsprüfung bestanden:** Ressourcen-Build `BF63FB91…` im echten Windows-Kontext installiert, Installer-Exit 0, API 2.5.0, finaler EXE-Hash geprüft, config.toml und companion.json bytegleich erhalten. 51 API-/Navigations- und zwei Installerprüfungen gegen exakt diesen Build bestanden; 272 Kernprüfungen mit eigenem Test-Temp erneut bestanden. Keine erneute physische Langzeitabnahme dieses Hashes behauptet; Änderungen gegenüber dem abgenommenen Programmcode betreffen ausschließlich Anleitungsressourcen und Build-Metadaten.
