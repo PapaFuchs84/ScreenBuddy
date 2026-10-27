@@ -1,6 +1,8 @@
 # ScreenBuddy 2.5 – Development status
 
-**Unpublished local candidate 2.5.0.** Version 2.3.0 remains the latest published release.
+**ScreenBuddy 2.5.0 – 27 October 2026.** Native Direct2D/DirectWrite settings without WebView2, guided setup, display/touch selection and declarative plugins. Signed Companion preview 0.2.1-preview included separately. Windows visual/touch/interaction acceptance, real 2.3.0 → 2.5.0 upgrade and rollback to saved 2.3.0 passed; settings and pairing file preserved. Redmi 8: USB tethering, landscape/portrait, real finger gestures, 5-second timer and reconnect without a new PIN passed. Automated: 1,429 Windows checks and 20 Android protocol tests.
+
+Limits: online plugins remain experimental; CRL/OCSP revocation checking and the complete UI import/consent workflow are not accepted. DPI/screen-reader and complete feature parity are not fully tested. The English guide explicitly identifies its German native screenshots. Windows sign-in, Wi-Fi, launcher/boot and multiple Android devices remain untested.
 
 See the [release checklist](RELEASE-CHECKLIST-2.5.en.md) for the remaining acceptance gates.
 
@@ -19,14 +21,14 @@ Signed Companion 0.2.1-preview is prepared separately; its new certificate diffe
 
 ## Architecture and rollout
 
-The native Win32 shell reuses the existing C++20 implementation for rendering, USB and Companion. The 2.5 candidate rebuilt on 27 October 2026 no longer links WebView2; its runtime is not an app prerequisite for this build. The loopback HTTP service remains for Companion/API and the embedded guide; the former HTML settings page is no longer embedded or served at `/`. Its source file remains for historical tests. The dev.2 build was not rewritten in Flutter or Tauri. UI, upgrade, hardware and external-service validation are required before release. The installer saves the previous executable as a fallback; a real rollback has not been tested. The public repository and homepage rename remains deferred until after release.
+The native Win32 shell reuses the existing C++20 implementation for rendering, USB and Companion. The 2.5 candidate rebuilt on 27 October 2026 no longer links WebView2; its runtime is not an app prerequisite for this build. The loopback HTTP service remains for Companion/API and the embedded guide; the former HTML settings page is no longer embedded or served at `/`. Its source file remains for historical tests. The dev.2 build was not rewritten in Flutter or Tauri. UI, upgrade, hardware and external-service validation are required before release. The installer saves the previous executable as a fallback; real target-system upgrade and rollback to saved 2.3.0 have passed. The public repository and homepage rename remains deferred until after release.
 
 See [Plugin system](PLUGIN-SYSTEM.en.md) for the provisional contract and [Your first ScreenBuddy plugin](PLUGIN-TUTORIAL.en.md) for a step-by-step tutorial.
 
 ## Compatibility and open work
 
-Plugin manifests replace neither config.toml nor existing DPAPI credentials or companion.json. A stable 2.5 release still needs acceptance of complete native feature parity, the external plugin flow, visual/interactive UI, target-system upgrade and final hardware build, plus a performance comparison with 2.3.0. The user reported the earlier image fault resolved on 26 October 2026; no further diagnosis is planned. See the [hardware record](HARDWARE-ACCEPTANCE-2.5.en.md). The repository and homepage have not been publicly renamed.
+Limits: online plugins remain experimental; CRL/OCSP revocation checking and the complete UI import/consent workflow are not accepted. DPI/screen-reader and complete feature parity are not fully tested. The English guide explicitly identifies its German native screenshots. Windows sign-in, Wi-Fi, launcher/boot and multiple Android devices remain untested.
 
-## Verification
+## Earlier development verification
 
 On 26 October 2026, the rebuilt development state passed 272 core, 223 manifest-parser, 127 plugin-store, 134 plugin-transport, 135 plugin-settings, 41 plugin-example, 11 monitor and 335 Companion-protocol checks, plus 27 native settings, 16 mouse, 16 Companion rebuild, 39 isolated app, 49 navigation and two installer checks. The app tests used `--no-lcd`, separate configurations and local test ports. They do not establish physical output, the full external plugin flow, a target-system upgrade or full visual/interactive UI acceptance. One external HTTPS example fetch passed separately in an earlier isolated run. [Test record](../cpp/TESTPROTOKOLL.md).

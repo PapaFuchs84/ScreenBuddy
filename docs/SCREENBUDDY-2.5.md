@@ -1,6 +1,8 @@
 # ScreenBuddy 2.5 – Entwicklungsstand
 
-**Unveröffentlichter lokaler Kandidat 2.5.0.** Die letzte veröffentlichte Version ist 2.3.0.
+**ScreenBuddy 2.5.0 – 27.10.2026.** Native Direct2D/DirectWrite-Einstellungen ohne WebView2, geführte Einrichtung, Display-/Touch-Auswahl und deklarative Plugins. Signierte Companion-Vorschau 0.2.1-preview separat enthalten. Windows-Sicht-/Touch-/Bedienprüfung, reales Upgrade 2.3.0 → 2.5.0 und Rückfall auf die gesicherte 2.3.0 bestanden; Konfiguration und Kopplungsdatei erhalten. Redmi 8: USB-Tethering, Quer-/Hochformat, Fingerbedienung, 5-Sekunden-Wechsel und Wiederverbindung ohne neue PIN bestanden. Automatisiert: 1.429 Windows-Prüfungen und 20 Android-Protokolltests.
+
+Prüfgrenzen: Online-Plugins bleiben experimentell; CRL/OCSP-Sperrprüfungen und der vollständige UI-Import-/Consent-Ablauf sind nicht abgenommen. DPI-/Screenreader- und vollständige Funktionsparität sind nicht vollständig geprüft. EN-Anleitung mit ausdrücklich gekennzeichneten deutschen nativen Beispielbildern. Windows-Anmeldetest, WLAN, Launcher-/Boot-Modus und mehrere Android-Geräte bleiben offen.
 
 Die offenen Freigabepunkte stehen in der [Release-Checkliste](RELEASE-CHECKLIST-2.5.md).
 
@@ -19,13 +21,13 @@ Die signierte Companion-Vorschau 0.2.1-preview ist separat vorbereitet; ihr neue
 
 ## Architektur und Rollout
 
-Die native Win32-Hülle nutzt die vorhandene C++20-Implementierung für Rendering, USB und Companion weiter. Der am 27.10.2026 neu gebaute 2.5-Kandidat bindet WebView2 nicht mehr ein; dessen Laufzeit ist für diesen Build keine App-Voraussetzung. Der lokale HTTP-Dienst bleibt für Companion/API und die eingebettete Anleitung erhalten; die bisherige HTML-Einstellungsseite wird nicht mehr eingebettet oder unter `/` ausgeliefert. Ihre Quelldatei bleibt für historische Tests erhalten. In dev.2 wurde weder auf Flutter noch Tauri umgeschrieben. Vor einer Freigabe sind UI-, Upgrade-, Hardware- und externe-Dienst-Abnahmen erforderlich. Der Installer sichert eine Vorgänger-EXE als Rückfallkopie; ein echtes Rollback wurde noch nicht abgenommen. Öffentliche Repository- und Homepage-Umbenennung bleibt bis nach der Freigabe zurückgestellt.
+Die native Win32-Hülle nutzt die vorhandene C++20-Implementierung für Rendering, USB und Companion weiter. Der am 27.10.2026 neu gebaute 2.5-Kandidat bindet WebView2 nicht mehr ein; dessen Laufzeit ist für diesen Build keine App-Voraussetzung. Der lokale HTTP-Dienst bleibt für Companion/API und die eingebettete Anleitung erhalten; die bisherige HTML-Einstellungsseite wird nicht mehr eingebettet oder unter `/` ausgeliefert. Ihre Quelldatei bleibt für historische Tests erhalten. In dev.2 wurde weder auf Flutter noch Tauri umgeschrieben. Vor einer Freigabe sind UI-, Upgrade-, Hardware- und externe-Dienst-Abnahmen erforderlich. Der Installer sichert eine Vorgänger-EXE als Rückfallkopie; Zielsystem-Upgrade und Rückfall auf die gesicherte 2.3.0 sind bestanden. Öffentliche Repository- und Homepage-Umbenennung bleibt bis nach der Freigabe zurückgestellt.
 
 Die vorläufige Entwicklerschnittstelle steht unter [Plugin-System](PLUGIN-SYSTEM.md); eine schrittweise Anleitung enthält [Dein erstes ScreenBuddy-Plugin](PLUGIN-TUTORIAL.md).
 
 ## Kompatibilität und offene Arbeit
 
-Plugin-Manifeste ersetzen weder config.toml noch vorhandene DPAPI-Zugangsdaten oder companion.json. Für eine stabile 2.5-Freigabe fehlen die Abnahme vollständiger nativer Funktionsparität, des externen Plugin-Ablaufs, der visuellen/interaktiven UI, des Zielsystem-Upgrades und des finalen Hardware-Builds sowie ein Performancevergleich mit 2.3.0. Der Nutzer meldete den früheren Bildfehler am 26.10.2026 als behoben; eine weitere Diagnose erfolgt nicht. [Hardware-Protokoll](HARDWARE-ACCEPTANCE-2.5.md). Repository und Homepage sind noch nicht öffentlich umbenannt.
+Prüfgrenzen: Online-Plugins bleiben experimentell; CRL/OCSP-Sperrprüfungen und der vollständige UI-Import-/Consent-Ablauf sind nicht abgenommen. DPI-/Screenreader- und vollständige Funktionsparität sind nicht vollständig geprüft. EN-Anleitung mit ausdrücklich gekennzeichneten deutschen nativen Beispielbildern. Windows-Anmeldetest, WLAN, Launcher-/Boot-Modus und mehrere Android-Geräte bleiben offen.
 
 ## Prüfstatus
 

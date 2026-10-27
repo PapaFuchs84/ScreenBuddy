@@ -4,7 +4,17 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
-## [Unreleased] – ScreenBuddy 2.5 in Entwicklung
+## [2.5.0] – 2026-10-27
+
+Native Direct2D/DirectWrite-Einstellungen ohne WebView2, geführte Einrichtung, Display-/Touch-Auswahl und deklarative Plugins. Signierte Companion-Vorschau 0.2.1-preview separat enthalten. Windows-Sicht-/Touch-/Bedienprüfung, reales Upgrade 2.3.0 → 2.5.0 und Rückfall auf die gesicherte 2.3.0 bestanden; Konfiguration und Kopplungsdatei erhalten. Redmi 8: USB-Tethering, Quer-/Hochformat, Fingerbedienung, 5-Sekunden-Wechsel und Wiederverbindung ohne neue PIN bestanden. Automatisiert: 1.429 Windows-Prüfungen und 20 Android-Protokolltests.
+
+Prüfgrenzen: Online-Plugins bleiben experimentell; CRL/OCSP-Sperrprüfungen und der vollständige UI-Import-/Consent-Ablauf sind nicht abgenommen. DPI-/Screenreader- und vollständige Funktionsparität sind nicht vollständig geprüft. EN-Anleitung mit ausdrücklich gekennzeichneten deutschen nativen Beispielbildern. Windows-Anmeldetest, WLAN, Launcher-/Boot-Modus und mehrere Android-Geräte bleiben offen.
+
+Die Windows-EXE ist unsigniert. Android verwendet ein neues Release-Zertifikat; eine alte Debug-APK kann nicht direkt aktualisiert werden. [Release-Notizen](docs/RELEASE-NOTES-2.5.md).
+
+## Historische Entwicklungsnotizen vor 2.5.0
+
+Die folgenden datierten Notizen beschreiben ihren damaligen Prüfstand; die obige Release-Abnahme ersetzt frühere offene Punkte nur im ausdrücklich geprüften Umfang.
 
 - 27.10.2026: Companion 0.2.1-preview (versionCode 3) mit externer privater Release-Signierung vorbereitet; gültige APK-v2-Signatur und 20 Protokolltests geprüft. Andere Signatur als die bisherige Debug-APK; Geräteabnahme und Veröffentlichung offen.
 

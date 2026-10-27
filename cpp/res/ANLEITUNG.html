@@ -218,8 +218,8 @@ const STEPS = [
 <ol class="do">
 <li><b>Das Display</b> mit seinem <b>USB-Kabel</b>.</li>
 <li><b>Einen Windows-PC</b> (Windows 10 oder 11, 64 Bit) mit Internet.</li>
-<li><b>Die Datei <span class="key">FuchsLabs-USB-Display.exe</span></b>. Die lädst du im nächsten Schritt herunter. Es gibt kein ZIP zum Auspacken.</li>
-<li><b>Microsoft Edge WebView2</b>. Das ist ein Baustein von Windows, den die veröffentlichte Version 2.3.0 für ihre Einstellungen braucht; die native Oberfläche des 2.5-Entwicklungsbuilds benötigt ihn nicht. Bei den meisten PCs ist er schon da. Fehlt er, sagt dir das Programm Bescheid.</li>
+<li><b>Die Datei <span class="key">ScreenBuddy.exe</span></b>. Die lädst du im nächsten Schritt herunter. Es gibt kein ZIP zum Auspacken.</li>
+<li><b>Keine Zusatzlaufzeit für ScreenBuddy 2.5</b>. Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt. Die frühere Version 2.3.0 braucht noch WebView2.</li>
 ${sel.discord ? '<li><b>Dein Discord-Konto</b> und einen Discord-Server, auf dem du Chef (Admin) bist. Bist du das nicht, frag den Chef des Servers, ob er dir hilft.</li>' : ''}
 ${sel.friends ? '<li><b>Dein Steam-Konto</b> und/oder <b>dein Xbox-Konto</b>.</li>' : ''}
 ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</li>' : ''}
@@ -230,15 +230,15 @@ ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</l
 {t: 'Programm holen', html: () => `
 <p class="kicker">Herunterladen</p><h1>Lade das Programm herunter</h1>
 <p class="lead">ScreenBuddy ist <b>eine einzige Datei</b>. Du musst nichts auspacken.</p>
-<div class="box tip"><p><b>ScreenBuddy:</b> Die nächste Version 2.5 befindet sich in Entwicklung und heißt <span class="key">ScreenBuddy.exe</span>. Der veröffentlichte Download bleibt Version 2.3.0 mit dem bisherigen Dateinamen <span class="key">FuchsLabs-USB-Display.exe</span>. Die Bilder dieser Anleitung zeigen die native 2.5-Entwicklungsoberfläche mit anonymisierten Beispieldaten. Die veröffentlichte 2.3.0 hat andere Menüs; nutze für sie die bisherige Hilfe der installierten App.</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.5:</b> Lade <span class="key">ScreenBuddy.exe</span> herunter. Die Bilder zeigen die native Oberfläche mit anonymen Beispieldaten. Die frühere Version 2.3.0 hat andere Menüs; nutze dafür ihre eigene eingebettete Anleitung.</p></div>
 <ol class="do">
 <li>Öffne diese Seite: <a href="https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest" target="_blank" rel="noopener">Aktueller Release auf GitHub</a>. Oder nimm die Datei, die dir der geschickt hat, von dem du diese Anleitung hast.</li>
-<li>Lade für die veröffentlichte Version 2.3.0 die Datei <span class="key">FuchsLabs-USB-Display.exe</span> herunter. Bei einem ausdrücklich gewählten ScreenBuddy-Entwicklungsbuild heißt sie <span class="key">ScreenBuddy.exe</span>.</li>
+<li>Lade <span class="key">ScreenBuddy.exe</span> aus Release 2.5.0 herunter und prüfe die SHA-256-Prüfsumme mit der beiliegenden Prüfsummendatei.</li>
 <li>Sie landet normalerweise im Ordner <b>Downloads</b>.</li>
 </ol>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
 <div class="tb">📁 Downloads<span>— ☐ ✕</span></div>
-<div class="files"><div class="file sel hlbtn"><img src="${IMG.icon}" alt=""><br>FuchsLabs-USB-Display.exe</div></div></div></figure>
+<div class="files"><div class="file sel hlbtn"><img src="${IMG.icon}" alt=""><br>ScreenBuddy.exe</div></div></div></figure>
 <div class="box tip"><p>Die Datei muss <b>nicht</b> an einem besonderen Platz liegen. Das Programm kopiert sich beim Installieren selbst an den richtigen Ort.</p></div>
 ${help([['Ich finde die Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den findest du im Explorer (gelbes Ordner-Symbol unten in der Taskleiste) links in der Liste.'],
   ['Der Browser meldet, die Datei sei „nicht häufig heruntergeladen“.', 'Das Programm ist neu und noch nicht bekannt. Wenn du es von der richtigen Seite hast, wähle <b>Behalten</b>.']])}`},
@@ -254,9 +254,9 @@ ${help([['Ich finde die Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den fi
 
 {t: 'Installieren', html: () => `
 <p class="kicker">Installieren</p><h1>Starte das Programm und installiere es</h1>
-<p>Beim ScreenBuddy-Entwicklungsbuild startest du stattdessen <span class="key">ScreenBuddy.exe</span>. Die folgenden Download- und SmartScreen-Beispiele zeigen den veröffentlichten Dateinamen von 2.3.0.</p>
+<p>Starte <span class="key">ScreenBuddy.exe</span>. Die Beispiele zeigen anonyme Beispieldaten.</p>
 <ol class="do">
-<li>Mach einen <b>Doppelklick</b> auf <span class="key">FuchsLabs-USB-Display.exe</span>. Das ist die Datei mit dem orangen Zeichen.</li>
+<li>Mach einen <b>Doppelklick</b> auf <span class="key">ScreenBuddy.exe</span>. Das ist die Datei mit dem orangen Zeichen.</li>
 <li>Es öffnet sich ein kleines Fenster. Es zeigt, wohin installiert wird: in <span class="key">%LOCALAPPDATA%\FuchsLabs\USB-Display</span>, also nur in dein eigenes Konto.</li>
 <li>Du kannst Häkchen setzen: <b>Mit Windows starten</b> und <b>Eintrag im Startmenü</b>. Beides ist eine gute Idee.</li>
 <li>Klicke auf ${b('Installieren')}. Warte kurz. Dann steht dort <b>„Fertig! Die App startet jetzt.“</b></li>
@@ -264,7 +264,7 @@ ${help([['Ich finde die Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den fi
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
 <div class="tb">ScreenBuddy 2.5 – Installation (Entwicklung)<span>— ☐ ✕</span></div>
 <div class="files" style="display:block;padding:16px;text-align:left">
-<p style="margin:0 0 8px"><b>Installation · Entwicklungsbuild</b></p>
+<p style="margin:0 0 8px"><b>Installation · ScreenBuddy 2.5</b></p>
 <p style="margin:0 0 8px">☑ Mit Windows starten (nur das Fuchs-Symbol im Infobereich)<br>☑ Eintrag im Startmenü</p>
 <p style="margin:0;text-align:right"><span class="btnname hlbtn">Installieren</span></p></div></div></figure>
 <div class="box tip"><p><b>Hattest du schon Version 1.x?</b> Dann erscheint noch ein Häkchen <b>„Alte Version 1.x stilllegen“</b>. Lass es an: Deine Einstellungen und Zugangsdaten werden übernommen. Der alte Ordner bekommt den Zusatz <span class="key">-1.x-alt</span> und bleibt als Sicherung.</p></div>
@@ -283,7 +283,7 @@ ${help([['Es passiert gar nichts.', 'Warte 10 Sekunden. Das Programm braucht bei
  init: () => {
   const ss = document.getElementById('ss'), more = document.getElementById('ssmore');
   more.onclick = () => {
-    more.outerHTML = '<p>App: FuchsLabs-USB-Display.exe<br>Herausgeber: Unbekannter Herausgeber</p>';
+    more.outerHTML = '<p>App: ScreenBuddy.exe<br>Herausgeber: Unbekannter Herausgeber</p>';
     ss.querySelector('.row').innerHTML = '<button class="go hlbtn" id="ssrun">Trotzdem ausführen</button><button>Nicht ausführen</button>';
     document.getElementById('ssrun').onclick = () => { ss.innerHTML = '<h3>✓ Geschafft!</h3><p>Das Programm startet jetzt.</p>'; document.getElementById('ssdone').hidden = false; };
   };
@@ -297,7 +297,7 @@ ${shot('start', [[286, 196, 869, 63]], 'Die Statuskachel steht links oben. Prüf
 <p>Wenn das klappt, leuchtet jetzt auch dein kleines Display. 🎉</p>
 ${help([['Da steht „Die Hersteller-App des Displays läuft“.', `Klicke daneben auf ${g('Hersteller-App beenden')}. Wenn darunter noch <b>„Autostart der Hersteller-App“</b> steht, klicke dort auf ${g('Abschalten')}. Windows fragt dann einmal nach, ob du das erlaubst: <b>Ja</b> klicken.`],
   ['Da steht „Display nicht gefunden“.', 'Zieh das USB-Kabel ab und steck es wieder an. Probier einen anderen USB-Anschluss am PC. Warte dann ein paar Sekunden.'],
-  ['Version 2.3.0 meldet fehlendes WebView2.', 'Installiere die <b>Microsoft Edge WebView2-Laufzeit</b> und starte die veröffentlichte 2.3.0 erneut. Der 2.5-Entwicklungsbuild nutzt ein natives Einstellungsfenster.'],
+  ['Version 2.3.0 meldet fehlendes WebView2.', 'Installiere die <b>Microsoft Edge WebView2-Laufzeit</b> und starte die veröffentlichte 2.3.0 erneut. ScreenBuddy 2.5 nutzt ein natives Einstellungsfenster.'],
   ['Das Fenster ist nicht aufgegangen.', 'Unten rechts neben der Uhr ist ein kleines oranges Zeichen (vielleicht hinter dem Pfeil <span class="key">^</span>). Mach darauf einen Doppelklick.'],
   ['Das Bild auf dem Display steht auf dem Kopf.', 'Kein Problem, das reparierst du gleich in Schritt „Bild drehen und Helligkeit“.']])}`},
 
@@ -495,7 +495,7 @@ ${shot('bar', [], '„Speichern &amp; anwenden“ befindet sich rechts unten im 
 {t: 'Wiederfinden', html: () => `
 <p class="kicker">Später</p><h1>So findest du die Einstellungen wieder</h1>
 <p class="lead">Das Programm läuft leise im Hintergrund. Es hat ein kleines <b>oranges Zeichen</b> unten rechts neben der Uhr.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.5-Entwicklungsbuild:</b> Die native Oberfläche enthält bereits die Phase-2-Seiten für Discord, Freunde, Home Assistant, Companion-Kopplung mit QR-Code und Geräteverwaltung sowie Farben &amp; Design. Quellen-Editor, Seitenreihenfolge, Updates und Autostart sind ebenfalls nativ verfügbar. Alle Einstellungen öffnen sich im nativen Fenster; die bebilderte Anleitung selbst bleibt als HTML-Hilfe im Browser verfügbar. Quellen-Plugins benötigen Pflicht-Einstellungen und die Zustimmung zu jedem Host. Der aktuelle Download 2.3.0 nutzt weiterhin die bisherige Oberfläche.</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.5:</b> Die native Oberfläche enthält bereits die Phase-2-Seiten für Discord, Freunde, Home Assistant, Companion-Kopplung mit QR-Code und Geräteverwaltung sowie Farben &amp; Design. Quellen-Editor, Seitenreihenfolge, Updates und Autostart sind ebenfalls nativ verfügbar. Alle Einstellungen öffnen sich im nativen Fenster; die bebilderte Anleitung selbst bleibt als HTML-Hilfe im Browser verfügbar. Quellen-Plugins benötigen Pflicht-Einstellungen und die Zustimmung zu jedem Host. Die frühere Version 2.3.0 nutzt die bisherige Oberfläche.</p></div>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
 <span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22.10.2026</div></div></div></figure>
@@ -517,7 +517,7 @@ ${help([['Das Display bleibt dunkel.', 'Schau, ob das orange Zeichen unten recht
   ['Das Display ist zu dunkel.', 'Seite <b>Anzeige</b>, Regler <b>Helligkeit</b> nach rechts schieben, dann <b>Speichern &amp; anwenden</b>.'],
   ['Ich will das Programm loswerden.', 'Öffne in Windows <b>Einstellungen → Apps</b>, wähle <b>ScreenBuddy</b> (Version 2.3.0: <b>FuchsLabs USB-Display</b>) und klicke auf <b>Deinstallieren</b>. Windows fragt, ob auch deine Einstellungen und Zugangsdaten gelöscht werden sollen.']], 'Hilfe bei Problemen')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Viel Spaß! · © 2026 FuchsLabs</p>`},
-{t: 'Companion: Handy unabhängig steuern', html: () => `<h1>USB-Display und Handy gleichzeitig</h1><p class="lead">Companion-Vorschau ab Version 2.3.0: Beide Anzeigen haben eigene Seiten und Wechselintervalle.</p><ol><li>USB/HDMI als Display-Typ beibehalten. Im Reiter Companion den Dienst einschalten, speichern und anwenden.</li><li>Companion-Vorschau-APK installieren. Dasselbe private Netz oder USB-Tethering verwenden. Mit dem lokalen Code koppeln und Zertifikat-Fingerabdruck vergleichen.</li><li>Unter Companion → Unabhängige Companion-Anzeige die Handy-Seiten und Dauer wählen. Die andere Anzeige unter Display → Seiten auf USB-Display / Bildschirm wählen.</li><li>Die zusätzlichen Einstellungen erscheinen nur bei aktivem Companion. Datenquellen in ihrem eigenen Reiter einschalten und einrichten.</li></ol><p>Wischen schaltet nur das Handy um. Die native Auflösung folgt Verbindung und Rotation. Das zuerst verbundene Handy bestimmt die gemeinsame Companion-Größe; weitere Handys teilen dessen Seiten. Größere Anfragen werden proportional auf höchstens 2560 Pixel je Kante / 4.194.304 Pixel verkleinert. Redmi-Ausgabe, injizierte Gesten und Wiederverbindung sind über USB-Tethering geprüft. Der Nutzer bestätigte außerdem scharfes Bild, Wischen und Tippen mit dem Finger. WLAN und physischer USB-Betrieb in derselben neuen PC-Instanz brauchen eine gesonderte Abnahme.</p>`}
+{t: 'Companion: Handy unabhängig steuern', html: () => `<h1>USB-Display und Handy gleichzeitig</h1><p class="lead">Companion-Vorschau ab Version 2.3.0: Beide Anzeigen haben eigene Seiten und Wechselintervalle.</p><ol><li>USB/HDMI als Display-Typ beibehalten. Im Reiter Companion den Dienst einschalten, speichern und anwenden.</li><li>Signierte Companion-Vorschau 0.2.1-preview installieren. Eine ältere Debug-APK hat eine andere Signatur und lässt sich nicht direkt aktualisieren; vor ihrer Deinstallation Sicherung und Umstieg abstimmen. Nach Neuinstallation erneut koppeln. Dasselbe private Netz oder USB-Tethering verwenden. Mit dem lokalen Code koppeln und Zertifikat-Fingerabdruck vergleichen.</li><li>Unter Companion → Unabhängige Companion-Anzeige die Handy-Seiten und Dauer wählen. Die andere Anzeige unter Display → Seiten auf USB-Display / Bildschirm wählen.</li><li>Die zusätzlichen Einstellungen erscheinen nur bei aktivem Companion. Datenquellen in ihrem eigenen Reiter einschalten und einrichten.</li></ol><p>Wischen schaltet nur das Handy um. Die native Auflösung folgt Verbindung und Rotation. Das zuerst verbundene Handy bestimmt die gemeinsame Companion-Größe; weitere Handys teilen dessen Seiten. Größere Anfragen werden proportional auf höchstens 2560 Pixel je Kante / 4.194.304 Pixel verkleinert. Redmi-Ausgabe, injizierte Gesten und Wiederverbindung sind über USB-Tethering geprüft. Der Nutzer bestätigte außerdem scharfes Bild, Wischen und Tippen mit dem Finger. WLAN und physischer USB-Betrieb in derselben neuen PC-Instanz brauchen eine gesonderte Abnahme.</p>`}
 ];
 
 const $ = s => document.querySelector(s);

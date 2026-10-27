@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased – ScreenBuddy 2.5 development
+## 2.5.0 – 27 October 2026
+
+Native Direct2D/DirectWrite settings without WebView2, guided setup, display/touch selection and declarative plugins. Signed Companion preview 0.2.1-preview included separately. Windows visual/touch/interaction acceptance, real 2.3.0 → 2.5.0 upgrade and rollback to saved 2.3.0 passed; settings and pairing file preserved. Redmi 8: USB tethering, landscape/portrait, real finger gestures, 5-second timer and reconnect without a new PIN passed. Automated: 1,429 Windows checks and 20 Android protocol tests.
+
+Limits: online plugins remain experimental; CRL/OCSP revocation checking and the complete UI import/consent workflow are not accepted. DPI/screen-reader and complete feature parity are not fully tested. The English guide explicitly identifies its German native screenshots. Windows sign-in, Wi-Fi, launcher/boot and multiple Android devices remain untested.
+
+### Historical development notes (earlier state)
 
 - 27 October 2026: validated the existing 2.5.0 candidate with component, native UI, API, integration and isolated real-2.3.0 upgrade checks; synchronized dist with the tested executable. No production installation or publication. Prepared signed Android 0.2.1-preview separately; hardware acceptance remains pending.
 

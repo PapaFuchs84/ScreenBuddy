@@ -1,32 +1,24 @@
 # ScreenBuddy 2.5.0 – Release-Checkliste
 
-Stand: 27.10.2026. Dies ist eine Arbeitsliste für den **stabilen** Release. Aktuell bleibt 2.3.0 der veröffentlichte Download; der frühere lokale Build trug `2.5.0-dev.2`.
+27.10.2026.
 
-Aktuelle Fortsetzung: lokaler Windows-Kandidat `2.5.0` (Hash `17A3DB7C…`) und signierte Companion-Vorschau `0.2.1-preview` (versionCode 3) vorbereitet. Komponenten, native UI, API, isoliertes echtes 2.3.0-Upgrade und 20 Android-Protokolltests bestanden. Headless Edge prüfte 23 Schritte je Anleitung auf JS-Fehler, defekte Bilder und horizontalen Überlauf. Vollständige Sicht-/Geräteabnahme offen; keine Veröffentlichung. Siehe neuestes [Testprotokoll](../cpp/TESTPROTOKOLL.md) und [Android-Signierung/Migration](../android/README.md). Signiermaterial vor Veröffentlichung zusätzlich sicher außerhalb dieses Rechners sichern.
+Native Direct2D/DirectWrite-Einstellungen ohne WebView2, geführte Einrichtung, Display-/Touch-Auswahl und deklarative Plugins. Signierte Companion-Vorschau 0.2.1-preview separat enthalten. Windows-Sicht-/Touch-/Bedienprüfung, reales Upgrade 2.3.0 → 2.5.0 und Rückfall auf die gesicherte 2.3.0 bestanden; Konfiguration und Kopplungsdatei erhalten. Redmi 8: USB-Tethering, Quer-/Hochformat, Fingerbedienung, 5-Sekunden-Wechsel und Wiederverbindung ohne neue PIN bestanden. Automatisiert: 1.429 Windows-Prüfungen und 20 Android-Protokolltests.
 
+- [x] Build sowie Komponenten-, Native-UI-, API-, Integrations- und Installerprüfungen bestanden.
+- [x] Signierte Android-APK und 20 Protokolltests bestanden; reales Redmi 8 abgenommen.
+- [x] Nutzer bestätigte Windows-Sicht-/Touch-/Maus-/Tastaturprüfung nach der Beobachtungszeit.
+- [x] Echtes Zielsystem-Upgrade und Rollback mit geprüften EXE-/Konfigurations-/Kopplungs-Sicherungen bestanden.
+- [x] 46 DE/EN-Anleitungsansichten gerendert und visuell geprüft; 204 lokale Dokumentationslinks geprüft.
 
-## Vor dem Release
+## Veröffentlichung abschließen
 
-- [x] Windows-Entwicklungsbuild mit Kern-, Plugin-, Monitor-, Companion- und isolierten Installerprüfungen gebaut. Der aktuelle EXE-Hash steht im [Testprotokoll](../cpp/TESTPROTOKOLL.md).
-- [x] Native Einstellungen und Navigation in isolierten Instanzen geprüft; Website-Staging lokal mit 15 Seiten gebaut.
-- [x] Isoliertes Upgrade mit der bytegleich zum GitHub-Release geprüften 2.3.0-EXE auf den lokalen 2.5.0-dev.2-Kandidaten bestanden: Konfiguration und Companion-Datei erhalten, alte EXE gesichert, Test-Registry unverändert. Kein Zielsystemtest.
-- [ ] Eine fehlerfreie Sichtabnahme des **finalen** Kandidaten mit Build-Hash dokumentieren. Der Nutzer meldete den früheren Bildfehler am 26.10.2026 als behoben; der zuvor fehlgeschlagene Lauf bleibt in der [Hardware-Abnahme](HARDWARE-ACCEPTANCE-2.5.md) dokumentiert. Keine weitere Ursachenanalyse dieses Fehlers.
-- [ ] Upgrade auf dem Zielsystem mit tatsächlich installierter Vorgängerversion und eine Rückkehr zum gesicherten Stand prüfen. Der isolierte Test ersetzt diese Abnahme nicht.
-- [ ] Plugin-Import, Pflicht-Einstellungen und Host-Freigabe in der Oberfläche prüfen; eine freigegebene externe HTTPS-Quelle live testen und die Entscheidung zu Zertifikatssperren (CRL/OCSP) festhalten.
-- [ ] Native Oberfläche mit Maus, Tastatur, DPI und Screenreader visuell und interaktiv abnehmen. Geänderte DE/EN-Anleitungsbilder auf Anonymisierung und Übereinstimmung mit der Oberfläche prüfen.
-- [x] Englische RSS-/Home-Assistant-Demobilder aus lokalisierten Fixtures neu erzeugt und mit den `docs/screenshots/en/`-Dubletten sowie der eingebetteten englischen Anleitung abgeglichen. `en/page_bf6.png` zeigt bereits korrekt „Rank“; Bildmanifest und Hashes geprüft.
-- [x] Eingebettete DE/EN-Anleitung auf vollständige anonymisierte Aufnahmen der nativen 2.5-Oberfläche umgestellt; Generator und Schritttexte aktualisiert. JavaScript-Syntax und 17 eingebettete Bilder je Sprache geprüft. Die EN-Anleitung kennzeichnet die derzeit deutsch beschrifteten nativen Aufnahmen ausdrücklich.
-- [ ] Alle 23 Schritte je Sprache der erzeugten HTML-Anleitungen im Browser visuell prüfen und native EN-Aufnahmen ergänzen. Alle 46 DE/EN-Schritte wurden mit Headless Edge nach Ende der Einblendanimation gerendert und in Übersichtsaufnahmen visuell geprüft; native EN-Aufnahmen bleiben eine dokumentierte Lokalisierungsgrenze.
-- [ ] Änderungen des Arbeitsbaums reviewen und integrieren; Build und Tests auf genau dem zu veröffentlichenden Commit erneut ausführen. Versionsangaben in `cpp/CMakeLists.txt`, `cpp/src/util.h`, `cpp/src/main.cpp` und `cpp/res/app.rc` auf `2.5.0` synchronisieren; DE/EN-Dokumentation, eingebettete Hilfe und Changelogs danach erneut prüfen.
-- [x] Neue Android-APK auf Nutzerwunsch vorbereitet: 0.2.1-preview mit gültiger Release-Signierung.
-- [x] Signierte APK am Redmi 8 über USB-Tethering abgenommen: Quer-/Hochformat, echte Fingerbedienung, Timer und Wiederverbindung ohne neue PIN. Signaturwechsel durch ausdrücklich freigegebene Neuinstallation geprüft.
-- Empfehlung: Signiermaterial zusätzlich sicher außerhalb dieses Rechners sichern.
+- [ ] Finalen installierten EXE-Hash und Konfiguration nach dem Build der Anleitungsressourcen prüfen.
+- [ ] Geprüften PR mit bestandener CI integrieren; Tag v2.5.0, Windows-EXE, signierte Vorschau-APK und SHA256SUMS.txt veröffentlichen.
+- [ ] Veröffentlichte Downloads erneut laden und Prüfsummen vergleichen.
+- [ ] Website-Release-Daten aktualisieren und bestehende Website deployen.
 
-## Veröffentlichung und Rückfall
+Prüfgrenzen: Online-Plugins bleiben experimentell; CRL/OCSP-Sperrprüfungen und der vollständige UI-Import-/Consent-Ablauf sind nicht abgenommen. DPI-/Screenreader- und vollständige Funktionsparität sind nicht vollständig geprüft. EN-Anleitung mit ausdrücklich gekennzeichneten deutschen nativen Beispielbildern. Windows-Anmeldetest, WLAN, Launcher-/Boot-Modus und mehrere Android-Geräte bleiben offen.
 
-- [ ] Finalen EXE-Hash und Größe erfassen, Prüfsumme und Release-Notizen aus dem **finalen** Build erstellen. Die aktuelle 2.5-Quellfassung linkt WebView2 nicht mehr; verbleibende Grenzen und die WebView2-Anforderung des veröffentlichten 2.3.0-Downloads klar trennen.
-- [ ] Erst nach erfüllten Gates `v2.5.0` und Release veröffentlichen; Download und Prüfsumme gegen das veröffentlichte Artefakt vergleichen. Bis dahin 2.3.0 als aktuellen Download belassen.
-- [ ] Website-Daten nach Veröffentlichung neu von GitHub holen, erzeugte DE/EN-Seiten und Downloadlinks prüfen und erst dann deployen.
-- [ ] Vor produktivem Upgrade EXE, `config.toml` und `companion.json` rückspielbar sichern. Nach Installation EXE-Pfad, Datei- und API-Version, einen Prozess, Autostart, Displaybild, Touch und Companion prüfen. Bei Bildstörungen, fehlendem Start oder Datenverlust App stoppen und gesicherten 2.3.0-Stand wiederherstellen.
+Entscheidung zu Zertifikatssperren: Zertifikatskette und Hostname werden geprüft; CRL/OCSP ist nicht implementiert. Online-Plugins sind ausdrücklich experimentell. Das ist eine dokumentierte Grenze und keine vollständige Plugin-Abnahme.
 
-Ein grüner Build oder eine frühere Sichtkontrolle setzt keinen offenen Fehler des finalen Kandidaten außer Kraft.
+Android-Release-Schlüssel und Passwörter sicher zusätzlich sichern; künftige APK-Updates benötigen dasselbe Zertifikat. Für Rückfall App beenden und die privat gesicherte, geprüfte 2.3.0-EXE, config.toml, companion.json und appbezogenen Autostart-/Uninstall-Zustand wiederherstellen. [Testprotokoll](../cpp/TESTPROTOKOLL.md).

@@ -1,20 +1,19 @@
 <div align="center">
 
-**Lokale Release-Vorbereitung, 27.10.2026:** Windows 2.5.0 und signierte Companion-Vorschau 0.2.1-preview liegen als lokale Kandidaten vor; finale Geräte- und Sichtabnahme stehen aus. Der veröffentlichte Download bleibt 2.3.0. [Release-Status](docs/RELEASE-CHECKLIST-2.5.md).
+**ScreenBuddy 2.5.0 – 27.10.2026:** native Windows-Einstellungen und signierte Companion-Vorschau 0.2.1-preview. Windows-Sicht-/Touch-Abnahme, Zielsystem-Upgrade/Rollback und Redmi-8-Tests bestanden. [Release-Notizen](docs/RELEASE-NOTES-2.5.md).
 
-**Neu in 2.3.0 – Companion-Vorschau:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
-# ScreenBuddy (in Entwicklung)
+# ScreenBuddy
 
-**ScreenBuddy 2.5.0-dev.2:** Im unveröffentlichten Entwicklungsstand sind die native Phase-2-Oberfläche mit Discord, Freunden, Home Assistant, Companion-Kopplung/-Geräten und Farben & Design sowie das Plugin-System bereits implementiert. Die native Übersicht führt durch drei Einrichtungsschritte; unter **Anzeige** gibt es die Windows-Touch-Zuordnung mit Assistentenstart und erneuter Prüfung. Die aktuelle Quellfassung startet Einstellungen ausschließlich nativ; der WebView2-Fallback wurde entfernt. Vollständige Funktionsparität mit der früheren HTML-Oberfläche ist noch nicht abgenommen. 2.5 ist nicht veröffentlicht; der Plugin-Vertrag ist vorläufig. [Entwicklungsstand und Prüfgrenzen](docs/SCREENBUDDY-2.5.md) · [Plugin-Anleitung](docs/PLUGIN-SYSTEM.md) · [Eigenes Plugin erstellen](docs/PLUGIN-TUTORIAL.md) · [Fertige Beispiele](cpp/examples/plugins/README.md). Der aktuelle Download 2.3.0 heißt weiterhin FuchsLabs USB-Display.
+**Neu in 2.5:** native Direct2D/DirectWrite-Einstellungen, geführte Einrichtung, Display-/Touch-Konfiguration, Datenquellen, unabhängige Companion-Ausgabe und lokale deklarative Plugins. WebView2 wird nicht mehr benötigt. Online-Plugins bleiben experimentell: Host-Zustimmung ist erforderlich; CRL/OCSP-Sperrprüfung und vollständige UI-Paritätsprüfung stehen aus. [Stand und Grenzen](docs/SCREENBUDDY-2.5.md) · [Plugin-Anleitung](docs/PLUGIN-SYSTEM.md) · [Beispiele](cpp/examples/plugins/README.md).
 
 **Deutsch** · [English](README.en.md)
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.3.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.5.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -28,7 +27,7 @@
 
 </div>
 
-Windows-App für 3,5"-USB-Displays (480 × 320) und Zusatzbildschirme über HDMI/USB-C in jeder Auflösung (z. B. 10,25"-Leisten mit 1920 × 720, auch mit Touch). Sie ersetzt die Hersteller-App und läuft unauffällig im Hintergrund. Der aktuelle veröffentlichte Download 2.3.0 nutzt ein eigenes Windows-Einstellungsfenster mit WebView2; die aktuelle ScreenBuddy-2.5-Quellfassung verwendet für Einstellungen ausschließlich das native Fenster. Die App ist in C++20 geschrieben und enthält den Installer in derselben EXE. Python wird nicht benötigt; WebView2 Evergreen bleibt für den veröffentlichten Download 2.3.0 erforderlich, wird aber in der aktuellen 2.5-Quellfassung nicht mehr eingebunden.
+Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt. Die frühere Version 2.3.0 benötigte noch WebView2.
 
 ## Inhalt
 
@@ -65,7 +64,7 @@ Dazu kommen:
 - **Deutsch oder Englisch**: Einstellungsseite, Display und Infobereich lassen sich umschalten; beim ersten Start folgt die Sprache Windows
 - **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, in der EXE eingebettet auf Deutsch und Englisch
 - **Update-Hinweis** (abschaltbar): meldet höchstens einmal am Tag eine neue GitHub-Version im Infobereich und in den Einstellungen, installiert aber nie selbst
-- **Eine EXE** für Installation, Updates und Deinstallation; kein Python und kein Visual-C++-Redistributable erforderlich. Der veröffentlichte Download 2.3.0 benötigt WebView2, die aktuelle 2.5-Quellfassung nicht.
+- **Eine EXE** für Installation, Updates und Deinstallation; kein Python und kein Visual-C++-Redistributable erforderlich. WebView2 wird nicht benötigt.
 
 ## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
 
@@ -113,7 +112,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **FuchsLabs-USB-Display.exe** aus dem [aktuellen Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) herunterladen (Stand: **2.3.0**). Die EXE ist unsigniert. Daneben liegt `SHA256SUMS.txt` zur Dateiprüfung.
+1. **ScreenBuddy.exe** aus [Release 2.5.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.5.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die signierte Android-Vorschau-APK ist ein separater Download.
 2. Windows 10/11 x64 mit installierter **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit ist nicht in der EXE enthalten und wird vom Installer nicht automatisch installiert.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.

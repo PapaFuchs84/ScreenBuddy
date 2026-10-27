@@ -1,5 +1,13 @@
 # Testprotokoll – Stand 27.10.2026
 
+## Release-Abnahme ScreenBuddy 2.5.0 (27.10.2026)
+
+- Nutzer bestätigte nach der angeforderten Beobachtungszeit: „Sicht-/Touch- und Bedienprüfung bestanden“. Umfang: USB-Display ohne Streifen/Flackern/Aussetzer, vorhandenes Touch und native Einstellungen mit Maus/Tastatur auf Übersicht, Anzeige, Datenquellen, Companion und Design. Beobachteter Kandidat: SHA-256 `17A3DB7C517608068B2DB2059A4E582EDC6D0EEDD31C580B3E01D03BFBB54B22`.
+- Echter Rückfall auf die gesicherte 2.3.0 bestanden: Datei und API 2.3.0, veröffentlichter Hash `3A1ECBD20269AFC78B3E5B63C129FA3460860C5720E195F2C1191104B0792A69`, ein Prozess, EXE/config.toml/companion.json bytegleich wiederhergestellt. Appbezogene Autostart-/Uninstall-Registrierung wiederhergestellt; Standard-Startmenüverknüpfung rekonstruiert. Der Test ist keine erneute physische Sichtabnahme der alten Version.
+- Erneutes Upgrade auf den nach Integration geprüften Build `5706E50E…` bestanden: Installer-Exit 0, API 2.5.0 und Konfiguration/Kopplungsdatei erhalten. Dieser Build unterscheidet sich vom physisch beobachteten Kandidaten nur durch PE-/Debug-Metadaten.
+- Abschließend nur Release-Texte, Downloadname und Companion-Migrationshinweis in DE/EN-Anleitungsressourcen angepasst. Finaler Build: SHA-256 `BF63FB91118FF1E16DB718D9EE9448301CCFDAA477A857A37F375A144AA2AA0C`, 14.971.392 Bytes. Programmcode unverändert; neue Anleitungen mit Headless Edge in allen 46 Ansichten geprüft. Der finale Ressourcen-Build erhält noch eine eigene Installations-/API-/Hash-Prüfung; die physische Langzeitabnahme wird nicht fälschlich diesem abweichenden Hash zugeordnet.
+- Android bleibt bytegleich zum physisch abgenommenen APK-Hash `E06F57AAF7CC51906C5E6626BE1BE44C119034F1AD04B2FE529282520A76EB47`. Grenzen: Online-Plugins experimentell; vollständiger UI-Consent-Ablauf, CRL/OCSP, vollständige UI-Parität/DPI/Screenreader, Windows-Anmeldung, WLAN/Boot/mehrere Android-Geräte nicht vollständig geprüft. Details in Release-Notizen und Checkliste.
+
 ## ScreenBuddy 2.5.0 candidate + Companion 0.2.1-preview (27.10.2026): Fortsetzung
 
 ### Integrierter Commit 8492c54 – Wiederholungsbuild und Tests
