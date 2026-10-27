@@ -12,7 +12,7 @@ Native Direct2D/DirectWrite-Einstellungen ohne WebView2, geführte Einrichtung, 
 
 ## Veröffentlichung abschließen
 
-- [ ] Finalen installierten EXE-Hash und Konfiguration nach dem Build der Anleitungsressourcen prüfen.
+- [x] Finalen installierten EXE-Hash und Konfiguration nach dem Build der Anleitungsressourcen prüfen.
 - [ ] Geprüften PR mit bestandener CI integrieren; Tag v2.5.0, Windows-EXE, signierte Vorschau-APK und SHA256SUMS.txt veröffentlichen.
 - [ ] Veröffentlichte Downloads erneut laden und Prüfsummen vergleichen.
 - [ ] Website-Release-Daten aktualisieren und bestehende Website deployen.
