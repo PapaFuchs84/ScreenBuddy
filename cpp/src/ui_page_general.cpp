@@ -2,6 +2,8 @@
 // Allgemein: Übersicht, Anzeige, Seiten & Reihenfolge.
 #include "ui_pages.h"
 
+#include <algorithm>
+
 #include "app.h"
 #include "util.h"
 
@@ -35,6 +37,16 @@ public:
         row->add(T(L"Datenquellen", L"Data sources"), Button::Secondary, [h] { h->navigate("system"); });
         row->add(Text(L"Companion"), Button::Secondary, [h] { h->navigate("companion"); });
         row->add(Text(L"Plugins"), Button::Secondary, [h] { h->navigate("plugins"); });
+        Card* setup = root.add<Card>(T(L"Einrichtung in 3 Schritten", L"Set up in 3 steps"),
+            T(L"Wähle die Ausgabe, richte deine Inhalte ein und bestimme die Seiten auf dem Display.",
+              L"Choose an output, set up your content, then choose the pages shown on the display."));
+        auto steps = setup->add<ButtonRow>();
+        steps->add(T(L"1 · Ausgabe wählen", L"1 · Choose output"), Button::Secondary,
+            [h] { h->navigate("display"); });
+        steps->add(T(L"2 · Datenquellen einrichten", L"2 · Set up data sources"), Button::Secondary,
+            [h] { h->navigate("system"); });
+        steps->add(T(L"3 · Seiten wählen", L"3 · Choose pages"), Button::Secondary,
+            [h] { h->navigate("pages"); });
         root.add<Note>(T(L"Änderungen werden erst mit „Speichern & anwenden“ übernommen; ScreenBuddy startet dafür kurz neu. "
                          L"Strg+S speichert ebenfalls.",
                          L"Changes take effect with “Save & apply”; ScreenBuddy restarts briefly. Ctrl+S saves as well."));
@@ -97,17 +109,44 @@ public:
         Card* conn = root.add<Card>(T(L"Anschluss", L"Connection"));
         form_.text(*conn, "display", "port", T(L"COM-Port", L"COM port"),
             T(L"AUTO oder z. B. COM3 (nur USB-Display)", L"AUTO or e.g. COM3 (USB display only)"), Text(L"AUTO"));
-        form_.text(*conn, "display", "monitor", T(L"Monitor-ID", L"Monitor ID"),
-            T(L"Leer = automatisch (nur Ausgabe auf Bildschirm)", L"Empty = automatic (monitor output only)"));
+        saved_monitor_ = host.config().at("display").value("monitor", std::string());
+        monitor_values_.clear();
+        monitor_ = conn->row<Combo>(T(L"Bildschirm", L"Monitor"),
+            T(L"Automatisch oder einen erkannten Bildschirm wählen (nur HDMI/USB-C)",
+              L"Choose automatic or a detected monitor (HDMI/USB-C only)"),
+            std::vector<Text>{T(L"Automatisch (erster weiterer Bildschirm)", L"Automatic (first secondary monitor)")}, 0);
+        monitor_->name = T(L"Bildschirm", L"Monitor");
+        auto monitor_actions = conn->add<ButtonRow>();
+        monitor_actions->add(T(L"Bildschirme neu suchen", L"Refresh monitors"), Button::Ghost,
+            [this] { refresh_monitors(); refresh_touch(); });
         form_.toggle(*conn, "display", "reset_on_start", T(L"Beim Start zurücksetzen", L"Reset on startup"),
             T(L"Verhindert verschobene Bilder", L"Prevents shifted images"));
         form_.toggle(*conn, "display", "touch", T(L"Touch-Steuerung", L"Touch control"),
             T(L"Seiten per Tippen wechseln und Schalter bedienen", L"Switch pages and toggles by tapping"));
         form_.toggle(*conn, "display", "screen_off_on_exit", T(L"Display beim Beenden ausschalten", L"Turn display off on exit"));
+        touch_card_ = root.add<Card>(T(L"Touch-Bildschirm zuordnen", L"Assign touchscreen"),
+            T(L"Die Zuordnung speichert Windows für den angeschlossenen Touchscreen.",
+              L"Windows stores the assignment for the connected touchscreen."));
+        touch_status_ = touch_card_->add<Label>(T(L"Touch-Geräte werden geprüft …", L"Checking touch devices …"),
+            Font::Small, Label::Muted);
+        auto touch_actions = touch_card_->add<ButtonRow>();
+        touch_setup_ = touch_actions->add(T(L"Windows-Assistent öffnen", L"Open Windows wizard"), Button::Secondary,
+            [this] { setup_touch(); });
+        touch_actions->add(T(L"Erneut prüfen", L"Check again"), Button::Ghost, [this] { refresh_touch(); });
+        touch_card_->add<Note>(T(L"Im Windows-Assistenten mit Enter andere Bildschirme überspringen, dann den gewünschten "
+                                 L"Touchscreen berühren. Esc bricht ab. Die Vollbildausgabe pausiert währenddessen. "
+                                 L"Danach „Erneut prüfen“ wählen.",
+                                 L"In the Windows wizard, press Enter to skip other screens, then touch the intended "
+                                 L"screen. Esc cancels. Fullscreen output pauses during setup. Choose “Check again” afterwards."));
         for (Widget* w : std::initializer_list<Widget*>{output_, seconds_, brightness_}) w->on_change = [this] { update(); };
+        monitor_->on_change = [this] { refresh_touch(); };
+        refresh_monitors(false);
         update();
     }
-    void collect(Host&, ojson& patch) override { form_.collect(patch); }
+    void collect(Host&, ojson& patch) override {
+        form_.collect(patch);
+        patch["display"]["monitor"] = monitor_values_.at(size_t(monitor_->index));
+    }
 private:
     Form form_;
     Host* host_ = nullptr;
@@ -115,7 +154,118 @@ private:
     Segment* output_ = nullptr;
     Slider* seconds_ = nullptr;
     Slider* brightness_ = nullptr;
+    Combo* monitor_ = nullptr;
+    std::vector<std::string> monitor_values_;
+    std::string saved_monitor_;
+    Card* touch_card_ = nullptr;
+    Label* touch_status_ = nullptr;
+    Button* touch_setup_ = nullptr;
+    void refresh_monitors(bool layout = true) {
+        const std::string chosen = monitor_values_.empty() ? saved_monitor_ : monitor_values_.at(size_t(monitor_->index));
+        std::vector<std::string> values{""};
+        std::vector<Text> labels{T(L"Automatisch (erster weiterer Bildschirm)", L"Automatic (first secondary monitor)")};
+        try {
+            for (const auto& m : list_monitors()) {
+                if (m.device.empty()) continue;
+                if (std::find(values.begin(), values.end(), m.device) != values.end()) continue;
+                values.push_back(m.device);
+                const std::wstring name = m.name.empty() ? T(L"Bildschirm", L"Monitor").de : widen(m.name);
+                const std::wstring size = L" · " + std::to_wstring(m.w) + L" × " + std::to_wstring(m.h);
+                labels.emplace_back(name + size + (m.primary ? L" · Hauptbildschirm" : L"") + L" (" + widen(m.device) + L")",
+                                    name + size + (m.primary ? L" · main screen" : L"") + L" (" + widen(m.device) + L")");
+            }
+        } catch (const std::exception&) {
+            host_->toast(T(L"Bildschirme konnten nicht gelesen werden.", L"Could not read monitors."), ToastKind::Error);
+        }
+        for (const auto& id : {saved_monitor_, chosen}) {
+            if (id.empty() || std::find(values.begin(), values.end(), id) != values.end()) continue;
+            values.push_back(id);
+            labels.emplace_back(widen(id) + L" (gerade nicht angeschlossen)", widen(id) + L" (currently disconnected)");
+        }
+        const auto index_of = [&values](const std::string& id) {
+            const auto it = std::find(values.begin(), values.end(), id);
+            return it == values.end() ? 0 : int(it - values.begin());
+        };
+        monitor_->options = std::move(labels);
+        monitor_->index = index_of(chosen);
+        monitor_->original = index_of(saved_monitor_);
+        monitor_values_ = std::move(values);
+        if (layout) host_->relayout();
+    }
+    void refresh_touch() {
+        if (!touch_card_ || output_->index != 1) return;
+        try {
+            const ojson info = touch_info();
+            const bool available = info.value("available", false);
+            touch_setup_->enabled = available;
+            if (!available) {
+                touch_status_->text = T(L"Kein Touchscreen erkannt. USB-Touchkabel und Treiber prüfen; HDMI überträgt nur das Bild.",
+                                        L"No touchscreen detected. Check the USB touch cable and driver; HDMI carries only the picture.");
+                touch_status_->tone = Label::Danger;
+            } else {
+                std::string selected = monitor_values_.at(size_t(monitor_->index));
+                if (selected.empty()) {
+                    for (const auto& m : list_monitors()) if (!m.primary) { selected = m.device; break; }
+                }
+                bool mapped = false;
+                if (info.contains("devices") && info["devices"].is_array())
+                    for (const auto& device : info["devices"])
+                        if (device.is_object() && device.value("monitor", "") == selected && !selected.empty()) mapped = true;
+                if (mapped) {
+                    touch_status_->text = T(L"Windows hat dem gewählten Bildschirm einen Touchscreen zugeordnet.",
+                                            L"Windows has assigned a touchscreen to the selected display.");
+                    touch_status_->tone = Label::Success;
+                } else if (info.value("mapping_known", false)) {
+                    touch_status_->text = T(L"Touch ist einem anderen Bildschirm zugeordnet. Starte den Windows-Assistenten.",
+                                            L"Touch is assigned to another display. Start the Windows wizard.");
+                    touch_status_->tone = Label::Danger;
+                } else {
+                    touch_status_->text = T(L"Windows meldet keine eindeutige Touch-Zuordnung. Bei falschem Ziel den Windows-Assistenten starten.",
+                                            L"Windows does not report a reliable touch assignment. Start the Windows wizard if taps go to another screen.");
+                    touch_status_->tone = Label::Muted;
+                }
+            }
+        } catch (const std::exception&) {
+            touch_setup_->enabled = false;
+            touch_status_->text = T(L"Touch-Geräte konnten nicht geprüft werden.", L"Touch devices could not be checked.");
+            touch_status_->tone = Label::Danger;
+        }
+        host_->relayout();
+    }
+    void setup_touch() {
+        if (!touch_setup_->enabled || host_->busy()) return;
+        touch_setup_->enabled = false;
+        Host* h = host_;
+        h->run([this, h]() -> std::function<void()> {
+            bool available = false, opened = false, failed = false;
+            try {
+                available = touch_info().value("available", false);
+                if (available) opened = h->app().setup_touch();
+            } catch (const std::exception&) { failed = true; }
+            return [this, h, available, opened, failed] {
+                if (failed)
+                    h->toast(T(L"Touch-Einrichtung konnte nicht gestartet werden.",
+                               L"Touch setup could not be started."), ToastKind::Error);
+                else if (!available)
+                    h->toast(T(L"Kein Touchscreen erkannt. USB-Touchkabel und Treiber prüfen.",
+                               L"No touchscreen detected. Check the USB touch cable and driver."), ToastKind::Error);
+                else if (!opened)
+                    h->toast(T(L"Die Windows-Touch-Einrichtung konnte nicht geöffnet werden.",
+                               L"Windows touch setup could not be opened."), ToastKind::Error);
+                else
+                    h->toast(T(L"Mit Enter zum Touchscreen wechseln, dann diesen berühren. Esc bricht ab.",
+                               L"Press Enter until the touchscreen appears, then touch it. Esc cancels."), ToastKind::Info);
+                refresh_touch();
+            };
+        });
+    }
     void update() {
+        const bool monitor_output = output_->index == 1;
+        if (touch_card_->visible != monitor_output) {
+            touch_card_->visible = monitor_output;
+            host_->relayout();
+        }
+        if (monitor_output) refresh_touch();
         const ojson& vis = host_->config().at("display").at("visible_pages");
         tiles_->tiles = {
             {Text(std::to_wstring(seconds_->val) + L" s"), T(L"Seitenwechsel", L"Page interval")},

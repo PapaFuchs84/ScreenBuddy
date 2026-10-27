@@ -1,5 +1,7 @@
 ## Companion-Vorschau (2.3.0): unabhängige Anzeigen
 
+**Lokaler Kandidat vom 27.10.2026:** Companion `0.2.1-preview` (versionCode 3) ist mit einem neuen RSA-3072-Release-Schlüssel signiert; APK-v2-Signatur geprüft. Gerätetest am Redmi 8 über USB-Tethering bestanden: Quer-/Hochformat, echte Fingerbedienung, automatischer Wechsel und Wiederverbindung ohne neue PIN; noch nicht veröffentlicht. Details und Grenzen im [Testprotokoll](../cpp/TESTPROTOKOLL.md). Die bisherige Debug-APK hat eine andere Signatur und lässt sich nicht direkt damit aktualisieren. Nicht automatisch deinstallieren: lokale Daten und Kopplungen würden gelöscht. [Build, Signierung und Migration](../android/README.md). Frühere Geräteergebnisse unten gelten für 0.2.0-preview.
+
 USB-Display bzw. HDMI-Bildschirm und Android-Companion können gleichzeitig laufen. Beide haben eigene Seitenlisten, Seitenpositionen, Wechselintervalle und Touch-Ziele. Datenquellen, Konten und Design bleiben gemeinsam. Eine Seite muss in ihrem Datenquellen-Reiter eingeschaltet und eingerichtet sein, bevor sie auf einer Anzeige erscheinen kann.
 
 1. Den bisherigen Display-Typ beibehalten; unter **Companion** den Dienst einschalten und **Speichern & anwenden** wählen.

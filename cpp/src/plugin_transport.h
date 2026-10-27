@@ -10,6 +10,10 @@ using Authorization = std::function<bool()>;
 // Diagnostics are fixed strings; URLs, headers and response bodies are never logged.
 DataResult fetch_public_json(const Request& request, const Authorization& authorized);
 bool public_source_ip(const std::string& address);
+#if defined(_WIN32) && defined(FL_PLUGIN_TRANSPORT_TEST)
+// Local numeric-address probe of the same WinSock completion/event contract as live DNS.
+bool dns_completion_contract_for_test();
+#endif
 // Strict bounded HTTP/1.1 decoding, also used by deterministic offline tests.
 DataResult decode_source_http(std::string_view response);
 

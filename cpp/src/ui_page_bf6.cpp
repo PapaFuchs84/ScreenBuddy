@@ -30,7 +30,7 @@ public:
                                        L"Shows right away whether the EA ID is found (network request, nothing is saved)."));
         name_ = check->row<TextField>(T(L"EA-ID", L"EA ID"), Text(), TextField::Single, L"");
         name_->track_dirty = false;
-        name_->hint = Text(L"P4p4F0x");
+        name_->hint = Text(L"ExamplePlayer");
         result_ = check->row<Label>(T(L"Ergebnis", L"Result"), Text(), Text(L"–"), Font::Small, Label::Muted);
         result_->width = 340;
         button_ = check->add<ButtonRow>()->add(T(L"Prüfen", L"Check"), Button::Secondary, [this, h = &host] { run_check(*h); });

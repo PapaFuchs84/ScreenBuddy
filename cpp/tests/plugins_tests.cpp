@@ -72,6 +72,8 @@ static void test_validation() {
     reject([](auto& j) { j["settings"][0]["key"] = "bad-key"; });
     reject([](auto& j) { j["settings"][0]["required"] = 1; });
     reject([](auto& j) { j["settings"][0]["default"] = 5; });
+    reject([](auto& j) { j["settings"][0]["default"] = "line\nbreak"; });
+    reject([](auto& j) { j["settings"][0]["default"] = std::string(setting_value_limit + 1, 'x'); });
     reject([](auto& j) { j["settings"][2]["default"] = "5"; });
     reject([](auto& j) { j["settings"][1]["default"] = "DO-NOT-EXPOSE"; });
     reject([](auto& j) { j["settings"][0]["other"] = true; });
@@ -126,6 +128,8 @@ static void test_render() {
     CHECK(!page.missing_data);
     CHECK(page.widgets.size() == 6);
     CHECK(page.widgets[0].text == "Berlin 12:34 24.10.2026");
+    ctx.settings["city"] = "Hamburg";
+    CHECK(render_page(m, ctx).widgets[0].text == "Hamburg 12:34 24.10.2026");
     CHECK(page.widgets[1].text == "21.5");
     CHECK(page.widgets[2].bar_fraction == 1.0);
     CHECK(page.widgets[3].items == std::vector<std::string>({"Eins", "Zwei"}));

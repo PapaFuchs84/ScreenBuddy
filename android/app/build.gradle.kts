@@ -1,6 +1,18 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+}
+// Signing material stays outside the checkout. No credentials in Gradle arguments.
+val signingFile = System.getenv("SCREENBUDDY_SIGNING_PROPERTIES")?.let { file(it) }
+val releaseSigning = Properties().apply {
+    if (signingFile != null) signingFile.inputStream().use { load(it) }
+}
+if (signingFile != null) {
+    require(listOf("storeFile", "storePassword", "keyAlias", "keyPassword").all {
+        !releaseSigning.getProperty(it).isNullOrBlank()
+    }) { "Incomplete Companion signing properties" }
 }
 android {
     namespace = "de.fuchslabs.display"
@@ -9,10 +21,21 @@ android {
         applicationId = "de.fuchslabs.display"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.2.0-preview"
+        versionCode = 3
+        versionName = "0.2.1-preview"
     }
-    buildTypes { release { isMinifyEnabled = false } }
+    signingConfigs {
+        if (signingFile != null) create("companionRelease") {
+            storeFile = file(releaseSigning.getProperty("storeFile"))
+            storePassword = releaseSigning.getProperty("storePassword")
+            keyAlias = releaseSigning.getProperty("keyAlias")
+            keyPassword = releaseSigning.getProperty("keyPassword")
+        }
+    }
+    buildTypes { release {
+        isMinifyEnabled = false
+        if (signingFile != null) signingConfig = signingConfigs.getByName("companionRelease")
+    } }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

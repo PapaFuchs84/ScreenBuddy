@@ -1,5 +1,7 @@
 ## Companion preview (2.3.0): independent displays
 
+**Local candidate, 27 October 2026:** Companion `0.2.1-preview` (versionCode 3) is signed with a new RSA-3072 release key; APK v2 signature verified. Redmi 8 acceptance over USB tethering passed: landscape/portrait output, real finger gestures, automatic page rotation and reconnect without a new PIN; not published. See the [test record](../cpp/TESTPROTOKOLL.md) for details and limits. The previous debug APK uses a different certificate and cannot be directly updated with this APK. Do not uninstall automatically: local data and pairings would be removed. [Build, signing and migration](../android/README.md). Earlier device results below apply to 0.2.0-preview.
+
 The USB display or HDMI monitor and Android Companion can run at the same time, with separate page selections, positions, timers and touch targets. Data sources, accounts and theme stay shared. Enable and configure each data source in its tab before selecting its page for an output.
 
 1. Keep the existing display type. Enable **Companion**, then choose **Save & apply**.

@@ -3,16 +3,37 @@
 #include "ui_pages.h"
 
 #include <algorithm>
+#include <chrono>
 #include <map>
+#include <string_view>
+
+#include <windows.h>
+#include <shellapi.h>
 
 #include "app.h"
 #include "render.h"
 #include "ui_logic.h"
+#include "update.h"
 #include "util.h"
 #include "winsetup.h"
 
 namespace fl::ui {
 namespace {
+
+bool release_page_url(std::string_view url) {
+    constexpr std::string_view latest = "releases/latest";
+    constexpr std::string_view tag = "releases/tag/";
+    const std::string_view base = update::RELEASES_PAGE_PREFIX;
+    if (!url.starts_with(base)) return false;
+    url.remove_prefix(base.size());
+    if (url == latest) return true;
+    if (!url.starts_with(tag)) return false;
+    url.remove_prefix(tag.size());
+    return !url.empty() && std::all_of(url.begin(), url.end(), [](unsigned char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+               (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_';
+    });
+}
 
 class DesignPage : public Page {
 public:
@@ -165,6 +186,8 @@ public:
         update_label_ = upd->row<Label>(T(L"Stand", L"State"), Text(), T(L"Wird geladen …", L"Loading …"), Font::Small, Label::Muted);
         auto row = upd->add<ButtonRow>();
         check_ = row->add(T(L"Jetzt nach Updates suchen", L"Check for updates now"), Button::Secondary, [this] { check_now(); });
+        release_ = row->add(T(L"Release-Seite öffnen", L"Open release page"), Button::Secondary, [this] { open_release(); });
+        release_->enabled = false;
         Card* start = root.add<Card>(T(L"Start mit Windows", L"Start with Windows"));
         autostart_ = start->row<Toggle>(T(L"Mit Windows starten", L"Start with Windows"),
             test_instance() ? T(L"In Testinstanzen gesperrt", L"Disabled in test instances")
@@ -196,6 +219,8 @@ public:
     void shown(Host&) override { refresh_vendor(); }
     void tick(Host&, const Status& s) override {
         if (!s.valid) return;
+        if (manual_ && (s.update != update_before_ || std::chrono::steady_clock::now() >= manual_until_))
+            manual_ = false;
         if (!manual_) show_update(s.update);
         if (s.autostart && !autostart_loaded_) {
             autostart_->on = autostart_->original = *s.autostart;
@@ -203,14 +228,18 @@ public:
         }
         autostart_->enabled = autostart_loaded_ && !test_instance() && !host_->busy();
         check_->enabled = !host_->busy() && host_->config().at("ui").value("update_check", true);
+        release_->enabled = !host_->busy() && !release_url_.empty();
     }
 private:
     Form form_;
     Host* host_ = nullptr;
     Label* update_label_ = nullptr;
-    Button* check_ = nullptr;
+    Button *check_ = nullptr, *release_ = nullptr;
+    std::wstring release_url_;
     Toggle* autostart_ = nullptr;
     bool autostart_loaded_ = false, manual_ = false;
+    ojson update_before_;
+    std::chrono::steady_clock::time_point manual_until_{};
     Label* vendor_state_ = nullptr;
     Button *vendor_stop_ = nullptr, *vendor_off_ = nullptr;
     bool vendor_running_ = false, vendor_autostart_ = false;
@@ -261,6 +290,11 @@ private:
     }
 
     void show_update(const ojson& info) {
+        release_url_.clear();
+        if (info.is_object() && info.value("available", false)) {
+            const std::string url = info.value("url", std::string());
+            if (release_page_url(url)) release_url_ = widen(url);
+        }
         if (info.is_null() || info.empty()) {
             update_label_->text = T(L"Update-Prüfung ist aus. Zum Einschalten oben aktivieren und speichern.",
                                     L"Update checks are off. Enable above and save to turn them on.");
@@ -274,13 +308,22 @@ private:
         else if (info.value("checked_at", 0LL) > 0) update_label_->text = T(L"Keine neuere Version gefunden.", L"No newer version found.");
         else update_label_->text = T(L"Noch nicht geprüft.", L"Not checked yet.");
     }
+    void open_release() {
+        if (release_url_.empty() || host_->busy()) return;
+        const HINSTANCE result = ShellExecuteW(host_->window(), L"open", release_url_.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        if (reinterpret_cast<INT_PTR>(result) <= 32)
+            host_->toast(T(L"Die Release-Seite konnte nicht geöffnet werden.", L"Could not open the release page."), ToastKind::Error);
+    }
     void check_now() {
         if (host_->busy()) return;
         Host* h = host_;
         h->run([this, h]() -> std::function<void()> {
+            const ojson before = h->app().update_info();
             bool started = h->app().update_check_now();
-            return [this, started] {
+            return [this, started, before] {
                 manual_ = true;
+                update_before_ = before;
+                manual_until_ = std::chrono::steady_clock::now() + std::chrono::seconds(started ? 20 : 3);
                 update_label_->text = started ? T(L"Update-Prüfung angefordert …", L"Update check requested …")
                                               : T(L"Update-Prüfung aus oder kürzlich angefordert (5 Minuten Pause).",
                                                   L"Update checks are off or were requested recently (5-minute interval).");

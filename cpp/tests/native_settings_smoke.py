@@ -39,7 +39,7 @@ USER32.GetWindowTextW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_in
 USER32.PostMessageW.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_ssize_t]
 OLEAUT.SysFreeString.argtypes = [ctypes.c_void_p]
 
-ROLE_SLIDER, ROLE_LIST, ROLE_PAGETAB, ROLE_PUSHBUTTON = 0x33, 0x21, 0x25, 0x2B
+ROLE_SLIDER, ROLE_LIST, ROLE_PAGETAB, ROLE_PUSHBUTTON, ROLE_COMBOBOX = 0x33, 0x21, 0x25, 0x2B, 0x2E
 NAV = ["Übersicht", "Anzeige", "Seiten & Reihenfolge", "System", "Freunde", "Discord", "Battlefield 6", "Blogs (RSS)",
        "Home Assistant", "Companion", "Plugins", "Farben & Design", "Updates & Autostart"]
 
@@ -119,8 +119,11 @@ def windows(pid, cls):
             if name.value == cls:
                 found.append((hwnd, bool(USER32.IsWindowVisible(hwnd))))
         return True
+    ctypes.set_last_error(0)
     if not USER32.EnumWindows(visit, 0):
-        raise ctypes.WinError(ctypes.get_last_error())
+        err = ctypes.get_last_error()
+        if err != 0:
+            raise ctypes.WinError(err)
     return found
 
 
@@ -242,6 +245,48 @@ def main():
             body.do(body.find("Aktivieren / deaktivieren", ROLE_PUSHBUTTON))
             wait(lambda: expected in Acc(content).value(Acc(content).find("Installierte Plugins", ROLE_LIST)), 8, "plugin state did not change")
             checks += 2
+
+            # Phase 2: the former placeholder pages are native now (controls exist, no browser hand-over)
+            for page, control, role in (("Discord", "Mitglieder neu laden", ROLE_PUSHBUTTON),
+                                        ("Freunde", "Verknüpfen", ROLE_PUSHBUTTON),
+                                        ("Home Assistant", "Verbindung prüfen & Entitäten laden", ROLE_PUSHBUTTON),
+                                        ("Companion", "Kopplungscode anzeigen", ROLE_PUSHBUTTON),
+                                        ("Farben & Design", "Zurücksetzen", ROLE_PUSHBUTTON),
+                                        ("Updates & Autostart", "Hersteller-App beenden", ROLE_PUSHBUTTON)):
+                nav.do(nav.find(page, ROLE_PAGETAB, exact=True))
+                def present():
+                    try:
+                        Acc(content).find(control, role)
+                        return True
+                    except AssertionError:
+                        return False
+                wait(present, 6, f"{page}: '{control}' missing")
+                assert "Vorerst im Browser-Fenster" not in " ".join(n for _, n, _r in Acc(content).items()), page
+            checks += 6
+
+            # Native first-run links and touch-assignment entry. Never launch the Windows wizard in this test.
+            nav.do(nav.find("Übersicht", ROLE_PAGETAB, exact=True))
+            body = Acc(content)
+            for step in ("1 · Ausgabe wählen", "2 · Datenquellen einrichten", "3 · Seiten wählen"):
+                body.find(step, ROLE_PUSHBUTTON)
+            checks += 3
+
+            nav.do(nav.find("Anzeige", ROLE_PAGETAB, exact=True))
+            body = Acc(content)
+            output = body.find("Display-Typ", ROLE_COMBOBOX)
+            body.focus(output)
+            key(frame, 0x27)  # USB -> monitor, only in this isolated --no-lcd configuration
+            body = Acc(content)
+            monitor = body.find("Bildschirm", ROLE_COMBOBOX, exact=True)
+            assert "Automatisch" in body.value(monitor), body.value(monitor)
+            body.do(body.find("Bildschirme neu suchen", ROLE_PUSHBUTTON))  # Enumerate only; do not select or open a display.
+            body = Acc(content)
+            assert body.find("Bildschirm", ROLE_COMBOBOX, exact=True)
+            body.find("Windows-Assistent öffnen", ROLE_PUSHBUTTON)
+            body.find("Erneut prüfen", ROLE_PUSHBUTTON)
+            nav.do(nav.find("Verwerfen", ROLE_PUSHBUTTON))
+            time.sleep(0.6)
+            checks += 4
 
             # Display page: slider via keyboard, dirty counter, discard
             nav.do(nav.find("Anzeige", ROLE_PAGETAB, exact=True))

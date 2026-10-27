@@ -4,7 +4,6 @@
 1 ICON "app.ico"
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "app.manifest"
 
-WEBUI_HTML RCDATA "webui.html"
 ANLEITUNG_HTML RCDATA "ANLEITUNG.html"
 GUIDE_HTML RCDATA "GUIDE.html"
 LICENSE_TXT RCDATA "..\\..\\LICENSE"
@@ -14,7 +13,7 @@ VS_VERSION_INFO VERSIONINFO
 FILEVERSION 2,5,0,0
 PRODUCTVERSION 2,5,0,0
 FILEFLAGSMASK 0x3fL
-FILEFLAGS VS_FF_PRERELEASE
+FILEFLAGS 0x0L
 FILEOS VOS_NT_WINDOWS32
 FILETYPE VFT_APP
 FILESUBTYPE 0x0L
@@ -24,13 +23,13 @@ BEGIN
         BLOCK "040704B0"
         BEGIN
             VALUE "CompanyName", "FuchsLabs"
-            VALUE "FileDescription", "ScreenBuddy Developer Preview"
+            VALUE "FileDescription", "ScreenBuddy"
             VALUE "FileVersion", "2.5.0.0"
             VALUE "InternalName", "ScreenBuddy"
             VALUE "LegalCopyright", "\xA9 2026 FuchsLabs"
             VALUE "OriginalFilename", "ScreenBuddy.exe"
             VALUE "ProductName", "ScreenBuddy"
-            VALUE "ProductVersion", "2.5.0-dev.2"
+            VALUE "ProductVersion", "2.5.0"
         END
     END
     BLOCK "VarFileInfo"

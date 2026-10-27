@@ -13,8 +13,8 @@
 
 namespace fl {
 
-inline constexpr const char* VERSION = "2.5.0-dev.2";
-inline constexpr const char* UA = "ScreenBuddy/2.5.0-dev.2";
+inline constexpr const char* VERSION = "2.5.0";
+inline constexpr const char* UA = "ScreenBuddy/2.5.0";
 
 // ---------- Text ----------
 std::wstring widen(std::string_view s);

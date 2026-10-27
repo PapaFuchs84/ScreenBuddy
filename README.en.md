@@ -1,12 +1,14 @@
 <div align="center">
 
+**Local release preparation, 27 October 2026:** Windows 2.5.0 and signed Companion 0.2.1-preview candidates are available locally; final device and visual acceptance remain pending. Published download remains 2.3.0. [Release status](docs/RELEASE-CHECKLIST-2.5.en.md).
+
 **New in 2.3.0 – Companion preview:** simultaneous USB/HDMI and Android output with separate pages, timers and touch; native phone resolution including rotation. Extra controls are visible only while Companion is enabled. [Setup and current limits](docs/COMPANION.en.md).
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
 # ScreenBuddy (in development)
 
-**ScreenBuddy 2.5.0-dev.2:** The source implements native basic settings and local offline plugins. The advanced WebView2 interface remains available. Version 2.5 is unpublished and the plugin contract is provisional. [Development and verification status](docs/SCREENBUDDY-2.5.en.md) · [Plugin guide](docs/PLUGIN-SYSTEM.en.md). The current 2.3.0 download is still named FuchsLabs USB-Display.
+**ScreenBuddy 2.5.0-dev.2:** The unpublished development state already implements the native phase-2 interface for Discord, friends, Home Assistant, Companion pairing/devices and Colors & design, together with the plugin system. The native overview links three setup steps; under **Display**, Windows touch assignment can be checked and its wizard opened directly. Current source opens settings only in the native window; the WebView2 fallback has been removed. Full feature parity with the former HTML interface has not yet been accepted. Version 2.5 is unpublished and the plugin contract is provisional. [Development and verification status](docs/SCREENBUDDY-2.5.en.md) · [Plugin guide](docs/PLUGIN-SYSTEM.en.md) · [Create your own plugin](docs/PLUGIN-TUTORIAL.en.md) · [Ready-made examples](cpp/examples/plugins/README.md). The current 2.3.0 download is still named FuchsLabs USB-Display.
 
 [Deutsch](README.md) · **English**
 
@@ -26,7 +28,7 @@
 
 </div>
 
-A Windows app for 3.5" USB displays (480 × 320) and second screens over HDMI/USB-C at any resolution (e.g. 10.25" bars at 1920 × 720, touch included). It replaces the vendor software, runs quietly in the background and uses its own Windows settings window, powered by WebView2. Version 2.0 is a C++20 app with its installer in one EXE. Python is not required; the Microsoft Edge WebView2 Evergreen Runtime must be installed separately.
+A Windows app for 3.5" USB displays (480 × 320) and second screens over HDMI/USB-C at any resolution (e.g. 10.25" bars at 1920 × 720, touch included). It replaces the vendor software and runs quietly in the background. The current published 2.3.0 download uses its own Windows settings window powered by WebView2; current ScreenBuddy 2.5 source uses only the native settings window. The C++20 app includes its installer in one EXE. Python is not required; WebView2 Evergreen remains required for the published 2.3.0 download, but is no longer linked into current 2.5 source.
 
 ## Contents
 
@@ -63,7 +65,7 @@ Plus:
 - **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages, tap a blog post to open it in the browser, tap RAM, Drive or Network on the system page to open Task Manager, “Programs and Features” or a speed test); Windows touch assignment checks and setup under **Display**
 - **Illustrated guide** to click through, easy enough for kids, embedded in the EXE in English and German
 - **Update notice** (can be turned off): reports a new GitHub version at most once a day in the tray and in the settings, but never installs by itself
-- **Single EXE** for installation, updates and uninstallation; no Python or Visual C++ redistributable required. WebView2 Runtime remains a prerequisite.
+- **Single EXE** for installation, updates and uninstallation; no Python or Visual C++ redistributable required. The published 2.3.0 download needs WebView2; current 2.5 source does not.
 
 ## System page touch and update notice (from 2.2.0)
 
@@ -196,18 +198,18 @@ build.bat nopause
 
 The C++ build installs dependencies from the pinned vcpkg manifest/overlay, builds Release, runs core, plugin, monitor, Companion and isolated installer checks, and writes `cpp\dist\ScreenBuddy.exe` locally. The root `build.bat` belongs to the historical Python 1.x version. See [C++ build notes](cpp/README.md#build) and [contribution guide](CONTRIBUTING.en.md).
 
-The WebView2 SDK header/static loader and their licence notices are under `cpp/third_party/webview2`; the runtime itself is external. App translations are in `cpp/src/i18n.cpp`, settings translations in `cpp/res/webui.html`.
+The WebView2 SDK files and licence notices remain under `cpp/third_party/webview2`, but current 2.5 source no longer links them. The loopback HTTP service and embedded guide remain available. App translations are in `cpp/src/i18n.cpp`, native page text under `cpp/src/ui_page_*.cpp`; the former HTML source remains only for historical tests under `cpp/res/webui.html` and is not embedded in the 2.5 executable. `/` no longer serves HTML settings.
 
 ## Project layout
 
 | Path | Purpose |
 |---|---|
 | `cpp/src/` | C++ application, display output, data sources, native settings host and installer |
-| `cpp/res/` | Embedded settings, guides, icon and version resources |
+| `cpp/res/` | Embedded guides, icon and version resources |
 | `cpp/tests/` | C++ checks |
 | `cpp/overlay-ports/`, `cpp/vcpkg.json` | Dependency versions and D++ build settings |
 | `cpp/TESTPROTOKOLL.md` | Local Windows/display validation record |
-| Root `*.py`, root `build.bat`, `anleitung/` | Historical Python 1.x sources and guide generation |
+| Root `*.py`, root `build.bat`, `anleitung/` | Historical Python 1.x sources and generation of the current DE/EN guide |
 
 ## Security and privacy
 

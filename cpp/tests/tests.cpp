@@ -165,6 +165,7 @@ static void test_i18n() {
     CHECK_EQ(tr("Unbekannt"), std::string("Unbekannt"));
     CHECK_EQ(tr("Nicht verfügbar"), std::string("Unavailable"));
     CHECK_EQ(tr("3 Entitäten"), std::string("3 entities"));
+    CHECK_EQ(tr("Rang 174 · First Lieutenant III"), std::string("Rank 174 · First Lieutenant III"));
     CHECK_EQ(tr("An"), std::string("An"));   // Namen wie "An" bleiben unverändert
     CHECK_EQ(ha::format_value("on"), std::string("On"));
     i18n::set_lang("de");
@@ -546,6 +547,7 @@ static void test_touch_targets() {
 static void test_render(const fs::path& out) {
     fs::create_directories(out);
     std::lock_guard rl(render::mutex());
+    bool english = i18n::lang() == "en";
     for (auto [w, h, tag] : {std::tuple{480, 320, "480x320"}, std::tuple{320, 480, "320x480"}, std::tuple{1920, 720, "1920x720"},
                              std::tuple{637, 720, "637x720"}}) {
         for (auto th : {"hell", "dunkel"}) {
@@ -558,9 +560,13 @@ static void test_render(const fs::path& out) {
             render::Bf6Renderer b(w, h, "Battlefield 6 · Rangliste");
             save_png(out / (pre + "bf6.png"), b.render(render::demo_players(), 0, 1792606500, 1792606500));
             render::RssRenderer rr(w, h, "Blog-Updates");
-            std::vector<Post> posts = {{"Beispiel-Blog", "Ein kurzer Titel für die Vorschau", 1792606500 - 600, ""},
-                                       {"Noch ein Blog", "Zweiter Beitrag mit etwas längerem Titel, der umbricht und noch weiter geht als gedacht", 1792606500 - 7200, ""},
-                                       {"heise online", "heise+ | Test: Sehr langer Titel mit Präfix", std::nullopt, ""}};
+            std::vector<Post> posts = english
+                ? std::vector<Post>{{"Example blog", "A short title for the preview", 1792606500 - 600, ""},
+                                    {"Another blog", "Second post with a slightly longer title that wraps onto another line", 1792606500 - 7200, ""},
+                                    {"Tech digest", "A longer headline for the example feed", std::nullopt, ""}}
+                : std::vector<Post>{{"Beispiel-Blog", "Ein kurzer Titel für die Vorschau", 1792606500 - 600, ""},
+                                    {"Noch ein Blog", "Zweiter Beitrag mit etwas längerem Titel, der umbricht und noch weiter geht als gedacht", 1792606500 - 7200, ""},
+                                    {"heise online", "heise+ | Test: Sehr langer Titel mit Präfix", std::nullopt, ""}};
             save_png(out / (pre + "blogs.png"), rr.render(posts, 1792606500, 1792606500));
             render::SysRenderer sr(w, h, "System", "bit");
             SysSnapshot sn;
@@ -576,6 +582,11 @@ static void test_render(const fs::path& out) {
             save_png(out / (pre + "system.png"), sr.render(sn, 1792606500));
             render::HaRenderer hr(w, h, "Home Assistant");
             auto demo = render::demo_ha();
+            if (english) {
+                demo[0].name = "Living room";
+                demo[2].name = "Desk lamp";
+                demo[3].name = "Coffee maker";
+            }
             save_png(out / (pre + "ha.png"), hr.render(demo, true, "", 1792606500, 1792606500));
             save_png(out / (pre + "ha3.png"), hr.render({demo[0], demo[1], demo[2]}, true, "", 1792606500, 1792606500));
             save_png(out / (pre + "ha2.png"), hr.render({demo[2], demo[0]}, true, "", 1792606500, 1792606500));

@@ -107,15 +107,18 @@ struct DnsQuery {
     std::atomic<DWORD> error{WSA_IO_PENDING};
     PADDRINFOEXW results = nullptr;
     HANDLE cancel = nullptr;
+    HANDLE done = nullptr;
     std::wstring host;
     bool winsock = false;
     DnsQuery() {
         WSADATA data{}; winsock = WSAStartup(MAKEWORD(2, 2), &data) == 0;
-        overlapped.hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        // GetAddrInfoExW requires OVERLAPPED.hEvent == NULL when a completion
+        // routine is supplied. Keep our wait event outside OVERLAPPED.
+        done = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     }
     ~DnsQuery() {
         if (results) FreeAddrInfoExW(results);
-        if (overlapped.hEvent) CloseHandle(overlapped.hEvent);
+        if (done) CloseHandle(done);
         if (winsock) WSACleanup();
     }
     void release() { if (references.fetch_sub(1) == 1) delete this; }
@@ -128,7 +131,7 @@ struct DnsQuery {
         auto* query = reinterpret_cast<DnsQuery*>(overlapped);
         if (query->finished.exchange(true)) return;
         query->error.store(error);
-        SetEvent(query->overlapped.hEvent);
+        SetEvent(query->done);
         query->release();
     }
 };
@@ -207,6 +210,26 @@ bool public_source_ip(const std::string& address) {
     ASN1_OCTET_STRING_free(parsed);
     return result;
 }
+#if defined(_WIN32) && defined(FL_PLUGIN_TRANSPORT_TEST)
+bool dns_completion_contract_for_test() {
+    auto release = [](DnsQuery* query) { query->release(); };
+    std::unique_ptr<DnsQuery, decltype(release)> dns(new DnsQuery, release);
+    if (!dns->winsock || !dns->done) { dns->release(); return false; }
+    ADDRINFOEXW hints{};
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_NUMERICHOST;
+    const auto error = GetAddrInfoExW(L"127.0.0.1", L"443", NS_ALL, nullptr, &hints,
+        &dns->results, nullptr, &dns->overlapped, DnsQuery::complete, &dns->cancel);
+    if (error != WSA_IO_PENDING) DnsQuery::complete(error, 0, &dns->overlapped);
+    if (WaitForSingleObject(dns->done, 1000) != WAIT_OBJECT_0) {
+        if (error == WSA_IO_PENDING) GetAddrInfoExCancel(&dns->cancel);
+        return false;
+    }
+    return dns->error.load() == 0 && dns->results != nullptr;
+}
+#endif
 DataResult fetch_public_json(const Request& request, const Authorization& authorized) {
     std::string target;
     if (!authorized || !authorized()) return failure("Source is no longer authorized.");
@@ -217,7 +240,7 @@ DataResult fetch_public_json(const Request& request, const Authorization& author
     const auto deadline = Clock::now() + std::chrono::seconds(5);
     auto release = [](DnsQuery* query) { query->release(); };
     std::unique_ptr<DnsQuery, decltype(release)> dns(new DnsQuery, release);
-    if (!dns->winsock || !dns->overlapped.hEvent) {
+    if (!dns->winsock || !dns->done) {
         dns->release(); return failure("Source resolver is unavailable.");
     }
     dns->host.assign(request.host.begin(), request.host.end());
@@ -229,7 +252,7 @@ DataResult fetch_public_json(const Request& request, const Authorization& author
     const auto error = GetAddrInfoExW(dns->host.c_str(), L"443", NS_DNS, nullptr, &hints,
         &dns->results, &timeout, &dns->overlapped, DnsQuery::complete, &dns->cancel);
     if (error != WSA_IO_PENDING) DnsQuery::complete(error, 0, &dns->overlapped);
-    while (WaitForSingleObject(dns->overlapped.hEvent, 20) == WAIT_TIMEOUT) {
+    while (WaitForSingleObject(dns->done, 20) == WAIT_TIMEOUT) {
         if (!permitted(authorized, deadline)) {
             GetAddrInfoExCancel(&dns->cancel);
             // Completion owns a reference, so cancellation never requires an

@@ -3,3 +3,6 @@ build/
 local.properties
 *.iml
 .idea/
+*.jks
+*.keystore
+*signing*.properties

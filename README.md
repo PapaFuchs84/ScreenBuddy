@@ -1,12 +1,14 @@
 <div align="center">
 
+**Lokale Release-Vorbereitung, 27.10.2026:** Windows 2.5.0 und signierte Companion-Vorschau 0.2.1-preview liegen als lokale Kandidaten vor; finale Geräte- und Sichtabnahme stehen aus. Der veröffentlichte Download bleibt 2.3.0. [Release-Status](docs/RELEASE-CHECKLIST-2.5.md).
+
 **Neu in 2.3.0 – Companion-Vorschau:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
 # ScreenBuddy (in Entwicklung)
 
-**ScreenBuddy 2.5.0-dev.2:** Im Quellcode sind native Grundeinstellungen und lokale Offline-Plugins implementiert. Die erweiterte WebView2-Oberfläche bleibt verfügbar. 2.5 ist nicht veröffentlicht; der Plugin-Vertrag ist vorläufig. [Entwicklungsstand und Prüfgrenzen](docs/SCREENBUDDY-2.5.md) · [Plugin-Anleitung](docs/PLUGIN-SYSTEM.md). Der aktuelle Download 2.3.0 heißt weiterhin FuchsLabs USB-Display.
+**ScreenBuddy 2.5.0-dev.2:** Im unveröffentlichten Entwicklungsstand sind die native Phase-2-Oberfläche mit Discord, Freunden, Home Assistant, Companion-Kopplung/-Geräten und Farben & Design sowie das Plugin-System bereits implementiert. Die native Übersicht führt durch drei Einrichtungsschritte; unter **Anzeige** gibt es die Windows-Touch-Zuordnung mit Assistentenstart und erneuter Prüfung. Die aktuelle Quellfassung startet Einstellungen ausschließlich nativ; der WebView2-Fallback wurde entfernt. Vollständige Funktionsparität mit der früheren HTML-Oberfläche ist noch nicht abgenommen. 2.5 ist nicht veröffentlicht; der Plugin-Vertrag ist vorläufig. [Entwicklungsstand und Prüfgrenzen](docs/SCREENBUDDY-2.5.md) · [Plugin-Anleitung](docs/PLUGIN-SYSTEM.md) · [Eigenes Plugin erstellen](docs/PLUGIN-TUTORIAL.md) · [Fertige Beispiele](cpp/examples/plugins/README.md). Der aktuelle Download 2.3.0 heißt weiterhin FuchsLabs USB-Display.
 
 **Deutsch** · [English](README.en.md)
 
@@ -26,7 +28,7 @@
 
 </div>
 
-Windows-App für 3,5"-USB-Displays (480 × 320) und Zusatzbildschirme über HDMI/USB-C in jeder Auflösung (z. B. 10,25"-Leisten mit 1920 × 720, auch mit Touch). Sie ersetzt die Hersteller-App, läuft unauffällig im Hintergrund und wird über ein eigenes Windows-Einstellungsfenster mit WebView2 bedient. Version 2.0 ist in C++20 geschrieben und enthält den Installer in derselben EXE. Python wird nicht benötigt; die Microsoft Edge WebView2 Evergreen Runtime muss separat vorhanden sein.
+Windows-App für 3,5"-USB-Displays (480 × 320) und Zusatzbildschirme über HDMI/USB-C in jeder Auflösung (z. B. 10,25"-Leisten mit 1920 × 720, auch mit Touch). Sie ersetzt die Hersteller-App und läuft unauffällig im Hintergrund. Der aktuelle veröffentlichte Download 2.3.0 nutzt ein eigenes Windows-Einstellungsfenster mit WebView2; die aktuelle ScreenBuddy-2.5-Quellfassung verwendet für Einstellungen ausschließlich das native Fenster. Die App ist in C++20 geschrieben und enthält den Installer in derselben EXE. Python wird nicht benötigt; WebView2 Evergreen bleibt für den veröffentlichten Download 2.3.0 erforderlich, wird aber in der aktuellen 2.5-Quellfassung nicht mehr eingebunden.
 
 ## Inhalt
 
@@ -63,7 +65,7 @@ Dazu kommen:
 - **Deutsch oder Englisch**: Einstellungsseite, Display und Infobereich lassen sich umschalten; beim ersten Start folgt die Sprache Windows
 - **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, in der EXE eingebettet auf Deutsch und Englisch
 - **Update-Hinweis** (abschaltbar): meldet höchstens einmal am Tag eine neue GitHub-Version im Infobereich und in den Einstellungen, installiert aber nie selbst
-- **Eine EXE** für Installation, Updates und Deinstallation; kein Python und kein Visual-C++-Redistributable erforderlich. WebView2 bleibt eine Voraussetzung.
+- **Eine EXE** für Installation, Updates und Deinstallation; kein Python und kein Visual-C++-Redistributable erforderlich. Der veröffentlichte Download 2.3.0 benötigt WebView2, die aktuelle 2.5-Quellfassung nicht.
 
 ## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
 
@@ -195,18 +197,18 @@ build.bat nopause
 
 Der C++-Build installiert die Abhängigkeiten aus dem festgelegten vcpkg-Manifest/Overlay, baut Release, führt Kern-, Plugin-, Monitor-, Companion- und isolierte Installer-Prüfungen aus und erzeugt lokal `cpp\dist\ScreenBuddy.exe`. Die `build.bat` im Repository-Hauptordner gehört zur historischen Python-Version 1.x. Details: [C++-Buildhinweise](cpp/README.md#build) und [Mitarbeiten](CONTRIBUTING.md).
 
-WebView2-SDK-Header, statischer Loader und Lizenzhinweise liegen unter `cpp/third_party/webview2`; die Laufzeit selbst ist extern. Übersetzungen: `cpp/src/i18n.cpp` für App/Display und `cpp/res/webui.html` für die Einstellungen.
+Die WebView2-SDK-Dateien und Lizenzhinweise liegen weiterhin unter `cpp/third_party/webview2`, werden von der aktuellen 2.5-Quellfassung aber nicht eingebunden. Der lokale HTTP-Dienst und die eingebettete Anleitung bleiben erhalten. Übersetzungen: `cpp/src/i18n.cpp` für App/Display, native Texte unter `cpp/src/ui_page_*.cpp`; die frühere HTML-Quelldatei liegt nur noch für historische Tests unter `cpp/res/webui.html` und wird nicht in die 2.5-EXE eingebettet. `/` liefert keine HTML-Einstellungen mehr aus.
 
 ## Projektaufbau
 
 | Pfad | Aufgabe |
 |---|---|
 | `cpp/src/` | C++-App, Displayausgabe, Datenquellen, natives Einstellungsfenster und Installer |
-| `cpp/res/` | Eingebettete Einstellungen, Anleitungen, Symbol und Versionsressourcen |
+| `cpp/res/` | Eingebettete Anleitungen, Symbol und Versionsressourcen |
 | `cpp/tests/` | C++-Prüfungen |
 | `cpp/overlay-ports/`, `cpp/vcpkg.json` | Abhängigkeiten und D++-Buildkonfiguration |
 | `cpp/TESTPROTOKOLL.md` | Lokaler Windows-/Displaytest |
-| `*.py`, `build.bat` im Hauptordner, `anleitung/` | Historischer Python-Stand 1.x und dessen Anleitungsgenerator |
+| `*.py`, `build.bat` im Hauptordner, `anleitung/` | Historischer Python-Stand 1.x und Generator für die aktuelle DE/EN-Anleitung |
 
 ## Sicherheit und Datenschutz
 
