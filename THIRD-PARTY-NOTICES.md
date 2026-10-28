@@ -1,6 +1,6 @@
 # Drittanbieter-Hinweise / Third-Party Notices
 
-FuchsLabs USB-Display enthält oder nutzt die folgenden Komponenten. Deren Lizenzen bleiben unverändert bestehen und gelten unabhängig von der Lizenz des FuchsLabs-eigenen Codes.
+ScreenBuddy (früher FuchsLabs USB-Display) enthält oder nutzt die folgenden Komponenten. Deren Lizenzen bleiben unverändert bestehen und gelten unabhängig von der Lizenz des FuchsLabs-eigenen Codes.
 This product includes or uses the components below. Their licenses remain unchanged and apply independently of the license of FuchsLabs' own code.
 
 Stand: 2.5.0-dev.2 (C++), Python 1.2 (historisch). Die Versionen der vcpkg-Pakete ergeben sich aus der Baseline in `cpp/vcpkg.json`; maßgeblich sind die `copyright`-Dateien im vcpkg-Installationsordner (`share/<paket>/copyright`) des jeweiligen Builds.
@@ -48,7 +48,7 @@ Apache-2.0-Volltext: https://www.apache.org/licenses/LICENSE-2.0.txt · BSD-3-Cl
 
 ## Dienste und Daten (keine Software, aber Nutzungsbedingungen)
 
-FuchsLabs USB-Display ruft nur auf Wunsch des Nutzers und mit dessen eigenen Zugangsdaten folgende Dienste ab. Es werden keine Inhalte dieser Dienste im Repository oder im Installer verteilt; abgerufene Daten werden nur lokal angezeigt.
+ScreenBuddy ruft nur auf Wunsch des Nutzers und mit dessen eigenen Zugangsdaten folgende Dienste ab. Es werden keine Inhalte dieser Dienste im Repository oder im Installer verteilt; abgerufene Daten werden nur lokal angezeigt.
 
 - Discord (Bot-Token des Nutzers) – Discord Developer Terms / Policy
 - Steam Web API (API-Schlüssel des Nutzers) – Steam Web API Terms of Use

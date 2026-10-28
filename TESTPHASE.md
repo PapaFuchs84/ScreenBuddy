@@ -20,7 +20,7 @@ Die App schreibt alles Wichtige in die Datei **`usb-display.log`**:
 - Version 2.0 bei regulärer Installation: `%LOCALAPPDATA%\FuchsLabs\USB-Display\usb-display.log`.
 - Ein eigener Pfad per `--log DATEI` hat Vorrang.
 
-Die Datei enthält **keine Tokens oder Schlüssel**. Sie kann aber Namen deiner Freunde, Server und Spiele enthalten. Schau kurz drüber und ersetze, was du nicht teilen willst, bevor du sie anhängst. Für mehr Details die App einmal mit `-v` starten (Verknüpfung oder Eingabeaufforderung: `FuchsLabs-USB-Display.exe -v`).
+Die Datei enthält **keine Tokens oder Schlüssel**. Sie kann aber Namen deiner Freunde, Server und Spiele enthalten. Schau kurz drüber und ersetze, was du nicht teilen willst, bevor du sie anhängst. Für mehr Details die App einmal mit `-v` starten (Verknüpfung oder Eingabeaufforderung: `ScreenBuddy.exe -v`).
 
 **Niemals mitschicken:** die Datei `config.toml`, Bot-Token, Steam- oder Xbox-Schlüssel.
 

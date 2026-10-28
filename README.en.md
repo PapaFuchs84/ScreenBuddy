@@ -112,7 +112,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.5.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.5.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The signed Android preview APK is a separate download.
+1. Download **ScreenBuddy.exe** from [release 2.5.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.5.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The signed Android preview APK is a separate download.
 2. Use Windows 10/11 x64 with Microsoft Edge WebView2 Evergreen Runtime installed. The runtime is not bundled and the installer does not install it automatically.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
@@ -190,8 +190,8 @@ Tokens and keys are only stored encrypted (`dpapi:…`). All keys with their def
 Requirements: Windows x64, Visual Studio Build Tools 2022 with C++/Windows SDK and CMake/Ninja, plus a bootstrapped vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`.
 
 ```bat
-git clone https://github.com/PapaFuchs84/fuchslabs-usb-display.git
-cd fuchslabs-usb-display\cpp
+git clone https://github.com/PapaFuchs84/ScreenBuddy.git
+cd ScreenBuddy\cpp
 build.bat nopause
 ```
 

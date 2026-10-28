@@ -23,4 +23,4 @@ Revocation decision: chain and hostname verification remain enabled; CRL/OCSP is
 
 Keep the Android release key and its passwords securely backed up; future APK updates require the same certificate. For rollback stop the app and restore the private, verified 2.3.0 executable, config.toml, companion.json and app-specific startup/uninstall state. [Test record](../cpp/TESTPROTOKOLL.md).
 
-Published and downloaded again: [v2.5.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.5.0). All three asset checksums match. Existing website update service completed successfully; public DE/EN pages returned HTTP 200 with the v2.5.0 download link. No firewall, container or proxy settings changed.
+Published and downloaded again: [v2.5.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.5.0). All three asset checksums match. Existing website update service completed successfully; public DE/EN pages returned HTTP 200 with the v2.5.0 download link. No firewall, container or proxy settings changed.

@@ -1,8 +1,14 @@
-# Changelog – FuchsLabs USB-Display
+# Changelog – ScreenBuddy
 
 **Deutsch** · [English](CHANGELOG.en.md)
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
+
+## [Unreleased]
+
+### Geändert
+
+- GitHub-Repository in `PapaFuchs84/ScreenBuddy` umbenannt (vorher `fuchslabs-usb-display`). Update-Prüfung, Release-Links, Anleitungen und Klon-Befehle zeigen auf die neue Adresse. Bereits installierte Versionen finden Updates weiterhin über die Weiterleitung von GitHub.
 
 ## [2.5.0] – 2026-10-27
 
@@ -95,7 +101,7 @@ Gemeinsamer Stand aus den beiden zuletzt entwickelten Änderungen; 2.0.9 wird ni
 - Behoben: Nach „Speichern & anwenden“ verschwand das Einstellungsfenster in den Infobereich. Es öffnet sich nach dem Neustart jetzt wieder.
 - Behoben: Eine zweite Instanz (z. B. eine Testversion) konnte den Port der Einstellungsseite mitbenutzen; der Port wird jetzt exklusiv belegt.
 - `LICENSE.txt` und `THIRD-PARTY-NOTICES.md` sind in der EXE enthalten; der Installer legt sie in den Installationsordner.
-- Download und Prüfsummen: [v2.0.6](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.6). Prüfstatus siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+- Download und Prüfsummen: [v2.0.6](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.0.6). Prüfstatus siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
 
 ## [2.0.5] – 2026-10-23
 
@@ -107,7 +113,7 @@ Gemeinsamer Stand aus den beiden zuletzt entwickelten Änderungen; 2.0.9 wird ni
 
 - Übersicht: „Vorherige Ansicht“ und „Nächste Ansicht“ steuern direkt die laufende Anzeige, mit aktueller Position unter der Live-Vorschau. Unterseiten und breite Kachelgruppen werden berücksichtigt; der automatische Wechsel läuft weiter.
 - Bedienung auf Deutsch und Englisch, deaktivierte Steuerung bei vollständig sichtbaren oder fehlenden Ansichten; keine Speicherung und kein Neustart nötig.
-- Download und Prüfsummen: [v2.0.4](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.4). Build- und Prüfstatus siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+- Download und Prüfsummen: [v2.0.4](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.0.4). Build- und Prüfstatus siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
 
 ## [2.0.3] – 2026-10-22
 
@@ -122,7 +128,7 @@ Gemeinsamer Stand aus den beiden zuletzt entwickelten Änderungen; 2.0.9 wird ni
 - Eine EXE enthält App, Installer, Updater und Deinstaller; Übernahme von 1.x-Einstellungen möglich. Python-Distributionsordner entfällt.
 - WebView2 Evergreen Runtime bleibt externe Voraussetzung; EXE unsigniert.
 - 86 Prüfungen bestanden; natives Fenster sichtbar geprüft, COM7-Gegenvergleich vom Nutzer bestätigt. Der erste echte Neustarttest scheiterte an der Windows-Paketumleitung von Installation/Autostart im Codex-Kontext; nach korrigierter Installation bestätigte der Nutzer den erfolgreichen Windows-Neustart mit Tray-Symbol.
-- Download und Prüfsummen: [v2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0). [Testprotokoll](cpp/TESTPROTOKOLL.md).
+- Download und Prüfsummen: [v2.0.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.0.0). [Testprotokoll](cpp/TESTPROTOKOLL.md).
 
 ## [1.2] – 2026-10-21
 
@@ -193,7 +199,7 @@ Erste Fassung als Python-Skript, danach als EXE `FuchsLabs-USB-Display-1.0.zip`.
 - Helligkeit von 50 auf 90 angehoben.
 - Ganzes Bild wird bei jedem Seitenwechsel und alle 5 Minuten neu gesendet. Ein Streifen an fester Stelle bei einfarbigen Testbildern liegt an Display oder Kabel, nicht an der App.
 
-[Unreleased]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v2.3.0...HEAD
-[2.3.0]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v2.2.0...v2.3.0
-[1.2]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v1.1...v1.2
-[1.1]: https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v1.1
+[Unreleased]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.2.0...v2.3.0
+[1.2]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v1.1...v1.2
+[1.1]: https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v1.1

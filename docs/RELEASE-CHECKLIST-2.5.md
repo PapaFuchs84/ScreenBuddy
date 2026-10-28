@@ -23,4 +23,4 @@ Entscheidung zu Zertifikatssperren: Zertifikatskette und Hostname werden geprüf
 
 Android-Release-Schlüssel und Passwörter sicher zusätzlich sichern; künftige APK-Updates benötigen dasselbe Zertifikat. Für Rückfall App beenden und die privat gesicherte, geprüfte 2.3.0-EXE, config.toml, companion.json und appbezogenen Autostart-/Uninstall-Zustand wiederherstellen. [Testprotokoll](../cpp/TESTPROTOKOLL.md).
 
-Veröffentlicht und erneut heruntergeladen: [v2.5.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.5.0). Alle drei Asset-Prüfsummen stimmen überein. Bestehender Website-Update-Dienst erfolgreich; öffentliche DE/EN-Seiten lieferten HTTP 200 mit v2.5.0-Downloadlink. Keine Firewall-, Container- oder Proxy-Einstellungen geändert.
+Veröffentlicht und erneut heruntergeladen: [v2.5.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.5.0). Alle drei Asset-Prüfsummen stimmen überein. Bestehender Website-Update-Dienst erfolgreich; öffentliche DE/EN-Seiten lieferten HTTP 200 mit v2.5.0-Downloadlink. Keine Firewall-, Container- oder Proxy-Einstellungen geändert.

@@ -2,7 +2,7 @@
 
 [English](TOUCH-2.0.7.en.md)
 
-**Das Freunde-Verhalten dieser Seite gilt ab 2.1.0 (die Änderung stammt aus 2.0.9).** Neu in 2.1.0: Auf der Home-Assistant-Seite schaltet ein Tipp auf eine Schalter-Kachel den Schalter um (nur mit aktivem Touch; Sensoren reagieren nicht auf Tippen). In [v2.0.8](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.8) öffnet ein Tipp auf einen Freund nur den Steam-Chat.
+**Das Freunde-Verhalten dieser Seite gilt ab 2.1.0 (die Änderung stammt aus 2.0.9).** Neu in 2.1.0: Auf der Home-Assistant-Seite schaltet ein Tipp auf eine Schalter-Kachel den Schalter um (nur mit aktivem Touch; Sensoren reagieren nicht auf Tippen). In [v2.0.8](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.0.8) öffnet ein Tipp auf einen Freund nur den Steam-Chat.
 
 Unter **Display → Touch-Steuerung** Touch einschalten und **Speichern & anwenden** wählen. Bei vorhandenen Einstellungen bleibt ein ausgeschalteter Touch-Schalter ausgeschaltet. HDMI/USB-C benötigt zusätzlich die USB-Touchverbindung und die richtige Windows-Bildschirmzuordnung. Windows 10/11 x64 und WebView2 Evergreen für das Einstellungsfenster bleiben erforderlich.
 

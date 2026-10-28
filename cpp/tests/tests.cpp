@@ -393,7 +393,7 @@ static void test_update() {
     CHECK(!update::is_newer("v2.0.9", "2.1.0"));
     CHECK(!update::is_newer("2.2.0-rc1", "2.1.0"));   // Vorabversion
     CHECK(!update::is_newer("kaputt", "2.1.0"));
-    auto ok = update::parse_release({{"tag_name", "v2.2.0"}, {"html_url", "https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.2.0"}});
+    auto ok = update::parse_release({{"tag_name", "v2.2.0"}, {"html_url", "https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.2.0"}});
     CHECK(ok.has_value());
     if (ok) CHECK_EQ(ok->version, std::string("2.2.0"));
     auto foreign = update::parse_release({{"tag_name", "v2.2.0"}, {"html_url", "https://boese.example/x"}});
