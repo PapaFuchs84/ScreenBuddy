@@ -20,7 +20,7 @@ The app writes everything important to the file **`usb-display.log`**:
 - Version 2.0 regular installation: `%LOCALAPPDATA%\FuchsLabs\USB-Display\usb-display.log`.
 - A custom `--log FILE` overrides the path.
 
-The file contains **no tokens or keys**. It may contain names of your friends, servers and games, though. Have a quick look and replace anything you don't want to share before attaching it. For more detail, start the app once with `-v` (shortcut or command prompt: `FuchsLabs-USB-Display.exe -v`).
+The file contains **no tokens or keys**. It may contain names of your friends, servers and games, though. Have a quick look and replace anything you don't want to share before attaching it. For more detail, start the app once with `-v` (shortcut or command prompt: `ScreenBuddy.exe -v`).
 
 **Never send:** the file `config.toml`, your bot token, Steam or Xbox keys.
 

@@ -1,4 +1,4 @@
-# FuchsLabs USB-Display – Schnellstart
+# ScreenBuddy – Schnellstart
 
 **Companion-Vorschau (ab 2.3.0):** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
 
@@ -8,9 +8,9 @@ Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastun
 
 ## In 3 Minuten loslegen
 
-1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest), derzeit **2.3.0**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
+1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest), derzeit **2.3.0**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
 2. Windows 10/11 x64 mit **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit muss vorhanden sein; sie wird nicht mitgeliefert oder automatisch installiert.
-3. Display anschließen und `FuchsLabs-USB-Display.exe` starten. Der Installer richtet die App unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` ein. Er benötigt dafür keine Administratorrechte.
+3. Display anschließen und `ScreenBuddy.exe` starten. Der Installer richtet die App unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` ein. Er benötigt dafür keine Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster** für die Einstellungen.
 
 Die Einstellungen öffnest du später jederzeit mit einem **Doppelklick auf das Symbol im Infobereich** (unten rechts neben der Uhr, ggf. über den kleinen Pfeil ^) oder indem du die EXE noch einmal startest.
@@ -54,7 +54,7 @@ Mit der Companion-App kannst du dein Android-Smartphone oder Tablet als zusätzl
 
 ### 1. Vorbereitung und Installation
 1. **Netzwerk:** Smartphone und PC müssen im selben lokalen Heimnetz (WLAN) oder per USB-Tethering verbunden sein.
-2. **APK installieren:** Die begleitende Vorschau-APK `FuchsLabs-Companion-0.2.0-preview.apk` aus dem [aktuellen GitHub-Release](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/latest) herunterladen und auf dem Android-Gerät installieren (Android 8.0 oder neuer).
+2. **APK installieren:** Die begleitende Vorschau-APK `FuchsLabs-Companion-0.2.0-preview.apk` aus dem [aktuellen GitHub-Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) herunterladen und auf dem Android-Gerät installieren (Android 8.0 oder neuer).
 
 ### 2. Companion am PC aktivieren
 1. In den Einstellungen der Windows-App auf den Reiter **Companion** gehen.
@@ -110,7 +110,7 @@ Auf der Seite **Start** den Schalter **Mit Windows starten** einschalten. Das ge
 ## Beenden und Entfernen
 
 - **Beenden:** Rechtsklick auf das Symbol im Infobereich → **Beenden**.
-- **Entfernen:** In Windows **Einstellungen → Apps** den Eintrag **FuchsLabs USB-Display** deinstallieren. Zugangsdaten und Einstellungen lassen sich auf Wunsch zusätzlich entfernen.
+- **Entfernen:** In Windows **Einstellungen → Apps** den Eintrag **ScreenBuddy** (bis 2.3.0: **FuchsLabs USB-Display**) deinstallieren. Zugangsdaten und Einstellungen lassen sich auf Wunsch zusätzlich entfernen.
 - **Fenster schließen:** Blendet nur die Einstellungen aus; die Anzeige läuft weiter.
 - **Update von 1.x:** Der Installer kann die alte Konfiguration übernehmen. Der alte Ordner wird mit `-1.x-alt` gesichert. Die Übernahme ist an die erkannten bisherigen Speicherorte gebunden.
 

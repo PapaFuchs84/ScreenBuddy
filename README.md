@@ -112,7 +112,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus [Release 2.5.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.5.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die signierte Android-Vorschau-APK ist ein separater Download.
+1. **ScreenBuddy.exe** aus [Release 2.5.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.5.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die signierte Android-Vorschau-APK ist ein separater Download.
 2. Windows 10/11 x64 mit installierter **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit ist nicht in der EXE enthalten und wird vom Installer nicht automatisch installiert.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
@@ -189,8 +189,8 @@ Die Sprache steht unter `[ui]` als `language = "de"` oder `"en"`.
 Voraussetzungen: Windows x64, Visual Studio Build Tools 2022 mit C++/Windows SDK und CMake/Ninja sowie ein eingerichteter vcpkg-Checkout unter `%USERPROFILE%\FuchsLabs\vcpkg`.
 
 ```bat
-git clone https://github.com/PapaFuchs84/fuchslabs-usb-display.git
-cd fuchslabs-usb-display\cpp
+git clone https://github.com/PapaFuchs84/ScreenBuddy.git
+cd ScreenBuddy\cpp
 build.bat nopause
 ```
 

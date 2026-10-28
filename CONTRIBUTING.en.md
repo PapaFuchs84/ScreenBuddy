@@ -9,8 +9,8 @@ The current implementation is C++20 under `cpp/`. Root Python files remain the h
 Windows x64, Visual Studio Build Tools 2022 with C++/Windows SDK and CMake/Ninja, Git, and a bootstrapped vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`.
 
 ```bat
-git clone https://github.com/PapaFuchs84/fuchslabs-usb-display.git
-cd fuchslabs-usb-display\cpp
+git clone https://github.com/PapaFuchs84/ScreenBuddy.git
+cd ScreenBuddy\cpp
 build.bat nopause
 build\screenbuddy-release\ScreenBuddy.exe --run --no-lcd -c test.toml
 ```

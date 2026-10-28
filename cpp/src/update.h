@@ -16,8 +16,8 @@
 
 namespace fl::update {
 
-inline constexpr const char* RELEASES_API = "https://api.github.com/repos/PapaFuchs84/fuchslabs-usb-display/releases/latest";
-inline constexpr const char* RELEASES_PAGE_PREFIX = "https://github.com/PapaFuchs84/fuchslabs-usb-display/";
+inline constexpr const char* RELEASES_API = "https://api.github.com/repos/PapaFuchs84/ScreenBuddy/releases/latest";
+inline constexpr const char* RELEASES_PAGE_PREFIX = "https://github.com/PapaFuchs84/ScreenBuddy/";
 
 struct Release {
     std::string version;   // "2.2.0" (ohne "v")

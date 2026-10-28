@@ -1,8 +1,14 @@
-# Changelog – FuchsLabs USB-Display
+# Changelog – ScreenBuddy
 
 [Deutsch](CHANGELOG.md) · **English**
 
 All notable changes to the app. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
+
+## [Unreleased]
+
+### Changed
+
+- GitHub repository renamed to `PapaFuchs84/ScreenBuddy` (formerly `fuchslabs-usb-display`). Update check, release links, guides and clone commands use the new address. Installed versions still find updates through GitHub's redirect.
 
 ## [2.5.0] – 2026-10-27
 
@@ -96,7 +102,7 @@ Combined state of the two latest changes; 2.0.9 is not released on its own.
 - Fixed: after “Save & apply” the settings window disappeared into the notification area. It now reopens after the restart.
 - Fixed: a second instance (e.g. a test build) could share the settings page port; the port is now bound exclusively.
 - `LICENSE.txt` and `THIRD-PARTY-NOTICES.md` are embedded in the EXE; the installer places them in the installation folder.
-- Download and checksums: [v2.0.6](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.6). See [test record](cpp/TESTPROTOKOLL.md) for validation status.
+- Download and checksums: [v2.0.6](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.0.6). See [test record](cpp/TESTPROTOKOLL.md) for validation status.
 
 ## [2.0.5] – 2026-10-23
 
@@ -108,7 +114,7 @@ Combined state of the two latest changes; 2.0.9 is not released on its own.
 
 - Overview: Previous view and Next view control the running display, with its current position below the live preview. Includes list subpages and wide tile groups; automatic cycling continues.
 - German/English controls are disabled when there are no views or all views fit on screen. No save or restart needed.
-- Download and checksums: [v2.0.4](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.4). See [test record](cpp/TESTPROTOKOLL.md) for build and validation status.
+- Download and checksums: [v2.0.4](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.0.4). See [test record](cpp/TESTPROTOKOLL.md) for build and validation status.
 
 ## [2.0.3] – 2026-10-22
 
@@ -123,7 +129,7 @@ Combined state of the two latest changes; 2.0.9 is not released on its own.
 - One EXE contains app, installer, updater and uninstaller; Version 1.x settings can be imported. No Python distribution folder is required.
 - WebView2 Evergreen Runtime remains external; EXE unsigned.
 - 86 checks passed; native window visibly tested and COM7 comparison confirmed by the user. The first real reboot test failed because installation/autostart were redirected into the Codex package context; after correcting the installation, the user confirmed a successful Windows reboot with the tray icon appearing automatically.
-- Download and checksums: [v2.0.0](https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v2.0.0). [Test record](cpp/TESTPROTOKOLL.md).
+- Download and checksums: [v2.0.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.0.0). [Test record](cpp/TESTPROTOKOLL.md).
 
 ## [1.2] – 2026-10-21
 
@@ -192,7 +198,7 @@ First version as a Python script, then as the EXE `FuchsLabs-USB-Display-1.0.zip
 - Brightness raised from 50 to 90.
 - The whole picture is resent on every page change and every 5 minutes. A stripe at a fixed spot on single-colour test pictures comes from the display or cable, not the app.
 
-[Unreleased]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v2.3.0...HEAD
-[2.3.0]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v2.2.0...v2.3.0
-[1.2]: https://github.com/PapaFuchs84/fuchslabs-usb-display/compare/v1.1...v1.2
-[1.1]: https://github.com/PapaFuchs84/fuchslabs-usb-display/releases/tag/v1.1
+[Unreleased]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.2.0...v2.3.0
+[1.2]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v1.1...v1.2
+[1.1]: https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v1.1
