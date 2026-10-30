@@ -4,9 +4,9 @@ name: Plugin validator
 on:
   push:
     branches: [ "main" ]
-    paths: [ "cpp/src/plugins.*", "cpp/tools/plugin_validate.cpp", "cpp/examples/plugins/**", "cpp/tests/plugin*", "cpp/tests/build-validator-linux.sh", ".github/workflows/plugin-validator.yml" ]
+    paths: [ "cpp/src/plugin*", "cpp/tools/plugin_*.cpp", "cpp/examples/plugins/**", "cpp/tests/plugin*", "cpp/tests/build-validator-linux.sh", ".github/workflows/plugin-validator.yml" ]
   pull_request:
-    paths: [ "cpp/src/plugins.*", "cpp/tools/plugin_validate.cpp", "cpp/examples/plugins/**", "cpp/tests/plugin*", "cpp/tests/build-validator-linux.sh", ".github/workflows/plugin-validator.yml" ]
+    paths: [ "cpp/src/plugin*", "cpp/tools/plugin_*.cpp", "cpp/examples/plugins/**", "cpp/tests/plugin*", "cpp/tests/build-validator-linux.sh", ".github/workflows/plugin-validator.yml" ]
 
 permissions:
   contents: read
@@ -17,6 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install nlohmann/json
-        run: sudo apt-get update && sudo apt-get install -y nlohmann-json3-dev
+        run: sudo apt-get update && sudo apt-get install -y nlohmann-json3-dev libssl-dev
       - name: Build and run plugin tests and validator
         run: sh cpp/tests/build-validator-linux.sh

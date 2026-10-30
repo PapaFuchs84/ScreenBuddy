@@ -37,4 +37,4 @@ It uses the app's `plugins.cpp` (same parser), only reads files and makes no net
 
 ## Open (later phases)
 
-Signing and index (phase 2), in-app store UI (phase 3), moderation and terms of use (phase 4). See the plan in PR [#21](https://github.com/PapaFuchs84/ScreenBuddy/pull/21).
+Signing is implemented as a library and tool, see [Plugin signing](PLUGIN-SIGNING.md); production key, index build via Actions and download are open. In-app store UI (phase 3), moderation and terms of use (phase 4). See the plan in PR [#21](https://github.com/PapaFuchs84/ScreenBuddy/pull/21).

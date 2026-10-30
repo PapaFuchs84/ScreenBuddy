@@ -56,6 +56,8 @@ struct DataResult {
     explicit operator bool() const { return data.has_value(); }
 };
 ParseResult parse_manifest(std::string_view utf8);
+// Same strict JSON rules as manifests (size limit, nesting 32, no duplicate keys); nullopt on any violation.
+std::optional<Json> parse_strict_json(std::string_view utf8, size_t limit);
 // Store metadata whitelists (plugin store, phase 1).
 inline constexpr const char* store_licenses[] = {"MIT", "CC0-1.0"};
 inline constexpr const char* store_categories[] = {"system", "games", "smart-home", "info", "other"};

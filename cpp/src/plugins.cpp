@@ -246,6 +246,12 @@ std::string source_fingerprint(const Manifest& manifest) {
     return sources.dump(); // std::map keeps headers in a stable order
 }
 
+std::optional<Json> parse_strict_json(std::string_view utf8, size_t limit) {
+    try { return parse_bounded(utf8, limit); }
+    catch (const Invalid&) { return std::nullopt; }
+    catch (const Json::exception&) { return std::nullopt; }
+}
+
 ParseResult parse_manifest(std::string_view utf8) {
     try {
         Json j = parse_bounded(utf8, manifest_limit);

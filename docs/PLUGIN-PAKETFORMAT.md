@@ -37,4 +37,4 @@ Er nutzt `plugins.cpp` der App (gleicher Parser), liest nur Dateien und macht ke
 
 ## Offen (spätere Phasen)
 
-Signierung und Index (Phase 2), Store-Oberfläche in der App (Phase 3), Moderation und Nutzungsbedingungen (Phase 4). Siehe Plan in PR [#21](https://github.com/PapaFuchs84/ScreenBuddy/pull/21).
+Signierung ist als Bibliothek und Werkzeug umgesetzt, siehe [Plugin-Signierung](PLUGIN-SIGNIERUNG.md); offen sind Produktionsschlüssel, Index-Build per Actions und Download. Store-Oberfläche in der App (Phase 3), Moderation und Nutzungsbedingungen (Phase 4). Siehe Plan in PR [#21](https://github.com/PapaFuchs84/ScreenBuddy/pull/21).
