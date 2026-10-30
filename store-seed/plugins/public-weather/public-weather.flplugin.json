@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "public-weather",
+  "name": "Wetter / Weather",
+  "description": "Optional public Open-Meteo example; sends coordinates to api.open-meteo.com. Sample values are fictional. Review provider terms before use.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "info",
+  "min_app_version": "2.5.0",
+  "refresh_seconds": 900,
+  "settings": [
+    {"key": "place", "label": "Anzeigename / Display name", "type": "text", "default": "Berlin"},
+    {"key": "latitude", "label": "Breitengrad / Latitude (-90..90)", "type": "number", "default": 52.52, "required": true},
+    {"key": "longitude", "label": "Laengengrad / Longitude (-180..180)", "type": "number", "default": 13.41, "required": true}
+  ],
+  "sources": [
+    {
+      "id": "weather",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude={{settings.latitude}}&longitude={{settings.longitude}}&current=temperature_2m,relative_humidity_2m&timezone=auto",
+      "format": "json",
+      "headers": {"Accept": "application/json"},
+      "sample": {
+        "current": {"time": "2026-01-01T12:00", "temperature_2m": 18.5, "relative_humidity_2m": 62}
+      }
+    }
+  ],
+  "widgets": [
+    {"type": "text", "label": "Ort / Place", "text": "{{settings.place}}"},
+    {"type": "metric", "label": "Temperatur / Temperature", "value": "{{weather.current.temperature_2m}}", "unit": "°C"},
+    {"type": "bar", "label": "Feuchte / Humidity (%)", "value": "{{weather.current.relative_humidity_2m}}", "min": 0, "max": 100},
+    {"type": "text", "label": "Datenstand / Data time", "text": "{{weather.current.time}}"},
+    {"type": "text", "label": "Quelle / Source", "text": "Weather data: Open-Meteo.com"}
+  ]
+}

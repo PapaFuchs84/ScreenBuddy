@@ -12,9 +12,9 @@ namespace fl::plugins::sign {
 inline constexpr size_t index_limit = 1024 * 1024; // index.json and revoked.json, bytes
 inline constexpr size_t max_entries = 2000;
 
-// Public key pinned in the app (hex). EMPTY until the maintainer generates the production key offline
-// (fl-plugin-sign keygen) and enters it here; while empty the app must treat the store as unavailable.
-inline constexpr const char* store_public_key_hex = "";
+// Public key pinned in the app (hex): FuchsLabs production key (generated offline 2026-10-30, private key stays on
+// the maintainer's machine, never in a repository). If this is ever empty or invalid the store is unavailable.
+inline constexpr const char* store_public_key_hex = "9d276b02a9a5ea934a3c73d48acd04d47b90bd2e7b6f42b2cca8188addbed6e1";
 
 std::string sha256_hex(std::string_view data);
 

@@ -15,10 +15,12 @@ $CXX src/plugins.cpp src/plugin_sign.cpp tools/plugin_sign.cpp -lcrypto -o "$OUT
 $CXX src/plugins.cpp src/plugin_sign.cpp src/plugin_store.cpp src/plugin_catalog.cpp tests/plugin_catalog_tests.cpp -lcrypto -o "$OUT/plugin-catalog-tests"
 "$OUT/plugin-tests"
 "$OUT/plugin-example-tests"
+"$OUT/plugin-example-tests" "$PWD/../store-seed/plugins"
 "$OUT/plugin-sign-tests"
 "$OUT/plugin-catalog-tests"
 # Validator: Beispiele müssen die Store-Regeln erfüllen, Fixtures müssen scheitern.
 "$OUT/fl-plugin-validate" --store --app-version 2.5.0 examples/plugins
+"$OUT/fl-plugin-validate" --store --app-version 2.5.0 ../store-seed/plugins
 for f in tests/plugin-fixtures/*.flplugin.json; do
     if "$OUT/fl-plugin-validate" --store "$f" >/dev/null; then echo "FAIL: $f wurde akzeptiert"; exit 1; fi
 done
@@ -41,6 +43,12 @@ if "$OUT/fl-plugin-sign" keygen "$T/key.pem" >/dev/null; then echo "FAIL: Schlü
 "$OUT/fl-plugin-sign" verify index "$T/out/index.json" "$PUB"
 if "$OUT/fl-plugin-sign" verify index "$T/out/index.json" "$PUB2" >/dev/null; then echo "FAIL: falscher Schlüssel akzeptiert"; exit 1; fi
 if "$OUT/fl-plugin-sign" verify revoked "$T/out/index.json" "$PUB" >/dev/null; then echo "FAIL: Index als Sperrliste akzeptiert"; exit 1; fi
+"$OUT/fl-plugin-sign" check-index "$T/root" "$T/out/index.json" "$PUB"
+echo '{}' > "$T/root/offline-clock/extra.flplugin.json"
+if "$OUT/fl-plugin-sign" check-index "$T/root" "$T/out/index.json" "$PUB" >/dev/null; then echo "FAIL: nicht signierte Plugin-Datei akzeptiert"; exit 1; fi
+rm "$T/root/offline-clock/extra.flplugin.json"
+sed -i 's/"MIT"/"CC0-1.0"/' "$T/root/offline-clock/offline-clock.flplugin.json"
+if "$OUT/fl-plugin-sign" check-index "$T/root" "$T/out/index.json" "$PUB" >/dev/null; then echo "FAIL: geaendertes Plugin ohne neue Signatur akzeptiert"; exit 1; fi
 echo " " >> "$T/out/index.json"
 if "$OUT/fl-plugin-sign" verify index "$T/out/index.json" "$PUB" >/dev/null; then echo "FAIL: manipulierter Index akzeptiert"; exit 1; fi
 echo "validator: ok"

@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "id": "todo-three",
+  "name": "Drei Aufgaben / Three tasks",
+  "description": "Die drei wichtigsten Aufgaben des Tages als Text auf dem Display. Kein Netzwerk.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "info",
+  "min_app_version": "2.5.0",
+  "settings": [
+    {
+      "key": "one",
+      "label": "Aufgabe 1 / Task 1",
+      "type": "text",
+      "default": "Display einrichten / Set up display"
+    },
+    {
+      "key": "two",
+      "label": "Aufgabe 2 / Task 2",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "three",
+      "label": "Aufgabe 3 / Task 3",
+      "type": "text",
+      "default": ""
+    }
+  ],
+  "widgets": [
+    {
+      "type": "clock",
+      "label": "Heute / Today",
+      "format": "date"
+    },
+    {
+      "type": "text",
+      "label": "1",
+      "text": "{{settings.one}}"
+    },
+    {
+      "type": "text",
+      "label": "2",
+      "text": "{{settings.two}}"
+    },
+    {
+      "type": "text",
+      "label": "3",
+      "text": "{{settings.three}}"
+    }
+  ]
+}

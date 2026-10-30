@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "id": "quote-card",
+  "name": "Zitat-Karte / Quote card",
+  "description": "Ein eigener Spruch mit Urheber, frei einstellbar. Kein Netzwerk, keine fremden Texte.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "other",
+  "min_app_version": "2.5.0",
+  "settings": [
+    {
+      "key": "quote",
+      "label": "Spruch / Quote",
+      "type": "text",
+      "default": "Klein anfangen, dranbleiben. / Start small, keep going."
+    },
+    {
+      "key": "author",
+      "label": "Von / By",
+      "type": "text",
+      "default": "FuchsLabs"
+    }
+  ],
+  "widgets": [
+    {
+      "type": "text",
+      "label": "Zitat / Quote",
+      "text": "{{settings.quote}}"
+    },
+    {
+      "type": "text",
+      "label": "Von / By",
+      "text": "{{settings.author}}"
+    },
+    {
+      "type": "clock",
+      "format": "time"
+    }
+  ]
+}

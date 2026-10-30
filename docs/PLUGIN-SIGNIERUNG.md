@@ -1,6 +1,6 @@
 # Plugin-Signierung (Phase 2)
 
-© 2026 FuchsLabs · **Stand:** Bibliothek, Werkzeug und Tests sind umgesetzt. **Noch nicht vorhanden:** der Produktionsschlüssel (muss Basti offline erzeugen), das Store-Repository mit Index-Build per Actions, das Herunterladen in der App und die Store-Oberfläche (Phase 3). Die App verifiziert bisher nur in Tests; es gibt noch keinen aktiven Store.
+© 2026 FuchsLabs · **Stand:** Bibliothek, Werkzeug und Tests sind umgesetzt. Der Produktionsschlüssel ist erzeugt (privat nur auf dem Rechner des Maintainers, öffentlicher Teil in `plugin_sign.h`), die App enthält Abruf und Store-Oberfläche. **Noch nicht vorhanden:** ein veröffentlichter, signierter Index im Store-Repository `ScreenBuddy-Plugins`; solange meldet die App „nicht erreichbar“.
 
 ## Idee
 
@@ -53,7 +53,7 @@ fl-plugin-sign verify index|revoked <datei> <public-hex>
 - **Liste:** Suche (ID, Name, Beschreibung, Autor), Kategorie, Status `installiert`, `Update`, `nicht unterstützt` (zu alte App), `gesperrt`. Bei Updates stehen **neue Hosts** in der Karte.
 - **Installieren:** nur wenn nicht gesperrt, App kompatibel und `package_matches` besteht. Das Plugin bleibt ausgeschaltet, Host-Zustimmungen werden bei jedem Update zurückgesetzt.
 - **Sperren:** `enforce_revocations` schaltet installierte, gesperrte Plugins ab.
-- Ohne eingetragenen Produktionsschlüssel ist der Store „nicht verfügbar“ und es erfolgt kein Netzwerkzugriff.
+- Ist kein gültiger Schlüssel eingetragen, ist der Store „nicht verfügbar“ und es erfolgt kein Netzwerkzugriff.
 
 ## Store in der App (Phase 3, Teil 2)
 
@@ -61,7 +61,8 @@ fl-plugin-sign verify index|revoked <datei> <public-hex>
 - **Seite „Plugin-Store“** (Einstellungen → Verbindung, nativ, FuchsLabs-Look, DE/EN): Suche, Kategorien, Karte mit Autor, Version, Lizenz, Status und **„Dieses Plugin sendet Daten an: …“**, Installieren/Aktualisieren mit Bestätigung. Installierte Plugins bleiben **ausgeschaltet**, Host-Zustimmungen werden bei jeder Installation und jedem Update zurückgesetzt; gespeicherte Zugangsdaten werden wie beim Import verworfen, wenn sich Quellen ändern.
 - **Abgleich:** höchstens einmal pro Tag im Hintergrund (erster Versuch 30 s nach Start) und manuell über „Store aktualisieren“ (frühestens nach 60 s). Danach werden gesperrte Plugins ausgeschaltet, auch aus dem Zwischenspeicher.
 - **Abschaltbar:** Schalter „Plugin-Store verwenden“ (`ui.plugin_store`, Standard an). Aus = keinerlei Abruf. Keine Telemetrie.
-- **Solange `store_public_key_hex` leer ist**, zeigt die Seite „nicht verfügbar“ und es gibt keinen Netzwerkzugriff. Auch die Adresse `base_url` ist bisher nur geplant (das Repository `ScreenBuddy-Plugins` existiert noch nicht).
+- **Ist `store_public_key_hex` leer oder ungültig**, zeigt die Seite „nicht verfügbar“ und es gibt keinen Netzwerkzugriff. Solange unter `base_url` (GitHub Pages von `ScreenBuddy-Plugins`) kein signierter Index liegt, zeigt die Seite „nicht erreichbar“.
+- **Veröffentlichen (Maintainer):** Plugins im Store-Repository ändern, `fl-plugin-sign build-index plugins docs <sequence>` ausführen, `fl-plugin-sign sign index docs/index.json <Schlüssel.pem>` (analog `revoked.json`) und committen. Die CI des Store-Repositorys führt `fl-plugin-sign check-index` aus und lehnt jede Änderung ab, bei der Plugins und signierter Index nicht übereinstimmen. Der private Schlüssel liegt nie in GitHub.
 
 ## Grenzen
 

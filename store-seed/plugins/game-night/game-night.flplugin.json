@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "id": "game-night",
+  "name": "Spieleabend / Game night",
+  "description": "Spiel, Startzeit und Mitspielerzahl für den Spieleabend, von Hand eingetragen. Kein Netzwerk.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "games",
+  "min_app_version": "2.5.0",
+  "settings": [
+    {
+      "key": "game",
+      "label": "Spiel / Game",
+      "type": "text",
+      "default": "Battlefield 6"
+    },
+    {
+      "key": "start",
+      "label": "Start / Start time",
+      "type": "text",
+      "default": "20:00"
+    },
+    {
+      "key": "players",
+      "label": "Mitspieler / Players",
+      "type": "number",
+      "default": 4
+    },
+    {
+      "key": "slots",
+      "label": "Plätze / Slots",
+      "type": "number",
+      "default": 6
+    }
+  ],
+  "widgets": [
+    {
+      "type": "text",
+      "label": "Spiel / Game",
+      "text": "{{settings.game}}"
+    },
+    {
+      "type": "metric",
+      "label": "Start / Start",
+      "value": "{{settings.start}}"
+    },
+    {
+      "type": "bar",
+      "label": "Mitspieler / Players",
+      "value": "{{settings.players}}",
+      "min": 0,
+      "max": 16
+    },
+    {
+      "type": "clock",
+      "label": "Jetzt / Now",
+      "format": "time"
+    }
+  ]
+}

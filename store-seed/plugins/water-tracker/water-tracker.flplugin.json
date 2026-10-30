@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "id": "water-tracker",
+  "name": "Trink-Erinnerung / Water tracker",
+  "description": "Gläser Wasser heute zählen und das Tagesziel auf dem Display sehen. Kein Timer, kein Netzwerk.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "other",
+  "min_app_version": "2.5.0",
+  "settings": [
+    {
+      "key": "glasses",
+      "label": "Gläser heute / Glasses today",
+      "type": "number",
+      "default": 3
+    },
+    {
+      "key": "target",
+      "label": "Ziel Gläser / Target glasses",
+      "type": "number",
+      "default": 8
+    }
+  ],
+  "widgets": [
+    {
+      "type": "clock",
+      "label": "Ortszeit / Local time",
+      "format": "time"
+    },
+    {
+      "type": "metric",
+      "label": "Gläser / Glasses",
+      "value": "{{settings.glasses}}",
+      "unit": "/ {{settings.target}}"
+    },
+    {
+      "type": "bar",
+      "label": "Tagesziel / Daily goal",
+      "value": "{{settings.glasses}}",
+      "min": 0,
+      "max": 16
+    }
+  ]
+}
