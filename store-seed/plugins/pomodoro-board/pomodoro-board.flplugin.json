@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "id": "pomodoro-board",
+  "name": "Pomodoro-Tafel / Pomodoro board",
+  "description": "Lernen oder arbeiten in Blöcken: Blocklänge, Pause und erledigte Blöcke von Hand eintragen. Kein Timer, kein Netzwerk.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "info",
+  "min_app_version": "2.5.0",
+  "settings": [
+    {
+      "key": "work",
+      "label": "Arbeitsblock Minuten / Work minutes",
+      "type": "number",
+      "default": 25
+    },
+    {
+      "key": "pause",
+      "label": "Pause Minuten / Break minutes",
+      "type": "number",
+      "default": 5
+    },
+    {
+      "key": "done",
+      "label": "Erledigte Blöcke / Blocks done",
+      "type": "number",
+      "default": 2
+    },
+    {
+      "key": "goal",
+      "label": "Ziel Blöcke / Goal blocks",
+      "type": "number",
+      "default": 8
+    }
+  ],
+  "widgets": [
+    {
+      "type": "clock",
+      "label": "Ortszeit / Local time",
+      "format": "time"
+    },
+    {
+      "type": "metric",
+      "label": "Block / Work",
+      "value": "{{settings.work}}",
+      "unit": "min"
+    },
+    {
+      "type": "metric",
+      "label": "Pause / Break",
+      "value": "{{settings.pause}}",
+      "unit": "min"
+    },
+    {
+      "type": "bar",
+      "label": "Blöcke / Blocks",
+      "value": "{{settings.done}}",
+      "min": 0,
+      "max": 16
+    }
+  ]
+}

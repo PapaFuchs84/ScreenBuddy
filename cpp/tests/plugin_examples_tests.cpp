@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     std::set<std::string> ids;
     bool focus_seen = false, weather_seen = false;
     try {
-        for (const auto& file : std::filesystem::directory_iterator(directory)) {
+        for (const auto& file : std::filesystem::recursive_directory_iterator(directory)) {
             if (!file.is_regular_file() || !file.path().filename().string().ends_with(".flplugin.json")) continue;
             std::ifstream input(file.path(), std::ios::binary);
             const std::string data((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());

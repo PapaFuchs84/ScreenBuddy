@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "offline-focus",
+  "name": "Fokus / Focus",
+  "description": "Lokales Fokusboard / Local focus board. Manual progress; no timer, network or code execution.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "info",
+  "min_app_version": "2.5.0",
+  "settings": [
+    {"key": "focus", "label": "Mein Fokus / My focus", "type": "text", "default": "Eine Sache abschliessen / Finish one thing"},
+    {"key": "minutes", "label": "Geplante Minuten / Planned minutes", "type": "number", "default": 25},
+    {"key": "progress", "label": "Fortschritt 0-100 / Progress 0-100", "type": "number", "default": 40}
+  ],
+  "sources": [],
+  "widgets": [
+    {"type": "clock", "label": "Ortszeit / Local time", "format": "time"},
+    {"type": "metric", "label": "Fokusblock / Focus session", "value": "{{settings.minutes}}", "unit": "min"},
+    {"type": "text", "label": "Heute / Today", "text": "{{settings.focus}}"},
+    {"type": "bar", "label": "Fortschritt / Progress (%)", "value": "{{settings.progress}}", "min": 0, "max": 100}
+  ]
+}

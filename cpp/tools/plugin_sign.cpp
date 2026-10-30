@@ -18,6 +18,8 @@ static void usage() {
               "  fl-plugin-sign keygen <private.pem>                    new Ed25519 key (refuses to overwrite); prints public key hex\n"
               "  fl-plugin-sign build-index <plugins-root> <out-dir> <sequence>\n"
               "                                                         reads <root>/<id>/<id>.flplugin.json, writes <out-dir>/index.json\n"
+              "  fl-plugin-sign check-index <plugins-root> <index.json> <public-hex>\n"
+              "                                                         CI: signed index must match the plugin files exactly\n"
               "  fl-plugin-sign sign index|revoked <file> <private.pem>  writes <file>.sig\n"
               "  fl-plugin-sign verify index|revoked <file> <public-hex> checks <file> against <file>.sig");
 }
@@ -29,6 +31,25 @@ static bool read_file(const fs::path& p, std::string& out) {
 }
 static bool kind_of(const std::string& s, sign::Kind& k) {
     if (s == "index") k = sign::Kind::index; else if (s == "revoked") k = sign::Kind::revoked; else return false;
+    return true;
+}
+
+static bool gather(const std::string& root, std::vector<sign::BuildInput>& inputs) {
+    std::vector<fs::path> files;
+    for (const auto& e : fs::recursive_directory_iterator(root))
+        if (e.is_regular_file() && e.path().filename().string().ends_with(".flplugin.json")) files.push_back(e.path());
+    std::sort(files.begin(), files.end());
+    for (const auto& f : files) {
+        std::string data;
+        if (!read_file(f, data)) { std::printf("Cannot read %s\n", f.string().c_str()); return false; }
+        auto parsed = parse_manifest(data);
+        if (!parsed || f.filename().string() != parsed.manifest->id + ".flplugin.json" ||
+            f.parent_path().filename().string() != parsed.manifest->id) {
+            std::printf("Not a valid store layout (<id>/<id>.flplugin.json): %s\n", f.string().c_str());
+            return false;
+        }
+        inputs.push_back({std::move(data)});
+    }
     return true;
 }
 
@@ -47,21 +68,7 @@ int main(int argc, char** argv) {
     }
     if (a[0] == "build-index" && a.size() == 4) {
         std::vector<sign::BuildInput> inputs;
-        std::vector<fs::path> files;
-        for (const auto& e : fs::recursive_directory_iterator(a[1]))
-            if (e.is_regular_file() && e.path().filename().string().ends_with(".flplugin.json")) files.push_back(e.path());
-        std::sort(files.begin(), files.end());
-        for (const auto& f : files) {
-            std::string data;
-            if (!read_file(f, data)) { std::printf("Cannot read %s\n", f.string().c_str()); return 1; }
-            auto parsed = parse_manifest(data);
-            if (!parsed || f.filename().string() != parsed.manifest->id + ".flplugin.json" ||
-                f.parent_path().filename().string() != parsed.manifest->id) {
-                std::printf("Not a valid store layout (<id>/<id>.flplugin.json): %s\n", f.string().c_str());
-                return 1;
-            }
-            inputs.push_back({std::move(data)});
-        }
+        if (!gather(a[1], inputs)) return 1;
         char stamp[32];
         const std::time_t now = std::time(nullptr);
         std::tm utc{};
@@ -78,6 +85,21 @@ int main(int argc, char** argv) {
         out << *built.index_json;
         std::printf("index.json with %zu plugins written.\n", inputs.size());
         return out ? 0 : 1;
+    }
+    // CI check: the committed, signed index must match the plugin files exactly (no unsigned change slips in).
+    if (a[0] == "check-index" && a.size() == 4) {
+        std::string doc, sig;
+        auto key = sign::public_key_from_hex(a[3]);
+        if (!key || !read_file(a[2], doc) || !read_file(a[2] + ".sig", sig)) { std::puts("Bad public key or missing index/.sig file."); return 1; }
+        while (!sig.empty() && (sig.back() == '\n' || sig.back() == '\r')) sig.pop_back();
+        auto opened = sign::open_index(*key, doc, sig);
+        if (!opened) { std::printf("Index check failed: %s\n", opened.error.c_str()); return 1; }
+        std::vector<sign::BuildInput> inputs;
+        if (!gather(a[1], inputs)) return 1;
+        auto rebuilt = sign::build_index(inputs, opened.index->sequence, opened.index->generated);
+        if (!rebuilt.index_json || *rebuilt.index_json != doc) { std::puts("Index check failed: plugin files and signed index differ (rebuild, bump sequence and sign again)."); return 1; }
+        std::printf("Index OK: signature valid, %zu plugins match, sequence %d.\n", inputs.size(), opened.index->sequence);
+        return 0;
     }
     sign::Kind kind;
     if ((a[0] == "sign" || a[0] == "verify") && a.size() == 4 && kind_of(a[1], kind)) {

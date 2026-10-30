@@ -1,0 +1,37 @@
+name: Plugin melden / Report a plugin
+description: Ein Store-Plugin ist auffällig oder verstößt gegen die Regeln · A store plugin looks wrong or breaks the rules
+title: "[Plugin] "
+labels: ["plugin-meldung"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bei **akuter Gefahr** (z. B. Datenabfluss) bitte **kein öffentliches Issue**, sondern den privaten Weg aus SECURITY.md nutzen. ·
+        For **acute danger** (e.g. data exfiltration) please do **not** open a public issue; use the private route in SECURITY.en.md.
+  - type: input
+    id: plugin
+    attributes:
+      label: Plugin-ID und Version · Plugin ID and version
+      placeholder: "z. B. / e.g. public-weather 1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: grund
+    attributes:
+      label: Was ist das Problem? · What is the problem?
+      options:
+        - Sendet Daten an unerwartete Hosts · Sends data to unexpected hosts
+        - Täuschung oder falsche Beschreibung · Deception or wrong description
+        - Rechte-, Marken- oder Lizenzverstoß · Rights, trademark or license violation
+        - Werbung, Tracking oder Affiliate · Ads, tracking or affiliate links
+        - Funktioniert nicht · Does not work
+        - Sonstiges · Other
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Was ist dir aufgefallen? · What did you notice?
+      description: Keine Zugangsdaten oder privaten Daten einfügen · Do not paste credentials or private data
+    validations:
+      required: true

@@ -1,6 +1,6 @@
 # Plugin signing (phase 2)
 
-© 2026 FuchsLabs · **Status:** library, tool and tests are implemented. **Not yet available:** the production key (the maintainer must generate it offline), the store repository with index build via Actions, downloading in the app and the store UI (phase 3). So far the app only verifies in tests; there is no active store.
+© 2026 FuchsLabs · **Status:** library, tool and tests are implemented. The production key has been generated (private part only on the maintainer's machine, public part in `plugin_sign.h`); the app contains the fetch and the store UI. **Not yet available:** a published, signed index in the `ScreenBuddy-Plugins` store repository; until then the app reports "not reachable".
 
 ## Idea
 
@@ -53,7 +53,7 @@ fl-plugin-sign verify index|revoked <file> <public-hex>
 - **List:** search (ID, name, description, author), category, status `installed`, `update`, `unsupported` (app too old), `revoked`. For updates the card shows **new hosts**.
 - **Install:** only if not revoked, app compatible and `package_matches` passes. The plugin stays off; host consent is reset on every update.
 - **Revocation:** `enforce_revocations` disables installed revoked plugins.
-- Without a pinned production key the store is "unavailable" and makes no network access.
+- Without a valid pinned key the store is "unavailable" and makes no network access.
 
 ## Store in the app (phase 3, part 2)
 
@@ -61,7 +61,8 @@ fl-plugin-sign verify index|revoked <file> <public-hex>
 - **"Plugin store" page** (Settings → Connection, native, FuchsLabs look, DE/EN): search, categories, card with author, version, license, status and **"This plugin sends data to: …"**, install/update with confirmation. Installed plugins stay **off**, host consent is reset on every install and update; stored credentials are discarded as on import when sources change.
 - **Sync:** at most once a day in the background (first attempt 30 s after start) and manually via "Refresh store" (not more often than every 60 s). Afterwards revoked plugins are switched off, also from the cache.
 - **Can be switched off:** toggle "Use the plugin store" (`ui.plugin_store`, default on). Off = no requests at all. No telemetry.
-- **While `store_public_key_hex` is empty** the page shows "not available" and there is no network access. The address `base_url` is only planned so far (the `ScreenBuddy-Plugins` repository does not exist yet).
+- **If `store_public_key_hex` is empty or invalid** the page shows "not available" and there is no network access. As long as there is no signed index at `base_url` (GitHub Pages of `ScreenBuddy-Plugins`), the page shows "not reachable".
+- **Publishing (maintainer):** change plugins in the store repository, run `fl-plugin-sign build-index plugins docs <sequence>`, `fl-plugin-sign sign index docs/index.json <key.pem>` (likewise `revoked.json`) and commit. The store repository's CI runs `fl-plugin-sign check-index` and rejects any change where plugins and the signed index differ. The private key never lives in GitHub.
 
 ## Limits
 

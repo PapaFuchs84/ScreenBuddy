@@ -29,7 +29,12 @@ FuchsLabs bestätigt den Eingang so bald wie möglich, hält dich über die Behe
 - Discord-Token, Steam- und Xbox-Schlüssel sowie das Home-Assistant-Token liegen nur DPAPI-verschlüsselt in `config.toml`, erscheinen nie im Log und werden nie an den Browser ausgeliefert.
 - Daten aus dem Netz (Feeds, Avatare, Spielernamen) werden größenbegrenzt verarbeitet und nur als Text gezeichnet.
 - Companion-App (standardmäßig aus): lauscht nur an privaten IPv4-Adressen des Heimnetzes (Port 8777, nie 8765), nimmt nur Verbindungen aus privaten Adressbereichen an und spricht nur TLS (selbstsigniertes Zertifikat; die App prüft dessen Fingerabdruck). Koppeln nur mit der PIN, die die Einstellungsseite anzeigt (2 Minuten, einmalig, nach 5 Fehlversuchen 5 Minuten gesperrt). Geräteschlüssel (32 Byte) und der TLS-Schlüssel liegen DPAPI-verschlüsselt in `companion.json`. Ein gekoppeltes Gerät kann dieselben Touch-Ziele auslösen wie ein Touchscreen (Browser/Chat öffnen, Home-Assistant-Schalter).
+- Plugins sind reine JSON-Daten ohne Programmcode. Quellen brauchen HTTPS, öffentliche Adressen und die Zustimmung je Host; Zugangsdaten bleiben DPAPI-geschützt. Der Plugin-Store (falls aktiv) prüft Ed25519-Signatur, SHA-256 und Sperrliste vor jeder Installation, siehe [Plugin-Signierung](docs/PLUGIN-SIGNIERUNG.md).
 - Die App braucht keine Administratorrechte.
+
+## Ein Plugin melden
+
+Ein Plugin, das Daten an unerwartete Hosts sendet, täuscht, Rechte oder Marken verletzt oder Inhalte Dritter ohne Berechtigung nutzt, meldest du über **Issues → „Plugin melden“** (Vorlage). Bitte nenne Plugin-ID, Version und was auffällt. Ist ein Plugin **akut gefährlich** (zum Beispiel Datenabfluss), melde es wie eine Sicherheitslücke **nicht öffentlich**, siehe oben. Meldungen werden angestrebt innerhalb von 72 Stunden beantwortet; gefährliche Plugins werden über die signierte Sperrliste gesperrt.
 
 **Nicht im Schutzbereich:** Wer Zugriff auf dein Windows-Benutzerkonto hat, kann gespeicherte Zugangsdaten mit denselben Mitteln lesen wie die App. Andere Programme auf demselben PC können die Einstellungsseite aufrufen, erhalten aber keine Zugangsdaten.
 

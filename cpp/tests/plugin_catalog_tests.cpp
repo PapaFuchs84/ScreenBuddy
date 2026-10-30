@@ -63,9 +63,9 @@ int main() {
     server.keys = *sign::generate_keypair();
     const auto key = *sign::public_key_from_hex(server.keys.public_hex);
 
-    // Without a pinned production key the store is unavailable and makes no request.
-    CHECK(std::string(sign::store_public_key_hex).empty());
-    CHECK(!Catalog::from_pinned_key(root / "x", server.fetcher(), "2.5.0").has_value());
+    // The pinned production key is a valid Ed25519 public key; creating the client makes no request.
+    CHECK(sign::public_key_from_hex(sign::store_public_key_hex).has_value());
+    CHECK(Catalog::from_pinned_key(root / "x", server.fetcher(), "2.5.0").has_value());
     CHECK(server.requests == 0);
 
     server.publish({manifest("clock-a", "1.0.0"), manifest("weather-b", "1.0.0", "api.open-meteo.com"), manifest("new-c", "1.0.0")}, 5);
