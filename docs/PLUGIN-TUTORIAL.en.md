@@ -52,8 +52,9 @@ The authority is [plugins.h](../cpp/src/plugins.h) and [plugins.cpp](../cpp/src/
 
 | Area | Fields and limits |
 | --- | --- |
-| Root | Required: `schema_version: 1`, `id`, `name`, `version`, `widgets`. Optional: `description`, `refresh_seconds`, `settings`, `sources`. |
+| Root | Required: `schema_version: 1`, `id`, `name`, `version`, `widgets`. Optional: `description`, `refresh_seconds`, `settings`, `sources` and the store fields below. |
 | Identity | `id`: 1–48 ASCII characters, starts with `a-z`, then lowercase letters/digits/hyphens; no final or double hyphen, no Windows device names such as `con`, `com1`. `name`: 1–80 characters; `description`: up to 500. |
+| Store fields | All optional for local plugins, required for the plugin store (see [package format](PLUGIN-PACKAGE-FORMAT.md)): `license` (only `MIT` or `CC0-1.0`), `author` (1–80 characters), `category` (`system`, `games`, `smart-home`, `info`, `other`), `min_app_version` (`X.Y.Z`, earliest compatible ScreenBuddy version). |
 | Version / refresh | `version`: three numeric groups `X.Y.Z`, 1–4 digits per group. `refresh_seconds`: integer 15–3600, default 60. |
 | Settings | At most 12 objects: `key`, `label`, `type`, optional `default`, `required` (Boolean). Unique key: 1–40 characters, starts lowercase, followed by `a-z`, `0-9`, `_`. Label: 1–80 characters. Type `text`, `number` or `secret`. Numbers must be finite; text defaults at most 4096 UTF-8 bytes without control characters. Omitted defaults become `0` or `""`. Secret defaults must be `""`. |
 | Sources | At most four: `id`, `url`, optional `format: "json"`, `headers`, `sample`. ID follows setting-key rules; cannot be `settings`, `time`, `date`, `item`. `sample` must be an object. |
@@ -102,6 +103,17 @@ The `fl-plugin-example-tests` target reads every shipped `*.flplugin.json` from 
 cmake --build build/screenbuddy-release --target fl-plugin-example-tests
 ./build/screenbuddy-release/fl-plugin-example-tests.exe
 ```
+
+### Validator for your own plugins
+
+`fl-plugin-validate` checks single files or folders with the same parser as the app, fully offline. `--store` adds the store rules, `--app-version X.Y.Z` checks `min_app_version`. For every plugin the output lists the hosts it would send data to. Exit code 0 = everything valid.
+
+```powershell
+cmake --build build/screenbuddy-release --target fl-plugin-validate
+./build/screenbuddy-release/fl-plugin-validate.exe --store --app-version 2.5.0 my-plugins/
+```
+
+On Linux (also for CI): `sh cpp/tests/build-validator-linux.sh` builds parser tests, example tests and the validator with g++ and nlohmann/json.
 
 For personal files, pass another example directory as the first argument. Technical acceptance status is recorded in the [test log](../cpp/TESTPROTOKOLL.md). External weather requests and physical display output need separate validation.
 

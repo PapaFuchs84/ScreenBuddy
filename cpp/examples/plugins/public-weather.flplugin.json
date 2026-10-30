@@ -4,6 +4,10 @@
   "name": "Wetter / Weather",
   "description": "Optional public Open-Meteo example; sends coordinates to api.open-meteo.com. Sample values are fictional. Review provider terms before use.",
   "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "info",
+  "min_app_version": "2.5.0",
   "refresh_seconds": 900,
   "settings": [
     {"key": "place", "label": "Anzeigename / Display name", "type": "text", "default": "Berlin"},

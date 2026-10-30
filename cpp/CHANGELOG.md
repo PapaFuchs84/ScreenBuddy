@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Plugin platform phase 1: `Manifest` gains `license`, `author`, `category`, `min_app_version` (optional; invalid values are rejected, schema 1 unchanged); new `store_problems()` and `app_compatible()` in `plugins.cpp`; new tool `tools/plugin_validate.cpp` (CMake target `fl-plugin-validate`, Linux script `tests/build-validator-linux.sh`, workflow `Plugin validator`). `fl-plugin-tests`: 249 checks passed (was 223); 41 example checks passed. Verified on Linux with g++ only; the Windows/MSVC build of the new target was not run here. See [package format](../docs/PLUGIN-PACKAGE-FORMAT.md).
+
 - GitHub repository renamed to `PapaFuchs84/ScreenBuddy` (formerly `fuchslabs-usb-display`). Update check, release links, guides and clone commands use the new address. Installed versions still find updates through GitHub's redirect.
 
 ## 2.5.0 – 27 October 2026

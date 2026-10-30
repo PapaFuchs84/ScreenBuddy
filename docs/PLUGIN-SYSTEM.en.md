@@ -24,7 +24,7 @@ The plugin appears as its own page. Enable, disable and remove it in the same ta
 
 - Required: `schema_version: 1`, a unique lowercase-letter/digit/hyphen ID, name, version `X.Y.Z`, and 1–6 widgets.
 - Widget types: `clock` (`time`, `date`, `datetime`), `text`, `metric`, `bar`, `list`. Text templates support validated references such as `{{time}}`, `{{date}}` and declared source values.
-- Optional: up to 12 settings and four JSON sources with fixed HTTPS hosts. Bounded HTTPS fetching runs in its own worker. Host grants are stored locally; plugin settings are DPAPI-protected. One isolated public live fetch passed, but the full app flow with host consent has not been accepted. Sample source data is used only for explicit preview, never as live fallback.
+- Optional: store fields `license`, `author`, `category`, `min_app_version` (see [package format](PLUGIN-PACKAGE-FORMAT.md)); up to 12 settings and four JSON sources with fixed HTTPS hosts. Bounded HTTPS fetching runs in its own worker. Host grants are stored locally; plugin settings are DPAPI-protected. One isolated public live fetch passed, but the full app flow with host consent has not been accepted. Sample source data is used only for explicit preview, never as live fallback.
 - Limits: 128 KiB manifest, 32 installed plugins, JSON depth 32. Unknown fields and duplicate JSON keys are rejected.
 - Security status: no plugin code is loaded. Fetches are restricted to declared HTTPS hosts and bounded responses; host grants are stored locally and plugin settings are protected with DPAPI. Certificate revocation checks (CRL/OCSP) are still missing. There is no public marketplace yet.
 

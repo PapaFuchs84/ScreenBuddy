@@ -6,6 +6,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Added
+
+- Plugin platform, phase 1: manifest fields `license` (`MIT`/`CC0-1.0`), `author`, `category` and `min_app_version` (optional, schema stays 1), the `store_problems` and `app_compatible` checks and the offline validator `fl-plugin-validate` (`--store`, `--app-version`) with a GitHub Actions workflow. Example plugins carry the new fields. Docs: [package format](docs/PLUGIN-PACKAGE-FORMAT.md). There is no plugin store, signing or store UI yet.
+
 ### Changed
 
 - GitHub repository renamed to `PapaFuchs84/ScreenBuddy` (formerly `fuchslabs-usb-display`). Update check, release links, guides and clone commands use the new address. Installed versions still find updates through GitHub's redirect.

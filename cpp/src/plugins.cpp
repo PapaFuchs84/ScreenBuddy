@@ -34,6 +34,12 @@ std::vector<std::string> split(std::string_view s) {
         i = end + 1;
     }
 }
+bool semver(const std::string& s) {
+    auto parts = split(s);
+    return parts.size() == 3 && std::all_of(parts.begin(), parts.end(), [](const auto& p) {
+        return !p.empty() && p.size() <= 4 && std::all_of(p.begin(), p.end(), digit);
+    });
+}
 bool clean(std::string_view s) {
     return std::none_of(s.begin(), s.end(), [](unsigned char c) { return c < 32 || c == 127; });
 }
@@ -243,7 +249,8 @@ std::string source_fingerprint(const Manifest& manifest) {
 ParseResult parse_manifest(std::string_view utf8) {
     try {
         Json j = parse_bounded(utf8, manifest_limit);
-        fields(j, {"schema_version", "id", "name", "description", "version", "refresh_seconds", "settings", "sources", "widgets"});
+        fields(j, {"schema_version", "id", "name", "description", "version", "license", "author", "category", "min_app_version",
+                   "refresh_seconds", "settings", "sources", "widgets"});
         require(integer(j, "schema_version", 1, 1) == 1, "Unsupported schema version.");
         Manifest m;
         m.id = str(j, "id", 1, 48);
@@ -253,10 +260,22 @@ ParseResult parse_manifest(std::string_view utf8) {
         m.name = checked_text(j, "name", 1, 80);
         m.description = j.contains("description") ? checked_text(j, "description", 0, 500) : "";
         m.version = str(j, "version", 5, 14);
-        auto version = split(m.version);
-        require(version.size() == 3 && std::all_of(version.begin(), version.end(), [](const auto& s) {
-            return !s.empty() && s.size() <= 4 && std::all_of(s.begin(), s.end(), digit);
-        }), "Version must be X.Y.Z.");
+        require(semver(m.version), "Version must be X.Y.Z.");
+        if (j.contains("license")) {
+            m.license = str(j, "license", 1, 32);
+            require(std::any_of(std::begin(store_licenses), std::end(store_licenses), [&](const char* x) { return m.license == x; }),
+                    "License must be MIT or CC0-1.0.");
+        }
+        if (j.contains("author")) m.author = checked_text(j, "author", 1, 80);
+        if (j.contains("category")) {
+            m.category = str(j, "category", 1, 32);
+            require(std::any_of(std::begin(store_categories), std::end(store_categories), [&](const char* x) { return m.category == x; }),
+                    "Unknown category.");
+        }
+        if (j.contains("min_app_version")) {
+            m.min_app_version = str(j, "min_app_version", 5, 14);
+            require(semver(m.min_app_version), "min_app_version must be X.Y.Z.");
+        }
         if (j.contains("refresh_seconds")) m.refresh_seconds = integer(j, "refresh_seconds", 15, 3600);
         for (const auto* key : {"settings", "sources"}) if (!j.contains(key)) j[key] = Json::array();
         require(j["settings"].is_array() && j["settings"].size() <= 12, "At most 12 settings allowed.");
@@ -432,4 +451,29 @@ RequestResult prepare_request(const Manifest& m, const Source& source, const Jso
     } catch (const Invalid& e) { return {std::nullopt, e.what()}; }
       catch (const Json::exception&) { return {std::nullopt, "Invalid source settings."}; }
 }
+bool app_compatible(const Manifest& manifest, std::string_view app_version) {
+    if (manifest.min_app_version.empty()) return true;
+    const std::string app(app_version);
+    if (!semver(app)) return true;
+    auto number = [](const std::string& v) {
+        std::vector<int> n;
+        for (const auto& p : split(v)) n.push_back(std::stoi(p));
+        return n;
+    };
+    return number(app) >= number(manifest.min_app_version);
+}
+
+std::vector<std::string> store_problems(const Manifest& m) {
+    std::vector<std::string> p;
+    if (m.description.size() < 10) p.push_back("Store: description (at least 10 characters) is required.");
+    if (m.author.empty()) p.push_back("Store: author is required.");
+    if (m.license.empty()) p.push_back("Store: license (MIT or CC0-1.0) is required.");
+    if (m.category.empty()) p.push_back("Store: category is required.");
+    if (m.min_app_version.empty()) p.push_back("Store: min_app_version is required.");
+    if (!m.sources.empty() && m.refresh_seconds < 60) p.push_back("Store: plugins with sources need refresh_seconds of at least 60.");
+    for (const auto& s : m.sources)
+        if (s.sample.empty()) { p.push_back("Store: every source needs a sample for the preview."); break; }
+    return p;
+}
+
 } // namespace fl::plugins

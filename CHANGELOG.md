@@ -6,6 +6,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Plugin-Plattform, Phase 1: Manifest-Felder `license` (`MIT`/`CC0-1.0`), `author`, `category` und `min_app_version` (optional, Schema bleibt 1), Prüffunktionen `store_problems` und `app_compatible` sowie der Offline-Validator `fl-plugin-validate` (`--store`, `--app-version`) mit GitHub-Actions-Workflow. Beispiel-Plugins tragen die neuen Felder. Doku: [Paketformat](docs/PLUGIN-PAKETFORMAT.md). Es gibt noch keinen Pluginstore, keine Signierung und keine Store-Oberfläche.
+
 ### Geändert
 
 - GitHub-Repository in `PapaFuchs84/ScreenBuddy` umbenannt (vorher `fuchslabs-usb-display`). Update-Prüfung, Release-Links, Anleitungen und Klon-Befehle zeigen auf die neue Adresse. Bereits installierte Versionen finden Updates weiterhin über die Weiterleitung von GitHub.

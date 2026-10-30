@@ -70,6 +70,11 @@ target_include_directories(fl-plugin-example-tests PRIVATE src)
 target_link_libraries(fl-plugin-example-tests PRIVATE nlohmann_json::nlohmann_json)
 target_compile_definitions(fl-plugin-example-tests PRIVATE FL_PLUGIN_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/plugins")
 
+# Validator für Plugin-Autoren und Store-CI (nutzt den App-Parser, ohne Netzwerk)
+add_executable(fl-plugin-validate tools/plugin_validate.cpp src/plugins.cpp)
+target_include_directories(fl-plugin-validate PRIVATE src)
+target_link_libraries(fl-plugin-validate PRIVATE nlohmann_json::nlohmann_json)
+
 add_executable(fl-plugin-store-tests tests/plugin_store_tests.cpp src/plugins.cpp src/plugin_store.cpp)
 target_include_directories(fl-plugin-store-tests PRIVATE src)
 target_link_libraries(fl-plugin-store-tests PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)

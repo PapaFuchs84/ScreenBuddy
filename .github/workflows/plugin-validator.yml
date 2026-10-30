@@ -1,0 +1,22 @@
+# © 2026 FuchsLabs – Plugin-Parser, Beispiel-Plugins und Validator (Linux, ohne Netzwerkzugriff der Plugins)
+name: Plugin validator
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: [ "cpp/src/plugins.*", "cpp/tools/plugin_validate.cpp", "cpp/examples/plugins/**", "cpp/tests/plugin*", "cpp/tests/build-validator-linux.sh", ".github/workflows/plugin-validator.yml" ]
+  pull_request:
+    paths: [ "cpp/src/plugins.*", "cpp/tools/plugin_validate.cpp", "cpp/examples/plugins/**", "cpp/tests/plugin*", "cpp/tests/build-validator-linux.sh", ".github/workflows/plugin-validator.yml" ]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install nlohmann/json
+        run: sudo apt-get update && sudo apt-get install -y nlohmann-json3-dev
+      - name: Build and run plugin tests and validator
+        run: sh cpp/tests/build-validator-linux.sh
