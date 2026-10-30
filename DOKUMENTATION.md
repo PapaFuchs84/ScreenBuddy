@@ -12,7 +12,7 @@ Die PC-Seite ist eingebaut; die Android-App gibt es als **Companion-App 1.0** al
 
 - **Einschalten:** **Einstellungen → Companion → Companion einschalten** und speichern (läuft dann zusätzlich zum USB-Display) oder unter **Display → Display-Typ** „Companion-App (Android, über WLAN)“ wählen (nur das Handy, kein USB-Display). Standard: aus. Windows fragt beim ersten Start eventuell nach der Firewall: „Private Netzwerke“ erlauben.
 - **Koppeln:** **Kopplungscode anzeigen** zeigt QR-Code, 6-stellige PIN und den Fingerabdruck des Zertifikats. In der App den QR-Code scannen (oder Adresse und PIN eintippen und den Fingerabdruck vergleichen). Der Code gilt 2 Minuten und nur einmal; nach 5 falschen Versuchen ist das Koppeln 5 Minuten gesperrt.
-- **Netz:** nur private IPv4-Adressen des PCs (10.x, 172.16–31.x, 192.168.x), Port 8777 (`[companion] port`, nie 8765), Verbindung mit TLS. Der PC kündigt sich per mDNS als `_fuchslabs-display._tcp` an (Windows 10 1809 oder neuer); sonst die IP-Adresse in der App eintragen.
+- **Netz:** nur private IPv4-Adressen des PCs (10.x, 172.16–31.x, 192.168.x), Port 8777 (`[companion] port`, nie 8765), Verbindung mit TLS. Mehrere Handys: `[companion] sync` (Standard `true` = alle zeigen dasselbe; `false` = jedes Handy unabhängig mit eigener Position, Auflösung und optional eigener Seitenliste, siehe [Companion](docs/COMPANION.md)). Der PC kündigt sich per mDNS als `_fuchslabs-display._tcp` an (Windows 10 1809 oder neuer); sonst die IP-Adresse in der App eintragen.
 - **Gespeichert:** `companion.json` neben der `config.toml` (TLS-Zertifikat, DPAPI-verschlüsselter TLS-Schlüssel, je Gerät ein DPAPI-verschlüsselter Schlüssel). Unter **Gekoppelte Geräte** lässt sich jedes Gerät entfernen; seine Verbindung wird sofort getrennt. Wer `companion.json` löscht, bekommt ein neues Zertifikat und muss alle Geräte neu koppeln.
 - **Last:** Bilder gehen nur bei Änderung als JPEG raus, höchstens 5 pro Sekunde.
 
@@ -70,7 +70,7 @@ Unter **Einstellungen → Übersicht** kannst du mit **Vorherige Ansicht** und *
 
 ## 1. Seiten
 
-Die Anzeige wechselt alle `page_seconds` Sekunden (Standard 15). Reihenfolge und Sichtbarkeit stellst du in der Einstellungsseite ein.
+Die Anzeige wechselt alle `page_seconds` Sekunden (Standard 15). Reihenfolge und Sichtbarkeit stellst du in der Einstellungsseite ein (**Seiten & Reihenfolge**; aktivierte Plugins stehen dort ebenfalls in der Liste und lassen sich sortieren und ausblenden).
 
 | Seite | Inhalt | Aktualisierung |
 |---|---|---|

@@ -31,6 +31,7 @@ inline constexpr double PING_SECONDS = 5;
 inline constexpr double DEAD_SECONDS = 15;
 inline constexpr double MIN_FRAME_SECONDS = 0.2;    // höchstens 5 Bilder/s
 inline constexpr size_t MAX_DEVICES = 8;
+inline constexpr size_t MAX_DEVICE_PAGES = 64;      // Einträge in der eigenen Seitenliste eines Geräts
 inline constexpr size_t MAX_TEXT_MESSAGE = 16 * 1024;
 inline constexpr size_t MAX_BUFFERED = 4 * MAX_TEXT_MESSAGE;  // ungeparste Eingangsdaten je Verbindung, danach Trennung
 inline constexpr size_t READ_BUDGET = 2 * MAX_TEXT_MESSAGE;   // höchstens so viel lesen, bevor wieder geparst wird
@@ -159,11 +160,14 @@ private:
     bool any_ = false;
 };
 
+std::vector<std::string> clean_pages(const std::vector<std::string>& in);  // gültig, eindeutig, begrenzt
+
 // ---------- Gespeicherte Kopplungen und TLS-Identität (companion.json) ----------
 // Geräteschlüssel und privater TLS-Schlüssel gehen durch protect() (unter Windows DPAPI, siehe secure.cpp).
 struct Device {
     std::string id, name, key;  // key = 32 Byte roh
     double added = 0, last_seen = 0;
+    std::optional<std::vector<std::string>> pages;  // eigene Seitenliste (Reihenfolge = Auswahl); leer = Standardliste
 };
 
 class Store {
@@ -180,6 +184,9 @@ public:
     bool contains(const std::string& id);
     void seen(const std::string& id);
     bool remove(const std::string& id);
+    // Eigene Seitenliste je Gerät (nullopt = die gemeinsame Liste companion.pages). Ungültige Einträge fallen weg.
+    std::optional<std::vector<std::string>> device_pages(const std::string& id);
+    bool set_device_pages(const std::string& id, const std::optional<std::vector<std::string>>& pages);
     json list();                                     // ohne Schlüssel
 
 private:

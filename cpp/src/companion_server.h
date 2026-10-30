@@ -35,7 +35,7 @@ public:
         int max_clients = 4;
         double handshake_seconds = HANDSHAKE_SECONDS;  // TLS + Upgrade + hello, ab accept() (Tests: kürzer)
     };
-    struct Frame { std::string jpeg; int w = 480, h = 320; };
+    struct Frame { std::string jpeg; int w = 480, h = 320; uint64_t version = 0; };  // version != 0: nur senden, wenn neu (je Gerät)
     struct Hooks {
         std::function<Frame()> encode_frame;           // pixels and dimensions from the same snapshot
         std::function<void(int, int)> on_resize;       // authenticated resolution owner only
@@ -44,6 +44,12 @@ public:
         std::function<void(int, int)> on_touch;        // Renderkoordinaten, aus dem Verbindungs-Thread
         std::function<void(int, int, int, int)> on_touch_frame;
         std::function<void(int, const std::string&)> log;  // 0 Debug, 1 Info, 2 Warnung
+        // Pro Gerät (nur wenn independent() wahr ist): eigenes Bild, eigene Größe, eigene Gesten. device = Geräte-ID.
+        std::function<bool()> independent;
+        std::function<Frame(const std::string& device)> encode_frame_for;
+        std::function<void(const std::string& device, int, int)> on_resize_for;
+        std::function<void(const std::string& device, int)> on_swipe_for;
+        std::function<void(const std::string& device, int, int, int, int)> on_touch_frame_for;
         std::function<void()> on_change;               // Clients/Kopplungen geändert (für die Einstellungsseite)
         std::function<double()> now;                   // monotone Sekunden (Tests: steuerbar)
         std::function<void(const std::string&)> before_auth;  // nur Tests: nach Schlüssel-/PIN-Prüfung, vor der Anmeldung

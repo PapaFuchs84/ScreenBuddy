@@ -32,7 +32,7 @@ std::vector<std::unique_ptr<Page>> create_pages() {
 
 Text source_text(const std::string& key) { return Text(source_title(key, false), source_title(key, true)); }
 
-std::vector<ItemList::Item> page_items(const ojson& order, const ojson& selected) {
+std::vector<ItemList::Item> page_items(const ojson& order, const ojson& selected, const std::vector<PluginPageInfo>& plugins) {
     std::vector<ItemList::Item> items;
     auto has = [&](const std::string& k) { return std::any_of(items.begin(), items.end(), [&](auto& i) { return i.key == k; }); };
     auto chosen = [&](const std::string& k) {
@@ -42,11 +42,19 @@ std::vector<ItemList::Item> page_items(const ojson& order, const ojson& selected
         for (const auto& key : order) {
             if (!key.is_string()) continue;
             std::string k = key.get<std::string>();
-            if (std::find(config::PAGES.begin(), config::PAGES.end(), k) == config::PAGES.end() || has(k)) continue;
-            items.push_back({k, source_text(k), {}, chosen(k)});
+            if (has(k)) continue;
+            if (std::find(config::PAGES.begin(), config::PAGES.end(), k) != config::PAGES.end()) {
+                items.push_back({k, source_text(k), {}, chosen(k)});
+                continue;
+            }
+            auto plugin = std::find_if(plugins.begin(), plugins.end(), [&](auto& p) { return p.first == k; });
+            if (plugin != plugins.end()) items.push_back({k, plugin->second, T(L"Plugin", L"Plugin"), chosen(k)});
         }
     for (const auto& k : config::PAGES)
         if (!has(k)) items.push_back({k, source_text(k), {}, false});
+    // Plugins, die noch nicht in der Reihenfolge stehen, sind wie zur Laufzeit zunächst sichtbar (hinten).
+    for (const auto& p : plugins)
+        if (!has(p.first)) items.push_back({p.first, p.second, T(L"Plugin", L"Plugin"), true});
     return items;
 }
 

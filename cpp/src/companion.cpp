@@ -608,7 +608,12 @@ void Store::load() {
             std::string raw = unbase64(unprotect_(d["key"].get<std::string>()), &ok);
             if (!ok || raw.size() != 32) continue;  // z. B. anderes Windows-Konto: Eintrag unbrauchbar
             Device dev{d["id"].get<std::string>(), d.contains("name") && d["name"].is_string() ? clean_name(d["name"].get<std::string>()) : "",
-                       raw, d.value("added", 0.0), d.value("last_seen", 0.0)};
+                       raw, d.value("added", 0.0), d.value("last_seen", 0.0), std::nullopt};
+            if (d.contains("pages") && d["pages"].is_array()) {
+                std::vector<std::string> raw_pages;
+                for (auto& p : d["pages"]) if (p.is_string()) raw_pages.push_back(p.get<std::string>());
+                dev.pages = clean_pages(raw_pages);
+            }
             if (devices_.size() < MAX_DEVICES) devices_.push_back(std::move(dev));
         }
 }
@@ -621,8 +626,11 @@ void Store::save_locked() {
         j["key"] = protect_(key_);
     }
     json arr = json::array();
-    for (auto& d : devices_)
-        arr.push_back({{"id", d.id}, {"name", d.name}, {"key", protect_(base64(d.key))}, {"added", d.added}, {"last_seen", d.last_seen}});
+    for (auto& d : devices_) {
+        json e = {{"id", d.id}, {"name", d.name}, {"key", protect_(base64(d.key))}, {"added", d.added}, {"last_seen", d.last_seen}};
+        if (d.pages) e["pages"] = *d.pages;
+        arr.push_back(std::move(e));
+    }
     j["devices"] = arr;
     std::string text = j.dump(2, ' ', false, json::error_handler_t::replace);
     auto tmp = path_;
@@ -702,10 +710,39 @@ bool Store::remove(const std::string& id) {
     return true;
 }
 
+std::vector<std::string> clean_pages(const std::vector<std::string>& in) {
+    std::vector<std::string> out;
+    for (const auto& p : in) {
+        if (p.empty() || p.size() > 100 || out.size() >= MAX_DEVICE_PAGES) continue;
+        if (std::any_of(p.begin(), p.end(), [](unsigned char c) { return c < 0x20 || c == 0x7F; })) continue;
+        if (std::find(out.begin(), out.end(), p) == out.end()) out.push_back(p);
+    }
+    return out;
+}
+
+std::optional<std::vector<std::string>> Store::device_pages(const std::string& id) {
+    std::lock_guard lk(mu_);
+    for (auto& d : devices_) if (d.id == id) return d.pages;
+    return std::nullopt;
+}
+
+bool Store::set_device_pages(const std::string& id, const std::optional<std::vector<std::string>>& pages) {
+    std::lock_guard lk(mu_);
+    auto it = std::find_if(devices_.begin(), devices_.end(), [&](const Device& d) { return d.id == id; });
+    if (it == devices_.end()) return false;
+    it->pages = pages ? std::optional(clean_pages(*pages)) : std::nullopt;
+    save_locked();
+    return true;
+}
+
 json Store::list() {
     std::lock_guard lk(mu_);
     json arr = json::array();
-    for (auto& d : devices_) arr.push_back({{"id", d.id}, {"name", d.name}, {"added", d.added}, {"last_seen", d.last_seen}});
+    for (auto& d : devices_) {
+        json e = {{"id", d.id}, {"name", d.name}, {"added", d.added}, {"last_seen", d.last_seen}, {"pages", nullptr}};
+        if (d.pages) e["pages"] = *d.pages;
+        arr.push_back(std::move(e));
+    }
     return arr;
 }
 

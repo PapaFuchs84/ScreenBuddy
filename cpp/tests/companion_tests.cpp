@@ -1094,6 +1094,123 @@ static void test_resize_swipe() {
     srv->stop(); std::error_code ec; fs::remove(path,ec);
 }
 
+// ---------- Unabhängiger Betrieb: eigene Bilder, Größen, Gesten und Seitenlisten je Gerät ----------
+static void test_independent() {
+#ifdef _WIN32
+    WSADATA d;
+    WSAStartup(MAKEWORD(2, 2), &d);
+#endif
+    auto path = tmpfile("fl-companion-independent.json");
+    Store store(path, enc, dec, [] { return 1.0; });
+    store.load();
+    // Seitenlisten: nur gültige, eindeutige Einträge; Persistenz; Entfernen des Geräts nimmt sie mit
+    std::string a_id, b_id;
+    store.add_device("A", &a_id);
+    store.add_device("B", &b_id);
+    CHECK(!store.device_pages(a_id).has_value());
+    CHECK(store.set_device_pages(a_id, std::vector<std::string>{"system", "plugin:wetter", "system", "", "bad\nkey"}));
+    CHECK(store.device_pages(a_id) == std::optional(std::vector<std::string>{"system", "plugin:wetter"}));
+    CHECK(!store.set_device_pages("unknown", std::vector<std::string>{"system"}));
+    CHECK(store.set_device_pages(b_id, std::vector<std::string>{}));   // leere eigene Liste ist erlaubt (nichts zeigen)
+    CHECK(store.device_pages(b_id).has_value() && store.device_pages(b_id)->empty());
+    {
+        Store again(path, enc, dec, [] { return 1.0; });
+        again.load();
+        CHECK(again.device_pages(a_id) == std::optional(std::vector<std::string>{"system", "plugin:wetter"}));
+        CHECK(again.device_pages(b_id).has_value());
+        bool listed = false;
+        for (auto& dev : again.list()) if (dev["id"] == a_id) listed = dev["pages"].is_array() && dev["pages"].size() == 2;
+        CHECK(listed);
+    }
+    CHECK(store.set_device_pages(b_id, std::nullopt));
+    CHECK(!store.device_pages(b_id).has_value());
+    std::vector<std::string> many;
+    for (int i = 0; i < 200; ++i) many.push_back("plugin:p" + std::to_string(i));
+    CHECK(clean_pages(many).size() == MAX_DEVICE_PAGES);
+    store.remove(a_id);
+    store.remove(b_id);
+
+    // Server: zwei Geräte, jedes mit eigenem Bild, eigener Größe und eigenen Gesten
+    std::mutex mu;
+    std::map<std::string, std::string> swipes, resizes;
+    std::map<std::string, std::pair<int, int>> touches;
+    std::atomic<bool> independent{true};
+    std::atomic<uint64_t> version{1};
+    Server::Hooks hooks;
+    hooks.encode = [] { return std::string("SHARED"); };
+    hooks.independent = [&] { return independent.load(); };
+    hooks.encode_frame_for = [&](const std::string& id) {
+        Server::Frame f;
+        f.jpeg = "FRAME-" + id;
+        f.w = 300; f.h = 200; f.version = version;
+        return f;
+    };
+    hooks.on_swipe_for = [&](const std::string& id, int dir) { std::lock_guard lk(mu); swipes[id] += std::to_string(dir) + ";"; };
+    hooks.on_resize_for = [&](const std::string& id, int w, int h) { std::lock_guard lk(mu); resizes[id] += std::to_string(w) + "x" + std::to_string(h) + ";"; };
+    hooks.on_touch_frame_for = [&](const std::string& id, int x, int y, int, int) { std::lock_guard lk(mu); touches[id] = {x, y}; };
+    int port = 0;
+    auto srv = start_on_random_port(store, hooks, port);
+    CHECK(srv != nullptr);
+    if (!srv) return;
+    srv->frame_changed();
+    auto pair_client = [&](Client& c, const std::string& name, int w, int h, std::string& id) {
+        auto code = srv->pairing().start();
+        if (!code || !c.open(port)) return false;
+        c.send(R"({"t":"hello","v":1,"pin":")" + code->pin + R"(","w":)" + std::to_string(w) + R"(,"h":)" + std::to_string(h) + R"(,"name":")" + name + R"("})");
+        auto m = c.recv();            // paired
+        if (!m) return false;
+        m = c.recv();                 // ready (480x320 bzw. Größe des Bildes)
+        if (!m) return false;
+        for (auto& cl : srv->clients()) if (cl["name"] == name) id = cl["id"];
+        return !id.empty();
+    };
+    Client a, b;
+    std::string ida, idb;
+    CHECK(pair_client(a, "A", 1080, 2400, ida));
+    CHECK(pair_client(b, "B", 1520, 720, idb));
+    CHECK(ida != idb);
+    // Jeder bekommt sein eigenes Bild
+    auto frame_of = [](Client& c) {
+        for (int i = 0; i < 6; ++i) {
+            auto m = c.recv();
+            if (!m) return std::string();
+            if (m->op == Op::Binary) return m->payload.substr(1);
+        }
+        return std::string();
+    };
+    CHECK_EQ(frame_of(a), "FRAME-" + ida);
+    CHECK_EQ(frame_of(b), "FRAME-" + idb);
+    // Beide dürfen ihre Größe melden (kein gemeinsamer Besitzer), Wischen und Tippen gehören dem Gerät
+    a.send(R"({"t":"resize","w":1000,"h":2000})");
+    b.send(R"({"t":"resize","w":1600,"h":700})");
+    a.send(R"({"t":"swipe","dir":1})");
+    b.send(R"({"t":"swipe","dir":-1})");
+    b.send(R"({"t":"touch","x":7,"y":9})");
+    a.send(R"({"t":"ping"})"); b.send(R"({"t":"ping"})");
+    CHECK(a.recv() && b.recv());
+    {
+        std::lock_guard lk(mu);
+        CHECK(resizes[ida].find("x") != std::string::npos && resizes[idb].find("x") != std::string::npos);
+        CHECK_EQ(swipes[ida], "1;");
+        CHECK_EQ(swipes[idb], "-1;");
+        CHECK(touches.count(idb) && touches[idb] == std::make_pair(7, 9) && !touches.count(ida));
+    }
+    // Gleiche Version: kein erneutes Bild (nur bei neuer Version)
+    srv->frame_changed();
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    a.send(R"({"t":"ping"})");
+    auto m = a.recv();
+    CHECK(m && m->op == Op::Text && m->payload == msg_pong());   // kein Binary dazwischen
+    ++version;
+    srv->frame_changed();
+    CHECK_EQ(frame_of(a), "FRAME-" + ida);
+    // Umschalten auf gemeinsam: wieder das gemeinsame Bild
+    independent = false;
+    srv->frame_changed();
+    std::string last;   // b hat durch die neue Version noch ein eigenes Bild offen: bis zum gemeinsamen Bild lesen
+    for (int i = 0; i < 4 && last != "SHARED"; ++i) last = frame_of(b);
+    CHECK_EQ(last, "SHARED");
+}
 int main() {
     test_crypto();
     test_net();
@@ -1107,6 +1224,7 @@ int main() {
     test_identity();
     test_server();
     test_server_hardening();
+    test_independent();
     test_resize_swipe();
     std::printf("%d Prüfungen ok, %d Fehler\n", g_ok, g_fail);
     return g_fail ? 1 : 0;
