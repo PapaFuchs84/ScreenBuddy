@@ -14,6 +14,15 @@ bool public_source_ip(const std::string& address);
 // Local numeric-address probe of the same WinSock completion/event contract as live DNS.
 bool dns_completion_contract_for_test();
 #endif
+// Unparsed response bytes for signed store documents (index, signatures, manifests): same network rules as
+// fetch_public_json, but no JSON/Content-Type interpretation; integrity comes from the signature, not the transport.
+struct BytesResult {
+    std::optional<std::string> data;
+    std::string error;
+    explicit operator bool() const { return data.has_value(); }
+};
+BytesResult fetch_public_bytes(const Request& request, const Authorization& authorized, size_t body_limit);
+BytesResult decode_http_body(std::string_view response, size_t body_limit, bool json_only);
 // Strict bounded HTTP/1.1 decoding, also used by deterministic offline tests.
 DataResult decode_source_http(std::string_view response);
 

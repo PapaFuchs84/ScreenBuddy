@@ -48,7 +48,7 @@ const ojson& defaults() {
                               {"entities", ojson::array()}};
         // Companion-App (Android) im Heimnetz: standardmäßig aus; Port nie der der Einstellungsseite
         j["companion"] = {{"enabled", false}, {"port", 8777}, {"page_seconds", 15}, {"pages", PAGES}};
-        j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true},
+        j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true}, {"plugin_store", true},
                    // Darstellung des nativen Einstellungsfensters: auto = wie Windows
                    {"settings_theme", "auto"}};
         return j;

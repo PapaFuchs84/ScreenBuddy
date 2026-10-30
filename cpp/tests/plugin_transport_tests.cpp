@@ -38,6 +38,16 @@ int main() {
     CHECK(public_source_ip("172.32.0.1"));
     CHECK(decode_source_http(response("{\"n\":1}", "Content-Length: 7\r\n")));
     CHECK(decode_source_http(response("{}")));
+    {   // Raw bytes for signed store documents: exact bytes, any content type, bounded
+        auto raw = decode_http_body("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\nab\ncd", 100, false);
+        CHECK(raw && *raw.data == "ab\ncd");
+        CHECK(!decode_http_body("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{}", 100, true)); // JSON mode still strict
+        CHECK(!decode_http_body("HTTP/1.1 404 Not Found\r\nContent-Length: 2\r\n\r\n{}", 100, false));
+        CHECK(!decode_http_body("HTTP/1.1 200 OK\r\n\r\n" + std::string(101, 'x'), 100, false)); // over limit
+        auto chunked = decode_http_body("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n3\r\nabc\r\n0\r\n\r\n", 100, false);
+        CHECK(chunked && *chunked.data == "abc");
+        CHECK(!decode_http_body("HTTP/1.1 200 OK\r\nContent-Length: 9\r\n\r\nabc", 100, false)); // truncated
+    }
     CHECK(decode_source_http("HTTP/1.1 200 OK\r\nContent-Type: application/problem+json; charset=utf-8\r\n\r\n{}"));
     CHECK(decode_source_http(response("2\r\n{}\r\n0\r\n\r\n", "Transfer-Encoding: chunked\r\n")));
     for (const auto* headers : {"Content-Length: 1\r\n", "Content-Length: 2\r\nContent-Length: 2\r\n",

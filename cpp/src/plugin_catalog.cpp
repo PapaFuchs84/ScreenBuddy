@@ -69,8 +69,9 @@ void Catalog::load_cache() {
         auto opened = sign::open_revoked(key_, rev, trimmed(rsig));
         if (opened) revoked_ = std::move(opened.list);
     }
-    // An index without its verified revocation list could offer revoked packages: use neither.
-    if (!index_ || !revoked_) { index_.reset(); revoked_.reset(); }
+    // An index without its verified revocation list could offer revoked packages: do not use the index.
+    // A verified revocation list stays valid on its own (offline start must still switch plugins off).
+    if (!revoked_) index_.reset();
 }
 
 bool Catalog::save_cache(const std::string& index, const std::string& isig, const std::string& rev, const std::string& rsig) {
@@ -134,7 +135,7 @@ std::vector<Card> Catalog::list(const Filter& filter, const std::vector<Installe
     return cards;
 }
 
-StoreResult Catalog::install(Store& store, const std::string& id) {
+StoreResult Catalog::install(Store& store, const std::string& id, const Importer& importer) {
     if (!index_) return {false, "Store index is not available."};
     auto it = std::find_if(index_->plugins.begin(), index_->plugins.end(), [&](const sign::IndexEntry& e) { return e.id == id; });
     if (it == index_->plugins.end()) return {false, "Plugin is not in the store index."};
@@ -144,7 +145,7 @@ StoreResult Catalog::install(Store& store, const std::string& id) {
     auto bytes = fetch_(it->file, manifest_limit);
     if (!bytes) return {false, "Plugin download failed."};
     if (!sign::package_matches(*it, *bytes)) return {false, "Plugin does not match the signed index."};
-    return store.import_manifest(*bytes); // disabled / no consent until the user decides
+    return importer ? importer(*bytes) : store.import_manifest(*bytes); // disabled / no consent until the user decides
 }
 
 std::vector<std::string> Catalog::enforce_revocations(Store& store) const {

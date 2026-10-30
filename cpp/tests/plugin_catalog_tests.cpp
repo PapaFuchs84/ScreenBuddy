@@ -144,6 +144,20 @@ int main() {
     fs::remove(root / "cache5" / "revoked.json");
     Catalog c0b(key, root / "cache5", server.fetcher(), "2.5.0");
     CHECK(!c0b.index() && !c0b.revocations());
+    // A verified revocation list survives a missing index (offline start still switches plugins off).
+    server.publish({manifest("clock-a", "1.0.0")}, 11);
+    Catalog c0e(key, root / "cache6", server.fetcher(), "2.5.0");
+    CHECK(c0e.refresh().state == Availability::available);
+    fs::remove(root / "cache6" / "index.json");
+    Catalog c0f(key, root / "cache6", server.fetcher(), "2.5.0");
+    CHECK(!c0f.index() && c0f.revocations() && c0f.revocations()->sequence == 11);
+    // Host-supplied importer is used for installs.
+    {
+        Store store2(root / "plugins2"); CHECK(store2.load());
+        int calls = 0;
+        CHECK(c0.install(store2, "clock-a", [&](std::string_view bytes) { ++calls; return store2.import_manifest(bytes); }));
+        CHECK(calls == 1 && store2.find("clock-a"));
+    }
     // Refresh replaces an existing cache (sequence advances on disk).
     server.publish({manifest("clock-a", "1.0.0")}, 12);
     CHECK(c0b.refresh().state == Availability::available);
