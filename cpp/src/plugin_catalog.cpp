@@ -28,6 +28,10 @@ bool write_atomic(const fs::path& p, const std::string& data) {
     { std::ofstream out(tmp, std::ios::binary | std::ios::trunc); out << data; if (!out) return false; }
     std::error_code ec;
     fs::rename(tmp, p, ec);
+    if (ec) { // older Windows runtimes do not replace an existing target
+        fs::remove(p, ec);
+        fs::rename(tmp, p, ec);
+    }
     return !ec;
 }
 bool contains(const std::string& hay, const std::string& needle) { return lowered(hay).find(needle) != std::string::npos; }
@@ -65,6 +69,8 @@ void Catalog::load_cache() {
         auto opened = sign::open_revoked(key_, rev, trimmed(rsig));
         if (opened) revoked_ = std::move(opened.list);
     }
+    // An index without its verified revocation list could offer revoked packages: use neither.
+    if (!index_ || !revoked_) { index_.reset(); revoked_.reset(); }
 }
 
 bool Catalog::save_cache(const std::string& index, const std::string& isig, const std::string& rev, const std::string& rsig) {

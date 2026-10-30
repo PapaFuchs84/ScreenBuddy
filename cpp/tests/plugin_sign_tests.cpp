@@ -108,6 +108,12 @@ int main() {
     auto local = Json::parse(manifest("nometa")); local.erase("license");
     CHECK(!build_index({{local.dump()}}, 1, "x").index_json);                                   // breaks store rules
 
+    CHECK(!signed_index([](Json& j) { j["plugins"][0]["min_app_version"] = "x"; }));
+    CHECK(!signed_index([](Json& j) { j["plugins"][0]["min_app_version"] = "99999.0.0"; }));
+    CHECK(!signed_index([](Json& j) { j["plugins"][0]["version"] = "1.0"; }));
+    CHECK(!build_index({{manifest("a")}}, 2000000001, "x").index_json);
+    CHECK(build_index({{manifest("a")}}, 2000000000, "x").index_json.has_value());
+
     // Rollback guard.
     CHECK(sequence_acceptable(7, 7) && sequence_acceptable(7, 8) && !sequence_acceptable(7, 6));
 

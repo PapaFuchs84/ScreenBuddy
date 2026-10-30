@@ -471,7 +471,7 @@ bool app_compatible(const Manifest& manifest, std::string_view app_version) {
 
 std::vector<std::string> store_problems(const Manifest& m) {
     std::vector<std::string> p;
-    if (m.description.size() < 10) p.push_back("Store: description (at least 10 characters) is required.");
+    if (characters(m.description) < 10) p.push_back("Store: description (at least 10 characters) is required.");
     if (m.author.empty()) p.push_back("Store: author is required.");
     if (m.license.empty()) p.push_back("Store: license (MIT or CC0-1.0) is required.");
     if (m.category.empty()) p.push_back("Store: category is required.");

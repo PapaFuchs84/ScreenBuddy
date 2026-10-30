@@ -27,7 +27,12 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--store") store = true;
-        else if (arg == "--app-version" && i + 1 < argc) app_version = argv[++i];
+        else if (arg == "--app-version" && i + 1 < argc) {
+            app_version = argv[++i];
+            int dots = 0; bool ok = !app_version.empty() && app_version.size() <= 14;
+            for (char c : app_version) { if (c == '.') ++dots; else if (c < '0' || c > '9') ok = false; }
+            if (!ok || dots != 2) { std::puts("--app-version must look like X.Y.Z."); return 2; }
+        }
         else if (arg == "--help" || arg == "-h") { usage(); return 0; }
         else if (arg.starts_with("--")) { usage(); return 2; }
         else if (fs::is_directory(arg)) {
@@ -42,6 +47,10 @@ int main(int argc, char** argv) {
     std::set<std::string> ids;
     for (const auto& file : files) {
         std::vector<std::string> problems;
+        std::error_code size_ec;
+        if (fs::exists(file) && fs::file_size(file, size_ec) > manifest_limit) {
+            ++bad; std::printf("FAIL  %s\n      - Manifest: file larger than 128 KiB.\n", file.string().c_str()); continue;
+        }
         std::ifstream input(file, std::ios::binary);
         std::string data((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
         std::string hosts;
@@ -54,7 +63,11 @@ int main(int argc, char** argv) {
                 for (const auto& s : m.sources) {
                     hosts += (hosts.empty() ? "" : ", ") + s.host;
                     if (!parse_source_data(s.sample.dump())) problems.push_back("Source sample is not valid source data.");
-                    if (!prepare_request(m, s, Json::object())) problems.push_back("Source request cannot be prepared.");
+                    // Probe with placeholders so required secrets/texts do not make a valid plugin fail.
+                    Json probe = Json::object();
+                    for (const auto& setting : m.settings)
+                        probe[setting.key] = setting.type == "number" ? setting.default_value : Json(setting.default_value.is_string() && !setting.default_value.get_ref<const std::string&>().empty() ? setting.default_value.get<std::string>() : std::string("x"));
+                    if (!prepare_request(m, s, probe)) problems.push_back("Source request cannot be prepared.");
                 }
                 if (!app_version.empty() && !app_compatible(m, app_version))
                     problems.push_back("Needs ScreenBuddy " + m.min_app_version + " or newer.");

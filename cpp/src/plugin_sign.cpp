@@ -54,6 +54,15 @@ bool hex_digits(std::string_view s, size_t n) {
 bool plain_text(const std::string& s, size_t max) {
     return !s.empty() && s.size() <= max && std::none_of(s.begin(), s.end(), [](unsigned char c) { return c < 32 || c == 127; });
 }
+bool version_text(const std::string& s) {
+    size_t parts = 1, digits = 0;
+    for (char c : s) {
+        if (c == '.') { if (!digits) return false; ++parts; digits = 0; }
+        else if (c >= '0' && c <= '9') { if (++digits > 4) return false; }
+        else return false;
+    }
+    return parts == 3 && digits > 0;
+}
 struct Invalid { const char* what; };
 void need(bool ok, const char* what) { if (!ok) throw Invalid{what}; }
 void only(const Json& j, std::initializer_list<const char*> allowed) {
@@ -128,6 +137,7 @@ IndexResult open_index(const PublicKey& key, std::string_view document, std::str
             e.category = text(v, "category", 32); e.min_app_version = text(v, "min_app_version", 14);
             e.file = text(v, "file", 200); e.sha256 = text(v, "sha256", 64);
             need(ids.insert(e.id).second, "Duplicate plugin ID.");
+            need(version_text(e.version) && version_text(e.min_app_version), "Invalid version.");
             need(e.file == "plugins/" + e.id + "/" + e.id + ".flplugin.json", "Unexpected package path.");
             need(hex_digits(e.sha256, 64), "Invalid SHA-256.");
             need(v.contains("size") && v["size"].is_number_unsigned() && v["size"].get<size_t>() > 0 && v["size"].get<size_t>() <= manifest_limit, "Invalid size.");
@@ -218,7 +228,7 @@ std::optional<std::string> sign_document(Kind kind, const std::string& private_p
 }
 
 BuildResult build_index(const std::vector<BuildInput>& manifests, int sequence, const std::string& generated) {
-    if (manifests.size() > max_entries || sequence < 0) return {std::nullopt, "Invalid build input."};
+    if (manifests.size() > max_entries || sequence < 0 || sequence > 2000000000) return {std::nullopt, "Invalid build input."};
     std::vector<Json> entries;
     std::set<std::string> ids;
     for (const auto& in : manifests) {

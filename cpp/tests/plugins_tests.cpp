@@ -261,6 +261,14 @@ static void test_store_metadata() {
     CHECK(plain && plain.manifest->license.empty() && plain.manifest->author.empty());
     CHECK(plain && store_problems(*plain.manifest).size() == 5);
     CHECK(plain && app_compatible(*plain.manifest, "1.0.0"));
+    {   // store description counts characters, not bytes
+        auto j = store_ready(); j["description"] = "äöüäöüäöü"; // 9 characters, 18 bytes
+        auto p = parse_manifest(j.dump());
+        CHECK(p && store_problems(*p.manifest).size() == 1);
+        j["description"] = "äöüäöüäöüä";
+        p = parse_manifest(j.dump());
+        CHECK(p && store_problems(*p.manifest).empty());
+    }
 
     auto ok = parse_manifest(store_ready().dump());
     CHECK(ok);
@@ -285,7 +293,7 @@ static void test_store_metadata() {
     CHECK(bad([](auto& j) { j["license"] = 1; }));
     CHECK(bad([](auto& j) { j["category"] = "malware"; }));
     CHECK(bad([](auto& j) { j["author"] = ""; }));
-    CHECK(bad([](auto& j) { j["author"] = "Evil\u202eName"; })); // bidi control
+    CHECK(bad([](auto& j) { j["author"] = "Evil\xE2\x80\xAE" "Name"; })); // bidi control
     CHECK(bad([](auto& j) { j["author"] = std::string(81, 'a'); }));
     CHECK(bad([](auto& j) { j["min_app_version"] = "2.5"; }));
     CHECK(bad([](auto& j) { j["min_app_version"] = "2.5.0-beta"; }));

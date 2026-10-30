@@ -136,6 +136,24 @@ int main() {
     CHECK(r.state == Availability::offline && !r.from_cache);
     server.online = true;
 
+    // Cache without a verified revocation list is not used at all.
+    server.online = true;
+    server.publish({manifest("clock-a", "1.0.0")}, 11);
+    Catalog c0(key, root / "cache5", server.fetcher(), "2.5.0");
+    CHECK(c0.refresh().state == Availability::available);
+    fs::remove(root / "cache5" / "revoked.json");
+    Catalog c0b(key, root / "cache5", server.fetcher(), "2.5.0");
+    CHECK(!c0b.index() && !c0b.revocations());
+    // Refresh replaces an existing cache (sequence advances on disk).
+    server.publish({manifest("clock-a", "1.0.0")}, 12);
+    CHECK(c0b.refresh().state == Availability::available);
+    Catalog c0c(key, root / "cache5", server.fetcher(), "2.5.0");
+    CHECK(c0c.index() && c0c.index()->sequence == 12);
+    server.publish({manifest("clock-a", "1.0.0")}, 13);
+    CHECK(c0c.refresh().state == Availability::available);
+    Catalog c0d(key, root / "cache5", server.fetcher(), "2.5.0");
+    CHECK(c0d.index() && c0d.index()->sequence == 13);
+
     // Compatibility and revocation.
     server.publish({manifest("clock-a", "1.0.0"), manifest("weather-b", "1.1.0", "evil.example.org")}, 10,
                    Json::array({{{"id", "weather-b"}, {"versions", "all"}, {"reason", "Datenabfluss"}}}));
