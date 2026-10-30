@@ -41,7 +41,7 @@ OLEAUT.SysFreeString.argtypes = [ctypes.c_void_p]
 
 ROLE_SLIDER, ROLE_LIST, ROLE_PAGETAB, ROLE_PUSHBUTTON, ROLE_COMBOBOX = 0x33, 0x21, 0x25, 0x2B, 0x2E
 NAV = ["Übersicht", "Anzeige", "Seiten & Reihenfolge", "System", "Freunde", "Discord", "Battlefield 6", "Blogs (RSS)",
-       "Home Assistant", "Companion", "Plugins", "Farben & Design", "Updates & Autostart"]
+       "Home Assistant", "Companion", "Plugins", "Plugin-Store", "Farben & Design", "Updates & Autostart"]
 
 
 class GUID(ctypes.Structure):
@@ -169,6 +169,34 @@ def wait(predicate, seconds, message):
     raise AssertionError(message)
 
 
+def screenshot(hwnd, name):
+    """Optional: SMOKE_SHOT_DIR=<dir> saves a PNG of the window (PrintWindow, works without foreground)."""
+    folder = os.environ.get("SMOKE_SHOT_DIR")
+    if not folder:
+        return
+    import struct, zlib
+    rect = wt.RECT(); USER32.GetWindowRect(ctypes.c_void_p(hwnd), ctypes.byref(rect))
+    w, h = rect.right - rect.left, rect.bottom - rect.top
+    gdi = ctypes.WinDLL("gdi32"); dc = USER32.GetDC(None); mem = gdi.CreateCompatibleDC(dc)
+    bmp = gdi.CreateCompatibleBitmap(ctypes.c_void_p(dc), w, h); gdi.SelectObject(mem, bmp)
+    USER32.PrintWindow(ctypes.c_void_p(hwnd), mem, 2)
+    class BIH(ctypes.Structure):
+        _fields_ = [("s", ctypes.c_uint32), ("w", ctypes.c_int32), ("h", ctypes.c_int32), ("p", ctypes.c_uint16), ("b", ctypes.c_uint16),
+                    ("c", ctypes.c_uint32), ("i", ctypes.c_uint32), ("x", ctypes.c_int32), ("y", ctypes.c_int32), ("u", ctypes.c_uint32), ("m", ctypes.c_uint32)]
+    bi = BIH(ctypes.sizeof(BIH), w, -h, 1, 32, 0, 0, 0, 0, 0, 0)
+    buf = ctypes.create_string_buffer(w * h * 4)
+    gdi.GetDIBits(mem, bmp, 0, h, buf, ctypes.byref(bi), 0)
+    raw = bytearray()
+    for y in range(h):
+        row = buf.raw[y * w * 4:(y + 1) * w * 4]
+        raw += b"\0" + bytes(c for x in range(w) for c in (row[x * 4 + 2], row[x * 4 + 1], row[x * 4]))
+    def chunk(tag, data):
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data))
+    (Path(folder) / name).write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) +
+                                      chunk(b"IDAT", zlib.compress(bytes(raw), 6)) + chunk(b"IEND", b""))
+    gdi.DeleteObject(bmp); gdi.DeleteDC(mem); USER32.ReleaseDC(None, ctypes.c_void_p(dc))
+
+
 def quit_instance(port):
     request = Request(f"http://127.0.0.1:{port}/api/quit", data=b"{}", method="POST",
                       headers={"X-FL": "1", "Content-Type": "application/json"})
@@ -197,7 +225,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="native-smoke-", dir=BUILD, ignore_cleanup_errors=True) as folder:
         config = Path(folder) / "config.toml"
         config.write_text(f'[display]\noutput = "serial"\nbrightness = 80\n[ui]\nport = {port}\nupdate_check = false\n'
-                          f'setup_done = false\nlanguage = "de"\nsettings_theme = "hell"\n', encoding="utf-8")
+                          f'setup_done = false\nlanguage = "de"\nsettings_theme = "{os.environ.get("SMOKE_THEME", "hell")}"\n', encoding="utf-8")
         (Path(folder) / "plugins").mkdir()
         shutil.copy(ROOT / "examples" / "plugins" / "offline-clock.flplugin.json", Path(folder) / "plugins")
         env = dict(os.environ, FUCHSLABS_INSTANCE=f"-native-smoke-{port}")
@@ -245,6 +273,22 @@ def main():
             body.do(body.find("Aktivieren / deaktivieren", ROLE_PUSHBUTTON))
             wait(lambda: expected in Acc(content).value(Acc(content).find("Installierte Plugins", ROLE_LIST)), 8, "plugin state did not change")
             checks += 2
+
+            # Plugin store page: switch, refresh button and the honest "no signing key pinned yet" state.
+            nav.do(nav.find("Plugin-Store", ROLE_PAGETAB, exact=True))
+            def store_page():
+                try:
+                    Acc(content).find("Store aktualisieren", ROLE_PUSHBUTTON)
+                    return True
+                except AssertionError:
+                    return False
+            wait(store_page, 6, "Plugin-Store page missing")
+            texts = " ".join(f"{n} {Acc(content).value(i) if r != ROLE_PUSHBUTTON else ''}" for i, n, r in Acc(content).items())
+            assert "Plugin-Store verwenden" in texts, texts
+            assert "Stand" in texts, texts  # status text itself is not exposed via MSAA; checked in the screenshot
+            time.sleep(0.5)
+            screenshot(frame, "plugin-store-" + os.environ.get("SMOKE_THEME", "hell") + ".png")
+            checks += 3
 
             # Phase 2: the former placeholder pages are native now (controls exist, no browser hand-over)
             for page, control, role in (("Discord", "Mitglieder neu laden", ROLE_PUSHBUTTON),
@@ -329,7 +373,7 @@ def main():
             wait(lambda: "brightness = 85" in config.read_text(encoding="utf-8"), 10, "config.toml not written")
             restarted = True
             text = config.read_text(encoding="utf-8")
-            assert 'settings_theme = "hell"' in text and "setup_done = true" in text, "ui section not saved"
+            assert f'settings_theme = "{os.environ.get("SMOKE_THEME", "hell")}"' in text and "setup_done = true" in text, "ui section not saved"
             process.wait(timeout=15)
             wait(lambda: port_open(port), 20, "restarted test instance did not come back")
             checks += 3
