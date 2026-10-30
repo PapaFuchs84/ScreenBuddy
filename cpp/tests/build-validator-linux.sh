@@ -12,9 +12,11 @@ $CXX -DFL_PLUGIN_EXAMPLE_DIR="\"$PWD/examples/plugins\"" src/plugins.cpp tests/p
 $CXX src/plugins.cpp tools/plugin_validate.cpp -o "$OUT/fl-plugin-validate"
 $CXX src/plugins.cpp src/plugin_sign.cpp tests/plugin_sign_tests.cpp -lcrypto -o "$OUT/plugin-sign-tests"
 $CXX src/plugins.cpp src/plugin_sign.cpp tools/plugin_sign.cpp -lcrypto -o "$OUT/fl-plugin-sign"
+$CXX src/plugins.cpp src/plugin_sign.cpp src/plugin_store.cpp src/plugin_catalog.cpp tests/plugin_catalog_tests.cpp -lcrypto -o "$OUT/plugin-catalog-tests"
 "$OUT/plugin-tests"
 "$OUT/plugin-example-tests"
 "$OUT/plugin-sign-tests"
+"$OUT/plugin-catalog-tests"
 # Validator: Beispiele müssen die Store-Regeln erfüllen, Fixtures müssen scheitern.
 "$OUT/fl-plugin-validate" --store --app-version 2.5.0 examples/plugins
 for f in tests/plugin-fixtures/*.flplugin.json; do

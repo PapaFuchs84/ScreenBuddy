@@ -45,6 +45,18 @@ fl-plugin-sign verify index|revoked <datei> <public-hex>
 - **Rotation:** neuen Schlüssel erzeugen, Release mit beiden Schlüsseln ausliefern, Index mit dem neuen signieren, alten Schlüssel nach zwei Releases entfernen. Dieser Mehrschlüssel-Ablauf ist **noch nicht implementiert**; derzeit gibt es genau einen Schlüssel. Bei Verlust oder Kompromittierung hilft nur ein neuer App-Release.
 - Die Sperrliste verhindert nicht, dass eine **alte, korrekt signierte Version** weiter im Umlauf ist; deshalb Rollback-Schutz und Sperrliste gemeinsam nutzen.
 
+## Store-Logik (Phase 3, Teil 1)
+
+`plugin_catalog` ist der Store-Client ohne Oberfläche. Der Netzwerkabruf wird als Funktion eingespeist (nur HTTPS, öffentliche Adressen, keine Umleitung, Byte-Limit), die Logik ist damit offline testbar.
+
+- **Aktualisieren:** `index.json`, `revoked.json` und beide `.sig` laden, Signatur und Rollback prüfen. Bei Fehlern bleiben die zuletzt akzeptierten Daten unverändert. Ohne Netz wird der Cache genutzt, der beim Laden erneut verifiziert wird (manipulierter Cache wird ignoriert).
+- **Liste:** Suche (ID, Name, Beschreibung, Autor), Kategorie, Status `installiert`, `Update`, `nicht unterstützt` (zu alte App), `gesperrt`. Bei Updates stehen **neue Hosts** in der Karte.
+- **Installieren:** nur wenn nicht gesperrt, App kompatibel und `package_matches` besteht. Das Plugin bleibt ausgeschaltet, Host-Zustimmungen werden bei jedem Update zurückgesetzt.
+- **Sperren:** `enforce_revocations` schaltet installierte, gesperrte Plugins ab.
+- Ohne eingetragenen Produktionsschlüssel ist der Store „nicht verfügbar“ und es erfolgt kein Netzwerkzugriff.
+
+**Noch offen:** der echte HTTPS-Abruf roher Bytes (Signatur braucht die exakten Bytes, die vorhandene JSON-Quelle liefert nur geparstes JSON), die native Store-Seite und der Tägliche-Abruf-Zeitplan (höchstens 1× pro Tag).
+
 ## Grenzen
 
 - Die Signatur beweist, dass der Maintainer den Index veröffentlicht hat, nicht dass ein Plugin ungefährlich ist. Die Freigabe bleibt eine menschliche Prüfung.

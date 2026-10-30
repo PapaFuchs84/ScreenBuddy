@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Plugin platform phase 3 part 1: new `src/plugin_catalog.{h,cpp}` (Catalog: refresh with signature + sequence checks and verified cache, list/filter, install via `Store::import_manifest`, `enforce_revocations`) and target `fl-plugin-catalog-tests` (40 checks passed on Linux/g++). Real HTTPS `Fetcher` (needs raw-byte transport) and the native UI page are not written; Windows build not run here.
 - Plugin platform phase 2: new `src/plugin_sign.{h,cpp}` (OpenSSL Ed25519/SHA-256; `verify`, `open_index`, `package_matches`, `open_revoked`, `is_revoked`, signing helpers for tools/tests), `parse_strict_json` exported from `plugins.cpp`, tools `fl-plugin-sign`, test target `fl-plugin-sign-tests` (60 checks passed on Linux/g++, plus end-to-end tool run in `tests/build-validator-linux.sh`). `store_public_key_hex` is empty until the production key exists. Windows/MSVC build not run here. See [signing](../docs/PLUGIN-SIGNING.md).
 - Plugin platform phase 1: `Manifest` gains `license`, `author`, `category`, `min_app_version` (optional; invalid values are rejected, schema 1 unchanged); new `store_problems()` and `app_compatible()` in `plugins.cpp`; new tool `tools/plugin_validate.cpp` (CMake target `fl-plugin-validate`, Linux script `tests/build-validator-linux.sh`, workflow `Plugin validator`). `fl-plugin-tests`: 249 checks passed (was 223); 41 example checks passed. Verified on Linux with g++ only; the Windows/MSVC build of the new target was not run here. See [package format](../docs/PLUGIN-PACKAGE-FORMAT.md).
 

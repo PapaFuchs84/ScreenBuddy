@@ -45,6 +45,18 @@ fl-plugin-sign verify index|revoked <file> <public-hex>
 - **Rotation:** generate a new key, ship a release with both keys, sign the index with the new one, remove the old key after two releases. This multi-key flow is **not implemented yet**; currently there is exactly one key. If the key is lost or compromised, only a new app release helps.
 - The revocation list does not stop an **old, correctly signed version** from circulating; use rollback protection and the revocation list together.
 
+## Store logic (phase 3, part 1)
+
+`plugin_catalog` is the store client without a UI. The network fetch is injected as a function (HTTPS only, public addresses, no redirects, byte limit), so the logic is testable offline.
+
+- **Refresh:** load `index.json`, `revoked.json` and both `.sig`, check signature and rollback. On errors the last accepted data stays unchanged. Offline, the cache is used and verified again on load (a tampered cache is ignored).
+- **List:** search (ID, name, description, author), category, status `installed`, `update`, `unsupported` (app too old), `revoked`. For updates the card shows **new hosts**.
+- **Install:** only if not revoked, app compatible and `package_matches` passes. The plugin stays off; host consent is reset on every update.
+- **Revocation:** `enforce_revocations` disables installed revoked plugins.
+- Without a pinned production key the store is "unavailable" and makes no network access.
+
+**Still open:** the real HTTPS fetch of raw bytes (signatures need the exact bytes; the existing JSON source only returns parsed JSON), the native store page and the once-per-day fetch schedule.
+
 ## Limits
 
 - A signature proves the maintainer published the index, not that a plugin is harmless. Approval remains a human review.
