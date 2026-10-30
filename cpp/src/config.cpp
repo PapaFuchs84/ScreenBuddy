@@ -20,6 +20,13 @@ namespace fl::config {
 
 const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss", "homeassistant"};
 
+bool is_page_key(const std::string& k) {
+    if (std::count(PAGES.begin(), PAGES.end(), k)) return true;
+    // Plugin-Seiten: "plugin:<id>"
+    if (k.size() <= 7 || k.size() > 100 || k.rfind("plugin:", 0) != 0) return false;
+    return std::none_of(k.begin(), k.end(), [](unsigned char ch) { return ch < 0x20 || ch == 0x7F; });
+}
+
 using Key = std::pair<std::string, std::string>;
 
 const ojson& defaults() {
@@ -144,7 +151,7 @@ ojson load(const std::filesystem::path& path) {
     std::vector<std::string> pages;
     if (cfg["display"]["pages"].is_array())
         for (auto& p : cfg["display"]["pages"])
-            if (p.is_string() && std::count(PAGES.begin(), PAGES.end(), p.get<std::string>()) &&
+            if (p.is_string() && is_page_key(p.get<std::string>()) &&
                 !std::count(pages.begin(), pages.end(), p.get<std::string>()))
                 pages.push_back(p.get<std::string>());
     for (auto& p : PAGES)
@@ -212,14 +219,14 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
         if (k == Key{"companion", "pages"} || k == Key{"display", "visible_pages"}) {
             std::vector<std::string> out;
             for (auto& p : value)
-                if (p.is_string() && std::count(PAGES.begin(), PAGES.end(), p.get<std::string>()) &&
+                if (p.is_string() && is_page_key(p.get<std::string>()) &&
                     !std::count(out.begin(), out.end(), p.get<std::string>())) out.push_back(p.get<std::string>());
             return out;
         }
         if (k == Key{"display", "pages"}) {
             std::vector<std::string> out;
             for (auto& p : value)
-                if (p.is_string() && std::count(PAGES.begin(), PAGES.end(), p.get<std::string>()) &&
+                if (p.is_string() && is_page_key(p.get<std::string>()) &&
                     !std::count(out.begin(), out.end(), p.get<std::string>()))
                     out.push_back(p.get<std::string>());
             for (auto& p : PAGES)

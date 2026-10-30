@@ -323,15 +323,27 @@ std::vector<std::string> App::active_pages(bool companion) {
     std::vector<std::string> out;
     bool network = dp_.value("output", "serial") == "network";
     const auto& selected = (companion || network) ? cfg_["companion"]["pages"] : dp_["visible_pages"];
-    bool separate = companion_ != nullptr;
     const auto& order = (companion || network) ? selected : dp_["pages"];
-    for (auto& p : order)
-        if (p.is_string() && have[p.get<std::string>()] &&
-            (!separate || std::find(selected.begin(), selected.end(), p) != selected.end())) out.push_back(p.get<std::string>());
+    auto chosen = [&](const std::string& key) {
+        return std::find_if(selected.begin(), selected.end(), [&](const ojson& v) { return v.is_string() && v.get<std::string>() == key; }) != selected.end();
+    };
     // Validated declarative plugins appear as pages. Live data remains absent until
     // every source has a current host grant and the worker has fetched it.
+    std::vector<std::string> plugin_keys;
     if (plugins_) for (const auto& entry : plugins_->entries())
-        if (entry.enabled) out.push_back("plugin:" + entry.manifest.id);
+        if (entry.enabled) plugin_keys.push_back("plugin:" + entry.manifest.id);
+    std::vector<std::string> listed;
+    for (auto& p : order) {
+        if (!p.is_string()) continue;
+        const std::string key = p.get<std::string>();
+        const bool is_plugin = key.rfind("plugin:", 0) == 0;
+        if (is_plugin ? std::find(plugin_keys.begin(), plugin_keys.end(), key) == plugin_keys.end() : !have[key]) continue;
+        if (is_plugin) listed.push_back(key);
+        if (chosen(key)) out.push_back(key);
+    }
+    // Plugins, die in der Reihenfolge noch nicht vorkommen (frisch aktiviert), erscheinen hinten.
+    for (const auto& key : plugin_keys)
+        if (std::find(listed.begin(), listed.end(), key) == listed.end()) out.push_back(key);
     return out;
 }
 
