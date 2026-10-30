@@ -29,6 +29,7 @@ struct NativeStoreCard {
     std::string status;            // not_installed | installed | update_available | unsupported | revoked
     std::string installed_version;
     std::vector<std::string> hosts, new_hosts;
+    bool has_preview = false;      // the signed previews.json lists an image for this plugin
 };
 struct NativeStoreState {
     std::string state = "unavailable"; // unavailable | disabled | offline | invalid | available
@@ -47,6 +48,7 @@ struct NativePluginActions {
     // Store: all three run on the settings job thread (they may block on the network).
     std::function<NativeStoreState(const std::string& search, const std::string& category)> store_list;
     std::function<NativeStoreState(bool force)> store_refresh; // force = user pressed "Refresh"; otherwise at most once a day
+    std::function<std::string(const std::string& id)> store_preview; // verified PNG bytes or empty; job thread (may use the network)
     std::function<void(const std::string& id)> store_install; // throws std::runtime_error with a user-facing message
 };
 

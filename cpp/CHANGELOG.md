@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Store preview images: `Kind::previews`, `open_previews`/`preview_matches`/`build_previews` in plugin_sign, `Catalog::preview`/`has_preview` (best-effort previews.json, hash-named verified cache), `NativePluginActions::store_preview`, `ImageView` in ui_page_store, tools `fl-plugin-preview` and `fl-plugin-sign build-previews|check-previews`. Windows build: sign 81, catalog 61 and all other test programs passed; the store page was not clicked through.
+
 ## 2.6.0 – 30 October 2026
 
 - Fix: `ui_page_store.cpp` now implements `collect()`, so the switch `ui.plugin_store` is saved (verified in an isolated instance: save + restart). The store repository now also serves plugin files from `docs/plugins/` (GitHub Pages).

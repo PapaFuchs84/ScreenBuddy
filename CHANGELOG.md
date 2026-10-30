@@ -6,6 +6,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Plugin-Store: Vorschaubilder. Signierte `previews.json` (getrennt vom Index, ältere Apps ignorieren sie), Anzeige im Store-Detailbereich, Werkzeuge `fl-plugin-sign build-previews|check-previews` und `fl-plugin-preview` (rendert Beispielbilder). Bilder für die 8 Start-Plugins unter `store-seed/previews/`.
+
 ## [2.6.0] – 2026-10-30
 
 ### Hinzugefügt

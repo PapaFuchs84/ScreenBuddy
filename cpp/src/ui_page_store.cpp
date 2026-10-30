@@ -5,7 +5,10 @@
 #include "ui_pages.h"
 
 #include <algorithm>
+#include <map>
+#include <set>
 
+#include "gfx.h"
 #include "native_settings.h"
 #include "util.h"
 
@@ -62,7 +65,10 @@ public:
     }
     void shown(Host&) override { reload(false); }
     void collect(Host&, ojson& patch) override { form_.collect(patch); }
-    void tick(Host&, const Status&) override { update_buttons(); }
+    void tick(Host&, const Status&) override {
+        update_buttons();
+        if (const auto* c = selected(); c && c->has_preview && !previews_.count(c->id)) request_preview(c->id);
+    }
 
 private:
     Host* host_ = nullptr;
@@ -73,6 +79,9 @@ private:
     Card* details_ = nullptr;
     Button *search_btn_ = nullptr, *refresh_ = nullptr, *install_ = nullptr;
     NativeStoreState state_;
+    std::map<std::string, Image> previews_;    // decoded, verified preview images by plugin id
+    std::set<std::string> preview_failed_;     // no retry loop within one window session
+    std::string preview_pending_;
     bool loaded_ = false;
     std::string selected_id_, category_;
 
@@ -169,6 +178,18 @@ private:
         }
         details_->title = Text(widen(c->name), widen(c->name));
         details_->desc = Text(widen(c->description), widen(c->description));
+        if (c->has_preview) {
+            auto have = previews_.find(c->id);
+            if (have != previews_.end()) {
+                auto* view = details_->add<ImageView>();
+                view->image = have->second;
+                view->version = 1;
+                view->aspect = float(have->second.h) / float(std::max(1, have->second.w));
+                view->name = Text(widen(c->name)) ;
+            } else {
+                request_preview(c->id);
+            }
+        }
         details_->row<Label>(T(L"Autor", L"Author"), Text(), Text(widen(c->author)), Font::Small, Label::Muted);
         details_->row<Label>(T(L"Version", L"Version"), Text(), Text(widen(c->version) + (c->installed_version.empty() ? L"" : L" (installiert: " + widen(c->installed_version) + L")"),
                                                                     widen(c->version) + (c->installed_version.empty() ? L"" : L" (installed: " + widen(c->installed_version) + L")")), Font::Small, Label::Muted);
@@ -189,6 +210,21 @@ private:
                                      L"The update adds new hosts:\n" + list + L"All consents are reset on update."), Note::Warn);
         }
         host_->relayout();
+    }
+    void request_preview(const std::string& id) {
+        if (!host_->plugins().store_preview || preview_failed_.count(id) || preview_pending_ == id || host_->busy()) return;
+        preview_pending_ = id;
+        Host* h = host_;
+        h->run([this, h, id]() -> std::function<void()> {
+            std::string bytes = h->plugins().store_preview(id);
+            return [this, id, bytes = std::move(bytes)] {
+                preview_pending_.clear();
+                std::optional<Image> img = bytes.empty() ? std::nullopt : decode_image(bytes);
+                if (img && !img->empty()) previews_[id] = std::move(*img);
+                else preview_failed_.insert(id);
+                if (selected_id_ == id) show_details();
+            };
+        });
     }
     void install() {
         const auto* sel = selected();

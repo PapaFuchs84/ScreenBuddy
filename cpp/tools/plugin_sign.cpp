@@ -20,8 +20,12 @@ static void usage() {
               "                                                         reads <root>/<id>/<id>.flplugin.json, writes <out-dir>/index.json\n"
               "  fl-plugin-sign check-index <plugins-root> <index.json> <public-hex>\n"
               "                                                         CI: signed index must match the plugin files exactly\n"
-              "  fl-plugin-sign sign index|revoked <file> <private.pem>  writes <file>.sig\n"
-              "  fl-plugin-sign verify index|revoked <file> <public-hex> checks <file> against <file>.sig");
+              "  fl-plugin-sign build-previews <previews-dir> <out-dir> <sequence>\n"
+              "                                                         reads <dir>/<id>.png (PNG, max 200 KiB), writes <out-dir>/previews.json\n"
+              "  fl-plugin-sign check-previews <previews-dir> <previews.json> <public-hex>\n"
+              "                                                         CI: signed previews list must match the image files exactly\n"
+              "  fl-plugin-sign sign index|revoked|previews <file> <private.pem>  writes <file>.sig\n"
+              "  fl-plugin-sign verify index|revoked|previews <file> <public-hex> checks <file> against <file>.sig");
 }
 static bool read_file(const fs::path& p, std::string& out) {
     std::ifstream in(p, std::ios::binary);
@@ -30,7 +34,8 @@ static bool read_file(const fs::path& p, std::string& out) {
     return true;
 }
 static bool kind_of(const std::string& s, sign::Kind& k) {
-    if (s == "index") k = sign::Kind::index; else if (s == "revoked") k = sign::Kind::revoked; else return false;
+    if (s == "index") k = sign::Kind::index; else if (s == "revoked") k = sign::Kind::revoked;
+    else if (s == "previews") k = sign::Kind::previews; else return false;
     return true;
 }
 
@@ -49,6 +54,20 @@ static bool gather(const std::string& root, std::vector<sign::BuildInput>& input
             return false;
         }
         inputs.push_back({std::move(data)});
+    }
+    return true;
+}
+
+static bool gather_previews(const std::string& root, std::vector<sign::PreviewInput>& images) {
+    std::vector<fs::path> files;
+    for (const auto& e : fs::directory_iterator(root))
+        if (e.is_regular_file()) files.push_back(e.path());
+    std::sort(files.begin(), files.end());
+    for (const auto& f : files) {
+        if (f.extension() != ".png") { std::printf("Only <id>.png files are allowed in the previews folder: %s\n", f.string().c_str()); return false; }
+        std::string data;
+        if (!read_file(f, data)) { std::printf("Cannot read %s\n", f.string().c_str()); return false; }
+        images.push_back({f.stem().string(), std::move(data)});
     }
     return true;
 }
@@ -85,6 +104,31 @@ int main(int argc, char** argv) {
         out << *built.index_json;
         std::printf("index.json with %zu plugins written.\n", inputs.size());
         return out ? 0 : 1;
+    }
+    if (a[0] == "build-previews" && a.size() == 4) {
+        std::vector<sign::PreviewInput> images;
+        if (!gather_previews(a[1], images)) return 1;
+        auto built = sign::build_previews(images, std::atoi(a[3].c_str()));
+        if (!built.index_json) { std::printf("%s\n", built.error.c_str()); return 1; }
+        fs::create_directories(a[2]);
+        std::ofstream out(fs::path(a[2]) / "previews.json", std::ios::binary);
+        out << *built.index_json;
+        std::printf("previews.json with %zu images written.\n", images.size());
+        return out ? 0 : 1;
+    }
+    if (a[0] == "check-previews" && a.size() == 4) {
+        std::string doc, sig;
+        auto key = sign::public_key_from_hex(a[3]);
+        if (!key || !read_file(a[2], doc) || !read_file(a[2] + ".sig", sig)) { std::puts("Bad public key or missing previews/.sig file."); return 1; }
+        while (!sig.empty() && (sig.back() == '\n' || sig.back() == '\r')) sig.pop_back();
+        auto opened = sign::open_previews(*key, doc, sig);
+        if (!opened) { std::printf("Previews check failed: %s\n", opened.error.c_str()); return 1; }
+        std::vector<sign::PreviewInput> images;
+        if (!gather_previews(a[1], images)) return 1;
+        auto rebuilt = sign::build_previews(images, opened.list->sequence);
+        if (!rebuilt.index_json || *rebuilt.index_json != doc) { std::puts("Previews check failed: image files and signed list differ (rebuild, bump sequence and sign again)."); return 1; }
+        std::printf("Previews OK: signature valid, %zu images match, sequence %d.\n", images.size(), opened.list->sequence);
+        return 0;
     }
     // CI check: the committed, signed index must match the plugin files exactly (no unsigned change slips in).
     if (a[0] == "check-index" && a.size() == 4) {

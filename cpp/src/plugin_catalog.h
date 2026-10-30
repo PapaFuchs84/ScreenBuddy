@@ -60,11 +60,17 @@ public:
     // Disables installed plugins that are revoked; returns their IDs. Call after every refresh.
     std::vector<std::string> enforce_revocations(Store& store) const;
 
+    // Preview image (PNG bytes) of an indexed plugin, or nullopt. Verified against the signed previews.json
+    // (size, SHA-256, PNG header); a verified copy is kept in the cache directory. May use the network: never on the UI thread.
+    std::optional<std::string> preview(const std::string& id);
+    bool has_preview(const std::string& id) const;
+
     const std::optional<sign::Index>& index() const { return index_; }
     const std::optional<sign::Revocations>& revocations() const { return revoked_; }
 
 private:
     void load_cache();
+    void refresh_previews();
     bool save_cache(const std::string& index, const std::string& index_sig, const std::string& revoked, const std::string& revoked_sig);
     sign::PublicKey key_;
     std::filesystem::path dir_;
@@ -72,5 +78,6 @@ private:
     std::string app_version_;
     std::optional<sign::Index> index_;
     std::optional<sign::Revocations> revoked_;
+    std::optional<sign::Previews> previews_; // optional extra document; absence never affects the index
 };
 } // namespace fl::plugins::catalog

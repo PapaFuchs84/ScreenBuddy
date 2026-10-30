@@ -22,6 +22,14 @@ static std::string manifest(const std::string& id, const std::string& version = 
     return j.dump();
 }
 
+// Smallest byte sequence that passes the PNG header check (signature + IHDR with width/height).
+static std::string fake_png(unsigned w = 480, unsigned h = 320, size_t total = 64) {
+    std::string s("\x89PNG\r\n\x1a\n", 8);
+    s += std::string("\0\0\0\r", 4) + "IHDR";
+    for (unsigned v : {w, h}) for (int shift = 24; shift >= 0; shift -= 8) s += char(v >> shift & 255);
+    s.resize(total, 'x');
+    return s;
+}
 int main() {
     auto keys = generate_keypair();
     auto other = generate_keypair();
@@ -140,6 +148,38 @@ int main() {
     auto empty_rev = rev; empty_rev["revoked"] = Json::array();
     auto etext = empty_rev.dump();
     CHECK(open_revoked(pub, etext, *sign_document(Kind::revoked, keys->private_pem, etext))); // empty list is valid
+
+    // Previews: separate signed document, own signature domain, strict schema.
+    const std::string png = fake_png();
+    CHECK(png_dimensions_ok(png));
+    CHECK(!png_dimensions_ok(fake_png(4000, 320)) && !png_dimensions_ok(fake_png(480, 8)) && !png_dimensions_ok("not a png at all, just text........"));
+    CHECK(!png_dimensions_ok(fake_png(480, 320, preview_limit + 1)));
+    auto pv = build_previews({{"alpha", png}, {"beta", fake_png(320, 480)}}, 3);
+    CHECK(pv.index_json.has_value());
+    CHECK(!build_previews({{"alpha", png}, {"alpha", png}}, 1).index_json.has_value());   // duplicate
+    CHECK(!build_previews({{"alpha", "junk"}}, 1).index_json.has_value());                 // not a PNG
+    if (pv.index_json) {
+        auto psig = *sign_document(Kind::previews, keys->private_pem, *pv.index_json);
+        auto opened = open_previews(pub, *pv.index_json, psig);
+        CHECK(opened && opened.list->sequence == 3 && opened.list->items.size() == 2 && opened.list->items[0].file == "plugins/alpha/preview.png");
+        CHECK(!open_previews(pub, *pv.index_json + " ", psig));
+        CHECK(!open_previews(pub_other, *pv.index_json, psig));
+        CHECK(!open_previews(pub, *pv.index_json, *sign_document(Kind::index, keys->private_pem, *pv.index_json))); // domain separation
+        CHECK(!open_index(pub, *pv.index_json, psig));                                                              // not an index
+        if (opened) {
+            CHECK(preview_matches(opened.list->items[0], png));
+            CHECK(!preview_matches(opened.list->items[0], png + "x"));
+            auto changed = png; changed[40] = 'y';
+            CHECK(!preview_matches(opened.list->items[0], changed));
+        }
+        auto j = Json::parse(*pv.index_json);
+        j["previews"][0]["file"] = "plugins/other/preview.png";
+        auto tampered = j.dump();
+        CHECK(!open_previews(pub, tampered, *sign_document(Kind::previews, keys->private_pem, tampered)));
+        j = Json::parse(*pv.index_json); j["previews"][0]["extra"] = 1;
+        tampered = j.dump();
+        CHECK(!open_previews(pub, tampered, *sign_document(Kind::previews, keys->private_pem, tampered)));
+    }
 
     std::printf("plugin signing: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;

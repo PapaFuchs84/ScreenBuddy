@@ -69,6 +69,11 @@ void Catalog::load_cache() {
         auto opened = sign::open_revoked(key_, rev, trimmed(rsig));
         if (opened) revoked_ = std::move(opened.list);
     }
+    std::string prev, psig;
+    if (read_file(dir_ / "previews.json", sign::index_limit, prev) && read_file(dir_ / "previews.json.sig", sig_limit, psig)) {
+        auto opened = sign::open_previews(key_, prev, trimmed(psig));
+        if (opened) previews_ = std::move(opened.list);
+    }
     // An index without its verified revocation list could offer revoked packages: do not use the index.
     // A verified revocation list stays valid on its own (offline start must still switch plugins off).
     if (!revoked_) index_.reset();
@@ -104,7 +109,45 @@ RefreshResult Catalog::refresh() {
     index_ = std::move(opened.index);
     revoked_ = std::move(opened_rev.list);
     if (!save_cache(*index, *isig + "\n", *rev, *rsig + "\n")) return {Availability::available, false, "Cache could not be written."};
+    refresh_previews();
     return {Availability::available, false, {}};
+}
+
+// Best effort: previews are cosmetic. A missing, invalid or older document keeps whatever was accepted before.
+void Catalog::refresh_previews() {
+    auto doc = fetch_("previews.json", sign::index_limit);
+    auto sig = fetch_("previews.json.sig", sig_limit);
+    if (!doc || !sig) return;
+    *sig = trimmed(*sig);
+    auto opened = sign::open_previews(key_, *doc, *sig);
+    if (!opened) return;
+    if (previews_ && !sign::sequence_acceptable(previews_->sequence, opened.list->sequence)) return;
+    previews_ = std::move(opened.list);
+    std::error_code ec;
+    fs::create_directories(dir_, ec);
+    write_atomic(dir_ / "previews.json", *doc);
+    write_atomic(dir_ / "previews.json.sig", *sig + "\n");
+}
+
+bool Catalog::has_preview(const std::string& id) const {
+    return previews_ && std::any_of(previews_->items.begin(), previews_->items.end(), [&](const sign::PreviewEntry& e) { return e.id == id; });
+}
+
+std::optional<std::string> Catalog::preview(const std::string& id) {
+    if (!index_ || !previews_) return std::nullopt;
+    if (std::none_of(index_->plugins.begin(), index_->plugins.end(), [&](const sign::IndexEntry& e) { return e.id == id; })) return std::nullopt;
+    auto it = std::find_if(previews_->items.begin(), previews_->items.end(), [&](const sign::PreviewEntry& e) { return e.id == id; });
+    if (it == previews_->items.end()) return std::nullopt;
+    // id and file name are validated by open_previews (plugins/<id>/preview.png); the cache name uses the verified hash.
+    const auto cached = dir_ / ("preview-" + it->sha256 + ".png");
+    std::string bytes;
+    if (read_file(cached, sign::preview_limit, bytes) && sign::preview_matches(*it, bytes)) return bytes;
+    auto fetched = fetch_(it->file, sign::preview_limit);
+    if (!fetched || !sign::preview_matches(*it, *fetched)) return std::nullopt;
+    std::error_code ec;
+    fs::create_directories(dir_, ec);
+    write_atomic(cached, *fetched);
+    return fetched;
 }
 
 std::vector<Card> Catalog::list(const Filter& filter, const std::vector<Installed>& installed) const {

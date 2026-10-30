@@ -188,6 +188,40 @@ int main() {
     CHECK(off == std::vector<std::string>({"weather-b"}) && !store.find("weather-b")->enabled);
     CHECK(c3.enforce_revocations(store).empty());
 
+    // Previews: optional extra document. A broken or missing one never affects the index.
+    {
+        server.publish({manifest("clock-a", "1.0.0"), manifest("new-c", "1.0.0")}, 9);
+        Catalog pc(key, root / "cache-previews", server.fetcher(), "2.5.0");
+        CHECK(pc.refresh().state == Availability::available && !pc.has_preview("clock-a"));   // no previews.json published
+        CHECK(!pc.preview("clock-a").has_value());
+        const std::string png("\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\x01\xE0\0\0\x01\x40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 72);
+        auto pv = sign::build_previews({{"clock-a", png}}, 1);
+        server.files["previews.json"] = *pv.index_json;
+        server.files["previews.json.sig"] = *sign::sign_document(sign::Kind::previews, server.keys.private_pem, *pv.index_json) + "\n";
+        server.files["plugins/clock-a/preview.png"] = png;
+        CHECK(pc.refresh().state == Availability::available && pc.has_preview("clock-a") && !pc.has_preview("new-c"));
+        auto got = pc.preview("clock-a");
+        CHECK(got && *got == png);
+        const int before = server.requests;
+        CHECK(pc.preview("clock-a").has_value() && server.requests == before);               // served from the verified cache
+        CHECK(!pc.preview("unknown").has_value() && !pc.preview("new-c").has_value());
+        // Restart: cached previews.json is re-verified and still usable offline.
+        server.online = false;
+        Catalog again(key, root / "cache-previews", server.fetcher(), "2.5.0");
+        CHECK(again.has_preview("clock-a") && again.preview("clock-a") == png);
+        server.online = true;
+        // Tampered image on the server: refused, nothing cached from it.
+        server.files["plugins/clock-a/preview.png"] = png + "evil";
+        Catalog fresh(key, root / "cache-previews2", server.fetcher(), "2.5.0");
+        CHECK(fresh.refresh().state == Availability::available && fresh.has_preview("clock-a") && !fresh.preview("clock-a").has_value());
+        // Older previews.json (rollback) is ignored; a bad signature keeps the accepted list.
+        auto older = sign::build_previews({}, 0);
+        server.files["previews.json"] = *older.index_json;
+        server.files["previews.json.sig"] = *sign::sign_document(sign::Kind::previews, server.keys.private_pem, *older.index_json) + "\n";
+        CHECK(pc.refresh().state == Availability::available && pc.has_preview("clock-a"));
+        server.files["previews.json.sig"] = std::string(88, 'A') + "\n";
+        CHECK(pc.refresh().state == Availability::available && pc.has_preview("clock-a") && pc.index()->plugins.size() == 2);
+    }
     fs::remove_all(root);
     std::printf("plugin catalog: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;

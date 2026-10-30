@@ -6,6 +6,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Added
+
+- Plugin store: preview images. Signed `previews.json` (separate from the index, older apps ignore it), shown in the store details, tools `fl-plugin-sign build-previews|check-previews` and `fl-plugin-preview` (renders sample images). Images for the 8 starter plugins in `store-seed/previews/`.
+
 ## [2.6.0] – 2026-10-30
 
 ### Added

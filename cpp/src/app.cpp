@@ -920,6 +920,7 @@ void App::run() {
                 c.id = e.id; c.name = e.name; c.description = e.description; c.version = e.version; c.author = e.author;
                 c.license = e.license; c.category = e.category; c.min_app_version = e.min_app_version; c.hosts = e.hosts;
                 c.installed_version = card.installed_version; c.new_hosts = card.new_hosts;
+                c.has_preview = store_client->catalog->has_preview(e.id);
                 switch (card.status) {
                     case plugins::catalog::Status::installed: c.status = "installed"; break;
                     case plugins::catalog::Status::update_available: c.status = "update_available"; break;
@@ -951,6 +952,12 @@ void App::run() {
                 }
             }
             return store_snapshot("", "");
+        };
+        actions.store_preview = [store_client, store_enabled](const std::string& id) -> std::string {
+            if (!store_enabled()) return {};
+            std::lock_guard lk(store_client->mu);
+            if (!store_client->catalog) return {};
+            return store_client->catalog->preview(id).value_or(std::string());
         };
         actions.store_install = [this, store_client](const std::string& id) {
             std::lock_guard lk(store_client->mu);

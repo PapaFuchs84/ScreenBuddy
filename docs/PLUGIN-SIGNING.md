@@ -64,6 +64,15 @@ fl-plugin-sign verify index|revoked <file> <public-hex>
 - **If `store_public_key_hex` is empty or invalid** the page shows "not available" and there is no network access. As long as there is no signed index at `base_url` (GitHub Pages of `ScreenBuddy-Plugins`), the page shows "not reachable".
 - **Publishing (maintainer):** change plugins in the store repository, run `fl-plugin-sign build-index plugins docs <sequence>`, `fl-plugin-sign sign index docs/index.json <key.pem>` (likewise `revoked.json`) and commit. The store repository's CI runs `fl-plugin-sign check-index` and rejects any change where plugins and the signed index differ. The private key never lives in GitHub.
 
+## Preview images (from 2.6.1)
+
+The store UI can show a preview image for each plugin. The images are **not** part of `index.json` (its schema is fixed for older apps) but of a separate signed file, `previews.json`, with its own signature domain (`FuchsLabs-ScreenBuddy-Plugin-Previews-v1`):
+
+- Image: `plugins/<id>/preview.png`, PNG, at most 200 KiB, 16–1024 pixels per side. Rendered with `fl-plugin-preview` (sample data, fixed clock, no live data).
+- `previews.json`: `schema_version`, `sequence`, per image `id`, `file`, `sha256`, `size`. Build with `fl-plugin-sign build-previews <dir> <out> <sequence>`, sign with `fl-plugin-sign sign previews …`, check in CI with `check-previews`.
+- The app fetches the file best effort after the index, verifies signature, rollback protection, size, SHA-256 and PNG header, and only then shows the image (cache file named by its hash). If the file is missing or invalid, the store stays fully usable without images.
+
+
 ## Limits
 
 - A signature proves the maintainer published the index, not that a plugin is harmless. Approval remains a human review.
