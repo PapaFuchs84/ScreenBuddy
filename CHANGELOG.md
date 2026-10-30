@@ -6,6 +6,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **Plugin-Werkstatt**: kindgerechte, interaktive Anleitung (Deutsch/Englisch) zum Bauen eigener Plugins mit Baukasten, Live-Vorschau, Fehler-Detektiv und Datei-Export. In der App unter `/plugin-werkstatt` (Link in der bebilderten Anleitung), als Datei `cpp/res/PLUGIN-WERKSTATT.html`.
+
 ## [2.6.0] – 2026-10-30
 
 ### Hinzugefügt

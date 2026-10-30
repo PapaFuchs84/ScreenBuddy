@@ -142,6 +142,11 @@ bool SettingsServer::start() {
         auto html = lang == "en" && !en.empty() ? en : res::get(res::GUIDE_DE);
         res.set_content(std::string(html), "text/html; charset=utf-8");
     });
+    svr.Get("/plugin-werkstatt", [](const httplib::Request&, httplib::Response& res) {
+        res.set_header("Cache-Control", "no-store");
+        res.set_header("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'");
+        res.set_content(std::string(res::get(res::PLUGIN_WORKSHOP)), "text/html; charset=utf-8");
+    });
     svr.Post("/api/open-window", [show = d_->show_settings](const httplib::Request&, httplib::Response& res) { if (show) show(); json_reply(res, {{"ok", true}}); });
     svr.Get("/api/config", [&app](const httplib::Request&, httplib::Response& res) {
         ojson cfg = app.cfg();

@@ -6,6 +6,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Added
+
+- **Plugin Workshop**: kid-friendly interactive guide (German/English) for building your own plugins with a builder, live preview, bug detective and file export. In the app at `/plugin-werkstatt` (linked from the illustrated guide), as the file `cpp/res/PLUGIN-WERKSTATT.html`.
+
 ## [2.6.0] – 2026-10-30
 
 ### Added
