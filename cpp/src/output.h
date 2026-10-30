@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <memory>
 #include <vector>
 #include <mutex>
@@ -152,6 +153,20 @@ public:
     std::function<void(int)> on_swipe;
     std::function<void()> on_resize;
 
+    // Unabhängiger Betrieb: jedes Gerät bekommt eigenes Bild, eigene Größe, Gesten und Touch-Ziele (companion.sync = aus).
+    // Die Rückrufe laufen wie on_tap/on_swipe in eigenen Threads; device ist die Geräte-ID der Kopplung.
+    std::function<void(const std::string&, int, int, int, int)> on_device_tap;
+    std::function<void(const std::string&, int)> on_device_swipe;
+    std::function<void(const std::string&, int, int)> on_device_resize;
+    std::function<void(const std::string&)> on_device_pages;      // eigene Seitenliste eines Geräts geändert
+    void set_independent(bool on);
+    bool independent() const { return independent_; }
+    void show_for(const std::string& device, const Image& frame, const ojson& navigation = ojson());   // Bild nur für dieses Gerät
+    void forget_device(const std::string& device);                  // Bild verwerfen (Gerät getrennt)
+    std::vector<std::string> client_ids();                          // IDs der gerade verbundenen Geräte
+    std::optional<std::vector<std::string>> device_pages(const std::string& id);
+    bool set_device_pages(const std::string& id, const std::optional<std::vector<std::string>>& pages);
+
     bool running();
     std::string error();
 
@@ -178,9 +193,14 @@ private:
     std::optional<Image> frame_;
     mutable std::mutex mdns_mu_;           // schützt den Statuszugriff vor paralleler Abmeldung
     std::atomic<void*> mdns_{nullptr};     // Registrierung (intern, siehe Mdns in network_display.cpp)
+    struct DeviceFrame;
+    std::atomic<bool> independent_{false};
+    std::map<std::string, std::shared_ptr<DeviceFrame>> device_frames_;  // geschützt durch mu_
+    uint64_t frame_version_ = 0;                                          // geschützt durch mu_
+    struct Tap { std::string device; bool per_device = false; int x = 0, y = 0, w = 0, h = 0; };
     std::mutex tap_mu_;
     std::condition_variable tap_cv_;
-    std::vector<std::tuple<int, int, int, int>> taps_;
+    std::vector<Tap> taps_;
     bool tap_stop_ = false;
     std::thread tap_thread_;
 };

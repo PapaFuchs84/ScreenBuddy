@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Store preview images: `Kind::previews`, `open_previews`/`preview_matches`/`build_previews` in plugin_sign, `Catalog::preview`/`has_preview` (best-effort previews.json, hash-named verified cache), `NativePluginActions::store_preview`, `ImageView` in ui_page_store, tools `fl-plugin-preview` and `fl-plugin-sign build-previews|check-previews`. Windows build: sign 81, catalog 61 and all other test programs passed; the store page was not clicked through.
+- Companion independent mode (`companion.sync=false`): `Server::Hooks` per-device variants (`independent`, `encode_frame_for`, `on_*_for`, `Frame::version`), `NetworkDisplay::show_for/client_ids/device_pages`, `Store` per-device `pages`, `App::render_core/render_devices/device_tap` with `DeviceState`, device page list UI. Windows build: companion tests 361 checks (new `test_independent`), `tests/app_companion_integration.py` 39 and new `tests/app_companion_multi.py` 17 checks passed (simulated clients, isolated ports); not tested with several real phones.
+
+- Pages & order lists enabled plugins (plugin:<id> keys, config::is_page_key, page_items with plugin info, async list load in PagesPage); App::active_pages honours order and checkboxes for plugins and now always applies display.visible_pages. Windows build: 279 + 251 + 41 + 127 + 140 + 135 + 11 + 335 checks passed; the GUI itself was not clicked through.
+
 ## 2.6.0 – 30 October 2026
 
 - Fix: `ui_page_store.cpp` now implements `collect()`, so the switch `ui.plugin_store` is saved (verified in an isolated instance: save + restart). The store repository now also serves plugin files from `docs/plugins/` (GitHub Pages).

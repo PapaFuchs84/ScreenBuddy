@@ -10,7 +10,7 @@ The USB display or HDMI monitor and Android Companion can run at the same time, 
 4. Under **Companion → Independent Companion display**, choose its pages and timer (3–600 seconds). The arrows affect only the phone view. Page order follows the saved selection; checking a page again adds it to the end.
 5. Under **Display → Pages on USB display / monitor**, choose the other output's pages. These extra controls appear only while Companion is enabled or selected as the display type. With Companion disabled, existing page behavior is preserved.
 
-The phone reports its actual view dimensions on connection and rotation. The PC renders at that resolution, including Redmi landscape at 1520 × 720, without hard-coded device dimensions. Memory limits: 2560 pixels per edge and 4,194,304 pixels; larger requests are reduced proportionally. The first connected device reporting a size determines the shared Companion resolution. Other phones share its pages and preserve aspect ratio when scaling. After it disconnects, a size report from a remaining or newly connected device can take ownership.
+The phone reports its actual view dimensions on connection and rotation. The PC renders at that resolution, including Redmi landscape at 1520 × 720, without hard-coded device dimensions. Memory limits: 2560 pixels per edge and 4,194,304 pixels; larger requests are reduced proportionally. With `[companion] sync = true` (default) the first connected device reporting a size determines the shared Companion resolution; other phones share its pages and preserve aspect ratio when scaling. With `sync = false` every phone works independently (see below). After it disconnects, a size report from a remaining or newly connected device can take ownership.
 
 Swipe left for the next page or right for the previous page. Taps use the corresponding output's targets; stale coordinates are dropped while dimensions change. Wide views may show several pages side by side. An empty selection shows the welcome screen.
 
@@ -30,3 +30,12 @@ page_seconds = 5
 Phone only: `[display] output = "network"`; pages and timing also come from `[companion]`. Companion remains off by default. It may not use port 8765 or the current settings port. Pairings and keys stay local and are excluded from the repository.
 
 Validation: see [test status](../cpp/TESTPROTOKOLL.md). The predecessor 0.2.1-preview was installed and tested on a real Redmi 8 over USB tethering: native landscape/portrait output, Android-injected swipes/tap, automatic page rotation and key-based reconnect passed. The user confirmed a sharp image, slow/normal finger swipes and taps. Physical USB output in the same new PC instance, Wi-Fi, launcher/boot and multiple-device behavior remain untested.
+
+## Several phones at once
+
+Up to 8 devices can be paired and several connected at the same time. The switch **Settings → Companion → Show the same on all devices** (`[companion] sync`, default on, applies after saving and restarting) decides the behaviour:
+
+- **Synchronised (on):** all phones show the same picture and switch together (as before).
+- **Independent (off):** every phone has its own page position, resolution (landscape/portrait), swipe and tap handling and switches by itself after `page_seconds`. Touch targets and toggles apply to the device that was tapped. Each device can also get **its own page list** (Settings → Companion → “Pages for the selected device”; saved immediately). An own list is binding: pages that are missing are not shown on that device. “Use shared list” restores the list under “Pages for Companion”. Each device’s position is part of the status (`/api/companion/status`, `clients[].navigation`).
+
+In independent mode the preview and “Show previous/next page” in the settings refer to the first connected device and to all connected devices respectively. The page lists live in `companion.json` (DPAPI-protected like the pairings). The protocol is unchanged; older app versions work without changes. **Test status:** automated checks with simulated devices (server tests and an isolated app run with two test clients); a test with several real phones is still pending.

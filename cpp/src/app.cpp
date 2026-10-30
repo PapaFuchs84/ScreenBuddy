@@ -65,6 +65,9 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
                                                              cfg_path_.parent_path() / L"companion.json", size_.first, size_.second);
         companion_ = companion_output_.get();
     }
+    // Betriebsart gilt von Anfang an, auch für Geräte, die sich vor der ersten Zeichenrunde verbinden
+    was_independent_ = independent();
+    if (companion_) companion_->set_independent(was_independent_);
     render::apply_theme(dp_);
     const ojson &bf = cfg_["bf6"], &rs = cfg_["rss"], &sy = cfg_["system"], &dc = cfg_["discord"], &fr = cfg_["friends"];
     auto dirty = [this] { mark_dirty(); };
@@ -258,7 +261,12 @@ void App::mark_dirty() {
 }
 
 void App::step_page(int delta, bool companion) {
-    (companion && companion_output_ ? companion_view_.step : primary_view_.step) += delta;
+    if (companion && independent()) {
+        std::lock_guard lk(dev_mu_);
+        for (auto& [id, d] : devices_) d->view.step += delta;
+    } else {
+        (companion && companion_output_ ? companion_view_.step : primary_view_.step) += delta;
+    }
     mark_dirty();
 }
 
@@ -309,7 +317,7 @@ ojson App::friend_accounts() {
     return {{"accounts", accounts}, {"suggestions", friends::suggest_links(accounts, links, b(fr, "auto_merge", true))}};
 }
 
-std::vector<std::string> App::active_pages(bool companion) {
+std::vector<std::string> App::active_pages(bool companion, const std::vector<std::string>* pages_override) {
     // Die reine Discord-Seite entfällt, solange die gemeinsame Freundesliste Discord schon enthält
     // (sonst stünden dieselben Leute auf zwei Seiten).
     const ojson& fr = cfg_["friends"];
@@ -322,16 +330,30 @@ std::vector<std::string> App::active_pages(bool companion) {
                                         {"homeassistant", ha_ != nullptr}};
     std::vector<std::string> out;
     bool network = dp_.value("output", "serial") == "network";
-    const auto& selected = (companion || network) ? cfg_["companion"]["pages"] : dp_["visible_pages"];
-    bool separate = companion_ != nullptr;
+    const ojson own = pages_override ? ojson(*pages_override) : ojson();   // eigene Liste eines Geräts ersetzt companion.pages
+    const auto& selected = (companion || network) ? (pages_override ? own : cfg_["companion"]["pages"]) : dp_["visible_pages"];
     const auto& order = (companion || network) ? selected : dp_["pages"];
-    for (auto& p : order)
-        if (p.is_string() && have[p.get<std::string>()] &&
-            (!separate || std::find(selected.begin(), selected.end(), p) != selected.end())) out.push_back(p.get<std::string>());
+    auto chosen = [&](const std::string& key) {
+        return std::find_if(selected.begin(), selected.end(), [&](const ojson& v) { return v.is_string() && v.get<std::string>() == key; }) != selected.end();
+    };
     // Validated declarative plugins appear as pages. Live data remains absent until
     // every source has a current host grant and the worker has fetched it.
+    std::vector<std::string> plugin_keys;
     if (plugins_) for (const auto& entry : plugins_->entries())
-        if (entry.enabled) out.push_back("plugin:" + entry.manifest.id);
+        if (entry.enabled) plugin_keys.push_back("plugin:" + entry.manifest.id);
+    std::vector<std::string> listed;
+    for (auto& p : order) {
+        if (!p.is_string()) continue;
+        const std::string key = p.get<std::string>();
+        const bool is_plugin = key.rfind("plugin:", 0) == 0;
+        if (is_plugin ? std::find(plugin_keys.begin(), plugin_keys.end(), key) == plugin_keys.end() : !have[key]) continue;
+        if (is_plugin) listed.push_back(key);
+        if (chosen(key)) out.push_back(key);
+    }
+    // Plugins, die in der Reihenfolge noch nicht vorkommen (frisch aktiviert), erscheinen hinten.
+    // Eine eigene Geräteliste ist dagegen verbindlich: was dort fehlt, wird auf dem Gerät nicht gezeigt.
+    if (!pages_override) for (const auto& key : plugin_keys)
+        if (std::find(listed.begin(), listed.end(), key) == listed.end()) out.push_back(key);
     return out;
 }
 
@@ -437,10 +459,11 @@ std::string App::friends_message() {
     return join(problems, " · ");
 }
 
-std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion) {
+std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion,
+                                           const std::vector<std::string>* pages_override) {
     // [(Name, Seitenanzahl, Zeichenfunktion(seite, zeichner))] in der eingestellten Reihenfolge
     std::vector<PageEntry> out;
-    for (auto& key : active_pages(companion)) {
+    for (auto& key : active_pages(companion, pages_override)) {
         if (key.rfind("plugin:", 0) == 0) {
             auto installed = plugins_ ? plugins_->find(key.substr(7)) : std::nullopt;
             if (!installed || !installed->enabled) continue;
@@ -617,77 +640,143 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
     }
 }
 
-void App::render_view(bool secondary, bool dirty) {
-    auto& view = secondary ? companion_view_ : primary_view_;
-    bool phone = companion_ && (secondary || out_.get() == companion_);
-    auto size = phone ? companion_->size() : size_;
-    auto& settings = phone ? cfg_["companion"] : dp_;
-    bool due = mono() - view.switched >= settings.value("page_seconds", 15);
+bool App::independent() const { return companion_ && !b(cfg_["companion"], "sync", true); }
+
+App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, double page_seconds, bool phone,
+                                const std::vector<std::string>* pages_override, bool dirty, bool register_redraw) {
+    RenderOut out;
+    bool due = mono() - view.switched >= page_seconds;
     auto minute = clock_hhmm();
     bool live = std::count(view.current.begin(), view.current.end(), "system") > 0;
-    if (!dirty && !due && !live && view.step == 0 && view.size == size && view.minute == minute) return;
+    if (!dirty && !due && !live && view.step == 0 && view.size == size && view.minute == minute) return out;
+    out.skipped = false;
     view.minute = minute;
     view.size = size;
-    auto active = active_pages(phone);
+    auto active = active_pages(phone, pages_override);
     std::vector<Friend> friends, people;
     if (discord_ && std::count(active.begin(), active.end(), "discord")) friends = discord_->friends();
     if (friends_) people = friends_->people();
-    Image frame;
-    std::vector<touch::Tile> taps;
-    ojson navigation = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
-    bool switched = false;
+    out.navigation = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
     {
         std::lock_guard rl(render::mutex());
         // Bound cached renderer sets when a resizable window reports many intermediate sizes.
         if (sets_.size() > 16) sets_.clear();
         auto boxes = render::tile_layout(size.first, size.second);
-        auto pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone);
+        auto pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override);
         int total = 0;
         for (auto& p : pages) total += p.n;
         if (0 < total && total < (int)boxes.size()) {
             boxes = render::tile_layout(size.first, size.second, total);
-            pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone);
+            pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override);
             total = 0; for (auto& p : pages) total += p.n;
         }
         int step = view.step.exchange(0);
         if (!total) {
-            frame = welcome(size); view.current.clear();
-            if (!secondary) { std::lock_guard lk(mu_); redraw_ = [this, size] { return welcome(size); }; }
+            out.frame = welcome(size); view.current.clear();
+            if (register_redraw) { std::lock_guard lk(mu_); redraw_ = [this, size] { return welcome(size); }; }
         } else {
             int cols = std::min((int)boxes.size(), total);
             if (due || step) {
                 if (total > cols) {
-                    switched = true;
+                    out.switched = true;
                     view.page = (((view.page + (step ? step : 1) * cols) % total) + total) % total;
                 }
                 view.switched = mono();
             }
             view.page = total > cols ? view.page % total : 0;
             int start = view.page;
-            if (!secondary) {
+            if (register_redraw) {
                 std::lock_guard lk(mu_);
                 redraw_ = [this, pages, boxes, start, size] { return draw(pages, boxes, start, size).frame; };
             }
             auto [f, keys, targets] = draw(pages, boxes, start, size);
-            frame = std::move(f); view.current = keys; taps = std::move(targets);
-            navigation = {{"index", start}, {"total", total}, {"visible", cols}, {"current", keys}, {"can_step", total > cols}};
+            out.frame = std::move(f); view.current = keys; out.taps = std::move(targets);
+            out.navigation = {{"index", start}, {"total", total}, {"visible", cols}, {"current", keys}, {"can_step", total > cols}};
         }
     }
-    {
-        std::lock_guard lk(tap_mu_);
-        if (secondary) {
-            // Snapshot and its touch targets are published together.
-            companion_output_->show(frame);
-            companion_taps_ = std::move(taps);
-            std::lock_guard state(mu_);
-            companion_frame_ = frame; companion_navigation_ = navigation;
-        } else {
-            output(frame, switched, navigation); tap_tiles_ = std::move(taps);
-        }
-    }
-    if (switched) view.switched = mono();
+    if (out.switched) view.switched = mono();
+    return out;
 }
 
+void App::render_view(bool secondary, bool dirty) {
+    auto& view = secondary ? companion_view_ : primary_view_;
+    bool phone = companion_ && (secondary || out_.get() == companion_);
+    auto size = phone ? companion_->size() : size_;
+    auto& settings = phone ? cfg_["companion"] : dp_;
+    RenderOut r = render_core(view, size, settings.value("page_seconds", 15), phone, nullptr, dirty, !secondary);
+    if (r.skipped) return;
+    std::lock_guard lk(tap_mu_);
+    if (secondary) {
+        // Snapshot and its touch targets are published together.
+        companion_output_->show(r.frame);
+        companion_taps_ = std::move(r.taps);
+        std::lock_guard state(mu_);
+        companion_frame_ = r.frame; companion_navigation_ = r.navigation;
+    } else {
+        output(r.frame, r.switched, r.navigation); tap_tiles_ = std::move(r.taps);
+    }
+}
+
+// Unabhängiger Companion-Betrieb: jedes verbundene Gerät hat Ansicht, Größe und (optional) Seitenliste für sich.
+void App::render_devices(bool dirty) {
+    const auto ids = companion_->client_ids();
+    const double now = mono();
+    const double seconds = cfg_["companion"].value("page_seconds", 15);
+    bool first = true;
+    for (const auto& id : ids) {
+        DeviceState* d = nullptr;
+        {
+            std::lock_guard lk(dev_mu_);
+            auto& slot = devices_[id];
+            if (!slot) { slot = std::make_unique<DeviceState>(); slot->view.switched = now; }
+            slot->last_seen = now;
+            d = slot.get();   // bleibt gültig: nur dieser Thread löscht Einträge
+        }
+        auto own = companion_->device_pages(id);
+        std::pair<int, int> size;
+        { std::lock_guard lk(dev_mu_); size = d->size.first > 0 ? d->size : companion_->size(); }
+        RenderOut r = render_core(d->view, size, seconds, true, own ? &*own : nullptr, dirty, false);
+        if (r.skipped) { first = false; continue; }
+        {
+            std::lock_guard lk(dev_mu_);
+            d->frame = r.frame; d->taps = std::move(r.taps); d->navigation = r.navigation;
+        }
+        companion_->show_for(id, r.frame, r.navigation);
+        if (first) {   // Vorschau und Seitennavigation der Einstellungen folgen dem ersten Gerät
+            std::lock_guard state(mu_);
+            if (companion_output_) { companion_frame_ = r.frame; companion_navigation_ = r.navigation; }
+            else { last_frame_ = r.frame; navigation_ = r.navigation; }
+        }
+        first = false;
+    }
+    std::vector<std::string> gone;
+    {
+        std::lock_guard lk(dev_mu_);
+        for (auto& [id, d] : devices_)
+            if (now - d->last_seen > 60) gone.push_back(id);
+        for (const auto& id : gone) devices_.erase(id);
+    }
+    for (const auto& id : gone) companion_->forget_device(id);
+}
+
+void App::device_tap(const std::string& id, int x, int y, int w, int h) {
+    touch::Targets targets;
+    std::function<void()> action;
+    bool have_target = false;
+    {
+        std::lock_guard lk(dev_mu_);
+        auto it = devices_.find(id);
+        if (it == devices_.end()) return;
+        DeviceState& d = *it->second;
+        if (d.frame.empty() || d.frame.w != w || d.frame.h != h) return;   // veraltete Koordinaten verwerfen
+        if (auto* a = touch::action_at(d.taps, x, y)) action = *a;
+        else if (auto selected = touch::at(d.taps, x, y)) { targets = *selected; have_target = true; }
+        else { d.view.step += x < d.frame.w / 3 ? -1 : 1; }   // wie sonst: links = zurück, sonst weiter
+    }
+    if (action) { action(); return; }
+    if (have_target) { if (!touch::open(targets)) LOGW("app", "Touch-Ziel nicht geöffnet: keine passende App oder Start fehlgeschlagen"); return; }
+    mark_dirty();
+}
 void App::display_loop() {
     double next_try = 0, companion_try = 0;
     if (out_) connect_display();
@@ -707,8 +796,23 @@ void App::display_loop() {
             catch (const std::exception& e) { LOGW("app", "Companion: %s", e.what()); }
             companion_try = mono() + 30;
         }
-        render_view(false, dirty);
-        if (companion_output_) render_view(true, dirty);
+        const bool indep = independent();
+        if (companion_) companion_->set_independent(indep);
+        if (indep != was_independent_) {   // Betriebsart gewechselt: alles neu zeichnen
+            was_independent_ = indep;
+            dirty = true;
+            primary_view_.size = companion_view_.size = {0, 0};
+            std::vector<std::string> ids;
+            { std::lock_guard lk(dev_mu_); for (auto& [id, d] : devices_) ids.push_back(id); devices_.clear(); }
+            for (const auto& id : ids) companion_->forget_device(id);
+        }
+        if (indep) {
+            if (out_ && out_.get() != companion_) render_view(false, dirty);   // USB-Display/Bildschirm bleibt wie gehabt
+            render_devices(dirty);
+        } else {
+            render_view(false, dirty);
+            if (companion_output_) render_view(true, dirty);
+        }
         for (int i = 0; i < 10 && !stop_; ++i) Sleep(50);
     }
 }
@@ -768,6 +872,16 @@ void App::run() {
         companion_->on_tap = [this](int x, int y, int w, int h) { companion_tap(x, y, w, h); };
         companion_->on_swipe = [this](int d) { step_page(d, true); };
         companion_->on_resize = [this] { mark_dirty(); };
+        companion_->on_device_tap = [this](const std::string& id, int x, int y, int w, int h) { device_tap(id, x, y, w, h); };
+        companion_->on_device_swipe = [this](const std::string& id, int d) {
+            { std::lock_guard lk(dev_mu_); if (auto it = devices_.find(id); it != devices_.end()) it->second->view.step += d; }
+            mark_dirty();
+        };
+        companion_->on_device_resize = [this](const std::string& id, int w, int h) {
+            { std::lock_guard lk(dev_mu_); auto& slot = devices_[id]; if (!slot) { slot = std::make_unique<DeviceState>(); slot->view.switched = mono(); } slot->size = {w, h}; slot->last_seen = mono(); }
+            mark_dirty();
+        };
+        companion_->on_device_pages = [this](const std::string&) { mark_dirty(); };
     }
     if (sys_) sys_->start();
     auto dirty = [this] { mark_dirty(); };
@@ -920,6 +1034,7 @@ void App::run() {
                 c.id = e.id; c.name = e.name; c.description = e.description; c.version = e.version; c.author = e.author;
                 c.license = e.license; c.category = e.category; c.min_app_version = e.min_app_version; c.hosts = e.hosts;
                 c.installed_version = card.installed_version; c.new_hosts = card.new_hosts;
+                c.has_preview = store_client->catalog->has_preview(e.id);
                 switch (card.status) {
                     case plugins::catalog::Status::installed: c.status = "installed"; break;
                     case plugins::catalog::Status::update_available: c.status = "update_available"; break;
@@ -951,6 +1066,12 @@ void App::run() {
                 }
             }
             return store_snapshot("", "");
+        };
+        actions.store_preview = [store_client, store_enabled](const std::string& id) -> std::string {
+            if (!store_enabled()) return {};
+            std::lock_guard lk(store_client->mu);
+            if (!store_client->catalog) return {};
+            return store_client->catalog->preview(id).value_or(std::string());
         };
         actions.store_install = [this, store_client](const std::string& id) {
             std::lock_guard lk(store_client->mu);

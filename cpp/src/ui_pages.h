@@ -26,7 +26,9 @@ std::unique_ptr<Page> make_app_page();
 
 // Gemeinsame Helfer
 Text source_text(const std::string& key);                      // Seitentitel DE/EN (system, friends, …)
-std::vector<ItemList::Item> page_items(const ojson& order, const ojson& selected);  // Liste aller Seiten
+using PluginPageInfo = std::pair<std::string, Text>;                                        // ("plugin:<id>", Name)
+std::vector<ItemList::Item> page_items(const ojson& order, const ojson& selected,
+                                       const std::vector<PluginPageInfo>& plugins = {});  // Liste aller Seiten
 Text connection_text(const ojson& connection, Label::Tone& tone);  // ok/bad/idle/off aus App::connections()
 bool flag(const ojson& cfg, const char* sec, const char* key);  // bool aus der öffentlichen Sicht
 Text join(const Text& a, const std::wstring& b);                // Text + gemeinsamer Zusatz
