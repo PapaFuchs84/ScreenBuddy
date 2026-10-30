@@ -49,7 +49,7 @@ public:
     std::pair<int, int> size() const;
     bool discord_ready();
     ojson member_list();
-    std::vector<std::string> active_pages(bool companion = false);
+    std::vector<std::string> active_pages(bool companion = false, const std::vector<std::string>* pages_override = nullptr);
     ojson connections();
     std::optional<Image> last_frame(bool companion = false);
     ojson page_navigation(bool companion = false);
@@ -92,6 +92,22 @@ private:
         std::string minute;
         std::pair<int, int> size{0, 0};
     } primary_view_, companion_view_;
+    // Unabhängiger Companion-Betrieb (companion.sync = aus): Ansicht, Größe, letztes Bild und Touch-Ziele je Gerät
+    struct DeviceState {
+        ViewState view;
+        std::pair<int, int> size{0, 0};
+        Image frame;
+        std::vector<touch::Tile> taps;
+        ojson navigation = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
+        double last_seen = 0;
+    };
+    struct RenderOut {
+        bool skipped = true;
+        Image frame;
+        std::vector<touch::Tile> taps;
+        ojson navigation;
+        bool switched = false;
+    };
     struct PageEntry {
         std::string key;
         int n;
@@ -105,10 +121,16 @@ private:
         std::vector<touch::Tile> taps;
     };
     RendererSet& renderers_for(int w, int h);
-    std::vector<PageEntry> page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion = false);
+    std::vector<PageEntry> page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion = false,
+                                    const std::vector<std::string>* pages_override = nullptr);
     DrawResult draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start, std::pair<int, int> size);
     Image welcome(std::pair<int, int> size);
     void render_view(bool secondary, bool dirty);
+    RenderOut render_core(ViewState& view, std::pair<int, int> size, double page_seconds, bool phone,
+                          const std::vector<std::string>* pages_override, bool dirty, bool register_redraw);
+    bool independent() const;
+    void render_devices(bool dirty);
+    void device_tap(const std::string& id, int x, int y, int w, int h);
     std::string friends_message();
     bool connect_display();
     void output(const Image& frame, bool transition, const ojson& navigation);
@@ -127,6 +149,9 @@ private:
     std::optional<std::filesystem::path> preview_dir_;
     bool show_settings_on_start_ = false;
     bool settings_open_at_exit_ = false;
+    std::mutex dev_mu_;                      // devices_
+    std::map<std::string, std::unique_ptr<DeviceState>> devices_;
+    bool was_independent_ = false;
     std::mutex tap_mu_;
     std::vector<touch::Tile> companion_taps_;
     std::vector<touch::Tile> tap_tiles_;     // Zeilenziele aus demselben Snapshot wie das letzte Bild

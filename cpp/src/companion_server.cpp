@@ -515,7 +515,13 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
     int touches = 0, resizes = 0;
     double resize_window = t0;
     int sent_w = opt_.w, sent_h = opt_.h;
+    auto independent = [&] { return hooks_.independent && hooks_.independent(); };
     auto resize = [&](int w, int h) {
+        if (independent() && hooks_.on_resize_for && w > 0 && h > 0) {
+            auto [rw, rh] = render_size(w, h);
+            hooks_.on_resize_for(c->device_id, rw, rh);   // jedes Gerät bestimmt seine eigene Größe
+            return;
+        }
         if (!hooks_.on_resize || w <= 0 || h <= 0) return;
         std::lock_guard lk(mu_);
         if (!size_owner_) size_owner_ = c;
@@ -526,6 +532,7 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
     };
     bool authed = false;
     FrameGate gate;
+    uint64_t sent_version = 0;
     bool open = true, more = false;
     while (open && !stop_ && !c->kick) {
         // Nur warten, wenn weder OpenSSL noch der Socket (Lese-Budget ausgeschöpft) sofort etwas liefern.
@@ -668,11 +675,14 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
                             touches = 0;
                         }
                         if (++touches <= 10 && cm.type == ClientMsg::Type::Swipe) {
-                            if (hooks_.on_swipe) hooks_.on_swipe(cm.dir);
+                            if (independent() && hooks_.on_swipe_for) hooks_.on_swipe_for(c->device_id, cm.dir);
+                            else if (hooks_.on_swipe) hooks_.on_swipe(cm.dir);
                         } else if (touches <= 10 && cm.type == ClientMsg::Type::Touch &&
-                                   cm.x < sent_w && cm.y < sent_h && (hooks_.on_touch_frame || hooks_.on_touch)) {
+                                   cm.x < sent_w && cm.y < sent_h &&
+                                   (hooks_.on_touch_frame || hooks_.on_touch || (independent() && hooks_.on_touch_frame_for))) {
                             try {
-                                if (hooks_.on_touch_frame) hooks_.on_touch_frame(cm.x, cm.y, sent_w, sent_h);
+                                if (independent() && hooks_.on_touch_frame_for) hooks_.on_touch_frame_for(c->device_id, cm.x, cm.y, sent_w, sent_h);
+                                else if (hooks_.on_touch_frame) hooks_.on_touch_frame(cm.x, cm.y, sent_w, sent_h);
                                 else hooks_.on_touch(cm.x, cm.y);
                             } catch (const std::exception& e) {
                                 log(2, std::string("Touch: ") + e.what());
@@ -711,7 +721,18 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
         uint64_t seq = seq_;
         if (gate.due(seq, t)) {
             std::shared_ptr<const Frame> jpeg;
-            {
+            const bool per_device = independent() && hooks_.encode_frame_for;
+            if (per_device) {
+                // Eigenes Bild dieses Geräts; die App liefert es zwischengespeichert, die Version verhindert Doppelsendungen.
+                Frame data;
+                try {
+                    data = hooks_.encode_frame_for(c->device_id);
+                } catch (const std::exception& e) {
+                    log(2, std::string("JPEG: ") + e.what());
+                } catch (...) {
+                }
+                jpeg = std::make_shared<const Frame>(std::move(data));
+            } else {
                 std::lock_guard lk(jpeg_mu_);
                 if (jpeg_seq_ != seq || !jpeg_) {
                     Frame data;
@@ -727,12 +748,14 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
                 }
                 jpeg = jpeg_;
             }
-            if (jpeg && !jpeg->jpeg.empty()) {
+            const bool unchanged = per_device && jpeg->version && jpeg->version == sent_version;
+            if (!unchanged && jpeg && !jpeg->jpeg.empty()) {
                 if (sent_w != jpeg->w || sent_h != jpeg->h) {
                     if (!send_text(msg_ready(jpeg->w, jpeg->h))) break;
                     sent_w = jpeg->w; sent_h = jpeg->h;
                 }
                 if (!send_raw(ws_frame(Op::Binary, frame_payload(jpeg->jpeg)))) break;
+                sent_version = per_device ? jpeg->version : 0;
             }
             gate.sent(seq, t);
         }
