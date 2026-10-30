@@ -55,7 +55,13 @@ fl-plugin-sign verify index|revoked <datei> <public-hex>
 - **Sperren:** `enforce_revocations` schaltet installierte, gesperrte Plugins ab.
 - Ohne eingetragenen Produktionsschlüssel ist der Store „nicht verfügbar“ und es erfolgt kein Netzwerkzugriff.
 
-**Noch offen:** der echte HTTPS-Abruf roher Bytes (Signatur braucht die exakten Bytes, die vorhandene JSON-Quelle liefert nur geparstes JSON), die native Store-Seite und der Tägliche-Abruf-Zeitplan (höchstens 1× pro Tag).
+## Store in der App (Phase 3, Teil 2)
+
+- **Rohbyte-Abruf:** `fetch_public_bytes` nutzt dieselben Netzwerkregeln wie Plugin-Quellen (nur HTTPS, öffentliche Adressen, keine Umleitung, kein Proxy, Zeitlimit, Byte-Limit), gibt aber die **unveränderten** Bytes zurück, weil die Signatur genau diese Bytes prüft. `public_https_fetcher` erlaubt nur feste relative Pfade unterhalb von `base_url`.
+- **Seite „Plugin-Store“** (Einstellungen → Verbindung, nativ, FuchsLabs-Look, DE/EN): Suche, Kategorien, Karte mit Autor, Version, Lizenz, Status und **„Dieses Plugin sendet Daten an: …“**, Installieren/Aktualisieren mit Bestätigung. Installierte Plugins bleiben **ausgeschaltet**, Host-Zustimmungen werden bei jeder Installation und jedem Update zurückgesetzt; gespeicherte Zugangsdaten werden wie beim Import verworfen, wenn sich Quellen ändern.
+- **Abgleich:** höchstens einmal pro Tag im Hintergrund (erster Versuch 30 s nach Start) und manuell über „Store aktualisieren“ (frühestens nach 60 s). Danach werden gesperrte Plugins ausgeschaltet, auch aus dem Zwischenspeicher.
+- **Abschaltbar:** Schalter „Plugin-Store verwenden“ (`ui.plugin_store`, Standard an). Aus = keinerlei Abruf. Keine Telemetrie.
+- **Solange `store_public_key_hex` leer ist**, zeigt die Seite „nicht verfügbar“ und es gibt keinen Netzwerkzugriff. Auch die Adresse `base_url` ist bisher nur geplant (das Repository `ScreenBuddy-Plugins` existiert noch nicht).
 
 ## Grenzen
 

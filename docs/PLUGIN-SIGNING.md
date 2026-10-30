@@ -55,7 +55,13 @@ fl-plugin-sign verify index|revoked <file> <public-hex>
 - **Revocation:** `enforce_revocations` disables installed revoked plugins.
 - Without a pinned production key the store is "unavailable" and makes no network access.
 
-**Still open:** the real HTTPS fetch of raw bytes (signatures need the exact bytes; the existing JSON source only returns parsed JSON), the native store page and the once-per-day fetch schedule.
+## Store in the app (phase 3, part 2)
+
+- **Raw-byte fetch:** `fetch_public_bytes` uses the same network rules as plugin sources (HTTPS only, public addresses, no redirects, no proxy, time limit, byte limit) but returns the **unchanged** bytes, because the signature covers exactly those bytes. `public_https_fetcher` only allows fixed relative paths below `base_url`.
+- **"Plugin store" page** (Settings → Connection, native, FuchsLabs look, DE/EN): search, categories, card with author, version, license, status and **"This plugin sends data to: …"**, install/update with confirmation. Installed plugins stay **off**, host consent is reset on every install and update; stored credentials are discarded as on import when sources change.
+- **Sync:** at most once a day in the background (first attempt 30 s after start) and manually via "Refresh store" (not more often than every 60 s). Afterwards revoked plugins are switched off, also from the cache.
+- **Can be switched off:** toggle "Use the plugin store" (`ui.plugin_store`, default on). Off = no requests at all. No telemetry.
+- **While `store_public_key_hex` is empty** the page shows "not available" and there is no network access. The address `base_url` is only planned so far (the `ScreenBuddy-Plugins` repository does not exist yet).
 
 ## Limits
 
