@@ -191,7 +191,7 @@ StoreResult Catalog::install(Store& store, const std::string& id, const Importer
     auto bytes = fetch_(it->file, manifest_limit);
     if (!bytes) return {false, "Plugin download failed."};
     if (!sign::package_matches(*it, *bytes)) return {false, "Plugin does not match the signed index."};
-    return importer ? importer(*bytes) : store.import_manifest(*bytes); // disabled / no consent until the user decides
+    return importer ? importer(*bytes, true) : store.import_manifest(*bytes, true); // disabled / no consent until the user decides
 }
 
 std::vector<std::string> Catalog::enforce_revocations(Store& store) const {

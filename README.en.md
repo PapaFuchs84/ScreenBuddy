@@ -1,6 +1,6 @@
 <div align="center">
 
-**ScreenBuddy 2.6.0 – 30 October 2026:** plugin store with a signed index and Companion app 1.0 as a separate download. [Release notes](docs/RELEASE-NOTES-2.6.md).
+**ScreenBuddy 2.7.0:** store preview images, plugin page ordering, Plugin Workshop and independent or synchronised Companions. [Release notes](docs/RELEASE-NOTES-2.7.md).
 
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
@@ -13,7 +13,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.6.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.7.0-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -113,7 +113,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.6.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.6.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app 1.0 for Android is a separate download.
+1. Download **ScreenBuddy.exe** from [release 2.7.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.7.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app 1.0 for Android is a separate download.
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
@@ -269,3 +269,7 @@ Release build, 86 core checks and 56 monitor/touch checks with injected Windows 
 The earlier 2.0 validation included comparison with 1.x on COM7 and user confirmation of the physical display and a successful Windows reboot with the tray icon.
 
 The first real reboot test failed due to packaged-host installation redirection. Installation and the actual Windows Run entry were subsequently corrected outside that context; the user subsequently confirmed a successful Windows reboot with the tray icon appearing automatically.
+
+## Validation of 2.7.0
+
+See [release notes](docs/RELEASE-NOTES-2.7.md) for current automated and real-device results and remaining limits. Historical 2.6.0 results above refer to that release.

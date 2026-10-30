@@ -1,6 +1,6 @@
 <div align="center">
 
-**ScreenBuddy 2.6.0 – 30.10.2026:** Plugin-Store mit signiertem Index und Companion-App 1.0 als separatem Download. [Release-Notizen](docs/RELEASE-NOTES-2.6.md).
+**ScreenBuddy 2.7.0:** Store-Vorschaubilder, sortierbare Plugin-Seiten, Plugin-Werkstatt und unabhängige oder synchrone Companions. [Release-Notizen](docs/RELEASE-NOTES-2.7.md).
 
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
@@ -13,7 +13,7 @@
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.6.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.7.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -113,7 +113,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus [Release 2.6.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.6.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App 1.0 für Android ist ein separater Download.
+1. **ScreenBuddy.exe** aus [Release 2.7.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.7.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App 1.0 für Android ist ein separater Download.
 2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
@@ -268,3 +268,7 @@ Release-Build, 86 Kernprüfungen und 56 Monitor-/Touchprüfungen mit injizierten
 Die frühere Abnahme von 2.0 umfasste den Gegenvergleich mit 1.x an COM7 und die vom Nutzer bestätigte physische Anzeige sowie einen erfolgreichen Windows-Neustart mit Tray-Symbol.
 
 Der erste reale Neustarttest scheiterte an der Paketumleitung des Installationshosts. Installation und tatsächlicher Windows-Autostarteintrag wurden danach außerhalb dieses Kontexts korrigiert; der Nutzer bestätigte anschließend den erfolgreichen Windows-Neustart mit Tray-Symbol.
+
+## Prüfstand 2.7.0
+
+Aktuelle automatisierte Prüfungen, Echtsystem-Ergebnisse und verbleibende Grenzen: [Release-Notizen](docs/RELEASE-NOTES-2.7.md). Die bisherigen Angaben zu 2.6.0 beziehen sich auf diesen früheren Release.

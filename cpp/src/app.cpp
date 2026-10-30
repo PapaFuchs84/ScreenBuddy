@@ -120,13 +120,13 @@ ojson App::plugin_catalog() {
     return catalog;
 }
 
-bool App::plugin_import(std::string_view manifest, std::string& error) {
+bool App::plugin_import(std::string_view manifest, std::string& error, bool force_disabled) {
     if (!plugins_) { error = "Plugin-Bibliothek nicht verfügbar"; return false; }
     auto parsed = plugins::parse_manifest(manifest);
     if (!parsed) { error = parsed.error; return false; }
     // Fingerprint of the installed version (if any) before the update replaces it.
     const auto previous = plugins_->find(parsed.manifest->id);
-    auto result = plugins_->import_manifest(manifest);
+    auto result = plugins_->import_manifest(manifest, force_disabled);
     if (!result) { error = result.error; return false; }
     if (plugin_settings_) {
         // Stored credentials were entered for the old hosts/URLs/headers. If those change (or no
@@ -1077,9 +1077,9 @@ void App::run() {
             std::lock_guard lk(store_client->mu);
             if (!store_client->catalog || !plugins_) throw std::runtime_error("Der Plugin-Store ist nicht verfügbar.");
             std::string error;
-            const auto result = store_client->catalog->install(*plugins_, id, [this, &error](std::string_view bytes) {
+            const auto result = store_client->catalog->install(*plugins_, id, [this, &error](std::string_view bytes, bool force_disabled) {
                 plugins::StoreResult out;
-                out.ok = plugin_import(bytes, error);
+                out.ok = plugin_import(bytes, error, force_disabled);
                 out.error = error;
                 return out;
             });

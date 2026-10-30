@@ -6,16 +6,20 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+## [2.7.0] – 2026-10-31
+
 ### Hinzugefügt
 
 - **Plugin-Werkstatt**: kindgerechte, interaktive Anleitung (Deutsch/Englisch) zum Bauen eigener Plugins mit Baukasten, Live-Vorschau, Fehler-Detektiv und Datei-Export. In der App unter `/plugin-werkstatt` (Link in der bebilderten Anleitung), als Datei `cpp/res/PLUGIN-WERKSTATT.html`.
 - Plugin-Store: Vorschaubilder. Signierte `previews.json` (getrennt vom Index, ältere Apps ignorieren sie), Anzeige im Store-Detailbereich, Werkzeuge `fl-plugin-sign build-previews|check-previews` und `fl-plugin-preview` (rendert Beispielbilder). Bilder für die 8 Start-Plugins unter `store-seed/previews/`.
-- Companion: mehrere Handys gleichzeitig, unabhängig steuerbar (`[companion] sync = false`) oder synchron (Standard). Im unabhängigen Betrieb hat jedes Gerät eigene Seitenposition, Auflösung, Wisch-/Tippbedienung und optional eine eigene Seitenliste (Einstellungen → Companion, gespeichert in `companion.json`); Schalter „Geräte synchron anzeigen“. Protokoll unverändert. Geprüft mit simulierten Geräten; Test mit mehreren echten Handys steht aus.
+- Companion: mehrere Handys gleichzeitig, unabhängig steuerbar (`[companion] sync = false`) oder synchron (Standard). Im unabhängigen Betrieb hat jedes Gerät eigene Seitenposition, Auflösung, Wisch-/Tippbedienung und optional eine eigene Seitenliste (Einstellungen → Companion, gespeichert in `companion.json`); Schalter „Geräte synchron anzeigen“. Protokoll unverändert. Automatisiert mit simulierten Geräten sowie auf Pixel 10 Pro und Redmi 8 mit eigenen Listen und injizierten Gesten geprüft; Grenzen siehe Release-Notizen 2.7.0.
 - Seiten & Reihenfolge: aktivierte Plugins stehen jetzt in der Liste, lassen sich mit ▲/▼ sortieren und per Haken ein-/ausblenden (Konfigschlüssel `plugin:<id>` in `display.pages` / `display.visible_pages`). Neu aktivierte Plugins erscheinen zunächst hinten.
 
 ### Behoben
 
 - Die Haken in Seiten & Reihenfolge wirken jetzt auch ohne laufende Companion-Ausgabe (vorher wurde `display.visible_pages` nur mit Companion ausgewertet).
+
+- Store-Installationen und Updates bleiben jetzt auch bei Plugins ohne Netzwerkquellen ausgeschaltet, bis sie bewusst aktiviert werden. Im Echtsystem mit „Drei Aufgaben“ reproduziert; Regressionstest für Neuinstallation, erneuten Import und Neustart ergänzt.
 
 ## [2.6.0] – 2026-10-30
 

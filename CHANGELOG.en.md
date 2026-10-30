@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.7.0] – 2026-10-31
+
 ### Added
 
 - **Plugin Workshop**: kid-friendly interactive guide (German/English) for building your own plugins with a builder, live preview, bug detective and file export. In the app at `/plugin-werkstatt` (linked from the illustrated guide), as the file `cpp/res/PLUGIN-WERKSTATT.html`.
@@ -16,6 +18,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ### Fixed
 
 - The checkboxes in Pages & order now also apply without a running Companion output (previously `display.visible_pages` was only evaluated with Companion).
+
+- Store installations and updates now keep offline plugins disabled until explicitly enabled. Reproduced with Three tasks on the real system; regression coverage includes fresh installation, reimport and reload.
 
 ## [2.6.0] – 2026-10-30
 
