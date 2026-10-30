@@ -7,6 +7,7 @@
 #include <ctime>
 
 #include "app.h"
+#include "native_settings.h"
 #include "output.h"
 #include "ui_logic.h"
 #include "util.h"
@@ -46,6 +47,9 @@ public:
         form_.toggle(*base, "companion", "enabled", T(L"Companion zusätzlich aktivieren", L"Enable additional Companion output"));
         form_.number(*base, "companion", "port", T(L"TLS-Port", L"TLS port"),
                      T(L"1024–65535; nie der Port der Einstellungen (8765)", L"1024–65535; never the settings port (8765)"), 1024, 65535);
+        form_.toggle(*base, "companion", "sync", T(L"Geräte synchron anzeigen", L"Show the same on all devices"),
+                     T(L"An: alle Handys zeigen dasselbe Bild und wechseln gemeinsam. Aus: jedes Gerät hat eigene Seite, Auflösung, Wischen/Tippen und optional eine eigene Seitenliste (unten). Wirkt nach Speichern und Neustart.",
+                       L"On: all phones show the same picture and switch together. Off: every device has its own page, resolution, swipe/tap and optionally its own page list (below). Applies after saving and restarting."));
         form_.slider(*base, "companion", "page_seconds", T(L"Seitenwechsel", L"Page interval"), T(L"3–600 Sekunden", L"3–600 seconds"),
                      3, 600, Text(L"s"));
 
@@ -90,6 +94,19 @@ public:
         devices_->empty_text = T(L"Noch kein Gerät gekoppelt.", L"No device paired yet.");
         remove_ = devices->add<ButtonRow>()->add(T(L"Ausgewähltes Gerät entfernen", L"Remove selected device"), Button::Danger, [this] { remove_device(); });
         signature_.clear();
+
+        Card* own = root.add<Card>(T(L"Seiten für das ausgewählte Gerät", L"Pages for the selected device"),
+            T(L"Nur bei ausgeschalteter Synchronisation wirksam. Eigene Auswahl und Reihenfolge für das oben gewählte Gerät; Haken = anzeigen. Wird sofort gespeichert.",
+              L"Only effective with synchronisation off. Own selection and order for the device selected above; check = show. Saved immediately."));
+        dev_note_ = own->add<Label>(Text(), Font::Small, Label::Muted);
+        dev_list_ = own->add<ItemList>(std::vector<ItemList::Item>{});
+        dev_list_->name = T(L"Seiten des Geräts", L"Device pages");
+        dev_list_->track_dirty = false;
+        dev_list_->empty_text = T(L"Oben ein Gerät auswählen.", L"Select a device above first.");
+        auto own_buttons = own->add<ButtonRow>();
+        dev_save_ = own_buttons->add(T(L"Eigene Liste speichern", L"Save own list"), Button::Primary, [this] { save_device_pages(true); });
+        dev_reset_ = own_buttons->add(T(L"Gemeinsame Liste verwenden", L"Use shared list"), Button::Secondary, [this] { save_device_pages(false); });
+        devices_->on_select = [this](int) { load_device_pages(); };
 
         Card* pages = root.add<Card>(T(L"Seiten für Companion", L"Pages for Companion"),
             T(L"Eigene Auswahl und Reihenfolge. Haken = anzeigen; ▲/▼ oder Alt+Pfeiltaste sortiert um.",
@@ -158,6 +175,11 @@ public:
         pair_->enabled = running && idle && !pairing_;
         remove_->enabled = on && idle && devices_ && !devices_->items.empty() && devices_->selected >= 0;
         prev_->enabled = next_->enabled = running && idle;
+        const bool dev_sel = devices_ && devices_->selected >= 0 && devices_->selected < int(devices_->items.size());
+        dev_save_->enabled = running && idle && dev_sel && !dev_list_->items.empty();
+        dev_reset_->enabled = running && idle && dev_sel;
+        devices_json_ = c.is_object() && c.contains("devices") ? c["devices"] : ojson::array();
+        if (dev_sel && dev_loaded_for_ != devices_->items[size_t(devices_->selected)].key) load_device_pages();
     }
 
 private:
@@ -167,7 +189,11 @@ private:
     Label *pair_note_ = nullptr, *pin_ = nullptr, *pin_info_ = nullptr, *pin_print_ = nullptr;
     ImageView* qr_ = nullptr;
     Button *pair_ = nullptr, *cancel_ = nullptr, *remove_ = nullptr, *prev_ = nullptr, *next_ = nullptr;
-    ItemList *devices_ = nullptr, *list_ = nullptr;
+    ItemList *devices_ = nullptr, *list_ = nullptr, *dev_list_ = nullptr;
+    Label* dev_note_ = nullptr;
+    Button *dev_save_ = nullptr, *dev_reset_ = nullptr;
+    ojson devices_json_ = ojson::array();
+    std::string dev_loaded_for_;
     bool pairing_ = false;
     // Die Kopplung ist eine sofortige Serveraktion und überlebt „Verwerfen“ der Formularwerte.
     std::optional<Image> pairing_qr_;
@@ -244,6 +270,54 @@ private:
             const bool ok = c && c->remove_device(id);
             return [h, ok] {
                 if (ok) h->toast(T(L"Gerät entfernt.", L"Device removed."), ToastKind::Success);
+                else h->toast(T(L"Gerät nicht gefunden.", L"Device not found."), ToastKind::Error);
+            };
+        });
+    }
+    // Eigene Seitenliste des gewählten Geräts anzeigen (Plugins kommen aus der Pluginliste, Arbeits-Thread)
+    void load_device_pages() {
+        if (!devices_ || devices_->selected < 0 || devices_->selected >= int(devices_->items.size())) {
+            dev_list_->items.clear(); dev_loaded_for_.clear(); return;
+        }
+        const std::string id = devices_->items[size_t(devices_->selected)].key;
+        if (host_->busy()) return;
+        dev_loaded_for_ = id;
+        ojson order = host_->config().at("companion").at("pages"), selected = order;
+        bool custom = false;
+        for (const auto& d : devices_json_)
+            if (d.value("id", "") == id && d.contains("pages") && d["pages"].is_array()) { order = selected = d["pages"]; custom = true; }
+        Host* h = host_;
+        h->run([this, h, id, order, selected, custom]() -> std::function<void()> {
+            std::vector<PluginPageInfo> plugins;
+            if (h->plugins().list)
+                for (const auto& e : h->plugins().list())
+                    if (e.enabled) plugins.push_back({"plugin:" + e.id, Text(widen(e.name))});
+            return [this, id, order, selected, custom, plugins = std::move(plugins)] {
+                if (dev_loaded_for_ != id) return;
+                auto items = page_items(order, selected, plugins);
+                if (!custom)   // gemeinsame Liste: Plugins sind dort wie bisher sichtbar
+                    for (auto& i : items) if (i.key.rfind("plugin:", 0) == 0) i.enabled = true;
+                dev_list_->items = items;
+                dev_list_->original = items;
+                dev_list_->selected = items.empty() ? -1 : 0;
+                dev_note_->text = custom ? T(L"Dieses Gerät hat eine eigene Liste.", L"This device has its own list.")
+                                         : T(L"Dieses Gerät nutzt die gemeinsame Liste (unten).", L"This device uses the shared list (below).");
+                host_->relayout();
+            };
+        });
+    }
+    void save_device_pages(bool own) {
+        if (!devices_ || devices_->selected < 0 || devices_->selected >= int(devices_->items.size())) return;
+        const std::string id = devices_->items[size_t(devices_->selected)].key;
+        std::vector<std::string> pages;
+        for (const auto& item : dev_list_->items) if (item.enabled) pages.push_back(item.key);
+        Host* h = host_;
+        h->run([this, h, id, own, pages]() -> std::function<void()> {
+            auto* c = h->app().companion();
+            const bool ok = c && c->set_device_pages(id, own ? std::optional<std::vector<std::string>>(pages) : std::nullopt);
+            return [this, h, ok, own] {
+                dev_loaded_for_.clear();   // beim nächsten Status neu laden
+                if (ok) h->toast(own ? T(L"Eigene Liste gespeichert.", L"Own list saved.") : T(L"Gerät nutzt wieder die gemeinsame Liste.", L"Device uses the shared list again."), ToastKind::Success);
                 else h->toast(T(L"Gerät nicht gefunden.", L"Device not found."), ToastKind::Error);
             };
         });

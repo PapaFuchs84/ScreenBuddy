@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Companion independent mode (`companion.sync=false`): `Server::Hooks` per-device variants (`independent`, `encode_frame_for`, `on_*_for`, `Frame::version`), `NetworkDisplay::show_for/client_ids/device_pages`, `Store` per-device `pages`, `App::render_core/render_devices/device_tap` with `DeviceState`, device page list UI. Windows build: companion tests 361 checks (new `test_independent`), `tests/app_companion_integration.py` 39 and new `tests/app_companion_multi.py` 17 checks passed (simulated clients, isolated ports); not tested with several real phones.
+
 - Pages & order lists enabled plugins (plugin:<id> keys, config::is_page_key, page_items with plugin info, async list load in PagesPage); App::active_pages honours order and checkboxes for plugins and now always applies display.visible_pages. Windows build: 279 + 251 + 41 + 127 + 140 + 135 + 11 + 335 checks passed; the GUI itself was not clicked through.
 
 ## 2.6.0 – 30 October 2026

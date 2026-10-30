@@ -8,6 +8,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ### Hinzugefügt
 
+- Companion: mehrere Handys gleichzeitig, unabhängig steuerbar (`[companion] sync = false`) oder synchron (Standard). Im unabhängigen Betrieb hat jedes Gerät eigene Seitenposition, Auflösung, Wisch-/Tippbedienung und optional eine eigene Seitenliste (Einstellungen → Companion, gespeichert in `companion.json`); Schalter „Geräte synchron anzeigen“. Protokoll unverändert. Geprüft mit simulierten Geräten; Test mit mehreren echten Handys steht aus.
 - Seiten & Reihenfolge: aktivierte Plugins stehen jetzt in der Liste, lassen sich mit ▲/▼ sortieren und per Haken ein-/ausblenden (Konfigschlüssel `plugin:<id>` in `display.pages` / `display.visible_pages`). Neu aktivierte Plugins erscheinen zunächst hinten.
 
 ### Behoben

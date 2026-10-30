@@ -130,6 +130,13 @@ HMODULE dnsapi() {
 
 }  // namespace
 
+struct NetworkDisplay::DeviceFrame {
+    Image image;
+    uint64_t version = 0;
+    std::shared_ptr<const companion::Server::Frame> jpeg;  // zu version passend, träge erzeugt
+    ojson navigation;                                       // Seitenposition für die Statusanzeige
+};
+
 NetworkDisplay::NetworkDisplay(int port, int settings_port, std::filesystem::path store, int w, int h)
     : port_(port), settings_port_(settings_port), w_(w), h_(h), store_path_(std::move(store)) {
     store_ = std::make_unique<companion::Store>(
@@ -186,7 +193,36 @@ void NetworkDisplay::connect() {
     hooks.on_swipe = [this](int dir) { if (on_swipe) on_swipe(dir); };
     hooks.on_touch_frame = [this](int x, int y, int w, int h) {
         std::lock_guard lk(tap_mu_);
-        if (taps_.size() < 8) taps_.emplace_back(x, y, w, h);
+        if (taps_.size() < 8) taps_.push_back({"", false, x, y, w, h});
+        tap_cv_.notify_one();
+    };
+    hooks.independent = [this] { return independent_.load(); };
+    hooks.encode_frame_for = [this](const std::string& device) {
+        std::shared_ptr<DeviceFrame> slot;
+        Image image;
+        uint64_t version = 0;
+        {
+            std::lock_guard lk(mu_);
+            auto it = device_frames_.find(device);
+            if (it == device_frames_.end() || it->second->image.empty()) return companion::Server::Frame{};
+            slot = it->second;
+            if (slot->jpeg && slot->jpeg->version == slot->version) return *slot->jpeg;
+            image = slot->image;
+            version = slot->version;
+        }
+        auto jpeg = std::make_shared<const companion::Server::Frame>(
+            companion::Server::Frame{encode_jpeg(image, 0.8f), image.w, image.h, version});
+        {
+            std::lock_guard lk(mu_);
+            if (slot->version == version) slot->jpeg = jpeg;
+        }
+        return *jpeg;
+    };
+    hooks.on_resize_for = [this](const std::string& device, int w, int h) { if (on_device_resize) on_device_resize(device, w, h); };
+    hooks.on_swipe_for = [this](const std::string& device, int dir) { if (on_device_swipe) on_device_swipe(device, dir); };
+    hooks.on_touch_frame_for = [this](const std::string& device, int x, int y, int w, int h) {
+        std::lock_guard lk(tap_mu_);
+        if (taps_.size() < 8) taps_.push_back({device, true, x, y, w, h});
         tap_cv_.notify_one();
     };
     hooks.log = [](int lv, const std::string& msg) {
@@ -218,7 +254,7 @@ void NetworkDisplay::tap_loop() {
     // Touch-Ziele öffnen Browser/Apps per ShellExecute: dafür ein STA-Thread wie beim Fenster des Bildschirm-Ausgangs
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     for (;;) {
-        std::tuple<int, int, int, int> tap;
+        Tap tap;
         {
             std::unique_lock lk(tap_mu_);
             tap_cv_.wait(lk, [&] { return tap_stop_ || !taps_.empty(); });
@@ -227,7 +263,8 @@ void NetworkDisplay::tap_loop() {
             taps_.erase(taps_.begin());
         }
         try {
-            if (on_tap) std::apply(on_tap, tap);
+            if (tap.per_device) { if (on_device_tap) on_device_tap(tap.device, tap.x, tap.y, tap.w, tap.h); }
+            else if (on_tap) on_tap(tap.x, tap.y, tap.w, tap.h);
         } catch (const std::exception& e) {
             LOGW("companion", "Touch: %s", e.what());
         }
@@ -252,6 +289,46 @@ int NetworkDisplay::show(const Image& frame) {
     }
     if (auto srv = server()) srv->frame_changed();
     return frame.h;
+}
+
+void NetworkDisplay::set_independent(bool on) {
+    if (independent_.exchange(on) != on)
+        if (auto srv = server()) srv->frame_changed();   // Clients holen ihr Bild neu
+}
+
+void NetworkDisplay::show_for(const std::string& device, const Image& frame, const ojson& navigation) {
+    {
+        std::lock_guard lk(mu_);
+        auto& slot = device_frames_[device];
+        if (!slot) slot = std::make_shared<DeviceFrame>();
+        slot->navigation = navigation;
+        if (slot->image.w == frame.w && slot->image.h == frame.h && slot->image.px == frame.px) return;  // unverändert
+        slot->image = frame;
+        slot->version = ++frame_version_;
+        slot->jpeg.reset();
+    }
+    if (auto srv = server()) srv->frame_changed();
+}
+
+void NetworkDisplay::forget_device(const std::string& device) {
+    std::lock_guard lk(mu_);
+    device_frames_.erase(device);
+}
+
+std::vector<std::string> NetworkDisplay::client_ids() {
+    std::vector<std::string> ids;
+    if (auto srv = server())
+        for (const auto& c : srv->clients())
+            if (c.contains("id") && c["id"].is_string()) ids.push_back(c["id"].get<std::string>());
+    return ids;
+}
+
+std::optional<std::vector<std::string>> NetworkDisplay::device_pages(const std::string& id) { return store_->device_pages(id); }
+
+bool NetworkDisplay::set_device_pages(const std::string& id, const std::optional<std::vector<std::string>>& pages) {
+    if (!store_->set_device_pages(id, pages)) return false;
+    if (on_device_pages) on_device_pages(id);
+    return true;
 }
 
 void NetworkDisplay::invalidate() {}  // TCP verliert keine Bilder; nach dem Verbinden schickt der Server ohnehin ein Vollbild
@@ -372,6 +449,13 @@ ojson NetworkDisplay::status() {
     if (up) {
         out["fingerprint"] = companion::format_fingerprint(srv->fingerprint());
         out["clients"] = srv->clients();
+        if (independent_) {   // Seitenposition je Gerät (nur im unabhängigen Betrieb)
+            std::lock_guard lk(mu_);
+            for (auto& cl : out["clients"]) {
+                auto it = device_frames_.find(cl.value("id", ""));
+                if (it != device_frames_.end() && it->second->navigation.is_object()) cl["navigation"] = it->second->navigation;
+            }
+        }
         auto code = srv->pairing().active();
         out["pairing"] = code ? ojson{{"active", true}, {"expires_in", (int)std::max(0.0, code->expires - mono())}} : ojson{{"active", false}};
         out["locked_for"] = (int)srv->pairing().locked_for();
@@ -413,6 +497,7 @@ void NetworkDisplay::cancel_pairing() {
 bool NetworkDisplay::remove_device(const std::string& id) {
     bool ok = store_->remove(id);
     if (auto srv = server(); ok && srv) srv->drop_device(id);
+    if (ok) forget_device(id);
     return ok;
 }
 
