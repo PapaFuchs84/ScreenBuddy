@@ -297,6 +297,7 @@ public:
                          L"Checked pages appear in this order when their source is enabled and configured. "
                          L"Enabled plugins are listed too. Network-only output uses the list under Companion."));
         host_ = &host;
+        plugins_loaded_ = false;   // die Liste wurde neu gebaut (auch nach „Verwerfen“): aus der Konfiguration neu aufbauen
         load_plugins();
     }
     void shown(Host&) override { load_plugins(); }
@@ -353,7 +354,7 @@ private:
                 if (!edited) list_->original = items;
                 list_->selected = sel < int(items.size()) ? sel : 0;
                 plugins_loaded_ = true;
-                h->surface().invalidate();
+                h->relayout();   // Listenhöhe und nachfolgende Elemente an die neue Zeilenzahl anpassen
             };
         });
     }
