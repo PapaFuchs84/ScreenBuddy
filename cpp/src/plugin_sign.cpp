@@ -4,6 +4,7 @@
 #include <openssl/pem.h>
 #include <openssl/sha.h>
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <memory>
 #include <set>
@@ -196,12 +197,32 @@ RevokedResult open_revoked(const PublicKey& key, std::string_view document, std:
       catch (const Json::exception&) { return {std::nullopt, "Invalid revocation value."}; }
 }
 
+unsigned png_crc32(std::string_view data) {
+    static const auto table = [] {
+        std::array<unsigned, 256> t{};
+        for (unsigned n = 0; n < 256; ++n) {
+            unsigned c = n;
+            for (int k = 0; k < 8; ++k) c = (c & 1) ? 0xEDB88320u ^ (c >> 1) : c >> 1;
+            t[n] = c;
+        }
+        return t;
+    }();
+    unsigned c = 0xFFFFFFFFu;
+    for (unsigned char ch : data) c = table[(c ^ ch) & 0xFF] ^ (c >> 8);
+    return c ^ 0xFFFFFFFFu;
+}
+
 bool png_dimensions_ok(std::string_view b) {
     static constexpr unsigned char magic[8] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
     if (b.size() < 33 || b.size() > preview_limit || std::memcmp(b.data(), magic, 8) != 0 || std::memcmp(b.data() + 12, "IHDR", 4) != 0) return false;
     auto u32 = [&](size_t o) { return unsigned(static_cast<unsigned char>(b[o])) << 24 | unsigned(static_cast<unsigned char>(b[o + 1])) << 16 |
                                       unsigned(static_cast<unsigned char>(b[o + 2])) << 8 | unsigned(static_cast<unsigned char>(b[o + 3])); };
     const unsigned w = u32(16), h = u32(20);
+    if (u32(8) != 13 || u32(29) != png_crc32(b.substr(12, 17))) return false;               // IHDR: Länge 13 und CRC
+    const unsigned char depth = static_cast<unsigned char>(b[24]), color = static_cast<unsigned char>(b[25]);
+    if (!(color == 0 || color == 2 || color == 3 || color == 4 || color == 6) || depth == 0 || depth > 16) return false;
+    static constexpr unsigned char iend[12] = {0, 0, 0, 0, 'I', 'E', 'N', 'D', 0xAE, 0x42, 0x60, 0x82};
+    if (std::memcmp(b.data() + b.size() - 12, iend, 12) != 0) return false;               // vollständiger Abschluss
     return w >= 16 && h >= 16 && w <= preview_max_side && h <= preview_max_side;
 }
 

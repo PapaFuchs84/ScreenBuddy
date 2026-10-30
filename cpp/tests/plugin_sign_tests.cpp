@@ -22,13 +22,16 @@ static std::string manifest(const std::string& id, const std::string& version = 
     return j.dump();
 }
 
-// Smallest byte sequence that passes the PNG header check (signature + IHDR with width/height).
-static std::string fake_png(unsigned w = 480, unsigned h = 320, size_t total = 64) {
+// Smallest PNG-shaped byte sequence that passes the checks: signature, IHDR with valid CRC, IEND trailer.
+static std::string fake_png(unsigned w = 480, unsigned h = 320, size_t total = 80) {
+    auto be = [](unsigned v) { std::string s; for (int shift = 24; shift >= 0; shift -= 8) s += char(v >> shift & 255); return s; };
+    std::string ihdr = "IHDR" + be(w) + be(h) + std::string("\x08\x02\x00\x00\x00", 5);
     std::string s("\x89PNG\r\n\x1a\n", 8);
-    s += std::string("\0\0\0\r", 4) + "IHDR";
-    for (unsigned v : {w, h}) for (int shift = 24; shift >= 0; shift -= 8) s += char(v >> shift & 255);
-    s.resize(total, 'x');
-    return s;
+    s += be(13) + ihdr + be(png_crc32(ihdr));
+    std::string iend("\0\0\0\0IEND\xAE\x42\x60\x82", 12);
+    if (total < s.size() + iend.size()) total = s.size() + iend.size();
+    s += std::string(total - s.size() - iend.size(), 'x');   // stand-in for IDAT
+    return s + iend;
 }
 int main() {
     auto keys = generate_keypair();
@@ -154,6 +157,8 @@ int main() {
     CHECK(png_dimensions_ok(png));
     CHECK(!png_dimensions_ok(fake_png(4000, 320)) && !png_dimensions_ok(fake_png(480, 8)) && !png_dimensions_ok("not a png at all, just text........"));
     CHECK(!png_dimensions_ok(fake_png(480, 320, preview_limit + 1)));
+    { auto bad = png; bad[20] ^= 1; CHECK(!png_dimensions_ok(bad)); }                         // IHDR-CRC passt nicht mehr
+    { auto cut = png.substr(0, png.size() - 4); CHECK(!png_dimensions_ok(cut)); }              // IEND abgeschnitten
     auto pv = build_previews({{"alpha", png}, {"beta", fake_png(320, 480)}}, 3);
     CHECK(pv.index_json.has_value());
     CHECK(!build_previews({{"alpha", png}, {"alpha", png}}, 1).index_json.has_value());   // duplicate

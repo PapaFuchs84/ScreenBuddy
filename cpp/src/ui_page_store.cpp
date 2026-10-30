@@ -79,7 +79,8 @@ private:
     Card* details_ = nullptr;
     Button *search_btn_ = nullptr, *refresh_ = nullptr, *install_ = nullptr;
     NativeStoreState state_;
-    std::map<std::string, Image> previews_;    // decoded, verified preview images by plugin id
+    std::map<std::string, Image> previews_;    // decoded, verified preview images by plugin id (höchstens 8)
+    std::vector<std::string> preview_order_;   // Einfügereihenfolge für die Verdrängung
     std::set<std::string> preview_failed_;     // no retry loop within one window session
     std::string preview_pending_;
     bool loaded_ = false;
@@ -110,6 +111,7 @@ private:
         auto& a = host_->plugins();
         if (host_->busy() || !a.store_list) return;
         Host* h = host_;
+        if (force) { previews_.clear(); preview_order_.clear(); preview_failed_.clear(); }   // neue previews.json: Bilder neu laden
         const std::string search = search_ ? narrow(search_->text()) : "";
         const std::string category = category_;
         h->run([this, h, force, search, category]() -> std::function<void()> {
@@ -220,8 +222,16 @@ private:
             return [this, id, bytes = std::move(bytes)] {
                 preview_pending_.clear();
                 std::optional<Image> img = bytes.empty() ? std::nullopt : decode_image(bytes);
-                if (img && !img->empty()) previews_[id] = std::move(*img);
-                else preview_failed_.insert(id);
+                if (img && !img->empty()) {
+                    if (previews_.size() >= 8 && !preview_order_.empty()) {   // Speicher begrenzen: ältestes Bild verwerfen
+                        previews_.erase(preview_order_.front());
+                        preview_order_.erase(preview_order_.begin());
+                    }
+                    previews_[id] = std::move(*img);
+                    preview_order_.push_back(id);
+                } else {
+                    preview_failed_.insert(id);
+                }
                 if (selected_id_ == id) show_details();
             };
         });

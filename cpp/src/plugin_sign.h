@@ -74,7 +74,8 @@ struct PreviewsResult {
 PreviewsResult open_previews(const PublicKey& key, std::string_view document, std::string_view signature_base64);
 // Size and SHA-256 must match the signed entry and the bytes must be a PNG with sane dimensions.
 bool preview_matches(const PreviewEntry& entry, std::string_view png_bytes);
-bool png_dimensions_ok(std::string_view png_bytes);
+bool png_dimensions_ok(std::string_view png_bytes);  // Signatur, IHDR (Länge, CRC, Werte), Größe, IEND-Abschluss
+unsigned png_crc32(std::string_view data);           // CRC-32 wie in PNG-Chunks (auch für Tests)
 
 // ---- Signing side (tools/tests only; the app never holds a private key) ----
 struct KeyPair { std::string private_pem, public_hex; };

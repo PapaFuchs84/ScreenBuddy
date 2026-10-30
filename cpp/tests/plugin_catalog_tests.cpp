@@ -194,7 +194,10 @@ int main() {
         Catalog pc(key, root / "cache-previews", server.fetcher(), "2.5.0");
         CHECK(pc.refresh().state == Availability::available && !pc.has_preview("clock-a"));   // no previews.json published
         CHECK(!pc.preview("clock-a").has_value());
-        const std::string png("\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\x01\xE0\0\0\x01\x40xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 72);
+        auto be = [](unsigned v) { std::string s; for (int shift = 24; shift >= 0; shift -= 8) s += char(v >> shift & 255); return s; };
+        const std::string ihdr = "IHDR" + be(480) + be(320) + std::string("\x08\x02\x00\x00\x00", 5);
+        const std::string png = std::string("\x89PNG\r\n\x1a\n", 8) + be(13) + ihdr + be(sign::png_crc32(ihdr)) + std::string(20, 'x') +
+                                std::string("\0\0\0\0IEND\xAE\x42\x60\x82", 12);
         auto pv = sign::build_previews({{"clock-a", png}}, 1);
         server.files["previews.json"] = *pv.index_json;
         server.files["previews.json.sig"] = *sign::sign_document(sign::Kind::previews, server.keys.private_pem, *pv.index_json) + "\n";

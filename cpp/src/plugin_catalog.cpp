@@ -69,10 +69,14 @@ void Catalog::load_cache() {
         auto opened = sign::open_revoked(key_, rev, trimmed(rsig));
         if (opened) revoked_ = std::move(opened.list);
     }
-    std::string prev, psig;
-    if (read_file(dir_ / "previews.json", sign::index_limit, prev) && read_file(dir_ / "previews.json.sig", sig_limit, psig)) {
-        auto opened = sign::open_previews(key_, prev, trimmed(psig));
-        if (opened) previews_ = std::move(opened.list);
+    // previews.cache = Signatur, Zeilenumbruch, Dokument: eine Datei, damit ein Abbruch nie ein halbes Paar hinterlässt
+    std::string bundle;
+    if (read_file(dir_ / "previews.cache", sign::index_limit + sig_limit, bundle)) {
+        const auto nl = bundle.find('\n');
+        if (nl != std::string::npos) {
+            auto opened = sign::open_previews(key_, bundle.substr(nl + 1), trimmed(bundle.substr(0, nl)));
+            if (opened) previews_ = std::move(opened.list);
+        }
     }
     // An index without its verified revocation list could offer revoked packages: do not use the index.
     // A verified revocation list stays valid on its own (offline start must still switch plugins off).
@@ -125,8 +129,7 @@ void Catalog::refresh_previews() {
     previews_ = std::move(opened.list);
     std::error_code ec;
     fs::create_directories(dir_, ec);
-    write_atomic(dir_ / "previews.json", *doc);
-    write_atomic(dir_ / "previews.json.sig", *sig + "\n");
+    write_atomic(dir_ / "previews.cache", *sig + "\n" + *doc);
 }
 
 bool Catalog::has_preview(const std::string& id) const {
