@@ -1,6 +1,6 @@
 # Your first ScreenBuddy plugin
 
-[Deutsch](PLUGIN-TUTORIAL.md) · [System overview](PLUGIN-SYSTEM.en.md) · [Examples](../cpp/examples/plugins/README.md)
+[Deutsch](PLUGIN-TUTORIAL.md) · [System overview](PLUGIN-SYSTEM.en.md) · [Examples](../cpp/examples/plugins/README.md) · [Plugin Workshop (interactive)](../cpp/res/PLUGIN-WERKSTATT.html)
 
 For the ScreenBuddy 2.5 development build. Schema 1 is provisional. A plugin is a UTF-8 JSON file describing one display page with up to six cards. No compiler or executable plugin code is needed.
 

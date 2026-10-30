@@ -8,6 +8,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Added
 
+- **Plugin Workshop**: kid-friendly interactive guide (German/English) for building your own plugins with a builder, live preview, bug detective and file export. In the app at `/plugin-werkstatt` (linked from the illustrated guide), as the file `cpp/res/PLUGIN-WERKSTATT.html`.
 - Plugin store: preview images. Signed `previews.json` (separate from the index, older apps ignore it), shown in the store details, tools `fl-plugin-sign build-previews|check-previews` and `fl-plugin-preview` (renders sample images). Images for the 8 starter plugins in `store-seed/previews/`.
 - Companion: several phones at once, independently controllable (`[companion] sync = false`) or synchronised (default). In independent mode every device has its own page position, resolution, swipe/tap handling and optionally its own page list (Settings → Companion, stored in `companion.json`); switch “Show the same on all devices”. Protocol unchanged. Tested with simulated devices; a test with several real phones is pending.
 - Pages & order: enabled plugins are now listed, can be reordered with ▲/▼ and shown/hidden with the checkbox (config key `plugin:<id>` in `display.pages` / `display.visible_pages`). Newly enabled plugins appear last at first.

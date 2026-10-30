@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ScreenBuddy Plugin-Werkstatt</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('fl_theme')||'hell'}catch(e){}</script>
+<style>
+/* FuchsLabs design: fox orange and cream, navy text. System fonts only. */
+:root{--bg:#fff4e6;--card:#fffaf3;--card2:#fae4c8;--line:#eed2b0;--text:#14213d;--muted:#68605c;--orange:#f77f00;
+--orange2:#b05200;--green:#168c48;--red:#d72d32;--head:Bahnschrift,"Segoe UI",system-ui,sans-serif}
+html[data-theme=dunkel]{--bg:#0e1628;--card:#14213d;--card2:#1b2b4d;--line:#27395f;--text:#fff4e6;--muted:#a9b4cb;--orange2:#ff9a2e;--green:#3ccf7a;--red:#ff6266}
+html[data-theme=dunkel] .box.tip{background:#12392a;border-color:#1f6b46}html[data-theme=dunkel] .box.warn{background:#3d2f0c;border-color:#7a5c14}
+html[data-theme=dunkel] .box.secret{background:#3b1518;border-color:#7a2a30}html[data-theme=dunkel] .nav{background:#0e1628f2}
+html[data-theme=dunkel] input,html[data-theme=dunkel] select,html[data-theme=dunkel] textarea{background:#0e1628}
+.top,.do li:before,.btnname,.next,.menu,.chip.go{--text:#14213d}.menu{--bg:#fff4e6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:18px/1.55 "Segoe UI",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+a{color:var(--orange2)}
+h1,h2,h3,.brand,.kicker,.big{font-family:var(--head)}
+.top{position:sticky;top:0;z-index:5;background:var(--orange);box-shadow:0 2px 8px #b0520033}
+.topin{max-width:1040px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:12px}
+.brand{font-weight:700;font-size:21px}
+.count{margin-left:auto;font-size:15px;white-space:nowrap}
+.menu{background:var(--bg);border:0;border-radius:10px;padding:6px 12px;font-size:15px;font-weight:600;color:#14213d}
+.prog{height:6px;background:#ffffff55}.prog i{display:block;height:100%;width:0;background:#14213d;transition:width .3s}
+main{max-width:1040px;margin:0 auto;padding:26px 20px 130px}
+.step{animation:in .25s ease}@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.kicker{color:var(--orange2);font-weight:700;font-size:15px;letter-spacing:.04em;text-transform:uppercase;margin:0 0 4px}
+h1{font-size:36px;line-height:1.2;margin:0 0 14px;font-weight:600}
+h2{font-size:23px;margin:26px 0 10px;font-weight:600}h3{margin:0 0 6px;font-size:18px}
+p{margin:0 0 14px}.lead{font-size:21px}
+.do{list-style:none;padding:0;margin:18px 0;counter-reset:d;display:flex;flex-direction:column;gap:12px}
+.do li{counter-increment:d;position:relative;padding:14px 16px 14px 62px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.do li:before{content:counter(d);position:absolute;left:14px;top:12px;width:34px;height:34px;border-radius:50%;background:var(--orange);font-weight:800;display:grid;place-items:center;font-family:var(--head)}
+.btnname{display:inline-block;background:var(--orange);border-radius:8px;padding:0 9px;font-weight:700;white-space:nowrap}
+code,.mono{font-family:Consolas,monospace;font-size:.92em}
+code{background:var(--card2);padding:1px 6px;border-radius:6px}
+.box{border-radius:14px;padding:14px 16px 14px 56px;margin:16px 0;position:relative;border:1px solid}
+.box:before{position:absolute;left:16px;top:12px;font-size:24px;line-height:1}
+.box.tip{background:#e4f4ea;border-color:#b5dfc4}.box.tip:before{content:"💡"}
+.box.warn{background:#fde9bf;border-color:#efc773}.box.warn:before{content:"⚠️"}
+.box.secret{background:#fbe5e5;border-color:#f0babb}.box.secret:before{content:"🔒"}
+.box p:last-child{margin:0}
+.grid{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+.side{position:sticky;top:90px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.panel h3{font-size:15px;color:var(--orange2);text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px}
+.screen{background:#0b1220;color:#eaf0ff;border-radius:12px;border:3px solid #27395f;padding:12px;min-height:200px;display:flex;flex-direction:column;gap:8px;font-family:"Segoe UI",system-ui,sans-serif;line-height:1.3}
+.screen .t{font-size:12px;color:#f77f00;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.screen .card{background:#14213d;border-radius:8px;padding:8px 10px}
+.screen .lab{font-size:11px;color:#a9b4cb}
+.screen .val{font-size:22px;font-weight:700}.screen .val small{font-size:13px;color:#a9b4cb;font-weight:400}
+.screen .txt{font-size:15px}
+.screen .bar{height:10px;background:#27395f;border-radius:5px;margin-top:4px;overflow:hidden}.screen .bar i{display:block;height:100%;background:#f77f00}
+.screen ul{margin:2px 0 0;padding-left:18px;font-size:14px}
+.json{background:#0b1220;color:#cfe0ff;border-radius:10px;padding:10px;font:12px/1.4 Consolas,monospace;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0}
+.wc{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.wc .hd{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.wc .hd b{font-family:var(--head);flex:1}
+label{display:block;font-size:14px;color:var(--muted);margin:8px 0 2px}
+input,select,textarea{width:100%;background:#fff;border:2px solid var(--line);border-radius:10px;padding:7px 10px;color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:3px solid #f77f0066;border-color:var(--orange)}
+textarea{font-family:Consolas,monospace;font-size:13px;min-height:90px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.mini{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:3px 10px;font-size:14px}
+.mini.del{color:var(--red)}
+.addbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:4px 12px;font-size:15px}
+.chip:hover{border-color:var(--orange)}
+.chip.go{background:var(--orange);border-color:var(--orange);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chips .chip{font-family:Consolas,monospace;font-size:13px;padding:2px 9px}
+.msg{padding:6px 10px 6px 34px;border-radius:8px;margin:6px 0;position:relative;font-size:16px}
+.msg:before{position:absolute;left:10px}
+.msg.err{background:#fbe5e5;color:#7a1115}.msg.err:before{content:"❌"}
+.msg.warn{background:#fde9bf;color:#5c3d00}.msg.warn:before{content:"⚠️"}
+.msg.ok{background:#e4f4ea;color:#0d5a2c}.msg.ok:before{content:"✅"}
+.quiz{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.quiz button{text-align:left;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.quiz button.right{border-color:var(--green);background:#e4f4ea;color:#0d5a2c}.quiz button.wrong{border-color:var(--red);background:#fbe5e5;color:#7a1115}
+.nav{position:fixed;left:0;right:0;bottom:0;background:#fffaf3f2;border-top:2px solid var(--orange);backdrop-filter:blur(6px);z-index:5}
+.navin{max-width:1040px;margin:0 auto;padding:14px 20px;display:flex;gap:12px}
+.big{border:0;border-radius:14px;padding:14px 26px;font-weight:700;font-size:20px}
+.next{background:var(--orange);color:#14213d;margin-left:auto;min-width:190px;box-shadow:0 4px 0 #b05200}
+.next:active{transform:translateY(2px);box-shadow:0 2px 0 #b05200}
+.back{background:var(--card2);border:1px solid var(--line)}.back:disabled{visibility:hidden}
+.toc{position:fixed;inset:0;background:#14213d80;z-index:20;display:none}.toc.show{display:block}
+.toc .pan{position:absolute;right:0;top:0;bottom:0;width:min(380px,90vw);background:var(--card);border-left:1px solid var(--line);padding:20px;overflow:auto}
+.toc ol{padding:0;list-style:none;margin:14px 0}
+.toc li button{width:100%;text-align:left;background:none;border:0;padding:9px 10px;border-radius:10px;display:flex;gap:10px;font-size:16px}
+.toc li button:hover,.toc li.cur button{background:var(--card2)}
+.toc li button i{font-style:normal;width:26px;height:26px;flex:none;border-radius:50%;background:var(--card2);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--orange2)}
+.toc li.done button i{background:var(--green);color:#fff}
+.party{font-size:80px;text-align:center;margin:10px 0}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.side{position:static}html,body{font-size:17px}h1{font-size:27px}.next{min-width:0;flex:1}.big{padding:13px 18px}.count span{display:none}.row{flex-direction:column;gap:0}}
+@media print{.top,.nav{display:none}}
+</style>
+</head>
+<body>
+<div class="top"><div class="topin">
+  <div class="brand">🦊 ScreenBuddy</div>
+  <div class="count" id="count"></div>
+  <button class="menu" id="lang" aria-label="Language">English</button>
+  <button class="menu" id="menu"></button>
+</div><div class="prog"><i id="prog"></i></div></div>
+<main id="main"></main>
+<div class="nav"><div class="navin">
+  <button class="big back" id="back"></button>
+  <button class="big next" id="next"></button>
+</div></div>
+<div class="toc" id="toc"><div class="pan"><b style="font-size:20px" id="toctitle"></b><ol id="toclist"></ol></div></div>
+
+<script>
+'use strict';
+/* ---------- Sprache ---------- */
+let LANG = (new URLSearchParams(location.search).get('lang') || (navigator.language || 'de')).slice(0, 2) === 'en' ? 'en' : 'de';
+try { const s = localStorage.getItem('fl_wl'); if (s && !new URLSearchParams(location.search).get('lang')) LANG = s; } catch (e) {}
+const L = (de, en) => LANG === 'en' ? en : de;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- Zustand: das Plugin-Manifest ---------- */
+const EXAMPLES = {
+  focus: () => ({ schema_version: 1, id: 'mein-fokus', name: 'Mein Fokus', description: '', version: '1.0.0', license: 'MIT', author: 'Ich', category: 'info', min_app_version: '2.5.0',
+    settings: [{ key: 'focus', label: 'Mein Fokus', type: 'text', default: 'Hausaufgaben' }, { key: 'minutes', label: 'Minuten', type: 'number', default: 25 }, { key: 'progress', label: 'Fortschritt 0-100', type: 'number', default: 40 }],
+    sources: [], widgets: [{ type: 'clock', label: 'Uhrzeit', format: 'time' }, { type: 'metric', label: 'Fokusblock', value: '{{settings.minutes}}', unit: 'min' }, { type: 'text', label: 'Heute', text: '{{settings.focus}}' }, { type: 'bar', label: 'Fortschritt', value: '{{settings.progress}}', min: 0, max: 100 }] }),
+  clock: () => ({ schema_version: 1, id: 'meine-uhr', name: 'Meine Uhr', description: '', version: '1.0.0', license: 'MIT', author: 'Ich', category: 'system', min_app_version: '2.5.0',
+    settings: [], sources: [], widgets: [{ type: 'clock', label: '', format: 'time' }, { type: 'clock', label: '', format: 'date' }] }),
+  weather: () => ({ schema_version: 1, id: 'mein-wetter', name: 'Mein Wetter', description: '', version: '1.0.0', license: 'MIT', author: 'Ich', category: 'info', min_app_version: '2.5.0', refresh_seconds: 900,
+    settings: [{ key: 'place', label: 'Ort', type: 'text', default: 'Berlin' }, { key: 'latitude', label: 'Breitengrad', type: 'number', default: 52.52, required: true }, { key: 'longitude', label: 'Längengrad', type: 'number', default: 13.41, required: true }],
+    sources: [{ id: 'weather', url: 'https://api.open-meteo.com/v1/forecast?latitude={{settings.latitude}}&longitude={{settings.longitude}}&current=temperature_2m,relative_humidity_2m&timezone=auto', format: 'json', headers: { Accept: 'application/json' },
+      sample: { current: { time: '2026-01-01T12:00', temperature_2m: 18.5, relative_humidity_2m: 62 } } }],
+    widgets: [{ type: 'text', label: 'Ort', text: '{{settings.place}}' }, { type: 'metric', label: 'Temperatur', value: '{{weather.current.temperature_2m}}', unit: '°C' }, { type: 'bar', label: 'Feuchte (%)', value: '{{weather.current.relative_humidity_2m}}', min: 0, max: 100 }] }),
+  broken: () => ({ schema_version: 1, id: 'Kaputtes Plugin', name: '', version: '1', license: 'GPL', author: 'Ich', category: 'info', min_app_version: '2.5.0',
+    settings: [{ key: 'zahl', label: 'Zahl', type: 'number', default: 5 }],
+    sources: [{ id: 'daten', url: 'http://192.168.0.5/data', sample: { wert: 1 } }],
+    widgets: [{ type: 'metric', label: 'Wert', value: '{{ settings.zahl }}' }, { type: 'bar', label: 'Balken', value: '{{settings.zahl}}', min: 10, max: 5 }, { type: 'text', text: '{{settings.gibtsnicht}}' }, { type: 'blink' }] }),
+  blank: () => ({ schema_version: 1, id: 'mein-plugin', name: 'Mein Plugin', description: '', version: '1.0.0', license: 'MIT', author: '', category: 'other', min_app_version: '2.5.0',
+    settings: [], sources: [], widgets: [{ type: 'text', label: 'Hallo', text: 'Hallo ScreenBuddy!' }] })
+};
+let M = null;
+try { const s = localStorage.getItem('fl_wm'); if (s) M = JSON.parse(s); } catch (e) {}
+if (!M || typeof M !== 'object') M = EXAMPLES.blank();
+const save = () => { try { localStorage.setItem('fl_wm', JSON.stringify(M)); } catch (e) {} };
+
+/* ---------- Prüfer: spiegelt die Regeln von fl-plugin-validate ---------- */
+const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/;
+const SEG = '[A-Za-z_][A-Za-z0-9_]*', PATH = new RegExp('^' + SEG + '(\\.(' + SEG + '|\\d+))*$');
+const isStr = v => typeof v === 'string';
+function ids(m) { return { settings: new Set((m.settings || []).map(s => s.key)), sources: new Set((m.sources || []).map(s => s.id)) }; }
+function checkRef(ref, ctx, m, where, out) {
+  const r = ref.trim();
+  if (r !== ref || !PATH.test(r)) return out.push(['err', L(`${where}: „{{${ref}}}“ ist kein gültiger Platzhalter. Keine Leerzeichen in den Klammern, nur Buchstaben, Ziffern und Punkte.`, `${where}: "{{${ref}}}" is not a valid placeholder. No spaces inside the braces, only letters, digits and dots.`)]);
+  const p = r.split('.'), { settings, sources } = ids(m);
+  if (p[0] === 'time' || p[0] === 'date') { if (p.length > 1) out.push(['err', `${where}: {{${r}}} ${L('hat nichts hinter dem Punkt', 'takes nothing after the dot')}.`]); return; }
+  if (p[0] === 'settings') {
+    const s = (m.settings || []).find(x => x.key === p[1]);
+    if (!s) return out.push(['err', L(`${where}: Die Einstellung „${p[1]}“ gibt es nicht. Lege sie unter „Einstellungen“ an.`, `${where}: There is no setting "${p[1]}". Create it under "Settings".`)]);
+    if (s.type === 'secret' && !ctx.header) out.push(['err', L(`${where}: Geheime Einstellungen dürfen nie auf dem Display erscheinen.`, `${where}: Secret settings must never appear on the display.`)]);
+    return;
+  }
+  if (p[0] === 'item') { if (!ctx.item) out.push(['err', L(`${where}: {{item…}} geht nur in der Vorlage einer Liste.`, `${where}: {{item…}} only works in a list template.`)]); return; }
+  if (ctx.url || ctx.header) return out.push(['err', L(`${where}: In Adresse und Kopfzeilen sind nur {{settings.…}} erlaubt.`, `${where}: Only {{settings.…}} is allowed in URL and headers.`)]);
+  if (!sources.has(p[0])) out.push(['err', L(`${where}: „${p[0]}“ ist weder Uhrzeit, Einstellung noch Datenquelle.`, `${where}: "${p[0]}" is not a time, setting or data source.`)]);
+}
+function checkTpl(str, ctx, m, where, out) {
+  if (!isStr(str)) return;
+  const stripped = str.replace(/\{\{([^{}]*)\}\}/g, (a, r) => { checkRef(r, ctx, m, where, out); return ''; });
+  if (/\{\{|\}\}/.test(stripped)) out.push(['err', L(`${where}: Doppelte Klammern passen nicht zusammen.`, `${where}: Unbalanced double braces.`)]);
+}
+function validate(m) {
+  const out = [], err = (a, b) => out.push(['err', L(a, b)]), warn = (a, b) => out.push(['warn', L(a, b)]);
+  const ln = s => new TextEncoder().encode(s).length;
+  if (new TextEncoder().encode(JSON.stringify(m)).length > 131072) err('Das Plugin ist größer als 128 KiB.', 'The plugin is larger than 128 KiB.');
+  if (!isStr(m.id) || !/^[a-z][a-z0-9-]{0,47}$/.test(m.id) || /--|-$/.test(m.id) || RESERVED.test(m.id))
+    err('Die ID muss 1–48 Zeichen lang sein: kleine Buchstaben, Ziffern, Bindestriche, Anfang ein Buchstabe, kein „--“, kein Bindestrich am Ende (zum Beispiel mein-fokus).', 'The ID needs 1–48 characters: lowercase letters, digits, hyphens, starting with a letter, no "--", no trailing hyphen (for example my-focus).');
+  if (!isStr(m.name) || !m.name.length || m.name.length > 80) err('Der Name braucht 1–80 Zeichen.', 'The name needs 1–80 characters.');
+  if (m.description && m.description.length > 500) err('Die Beschreibung darf höchstens 500 Zeichen haben.', 'The description may have at most 500 characters.');
+  if (!isStr(m.version) || !/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(m.version)) err('Die Version besteht aus drei Zahlen, zum Beispiel 1.0.0.', 'The version is three numbers, for example 1.0.0.');
+  if (m.license && !['MIT', 'CC0-1.0'].includes(m.license)) err('Lizenz: nur MIT oder CC0-1.0.', 'License: only MIT or CC0-1.0.');
+  if (m.author && (m.author.length < 1 || m.author.length > 80)) err('Der Autor braucht 1–80 Zeichen.', 'The author needs 1–80 characters.');
+  if (m.category && !['system', 'games', 'smart-home', 'info', 'other'].includes(m.category)) err('Unbekannte Kategorie.', 'Unknown category.');
+  if (m.min_app_version && !/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(m.min_app_version)) err('min_app_version sieht aus wie 2.5.0.', 'min_app_version looks like 2.5.0.');
+  if (m.refresh_seconds !== undefined && !(Number.isInteger(m.refresh_seconds) && m.refresh_seconds >= 15 && m.refresh_seconds <= 3600)) err('Abruf-Abstand: ganze Zahl von 15 bis 3600 Sekunden.', 'Refresh interval: whole number from 15 to 3600 seconds.');
+  const S = m.settings || [], keys = new Set();
+  if (S.length > 12) err('Höchstens 12 Einstellungen.', 'At most 12 settings.');
+  S.forEach((s, i) => {
+    const w = L(`Einstellung ${i + 1}`, `Setting ${i + 1}`);
+    if (!isStr(s.key) || !/^[a-z][a-z0-9_]{0,39}$/.test(s.key)) err(`${w}: Der Schlüssel besteht aus kleinen Buchstaben, Ziffern und _ und beginnt mit einem Buchstaben.`, `${w}: The key uses lowercase letters, digits and _ and starts with a letter.`);
+    else if (keys.has(s.key)) err(`${w}: „${s.key}“ gibt es schon.`, `${w}: "${s.key}" already exists.`); else keys.add(s.key);
+    if (!s.label || s.label.length > 80) err(`${w}: Das Beschriftungsfeld braucht 1–80 Zeichen.`, `${w}: The label needs 1–80 characters.`);
+    if (!['text', 'number', 'secret'].includes(s.type)) err(`${w}: Typ muss text, number oder secret sein.`, `${w}: type must be text, number or secret.`);
+    if (s.type === 'number' && s.default !== undefined && !Number.isFinite(s.default)) err(`${w}: Der Standardwert muss eine Zahl sein.`, `${w}: the default must be a number.`);
+    if (s.type === 'secret' && s.default) err(`${w}: Bei geheimen Einstellungen muss der Standard leer sein. Niemals ein echtes Passwort ins Plugin schreiben!`, `${w}: a secret's default must be empty. Never put a real password into a plugin!`);
+    if (s.type === 'text' && s.default && ln(s.default) > 4096) err(`${w}: Standardtext zu lang.`, `${w}: default text too long.`);
+  });
+  const SRC = m.sources || [], sid = new Set();
+  if (SRC.length > 4) err('Höchstens 4 Datenquellen.', 'At most 4 data sources.');
+  SRC.forEach((s, i) => {
+    const w = L(`Quelle ${i + 1}`, `Source ${i + 1}`);
+    if (!isStr(s.id) || !/^[a-z][a-z0-9_]{0,39}$/.test(s.id) || ['settings', 'time', 'date', 'item'].includes(s.id)) err(`${w}: Ungültige Kennung (kleine Buchstaben, Ziffern, _ ; nicht settings, time, date, item).`, `${w}: invalid id (lowercase letters, digits, _ ; not settings, time, date, item).`);
+    else if (sid.has(s.id) || keys.has(s.id)) err(`${w}: „${s.id}“ wird schon benutzt.`, `${w}: "${s.id}" is already used.`); else sid.add(s.id);
+    let host = '';
+    try { const u = new URL(String(s.url).replace(/\{\{[^}]*\}\}/g, '1')); host = u.hostname;
+      if (u.protocol !== 'https:') err(`${w}: Die Adresse muss mit https:// beginnen.`, `${w}: the address must start with https://.`);
+      if (u.port && u.port !== '443') err(`${w}: Nur der Standard-Port ist erlaubt.`, `${w}: only the default port is allowed.`);
+      if (u.hash) err(`${w}: Kein # in der Adresse.`, `${w}: no # in the address.`);
+      if (/^[\d.]+$/.test(host) || host.includes(':') || host === 'localhost' || !host.includes('.') || /\.(local|lan|internal)$/.test(host)) err(`${w}: Nur öffentliche Internet-Adressen, keine IP-Nummern und keine Geräte aus deinem Heimnetz.`, `${w}: public internet hosts only, no IP numbers and no devices from your home network.`);
+    } catch (e) { err(`${w}: Die Adresse ist keine gültige URL.`, `${w}: not a valid URL.`); }
+    if (/^https:\/\/\{\{/i.test(String(s.url))) err(`${w}: Der Servername darf kein Platzhalter sein.`, `${w}: the host name must not be a placeholder.`);
+    checkTpl(s.url, { url: 1 }, m, w, out);
+    Object.entries(s.headers || {}).forEach(([k, v]) => { if (!/^(accept|authorization|x-[a-z0-9-]+)$/i.test(k)) err(`${w}: Kopfzeile „${k}“ ist nicht erlaubt (nur Accept, Authorization, X-…).`, `${w}: header "${k}" is not allowed (only Accept, Authorization, X-…).`); checkTpl(v, { header: 1 }, m, w, out); });
+    if (!s.sample || typeof s.sample !== 'object' || Array.isArray(s.sample)) err(`${w}: „sample“ (Beispieldaten) muss ein JSON-Objekt sein.`, `${w}: "sample" must be a JSON object.`);
+  });
+  const W = m.widgets || [];
+  if (W.length < 1 || W.length > 6) err('Du brauchst 1 bis 6 Karten.', 'You need 1 to 6 cards.');
+  W.forEach((w, i) => {
+    const n = L(`Karte ${i + 1}`, `Card ${i + 1}`);
+    if (!['text', 'metric', 'bar', 'list', 'clock'].includes(w.type)) return err(`${n}: Unbekannter Typ „${w.type}“.`, `${n}: unknown type "${w.type}".`);
+    if (w.label !== undefined && ln(String(w.label)) > 200) warn(`${n}: Die Beschriftung ist sehr lang.`, `${n}: the label is very long.`);
+    if (w.type === 'text') { if (!w.text) err(`${n}: Es fehlt der Text.`, `${n}: text is missing.`); checkTpl(w.text, {}, m, n, out); }
+    if (w.type === 'metric' || w.type === 'bar') { if (!w.value) err(`${n}: Es fehlt der Wert.`, `${n}: value is missing.`); checkTpl(w.value, {}, m, n, out); }
+    if (w.type === 'bar') {
+      if (!Number.isFinite(w.min) || !Number.isFinite(w.max)) err(`${n}: Ein Balken braucht Zahlen bei Minimum und Maximum.`, `${n}: a bar needs numbers for minimum and maximum.`);
+      else if (!(w.max > w.min)) err(`${n}: Das Maximum muss größer sein als das Minimum.`, `${n}: the maximum must be greater than the minimum.`);
+    }
+    if (w.type === 'list') {
+      if (!w.items || !PATH.test(w.items)) err(`${n}: „items“ ist ein Pfad ohne Klammern, zum Beispiel feed.entries.`, `${n}: "items" is a path without braces, for example feed.entries.`);
+      else if (!sid.has(w.items.split('.')[0]) && !(m.sources || []).some(s => s.id === w.items.split('.')[0])) err(`${n}: Die Liste braucht eine Datenquelle „${w.items.split('.')[0]}“.`, `${n}: the list needs a data source "${w.items.split('.')[0]}".`);
+      if (!w.item_template) err(`${n}: Es fehlt die Vorlage für jeden Eintrag.`, `${n}: the per-item template is missing.`); checkTpl(w.item_template, { item: 1 }, m, n, out);
+      if (!Number.isInteger(w.max_items) || w.max_items < 1 || w.max_items > 5) err(`${n}: Die Zahl der Einträge muss 1 bis 5 sein.`, `${n}: the number of entries must be 1 to 5.`);
+    }
+    if (w.type === 'clock' && !['time', 'date', 'datetime'].includes(w.format)) err(`${n}: Die Uhr braucht das Format time, date oder datetime.`, `${n}: the clock needs format time, date or datetime.`);
+  });
+  return out;
+}
+
+/* ---------- Vorschau ---------- */
+function lookup(path, m, item) {
+  const p = path.split('.');
+  let cur;
+  if (p[0] === 'time') return new Date().toLocaleTimeString(LANG === 'en' ? 'en-GB' : 'de-DE', { hour: '2-digit', minute: '2-digit' });
+  if (p[0] === 'date') return new Date().toLocaleDateString(LANG === 'en' ? 'en-GB' : 'de-DE');
+  if (p[0] === 'settings') { const s = (m.settings || []).find(x => x.key === p[1]); return s ? (s.type === 'secret' ? '—' : (s.default ?? (s.type === 'number' ? 0 : ''))) : '—'; }
+  if (p[0] === 'item') { cur = item; p.shift(); }
+  else { const s = (m.sources || []).find(x => x.id === p[0]); cur = s && s.sample; p.shift(); }
+  for (const k of p) { if (cur == null || typeof cur !== 'object') return '—'; cur = cur[k]; }
+  if (cur == null) return '—';
+  return typeof cur === 'object' ? '[Daten]' : cur;
+}
+const fill = (t, m, item) => String(t ?? '').replace(/\{\{\s*([^{}]*?)\s*\}\}/g, (a, r) => PATH.test(r) ? lookup(r, m, item) : '—');
+function preview(m) {
+  const cards = (m.widgets || []).slice(0, 6).map(w => {
+    const lab = w.label ? `<div class="lab">${esc(fill(w.label, m))}</div>` : '';
+    if (w.type === 'text') return `<div class="card">${lab}<div class="txt">${esc(fill(w.text, m))}</div></div>`;
+    if (w.type === 'metric') return `<div class="card">${lab}<div class="val">${esc(fill(w.value, m))} <small>${esc(w.unit || '')}</small></div></div>`;
+    if (w.type === 'bar') {
+      const v = parseFloat(fill(w.value, m)), mn = +w.min, mx = +w.max;
+      const pct = Number.isFinite(v) && mx > mn ? Math.max(0, Math.min(100, (v - mn) / (mx - mn) * 100)) : 0;
+      return `<div class="card">${lab}<div class="val">${Number.isFinite(v) ? esc(v) : '—'} <small>${esc(w.unit || '')}</small></div><div class="bar"><i style="width:${pct}%"></i></div></div>`;
+    }
+    if (w.type === 'clock') return `<div class="card">${lab}<div class="val">${esc(w.format === 'date' ? lookup('date', m) : w.format === 'datetime' ? lookup('date', m) + ' ' + lookup('time', m) : lookup('time', m))}</div></div>`;
+    if (w.type === 'list') {
+      const src = lookup(w.items || 'x', m); let arr = [];
+      const s = (m.sources || []).find(x => x.id === (w.items || '').split('.')[0]);
+      if (s) { let c = s.sample; for (const k of w.items.split('.').slice(1)) c = c && c[k]; if (Array.isArray(c)) arr = c; }
+      return `<div class="card">${lab}<ul>${arr.slice(0, Math.min(5, w.max_items || 3)).map(it => `<li>${esc(fill(w.item_template, m, it))}</li>`).join('') || '<li>—</li>'}</ul></div>`;
+    }
+    return '';
+  }).join('');
+  return `<div class="screen"><div class="t">${esc(m.name || '…')}</div>${cards}</div>`;
+}
+const outJson = m => {
+  const o = { schema_version: 1, id: m.id, name: m.name };
+  ['description'].forEach(k => { if (m[k]) o[k] = m[k]; });
+  o.version = m.version;
+  ['license', 'author', 'category', 'min_app_version'].forEach(k => { if (m[k]) o[k] = m[k]; });
+  if (m.refresh_seconds) o.refresh_seconds = m.refresh_seconds;
+  o.settings = m.settings || []; o.sources = m.sources || []; o.widgets = m.widgets || [];
+  return JSON.stringify(o, null, 2);
+};
+
+/* ---------- Seiten ---------- */
+let cur = 0, done = new Set(), lastInput = null;
+const $ = id => document.getElementById(id);
+const msgs = list => list.length ? list.map(([k, t]) => `<div class="msg ${k}">${esc(t)}</div>`).join('') : `<div class="msg ok">${L('Alles in Ordnung! Dein Plugin besteht den Check.', 'All good! Your plugin passes the check.')}</div>`;
+const sidebar = (json = true) => `<div class="side"><div class="panel"><h3>${L('So sieht dein Display aus', 'Your display looks like this')}</h3><div id="pv">${preview(M)}</div>
+  <p style="font-size:13px;color:var(--muted);margin:8px 0 0">${L('Die Vorschau benutzt deine Beispieldaten. Echte Daten kommen später aus dem Internet.', 'The preview uses your sample data. Real data comes from the internet later.')}</p></div>
+  <div class="panel"><h3>${L('Check', 'Check')}</h3><div id="chk">${msgs(validate(M))}</div></div>
+  ${json ? `<div class="panel"><h3>${L('Deine Datei', 'Your file')}</h3><pre class="json" id="json">${esc(outJson(M))}</pre></div>` : ''}</div>`;
+function refresh() { save(); const v = validate(M); $('pv').innerHTML = preview(M); $('chk').innerHTML = msgs(v); if ($('json')) $('json').textContent = outJson(M); }
+const bind = (id, fn) => { const e = $(id); if (e) e.addEventListener('input', () => { fn(e.value, e); refresh(); }); };
+const fld = (id, label, val, extra = '') => `<label for="${id}">${label}</label><input id="${id}" value="${esc(val ?? '')}" ${extra}>`;
+const phChips = () => {
+  const c = ['time', 'date', ...(M.settings || []).filter(s => s.type !== 'secret').map(s => 'settings.' + s.key)];
+  (M.sources || []).forEach(s => { const walk = (o, p, d) => { if (d > 3) return; Object.entries(o || {}).forEach(([k, v]) => { if (v && typeof v === 'object') walk(v, p + '.' + k, d + 1); else c.push(p + '.' + k); }); }; walk(s.sample, s.id, 0); });
+  return `<div class="chips">${c.slice(0, 24).map(x => `<button class="chip" data-ph="${esc(x)}">{{${esc(x)}}}</button>`).join('')}</div>`;
+};
+function wireChips() {
+  document.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => {
+    const i = lastInput; if (!i || !i.isConnected || i.tagName === 'SELECT') return alert(L('Klicke zuerst in das Feld, in das der Platzhalter soll.', 'First click into the field where the placeholder should go.'));
+    const t = '{{' + b.dataset.ph + '}}', a = i.selectionStart ?? i.value.length, z = i.selectionEnd ?? a;
+    i.value = i.value.slice(0, a) + t + i.value.slice(z); i.dispatchEvent(new Event('input')); i.focus(); i.setSelectionRange(a + t.length, a + t.length);
+  });
+  document.querySelectorAll('input,textarea').forEach(i => i.addEventListener('focus', () => lastInput = i));
+}
+
+const STEPS = [
+  { t: () => L('Willkommen in der Werkstatt', 'Welcome to the workshop'), html: () => `
+<p class="kicker">${L('Start', 'Start')}</p><h1>${L('Baue dein eigenes ScreenBuddy-Plugin! 🧩', 'Build your own ScreenBuddy plugin! 🧩')}</h1>
+<p class="lead">${L('Ein Plugin ist wie ein Bausatz für eine neue Display-Seite. Du setzt <b>Karten</b> zusammen, zum Beispiel eine Uhr, einen Zahlenwert, einen Balken oder einen Text. ScreenBuddy zeichnet sie dann auf dein Display.', 'A plugin is like a kit for a new display page. You put together <b>cards</b>, for example a clock, a number, a bar or some text. ScreenBuddy then draws them on your display.')}</p>
+<ul class="do"><li>${L('<b>Kein Programmieren nötig.</b> Ein Plugin ist nur eine kleine Textdatei. Hier baust du sie mit Klicks.', '<b>No programming needed.</b> A plugin is just a small text file. Here you build it with clicks.')}</li>
+<li>${L('<b>Sicher.</b> Ein Plugin kann keine Programme starten und nichts auf deinem Computer ändern. Es darf nur anzeigen.', '<b>Safe.</b> A plugin cannot start programs or change anything on your computer. It may only display things.')}</li>
+<li>${L('<b>Du bestimmst.</b> Wenn ein Plugin Daten aus dem Internet holen will, musst du es erst erlauben.', '<b>You decide.</b> If a plugin wants to fetch data from the internet, you have to allow it first.')}</li></ul>
+<h2>${L('Mit welcher Vorlage willst du starten?', 'Which template do you want to start from?')}</h2>
+<div class="addbar">
+<button class="chip" data-ex="blank">📄 ${L('Leer', 'Blank')}</button><button class="chip" data-ex="clock">🕒 ${L('Uhr', 'Clock')}</button>
+<button class="chip" data-ex="focus">🎯 ${L('Fokus', 'Focus')}</button><button class="chip" data-ex="weather">⛅ ${L('Wetter', 'Weather')}</button></div>
+<div class="box tip"><p>${L('Du kannst jederzeit zurückgehen. Dein Plugin wird in diesem Browser gemerkt, bis du eine andere Vorlage wählst.', 'You can go back at any time. Your plugin is remembered in this browser until you pick another template.')}</p></div>` },
+
+  { t: () => L('Gib deinem Plugin einen Namen', 'Name your plugin'), side: 1, html: () => `
+<p class="kicker">${L('Schritt 1', 'Step 1')}</p><h1>${L('Wie heißt dein Plugin?', 'What is your plugin called?')}</h1>
+<div class="grid"><div>
+${fld('f_name', L('Name (so steht er in der Liste)', 'Name (as shown in the list)'), M.name, 'maxlength=80')}
+${fld('f_id', L('ID (kurz, nur kleine Buchstaben, Ziffern und Bindestriche)', 'ID (short, lowercase letters, digits and hyphens only)'), M.id, 'maxlength=48')}
+<div class="chips"><button class="chip" id="mkid">✨ ${L('ID aus dem Namen machen', 'Make ID from name')}</button></div>
+${fld('f_desc', L('Beschreibung (ein Satz, darf leer bleiben)', 'Description (one sentence, may stay empty)'), M.description, 'maxlength=500')}
+<div class="row"><div>${fld('f_author', L('Dein Name oder Spitzname', 'Your name or nickname'), M.author, 'maxlength=80')}</div><div>${fld('f_ver', L('Version', 'Version'), M.version)}</div></div>
+<div class="row"><div><label for="f_cat">${L('Kategorie', 'Category')}</label><select id="f_cat">${['system', 'games', 'smart-home', 'info', 'other'].map(c => `<option ${M.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+<div><label for="f_lic">${L('Lizenz (wer darf es benutzen?)', 'License (who may use it?)')}</label><select id="f_lic">${['MIT', 'CC0-1.0'].map(c => `<option ${M.license === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div></div>
+<div class="box tip"><p>${L('Die ID ist wie ein Ausweis: Jedes Plugin hat eine andere. Importierst du dieselbe ID noch einmal, wird das alte Plugin ersetzt.', 'The ID is like a passport: every plugin has a different one. Importing the same ID again replaces the old plugin.')}</p></div>
+</div>${sidebar()}</div>`,
+    after() {
+      bind('f_name', v => M.name = v); bind('f_id', v => M.id = v); bind('f_desc', v => M.description = v); bind('f_author', v => M.author = v); bind('f_ver', v => M.version = v);
+      bind('f_cat', v => M.category = v); bind('f_lic', v => M.license = v);
+      $('mkid').onclick = () => { const s = (M.name || 'plugin').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^[^a-z]+/, '').replace(/-+$/, '').slice(0, 48) || 'mein-plugin'; M.id = s; $('f_id').value = s; refresh(); };
+    } },
+
+  { t: () => L('Karten bauen', 'Build the cards'), side: 1, html: () => {
+      const cards = (M.widgets || []).map((w, i) => `<div class="wc"><div class="hd"><b>${i + 1}. ${{ text: '📝 ' + L('Text', 'Text'), metric: '🔢 ' + L('Zahl', 'Number'), bar: '📊 ' + L('Balken', 'Bar'), list: '📋 ' + L('Liste', 'List'), clock: '🕒 ' + L('Uhr', 'Clock') }[w.type] || w.type}</b>
+        <button class="mini" data-mv="${i}" data-d="-1" ${i ? '' : 'disabled'}>↑</button><button class="mini" data-mv="${i}" data-d="1" ${i < M.widgets.length - 1 ? '' : 'disabled'}>↓</button><button class="mini del" data-rm="${i}">🗑</button></div>
+        ${fld('w' + i + 'l', L('Überschrift (klein, über der Karte)', 'Heading (small, above the card)'), w.label)}
+        ${w.type === 'text' ? fld('w' + i + 't', L('Text', 'Text'), w.text) : ''}
+        ${w.type === 'metric' || w.type === 'bar' ? `<div class="row"><div>${fld('w' + i + 'v', L('Wert', 'Value'), w.value)}</div><div>${fld('w' + i + 'u', L('Einheit (zum Beispiel min)', 'Unit (for example min)'), w.unit)}</div></div>` : ''}
+        ${w.type === 'bar' ? `<div class="row"><div>${fld('w' + i + 'a', L('Leer bei …', 'Empty at …'), w.min, 'type=number')}</div><div>${fld('w' + i + 'b', L('Voll bei …', 'Full at …'), w.max, 'type=number')}</div></div>` : ''}
+        ${w.type === 'list' ? `${fld('w' + i + 'i', L('Wo steht die Liste? (Pfad, zum Beispiel feed.entries)', 'Where is the list? (path, for example feed.entries)'), w.items)}${fld('w' + i + 'm', L('Vorlage für jeden Eintrag', 'Template for each entry'), w.item_template)}${fld('w' + i + 'n', L('Wie viele Einträge (1–5)?', 'How many entries (1–5)?'), w.max_items, 'type=number min=1 max=5')}` : ''}
+        ${w.type === 'clock' ? `<label for="w${i}f">${L('Was soll die Uhr zeigen?', 'What should the clock show?')}</label><select id="w${i}f">${[['time', L('Uhrzeit', 'Time')], ['date', L('Datum', 'Date')], ['datetime', L('Beides', 'Both')]].map(([v, n]) => `<option value="${v}" ${w.format === v ? 'selected' : ''}>${n}</option>`).join('')}</select>` : ''}
+      </div>`).join('');
+      return `<p class="kicker">${L('Schritt 2', 'Step 2')}</p><h1>${L('Setze deine Karten zusammen', 'Put your cards together')}</h1>
+<p class="lead">${L('Du darfst bis zu <b>6 Karten</b> benutzen. Die Vorschau rechts zeigt sofort, wie es aussieht.', 'You may use up to <b>6 cards</b>. The preview on the right shows right away how it looks.')}</p>
+<div class="grid"><div>
+<div class="addbar">${[['text', '📝 ' + L('Text', 'Text')], ['metric', '🔢 ' + L('Zahl', 'Number')], ['bar', '📊 ' + L('Balken', 'Bar')], ['clock', '🕒 ' + L('Uhr', 'Clock')], ['list', '📋 ' + L('Liste', 'List')]].map(([t, n]) => `<button class="chip go" data-add="${t}">＋ ${n}</button>`).join('')}</div>
+${cards}
+<h2>${L('Platzhalter: Daten in Karten einsetzen', 'Placeholders: put data into cards')}</h2>
+<p>${L('In doppelten geschweiften Klammern steht ein <b>Platzhalter</b>. ScreenBuddy ersetzt ihn durch den echten Wert. Klicke erst in ein Feld, dann auf einen Platzhalter:', 'Double curly braces hold a <b>placeholder</b>. ScreenBuddy replaces it with the real value. First click into a field, then on a placeholder:')}</p>
+${phChips()}
+<div class="box warn"><p>${L('Keine Leerzeichen in den Klammern: <code>{{settings.minutes}}</code> ist richtig, <code>{{ settings.minutes }}</code> ist falsch. Rechnen geht nicht, auch keine Wenn-Dann-Regeln.', 'No spaces inside the braces: <code>{{settings.minutes}}</code> is right, <code>{{ settings.minutes }}</code> is wrong. Calculations and if-then rules are not possible.')}</p></div>
+</div>${sidebar()}</div>`;
+    },
+    after() {
+      document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
+        if (M.widgets.length >= 6) return alert(L('Mehr als 6 Karten gehen nicht.', 'More than 6 cards are not possible.'));
+        const t = b.dataset.add; M.widgets.push({ text: { type: 'text', label: '', text: 'Hallo!' }, metric: { type: 'metric', label: '', value: '42', unit: '' }, bar: { type: 'bar', label: '', value: '50', min: 0, max: 100 }, clock: { type: 'clock', label: '', format: 'time' }, list: { type: 'list', label: '', items: 'feed.entries', item_template: '{{item.title}}', max_items: 3 } }[t]); save(); show();
+      });
+      document.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { M.widgets.splice(+b.dataset.rm, 1); save(); show(); });
+      document.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { const i = +b.dataset.mv, j = i + +b.dataset.d, w = M.widgets; [w[i], w[j]] = [w[j], w[i]]; save(); show(); });
+      M.widgets.forEach((w, i) => {
+        bind('w' + i + 'l', v => w.label = v); bind('w' + i + 't', v => w.text = v); bind('w' + i + 'v', v => w.value = v);
+        bind('w' + i + 'u', v => { if (v) w.unit = v; else delete w.unit; });
+        bind('w' + i + 'a', v => w.min = v === '' ? NaN : +v); bind('w' + i + 'b', v => w.max = v === '' ? NaN : +v);
+        bind('w' + i + 'i', v => w.items = v); bind('w' + i + 'm', v => w.item_template = v); bind('w' + i + 'n', v => w.max_items = +v); bind('w' + i + 'f', v => w.format = v);
+      });
+      wireChips();
+    } },
+
+  { t: () => L('Einstellungen (Regler)', 'Settings (dials)'), side: 1, html: () => {
+      const rows = (M.settings || []).map((s, i) => `<div class="wc"><div class="hd"><b>⚙️ ${esc(s.key || '?')}</b><button class="mini del" data-rs="${i}">🗑</button></div>
+        <div class="row"><div>${fld('s' + i + 'k', L('Schlüssel', 'Key'), s.key)}</div><div>${fld('s' + i + 'l', L('Beschriftung (steht in der Einstellungsseite)', 'Label (shown on the settings page)'), s.label)}</div></div>
+        <div class="row"><div><label for="s${i}t">${L('Art', 'Kind')}</label><select id="s${i}t">${[['text', L('Text', 'Text')], ['number', L('Zahl', 'Number')], ['secret', L('Geheimnis (Passwort)', 'Secret (password)')]].map(([v, n]) => `<option value="${v}" ${s.type === v ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+        <div>${s.type === 'secret' ? `<label>${L('Startwert', 'Default')}</label><input disabled value="${L('immer leer', 'always empty')}">` : fld('s' + i + 'd', L('Startwert', 'Default'), s.default, s.type === 'number' ? 'type=number step=any' : '')}</div></div></div>`).join('');
+      return `<p class="kicker">${L('Schritt 3 · optional', 'Step 3 · optional')}</p><h1>${L('Regler für dein Plugin', 'Dials for your plugin')}</h1>
+<p class="lead">${L('Mit <b>Einstellungen</b> kann man dein Plugin später anpassen, ohne die Datei zu ändern, zum Beispiel einen Namen, eine Zahl oder einen Ort.', 'With <b>settings</b> people can adjust your plugin later without editing the file, for example a name, a number or a place.')}</p>
+<div class="grid"><div>
+<div class="addbar"><button class="chip go" id="adds">＋ ${L('Neue Einstellung', 'New setting')}</button></div>${rows || `<p style="color:var(--muted)">${L('Noch keine Einstellungen. Das ist völlig in Ordnung.', 'No settings yet. That is perfectly fine.')}</p>`}
+<p>${L('Benutze eine Einstellung in einer Karte mit <code>{{settings.schluessel}}</code>. Die Chips in Schritt 2 helfen dir dabei.', 'Use a setting in a card with <code>{{settings.key}}</code>. The chips in step 2 help you.')}</p>
+<div class="box secret"><p>${L('<b>Geheimnisse</b> (zum Beispiel ein Schlüssel für einen Dienst) gibt es nur als Art „Geheimnis“. Sie bleiben leer in der Datei und dürfen nie auf dem Display stehen. Schreibe <b>niemals</b> ein echtes Passwort in ein Plugin, das du weitergibst.', '<b>Secrets</b> (for example a key for a service) only exist as the kind "Secret". They stay empty in the file and must never be shown on the display. <b>Never</b> write a real password into a plugin you share.')}</p></div>
+</div>${sidebar()}</div>`;
+    },
+    after() {
+      $('adds').onclick = () => { if (M.settings.length >= 12) return alert(L('Höchstens 12 Einstellungen.', 'At most 12 settings.')); M.settings.push({ key: 'wert' + (M.settings.length + 1), label: 'Wert', type: 'text', default: '' }); save(); show(); };
+      document.querySelectorAll('[data-rs]').forEach(b => b.onclick = () => { M.settings.splice(+b.dataset.rs, 1); save(); show(); });
+      M.settings.forEach((s, i) => {
+        bind('s' + i + 'k', v => s.key = v); bind('s' + i + 'l', v => s.label = v);
+        bind('s' + i + 'd', v => s.default = s.type === 'number' ? (v === '' ? NaN : +v) : v);
+        $('s' + i + 't').onchange = e => { s.type = e.target.value; s.default = s.type === 'number' ? 0 : ''; save(); show(); };
+      });
+    } },
+
+  { t: () => L('Daten aus dem Internet', 'Data from the internet'), side: 1, html: () => {
+      const rows = (M.sources || []).map((s, i) => `<div class="wc"><div class="hd"><b>🌐 ${esc(s.id || '?')}</b><button class="mini del" data-rd="${i}">🗑</button></div>
+        <div class="row"><div>${fld('d' + i + 'i', L('Name der Quelle (kurz)', 'Source name (short)'), s.id)}</div></div>
+        ${fld('d' + i + 'u', L('Adresse (muss mit https:// beginnen)', 'Address (must start with https://)'), s.url)}
+        <label for="d${i}s">${L('Beispieldaten (JSON, ausgedacht!)', 'Sample data (JSON, made up!)')}</label><textarea id="d${i}s">${esc(JSON.stringify(s.sample ?? {}, null, 2))}</textarea>
+        <p style="font-size:13px;color:var(--muted);margin:4px 0 0" id="d${i}e"></p></div>`).join('');
+      const hosts = (M.sources || []).map(s => { try { return new URL(String(s.url).replace(/\{\{[^}]*\}\}/g, '1')).hostname; } catch (e) { return ''; } }).filter(Boolean);
+      return `<p class="kicker">${L('Schritt 4 · optional', 'Step 4 · optional')}</p><h1>${L('Daten aus dem Internet holen', 'Fetch data from the internet')}</h1>
+<p class="lead">${L('Ein Plugin kann Daten von einer <b>öffentlichen Webseite</b> holen, zum Beispiel das Wetter. Ohne Datenquelle funktioniert dein Plugin komplett offline.', 'A plugin can fetch data from a <b>public website</b>, for example the weather. Without a data source your plugin works completely offline.')}</p>
+<div class="grid"><div>
+<div class="addbar"><button class="chip go" id="addd">＋ ${L('Datenquelle', 'Data source')}</button><button class="chip" id="demow">⛅ ${L('Wetter-Beispiel einsetzen', 'Insert weather example')}</button></div>${rows || `<p style="color:var(--muted)">${L('Keine Datenquelle: dein Plugin bleibt offline. Perfekt für den Anfang!', 'No data source: your plugin stays offline. Perfect for a start!')}</p>`}
+${M.sources.length ? `<label for="f_ref">${L('Abruf alle … Sekunden (15–3600)', 'Fetch every … seconds (15–3600)')}</label><input id="f_ref" type="number" min="15" max="3600" value="${M.refresh_seconds ?? 60}">` : ''}
+<p>${L('Zugriff auf Daten: <code>{{quelle.pfad.zum.wert}}</code>, zum Beispiel <code>{{weather.current.temperature_2m}}</code>. Die Beispieldaten sagen ScreenBuddy, wie die Antwort aufgebaut ist, und füllen deine Vorschau.', 'Access data with <code>{{source.path.to.value}}</code>, for example <code>{{weather.current.temperature_2m}}</code>. The sample data tells ScreenBuddy how the answer is built and fills your preview.')}</p>
+${hosts.length ? `<div class="box warn"><p>${L('Dieses Plugin würde Anfragen an <b>' + esc([...new Set(hosts)].join(', ')) + '</b> schicken. Der Server sieht dabei deine öffentliche IP-Adresse. Beim Einschalten fragt ScreenBuddy dich um Erlaubnis. Gib nie Hosts frei, die du nicht kennst.', 'This plugin would send requests to <b>' + esc([...new Set(hosts)].join(', ')) + '</b>. The server sees your public IP address. ScreenBuddy asks your permission when you switch it on. Never allow hosts you do not know.')}</p></div>` : ''}
+<div class="box tip"><p>${L('Erlaubt sind nur feste <code>https://</code>-Adressen im öffentlichen Internet. Keine IP-Nummern, keine Geräte aus dem Heimnetz, keine Weiterleitungen.', 'Only fixed <code>https://</code> addresses on the public internet are allowed. No IP numbers, no home network devices, no redirects.')}</p></div>
+</div>${sidebar()}</div>`;
+    },
+    after() {
+      $('addd').onclick = () => { if (M.sources.length >= 4) return alert(L('Höchstens 4 Quellen.', 'At most 4 sources.')); M.sources.push({ id: 'feed', url: 'https://example.org/data.json', format: 'json', sample: { entries: [{ title: 'Erster Eintrag' }, { title: 'Zweiter Eintrag' }] } }); save(); show(); };
+      $('demow').onclick = () => { const w = EXAMPLES.weather(); const keep = M.settings.map(s => s.key); w.settings.forEach(s => { if (!keep.includes(s.key)) M.settings.push(s); }); M.sources = w.sources; M.refresh_seconds = 900; save(); show(); };
+      document.querySelectorAll('[data-rd]').forEach(b => b.onclick = () => { M.sources.splice(+b.dataset.rd, 1); if (!M.sources.length) delete M.refresh_seconds; save(); show(); });
+      M.sources.forEach((s, i) => {
+        bind('d' + i + 'i', v => s.id = v); bind('d' + i + 'u', v => s.url = v);
+        bind('d' + i + 's', v => { try { s.sample = JSON.parse(v); $('d' + i + 'e').textContent = ''; } catch (e) { $('d' + i + 'e').textContent = '❌ ' + L('Das ist noch kein gültiges JSON (Klammern und Anführungszeichen prüfen).', 'This is not valid JSON yet (check brackets and quotes).'); s.sample = null; } });
+      });
+      bind('f_ref', v => M.refresh_seconds = v === '' ? NaN : +v);
+    } },
+
+  { t: () => L('Fehler-Detektiv', 'Bug detective'), side: 1, html: () => `
+<p class="kicker">${L('Schritt 5', 'Step 5')}</p><h1>${L('Prüfen wie ein Detektiv 🔍', 'Check like a detective 🔍')}</h1>
+<p class="lead">${L('Der Check rechts nutzt dieselben Regeln wie das Prüfprogramm von ScreenBuddy. Rote ❌ musst du beheben, gelbe ⚠️ sind Hinweise.', 'The check on the right uses the same rules as the ScreenBuddy validator. Red ❌ must be fixed, yellow ⚠️ are hints.')}</p>
+<div class="grid"><div>
+<h2>${L('Übung: Finde die Fehler', 'Exercise: find the bugs')}</h2>
+<p>${L('Lade ein absichtlich kaputtes Plugin und repariere es, bis alle ❌ weg sind. Die Meldungen sagen dir, wo du suchen musst. Zurück zu deinem eigenen Plugin geht es über die Vorlagen im ersten Schritt.', 'Load a deliberately broken plugin and fix it until all ❌ are gone. The messages tell you where to look. You get back to your own plugin through the templates in the first step.')}</p>
+<div class="addbar"><button class="chip go" data-ex="broken">🐛 ${L('Kaputtes Plugin laden', 'Load broken plugin')}</button></div>
+<h2>${L('Kleines Quiz', 'Little quiz')}</h2>
+<p>${L('Welcher Platzhalter ist richtig?', 'Which placeholder is correct?')}</p>
+<div class="quiz" id="quiz">${[['{{ settings.minutes }}', 0], ['{{settings.minutes}}', 1], ['{{settings.minutes + 5}}', 0], ['${settings.minutes}', 0]].map(([t, ok]) => `<button data-ok="${ok}"><code>${esc(t)}</code></button>`).join('')}</div>
+<p id="quizr" style="font-weight:700"></p>
+<div class="box secret"><p>${L('Prüfe vor dem Weitergeben: Steht irgendwo ein echtes Passwort, Token oder eine private Adresse? Das gehört <b>nie</b> in ein Plugin.', 'Before sharing, check: is there a real password, token or private address anywhere? That <b>never</b> belongs in a plugin.')}</p></div>
+<div class="box warn"><p>${L('Ehrlich gesagt: Dieser Check ist eine Nachbildung im Browser. Der echte Test ist das Prüfprogramm <code>fl-plugin-validate</code> (siehe nächster Schritt). Ob ein Plugin auf der Hardware gut aussieht, siehst du erst in der echten Display-Ausgabe.', 'To be honest: this check is an imitation in the browser. The real test is the <code>fl-plugin-validate</code> program (see next step). How a plugin looks on real hardware you only see in the actual display output.')}</p></div>
+</div>${sidebar(false)}</div>`,
+    after() {
+      document.querySelectorAll('#quiz button').forEach(b => b.onclick = () => { const ok = b.dataset.ok === '1'; b.classList.add(ok ? 'right' : 'wrong'); $('quizr').textContent = ok ? L('Richtig! 🎉 Keine Leerzeichen und kein Rechnen.', 'Correct! 🎉 No spaces and no calculations.') : L('Leider nein, probiere es noch einmal.', 'Not quite, try again.'); });
+    } },
+
+  { t: () => L('Speichern & benutzen', 'Save & use'), html: () => {
+      const errs = validate(M).filter(m => m[0] === 'err').length, fn = (M.id || 'plugin') + '.flplugin.json';
+      return `<p class="kicker">${L('Geschafft', 'Done')}</p><h1>${L('Speichere dein Plugin und probiere es aus', 'Save your plugin and try it out')}</h1>
+<div id="chk">${msgs(validate(M))}</div>
+<div class="addbar"><button class="chip go big" id="dl" ${errs ? 'disabled style="opacity:.5"' : ''}>💾 ${L('Datei speichern', 'Save file')}: ${esc(fn)}</button><button class="chip" id="cp">📋 ${L('JSON kopieren', 'Copy JSON')}</button></div>
+<pre class="json" id="json">${esc(outJson(M))}</pre>
+<h2>${L('In ScreenBuddy einbauen', 'Install it in ScreenBuddy')}</h2>
+<ol class="do">
+<li>${L('Öffne <span class="btnname">Einstellungen</span> → <span class="btnname">Plugins</span> und klicke auf <span class="btnname">Manifest importieren …</span>. Wähle deine gespeicherte Datei.', 'Open <span class="btnname">Settings</span> → <span class="btnname">Plugins</span> and click <span class="btnname">Import manifest …</span>. Pick your saved file.')}</li>
+<li>${L('Wähle dein Plugin in der Liste aus. Passe unten die Einstellungen an und klicke auf <span class="btnname">Plugin-Konfiguration speichern</span>.', 'Select your plugin in the list. Adjust the settings below and click <span class="btnname">Save plugin configuration</span>.')}</li>
+<li>${L('Klicke auf <span class="btnname">Aktivieren / deaktivieren</span>. Hat dein Plugin eine Datenquelle, liest du den Erlaubnis-Dialog und bestätigst nur, wenn der Host stimmt.', 'Click <span class="btnname">Enable / disable</span>. If your plugin has a data source, read the permission dialog and confirm only if the host is right.')}</li>
+<li>${L('Schau auf dein Display oder die Live-Vorschau: Deine Karten sollten erscheinen. Gleicht es nicht der Vorschau hier, prüfe die Einstellungen und die Datenquelle.', 'Look at your display or the live preview: your cards should appear. If it differs from the preview here, check the settings and the data source.')}</li></ol>
+<h2>${L('Wie mache ich es richtig sicher? (für Fortgeschrittene)', 'How do I make extra sure? (advanced)')}</h2>
+<p>${L('Das echte Prüfprogramm nutzt exakt den Code der App und läuft ohne Internet:', 'The real validator uses exactly the app code and runs without internet:')}</p>
+<pre class="json">fl-plugin-validate --store --app-version 2.6.0 ${esc(fn)}</pre>
+<h2>${L('Im Plugin-Store veröffentlichen', 'Publish in the Plugin Store')}</h2>
+<p>${L('Du möchtest, dass andere dein Plugin bekommen? Lies die <a href="https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/PLUGIN-AUTOREN.md" target="_blank" rel="noopener">Autorenleitfaden</a> und die <a href="https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/PLUGIN-STORE-BEDINGUNGEN.md" target="_blank" rel="noopener">Store-Bedingungen</a>. Der Store nimmt nur Lizenzen MIT und CC0-1.0 an, jedes Plugin wird geprüft und kann gesperrt werden. Frage vorher einen Erwachsenen, wenn du unter 18 bist.', 'Want others to get your plugin? Read the <a href="https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/PLUGIN-AUTHORS.md" target="_blank" rel="noopener">author guide</a> and the <a href="https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/PLUGIN-STORE-TERMS.md" target="_blank" rel="noopener">store terms</a>. The store only accepts the licenses MIT and CC0-1.0; every plugin is reviewed and may be blocked. Ask an adult first if you are under 18.')}</p>
+<div class="party">🦊🎉</div>
+<h2>${L('Hilfe, es klappt nicht', 'Help, it does not work')}</h2>
+<ul>
+<li>${L('<b>Import abgelehnt:</b> Die Datei muss mit <code>.flplugin.json</code> enden und reiner Text sein.', '<b>Import rejected:</b> the file must end in <code>.flplugin.json</code> and be plain text.')}</li>
+<li>${L('<b>Überall „—“:</b> Der Platzhalter-Pfad stimmt nicht, oder die Datenquelle wurde nicht erlaubt.', '<b>"—" everywhere:</b> the placeholder path is wrong, or the data source was not allowed.')}</li>
+<li>${L('<b>Balken fehlt:</b> „Wert“ darf nur eine Zahl ergeben, die Einheit gehört in ihr eigenes Feld.', '<b>Bar missing:</b> "value" must yield just a number; the unit goes in its own field.')}</li></ul>`;
+    },
+    after() {
+      $('dl').onclick = () => { if (validate(M).some(m => m[0] === 'err')) return; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([outJson(M) + '\n'], { type: 'application/json' })); a.download = (M.id || 'plugin') + '.flplugin.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
+      $('cp').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(outJson(M)).then(() => $('cp').textContent = '✅ ' + L('Kopiert', 'Copied')); };
+    } }
+];
+
+function wireEx() {
+  document.querySelectorAll('[data-ex]').forEach(b => b.onclick = () => {
+    const k = b.dataset.ex; if (k !== 'broken' && !confirm(L('Dein aktuelles Plugin wird durch die Vorlage ersetzt. Fortfahren?', 'Your current plugin will be replaced by the template. Continue?'))) return;
+    M = EXAMPLES[k](); if (LANG === 'en' && k !== 'broken') M.author = 'Me'; save(); show();
+  });
+}
+function show() {
+  const s = STEPS[cur]; $('main').innerHTML = `<div class="step">${s.html()}</div>`; if (s.after) s.after(); wireEx();
+  $('count').innerHTML = `<b>${cur + 1}</b> / ${STEPS.length}`; $('prog').style.width = ((cur + 1) / STEPS.length * 100) + '%';
+  $('back').textContent = L('← Zurück', '← Back'); $('back').disabled = cur === 0;
+  $('next').textContent = cur === STEPS.length - 1 ? L('Von vorn ↺', 'Start over ↺') : L('Weiter →', 'Next →');
+  $('menu').textContent = L('☰ Alle Schritte', '☰ All steps'); $('lang').textContent = LANG === 'en' ? 'Deutsch' : 'English';
+  $('toctitle').textContent = L('Alle Schritte', 'All steps'); document.documentElement.lang = LANG; document.title = L('ScreenBuddy Plugin-Werkstatt', 'ScreenBuddy Plugin Workshop');
+  done.add(cur); $('toclist').innerHTML = STEPS.map((x, i) => `<li class="${i === cur ? 'cur' : ''} ${done.has(i) && i !== cur ? 'done' : ''}"><button data-g="${i}"><i>${done.has(i) && i !== cur ? '✓' : i + 1}</i>${esc(x.t())}</button></li>`).join('');
+  document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { cur = +b.dataset.g; $('toc').classList.remove('show'); show(); scrollTo(0, 0); });
+}
+$('next').onclick = () => { cur = cur === STEPS.length - 1 ? 0 : cur + 1; show(); scrollTo(0, 0); };
+$('back').onclick = () => { if (cur > 0) { cur--; show(); scrollTo(0, 0); } };
+$('menu').onclick = () => $('toc').classList.add('show');
+$('toc').onclick = e => { if (e.target === $('toc')) $('toc').classList.remove('show'); };
+$('lang').onclick = () => { LANG = LANG === 'en' ? 'de' : 'en'; try { localStorage.setItem('fl_wl', LANG); } catch (e) {} show(); };
+show();
+</script>
+</body>
+</html>
