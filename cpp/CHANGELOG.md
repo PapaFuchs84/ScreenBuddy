@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 2.7.0 – 31 October 2026
+
+- Store installation passes force_disabled through the host importer to Store::import_manifest; the disabled marker is persisted before the manifest, including offline plugins and updates. Direct local imports keep their previous behavior. Regression coverage checks reload and host importer handling.
+
+- Release validation: 1,493 compiled checks plus installer/app/native UI checks passed; Pixel 10 Pro and Redmi 8 tested with Companion 1.0.0. See [release notes](../docs/RELEASE-NOTES-2.7.md) for exact evidence and limits. The following entries preserve earlier development-stage evidence.
+
 - Store preview images: `Kind::previews`, `open_previews`/`preview_matches`/`build_previews` in plugin_sign, `Catalog::preview`/`has_preview` (best-effort previews.json, hash-named verified cache), `NativePluginActions::store_preview`, `ImageView` in ui_page_store, tools `fl-plugin-preview` and `fl-plugin-sign build-previews|check-previews`. Windows build: sign 81, catalog 61 and all other test programs passed; the store page was not clicked through.
 - Companion independent mode (`companion.sync=false`): `Server::Hooks` per-device variants (`independent`, `encode_frame_for`, `on_*_for`, `Frame::version`), `NetworkDisplay::show_for/client_ids/device_pages`, `Store` per-device `pages`, `App::render_core/render_devices/device_tap` with `DeviceState`, device page list UI. Windows build: companion tests 361 checks (new `test_independent`), `tests/app_companion_integration.py` 39 and new `tests/app_companion_multi.py` 17 checks passed (simulated clients, isolated ports); not tested with several real phones.
 

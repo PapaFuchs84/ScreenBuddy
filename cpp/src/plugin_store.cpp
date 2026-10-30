@@ -218,7 +218,7 @@ StoreResult Store::load() {
     loaded_ = true;
     return invalid ? failure("Some plugin files were invalid or exceeded the store limit; valid plugins were loaded.") : StoreResult{true, {}};
 }
-StoreResult Store::import_manifest(std::string_view utf8) {
+StoreResult Store::import_manifest(std::string_view utf8, bool force_disabled) {
     auto parsed = parse_manifest(utf8);
     if (!parsed) return {false, parsed.error};
     std::lock_guard lock(mutex_);
@@ -235,8 +235,8 @@ StoreResult Store::import_manifest(std::string_view utf8) {
     if (!ready_directory(directory_, true)) return failure("Plugin directory cannot be created safely.");
     bool disabled = false;
     if (!marker_state(directory_ / (manifest.id + ".disabled"), disabled)) return failure("Plugin state file is invalid.");
-    if (!manifest.sources.empty() && !disabled) {
-        if (!atomic_write(directory_ / (manifest.id + ".disabled"), "")) return failure("Source plugin could not be disabled safely.");
+    if ((force_disabled || !manifest.sources.empty()) && !disabled) {
+        if (!atomic_write(directory_ / (manifest.id + ".disabled"), "")) return failure("Plugin could not be disabled safely.");
         disabled = true;
         // The marker is already committed. Keep in-memory state consistent even
         // if replacing the manifest subsequently fails.

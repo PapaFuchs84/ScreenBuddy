@@ -54,8 +54,9 @@ public:
     std::vector<Card> list(const Filter& filter, const std::vector<Installed>& installed) const;
     // Download, verify (size, SHA-256, manifest vs signed entry, not revoked, compatible) and import.
     // The plugin stays disabled / without host consent; the UI shows entry.hosts before calling this.
-    // `importer` lets the host run extra steps (e.g. discard stored secrets); default = Store::import_manifest.
-    using Importer = std::function<StoreResult(std::string_view)>;
+    // `importer` lets the host run extra steps (e.g. discard stored secrets) and must forward force_disabled.
+    // Default = Store::import_manifest with force_disabled=true.
+    using Importer = std::function<StoreResult(std::string_view, bool force_disabled)>;
     StoreResult install(Store& store, const std::string& id, const Importer& importer = {});
     // Disables installed plugins that are revoked; returns their IDs. Call after every refresh.
     std::vector<std::string> enforce_revocations(Store& store) const;

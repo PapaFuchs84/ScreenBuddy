@@ -25,7 +25,7 @@ class Store {
 public:
     explicit Store(std::filesystem::path directory);
     StoreResult load(); // skips invalid files; reports a generic partial-load error
-    StoreResult import_manifest(std::string_view utf8); // update by validated ID; sources force disabled
+    StoreResult import_manifest(std::string_view utf8, bool force_disabled = false); // store installs and sources force disabled
     StoreResult set_enabled(const std::string& id, bool enabled); // sources require every host's consent
     StoreResult set_host_consent(const std::string& id, const std::string& host, bool allowed);
     bool source_authorized(const std::string& id, const std::string& source_id, uint64_t generation) const;

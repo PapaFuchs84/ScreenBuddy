@@ -73,7 +73,7 @@ public:
 
     // Deklarative Plugins: Import, Vorschau und einzeln autorisierte Datenquellen.
     ojson plugin_catalog();
-    bool plugin_import(std::string_view manifest, std::string& error);
+    bool plugin_import(std::string_view manifest, std::string& error, bool force_disabled = false);
     bool plugin_set_enabled(const std::string& id, bool enabled, std::string& error);
     bool plugin_set_host_consent(const std::string& id, const std::string& host, bool allowed, std::string& error);
     ojson plugin_settings_view(const std::string& id);

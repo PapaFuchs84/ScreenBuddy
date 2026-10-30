@@ -81,14 +81,19 @@ int main() {
     CHECK(catalog.list({"", "info", false}, {}).size() == 1);
     CHECK(catalog.list({"nichts", "", false}, {}).empty());
 
-    // Install: verified, disabled with sources, no consent.
+    // Store installs stay disabled, including plugins without sources.
     Store store(root / "plugins");
     CHECK(store.load());
     CHECK(catalog.install(store, "weather-b"));
     auto w = store.find("weather-b");
     CHECK(w && !w->enabled && w->consented_hosts.empty());
     CHECK(catalog.install(store, "clock-a"));
-    CHECK(store.find("clock-a") && store.find("clock-a")->enabled);
+    CHECK(store.find("clock-a") && !store.find("clock-a")->enabled);
+    Store reloaded(root / "plugins");
+    CHECK(reloaded.load() && reloaded.find("clock-a") && !reloaded.find("clock-a")->enabled);
+    CHECK(store.set_enabled("clock-a", true));
+    CHECK(catalog.install(store, "clock-a"));
+    CHECK(!store.find("clock-a")->enabled); // updates/reimports also require explicit activation
     CHECK(!catalog.install(store, "missing"));
     cards = catalog.list({}, store.entries());
     CHECK(cards[0].status == Status::installed);
@@ -155,8 +160,10 @@ int main() {
     {
         Store store2(root / "plugins2"); CHECK(store2.load());
         int calls = 0;
-        CHECK(c0.install(store2, "clock-a", [&](std::string_view bytes) { ++calls; return store2.import_manifest(bytes); }));
-        CHECK(calls == 1 && store2.find("clock-a"));
+        CHECK(c0.install(store2, "clock-a", [&](std::string_view bytes, bool force_disabled) {
+            ++calls; return store2.import_manifest(bytes, force_disabled);
+        }));
+        CHECK(calls == 1 && store2.find("clock-a") && !store2.find("clock-a")->enabled);
     }
     // Refresh replaces an existing cache (sequence advances on disk).
     server.publish({manifest("clock-a", "1.0.0")}, 12);
