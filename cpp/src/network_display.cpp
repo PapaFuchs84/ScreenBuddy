@@ -337,6 +337,12 @@ void NetworkDisplay::screen_off() {
     {
         std::lock_guard lk(mu_);
         frame_ = Image(frame_ ? frame_->w : w_, frame_ ? frame_->h : h_, Color{0, 0, 0});
+        for (auto& [id, slot] : device_frames_) {   // unabhängiger Betrieb: jedes Gerät bekommt sein schwarzes Bild
+            if (slot->image.empty()) continue;
+            slot->image = Image(slot->image.w, slot->image.h, Color{0, 0, 0});
+            slot->version = ++frame_version_;
+            slot->jpeg.reset();
+        }
     }
     auto srv = server();
     if (srv && srv->running()) {

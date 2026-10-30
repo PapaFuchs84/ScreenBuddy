@@ -106,7 +106,7 @@ public:
         auto own_buttons = own->add<ButtonRow>();
         dev_save_ = own_buttons->add(T(L"Eigene Liste speichern", L"Save own list"), Button::Primary, [this] { save_device_pages(true); });
         dev_reset_ = own_buttons->add(T(L"Gemeinsame Liste verwenden", L"Use shared list"), Button::Secondary, [this] { save_device_pages(false); });
-        devices_->on_select = [this](int) { load_device_pages(); };
+        devices_->on_select = [this](int) { dev_items_for_.clear(); load_device_pages(); };
 
         Card* pages = root.add<Card>(T(L"Seiten für Companion", L"Pages for Companion"),
             T(L"Eigene Auswahl und Reihenfolge. Haken = anzeigen; ▲/▼ oder Alt+Pfeiltaste sortiert um.",
@@ -193,7 +193,7 @@ private:
     Label* dev_note_ = nullptr;
     Button *dev_save_ = nullptr, *dev_reset_ = nullptr;
     ojson devices_json_ = ojson::array();
-    std::string dev_loaded_for_;
+    std::string dev_loaded_for_, dev_items_for_;   // angefordert / tatsächlich in der Liste
     bool pairing_ = false;
     // Die Kopplung ist eine sofortige Serveraktion und überlebt „Verwerfen“ der Formularwerte.
     std::optional<Image> pairing_qr_;
@@ -280,7 +280,7 @@ private:
             dev_list_->items.clear(); dev_loaded_for_.clear(); return;
         }
         const std::string id = devices_->items[size_t(devices_->selected)].key;
-        if (host_->busy()) return;
+        if (host_->busy()) { dev_loaded_for_.clear(); return; }   // beim nächsten Status erneut versuchen
         dev_loaded_for_ = id;
         ojson order = host_->config().at("companion").at("pages"), selected = order;
         bool custom = false;
@@ -297,6 +297,7 @@ private:
                 auto items = page_items(order, selected, plugins);
                 if (!custom)   // gemeinsame Liste: Plugins sind dort wie bisher sichtbar
                     for (auto& i : items) if (i.key.rfind("plugin:", 0) == 0) i.enabled = true;
+                dev_items_for_ = id;
                 dev_list_->items = items;
                 dev_list_->original = items;
                 dev_list_->selected = items.empty() ? -1 : 0;
@@ -309,6 +310,10 @@ private:
     void save_device_pages(bool own) {
         if (!devices_ || devices_->selected < 0 || devices_->selected >= int(devices_->items.size())) return;
         const std::string id = devices_->items[size_t(devices_->selected)].key;
+        if (dev_items_for_ != id) {   // Liste gehört noch zu einem anderen Gerät: nie fremde Auswahl speichern
+            host_->toast(T(L"Die Liste dieses Geräts wird noch geladen. Bitte gleich erneut versuchen.", L"This device's list is still loading. Please try again in a moment."), ToastKind::Info);
+            return;
+        }
         std::vector<std::string> pages;
         for (const auto& item : dev_list_->items) if (item.enabled) pages.push_back(item.key);
         Host* h = host_;

@@ -65,6 +65,9 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
                                                              cfg_path_.parent_path() / L"companion.json", size_.first, size_.second);
         companion_ = companion_output_.get();
     }
+    // Betriebsart gilt von Anfang an, auch für Geräte, die sich vor der ersten Zeichenrunde verbinden
+    was_independent_ = independent();
+    if (companion_) companion_->set_independent(was_independent_);
     render::apply_theme(dp_);
     const ojson &bf = cfg_["bf6"], &rs = cfg_["rss"], &sy = cfg_["system"], &dc = cfg_["discord"], &fr = cfg_["friends"];
     auto dirty = [this] { mark_dirty(); };
