@@ -15,7 +15,7 @@ build.bat nopause
 build\screenbuddy-release\ScreenBuddy.exe --run --no-lcd -c test.toml
 ```
 
-`cpp/build.bat` baut Release, führt Prüfungen aus und kopiert die einzelne App-/Installer-EXE nach `cpp/dist/`. Die `build.bat` im Hauptordner baut weiterhin Python 1.x. Die aktuelle 2.5-Quellfassung verwendet für alle Einstellungen ein selbst gezeichnetes natives Win32-Fenster und bindet WebView2 nicht ein. Die frühere Version 2.3.0 benötigt noch WebView2 Evergreen. Siehe [Buildhinweise](cpp/README.md#build).
+`cpp/build.bat` baut Release, führt Prüfungen aus und kopiert die einzelne App-/Installer-EXE nach `cpp/dist/`. Die `build.bat` im Hauptordner baut weiterhin Python 1.x. Die aktuelle 2.6-Quellfassung verwendet für alle Einstellungen ein selbst gezeichnetes natives Win32-Fenster und bindet WebView2 nicht ein. Die frühere Version 2.3.0 benötigt noch WebView2 Evergreen. Siehe [Buildhinweise](cpp/README.md#build).
 
 ## Ablauf
 

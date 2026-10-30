@@ -6,15 +6,23 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.6.0] – 2026-10-30
+
 ### Added
 
 - Plugin platform, key: production key generated, public key entered in `plugin_sign.h`; tool `fl-plugin-sign check-index` for the store CI.
-- Plugin platform, phase 4 (texts and starter plugins): [terms of use, rules and privacy](docs/PLUGIN-STORE-TERMS.md) (draft, not legally reviewed), [author guide](docs/PLUGIN-AUTHORS.md), "Report a plugin" issue template, plugin reports added to `SECURITY.en.md` and 8 starter plugins in `store-seed/plugins/` (validator and example tests pass). The store repository and the signing key are still missing.
+- Plugin platform, phase 4 (texts and starter plugins): [terms of use, rules and privacy](docs/PLUGIN-STORE-TERMS.md) (draft, not legally reviewed), [author guide](docs/PLUGIN-AUTHORS.md), "Report a plugin" issue template, plugin reports added to `SECURITY.en.md` and 8 starter plugins in `store-seed/plugins/` (validator and example tests pass). The store repository `PapaFuchs84/ScreenBuddy-Plugins` is live (index with 8 starter plugins); the signing key is generated and pinned in the app.
 
 - Plugin platform, phase 3 (part 2): raw-byte HTTPS fetch, native "Plugin store" page (search, categories, hosts before install, install/update, plugins stay off), daily background sync, switch "Use the plugin store". Without a signing key the page reports "not available". See [Plugin signing](docs/PLUGIN-SIGNING.md#store-in-the-app-phase-3-part-2).
 - Plugin platform, phase 3 (part 1, store logic): `plugin_catalog` loads the index and revocation list through an injected HTTPS fetch, verifies signature and rollback protection, keeps an offline cache that is verified again on load, lists with search/category/status (installed, update, unsupported, revoked), shows hosts an update would add, installs only signed and matching packages (plugin stays off, hosts without consent) and disables revoked plugins. Without a pinned production key the store reports "unavailable". **Still open:** native store page in the app and the real HTTPS fetch (Windows). Docs: [Plugin signing](docs/PLUGIN-SIGNING.md#store-logic-phase-3-part-1).
 - Plugin platform, phase 2: Ed25519 signing for index and revocation list (`plugin_sign`), SHA-256 package check including host comparison, rollback protection and the `fl-plugin-sign` tool. The production key is still missing (maintainer generates it offline); the app does not download anything yet. Docs: [Plugin signing](docs/PLUGIN-SIGNING.md).
 - Plugin platform, phase 1: manifest fields `license` (`MIT`/`CC0-1.0`), `author`, `category` and `min_app_version` (optional, schema stays 1), the `store_problems` and `app_compatible` checks and the offline validator `fl-plugin-validate` (`--store`, `--app-version`) with a GitHub Actions workflow. Example plugins carry the new fields. Docs: [package format](docs/PLUGIN-PACKAGE-FORMAT.md). There is no plugin store, signing or store UI yet.
+
+### Fixed
+
+- Plugin store: the “Use the plugin store” switch was not saved (the store page had no `collect()` method).
+- Plugin store repository: plugin files are now also served from `docs/plugins/` because GitHub Pages only serves `docs/`; before, installation failed with “Plugin download failed”.
+- Note: the phase entries above describe the development history; wording such as “no store yet” or “key missing” no longer applies in 2.6.0.
 
 ### Changed
 
@@ -208,7 +216,8 @@ First version as a Python script, then as the EXE `FuchsLabs-USB-Display-1.0.zip
 - Brightness raised from 50 to 90.
 - The whole picture is resent on every page change and every 5 minutes. A stripe at a fixed spot on single-colour test pictures comes from the display or cable, not the app.
 
-[Unreleased]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.5.0...v2.6.0
 [2.3.0]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.2.0...v2.3.0
 [1.2]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v1.1...v1.2
 [1.1]: https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v1.1

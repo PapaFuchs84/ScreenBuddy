@@ -1,6 +1,6 @@
 # Plugin-Signierung (Phase 2)
 
-© 2026 FuchsLabs · **Stand:** Bibliothek, Werkzeug und Tests sind umgesetzt. Der Produktionsschlüssel ist erzeugt (privat nur auf dem Rechner des Maintainers, öffentlicher Teil in `plugin_sign.h`), die App enthält Abruf und Store-Oberfläche. **Noch nicht vorhanden:** ein veröffentlichter, signierter Index im Store-Repository `ScreenBuddy-Plugins`; solange meldet die App „nicht erreichbar“.
+© 2026 FuchsLabs · **Stand:** Bibliothek, Werkzeug und Tests sind umgesetzt. Der Produktionsschlüssel ist erzeugt (privat nur auf dem Rechner des Maintainers, öffentlicher Teil in `plugin_sign.h`), die App enthält Abruf und Store-Oberfläche. **Stand 30.10.2026:** Das Store-Repository `ScreenBuddy-Plugins` ist live; der signierte Index (sequence 2, 8 Plugins) liegt unter `base_url`. Ohne erreichbaren Index meldet die App „nicht erreichbar“.
 
 ## Idee
 

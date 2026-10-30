@@ -2,13 +2,13 @@
 
 **Companion-Vorschau ab 2.3.0:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
 
-Version 2.3.0 · Stand 24.10.2026 · © 2026 FuchsLabs
+Version 2.6.0 · Stand 30.10.2026 · © 2026 FuchsLabs
 
-Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein eigenes Windows-Einstellungsfenster mit WebView2. Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
+Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein natives Windows-Einstellungsfenster (Direct2D/DirectWrite, ohne WebView2 seit 2.5). Ab 2.6 gibt es den Plugin-Store in der App (Abschnitt unten). Stand und Grenzen: [docs/SCREENBUDDY-2.6.md](docs/SCREENBUDDY-2.6.md). Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
 
 ## Companion-App für Android (Companion-Vorschau ab 2.3.0)
 
-Die PC-Seite ist eingebaut; die Android-App liegt als Vorschau unter `android/` (`FuchsLabs-Companion-0.2.0-preview.apk`). Ein Handy oder Tablet im selben WLAN zeigt dann das Display (automatische Auflösung nach Meldung der App) und meldet Gesten/Tipps zurück.
+Die PC-Seite ist eingebaut; die Android-App gibt es als **Companion-App 1.0** als separaten Download (nicht Teil der Windows-EXE). Ein Handy oder Tablet im selben WLAN zeigt dann das Display (automatische Auflösung nach Meldung der App) und meldet Gesten/Tipps zurück.
 
 - **Einschalten:** **Einstellungen → Companion → Companion einschalten** und speichern (läuft dann zusätzlich zum USB-Display) oder unter **Display → Display-Typ** „Companion-App (Android, über WLAN)“ wählen (nur das Handy, kein USB-Display). Standard: aus. Windows fragt beim ersten Start eventuell nach der Firewall: „Private Netzwerke“ erlauben.
 - **Koppeln:** **Kopplungscode anzeigen** zeigt QR-Code, 6-stellige PIN und den Fingerabdruck des Zertifikats. In der App den QR-Code scannen (oder Adresse und PIN eintippen und den Fingerabdruck vergleichen). Der Code gilt 2 Minuten und nur einmal; nach 5 falschen Versuchen ist das Koppeln 5 Minuten gesperrt.
@@ -16,7 +16,20 @@ Die PC-Seite ist eingebaut; die Android-App liegt als Vorschau unter `android/` 
 - **Gespeichert:** `companion.json` neben der `config.toml` (TLS-Zertifikat, DPAPI-verschlüsselter TLS-Schlüssel, je Gerät ein DPAPI-verschlüsselter Schlüssel). Unter **Gekoppelte Geräte** lässt sich jedes Gerät entfernen; seine Verbindung wird sofort getrennt. Wer `companion.json` löscht, bekommt ein neues Zertifikat und muss alle Geräte neu koppeln.
 - **Last:** Bilder gehen nur bei Änderung als JPEG raus, höchstens 5 pro Sekunde.
 
-Protokoll: [docs/COMPANION-PROTOKOLL.md](docs/COMPANION-PROTOKOLL.md). Prüfstand: siehe [Testprotokoll](cpp/TESTPROTOKOLL.md). Bestätigt auf Redmi 8 per USB-Tethering. Offen: physischer USB-Ausgang gemeinsam mit Companion in derselben neuen Instanz, WLAN, Android-Boot und mehrere Geräte.
+Protokoll: [docs/COMPANION-PROTOKOLL.md](docs/COMPANION-PROTOKOLL.md). Prüfstand: siehe [Testprotokoll](cpp/TESTPROTOKOLL.md). Bestätigt auf Redmi 8 per USB-Tethering (Gerätetest vom 27.10.2026 mit dem Vorgängerstand 0.2.1-preview; für 1.0 ist im Testprotokoll kein eigener Gerätetest dokumentiert). Offen: physischer USB-Ausgang gemeinsam mit Companion in derselben neuen Instanz, WLAN, Android-Boot und mehrere Geräte.
+
+## Plugin-Store (ab 2.6.0)
+
+Auf der Einstellungsseite **Plugin-Store** (neben Companion und Plugins) findest und installierst du geprüfte Datenplugins aus dem Store-Repository `PapaFuchs84/ScreenBuddy-Plugins`. Plugins enthalten keinen Programmcode.
+
+- **Schalter:** „Plugin-Store verwenden“ (`[ui] plugin_store`, Standard an). Aus bedeutet: kein Abruf. Die Änderung wirkt nach **Speichern & anwenden**.
+- **Suche und Kategorien:** Alle, System, Spiele, Smart Home, Info, Sonstiges. Ein Klick auf ein Plugin zeigt Autor, Version, Lizenz, Status und die Hosts, an die es Daten sendet.
+- **Installieren und Aktualisieren** mit Bestätigung. Das Plugin bleibt **aus**; unter **Plugins** aktivierst du es und erteilst die Zustimmung je Host. Bei einem Update erscheinen neue Hosts auf der Karte, alle Freigaben werden zurückgesetzt.
+- **Gesperrte Plugins** werden beim Abgleich automatisch ausgeschaltet.
+- **Abgleich:** höchstens einmal täglich im Hintergrund (erster Versuch 30 s nach dem Start), manuell über **Store aktualisieren** (frühestens nach 60 s). Ohne Netz gilt der zuletzt geprüfte Zwischenspeicher.
+- **Meldungen:** „nicht verfügbar“ heißt, dass in dieser Version kein Signaturschlüssel eingetragen ist. „nicht erreichbar“ heißt, dass kein gültiger Index geladen werden konnte und keine geprüften Daten vorliegen.
+- **Sicherheit:** Index und Sperrliste sind Ed25519-signiert. Die App prüft Signatur, Rollback-Schutz (`sequence`) und die Prüfsumme des Pakets. Eine gültige Signatur ersetzt nicht die Prüfung eines Plugins. Details: [Plugin-Signierung](docs/PLUGIN-SIGNIERUNG.md).
+- **Texte:** [Nutzungsbedingungen, Regeln und Datenschutz](docs/PLUGIN-STORE-BEDINGUNGEN.md) (Entwurf, juristisch nicht geprüft), [Autorenleitfaden](docs/PLUGIN-AUTOREN.md).
 
 ## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
 
@@ -82,7 +95,7 @@ Ist keine Seite aktiv, zeigt das Display einen Willkommenshinweis mit der Adress
 
 ## 2. Installation und erster Start
 
-Version 2.0: Windows 10/11 x64, angeschlossenes Display und installierte Microsoft Edge WebView2 Evergreen Runtime. Python und Visual-C++-Redistributable werden nicht benötigt. Die WebView2-Laufzeit ist nicht Teil der einzelnen EXE.
+Ab Version 2.5: Windows 10/11 x64 und angeschlossenes Display. Python, Visual-C++-Redistributable und WebView2 werden nicht benötigt. Die frühere Version 2.3.0 braucht noch die Microsoft Edge WebView2 Evergreen Runtime, die nicht Teil der EXE ist.
 
 Die [Release-EXE](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) enthält App, Installer, Updater und Deinstaller. Der Installer verwendet `%LOCALAPPDATA%\FuchsLabs\USB-Display`, legt Verknüpfung und Deinstallationseintrag an und kann Einstellungen aus dem bisherigen Benutzerordner oder dem alten Roaming-AppData-Ordner übernehmen. Eine bestehende Zielkonfiguration bleibt erhalten; der alte Versionsordner wird bei der Übernahme mit `-1.x-alt` umbenannt. Ab 2.0.6 legt der Installer außerdem `LICENSE.txt` (MIT) und `THIRD-PARTY-NOTICES.md` (Lizenzen der mitgelieferten Bibliotheken) in den Installationsordner.
 
@@ -92,7 +105,7 @@ Ausführliche Einrichtung der Datenquellen: [Schnellstart](ANLEITUNG.md).
 
 ## 3. Einstellungsseite
 
-Sie erscheint in einem Win32-Fenster mit eingebettetem WebView2. Der interne Dienst läuft in der App und ist nur auf deinem PC erreichbar: `http://127.0.0.1:8765/` (Port einstellbar). Änderungen werden erst mit **Speichern & anwenden** übernommen; die Anzeige startet dann etwa 10 Sekunden neu.
+Sie erscheint in einem nativen Win32-Fenster (Direct2D/DirectWrite, ohne WebView2 seit 2.5). Der interne Dienst läuft in der App und ist nur auf deinem PC erreichbar: `http://127.0.0.1:8765/` (Port einstellbar); die bebilderte Anleitung liegt unter `/anleitung`. Änderungen werden erst mit **Speichern & anwenden** übernommen; die Anzeige startet dann etwa 10 Sekunden neu.
 
 | Bereich | Einstellungen |
 |---|---|
@@ -103,6 +116,7 @@ Sie erscheint in einem Win32-Fenster mit eingebettetem WebView2. Der interne Die
 | **Battlefield 6** | Spieler hinzufügen (PC/PlayStation/Xbox), sofort **Prüfen**, Abrufintervall |
 | **Blogs** | Blog-Adressen hinzufügen und mit **Prüfen** testen, Anzahl Beiträge, Intervall |
 | **System** | Netzwerkadapter, Einheit (Mbit/s oder MB/s), Laufwerk, Sensoren für CPU-Temperatur und Lüfter |
+| **Companion, Plugins, Plugin-Store** | Companion (Kopplung, Geräte), Plugins und Plugin-Store (Schalter „Plugin-Store verwenden“, Suche, Installation, Abgleich) |
 | **Display** | Display-Typ, HDMI-/USB-C-Monitor, Touch-Steuerung und Touch-Zuordnung, Ausrichtung, COM-Port, Zurücksetzen beim Start, Ausschalten beim Beenden, Port der Einstellungsseite, Neu starten, Beenden |
 
 **Verbindungsstatus:** In den Reitern Discord und Freunde zeigt eine Statuszeile dauerhaft, ob der Zugang funktioniert: grün mit Kontoname, Anzahl der Freunde und Zeitpunkt der letzten erfolgreichen Abfrage (Discord: live), rot mit der Fehlermeldung, wenn etwas nicht klappt (bei Steam/Xbox mit dem Zeitpunkt des letzten Erfolgs), grau, wenn nichts eingerichtet ist. Sie aktualisiert sich alle 5 Sekunden von selbst.
@@ -126,7 +140,7 @@ Bei regulärer Installation liegt `config.toml` unter `%LOCALAPPDATA%\FuchsLabs\
 | `[bf6]` | `enabled` (false), `players` ([], PC-Namen; Konsole als `"Name@psn"` / `"Name@xbox"`), `refresh_minutes` (15), `title` |
 | `[rss]` | `enabled` (false), `feeds` ([]), `refresh_minutes` (30), `max_items` (4), `max_per_feed` (1), `title` |
 | `[homeassistant]` | `enabled` (false), `title` ("Home Assistant"), `url` (z. B. "http://homeassistant.local:8123"), `token` (verschlüsselt), `entities` ([], höchstens 4, z. B. `"sensor.wohnzimmer_temperatur"`) |
-| `[ui]` | `enabled` (true), `port` (8765), `setup_done` (false), `language` ("de" oder "en"; beim ersten Start wie die Windows-Sprache – gilt für Einstellungsseite, Display und Infobereich), `update_check` (true; höchstens einmal am Tag die GitHub-Releases abfragen und eine neuere Version melden, nie automatisch installieren) |
+| `[ui]` | `enabled` (true), `port` (8765), `setup_done` (false), `language` ("de" oder "en"; beim ersten Start wie die Windows-Sprache – gilt für Einstellungsseite, Display und Infobereich), `update_check` (true; höchstens einmal am Tag die GitHub-Releases abfragen und eine neuere Version melden, nie automatisch installieren), `plugin_store` (true; Plugin-Store höchstens einmal täglich abrufen, false = kein Abruf) |
 
 ---
 
@@ -144,7 +158,7 @@ Die App speichert Discord-, Steam-, Xbox- und Home-Assistant-Zugangsdaten per Wi
 
 Der lokale Einstellungsdienst bindet an `127.0.0.1`, prüft Host und Fetch-Metadaten und verlangt für Schreibzugriffe `X-FL: 1`. RSS-Ziele und Weiterleitungen werden gegen nichtöffentliche IP-Bereiche geprüft. Die C++-Implementierung verwendet unter anderem WinHTTP, D++/OpenSSL und pugixml; Details stehen in `cpp/src/http.cpp`, `netguard.cpp`, `secure.cpp` und `webui.cpp`.
 
-Abhängigkeiten sind über vcpkg-Manifest und D++-Overlay festgelegt; WebView2-SDK-Lizenzhinweise liegen unter `cpp/third_party/webview2`. Die WebView2 Evergreen Runtime wird separat bereitgestellt. Die EXE ist nicht signiert.
+Abhängigkeiten sind über vcpkg-Manifest und D++-Overlay festgelegt; WebView2-SDK-Lizenzhinweise liegen unter `cpp/third_party/webview2`. Seit 2.5 braucht die Einstellungsseite keine WebView2-Laufzeit mehr. Die Windows-EXE ist nicht signiert; der Plugin-Store prüft Plugin-Daten über eine Ed25519-Signatur (siehe oben).
 
 [SICHERHEITSREVIEW.md](SICHERHEITSREVIEW.md) dokumentiert den historischen Python-Stand und ist kein vollständiger C++-Audit. Sicherheitsmeldungen: [SECURITY.md](SECURITY.md).
 
@@ -179,7 +193,10 @@ Das Protokoll steht in `usb-display.log` neben der EXE. Die meisten Probleme erk
 | Temperatur oder Lüfter „–“ | HWiNFO läuft nicht oder Shared Memory ist aus (Kapitel 5). |
 | GPU „–“ | Keine Nvidia-Karte oder `nvidia-smi` fehlt (kommt mit dem Treiber). |
 | Falscher Netzwerkadapter | **System → Netzwerkadapter** festlegen. |
-| Einstellungsfenster öffnet nicht | WebView2 Evergreen Runtime prüfen; App-Prozess und Log kontrollieren. Bei belegtem Port UI-Port in der Konfiguration ändern. |
+| Einstellungsfenster öffnet nicht | App-Prozess und `usb-display.log` kontrollieren (ab 2.5 ist keine WebView2-Laufzeit nötig). Bei belegtem Port den Port in der Konfiguration ändern. |
+| Plugin-Store „nicht erreichbar“ | Netzverbindung prüfen, dann **Store aktualisieren**. Ohne Netz zeigt die Seite den zuletzt geprüften Stand. |
+| Plugin-Store „nicht verfügbar“ | Diese Version hat keinen Signaturschlüssel eingetragen. Der Store ist dann nicht nutzbar. |
+| Installiertes Plugin erscheint nicht als aktiv | Es bleibt nach der Installation **aus**. Unter **Plugins** aktivieren und die Zustimmung je Host erteilen. |
 | Nach Windows-Anmeldung kein Tray und nur altes Displaybild | Prüfen, ob der Autostart auf eine tatsächlich vorhandene EXE zeigt. Bei Installation aus einem paketierten Werkzeug Pfad und Run-Eintrag außerhalb dessen Paketkontexts prüfen; siehe Kapitel 13. |
 
 ---
@@ -207,7 +224,8 @@ Die aktuelle Implementierung ist C++20 unter `cpp/`.
 | Datei unter `cpp/src/` | Aufgabe |
 |---|---|
 | `main.cpp`, `app.cpp` | Start, Einzelinstanz, Dienste und Seitenrotation |
-| `settings_window.cpp`, `tray.cpp` | Win32/WebView2-Fenster und Infobereich |
+| `native_settings.cpp`, `ui_page_*.cpp`, `tray.cpp` | natives Einstellungsfenster (Direct2D/DirectWrite) und Infobereich |
+| `plugin_sign.cpp`, `plugin_store.cpp`, `plugin_catalog.cpp`, `ui_page_store.cpp` | Plugin-Signierung, Plugin-Speicher, Store-Logik und Store-Seite |
 | `webui.cpp`, `config.cpp`, `secure.cpp` | lokaler Einstellungsdienst, TOML und DPAPI |
 | `ha.cpp` | Home-Assistant-REST-Abfrage und Schalten |
 | `serial_display.cpp`, `monitor_display.cpp`, `network_display.cpp` | USB-Display, HDMI/USB-C und Companion (Android) |
@@ -230,6 +248,8 @@ Der Build benötigt Visual Studio Build Tools 2022, Windows SDK, CMake/Ninja und
 In Windows **Einstellungen → Apps → ScreenBuddy → Deinstallieren** (bis 2.3.0: FuchsLabs USB-Display). Der integrierte Deinstaller entfernt Autostart und Verknüpfung. Der Dialog bietet zusätzlich an, Einstellungen und gespeicherte Zugangsdaten zu entfernen. Ein aufbewahrter `-1.x-alt`-Ordner gehört zur alten Version und ist ein eigener Rückfallstand.
 
 ## 13. Prüfstand und Windows-Neustart
+
+**2.6.0:** Plugin-Store mit signiertem Index, Sperrliste und acht Start-Plugins; Companion-App 1.0 als separater Download. Store-Installation und -Update in einer isolierten Instanz: Installation des Plugins „Wetter“ aus dem Live-Store bestanden (Plugin bleibt aus, kein Host zugestimmt); Schalter „Plugin-Store verwenden“ speichern und Neustart bestanden; Update nur als Simulation (Version lokal auf 0.9.0 gesetzt) bestanden, ein echtes Live-Update war mangels zweiter Version nicht prüfbar; Suchfeld nicht automatisiert prüfbar. Dabei gefundene Fehler (Plugin-Dateien unter GitHub Pages nicht ausgeliefert, Schalter nicht speicherbar) sind behoben.. Automatisierte Prüfungen: 1.312 Windows-Prüfungen und 2 Installer-Prüfungen bestanden, Android-Protokolltests bestanden. Details und Grenzen: [Release-Notizen 2.6.0](docs/RELEASE-NOTES-2.6.md).
 
 **2.3.0:** Companion-Vorschau: unabhängige Anzeigen (USB/HDMI und Android gleichzeitig), automatische Auflösung und Drehung, Krypto/TLS-Härtung und Einstellungs-Migration/Sicherung. Release-Build, 236 Kernprüfungen, 11 Monitorprüfungen, 335 Companion-Prüfungen, 39 App-Integrationsprüfungen und 2 Installer-Sicherungsprüfungen bestanden. Bestätigt auf Redmi 8 per USB-Tethering. Offen: physischer USB-Ausgang gemeinsam mit Companion in derselben neuen Instanz, WLAN, Android-Boot und mehrere reale Geräte.
 

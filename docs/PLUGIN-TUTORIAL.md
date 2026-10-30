@@ -110,7 +110,7 @@ cmake --build build/screenbuddy-release --target fl-plugin-example-tests
 
 ```powershell
 cmake --build build/screenbuddy-release --target fl-plugin-validate
-./build/screenbuddy-release/fl-plugin-validate.exe --store --app-version 2.5.0 meine-plugins/
+./build/screenbuddy-release/fl-plugin-validate.exe --store --app-version 2.6.0 meine-plugins/
 ```
 
 Unter Linux (auch für CI): `sh cpp/tests/build-validator-linux.sh` baut Parser-Tests, Beispiel-Tests und Validator mit g++ und nlohmann/json.

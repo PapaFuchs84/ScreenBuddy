@@ -1,6 +1,6 @@
 # Plugin signing (phase 2)
 
-© 2026 FuchsLabs · **Status:** library, tool and tests are implemented. The production key has been generated (private part only on the maintainer's machine, public part in `plugin_sign.h`); the app contains the fetch and the store UI. **Not yet available:** a published, signed index in the `ScreenBuddy-Plugins` store repository; until then the app reports "not reachable".
+© 2026 FuchsLabs · **Status:** library, tool and tests are implemented. The production key has been generated (private part only on the maintainer's machine, public part in `plugin_sign.h`); the app contains the fetch and the store UI. **Status 30 Oct 2026:** the `ScreenBuddy-Plugins` store repository is live; the signed index (sequence 2, 8 plugins) is published under `base_url`. Without a reachable index the app reports "not reachable".
 
 ## Idea
 

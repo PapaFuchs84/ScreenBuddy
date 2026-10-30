@@ -1,19 +1,19 @@
 <div align="center">
 
-**ScreenBuddy 2.5.0 – 27.10.2026:** native Windows-Einstellungen und signierte Companion-Vorschau 0.2.1-preview. Windows-Sicht-/Touch-Abnahme, Zielsystem-Upgrade/Rollback und Redmi-8-Tests bestanden. [Release-Notizen](docs/RELEASE-NOTES-2.5.md).
+**ScreenBuddy 2.6.0 – 30.10.2026:** Plugin-Store mit signiertem Index und Companion-App 1.0 als separatem Download. [Release-Notizen](docs/RELEASE-NOTES-2.6.md).
 
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
 # ScreenBuddy
 
-**Neu in 2.5:** native Direct2D/DirectWrite-Einstellungen, geführte Einrichtung, Display-/Touch-Konfiguration, Datenquellen, unabhängige Companion-Ausgabe und lokale deklarative Plugins. WebView2 wird nicht mehr benötigt. Online-Plugins bleiben experimentell: Host-Zustimmung ist erforderlich; CRL/OCSP-Sperrprüfung und vollständige UI-Paritätsprüfung stehen aus. [Stand und Grenzen](docs/SCREENBUDDY-2.5.md) · [Plugin-Anleitung](docs/PLUGIN-SYSTEM.md) · [Beispiele](cpp/examples/plugins/README.md).
+**Neu in 2.6:** Plugin-Store in der App (Einstellungsseite **Plugin-Store**, neben Companion und Plugins) mit signiertem Index, signierter Sperrliste und acht Start-Plugins. Installierte Plugins bleiben aus, bis du sie aktivierst; jeder Host braucht deine Freigabe. Die Companion-App 1.0 gibt es als separaten Download. [Release-Notizen](docs/RELEASE-NOTES-2.6.md) · [Stand und Grenzen](docs/SCREENBUDDY-2.6.md) · [Plugin-Anleitung](docs/PLUGIN-SYSTEM.md) · [Store-Bedingungen](docs/PLUGIN-STORE-BEDINGUNGEN.md) · [Beispiele](cpp/examples/plugins/README.md).
 
 **Deutsch** · [English](README.en.md)
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.5.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.6.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -56,8 +56,9 @@ Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C
 
 Dazu kommen:
 
-- **Eigenes Windows-Einstellungsfenster** (WebView2; interner lokaler Dienst unter `http://127.0.0.1:8765/`) mit Live-Vorschau, Seitenreihenfolge, Verbindungsstatus je Plattform und aufklappbaren Hilfen neben jedem Schlüsselfeld
+- **Natives Windows-Einstellungsfenster** (Direct2D/DirectWrite, ohne WebView2; der lokale Dienst unter `http://127.0.0.1:8765/` bedient Companion und die Anleitung unter `/anleitung`) mit Live-Vorschau, Seitenreihenfolge, Verbindungsstatus je Plattform und aufklappbaren Hilfen neben jedem Schlüsselfeld
 - **Ersteinrichtung ohne Vorkenntnisse**: erkennt das Display, beendet und deaktiviert auf Wunsch die Hersteller-App, Autostart ohne Administratorrechte
+- **Plugin-Store** (ab 2.6.0, auf der Einstellungsseite abschaltbar): geprüfte Datenplugins aus dem signierten Store `PapaFuchs84/ScreenBuddy-Plugins` suchen, prüfen und installieren. Vor der Installation steht, an welche Hosts ein Plugin Daten senden würde. Installierte Plugins bleiben aus, bis du sie unter **Plugins** aktivierst. Siehe [Release-Notizen 2.6.0](docs/RELEASE-NOTES-2.6.md).
 - **Design**: FuchsLabs-CI in Hell oder Dunkel, oder **eigene Farben** per Farbwähler mit Kontrastwarnung
 - **Jede Auflösung**: Seiten werden scharf auf die echte Größe gerendert; breite Leisten zeigen mehrere Seiten nebeneinander
 - **HDMI/USB-C-Bildschirme** als randloses Vollbild über der Taskleiste, optional mit **Touch** (wischen oder tippen zum Blättern, Tippen auf einen Blogbeitrag öffnet ihn im Browser, Tippen auf RAM, Datenträger oder Netzwerk der Systemseite öffnet Task-Manager, „Programme und Features“ bzw. den Geschwindigkeitstest); Prüfung und Einrichtung der Windows-Touch-Zuordnung unter **Display**
@@ -82,7 +83,7 @@ Neue Seite **Home Assistant** mit bis zu 4 Kacheln. **Sensoren** (auch Binärsen
 
 ## Android-Companion-App (ab 2.3.0)
 
-Mit der Android-Companion-App lässt sich ein Smartphone oder Tablet als unabhängige Zusatzanzeige parallel zum USB-/HDMI-Display einbinden:
+Mit der Android-Companion-App lässt sich ein Smartphone oder Tablet als unabhängige Zusatzanzeige parallel zum USB-/HDMI-Display einbinden. Die Companion-App liegt in Version 1.0 als separater Download vor; die Geräteprüfung vom 27.10.2026 galt dem Vorgänger 0.2.1-preview.
 - **Getrennte Seiten & Intervalle:** Eigene Seitenliste und eigene Anzeigedauer für das Smartphone (unter **Companion → Unabhängige Companion-Anzeige**); Datenquellen und Design bleiben gemeinsam.
 - **Kopplung per QR-Code oder PIN:** Im Reiter **Companion** auf **Gerät koppeln** klicken. Die Android-App scannt den QR-Code oder verbindet sich über Adresse, Port (8777) und 6-stelligen PIN-Code; der SHA-256-Fingerabdruck sichert die TLS-Verbindung ab.
 - **Touch & Gesten:** Wischen schaltet nur das Smartphone-Display um. Interaktive Kacheln (Smart Home, Freunde, Systemaktionen) lassen sich per Fingertipp bedienen.
@@ -112,8 +113,8 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus [Release 2.5.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.5.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die signierte Android-Vorschau-APK ist ein separater Download.
-2. Windows 10/11 x64 mit installierter **Microsoft Edge WebView2 Evergreen Runtime** verwenden. Die Laufzeit ist nicht in der EXE enthalten und wird vom Installer nicht automatisch installiert.
+1. **ScreenBuddy.exe** aus [Release 2.6.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.6.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App 1.0 für Android ist ein separater Download.
+2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
 5. Später öffnen das Fuchs-Symbol im Infobereich oder ein erneuter Start der installierten App das Einstellungsfenster. Dessen Schließen lässt das Display weiterlaufen; **Beenden** im Infobereich stoppt die App.
@@ -196,7 +197,7 @@ build.bat nopause
 
 Der C++-Build installiert die Abhängigkeiten aus dem festgelegten vcpkg-Manifest/Overlay, baut Release, führt Kern-, Plugin-, Monitor-, Companion- und isolierte Installer-Prüfungen aus und erzeugt lokal `cpp\dist\ScreenBuddy.exe`. Die `build.bat` im Repository-Hauptordner gehört zur historischen Python-Version 1.x. Details: [C++-Buildhinweise](cpp/README.md#build) und [Mitarbeiten](CONTRIBUTING.md).
 
-Die WebView2-SDK-Dateien und Lizenzhinweise liegen weiterhin unter `cpp/third_party/webview2`, werden von der aktuellen 2.5-Quellfassung aber nicht eingebunden. Der lokale HTTP-Dienst und die eingebettete Anleitung bleiben erhalten. Übersetzungen: `cpp/src/i18n.cpp` für App/Display, native Texte unter `cpp/src/ui_page_*.cpp`; die frühere HTML-Quelldatei liegt nur noch für historische Tests unter `cpp/res/webui.html` und wird nicht in die 2.5-EXE eingebettet. `/` liefert keine HTML-Einstellungen mehr aus.
+Die WebView2-SDK-Dateien und Lizenzhinweise liegen weiterhin unter `cpp/third_party/webview2`, werden von der aktuellen 2.5- und 2.6-Quellfassung nicht eingebunden. Der lokale HTTP-Dienst und die eingebettete Anleitung bleiben erhalten. Übersetzungen: `cpp/src/i18n.cpp` für App/Display, native Texte unter `cpp/src/ui_page_*.cpp`; die frühere HTML-Quelldatei liegt nur noch für historische Tests unter `cpp/res/webui.html` und wird nicht in die 2.5-EXE eingebettet. `/` liefert keine HTML-Einstellungen mehr aus.
 
 ## Projektaufbau
 
@@ -213,7 +214,7 @@ Die WebView2-SDK-Dateien und Lizenzhinweise liegen weiterhin unter `cpp/third_pa
 
 - Läuft **ohne Administratorrechte**, ohne Telemetrie, ohne Konto. Die einzige App-eigene Anfrage ohne deine Datenquellen ist der abschaltbare Update-Hinweis an die öffentlichen GitHub-Releases (höchstens 1× am Tag, ohne Schlüssel).
 - Zugangsdaten werden mit **Windows-DPAPI** verschlüsselt gespeichert, nie protokolliert und nie an den Browser gegeben.
-- Die Einstellungsseite ist **nur auf `127.0.0.1`** erreichbar und gegen DNS-Rebinding, CSRF und Einbetten in fremde Seiten geschützt.
+- Der lokale Dienst ist **nur auf `127.0.0.1`** erreichbar und gegen DNS-Rebinding, CSRF und Einbetten in fremde Seiten geschützt.
 - Alle Verbindungen laufen über HTTPS mit Zertifikatsprüfung; Pakete sind auf genaue Versionen festgelegt.
 
 Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md); er ist kein vollständiger Audit der C++-Version. Aktuelle Validierung: [Testprotokoll](cpp/TESTPROTOKOLL.md). Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
@@ -229,6 +230,8 @@ Die App ist in der Testphase. Fehler und Ideen bitte über **Issues → New issu
 | [`README.en.md`](README.en.md) | dieses README auf Englisch |
 | [`ANLEITUNG.md`](ANLEITUNG.md) | Schnellstart für Anwender |
 | [`DOKUMENTATION.md`](DOKUMENTATION.md) | ausführliche Referenz: Seiten, Einstellungen, `config.toml`, HWiNFO, Fehlerbehebung |
+| [`docs/RELEASE-NOTES-2.6.md`](docs/RELEASE-NOTES-2.6.md) | Release-Notizen 2.6.0: Plugin-Store, Signierung, Start-Plugins, Companion 1.0, Prüfgrenzen |
+| [`docs/SCREENBUDDY-2.6.md`](docs/SCREENBUDDY-2.6.md) | Stand und Grenzen 2.6 ([English](docs/SCREENBUDDY-2.6.en.md)) |
 | [`CHANGELOG.md`](CHANGELOG.md) | Änderungen je Version ([English](CHANGELOG.en.md)) |
 | [`PROTOKOLL.md`](PROTOKOLL.md) | Entstehungsverlauf und Entscheidungen |
 | [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) | Sicherheits- und Performance-Prüfung |
@@ -245,6 +248,10 @@ Dir gefällt die App? Über einen Kaffee freut sich FuchsLabs: [☕ paypal.me/SH
 Der Code steht unter der [MIT-Lizenz](LICENSE), © 2026 FuchsLabs. Name und Fuchskopf-Logo sind ausgenommen ([TRADEMARKS.md](TRADEMARKS.md)). Für eingebundene Drittkomponenten gelten deren eigene Lizenzen ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
 Battlefield, Discord, Steam und Xbox sind Marken ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen.
+
+## Prüfstand 2.6.0
+
+Prüfgrenzen und Testzahlen stehen in den [Release-Notizen 2.6.0](docs/RELEASE-NOTES-2.6.md#prüfgrenzen). Die Store-Installation in einer isolierten Instanz ist dort gesondert ausgewiesen.
 
 ## Prüfstand 2.3.0
 

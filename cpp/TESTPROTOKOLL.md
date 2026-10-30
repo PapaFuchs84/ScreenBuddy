@@ -1,5 +1,12 @@
-# Testprotokoll – Stand 27.10.2026
+# Testprotokoll – Stand 30.10.2026
 
+## Veröffentlichung ScreenBuddy 2.6.0 + Companion 1.0.0 (30.10.2026)
+
+- Windows-Build mit allen Prüfungen bestanden: 272 Kern-, 251 Plugin-, 41 Beispiel-, 127 Store-, 140 Transport-, 135 Plugin-Einstellungs-, 11 Monitor- und 335 Companion-Prüfungen (zusammen 1.312) sowie 2 Installer-Prüfungen.
+- Plugin-Store in isolierter Instanz (Port 8791, nie Port 8765): Index und 8 Start-Plugins geladen, Installation „Wetter“ aus dem Live-Store bestanden (Plugin bleibt aus, kein Host zugestimmt), Schalter „Plugin-Store verwenden“ speichern und Neustart bestanden, Offline-Zwischenspeicher vorhanden. Update nur als Simulation (lokale Version 0.9.0) bestanden; ein echtes Live-Update war mangels zweiter Version nicht prüfbar. Suchfeld nicht automatisiert prüfbar.
+- Gefunden und behoben: Plugin-Dateien wurden von GitHub Pages nicht ausgeliefert (404); Schalter wurde nicht gespeichert (`collect()` fehlte).
+- Companion 1.0.0: Android-Protokolltests und signierter Release-Build bestanden, Zertifikat identisch zu 0.2.1-preview. Kein neuer Gerätetest.
+- Codex-Review der Release-Änderungen durchgeführt; Befunde zu Formulierungen eingearbeitet.
 ## Veröffentlichung ScreenBuddy 2.5.0 (27.10.2026)
 
 - PR #17 und Dokumentations-PR #18 mit bestandenen Python-/JavaScript-CodeQL-Prüfungen integriert. Tag `v2.5.0` zeigt auf Merge-Commit `0351234707f7bbfb92e8754b6991535d97a0b499`. [Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.5.0).

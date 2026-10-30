@@ -61,6 +61,7 @@ public:
         update_buttons();
     }
     void shown(Host&) override { reload(false); }
+    void collect(Host&, ojson& patch) override { form_.collect(patch); }
     void tick(Host&, const Status&) override { update_buttons(); }
 
 private:

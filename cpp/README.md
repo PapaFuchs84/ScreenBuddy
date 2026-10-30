@@ -1,8 +1,12 @@
-# ScreenBuddy 2.5.0
+# ScreenBuddy 2.6.0
 
 Version 2.3.0 adds the Companion preview: independent USB/HDMI and Android views, automatic phone dimensions and rotation. See [DE](../docs/COMPANION.md) / [EN](../docs/COMPANION.en.md). Tests include `python tests/app_companion_integration.py` on Windows (isolated processes with `--no-lcd`, no physical display).
 
-Native Windows C++20 application formerly released as FuchsLabs USB-Display. The application and installer are built as one EXE; it requires no Python runtime or Visual C++ redistributable. Current 2.5 source opens settings only in the self-drawn native Win32 interface and no longer links WebView2. The loopback API and embedded guide remain; `/` no longer serves the former HTML settings page. ScreenBuddy 2.5.0 requires no WebView2; earlier 2.3.0 still does.
+Native Windows C++20 application formerly released as FuchsLabs USB-Display. The application and installer are built as one EXE; it requires no Python runtime or Visual C++ redistributable. Current 2.6 source opens settings only in the self-drawn native Win32 interface and no longer links WebView2. The loopback API and embedded guide remain; `/` no longer serves the former HTML settings page. ScreenBuddy 2.5.0 and 2.6.0 require no WebView2; earlier 2.3.0 still does.
+
+## ScreenBuddy 2.6.0
+
+Plugin store on the settings page **Plugin store** (next to Companion and Plugins): signed index and revocation list (Ed25519, pinned public key), packages checked by SHA-256 and host declarations, daily background sync and the switch `[ui] plugin_store`. Installed plugins stay off until enabled and approved per host. The Companion app 1.0 is a separate download. Test limits and automated check counts: [release notes 2.6.0](../docs/RELEASE-NOTES-2.6.md).
 
 ## ScreenBuddy 2.5.0
 
@@ -14,7 +18,7 @@ The sample manifests and tutorials are in [examples/plugins](examples/plugins/RE
 
 ## Install and first start
 
-1. Download the EXE from the [latest release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) (2.5.0: `ScreenBuddy.exe`), then start it from Downloads or another folder. The EXE is unsigned; verify it using the supplied `SHA256SUMS.txt`.
+1. Download the EXE from the [latest release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) (2.6.0: `ScreenBuddy.exe`), then start it from Downloads or another folder. The EXE is unsigned; verify it using the supplied `SHA256SUMS.txt`.
 2. Choose the options in the installer. The default location is `%LOCALAPPDATA%\FuchsLabs\USB-Display`; no administrator rights are required.
 3. On first start, settings open in their own Windows window. Open them later from the fox icon in the notification area. Configure the display and optional Discord, Steam, Xbox, Battlefield 6, and RSS data there.
 

@@ -6,15 +6,23 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+## [2.6.0] – 2026-10-30
+
 ### Hinzugefügt
 
 - Plugin-Plattform, Schlüssel: Produktionsschlüssel erzeugt, Public Key in `plugin_sign.h` eingetragen; Werkzeug `fl-plugin-sign check-index` für die Store-CI.
-- Plugin-Plattform, Phase 4 (Texte und Start-Plugins): [Nutzungsbedingungen, Regeln und Datenschutz](docs/PLUGIN-STORE-BEDINGUNGEN.md) (Entwurf, juristisch nicht geprüft), [Autorenleitfaden](docs/PLUGIN-AUTOREN.md), Issue-Vorlage „Plugin melden“, `SECURITY.md` um Plugin-Meldungen ergänzt und 8 Start-Plugins unter `store-seed/plugins/` (Validator und Beispieltests bestehen). Das Store-Repository und der Signaturschlüssel fehlen weiterhin.
+- Plugin-Plattform, Phase 4 (Texte und Start-Plugins): [Nutzungsbedingungen, Regeln und Datenschutz](docs/PLUGIN-STORE-BEDINGUNGEN.md) (Entwurf, juristisch nicht geprüft), [Autorenleitfaden](docs/PLUGIN-AUTOREN.md), Issue-Vorlage „Plugin melden“, `SECURITY.md` um Plugin-Meldungen ergänzt und 8 Start-Plugins unter `store-seed/plugins/` (Validator und Beispieltests bestehen). Das Store-Repository `PapaFuchs84/ScreenBuddy-Plugins` ist live (Index mit 8 Start-Plugins); der Signaturschlüssel ist erzeugt und in der App eingetragen.
 
 - Plugin-Plattform, Phase 3 (Teil 2): Rohbyte-HTTPS-Abruf, native Seite „Plugin-Store“ (Suche, Kategorien, Hosts vor Installation, Installieren/Aktualisieren, Plugins bleiben aus), Tagesabgleich im Hintergrund, Schalter „Plugin-Store verwenden“. Ohne Signaturschlüssel meldet die Seite „nicht verfügbar“. Siehe [Plugin-Signierung](docs/PLUGIN-SIGNIERUNG.md#store-in-der-app-phase-3-teil-2).
 - Plugin-Plattform, Phase 3 (Teil 1, Store-Logik): `plugin_catalog` lädt Index und Sperrliste über einen eingespeisten HTTPS-Abruf, prüft Signatur und Rollback-Schutz, hält einen erneut verifizierten Offline-Cache, listet mit Suche/Kategorie/Status (installiert, Update, nicht unterstützt, gesperrt), zeigt neue Hosts bei Updates, installiert nur signierte und passende Pakete (Plugin bleibt aus, Hosts ohne Zustimmung) und schaltet gesperrte Plugins ab. Ohne eingetragenen Produktionsschlüssel meldet der Store „nicht verfügbar“. **Noch offen:** native Store-Seite in der App und der echte HTTPS-Abruf (Windows). Doku: [Plugin-Signierung](docs/PLUGIN-SIGNIERUNG.md#store-logik-phase-3-teil-1).
 - Plugin-Plattform, Phase 2: Ed25519-Signierung für Index und Sperrliste (`plugin_sign`), SHA-256-Paketprüfung inklusive Host-Abgleich, Rollback-Schutz und Werkzeug `fl-plugin-sign`. Der Produktionsschlüssel fehlt noch (Basti erzeugt ihn offline), die App lädt noch nichts herunter. Doku: [Plugin-Signierung](docs/PLUGIN-SIGNIERUNG.md).
 - Plugin-Plattform, Phase 1: Manifest-Felder `license` (`MIT`/`CC0-1.0`), `author`, `category` und `min_app_version` (optional, Schema bleibt 1), Prüffunktionen `store_problems` und `app_compatible` sowie der Offline-Validator `fl-plugin-validate` (`--store`, `--app-version`) mit GitHub-Actions-Workflow. Beispiel-Plugins tragen die neuen Felder. Doku: [Paketformat](docs/PLUGIN-PAKETFORMAT.md). Es gibt noch keinen Pluginstore, keine Signierung und keine Store-Oberfläche.
+
+### Behoben
+
+- Plugin-Store: Der Schalter „Plugin-Store verwenden“ wurde beim Speichern nicht übernommen (die Store-Seite hatte keine `collect()`-Methode).
+- Plugin-Store-Repository: Plugin-Dateien liegen jetzt zusätzlich unter `docs/plugins/`, weil GitHub Pages nur `docs/` ausliefert; vorher scheiterte die Installation mit „Plugin download failed“.
+- Hinweis: Die Phasen-Einträge oben beschreiben den Entwicklungsverlauf; Formulierungen wie „noch kein Store“ oder „Schlüssel fehlt“ gelten in 2.6.0 nicht mehr.
 
 ### Geändert
 
@@ -209,7 +217,8 @@ Erste Fassung als Python-Skript, danach als EXE `FuchsLabs-USB-Display-1.0.zip`.
 - Helligkeit von 50 auf 90 angehoben.
 - Ganzes Bild wird bei jedem Seitenwechsel und alle 5 Minuten neu gesendet. Ein Streifen an fester Stelle bei einfarbigen Testbildern liegt an Display oder Kabel, nicht an der App.
 
-[Unreleased]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.5.0...v2.6.0
 [2.3.0]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.2.0...v2.3.0
 [1.2]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v1.1...v1.2
 [1.1]: https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v1.1
