@@ -70,7 +70,7 @@ Unter **Einstellungen → Übersicht** kannst du mit **Vorherige Ansicht** und *
 
 ## 1. Seiten
 
-Die Anzeige wechselt alle `page_seconds` Sekunden (Standard 15). Reihenfolge und Sichtbarkeit stellst du in der Einstellungsseite ein.
+Die Anzeige wechselt alle `page_seconds` Sekunden (Standard 15). Reihenfolge und Sichtbarkeit stellst du in der Einstellungsseite ein (**Seiten & Reihenfolge**; aktivierte Plugins stehen dort ebenfalls in der Liste und lassen sich sortieren und ausblenden).
 
 | Seite | Inhalt | Aktualisierung |
 |---|---|---|

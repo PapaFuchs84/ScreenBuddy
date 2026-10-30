@@ -110,6 +110,16 @@ static void test_config() {
     CHECK_EQ(separate["display"]["page_seconds"].get<int>(), 60);
     CHECK_EQ(separate["companion"]["page_seconds"].get<int>(), 5);
     CHECK(config::merge(cfg, {{"companion", {{"pages", ojson::array()}}}})["companion"]["pages"].empty());
+    // Plugin-Seiten stehen in Reihenfolge und Auswahl; unbekannte Schlüssel fallen weg
+    auto with_plugin = config::merge(cfg, {{"display", {{"pages", {"plugin:wetter", "system", "x:y", "plugin:wetter"}},
+                                                        {"visible_pages", {"system", "plugin:wetter", "plugin:"}}}}});
+    CHECK_EQ(with_plugin["display"]["pages"][0], ojson("plugin:wetter"));
+    CHECK_EQ(with_plugin["display"]["pages"][1], ojson("system"));
+    CHECK_EQ(with_plugin["display"]["pages"].size(), (size_t)7);
+    CHECK_EQ(with_plugin["display"]["visible_pages"], ojson::array({"system", "plugin:wetter"}));
+    CHECK(config::is_page_key("plugin:wetter"));
+    CHECK(!config::is_page_key("plugin:"));
+    CHECK(!config::is_page_key("wetter"));
     ojson pub = config::public_view(m);
     CHECK_EQ(pub["discord"]["token"].get<std::string>(), std::string(""));
     CHECK(pub["discord"]["token_set"].get<bool>());

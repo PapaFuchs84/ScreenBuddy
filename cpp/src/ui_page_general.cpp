@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "app.h"
+#include "native_settings.h"
 #include "util.h"
 
 namespace fl::ui {
@@ -292,11 +293,14 @@ public:
         list_->name = T(L"Seiten und Reihenfolge", L"Pages and order");
         list_->selected = 0;
         root.add<Note>(T(L"Die markierten Seiten erscheinen in dieser Reihenfolge, wenn die zugehörige Quelle aktiv und eingerichtet ist. "
-                         L"Bei reiner Netzwerk-Ausgabe gilt die Liste unter Companion.",
+                         L"Aktivierte Plugins stehen ebenfalls in der Liste. Bei reiner Netzwerk-Ausgabe gilt die Liste unter Companion.",
                          L"Checked pages appear in this order when their source is enabled and configured. "
-                         L"Network-only output uses the list under Companion."));
+                         L"Enabled plugins are listed too. Network-only output uses the list under Companion."));
+        host_ = &host;
+        load_plugins();
     }
-    void collect(Host&, ojson& patch) override {
+    void shown(Host&) override { load_plugins(); }
+    void collect(Host& host, ojson& patch) override {
         auto& dp = patch["display"];
         dp["pages"] = ojson::array();
         dp["visible_pages"] = ojson::array();
@@ -304,9 +308,55 @@ public:
             dp["pages"].push_back(item.key);
             if (item.enabled) dp["visible_pages"].push_back(item.key);
         }
+        if (!plugins_loaded_) {
+            // Pluginliste nicht geladen: bisherige Plugin-Einträge unverändert mitschreiben, damit nichts verloren geht
+            const ojson& cur = host.config().at("display");
+            auto copy = [&](const char* key) {
+                if (!cur.contains(key) || !cur.at(key).is_array()) return;
+                for (const auto& k : cur.at(key))
+                    if (k.is_string() && k.get<std::string>().rfind("plugin:", 0) == 0) dp[key].push_back(k);
+            };
+            copy("pages");
+            copy("visible_pages");
+        }
     }
 private:
+    Host* host_ = nullptr;
     ItemList* list_ = nullptr;
+    bool plugins_loaded_ = false;
+    void load_plugins() {
+        if (!host_ || !list_ || !host_->plugins().list || host_->busy()) return;
+        Host* h = host_;
+        h->run([this, h]() -> std::function<void()> {
+            auto entries = h->plugins().list();
+            return [this, h, entries = std::move(entries)] {
+                std::vector<PluginPageInfo> plugins;
+                for (const auto& e : entries)
+                    if (e.enabled) plugins.push_back({"plugin:" + e.id, Text(widen(e.name))});
+                const ojson& dp = h->config().at("display");
+                const bool edited = plugins_loaded_ || list_->dirty();  // später nur abgleichen: config() zeigt den Stand beim Öffnen
+                std::vector<ItemList::Item> items;
+                if (!edited) {
+                    items = page_items(dp.at("pages"), dp.at("visible_pages"), plugins);
+                } else {
+                    // Der Nutzer hat schon umsortiert: seine Liste behalten, Plugins nur abgleichen
+                    for (auto& i : list_->items)
+                        if (i.key.rfind("plugin:", 0) != 0 ||
+                            std::any_of(plugins.begin(), plugins.end(), [&](auto& p) { return p.first == i.key; }))
+                            items.push_back(i);
+                    for (auto& p : plugins)
+                        if (std::none_of(items.begin(), items.end(), [&](auto& i) { return i.key == p.first; }))
+                            items.push_back({p.first, p.second, T(L"Plugin", L"Plugin"), true});
+                }
+                const int sel = list_->selected;
+                list_->items = items;
+                if (!edited) list_->original = items;
+                list_->selected = sel < int(items.size()) ? sel : 0;
+                plugins_loaded_ = true;
+                h->surface().invalidate();
+            };
+        });
+    }
 };
 
 }  // namespace

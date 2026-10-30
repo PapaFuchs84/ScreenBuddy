@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Pages & order lists enabled plugins (plugin:<id> keys, config::is_page_key, page_items with plugin info, async list load in PagesPage); App::active_pages honours order and checkboxes for plugins and now always applies display.visible_pages. Windows build: 279 + 251 + 41 + 127 + 140 + 135 + 11 + 335 checks passed; the GUI itself was not clicked through.
+
 ## 2.6.0 – 30 October 2026
 
 - Fix: `ui_page_store.cpp` now implements `collect()`, so the switch `ui.plugin_store` is saved (verified in an isolated instance: save + restart). The store repository now also serves plugin files from `docs/plugins/` (GitHub Pages).

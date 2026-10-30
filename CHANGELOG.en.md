@@ -6,6 +6,14 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Added
+
+- Pages & order: enabled plugins are now listed, can be reordered with ▲/▼ and shown/hidden with the checkbox (config key `plugin:<id>` in `display.pages` / `display.visible_pages`). Newly enabled plugins appear last at first.
+
+### Fixed
+
+- The checkboxes in Pages & order now also apply without a running Companion output (previously `display.visible_pages` was only evaluated with Companion).
+
 ## [2.6.0] – 2026-10-30
 
 ### Added

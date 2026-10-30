@@ -6,6 +6,14 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Seiten & Reihenfolge: aktivierte Plugins stehen jetzt in der Liste, lassen sich mit ▲/▼ sortieren und per Haken ein-/ausblenden (Konfigschlüssel `plugin:<id>` in `display.pages` / `display.visible_pages`). Neu aktivierte Plugins erscheinen zunächst hinten.
+
+### Behoben
+
+- Die Haken in Seiten & Reihenfolge wirken jetzt auch ohne laufende Companion-Ausgabe (vorher wurde `display.visible_pages` nur mit Companion ausgewertet).
+
 ## [2.6.0] – 2026-10-30
 
 ### Hinzugefügt
