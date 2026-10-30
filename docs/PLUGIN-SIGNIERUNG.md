@@ -64,6 +64,15 @@ fl-plugin-sign verify index|revoked <datei> <public-hex>
 - **Ist `store_public_key_hex` leer oder ungültig**, zeigt die Seite „nicht verfügbar“ und es gibt keinen Netzwerkzugriff. Solange unter `base_url` (GitHub Pages von `ScreenBuddy-Plugins`) kein signierter Index liegt, zeigt die Seite „nicht erreichbar“.
 - **Veröffentlichen (Maintainer):** Plugins im Store-Repository ändern, `fl-plugin-sign build-index plugins docs <sequence>` ausführen, `fl-plugin-sign sign index docs/index.json <Schlüssel.pem>` (analog `revoked.json`) und committen. Die CI des Store-Repositorys führt `fl-plugin-sign check-index` aus und lehnt jede Änderung ab, bei der Plugins und signierter Index nicht übereinstimmen. Der private Schlüssel liegt nie in GitHub.
 
+## Vorschaubilder (ab 2.6.1)
+
+Die Store-Oberfläche kann zu jedem Plugin ein Vorschaubild zeigen. Die Bilder stehen **nicht** im `index.json` (dessen Schema ist für ältere Apps fest), sondern in einer eigenen signierten Datei `previews.json` mit eigener Signaturdomäne (`FuchsLabs-ScreenBuddy-Plugin-Previews-v1`):
+
+- Bild: `plugins/<id>/preview.png`, PNG, höchstens 200 KiB, 16–1024 Pixel je Seite. Gerendert wird mit `fl-plugin-preview` (Beispieldaten, fester Zeitstempel, keine Live-Daten).
+- `previews.json`: `schema_version`, `sequence`, je Bild `id`, `file`, `sha256`, `size`. Erzeugen mit `fl-plugin-sign build-previews <ordner> <ausgabe> <sequenz>`, signieren mit `fl-plugin-sign sign previews …`, in der CI prüfen mit `check-previews`.
+- Die App lädt die Datei best effort nach dem Index, prüft Signatur, Rollback-Schutz, Größe, SHA-256 und PNG-Kopf und zeigt das Bild erst danach (Zwischenspeicher mit Hash im Namen). Fehlt die Datei oder ist sie ungültig, bleibt der Store ohne Bilder voll nutzbar.
+
+
 ## Grenzen
 
 - Die Signatur beweist, dass der Maintainer den Index veröffentlicht hat, nicht dass ein Plugin ungefährlich ist. Die Freigabe bleibt eine menschliche Prüfung.

@@ -4,6 +4,8 @@
 #include <openssl/pem.h>
 #include <openssl/sha.h>
 #include <algorithm>
+#include <array>
+#include <cstring>
 #include <memory>
 #include <set>
 
@@ -17,7 +19,12 @@ constexpr std::string_view b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrst
 constexpr size_t signature_bytes = 64;
 
 std::string prefix(Kind kind) {
-    return kind == Kind::index ? "FuchsLabs-ScreenBuddy-Plugin-Index-v1\n" : "FuchsLabs-ScreenBuddy-Plugin-Revoked-v1\n";
+    switch (kind) {
+        case Kind::index: return "FuchsLabs-ScreenBuddy-Plugin-Index-v1\n";
+        case Kind::revoked: return "FuchsLabs-ScreenBuddy-Plugin-Revoked-v1\n";
+        case Kind::previews: return "FuchsLabs-ScreenBuddy-Plugin-Previews-v1\n";
+    }
+    return "";
 }
 std::string base64_encode(const unsigned char* d, size_t n) {
     std::string out;
@@ -190,6 +197,66 @@ RevokedResult open_revoked(const PublicKey& key, std::string_view document, std:
       catch (const Json::exception&) { return {std::nullopt, "Invalid revocation value."}; }
 }
 
+unsigned png_crc32(std::string_view data) {
+    static const auto table = [] {
+        std::array<unsigned, 256> t{};
+        for (unsigned n = 0; n < 256; ++n) {
+            unsigned c = n;
+            for (int k = 0; k < 8; ++k) c = (c & 1) ? 0xEDB88320u ^ (c >> 1) : c >> 1;
+            t[n] = c;
+        }
+        return t;
+    }();
+    unsigned c = 0xFFFFFFFFu;
+    for (unsigned char ch : data) c = table[(c ^ ch) & 0xFF] ^ (c >> 8);
+    return c ^ 0xFFFFFFFFu;
+}
+
+bool png_dimensions_ok(std::string_view b) {
+    static constexpr unsigned char magic[8] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+    if (b.size() < 33 || b.size() > preview_limit || std::memcmp(b.data(), magic, 8) != 0 || std::memcmp(b.data() + 12, "IHDR", 4) != 0) return false;
+    auto u32 = [&](size_t o) { return unsigned(static_cast<unsigned char>(b[o])) << 24 | unsigned(static_cast<unsigned char>(b[o + 1])) << 16 |
+                                      unsigned(static_cast<unsigned char>(b[o + 2])) << 8 | unsigned(static_cast<unsigned char>(b[o + 3])); };
+    const unsigned w = u32(16), h = u32(20);
+    if (u32(8) != 13 || u32(29) != png_crc32(b.substr(12, 17))) return false;               // IHDR: Länge 13 und CRC
+    const unsigned char depth = static_cast<unsigned char>(b[24]), color = static_cast<unsigned char>(b[25]);
+    if (!(color == 0 || color == 2 || color == 3 || color == 4 || color == 6) || depth == 0 || depth > 16) return false;
+    static constexpr unsigned char iend[12] = {0, 0, 0, 0, 'I', 'E', 'N', 'D', 0xAE, 0x42, 0x60, 0x82};
+    if (std::memcmp(b.data() + b.size() - 12, iend, 12) != 0) return false;               // vollständiger Abschluss
+    return w >= 16 && h >= 16 && w <= preview_max_side && h <= preview_max_side;
+}
+
+bool preview_matches(const PreviewEntry& e, std::string_view bytes) {
+    return bytes.size() == e.size && sha256_hex(bytes) == e.sha256 && png_dimensions_ok(bytes);
+}
+
+PreviewsResult open_previews(const PublicKey& key, std::string_view document, std::string_view signature) {
+    if (!verify(Kind::previews, key, document, signature)) return {std::nullopt, "Previews signature invalid."};
+    try {
+        auto j = parse_strict_json(document, index_limit);
+        need(j.has_value(), "Invalid previews JSON.");
+        only(*j, {"schema_version", "sequence", "previews"});
+        need(j->contains("schema_version") && (*j)["schema_version"] == 1, "Unsupported previews schema.");
+        Previews list;
+        list.sequence = seq(*j);
+        need(j->contains("previews") && (*j)["previews"].is_array() && (*j)["previews"].size() <= max_entries, "Invalid previews list.");
+        std::set<std::string> ids;
+        for (const auto& v : (*j)["previews"]) {
+            only(v, {"id", "file", "sha256", "size"});
+            PreviewEntry e;
+            e.id = text(v, "id", 48); e.file = text(v, "file", 200); e.sha256 = text(v, "sha256", 64);
+            need(ids.insert(e.id).second, "Duplicate preview ID.");
+            need(e.file == "plugins/" + e.id + "/preview.png", "Unexpected preview path.");
+            need(hex_digits(e.sha256, 64), "Invalid SHA-256.");
+            need(v.contains("size") && v["size"].is_number_unsigned() && v["size"].get<size_t>() > 0 && v["size"].get<size_t>() <= preview_limit, "Invalid size.");
+            e.size = v["size"].get<size_t>();
+            list.items.push_back(std::move(e));
+        }
+        return {std::move(list), {}};
+    } catch (const Invalid& e) { return {std::nullopt, e.what}; }
+      catch (const Json::exception&) { return {std::nullopt, "Invalid previews value."}; }
+}
+
 bool is_revoked(const Revocations& list, std::string_view id, std::string_view version) {
     return std::any_of(list.items.begin(), list.items.end(), [&](const Revocation& r) {
         return r.id == id && (r.all || std::find(r.versions.begin(), r.versions.end(), version) != r.versions.end());
@@ -246,6 +313,19 @@ BuildResult build_index(const std::vector<BuildInput>& manifests, int sequence, 
     }
     std::sort(entries.begin(), entries.end(), [](const Json& a, const Json& b) { return a["id"] < b["id"]; });
     Json doc = {{"schema_version", 1}, {"sequence", sequence}, {"generated", generated}, {"plugins", entries}};
+    return {doc.dump(2) + "\n", {}};
+}
+BuildResult build_previews(const std::vector<PreviewInput>& images, int sequence) {
+    if (images.size() > max_entries || sequence < 0 || sequence > 2000000000) return {std::nullopt, "Invalid build input."};
+    std::vector<Json> entries;
+    std::set<std::string> ids;
+    for (const auto& in : images) {
+        if (!png_dimensions_ok(in.png_bytes)) return {std::nullopt, "Preview is not a valid PNG within limits: " + in.id};
+        if (!ids.insert(in.id).second) return {std::nullopt, "Duplicate preview ID: " + in.id};
+        entries.push_back({{"id", in.id}, {"file", "plugins/" + in.id + "/preview.png"}, {"sha256", sha256_hex(in.png_bytes)}, {"size", in.png_bytes.size()}});
+    }
+    std::sort(entries.begin(), entries.end(), [](const Json& a, const Json& b) { return a["id"] < b["id"]; });
+    Json doc = {{"schema_version", 1}, {"sequence", sequence}, {"previews", entries}};
     return {doc.dump(2) + "\n", {}};
 }
 } // namespace fl::plugins::sign
