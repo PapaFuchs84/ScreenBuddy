@@ -249,8 +249,69 @@ static void test_security_hardening() {
     CHECK(other([](auto& j) { j["sources"].erase(0); j["widgets"] = Json::array({{{"type", "clock"}, {"format", "time"}}}); }) != base);
     CHECK(other([](auto& j) { j["version"] = "2.0.0"; j["name"] = "Neu"; j["widgets"][0]["text"] = "x"; }) == base);
 }
+static Json store_ready() {
+    auto j = minimal();
+    j["description"] = "Einfache Uhr / Simple clock";
+    j["license"] = "MIT"; j["author"] = "FuchsLabs"; j["category"] = "system"; j["min_app_version"] = "2.5.0";
+    return j;
+}
+static void test_store_metadata() {
+    // Without metadata: valid locally, rejected by store rules.
+    auto plain = parse_manifest(minimal().dump());
+    CHECK(plain && plain.manifest->license.empty() && plain.manifest->author.empty());
+    CHECK(plain && store_problems(*plain.manifest).size() == 5);
+    CHECK(plain && app_compatible(*plain.manifest, "1.0.0"));
+    {   // store description counts characters, not bytes
+        auto j = store_ready(); j["description"] = "äöüäöüäöü"; // 9 characters, 18 bytes
+        auto p = parse_manifest(j.dump());
+        CHECK(p && store_problems(*p.manifest).size() == 1);
+        j["description"] = "äöüäöüäöüä";
+        p = parse_manifest(j.dump());
+        CHECK(p && store_problems(*p.manifest).empty());
+    }
+
+    auto ok = parse_manifest(store_ready().dump());
+    CHECK(ok);
+    if (ok) {
+        CHECK(ok.manifest->license == "MIT" && ok.manifest->author == "FuchsLabs");
+        CHECK(ok.manifest->category == "system" && ok.manifest->min_app_version == "2.5.0");
+        CHECK(ok.manifest->definition["license"] == "MIT"); // survives export
+        CHECK(store_problems(*ok.manifest).empty());
+        CHECK(app_compatible(*ok.manifest, "2.5.0"));
+        CHECK(app_compatible(*ok.manifest, "2.10.0")); // numeric, not textual comparison
+        CHECK(app_compatible(*ok.manifest, "3.0.0"));
+        CHECK(!app_compatible(*ok.manifest, "2.4.9"));
+        CHECK(!app_compatible(*ok.manifest, "1.99.99"));
+        CHECK(app_compatible(*ok.manifest, "garbage")); // unparsable app version never locks plugins out
+    }
+    auto bad = [](const std::function<void(Json&)>& mutation) {
+        auto j = store_ready(); mutation(j); return !parse_manifest(j.dump());
+    };
+    CHECK(parse_manifest([] { auto j = store_ready(); j["license"] = "CC0-1.0"; return j.dump(); }()));
+    CHECK(bad([](auto& j) { j["license"] = "GPL-3.0"; }));
+    CHECK(bad([](auto& j) { j["license"] = "mit"; }));
+    CHECK(bad([](auto& j) { j["license"] = 1; }));
+    CHECK(bad([](auto& j) { j["category"] = "malware"; }));
+    CHECK(bad([](auto& j) { j["author"] = ""; }));
+    CHECK(bad([](auto& j) { j["author"] = "Evil\xE2\x80\xAE" "Name"; })); // bidi control
+    CHECK(bad([](auto& j) { j["author"] = std::string(81, 'a'); }));
+    CHECK(bad([](auto& j) { j["min_app_version"] = "2.5"; }));
+    CHECK(bad([](auto& j) { j["min_app_version"] = "2.5.0-beta"; }));
+
+    // Store rules for source plugins.
+    auto weather = fixture();
+    weather["description"] = "Wetter mit Beispieldaten";
+    weather["license"] = "MIT"; weather["author"] = "A"; weather["category"] = "info"; weather["min_app_version"] = "2.5.0";
+    weather["refresh_seconds"] = 30;
+    auto fast = parse_manifest(weather.dump());
+    CHECK(fast && store_problems(*fast.manifest).size() == 1);
+    weather["refresh_seconds"] = 60;
+    weather["sources"][0]["sample"] = Json::object();
+    auto nosample = parse_manifest(weather.dump());
+    CHECK(nosample && store_problems(*nosample.manifest).size() == 1);
+}
 int main() {
-    test_validation(); test_render(); test_requests(); test_security_hardening();
+    test_validation(); test_render(); test_requests(); test_security_hardening(); test_store_metadata();
     std::printf("plugins: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;
 }

@@ -31,9 +31,9 @@ set(CORE_SOURCES
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
     src/ui_kit.cpp src/ui_logic.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
-    src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_homeassistant.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_app.cpp
+    src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_homeassistant.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_store.cpp src/ui_page_app.cpp
     src/companion.cpp src/companion_server.cpp src/network_display.cpp
-    src/plugins.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
+    src/plugins.cpp src/plugin_sign.cpp src/plugin_catalog.cpp src/plugin_catalog_net.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
 
 add_library(flcore STATIC ${CORE_SOURCES})
 target_include_directories(flcore PUBLIC src third_party/qrcodegen)
@@ -69,6 +69,23 @@ add_executable(fl-plugin-example-tests tests/plugin_examples_tests.cpp src/plugi
 target_include_directories(fl-plugin-example-tests PRIVATE src)
 target_link_libraries(fl-plugin-example-tests PRIVATE nlohmann_json::nlohmann_json)
 target_compile_definitions(fl-plugin-example-tests PRIVATE FL_PLUGIN_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/plugins")
+
+# Validator für Plugin-Autoren und Store-CI (nutzt den App-Parser, ohne Netzwerk)
+add_executable(fl-plugin-validate tools/plugin_validate.cpp src/plugins.cpp)
+target_include_directories(fl-plugin-validate PRIVATE src)
+target_link_libraries(fl-plugin-validate PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(fl-plugin-sign-tests tests/plugin_sign_tests.cpp src/plugins.cpp src/plugin_sign.cpp)
+target_include_directories(fl-plugin-sign-tests PRIVATE src)
+target_link_libraries(fl-plugin-sign-tests PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
+
+add_executable(fl-plugin-catalog-tests tests/plugin_catalog_tests.cpp src/plugins.cpp src/plugin_sign.cpp src/plugin_store.cpp src/plugin_catalog.cpp)
+target_include_directories(fl-plugin-catalog-tests PRIVATE src)
+target_link_libraries(fl-plugin-catalog-tests PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
+
+add_executable(fl-plugin-sign tools/plugin_sign.cpp src/plugins.cpp src/plugin_sign.cpp)
+target_include_directories(fl-plugin-sign PRIVATE src)
+target_link_libraries(fl-plugin-sign PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
 
 add_executable(fl-plugin-store-tests tests/plugin_store_tests.cpp src/plugins.cpp src/plugin_store.cpp)
 target_include_directories(fl-plugin-store-tests PRIVATE src)

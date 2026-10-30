@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "id": "bad-license",
+  "name": "Bad license",
+  "description": "Fixture: license outside the whitelist must be rejected.",
+  "version": "1.0.0",
+  "license": "GPL-3.0",
+  "widgets": [{"type": "clock", "format": "time"}]
+}

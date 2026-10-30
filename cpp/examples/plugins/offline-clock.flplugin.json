@@ -2,7 +2,12 @@
   "schema_version": 1,
   "id": "offline-clock",
   "name": "Uhr / Clock",
+  "description": "Einfache Uhr ohne Netzwerk / Simple offline clock.",
   "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "system",
+  "min_app_version": "2.5.0",
   "widgets": [
     {"type": "clock", "format": "time"}
   ]

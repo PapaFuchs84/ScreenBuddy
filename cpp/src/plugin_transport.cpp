@@ -25,6 +25,10 @@
 namespace fl::plugins {
 namespace {
 DataResult failure(const char* text) { return {std::nullopt, text}; }
+DataResult failure(const std::string& text) { return {std::nullopt, text}; }
+struct RawResult { std::optional<std::string> data; std::string error; };
+RawResult raw_failure(const char* text) { return {std::nullopt, text}; }
+BytesResult raw_bytes_failure(const char* text) { return {std::nullopt, text}; }
 std::string lower(std::string_view text) {
     std::string out(text);
     for (char& c : out) if (c >= 'A' && c <= 'Z') c += 'a' - 'A';
@@ -230,18 +234,18 @@ bool dns_completion_contract_for_test() {
     return dns->error.load() == 0 && dns->results != nullptr;
 }
 #endif
-DataResult fetch_public_json(const Request& request, const Authorization& authorized) {
+static RawResult fetch_raw(const Request& request, const Authorization& authorized, size_t response_cap, const char* accept_default) {
     std::string target;
-    if (!authorized || !authorized()) return failure("Source is no longer authorized.");
-    if (!request_valid(request, target)) return failure("Invalid source request.");
+    if (!authorized || !authorized()) return raw_failure("Source is no longer authorized.");
+    if (!request_valid(request, target)) return raw_failure("Invalid source request.");
 #ifndef _WIN32
-    return failure("Live plugin transport is only available on Windows.");
+    return raw_failure("Live plugin transport is only available on Windows.");
 #else
     const auto deadline = Clock::now() + std::chrono::seconds(5);
     auto release = [](DnsQuery* query) { query->release(); };
     std::unique_ptr<DnsQuery, decltype(release)> dns(new DnsQuery, release);
     if (!dns->winsock || !dns->done) {
-        dns->release(); return failure("Source resolver is unavailable.");
+        dns->release(); return raw_failure("Source resolver is unavailable.");
     }
     dns->host.assign(request.host.begin(), request.host.end());
     // A terminal dot prevents DNS suffix search from turning a public-looking
@@ -257,16 +261,16 @@ DataResult fetch_public_json(const Request& request, const Authorization& author
             GetAddrInfoExCancel(&dns->cancel);
             // Completion owns a reference, so cancellation never requires an
             // unbounded join and cannot access freed OVERLAPPED/result storage.
-            return failure("Source request timed out or was revoked.");
+            return raw_failure("Source request timed out or was revoked.");
         }
     }
-    if (dns->error.load() || !dns->results || !permitted(authorized, deadline)) return failure("Source DNS lookup failed.");
+    if (dns->error.load() || !dns->results || !permitted(authorized, deadline)) return raw_failure("Source DNS lookup failed.");
     size_t count = 0;
     for (auto* address = dns->results; address; address = address->ai_next)
         if (++count > 32 || !address->ai_addr ||
             (address->ai_family == AF_INET && address->ai_addrlen < sizeof(sockaddr_in)) ||
             (address->ai_family == AF_INET6 && address->ai_addrlen < sizeof(sockaddr_in6)) ||
-            !address_public(address->ai_addr)) return failure("Source DNS returned a non-public address.");
+            !address_public(address->ai_addr)) return raw_failure("Source DNS returned a non-public address.");
     Socket socket;
     for (auto* address = dns->results; address && permitted(authorized, deadline); address = address->ai_next) {
         socket.value = ::socket(address->ai_family, SOCK_STREAM, IPPROTO_TCP);
@@ -284,24 +288,24 @@ DataResult fetch_public_json(const Request& request, const Authorization& author
         closesocket(socket.value); socket.value = INVALID_SOCKET;
     }
     if (socket.value == INVALID_SOCKET || socket.value > static_cast<SOCKET>(std::numeric_limits<int>::max()) ||
-        !permitted(authorized, deadline)) return failure("Source connection failed.");
+        !permitted(authorized, deadline)) return raw_failure("Source connection failed.");
     std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> context(SSL_CTX_new(TLS_client_method()), SSL_CTX_free);
     if (!context || !SSL_CTX_set_min_proto_version(context.get(), TLS1_2_VERSION) || !load_roots(context.get(), deadline, authorized))
-        return failure("Source TLS trust is unavailable.");
+        return raw_failure("Source TLS trust is unavailable.");
     SSL_CTX_set_verify(context.get(), SSL_VERIFY_PEER, nullptr);
     std::unique_ptr<SSL, decltype(&SSL_free)> tls(SSL_new(context.get()), SSL_free);
     if (!tls || !SSL_set_fd(tls.get(), static_cast<int>(socket.value)) ||
         !SSL_set_tlsext_host_name(tls.get(), request.host.c_str()) || !SSL_set1_host(tls.get(), request.host.c_str()))
-        return failure("Source TLS setup failed.");
+        return raw_failure("Source TLS setup failed.");
     SSL_set_hostflags(tls.get(), X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
     while (true) {
-        if (!permitted(authorized, deadline)) return failure("Source request timed out or was revoked.");
+        if (!permitted(authorized, deadline)) return raw_failure("Source request timed out or was revoked.");
         ERR_clear_error();
         const int result = SSL_connect(tls.get());
         if (result == 1) break;
-        if (!wait_tls(tls.get(), result, socket.value, deadline, authorized)) return failure("Source TLS verification failed.");
+        if (!wait_tls(tls.get(), result, socket.value, deadline, authorized)) return raw_failure("Source TLS verification failed.");
     }
-    if (SSL_get_verify_result(tls.get()) != X509_V_OK) return failure("Source TLS verification failed.");
+    if (SSL_get_verify_result(tls.get()) != X509_V_OK) return raw_failure("Source TLS verification failed.");
     std::string message = "GET " + target + " HTTP/1.1\r\nHost: " + request.host +
         "\r\nConnection: close\r\nAccept-Encoding: identity\r\n";
     bool accept = false;
@@ -309,48 +313,59 @@ DataResult fetch_public_json(const Request& request, const Authorization& author
         accept |= lower(key) == "accept";
         message += key + ": " + value + "\r\n";
     }
-    if (!accept) message += "Accept: application/json\r\n";
+    if (!accept) message += std::string("Accept: ") + accept_default + "\r\n";
     message += "\r\n";
     size_t sent = 0;
     while (sent < message.size()) {
-        if (!permitted(authorized, deadline)) return failure("Source request timed out or was revoked.");
+        if (!permitted(authorized, deadline)) return raw_failure("Source request timed out or was revoked.");
         ERR_clear_error();
         const int result = SSL_write(tls.get(), message.data() + sent, static_cast<int>(message.size() - sent));
         if (result > 0) sent += result;
-        else if (!wait_tls(tls.get(), result, socket.value, deadline, authorized)) return failure("Source send failed.");
+        else if (!wait_tls(tls.get(), result, socket.value, deadline, authorized)) return raw_failure("Source send failed.");
     }
     std::string response;
     while (true) {
-        if (!permitted(authorized, deadline)) return failure("Source request timed out or was revoked.");
+        if (!permitted(authorized, deadline)) return raw_failure("Source request timed out or was revoked.");
         ERR_clear_error();
         char bytes[8192]; const int result = SSL_read(tls.get(), bytes, sizeof bytes);
         if (result > 0) {
-            if (response.size() + result > response_limit + 64 * 1024) return failure("Source response exceeds size limit.");
+            if (response.size() + result > response_cap) return raw_failure("Source response exceeds size limit.");
             response.append(bytes, result);
             const auto split = response.find("\r\n\r\n");
             if ((split == response.npos && response.size() > 16 * 1024) || (split != response.npos && split > 16 * 1024))
-                return failure("Invalid source response headers.");
+                return raw_failure("Invalid source response headers.");
         } else {
             if (SSL_get_error(tls.get(), result) == SSL_ERROR_ZERO_RETURN) break;
-            if (!wait_tls(tls.get(), result, socket.value, deadline, authorized)) return failure("Source receive failed.");
+            if (!wait_tls(tls.get(), result, socket.value, deadline, authorized)) return raw_failure("Source receive failed.");
         }
     }
-    if (!permitted(authorized, deadline)) return failure("Source request timed out or was revoked.");
-    return decode_source_http(response);
+    if (!permitted(authorized, deadline)) return raw_failure("Source request timed out or was revoked.");
+    return {std::move(response), {}};
 #endif
 }
-DataResult decode_source_http(std::string_view response) {
+DataResult fetch_public_json(const Request& request, const Authorization& authorized) {
+    auto raw = fetch_raw(request, authorized, response_limit + 64 * 1024, "application/json");
+    if (!raw.data) return failure(raw.error);
+    return decode_source_http(*raw.data);
+}
+BytesResult fetch_public_bytes(const Request& request, const Authorization& authorized, size_t body_limit) {
+    if (body_limit == 0 || body_limit > 4 * 1024 * 1024) return {std::nullopt, "Invalid size limit."};
+    auto raw = fetch_raw(request, authorized, body_limit + 64 * 1024, "*/*");
+    if (!raw.data) return {std::nullopt, raw.error};
+    return decode_http_body(*raw.data, body_limit, false);
+}
+BytesResult decode_http_body(std::string_view response, size_t body_limit, bool json_only) {
     constexpr size_t header_limit = 16 * 1024;
     // Chunk framing is separately bounded; decoded JSON is always <=512 KiB.
-    if (response.size() > response_limit + 64 * 1024) return failure("Source response exceeds size limit.");
+    if (response.size() > body_limit + 64 * 1024) return raw_bytes_failure("Source response exceeds size limit.");
     const auto split = response.find("\r\n\r\n");
-    if (split == response.npos || split > header_limit) return failure("Invalid source response headers.");
+    if (split == response.npos || split > header_limit) return raw_bytes_failure("Invalid source response headers.");
     auto headers = response.substr(0, split);
     const auto first = headers.find("\r\n");
     auto status = headers.substr(0, first);
     if ((!status.starts_with("HTTP/1.1 ") && !status.starts_with("HTTP/1.0 ")) || status.size() < 12 ||
         status.substr(9, 3) != "200" || (status.size() > 12 && status[12] != ' '))
-        return failure("Source did not return HTTP 200.");
+        return raw_bytes_failure("Source did not return HTTP 200.");
     headers = first == headers.npos ? std::string_view() : headers.substr(first + 2);
     std::map<std::string, std::string> values;
     while (!headers.empty()) {
@@ -358,48 +373,54 @@ DataResult decode_source_http(std::string_view response) {
         auto line = headers.substr(0, end);
         auto colon = line.find(':');
         if (colon == line.npos || colon == 0 || line.front() == ' ' || line.front() == '\t')
-            return failure("Invalid source response headers.");
+            return raw_bytes_failure("Invalid source response headers.");
         const auto key = lower(line.substr(0, colon));
         for (char c : key) if (!((c >= 'a' && c <= 'z') || c == '-' || (c >= '0' && c <= '9')))
-            return failure("Invalid source response headers.");
+            return raw_bytes_failure("Invalid source response headers.");
         auto value = trim(line.substr(colon + 1));
         for (unsigned char c : value) if ((c < 32 && c != '\t') || c == 127)
-            return failure("Invalid source response headers.");
+            return raw_bytes_failure("Invalid source response headers.");
         if ((key == "content-length" || key == "transfer-encoding" || key == "content-encoding" || key == "content-type") && values.contains(key))
-            return failure("Ambiguous source response headers.");
+            return raw_bytes_failure("Ambiguous source response headers.");
         values[key] = lower(value);
         headers = end == headers.npos ? std::string_view() : headers.substr(end + 2);
     }
     const auto type = trim(std::string_view(values["content-type"]).substr(0, values["content-type"].find(';')));
-    if (type != "application/json" && !(type.starts_with("application/") && type.ends_with("+json")))
-        return failure("Source response must have a JSON content type.");
+    if (json_only && type != "application/json" && !(type.starts_with("application/") && type.ends_with("+json")))
+        return raw_bytes_failure("Source response must have a JSON content type.");
     if (values.contains("content-encoding") && values["content-encoding"] != "identity")
-        return failure("Compressed source responses are not accepted.");
+        return raw_bytes_failure("Compressed source responses are not accepted.");
     auto body = response.substr(split + 4);
     if (values.contains("transfer-encoding")) {
         if (values.contains("content-length") || values["transfer-encoding"] != "chunked")
-            return failure("Unsupported source response framing.");
+            return raw_bytes_failure("Unsupported source response framing.");
         std::string decoded;
         while (true) {
             auto end = body.find("\r\n");
             size_t count = 0;
             if (end == body.npos || end > 128 || !number(body.substr(0, end), count, 16))
-                return failure("Invalid source chunk framing.");
+                return raw_bytes_failure("Invalid source chunk framing.");
             body.remove_prefix(end + 2);
             if (!count) {
-                if (body != "\r\n") return failure("Source trailers are not accepted.");
-                return parse_source_data(decoded);
+                if (body != "\r\n") return raw_bytes_failure("Source trailers are not accepted.");
+                return BytesResult{std::move(decoded), {}};
             }
-            if (count > response_limit - decoded.size()) return failure("Source response exceeds size limit.");
-            if (body.size() < count + 2 || body.substr(count, 2) != "\r\n") return failure("Incomplete source response.");
+            if (count > body_limit - decoded.size()) return raw_bytes_failure("Source response exceeds size limit.");
+            if (body.size() < count + 2 || body.substr(count, 2) != "\r\n") return raw_bytes_failure("Incomplete source response.");
             decoded.append(body.substr(0, count)); body.remove_prefix(count + 2);
         }
     }
     if (values.contains("content-length")) {
         size_t count = 0;
-        if (!number(values["content-length"], count) || count != body.size()) return failure("Incomplete source response.");
+        if (!number(values["content-length"], count) || count != body.size()) return raw_bytes_failure("Incomplete source response.");
     }
-    return parse_source_data(body);
+    if (body.size() > body_limit) return raw_bytes_failure("Source response exceeds size limit.");
+    return BytesResult{std::string(body), {}};
+}
+DataResult decode_source_http(std::string_view response) {
+    auto body = decode_http_body(response, response_limit, true);
+    if (!body.data) return failure(body.error.c_str());
+    return parse_source_data(*body.data);
 }
 Transport::Transport(Fetch fetch, Now now) : fetch_(std::move(fetch)), now_(std::move(now)) {}
 void Transport::clear() { cache_.clear(); }

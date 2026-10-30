@@ -23,6 +23,7 @@ std::vector<std::unique_ptr<Page>> create_pages() {
     // Verbindung
     pages.push_back(make_companion_page());
     pages.push_back(make_plugins_page());
+    pages.push_back(make_store_page());
     // App
     pages.push_back(make_design_page());
     pages.push_back(make_app_page());

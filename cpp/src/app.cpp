@@ -14,6 +14,7 @@
 #include "ha.h"
 #include "i18n.h"
 #include "native_settings.h"
+#include "plugin_catalog_net.h"
 #include "plugin_render.h"
 #include "plugin_transport.h"
 #include "rss.h"
@@ -817,6 +818,7 @@ void App::run() {
     });
     std::unique_ptr<NativeSettings> native_settings;
     std::unique_ptr<SettingsServer> server;
+    std::jthread store_worker;
     if (b(cfg_["ui"], "enabled", true)) {
         NativePluginActions actions;
         actions.list = [this] {
@@ -884,6 +886,94 @@ void App::run() {
             std::string error;
             if (!plugin_remove(id, error)) throw std::runtime_error(error);
         };
+        // Plugin store client. Stays idle without the pinned production key, with the switch off, or offline.
+        struct StoreClient {
+            std::mutex mu;
+            std::optional<plugins::catalog::Catalog> catalog;
+            bool created = false;
+            long long last_refresh = 0;
+            std::string state = "offline", message;
+            bool from_cache = false;
+        };
+        auto store_client = std::make_shared<StoreClient>();
+        const auto store_dir = cfg_path_.parent_path() / L"plugin-store";
+        auto store_enabled = [this] { return b(cfg()["ui"], "plugin_store", true); };
+        auto store_ensure = [store_dir](StoreClient& c) { // caller holds c.mu
+            if (c.created) return;
+            c.created = true;
+            c.catalog = plugins::catalog::Catalog::from_pinned_key(store_dir, plugins::catalog::public_https_fetcher(), VERSION);
+            if (c.catalog && c.catalog->index()) { c.state = "available"; c.from_cache = true; }
+        };
+        auto store_snapshot = [this, store_client, store_enabled, store_ensure](const std::string& search, const std::string& category) {
+            NativeStoreState out;
+            if (!store_enabled()) { out.state = "disabled"; return out; }
+            std::lock_guard lk(store_client->mu);
+            store_ensure(*store_client);
+            if (!store_client->catalog) { out.state = "unavailable"; return out; }
+            out.state = store_client->state;
+            out.from_cache = store_client->from_cache;
+            out.message = store_client->message;
+            const auto installed = plugins_ ? plugins_->entries() : std::vector<plugins::Installed>{};
+            for (const auto& card : store_client->catalog->list({search, category, false}, installed)) {
+                NativeStoreCard c;
+                const auto& e = card.entry;
+                c.id = e.id; c.name = e.name; c.description = e.description; c.version = e.version; c.author = e.author;
+                c.license = e.license; c.category = e.category; c.min_app_version = e.min_app_version; c.hosts = e.hosts;
+                c.installed_version = card.installed_version; c.new_hosts = card.new_hosts;
+                switch (card.status) {
+                    case plugins::catalog::Status::installed: c.status = "installed"; break;
+                    case plugins::catalog::Status::update_available: c.status = "update_available"; break;
+                    case plugins::catalog::Status::unsupported: c.status = "unsupported"; break;
+                    case plugins::catalog::Status::revoked: c.status = "revoked"; break;
+                    default: c.status = "not_installed"; break;
+                }
+                out.cards.push_back(std::move(c));
+            }
+            return out;
+        };
+        actions.store_list = store_snapshot;
+        actions.store_refresh = [this, store_client, store_enabled, store_ensure, store_snapshot](bool force) {
+            if (store_enabled()) {
+                std::lock_guard lk(store_client->mu);
+                store_ensure(*store_client);
+                const long long now = static_cast<long long>(std::time(nullptr));
+                const bool due = now - store_client->last_refresh >= (force ? 60 : 24 * 3600);
+                if (store_client->catalog && due) {
+                    const auto result = store_client->catalog->refresh();
+                    store_client->last_refresh = now;
+                    store_client->from_cache = result.from_cache;
+                    store_client->message = result.error;
+                    const bool have_index = store_client->catalog->index().has_value();
+                    store_client->state = result.state == plugins::catalog::Availability::invalid ? "invalid"
+                        : (result.state == plugins::catalog::Availability::available || have_index) ? "available" : "offline";
+                    // Revoked plugins are switched off after every attempt, including offline ones (cached list).
+                    if (plugins_ && !store_client->catalog->enforce_revocations(*plugins_).empty()) mark_dirty();
+                }
+            }
+            return store_snapshot("", "");
+        };
+        actions.store_install = [this, store_client](const std::string& id) {
+            std::lock_guard lk(store_client->mu);
+            if (!store_client->catalog || !plugins_) throw std::runtime_error("Der Plugin-Store ist nicht verfügbar.");
+            std::string error;
+            const auto result = store_client->catalog->install(*plugins_, id, [this, &error](std::string_view bytes) {
+                plugins::StoreResult out;
+                out.ok = plugin_import(bytes, error);
+                out.error = error;
+                return out;
+            });
+            if (!result) throw std::runtime_error(result.error.empty() ? "Installation fehlgeschlagen." : result.error);
+        };
+        // Background sync: first after 30 s, then hourly; the callback itself limits real fetches to once a day.
+        if (actions.store_refresh) {
+            store_worker = std::jthread([refresh = actions.store_refresh](std::stop_token stop) {
+                for (int i = 0; i < 300 && !stop.stop_requested(); ++i) Sleep(100);
+                while (!stop.stop_requested()) {
+                    try { refresh(false); } catch (...) {}
+                    for (int i = 0; i < 36000 && !stop.stop_requested(); ++i) Sleep(100);
+                }
+            });
+        }
         try { native_settings = std::make_unique<NativeSettings>(*this, std::move(actions)); }
         catch (const std::exception& error) { LOGE("settings", "Native UI konnte nicht gestartet werden: %s", error.what()); }
         catch (...) { LOGE("settings", "Native UI konnte nicht gestartet werden: unbekannter Fehler"); }
@@ -919,6 +1009,8 @@ void App::run() {
     display_loop();
     plugin_worker.request_stop();
     if (plugin_worker.joinable()) plugin_worker.join();
+    store_worker.request_stop();
+    if (store_worker.joinable()) store_worker.join();
     if (update_) update_->stop();
     {
         std::lock_guard lk(notify_mu_);

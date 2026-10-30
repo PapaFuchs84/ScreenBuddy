@@ -35,6 +35,9 @@ struct Widget {
 };
 struct Manifest {
     std::string id, name, description, version;
+    // Store metadata (optional for local use, required by store_problems): SPDX license from the
+    // whitelist, author display name, category slug and minimum ScreenBuddy version (X.Y.Z).
+    std::string license, author, category, min_app_version;
     int refresh_seconds = 60;
     std::vector<Setting> settings;
     std::vector<Source> sources;
@@ -53,6 +56,17 @@ struct DataResult {
     explicit operator bool() const { return data.has_value(); }
 };
 ParseResult parse_manifest(std::string_view utf8);
+// Same strict JSON rules as manifests (size limit, nesting 32, no duplicate keys); nullopt on any violation.
+std::optional<Json> parse_strict_json(std::string_view utf8, size_t limit);
+// Store metadata whitelists (plugin store, phase 1).
+inline constexpr const char* store_licenses[] = {"MIT", "CC0-1.0"};
+inline constexpr const char* store_categories[] = {"system", "games", "smart-home", "info", "other"};
+// True when `app_version` (X.Y.Z) satisfies the manifest's min_app_version; a manifest without
+// the field, or an unparsable app version, counts as compatible. Pure, no I/O.
+bool app_compatible(const Manifest& manifest, std::string_view app_version);
+// Extra rules for plugin store submissions on top of parse_manifest. Empty = acceptable.
+// Fixed diagnostics, never manifest values. Local imports do not call this.
+std::vector<std::string> store_problems(const Manifest& manifest);
 // Windows device names (con, prn, aux, nul, com1-9, lpt1-9; case-insensitive) are never valid plugin IDs.
 bool reserved_device_name(std::string_view id);
 // Canonical text over everything that decides where data/secrets may flow: per source
