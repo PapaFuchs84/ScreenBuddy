@@ -35,6 +35,7 @@ flowchart LR
   app --> xbox[OpenXBL]
   app --> bf6[gametools.network]
   app --> rss[RSS/Atom-Feeds]
+  app --> tmdb[TMDB API v3 + JustWatch-Anbieterdaten]
   app --> ha[Home Assistant REST]
   app --> gh[GitHub Releases: Update-Hinweis]
   app --> store[Plugin-Store ScreenBuddy-Plugins]
@@ -57,7 +58,7 @@ Gruppierung nach den Dateien in `cpp/src/`:
 | Start und Ablauf | `main`, `app`, `tray` | Prozessstart, Hauptschleife, Infobereich-Symbol |
 | Installation | `installer`, `winsetup`, `update` | Installer in der EXE, Windows-Einrichtung/Autostart, Update-Hinweis |
 | Konfiguration | `config`, `secure`, `i18n`, `brand` | `config.toml`, DPAPI-Schlüssel, DE/EN-Texte, CI |
-| Datenquellen | `sysinfo`, `discord`, `friends`, `bf6`, `rss`, `ha` | System, Discord, Freunde (Discord/Steam/Xbox), Battlefield 6, Blogs, Home Assistant |
+| Datenquellen | `sysinfo`, `discord`, `friends`, `bf6`, `rss`, `tmdb`, `tmdb_logic`, `ha` | System, Discord, Freunde (Discord/Steam/Xbox), Battlefield 6, Blogs, Streaming-Neustarts (TMDB; `tmdb_logic` plattformneutral und unter Linux testbar), Home Assistant |
 | Netz und Schutz | `http`, `netguard`, `webui` | HTTPS-Abrufe, Prüfung auf nicht öffentliche Ziele, lokaler Loopback-Dienst |
 | Darstellung | `render`, `gfx`, `models` | Seiten rendern, Grafikhilfen, Datenmodelle |
 | Ausgabe | `output.h`, `serial_display`, `monitor_display`, `network_display`, `touch` | USB-Display, Vollbild-Monitor, Netzwerk-/Companion-Ausgabe, Touch-Eingabe |

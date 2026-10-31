@@ -7,6 +7,7 @@ Aus dem README ausgelagert (Stand 2.7.0). Englisch: [FEATURES.en.md](FEATURES.en
 - [Systemseite per Touch und Update-Hinweis (ab 2.2.0)](#systemseite-per-touch-und-update-hinweis-ab-220)
 - [Touch-Ziele und Spielstunden (ab 2.0.8)](#touch-ziele-und-spielstunden-ab-208)
 - [Home Assistant (ab 2.1.0)](#home-assistant-ab-210)
+- [Streaming-Neustarts (noch nicht veröffentlicht)](#streaming-neustarts-noch-nicht-veröffentlicht)
 - [Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)](#android-companion-app-ab-230-mehrere-geräte-ab-270)
 - [Plugin-Store und Plugins (ab 2.6.0)](#plugin-store-und-plugins-ab-260)
 - [Ansichten durchblättern (ab 2.0.4)](#ansichten-durchblättern-ab-204)
@@ -24,6 +25,17 @@ Entwickelt als 2.0.7; diese Version wurde nicht einzeln veröffentlicht, die Fun
 ## Home Assistant (ab 2.1.0)
 
 Seite **Home Assistant** mit bis zu 4 Kacheln. **Sensoren** (auch Binärsensoren) zeigen Wert und Einheit. **Schalter** (Schalter, Licht, Ventilator, Eingabe-Schalter) zeigen An/Aus und lassen sich bei aktivem Touch per Tipp umlegen. Ohne Touch kannst du in den Einstellungen nur Sensoren wählen. Einrichtung unter **Einstellungen → Home Assistant**: Adresse (z. B. `http://homeassistant.local:8123`), ein langlebiges Zugriffstoken (Profil in Home Assistant → Sicherheit) und die Entitäten aus der Liste, die **Verbindung prüfen** direkt aus Home Assistant lädt. Das Token liegt wie die anderen Schlüssel DPAPI-verschlüsselt in `config.toml`. Die App fragt die REST-API alle 15 Sekunden ab; ein Tipp auf einen Schalter wirkt sofort. Schlösser, Rollläden und Alarmanlagen lassen sich bewusst nicht schalten. Bei einer Adresse mit `http://` laufen Token und Werte unverschlüsselt durchs Heimnetz; nutze dort `https://`, wenn Home Assistant es anbietet.
+
+## Streaming-Neustarts (noch nicht veröffentlicht)
+
+Seite **Streaming-Neustarts** („New on streaming“): zeigt Filme und Serien, die in den letzten 30 Tagen erschienen sind und bei den gewählten Anbietern im Abo (Flatrate) laufen. Pro Zeile Titel, Datum, Film oder Serie und das Kürzel des Anbieters (z. B. NF, PV, D+, ATV+, WOW, RTL+). Bis zu 6 Zeilen, neueste zuerst.
+
+- **Einrichtung:** unter **Einstellungen → Streaming-Neustarts** die Seite einschalten und einen kostenlosen TMDB-Key eintragen (themoviedb.org → Einstellungen → API; der v3-Key oder das „API Read Access Token“ funktionieren). Der Key liegt wie die anderen Schlüssel DPAPI-verschlüsselt in `config.toml` und wird nie protokolliert oder angezeigt. **Key prüfen & Anbieter laden** holt die Anbieterliste deiner Region aus TMDB; mit Haken wählst du die Anbieter (bis zu 30). Vorgewählt sind Netflix (8), Prime Video (9 und 119), Disney+ (337), Apple TV+ (350), WOW (30) und RTL+ (298). Weicht eine ID in deiner Region ab, korrigiere sie über die geladene Liste.
+- **Region:** folgt der App-Sprache (Deutsch: DE, Englisch: US); im Feld **Region** (`region` unter `[streaming]`) mit zwei Buchstaben überschreibbar, z. B. `AT`.
+- **Abruf:** nur GET über HTTPS an `api.themoviedb.org/3`. Je Aktualisierung zwei Suchanfragen (Filme, Serien) plus – nur für die angezeigten Einträge und einmal gemerkt – eine Anbieterabfrage je Eintrag; höchstens stündlich (Cache 1 Stunde), kleine Pausen zwischen den Anfragen. Bei Fehlern bleiben alte Einträge sichtbar, die App versucht es nach 10 Minuten (bei „Limit erreicht“ nach 15 Minuten, bei ungültigem Key erst zur nächsten Stunde) erneut.
+- **Anzeige ohne Daten:** „Kein Key“ (Seite an, aber kein Key), „Lade Daten …“, „Keine Daten“ (Fehler oder offline, nie ein Absturz).
+- **Datenschutz:** TMDB sieht deine IP-Adresse und die gewählte Region/Anbieterliste, nicht dein Konto bei den Streaming-Diensten.
+- **Nachweis:** This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch. Die Seite trägt die Fußzeile „TMDB / JustWatch“; der Hinweis steht auch in den Einstellungen (Updates & Autostart → Nachweise) und in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). Das offizielle TMDB-Logo ist noch nicht eingebunden.
 
 ## Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)
 

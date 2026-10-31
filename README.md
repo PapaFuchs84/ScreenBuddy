@@ -49,8 +49,11 @@ Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C
 | **Discord-Freunde** | Status, Aktivität, Avatar | eigener Discord-Bot | sofort |
 | **Battlefield 6 · Rangliste** | eingetragene EA-Freunde nach Rang, mit Abzeichen, K/D und Siegquote | [gametools.network](https://api.gametools.network) | 15 min |
 | **Blog-Updates** | neuester Beitrag je Blog; den Feed findet die App selbst | RSS/Atom | 30 min |
+| **Streaming-Neustarts** (neu, noch nicht veröffentlicht) | neue Filme und Serien der letzten 30 Tage bei deinen gewählten Streaming-Anbietern (Titel, Datum, Film/Serie, Anbieter) | [TMDB](https://www.themoviedb.org) API, Anbieterdaten von JustWatch; eigener Key | 1 h |
 | **Home Assistant** | bis zu 4 Sensoren (Wert, Einheit) oder Schalter (per Touch schaltbar) | Home-Assistant-REST-API | 15 s |
 | **Plugins** | eigene Seiten aus geprüften, deklarativen Plugins | Plugin-Store oder lokales Manifest | je Plugin |
+
+*Streaming-Neustarts nutzen die TMDB-API: This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.*
 
 Dazu kommen:
 
@@ -118,7 +121,7 @@ output = "serial"          # "serial" = 3,5"-USB-Display, "monitor" = HDMI/USB-C
 orientation = "landscape"  # auch reverse_landscape, portrait, reverse_portrait
 brightness = 90
 page_seconds = 15
-pages = ["system", "friends", "discord", "bf6", "rss", "homeassistant"]   # Reihenfolge
+pages = ["system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant"]   # Reihenfolge
 theme = "hell"             # "hell", "dunkel" oder "eigen"
 touch = true               # nur bei output = "monitor"
 
@@ -129,6 +132,11 @@ players = ["FuchsKumpel", "Lena_Sniper@psn"]
 [rss]
 enabled = true
 feeds = ["https://winfuture.de/"]
+
+[streaming]
+enabled = true
+region = ""                # leer = Deutsch: DE, Englisch: US
+providers = ["8|Netflix", "337|Disney+"]   # TMDB-Provider-IDs; der Key steht verschlüsselt in api_key
 
 [homeassistant]
 enabled = true

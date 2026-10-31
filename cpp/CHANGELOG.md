@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- New page `streaming` (New on streaming): `tmdb_logic.{h,cpp}` (platform-neutral: key kind, region, provider selection/abbreviations, request paths, discover/provider parsing, merge, dates) with test target `fl-tmdb-tests` (77 checks, fixed JSON samples, no network; Linux via `tests/build-linux.sh`, Windows via `build.bat`), `tmdb.{h,cpp}` (TMDB v3 client: worker thread with 1 h cache, pacing, back-off, key only in request/Bearer header and never logged; `list_providers` for the settings), `StreamRenderer`/`demo_stream` in render, `ui_page_streaming.cpp` (key field, region, provider multi-select, entries slider), credits card on the Updates & startup page, config section `[streaming]` (`api_key` DPAPI secret, `region`, `providers` as `ID|Name`, `max_items` 1-6, `refresh_minutes` >= 60), `streaming` added to `config::PAGES`, `i18n::to_english`, DE/EN strings, guide step (text only, templates and `cpp/res`). Expected test-count changes in `tests.cpp` (7 default pages). Not built on Windows/MSVC here; `tests.cpp`, the GUI and the display output were not run.
+
 ## 2.7.0 – 31 October 2026
 
 - Store installation passes force_disabled through the host importer to Store::import_manifest; the disabled marker is persisted before the manifest, including offline plugins and updates. Direct local imports keep their previous behavior. Regression coverage checks reload and host importer handling.

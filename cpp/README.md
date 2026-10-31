@@ -30,7 +30,7 @@ The installer can import the Version 1.x `config.toml`. Secrets use Windows DPAP
 
 ## Features
 
-- System statistics, friends from Discord/Steam/Xbox, Battlefield 6 profiles, and RSS/Atom feeds.
+- System statistics, friends from Discord/Steam/Xbox, Battlefield 6 profiles, RSS/Atom feeds, and new releases on streaming services (TMDB API, provider data from JustWatch; unreleased). This product uses the TMDB API but is not endorsed or certified by TMDB.
 - USB serial display and full-screen monitor output, orientation, brightness, touch navigation, themes, and scalable multi-tile layouts.
 - Tray controls, current-user autostart, installer, updater and uninstaller. ScreenBuddy 2.5 has native Win32 settings; earlier 2.3.0 used WebView2. The loopback API and embedded guide remain available.
 - Settings server binds only to loopback. Requests are checked for local Host, browser fetch metadata, and the `X-FL: 1` write header. RSS targets and redirects are checked against non-public IP ranges.

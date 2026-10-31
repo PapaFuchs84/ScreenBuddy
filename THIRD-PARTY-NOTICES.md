@@ -54,8 +54,9 @@ ScreenBuddy ruft nur auf Wunsch des Nutzers und mit dessen eigenen Zugangsdaten 
 - Steam Web API (API-Schlüssel des Nutzers) – Steam Web API Terms of Use
 - OpenXBL / xbl.io (Schlüssel des Nutzers) – Bedingungen von OpenXBL
 - gametools.network (Battlefield-6-Statistik, inkl. Rang-Icons von EA/DICE) – Bedingungen des Betreibers
+- TMDB API v3 (api.themoviedb.org, Key des Nutzers) für die Seite „Streaming-Neustarts“ – TMDB API Terms of Use. **This product uses the TMDB API but is not endorsed or certified by TMDB.** Anbieterdaten (Watch Providers): **JustWatch**. Es werden nur Titel, Datum und Anbieternamen angezeigt; das offizielle TMDB-Logo ist noch nicht eingebunden (nur Textnachweis)
 - RSS-/Atom-Feeds, die der Nutzer einträgt (z. B. heise.de) – Rechte liegen bei den jeweiligen Verlagen; es werden nur Titel angezeigt
 
 ## Marken
 
-Battlefield, EA, Discord, Steam, Xbox, Windows, Segoe und Bahnschrift sind Marken bzw. geschützte Namen ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen und wird von ihnen nicht unterstützt. Name und Fuchs-Logo „FuchsLabs“ sind von einer Open-Source-Lizenz des Codes ausgenommen.
+TMDB, JustWatch, Netflix, Prime Video, Disney+, Apple TV+, WOW, RTL+, Battlefield, EA, Discord, Steam, Xbox, Windows, Segoe und Bahnschrift sind Marken bzw. geschützte Namen ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen und wird von ihnen nicht unterstützt. Name und Fuchs-Logo „FuchsLabs“ sind von einer Open-Source-Lizenz des Codes ausgenommen.

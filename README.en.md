@@ -49,8 +49,11 @@ A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary sc
 | **Discord friends** | status, activity, avatar | your own Discord bot | instant |
 | **Battlefield 6 · Leaderboard** | the EA friends you add, ranked, with badge, K/D and win rate | [gametools.network](https://api.gametools.network) | 15 min |
 | **Blog updates** | newest post per blog; the app finds the feed itself | RSS/Atom | 30 min |
+| **New on streaming** (new, not yet released) | new movies and series of the last 30 days on your chosen streaming services (title, date, movie/series, service) | [TMDB](https://www.themoviedb.org) API, provider data from JustWatch; your own key | 1 h |
 | **Home Assistant** | up to 4 sensors (value, unit) or switches (flippable by touch) | Home Assistant REST API | 15 s |
 | **Plugins** | your own pages from reviewed, declarative plugins | plugin store or local manifest | per plugin |
+
+*New on streaming uses the TMDB API: This product uses the TMDB API but is not endorsed or certified by TMDB. Provider data: JustWatch.*
 
 Plus:
 
@@ -118,7 +121,7 @@ output = "serial"          # "serial" = 3.5" USB display, "monitor" = HDMI/USB-C
 orientation = "landscape"  # also reverse_landscape, portrait, reverse_portrait
 brightness = 90
 page_seconds = 15
-pages = ["system", "friends", "discord", "bf6", "rss", "homeassistant"]   # order
+pages = ["system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant"]   # order
 theme = "hell"             # "hell" (light), "dunkel" (dark) or "eigen" (custom)
 touch = true               # only with output = "monitor"
 
@@ -129,6 +132,11 @@ players = ["FuchsKumpel", "Lena_Sniper@psn"]
 [rss]
 enabled = true
 feeds = ["https://www.theverge.com/"]
+
+[streaming]
+enabled = true
+region = ""                # empty = German: DE, English: US
+providers = ["8|Netflix", "337|Disney+"]   # TMDB provider IDs; the key is stored encrypted in api_key
 
 [homeassistant]
 enabled = true
