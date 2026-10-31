@@ -14,11 +14,12 @@
 #include <toml++/toml.hpp>
 
 #include "secure.h"
+#include "tmdb_logic.h"
 #include "util.h"
 
 namespace fl::config {
 
-const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss", "homeassistant", "spotify"};
+const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify"};
 
 bool is_page_key(const std::string& k) {
     if (std::count(PAGES.begin(), PAGES.end(), k)) return true;
@@ -51,6 +52,10 @@ const ojson& defaults() {
                     {"title", "Battlefield 6 · Rangliste"}};
         j["rss"] = {{"enabled", false}, {"feeds", ojson::array()}, {"refresh_minutes", 30}, {"max_items", 4},
                     {"max_per_feed", 1}, {"title", "Blog-Updates"}};
+        // Streaming-Neustarts (TMDB API v3): region leer = aus der App-Sprache (de → DE, en → US);
+        // providers = Zeilen „ID|Name“ (TMDB-Provider-IDs); refresh_minutes mindestens 60 (Cache 1 h)
+        j["streaming"] = {{"enabled", false}, {"title", "Neu bei Streaming"}, {"api_key", ""}, {"region", ""},
+                          {"providers", tmdb::default_provider_lines()}, {"max_items", 5}, {"refresh_minutes", 60}};
         j["homeassistant"] = {{"enabled", false}, {"title", "Home Assistant"}, {"url", ""}, {"token", ""},
                               {"entities", ojson::array()}};
         j["spotify"] = {{"enabled", false}, {"title", "Spotify"}, {"client_id", ""}};
@@ -68,6 +73,7 @@ const ojson& defaults() {
 static const std::map<Key, std::pair<long long, long long>> LIMITS = {
     {{"display", "brightness"}, {0, 100}}, {{"display", "page_seconds"}, {3, 600}},
     {{"bf6", "refresh_minutes"}, {5, 240}}, {{"rss", "refresh_minutes"}, {10, 720}},
+    {{"streaming", "max_items"}, {1, tmdb::MAX_ITEMS}}, {{"streaming", "refresh_minutes"}, {tmdb::MIN_REFRESH_MINUTES, 720}},
     {{"rss", "max_items"}, {1, 4}},        {{"rss", "max_per_feed"}, {1, 4}},
     {{"ui", "port"}, {1024, 65535}},
     {{"companion", "port"}, {1024, 65535}}, {{"companion", "page_seconds"}, {3, 600}},
@@ -83,7 +89,7 @@ static const std::map<Key, std::vector<std::string>> CHOICES = {
 };
 static const std::set<Key> ID_LISTS = {{"discord", "guild_ids"}, {"discord", "friend_ids"}, {"discord", "ignore_ids"}};
 static const std::vector<Key> SECRETS = {{"discord", "token"}, {"friends", "steam_api_key"}, {"friends", "xbox_api_key"},
-                                         {"homeassistant", "token"}};
+                                         {"homeassistant", "token"}, {"streaming", "api_key"}};
 
 bool is_color_key(const std::string& key) {
     static const std::set<std::string> k = {"color_bg", "color_card", "color_header", "color_accent", "color_text",
@@ -234,6 +240,19 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
                 if (!std::count(out.begin(), out.end(), p)) out.push_back(p);
             return out;
         }
+        if (k == Key{"streaming", "providers"}) {
+            std::vector<std::string> lines;
+            for (auto& x : value) lines.push_back(trim(py_str(x)));
+            std::vector<std::string> out;
+            for (auto& p : tmdb::parse_selection(lines)) {   // nur gültige IDs, ohne Doppelte, höchstens 30
+                std::u32string u = to_u32(trim(p.name));
+                if (u.size() > 40) u.resize(40);
+                std::string name = from_u32(u);
+                std::replace(name.begin(), name.end(), '|', ' ');
+                out.push_back(std::to_string(p.id) + (name.empty() ? "" : "|" + name));
+            }
+            return out;
+        }
         std::vector<std::string> out;
         const size_t cap = k == Key{"homeassistant", "entities"} ? 4 : 50;
         for (auto& x : value) {
@@ -248,6 +267,14 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
     std::u32string u = to_u32(trim(py_str(value)));
     if (u.size() > 300) u.resize(300);
     std::string v = from_u32(u);
+    if (k == Key{"streaming", "region"}) {   // leer = Automatik, sonst zwei Buchstaben (ISO 3166-1)
+        if (v.empty()) return v;
+        v = tmdb::normalize_region(v);
+        if (v.empty()) throw std::invalid_argument("Region als zwei Buchstaben erwartet (z. B. DE)");
+        return v;
+    }
+    if (k == Key{"streaming", "api_key"} && !v.empty() && tmdb::key_kind(v) == tmdb::KeyKind::None)
+        throw std::invalid_argument("Ungültiger TMDB-Key");
     if (auto it = CHOICES.find(k); it != CHOICES.end() && !std::count(it->second.begin(), it->second.end(), v))
         throw std::invalid_argument("erlaubt: " + join(it->second, ", "));
     if (sec == "display" && is_color_key(key) && !v.empty()) {
@@ -333,6 +360,7 @@ static const std::map<std::string, std::string> HEADERS = {
     {"friends", "Gemeinsame Freundesliste (Discord, Steam, Xbox); links = manuell verknüpfte Personen"},
     {"bf6", "Battlefield-6-Rangliste (EA-IDs, Konsole mit Suffix @psn / @xbox)"},
     {"rss", "Blog-Updates (RSS)"},
+    {"streaming", "Streaming-Neustarts (TMDB-Key, Region, Anbieter als ID|Name; Quelle TMDB/JustWatch)"},
     {"companion", "Companion-App (Android) im Heimnetz: WebSocket über TLS, Kopplung per QR-Code; Kopplungen in companion.json"},
     {"ui", "Einstellungsoberfläche (läuft nur lokal auf diesem PC)"},
 };

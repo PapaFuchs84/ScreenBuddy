@@ -10,7 +10,8 @@ namespace fl::i18n {
 
 void set_lang(const std::string& lang);
 const std::string& lang();
-std::string tr(const std::string& text);
+std::string tr(const std::string& text);          // in der aktuellen App-Sprache
+std::string to_english(const std::string& text);   // immer Englisch (für Texte, die beide Sprachen brauchen)
 
 }  // namespace fl::i18n
 

@@ -698,6 +698,50 @@ Image RssRenderer::render(const std::vector<Post>& posts, std::optional<std::tim
     return d.finish();
 }
 
+// ---------- Streaming-Neustarts ----------
+StreamRenderer::StreamRenderer(int w_, int h_, std::string t) : Renderer(w_, h_, std::move(t)) {
+    f_item = font(16, true);
+    f_kind = font(13, true);
+}
+
+Image StreamRenderer::render(StreamState state, const std::vector<StreamItem>& items, std::optional<std::time_t> updated,
+                             std::time_t now) {
+    const Theme& t = g_theme;
+    Canvas d(W, H, s, t.bg);
+    header(d, now, "");
+    const float top = HEADER_H + 2, bot = h - FOOTER_H;
+    if (state == StreamState::NoKey) {
+        d.text(w / 2, h / 2 - 12, "Kein Key", f_big, t.muted, "mm");
+        d.text(w / 2, h / 2 + 14, "TMDB-Key in den Einstellungen eintragen", f_act, t.muted, "mm");
+    } else if (state == StreamState::Loading) {
+        d.text(w / 2, h / 2, "Lade Daten …", f_big, t.muted, "mm");
+    } else if (state == StreamState::Error) {
+        d.text(w / 2, h / 2, "Keine Daten", f_big, t.muted, "mm");
+    } else if (items.empty()) {
+        d.text(w / 2, h / 2, "Keine Neustarts gefunden", f_big, t.muted, "mm");
+    } else {
+        const size_t n = std::min(items.size(), (size_t)MAX_ROWS);
+        const float rh = (float)floordiv(bot - top, MAX_ROWS);
+        const std::string lang = i18n::lang();
+        for (size_t i = 0; i < n; ++i) {
+            const StreamItem& it = items[i];
+            const float y = top + i * rh;
+            const std::string date = tmdb::format_date(it.date, lang);
+            d.text(w - 10, y + 14, date, f_act, t.muted, "rm");
+            const float title_w = w - 30 - d.textlength(date, f_act);
+            d.text(10, y + 14, fit(d, it.title, f_item, title_w), f_item, t.text, "lm");
+            const std::string kind = tr(it.series ? "Serie" : "Film");
+            d.text(10, y + 32, kind, f_kind, t.accent, "lm");
+            const float kx = 10 + d.textlength(kind, f_kind) + 10;
+            d.text(kx, y + 32, fit(d, join(it.providers, " · "), f_act, w - 10 - kx), f_act, t.muted, "lm");
+            if (i < n - 1) d.line({{10, y + rh - 1}, {w - 10, y + rh - 1}}, t.line, 1);
+        }
+    }
+    // Pflichtangabe der Datenquellen (TMDB, Anbieterdaten JustWatch) steht immer in der Fußzeile
+    footer(d, updated && state == StreamState::Ok ? "TMDB / JustWatch · Stand " + clock_hhmm(*updated) : "TMDB / JustWatch");
+    return d.finish();
+}
+
 // ---------- Home Assistant ----------
 static bool toggle_domain_name(const std::string& id) { return ha::toggle_domain(id); }
 static std::string ha_format_value(const std::string& s) { return ha::format_value(s); }
@@ -940,6 +984,20 @@ std::vector<Friend> demo_friends() {
             f(3, "Lena", "idle", "🌙 gleich zurück"),                 f(4, "Kevin", "online", "Hört Numb – Linkin Park", true),
             f(5, "Mara", "online", ""),                                f(6, "Tom", "offline"),
             f(7, "Jonas", "online", "Spielt Counter-Strike 2 · 1 h 05 min"), f(8, "Sven", "idle", "")};
+}
+
+std::vector<StreamItem> demo_stream() {
+    // Frei erfundene Beispieltitel für Vorschau und Tests
+    auto mk = [](int id, const char* title, const char* date, bool series, std::vector<std::string> prov) {
+        StreamItem it;
+        it.id = id; it.title = title; it.date = date; it.series = series; it.providers = std::move(prov);
+        return it;
+    };
+    return {mk(1, "Der Leuchtturm am Ende der Welt", "2026-10-30", false, {"NF"}),
+            mk(2, "Nordlicht – Staffel 2", "2026-10-28", true, {"PV", "D+"}),
+            mk(3, "Fuchsbau", "2026-10-24", false, {"ATV+"}),
+            mk(4, "Die Ersatzspieler von Hinterdorf", "2026-10-21", true, {"RTL+"}),
+            mk(5, "Mitternachtsexpress", "2026-10-15", false, {"WOW", "NF"})};
 }
 
 std::vector<HaEntity> demo_ha() {

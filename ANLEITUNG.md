@@ -100,6 +100,7 @@ Alles ist optional, schalte nur ein, was du magst (**Seiten & Reihenfolge**: Hak
 - **Freunde (Steam, Xbox, Discord):** Bei **Freunde** die Schlüssel eintragen. Unter jedem Feld klappt eine kleine Hilfe auf, mit Knöpfen, die direkt die richtige Seite öffnen.
 - **Battlefield 6:** Bei **Battlefield 6** die EA-Namen deiner Freunde eintragen und mit **Prüfen** testen. (EA gibt keine Freundesliste heraus, deshalb trägst du die Namen selbst ein.)
 - **Blogs:** Bei **Blogs** die Adresse deiner Lieblingsblogs eintragen. Den Feed sucht die App selbst.
+- **Streaming-Neustarts:** Bei **Streaming-Neustarts** einen kostenlosen TMDB-Key (themoviedb.org → Einstellungen → API) eintragen, **Key prüfen & Anbieter laden** wählen und deine Anbieter ankreuzen. Die Seite zeigt neue Filme und Serien der letzten 30 Tage. This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.
 
 Nach jeder Änderung auf **Speichern & anwenden** klicken. Die Anzeige startet dann kurz neu.
 

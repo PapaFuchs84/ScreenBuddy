@@ -83,6 +83,7 @@ Die Anzeige wechselt alle `page_seconds` Sekunden (Standard 15). Reihenfolge und
 | **Discord-Freunde** | nur die Discord-Freunde, mit Avatar, Status und Aktivität („Spielt …“) | sofort bei Änderungen |
 | **Battlefield 6 · Rangliste** | Profile der eingetragenen Spieler nach Rang, mit Abzeichen, K/D, Siegquote | alle 15 Minuten |
 | **Blog-Updates** | neuester Beitrag je eingetragenem Blog | alle 30 Minuten |
+| **Streaming-Neustarts** | neue Filme und Serien der letzten 30 Tage bei den gewählten Anbietern (TMDB, Anbieterdaten JustWatch) | stündlich |
 | **Home Assistant** | bis zu 4 Sensoren oder Schalter (Schalter nur mit Touch) | alle 15 Sekunden |
 
 Ist keine Seite aktiv, zeigt das Display einen Willkommenshinweis mit der Adresse der Einstellungsseite. Fehler (z. B. ungültiger Discord-Token) erscheinen als lesbarer Satz direkt auf der betroffenen Seite.
@@ -93,6 +94,7 @@ Ist keine Seite aktiv, zeigt das Display einen Willkommenshinweis mit der Adress
 - *Discord:* sortiert nach Status, dann Name. Farbiger Punkt am Avatar = Status, Handy-Symbol = am Smartphone. Emojis werden ausgeblendet (die Windows-Schriften zeigen sie sonst als Kästchen).
 - *Freunde (alle Plattformen):* Quellen sind Discord (Bot, siehe unten), Steam (offizielle Web-API von Valve) und Xbox (Dienst [OpenXBL](https://xbl.io)). Gleiche Personen werden zusammengefasst: manuell über **Freunde → Personen zusammenführen** oder automatisch bei gleichem Namen (abschaltbar; nie werden zwei Konten derselben Plattform vermischt). Online hat Vorrang, das Spiel kommt von dem Konto, das gerade spielt. Für **Steam** brauchst du einen kostenlosen Schlüssel von <https://steamcommunity.com/dev/apikey> und die Freundesliste im Steam-Profil muss öffentlich sein. Für **Xbox** brauchst du einen OpenXBL-Schlüssel aus dem Dashboard auf xbl.io (kostenlose Stufe, rund 150 Abrufe pro Stunde; die App fragt nur alle 3 Minuten). **PlayStation** und **EA** sind bewusst nicht eingebaut: Es gibt keine offiziellen Schnittstellen für Freundeslisten; der inoffizielle PlayStation-Zugang kann zur Kontosperre führen. Die Schlüssel werden wie der Discord-Token verschlüsselt gespeichert, und **Verbindung prüfen** zeigt sofort, ob sie funktionieren. Damit niemand doppelt erscheint, entfällt die reine Seite „Discord-Freunde“ automatisch, solange die gemeinsame Liste Discord einbezieht. Bei Konten mit ähnlichen, aber nicht gleichen Namen (z. B. „Basti“ und „Bastian“) schlägt die Einstellungsseite unter **Personen zusammenführen** eine Verknüpfung vor, die du mit einem Klick bestätigst oder ablehnst. Für Version 2.0 liegen Prüfungen unter `cpp/tests/tests.cpp` vor (u. a. gleichzeitig online auf allen Plattformen = genau eine Zeile mit allen Marken).
 - *Battlefield 6:* sortiert nach Rang, bei Gleichstand nach K/D. Fällt die Datenquelle kurz aus, bleiben die letzten Werte stehen.
+- *Streaming-Neustarts:* Details in [docs/FUNKTIONEN.md](docs/FUNKTIONEN.md#streaming-neustarts-noch-nicht-veröffentlicht). Ohne Key steht „Kein Key“, bei Fehler oder offline „Keine Daten“. This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.
 - *Blogs:* Titel laufen über höchstens zwei Zeilen, Rubrik-Präfixe wie „Anzeige:“ entfallen.
 
 ---
@@ -119,6 +121,7 @@ Sie erscheint in einem nativen Win32-Fenster (Direct2D/DirectWrite, ohne WebView
 | **Discord** | Seite an/aus, Bot-Token, Offline-Freunde, Auswahl der Personen aus den Server-Mitgliedern, Server- und Ignorierlisten |
 | **Battlefield 6** | Spieler hinzufügen (PC/PlayStation/Xbox), sofort **Prüfen**, Abrufintervall |
 | **Blogs** | Blog-Adressen hinzufügen und mit **Prüfen** testen, Anzahl Beiträge, Intervall |
+| **Streaming-Neustarts** | Seite an/aus, TMDB-Key (maskiert), Region, Anbieter-Mehrfachauswahl, Anzahl Einträge |
 | **System** | Netzwerkadapter, Einheit (Mbit/s oder MB/s), Laufwerk, Sensoren für CPU-Temperatur und Lüfter |
 | **Companion, Plugins, Plugin-Store** | Companion (Kopplung, Geräte), Plugins und Plugin-Store (Schalter „Plugin-Store verwenden“, Suche, Installation, Abgleich) |
 | **Anzeige** | Display-Typ (USB, Monitor, Netzwerk), Anzeigedauer pro Seite, Helligkeit, Ausrichtung, COM-Port, Bildschirm, Touch-Steuerung und Touch-Zuordnung, Zurücksetzen beim Start, Ausschalten beim Beenden |
@@ -138,11 +141,12 @@ Bei regulärer Installation liegt `config.toml` unter `%LOCALAPPDATA%\FuchsLabs\
 | Abschnitt | Schlüssel (Standard) |
 |---|---|
 | `[discord]` | `enabled` (true), `token` (verschlüsselt), `guild_ids` ([]), `friend_ids` ([]), `ignore_ids` ([]), `show_offline` (false) |
-| `[display]` | `port` ("AUTO"), `orientation` ("landscape"; auch `reverse_landscape`, `portrait`, `reverse_portrait`), `brightness` (50), `reset_on_start` (true), `page_seconds` (15), `pages` (["system","friends","discord","bf6","rss","homeassistant"]), `title`, `screen_off_on_exit` (true), `theme` ("hell"; oder "dunkel" – gilt für Display, Einstellungsseite und Anleitung; "eigen" = eigene Farben), `color_base` ("hell"/"dunkel", Vorlage für eigene Farben), `color_bg`, `color_card`, `color_header`, `color_accent`, `color_text`, `color_muted` ("#RRGGBB", leer = Vorlage), `output` ("serial" = 3,5"-USB-Display, "monitor" = HDMI/USB-C-Bildschirm als Vollbildfenster), `monitor` ("" = erster Nicht-Hauptbildschirm, sonst z. B. `\\.\DISPLAY2`), `touch` (true; Seitenwechsel per Wischen/Tippen, Tippen öffnet Blogbeiträge, BF6-Profile oder Freundes-Chat/Profil gemäß der Anleitung für 2.0.7; nur bei `output = "monitor"`) |
+| `[display]` | `port` ("AUTO"), `orientation` ("landscape"; auch `reverse_landscape`, `portrait`, `reverse_portrait`), `brightness` (50), `reset_on_start` (true), `page_seconds` (15), `pages` (["system","friends","discord","bf6","rss","streaming","homeassistant"]), `title`, `screen_off_on_exit` (true), `theme` ("hell"; oder "dunkel" – gilt für Display, Einstellungsseite und Anleitung; "eigen" = eigene Farben), `color_base` ("hell"/"dunkel", Vorlage für eigene Farben), `color_bg`, `color_card`, `color_header`, `color_accent`, `color_text`, `color_muted` ("#RRGGBB", leer = Vorlage), `output` ("serial" = 3,5"-USB-Display, "monitor" = HDMI/USB-C-Bildschirm als Vollbildfenster), `monitor` ("" = erster Nicht-Hauptbildschirm, sonst z. B. `\\.\DISPLAY2`), `touch` (true; Seitenwechsel per Wischen/Tippen, Tippen öffnet Blogbeiträge, BF6-Profile oder Freundes-Chat/Profil gemäß der Anleitung für 2.0.7; nur bei `output = "monitor"`) |
 | `[system]` | `enabled` (true), `net_adapter` ("" = automatisch), `net_unit` ("bit" oder "byte"), `disk` ("C:"), `cpu_temp_sensor`, `cpu_fan_sensor` ("" = automatisch), `title` |
 | `[friends]` | `enabled` (false), `title` ("Freunde"), `include_discord` (true), `auto_merge` (true), `show_offline` (false), `steam_api_key` (verschlüsselt), `steam_id` (Profil-Link oder 17-stellige ID), `xbox_api_key` (verschlüsselt), `links` ([], Verknüpfungen als `"Name\|discord:ID\|steam:ID\|xbox:Gamertag"`) |
 | `[bf6]` | `enabled` (false), `players` ([], PC-Namen; Konsole als `"Name@psn"` / `"Name@xbox"`), `refresh_minutes` (15), `title` |
 | `[rss]` | `enabled` (false), `feeds` ([]), `refresh_minutes` (30), `max_items` (4), `max_per_feed` (1), `title` |
+| `[streaming]` | `enabled` (false), `title` ("Neu bei Streaming"), `api_key` (verschlüsselt; v3-Key oder Read Access Token), `region` ("" = DE bei Deutsch, US bei Englisch; sonst zwei Buchstaben), `providers` (Zeilen `"ID\|Name"` mit TMDB-Provider-IDs, höchstens 30; Standard: Netflix 8, Prime Video 9 und 119, Disney+ 337, Apple TV+ 350, WOW 30, RTL+ 298), `max_items` (5, 1–6), `refresh_minutes` (60, mindestens 60) |
 | `[homeassistant]` | `enabled` (false), `title` ("Home Assistant"), `url` (z. B. "http://homeassistant.local:8123"), `token` (verschlüsselt), `entities` ([], höchstens 4, z. B. `"sensor.wohnzimmer_temperatur"`) |
 | `[spotify]` | `enabled` (false), `title` ("Spotify"), `client_id` (32 Zeichen aus deiner Spotify-Developer-App; Anmeldung und Tokens siehe [docs/SPOTIFY.md](docs/SPOTIFY.md), Tokens liegen in `spotify.token`, nicht in der Konfiguration) |
 | `[ui]` | `enabled` (true), `port` (8765), `setup_done` (false), `language` ("de" oder "en"; beim ersten Start wie die Windows-Sprache – gilt für Einstellungsseite, Display und Infobereich), `update_check` (true; höchstens einmal am Tag die GitHub-Releases abfragen und eine neuere Version melden, nie automatisch installieren), `plugin_store` (true; Plugin-Store höchstens einmal täglich abrufen, false = kein Abruf) |
@@ -194,6 +198,7 @@ Das Protokoll steht in `usb-display.log` neben der EXE. Die meisten Probleme erk
 | Discord: „Der Bot ist auf keinem Server“ | Bot per OAuth2-Adresse einladen. |
 | Discord-Liste leer | Freunde sind nicht auf einem Server mit dem Bot, oder die Personenauswahl passt nicht. |
 | Battlefield: „Spieler nicht gefunden“ | Schreibweise prüfen (Null statt O), Konsolenspieler mit Plattform auswählen. Mit **Prüfen** testen. |
+| Streaming: „Kein Key“ / „Keine Daten“ | TMDB-Key unter **Streaming-Neustarts** eintragen und **Key prüfen & Anbieter laden** wählen; bei „Keine Daten“ Internet, Key und Anbieterauswahl prüfen. |
 | Blogs: „Kein Feed gefunden“ | Statt der Blog-Adresse die Feed-Adresse eintragen (meist `…/feed/`). |
 | Temperatur oder Lüfter „–“ | HWiNFO läuft nicht oder Shared Memory ist aus (Kapitel 5). |
 | GPU „–“ | Keine Nvidia-Karte oder `nvidia-smi` fehlt (kommt mit dem Treiber). |
@@ -236,7 +241,7 @@ Die aktuelle Implementierung ist C++20 unter `cpp/`.
 | `serial_display.cpp`, `monitor_display.cpp`, `network_display.cpp` | USB-Display, HDMI/USB-C und Companion (Android) |
 | `companion.cpp`, `companion_server.cpp` | Companion-Protokoll, TLS-Server, mDNS, QR/PIN-Kopplung |
 | `gfx.cpp`, `render.cpp` | Grafik und Seitenlayout |
-| `discord.cpp`, `friends.cpp`, `bf6.cpp`, `rss.cpp`, `sysinfo.cpp` | Datenquellen; Discord über D++ |
+| `discord.cpp`, `friends.cpp`, `bf6.cpp`, `rss.cpp`, `tmdb.cpp` (+ `tmdb_logic.cpp`), `sysinfo.cpp` | Datenquellen; Discord über D++ |
 | `installer.cpp`, `winsetup.cpp` | Installation, Updates, Deinstallation und Autostart |
 | `update.cpp` | GitHub-Release-Abfrage und Update-Hinweise |
 

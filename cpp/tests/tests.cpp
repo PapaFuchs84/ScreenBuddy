@@ -65,6 +65,24 @@ static void test_config() {
     CHECK_EQ(m["display"]["color_bg"].get<std::string>(), std::string("#AABBCC"));
     CHECK_EQ(m["discord"]["guild_ids"].size(), (size_t)2);
     CHECK_EQ(m["rss"]["feeds"].size(), (size_t)2);
+    // Streaming-Neustarts: Standardwerte, Region, Anbieter-Zeilen, Key-Prüfung
+    CHECK_EQ(cfg["streaming"]["providers"].size(), (size_t)7);
+    CHECK_EQ(cfg["streaming"]["api_key"].get<std::string>(), std::string(""));
+    ojson sm = config::merge(cfg, {{"streaming", {{"region", "at"}, {"max_items", 99}, {"refresh_minutes", 5},
+                                                  {"providers", {"8|Netflix", "x", "8|doppelt", " 337 ", "350|A|B"}}}}});
+    CHECK_EQ(sm["streaming"]["region"].get<std::string>(), std::string("AT"));
+    CHECK_EQ(sm["streaming"]["max_items"].get<int>(), 6);
+    CHECK_EQ(sm["streaming"]["refresh_minutes"].get<int>(), 60);
+    CHECK_EQ(sm["streaming"]["providers"], ojson::array({"8|Netflix", "337", "350|A B"}));
+    bool bad_region = false, bad_key = false;
+    try { config::merge(cfg, {{"streaming", {{"region", "Deutschland"}}}}); } catch (const std::invalid_argument&) { bad_region = true; }
+    try { config::merge(cfg, {{"streaming", {{"api_key", "zu kurz & ungültig"}}}}); } catch (const std::invalid_argument&) { bad_key = true; }
+    CHECK(bad_region && bad_key);
+    // Der Key kommt nie in die öffentliche Sicht
+    ojson keyed = config::merge(cfg, {{"streaming", {{"api_key", "0123456789abcdef0123456789abcdef"}}}});
+    CHECK_EQ(keyed["streaming"]["api_key"].get<std::string>(), std::string("0123456789abcdef0123456789abcdef"));
+    ojson pub = config::public_view(keyed);
+    CHECK(pub["streaming"]["api_key"].get<std::string>().empty() && pub["streaming"]["api_key_set"].get<bool>());
     bool threw = false;
     try {
         config::merge(cfg, {{"display", {{"theme", "rosa"}}}});
@@ -663,6 +681,10 @@ static void test_render(const fs::path& out) {
                                     {"Noch ein Blog", "Zweiter Beitrag mit etwas längerem Titel, der umbricht und noch weiter geht als gedacht", 1792606500 - 7200, ""},
                                     {"heise online", "heise+ | Test: Sehr langer Titel mit Präfix", std::nullopt, ""}};
             save_png(out / (pre + "blogs.png"), rr.render(posts, 1792606500, 1792606500));
+            render::StreamRenderer st(w, h, "Neu bei Streaming");
+            save_png(out / (pre + "streaming.png"), st.render(StreamState::Ok, render::demo_stream(), 1792606500, 1792606500));
+            save_png(out / (pre + "streaming-nokey.png"), st.render(StreamState::NoKey, {}, std::nullopt, 1792606500));
+            save_png(out / (pre + "streaming-error.png"), st.render(StreamState::Error, {}, std::nullopt, 1792606500));
             render::SysRenderer sr(w, h, "System", "bit");
             SysSnapshot sn;
             sn.cpu_name = "Ryzen 7 5700X";

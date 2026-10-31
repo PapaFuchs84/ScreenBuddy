@@ -1,5 +1,5 @@
 // © 2026 FuchsLabs
-// Daten, die zwischen Quellen (Discord, Steam, BF6, RSS, System) und den Seiten ausgetauscht werden.
+// Daten, die zwischen Quellen (Discord, Steam, BF6, RSS, Streaming, System) und den Seiten ausgetauscht werden.
 #pragma once
 
 #include <cstdint>
@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "gfx.h"
+#include "tmdb_logic.h"
 
 namespace fl {
 
@@ -41,6 +42,10 @@ struct Post {
     std::optional<std::time_t> published;  // UTC
     std::string link;
 };
+
+// Neuer Film bzw. neue Serie bei einem Streaming-Anbieter (Seite „Streaming-Neustarts“, Quelle TMDB)
+using StreamItem = tmdb::Item;
+using StreamState = tmdb::State;
 
 // Eine Home-Assistant-Entität (Sensor oder Schalter) in dem Zustand, den die Seite zeichnet
 struct HaEntity {
