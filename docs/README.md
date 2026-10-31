@@ -5,7 +5,7 @@
 
 </div>
 
-Stand: ScreenBuddy 2.9.2 (Entwurf bis zur Veröffentlichung von v2.9.2). Diese Seite ist der Einstieg in alle Dokumente. Sie ist nach Zielgruppe geordnet; jedes Dokument hat genau einen Zweck.
+Stand: ScreenBuddy 2.9.3. Diese Seite ist der Einstieg in alle Dokumente. Sie ist nach Zielgruppe geordnet; jedes Dokument hat genau einen Zweck.
 
 ## Aufbau und Prinzipien
 
@@ -23,8 +23,8 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 | Dokument | Zweck | Status |
 |---|---|---|
 | [`README.md`](../README.md) · [English](../README.en.md) | Überblick, Schnellstart, Konfiguration | aktuell |
-| [`ANLEITUNG.md`](../ANLEITUNG.md) | Schnellstart; die bebilderte Anleitung steckt in der EXE | Version und Menünamen am 31.10.2026 korrigiert (Bilder der bebilderten Anleitung teils 2.5) |
-| [`FUNKTIONEN.md`](FUNKTIONEN.md) · [English](FEATURES.en.md) | Funktionen im Detail: Touch, Update-Hinweis, Home Assistant, Companion, Ansichten | aktuell |
+| [`ANLEITUNG.md`](../ANLEITUNG.md) | Schnellstart; die bebilderte Anleitung steckt in der EXE | Version, Menünamen und PlayStation-Angaben am 31.10.2026 gegen den Code geprüft (Bilder der bebilderten Anleitung teils 2.5) |
+| [`FUNKTIONEN.md`](FUNKTIONEN.md) · [English](FEATURES.en.md) | Funktionen im Detail: Touch, Update-Hinweis, Home Assistant, Streaming, Spotify, PlayStation-Freunde, Farben & Design, Companion, Plugin-Store, Ansichten | aktuell (2.9.3) |
 | [`COMPANION.md`](COMPANION.md) · [English](COMPANION.en.md) | Android-Companion einrichten, mehrere Geräte | aktuell |
 | [`TOUCH-2.0.7.md`](TOUCH-2.0.7.md) · [English](TOUCH-2.0.7.en.md) | Touch-Ziele und Spielstunden | aktuell |
 | [`../DOKUMENTATION.md`](../DOKUMENTATION.md) | Referenz: Seiten, `config.toml`, HWiNFO, Fehlerbehebung | Version und Menünamen am 31.10.2026 korrigiert; Prüfstandskapitel historisch |
@@ -59,11 +59,12 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 | Dokument | Zweck | Status |
 |---|---|---|
 | [`../CHANGELOG.md`](../CHANGELOG.md) · [English](../CHANGELOG.en.md) · [`../cpp/CHANGELOG.md`](../cpp/CHANGELOG.md) | Änderungen je Version | aktuell |
-| [`RELEASE-NOTES-2.9.md`](RELEASE-NOTES-2.9.md) | Release-Notizen der aktuellen Version | aktuell |
-| [`THEMES.md`](THEMES.md) | Farbdesigns: Windows-Farben, eigene Themes (DE/EN) | aktuell |
+| [`RELEASE-NOTES-2.9.3.md`](RELEASE-NOTES-2.9.3.md) | Release-Notizen der aktuellen Version | aktuell |
+| [`RELEASE-NOTES-2.9.2.md`](RELEASE-NOTES-2.9.2.md), [`RELEASE-NOTES-2.9.1.md`](RELEASE-NOTES-2.9.1.md), [`RELEASE-NOTES-2.9.md`](RELEASE-NOTES-2.9.md) | Release-Notizen 2.9.x | historisch |
+| [`THEMES.md`](THEMES.md) | Farbdesigns: Windows-Farben, Designsysteme, eigene Themes (DE/EN) | aktuell |
 | [`RELEASE-NOTES-2.8.md`](RELEASE-NOTES-2.8.md) | Release-Notizen 2.8 | historisch |
 | [`RELEASE-NOTES-2.7.md`](RELEASE-NOTES-2.7.md) | Release-Notizen 2.7 | historisch |
-| [`../cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md) | Testprotokoll | Stand 2.6.0, kein Eintrag für 2.7.0 |
+| [`../cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md) | Testprotokoll | aktuell, jüngster Eintrag „Release 2.9.3“ (31.10.2026) |
 | [`PRUEFSTAND-HISTORIE.md`](PRUEFSTAND-HISTORIE.md) | Prüfstände 2.0.3 bis 2.6.0 (aus dem README ausgelagert) | historisch |
 | [`RELEASE-NOTES-2.6.md`](RELEASE-NOTES-2.6.md), [`RELEASE-NOTES-2.5.md`](RELEASE-NOTES-2.5.md) | frühere Release-Notizen | historisch |
 | [`RELEASE-CHECKLIST-2.5.md`](RELEASE-CHECKLIST-2.5.md), [`HARDWARE-ACCEPTANCE-2.5.md`](HARDWARE-ACCEPTANCE-2.5.md) | Checklisten (Stand 2.5; bei neuen Releases anlegen statt umschreiben) | historisch |
@@ -82,6 +83,6 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 
 - [`../cpp/README.md`](../cpp/README.md) enthält noch gewachsene, teils englische Abschnitte (2.0.x bis 2.7) und Altstände; die Versions-, Menü- und WebView2-Angaben wurden am 31.10.2026 korrigiert, historische Abschnitte sind als solche gekennzeichnet.
 - `DOKUMENTATION.md` wurde nicht umgeschrieben; am 31.10.2026 wurden nur Version, Menünamen und WebView2-Angaben korrigiert. Die Prüfstandskapitel bleiben historisch.
-- Offen nach der Prüfung vom 31.10.2026: `TESTPHASE.md`/`TESTPHASE.en.md` nennen nur „Version 2.0“ für den Logpfad. Die Unterstützungstabelle in `SECURITY.md`/`SECURITY.en.md` nennt 2.7.0 als aktuell; dass ältere 2.x „auf 2.7.0 aktualisieren“ sollen, ist eine Festlegung des Maintainers. Nicht gegen den Code belegt sind „Statuszeile aktualisiert sich alle 5 Sekunden“ (`DOKUMENTATION.md`, Kapitel 3) und der frühere Deinstallationsname „FuchsLabs USB-Display“. `cpp/TESTPROTOKOLL.md` hat keinen Eintrag für 2.7.0.
-- Die bebilderte Anleitung (`anleitung/`, `cpp/res/`) wurde nicht angefasst; ein Teil der Bilder stammt noch von 2.5.
+- Offen nach der Prüfung vom 31.10.2026: `TESTPHASE.md`/`TESTPHASE.en.md` nennen nur „Version 2.0“ für den Logpfad. Die Unterstützungstabelle in `SECURITY.md`/`SECURITY.en.md` nennt 2.9.3 als aktuell; dass ältere 2.x „auf 2.9.3 aktualisieren“ sollen, ist eine Festlegung des Maintainers. Nicht gegen den Code belegt sind „Statuszeile aktualisiert sich alle 5 Sekunden“ (`DOKUMENTATION.md`, Kapitel 3) und der frühere Deinstallationsname „FuchsLabs USB-Display“. `cpp/TESTPROTOKOLL.md` hat keinen Eintrag für 2.7.0.
+- Die bebilderte Anleitung (`anleitung/`, `cpp/res/`): Texte am 31.10.2026 gegen die Beschriftungen im Code geprüft und korrigiert (inkl. PlayStation); die Bilder blieben unverändert, ein Teil stammt noch von 2.5 und zeigt die PlayStation-Karte nicht.
 - Das GitHub-Wiki (`Home.md`) steht auf 2.7.0; seine Links auf diese Übersicht funktionieren erst nach dem Merge dieses Branches nach `main`.

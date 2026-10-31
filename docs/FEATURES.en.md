@@ -1,6 +1,6 @@
 # ScreenBuddy · Features in detail
 
-Moved out of the README (as of 2.7.0). German: [FUNKTIONEN.md](FUNKTIONEN.md). Overview of all documents (German): [docs/README.md](README.md).
+Moved out of the README (status 2.9.3). German: [FUNKTIONEN.md](FUNKTIONEN.md). Overview of all documents (German): [docs/README.md](README.md).
 
 ## Contents
 
@@ -9,6 +9,8 @@ Moved out of the README (as of 2.7.0). German: [FUNKTIONEN.md](FUNKTIONEN.md). O
 - [Home Assistant (from 2.1.0)](#home-assistant-from-210)
 - [New on streaming (from 2.8.0)](#new-on-streaming-from-280)
 - [Spotify (from 2.8.0)](#spotify-from-280)
+- [Help for API keys and tokens (since 2.9.1)](#help-for-api-keys-and-tokens-since-291)
+- [PlayStation friends (from 2.9.3)](#playstation-friends-from-293)
 - [Colors & design (from 2.9.0)](#colors--design-from-290)
 - [Android Companion app (from 2.3.0, multiple devices from 2.7.0)](#android-companion-app-from-230-multiple-devices-from-270)
 - [Plugin store and plugins (from 2.6.0)](#plugin-store-and-plugins-from-260)
@@ -22,7 +24,7 @@ Moved out of the README (as of 2.7.0). German: [FUNKTIONEN.md](FUNKTIONEN.md). O
 
 ## Touch targets and playtime (from 2.0.8)
 
-Developed as 2.0.7; that version was not released separately, so the feature is available from 2.0.8. With touch enabled, tapping a BF6 player opens their GameTools profile in the browser. The leaderboard also shows hours played. Tapping a friend preferably opens the Steam chat with that person (Steam app required). Without a Steam account, their Discord profile opens (choose **Message** there), otherwise their Xbox profile on xbox.com in the browser. If the target's app is not installed, the next target is used. Windows and tabs are controlled by the platform app/browser. [Usage, prerequisites and limits](TOUCH-2.0.7.en.md). [Validation](../cpp/TESTPROTOKOLL.md).
+Developed as 2.0.7; that version was not released separately, so the feature is available from 2.0.8. With touch enabled, tapping a BF6 player opens their GameTools profile in the browser. The leaderboard also shows hours played. Tapping a friend preferably opens the Steam chat with that person (Steam app required). Without a Steam account, their Discord profile opens (choose **Message** there), otherwise their Xbox profile on xbox.com or (from 2.9.3) their PlayStation profile on my.playstation.com in the browser. If the target's app is not installed, the next target is used. Windows and tabs are controlled by the platform app/browser. [Usage, prerequisites and limits](TOUCH-2.0.7.en.md). [Validation](../cpp/TESTPROTOKOLL.md).
 
 ## Home Assistant (from 2.1.0)
 
@@ -46,17 +48,27 @@ Shows the current track with cover and progress; with touch (monitor, Companion)
 
 ## Help for API keys and tokens (since 2.9.1)
 
-Wherever ScreenBuddy needs credentials, the settings show a card **“How to get …”** under the field with short numbered steps and buttons that open the service’s official page in your browser: Discord (bot token), Steam (web API key and privacy), Xbox (OpenXBL), TMDB (API key), Spotify (client ID) and Home Assistant (long-lived access token). Only fixed https addresses of the providers are opened (`cpp/src/key_help.cpp`). The app never reads, logs or repeats keys; pasted values are stored encrypted as before. Battlefield 6 and blogs need no key.
+Wherever ScreenBuddy needs credentials, the settings show a card **“How to get …”** under the field with short numbered steps and buttons that open the service’s official page in your browser: Discord (bot token), Steam (web API key and privacy), Xbox (OpenXBL), TMDB (API key), Spotify (client ID) and Home Assistant (long-lived access token). Only fixed https addresses of the providers are opened (`cpp/src/key_help.cpp`). The app never reads, logs or repeats keys; pasted values are stored encrypted as before. Battlefield 6 and blogs need no key. For the optional PlayStation code there is the card **“How to get the PlayStation code (NPSSO)”** with the steps and two buttons (playstation.com and Sony’s code page after sign-in); details in [PlayStation friends](#playstation-friends-from-293).
+
+## PlayStation friends (from 2.9.3)
+
+**Unofficial, optional, off by default, at your own risk.** Sony offers no official interface for friends lists. ScreenBuddy therefore takes the same route as the PlayStation app: the NPSSO code of the signed-in browser session is exchanged for a short-lived access token (the publicly known sign-in identifiers of Sony’s Android app are built in for this). Sony may change or block this interface at any time and may restrict the account; use is your responsibility.
+
+- **Setup:** **Settings → Friends**, **PlayStation** card. The help **“How to get the PlayStation code (NPSSO)”** leads to the code in a few steps: sign in at playstation.com, open Sony’s code page in the same browser, paste the code (or the whole line) into **PlayStation code (NPSSO)**, **Check connection**, then **Save & apply**. Without a saved code PlayStation is off and no requests go to Sony.
+- **Code:** 64 characters, works like a password and expires after about two months; just fetch a new one. Like the other keys it is stored DPAPI-encrypted in `config.toml`, never logged, never sent to the browser and sent only to Sony. The whole answer of the code page (`{"npsso":"…"}`) is accepted too; Sony’s authorisation code with a dot (`v3.…`) is accepted during sign-in. Connection diagnostics go to the log (without the code).
+- **Display:** PlayStation friends appear in the combined friends list with the badge **P**, online status and current game. Refresh every 2 minutes, at most 200 friends; avatars are loaded only from Sony domains over HTTPS. The same person on several platforms appears once; for people with different names use **Merge people** or add `Name|…|psn:OnlineID` to the link lines.
+- **Touch:** tapping a friend prefers the Steam chat, then the Discord and Xbox profiles; if the person only has PlayStation, their profile on my.playstation.com opens in the browser.
+- **Validation:** parsing of Sony’s answers is covered by automated tests with fixed sample data (`fl-psn-tests`). Live against Sony: with a fresh code the friends list returned one PlayStation account in 2.9.3 without errors (see the [test record](../cpp/TESTPROTOKOLL.md)); online status and game were not checked on the devices.
 
 ## Colors & design (from 2.9.0)
 
-**Settings → Colors & design:** Light (FuchsLabs), Dark (FuchsLabs), **Match Windows** or your own themes. Windows mode: light/dark and accent from Windows, changes apply live, high contrast uses the system colours; text and bars are contrast-corrected automatically. Custom themes are JSON files (editor with live preview, contrast warning, duplicate, delete, import, export); three examples (Cupertino, Material, Fluent style) are in `cpp/examples/themes`. The choice applies to the USB display, monitor and Companion. Details, format and limits: [THEMES.md](THEMES.md) (bilingual).
+**Settings → Colors & design:** Light (FuchsLabs), Dark (FuchsLabs), **Match Windows** or your own themes. Windows mode: light/dark and accent from Windows, changes apply live, high contrast uses the system colours; text and bars are contrast-corrected automatically. Custom themes are JSON files (editor with live preview, contrast warning, duplicate, delete, import, export); six examples (Cupertino, Material and Fluent style, each light and dark) are in `cpp/examples/themes`. From 2.9.1 themes can be installed through the “Themes” card in the plugin store; from 2.9.2 there are also design systems with their own window compositions. The choice applies to the USB display, monitor and Companion. Details, format and limits: [THEMES.md](THEMES.md) (bilingual).
 
-**Status dots in the navigation:** green = set up and on, grey = not set up or off; only for data sources and connections, with a legend. Not included yet: mouse tooltip for the dots.
+**Status dots in the navigation:** green = set up and on, grey = not set up or off; only for data sources and connections, with a legend. Since 2.9.1 a tooltip explains the state when you rest the mouse on a dot.
 
 ## Android Companion app (from 2.3.0, multiple devices from 2.7.0)
 
-Use an Android phone or tablet as an additional display alongside your USB/HDMI screen. From 2.3.0 the Companion was available as a preview APK; the current Companion app 1.0.0 (versionCode 4, Android 8+) is a separate download. Since 2.7.0 several Companions can run at once, **synchronised or independent**.
+Use an Android phone or tablet as an additional display alongside your USB/HDMI screen. From 2.3.0 the Companion was available as a preview APK; the current Companion app 1.0.2 (versionCode 6, Android 8+) is a separate download. Since 2.7.0 several Companions can run at once, **synchronised or independent**.
 
 - **Own pages and timers:** compared with USB/HDMI, the Companion has its own page list and interval (under **Companion**). In independent mode (`sync = false`) each device additionally has its own page position, resolution, input and optionally its own page list. Data sources and theme remain shared. The default is synchronised display.
 - **Pairing via QR code or PIN:** show the pairing code under **Settings → Companion → Pair device**. The Android app scans the QR code or connects using address, port (default 8777) and a 6-digit PIN; a SHA-256 certificate fingerprint secures the TLS connection.

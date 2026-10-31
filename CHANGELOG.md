@@ -6,9 +6,15 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+## [2.9.3] – 2026-10-31
+
 ### Hinzugefügt
 
 - **PlayStation-Freunde** in der gemeinsamen Freundesliste (Marke „P“, Online-Status und gespieltes Spiel). Inoffizielle Sony-Schnittstelle über den NPSSO-Code, DPAPI-verschlüsselt, optional und standardmäßig aus; mit Hilfe zum Code, Verbindungsprüfung und Verknüpfung per `psn:Name`.
+
+### Behoben
+
+- Sonys Autorisierungscode mit Punkt (`v3.…`) wird bei der PlayStation-Anmeldung akzeptiert; die Verbindungsdiagnose steht im Log.
 
 ## [2.9.2] – 2026-10-31
 

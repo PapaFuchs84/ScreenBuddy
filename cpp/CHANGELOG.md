@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.9.3 – 31 October 2026
+
+- PlayStation friends in the friends list (unofficial Sony interface via NPSSO, DPAPI-encrypted, off by default); authorization codes with a dot are accepted, diagnostics in the log.
+
 ## 2.9.2 – 31 October 2026
 
 - Distinct structural shells: Cupertino collapsible sidebar and optional inspector, Fluent functional search/Back/breadcrumb, Material five destinations/context tabs and pending-change actions. System page compositions and shared touch regions differ per profile.

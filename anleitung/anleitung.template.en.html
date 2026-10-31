@@ -188,7 +188,7 @@ const b = t => `<span class="btnname">${t}</span>`, g = t => `<span class="btnna
 const FEAT = [
   ['system', '🖥️', 'My PC', 'How hard your processor, graphics card and memory are working right now'],
   ['discord', '💬', 'Discord friends', 'Which of your friends are online right now and what they are playing'],
-  ['friends', '🎮', 'Steam and Xbox friends', 'Your friends from Steam, Xbox and Discord in one shared list'],
+  ['friends', '🎮', 'Steam, Xbox and PlayStation friends', 'Your friends from Steam, Xbox, Discord and (optional, unofficial) PlayStation in one shared list'],
   ['bf6', '🎖️', 'Battlefield 6', 'A leaderboard of you and your friends'],
   ['blogs', '📰', 'News', 'The newest articles from websites you like'],
   ['streaming', '🎬', 'New on streaming', 'New movies and series on Netflix, Disney+ and more'],
@@ -223,9 +223,9 @@ const STEPS = [
 <li><b>The display</b> with its <b>USB cable</b>.</li>
 <li><b>A Windows PC</b> (Windows 10 or 11, 64-bit) with internet.</li>
 <li><b>The file <span class="key">ScreenBuddy.exe</span></b>. You download it in the next step. There is no ZIP to unpack.</li>
-<li><b>No extra runtime for ScreenBuddy 2.9</b>. Python, WebView2 and a Visual C++ redistributable are not required. Earlier 2.3.0 still needs WebView2.</li>
+<li><b>No extra runtime since ScreenBuddy 2.5</b>. Python, WebView2 and a Visual C++ redistributable are not required. Earlier 2.3.0 still needs WebView2.</li>
 ${sel.discord ? '<li><b>Your Discord account</b> and a Discord server where you are the boss (admin). If you\'re not, ask the server\'s boss to help you.</li>' : ''}
-${sel.friends ? '<li><b>Your Steam account</b> and/or <b>your Xbox account</b>.</li>' : ''}
+${sel.friends ? '<li><b>Your Steam account</b> and/or <b>your Xbox account</b>. Optionally and unofficially also <b>your PlayStation account</b>.</li>' : ''}
 ${sel.bf6 ? '<li><b>The EA names</b> of you and your Battlefield friends.</li>' : ''}
 </ol>
 <div class="box tip"><p>You do <b>not</b> need administrator rights. The program is only installed for your own Windows account.</p></div>
@@ -237,7 +237,7 @@ ${sel.bf6 ? '<li><b>The EA names</b> of you and your Battlefield friends.</li>' 
 <div class="box tip"><p><b>ScreenBuddy 2.9:</b> Download <span class="key">ScreenBuddy.exe</span>. This guide shows anonymous native example captures from the 2.5 development with German labels (the 2.9 colors & design page and status dots are described in text only); choose EN in the app for English controls. Earlier 2.3.0 uses different menus and its own bundled guide. Tip: rest the mouse on a status dot in the left list for a moment and a hint tells you whether the page is set up and on (green) or not set up or off (grey).</p></div>
 <ol class="do">
 <li>Open this page: <a href="https://github.com/PapaFuchs84/ScreenBuddy/releases/latest" target="_blank" rel="noopener">Latest release on GitHub</a>. Or use the file from whoever sent you this guide.</li>
-<li>Download <span class="key">ScreenBuddy.exe</span> from release 2.9.2 and verify its SHA-256 using the supplied checksum file.</li>
+<li>Download <span class="key">ScreenBuddy.exe</span> from release 2.9.3 and verify its SHA-256 using the supplied checksum file.</li>
 <li>It normally lands in your <b>Downloads</b> folder.</li>
 </ol>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock win">
@@ -299,7 +299,7 @@ ${help([['Nothing happens.', 'Wait 10 seconds. The program needs a moment the fi
 <p>In the native 2.5 window, use the <b>EN</b> button at the top to switch the app to English. On <b>Overview</b>, the first card should say <b>Connected</b> for your own display. The screenshot uses German labels and an isolated sample status; it does not prove a hardware connection.</p>
 ${shot('start', [[286, 196, 869, 63]], 'The first card shows display status. Check the value on your own device.')}
 <p>If that works, your little display lights up now too. 🎉</p>
-${help([['It says “The display\'s vendor app is running”.', `Click ${g('Close vendor app')} next to it. If <b>“Vendor app autostart”</b> appears below it, click ${g('Turn off')} there. Windows then asks once whether you allow it: click <b>Yes</b>.`],
+${help([['It says “The display\'s vendor app is running”.', `Click ${g('Stop vendor app')} next to it. If <b>“Vendor app autostart”</b> appears below it, click ${g('Disable vendor app autostart')} there. Windows then asks once whether you allow it: click <b>Yes</b>.`],
   ['It says “Display not found”.', 'Unplug the USB cable and plug it back in. Try another USB port on the PC. Then wait a few seconds.'],
   ['Published 2.3.0 says WebView2 is missing.', 'Install the <b>Microsoft Edge WebView2 runtime</b> and restart 2.3.0. ScreenBuddy 2.9 has a native settings window.'],
   ['The window didn\'t open.', 'At the bottom right next to the clock there is a small orange icon (maybe behind the arrow <span class="key">^</span>). Double-click it.'],
@@ -310,17 +310,17 @@ ${help([['It says “The display\'s vendor app is running”.', `Click ${g('Clos
 <p class="lead">So you don't have to start the program yourself every time:</p>
 <ol class="do"><li>Under <b>Updates &amp; Autostart</b>, turn on the <b>“Start with Windows”</b> switch. It turns orange. (If you ticked this during installation, it's already on.)</li></ol>
 ${shot('app', [], 'Updates &amp; Autostart. Start with Windows is disabled in this isolated test instance; it is available in the regular app.')}
-<div class="box tip"><p><b>New in 2.2.0 – new version:</b> At most once a day the program checks GitHub for a newer version. If there is one, a balloon appears at the fox icon and <b>Updates &amp; Autostart</b> shows “New version available” with a link to the download page. Nothing is ever installed by itself. Use <b>Check now</b> to ask yourself; the <b>“Notify about new versions”</b> switch turns the check off.</p></div>
-<div class="box tip"><p>This page also has the ${b('Open guide ↗')} button. It brings you back to this guide at any time.</p></div>
+<div class="box tip"><p><b>New in 2.2.0 – new version:</b> At most once a day the program checks GitHub for a newer version. If there is one, a balloon appears at the fox icon and <b>Updates &amp; Autostart</b> shows “New version available” with a link to the download page. Nothing is ever installed by itself. Use <b>Check for updates now</b> to ask yourself; the <b>“Automatically check for updates”</b> switch turns the check off.</p></div>
+<div class="box tip"><p>The <b>Overview</b> page has the ${b('Guide (German)')} and ${b('Guide (English)')} buttons. They bring you back to this guide at any time.</p></div>
 <div class="box tip"><p>From now on the program starts by itself when you sign in to Windows. It then only shows the small fox icon at the bottom right; the settings don't open on their own. You can turn it off on the same page.</p></div>`},
 
 {t: 'Choose pages', html: () => `
 <p class="kicker">Choose</p><h1>Which pages does the display show?</h1>
 <p class="lead">Click <b>Pages &amp; order</b> on the left (German screenshot: <b>Seiten &amp; Reihenfolge</b>). Select and reorder pages there. The live preview remains on the right.</p>
-<div class="box tip"><p>Starting with 2.0.4, use <b>Previous view</b> and <b>Next view</b> below the live preview to change the view on the display directly. The current position appears below the buttons. Long lists include their subpages. Automatic cycling continues afterwards. No save is needed.</p></div>
+<div class="box tip"><p>The live preview shows the current picture of the selected device. To step the running display, use <b>Show previous page</b> and <b>Show next page</b> under <b>Companion</b>; they act on the Companion output. No save is needed.</p></div>
 ${shot('uebersicht', [], 'The native Pages &amp; order view with checkboxes and arrow buttons.')}
 <ol class="do">
-<li>Use the <b>checkbox</b> to turn a page on or off. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Turn off the pages you don\'t want.' : ''}${sel.friends ? ' For Steam and Xbox, turn on <b>“Friends (all platforms)”</b>.' : ''}</li>
+<li>Use the <b>checkbox</b> to turn a page on or off. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Turn off the pages you don\'t want.' : ''}${sel.friends ? ' For Steam, Xbox and PlayStation, turn on <b>“Friends”</b>.' : ''}</li>
 <li>Use the <b>arrows ▲ ▼</b> on this page to change the order.</li>
 <li>Find the <b>Brightness</b> slider under <b>Display</b> (German screenshot: <b>Anzeige</b>).</li>
 </ol>
@@ -331,12 +331,12 @@ ${shot('uebersicht', [], 'The native Pages &amp; order view with checkboxes and 
 <p class="lead">This step is for a normal screen connected over HDMI or USB-C, starting with version 2.0.3. Skip it for a small USB display using a COM port.</p>
 <ol class="do">
 <li>Connect the screen to your PC and set Windows to <b>Extend</b>. Touch also requires the <b>USB touch connection</b>.</li>
-<li>Open <b>Display</b> (German screenshot: <b>Anzeige</b>) in settings. Choose the HDMI/USB-C output under <b>Display type</b> and select the intended screen. Select <b>Save &amp; apply</b>.</li>
-<li>Do taps appear on another screen? Select <b>Assign touch display</b>. The display output pauses while the Windows wizard is open.</li>
+<li>Open <b>Display</b> (German screenshot: <b>Anzeige</b>) in settings. Choose <b>Monitor</b> (HDMI/USB-C) under <b>Display type</b> and select the intended screen under <b>Monitor</b>. Select <b>Save &amp; apply</b>.</li>
+<li>Do taps appear on another screen? Select <b>Open Windows wizard</b> under <b>Assign touchscreen</b>. The display output pauses while the Windows wizard is open.</li>
 <li>Press <b>Enter</b> to skip other screens. When the wizard message appears on the intended touchscreen, touch that screen. <b>Esc</b> cancels.</li>
 <li>Select <b>Check again</b> afterwards. Enable <b>Touch control</b> if needed and save. Swipe left = next page, right = previous; tap on the left = back, elsewhere = next. Tapping a blog post opens it in the browser on your PC (from 2.0.6).</li>
 </ol>
-<div class="box tip"><p><b>New in 2.0.7:</b> Tap a player in the Battlefield leaderboard to open their profile in the browser. Hours played now appear alongside their stats. Tap a friend: As of 2.1.0 the Steam chat with that person opens (the Steam app must be installed). Without Steam, their Discord profile opens (choose “Message” there), otherwise their Xbox profile in the browser. New windows and tabs depend on the platform app or browser. No message is sent. Swiping still changes pages.</p></div>
+<div class="box tip"><p><b>New in 2.0.7:</b> Tap a player in the Battlefield leaderboard to open their profile in the browser. Hours played now appear alongside their stats. Tap a friend: As of 2.1.0 the Steam chat with that person opens (the Steam app must be installed). Without Steam, their Discord profile opens (choose “Message” there), otherwise their Xbox or PlayStation profile in the browser. New windows and tabs depend on the platform app or browser. No message is sent. Swiping still changes pages.</p></div>
 <div class="box tip"><p><b>New in 2.1.0 – Home Assistant:</b> Up to 4 values or switches from your smart home on the display. With touch you can flip switches and lights by tapping. Setup is in the “Home Assistant” step.</p></div>
 <div class="box tip"><p><b>New in 2.2.0 – system page:</b> On the system page, tap <b>RAM</b> to open Task Manager. Tap <b>Drive</b> to open “Programs and Features”. Tap <b>Network</b> to start a speed test in the browser (speedtest.net). The processor and graphics cards do nothing.</p></div>
 <div class="box tip"><p>Fullscreen stays above the taskbar without taking keyboard focus. Windows stores the touch assignment.</p></div>
@@ -406,29 +406,30 @@ ${help([['My server isn\'t in the list.', 'You can only invite bots to servers w
 <li>Go back to the settings page and click <b>“Discord”</b> on the left.</li>
 <li>Click into the <b>Bot token</b> field and paste the token: <span class="key">Ctrl</span> + <span class="key">V</span>.</li>
 <li>Press ${b('Save &amp; apply')} at the bottom. Wait about 10 seconds.</li>
-<li>The people from your server now appear under <b>People</b>. Tick your friends.</li>
+<li>The people from your server now appear under <b>Pick people</b>. Tick your friends.</li>
 </ol>
 ${shot('discord', [], 'Bot token and people are on the native Discord page. The sample has no real token.')}
 <div class="box tip"><p>If you tick <b>nobody</b>, the display shows everyone from the server. If you tick friends, only them.</p></div>
-${help([['Under “People” it says “The bot is not connected right now”.', 'Check that you pasted the whole token and that in part 1 you turned the two switches (intents) green and saved. Then click <b>Save &amp; apply</b> again.'],
+${help([['Under “Pick people” it says “The bot is not connected right now”.', 'Check that you pasted the whole token and that in part 1 you turned the two switches (intents) green and saved. Then click <b>Save &amp; apply</b> again.'],
   ['My friends are missing from the list.', 'The bot only sees people on servers it is on itself. Invite it to the server your friends are on as well (part 2).'],
-  ['Nobody shows up on the display.', 'Only people who are online right now are shown. Or turn on <b>“Show offline friends”</b>.']])}`},
+  ['Nobody shows up on the display.', 'Only people who are online right now are shown. Or turn on <b>“Show offline people”</b>.']])}`},
 
-{need: 'friends', t: 'Steam and Xbox', html: () => `
-<p class="kicker">Steam and Xbox</p><h1>Add your Steam and Xbox friends</h1>
-<p class="lead">For this the display needs a <b>key</b> for each. That's a long code that lets the app read your friends list. You only need the ones you use.</p>
+{need: 'friends', t: 'Steam, Xbox, PlayStation', html: () => `
+<p class="kicker">Steam, Xbox, PlayStation</p><h1>Add your Steam, Xbox and PlayStation friends</h1>
+<p class="lead">For this the display needs a <b>key</b> for each. That's a long code that lets the app read your friends list. You only need the ones you use. PlayStation is optional and off by default.</p>
 <ol class="do">
 <li>Click <b>“Friends”</b> on the left.</li>
-<li><b>Steam:</b> fold out <b>“How to get the Steam key”</b> and click ${g('Get Steam key ↗')}. Under <b>Domain Name</b>, write <b>localhost</b>. Copy the key into the <b>Steam key</b> field.</li>
-<li>Fold out <b>“How to find your profile link”</b>. ${g('My Steam profile ↗')} opens your profile. Copy the address from the top of the browser into the <b>Your Steam profile</b> field.</li>
+<li><b>Steam:</b> fold out <b>“How to get the Steam key”</b> and click ${g('Get Steam key ↗')}. Under <b>Domain Name</b>, write <b>localhost</b>. Copy the key into the <b>Steam API key</b> field. A card directly below the field shows the same steps with buttons.</li>
+<li>Open your Steam profile in the browser and copy the address from the address bar into the <b>Steam ID or profile URL</b> field.</li>
 <li>Very important: with ${g('Open privacy settings ↗')} set <b>Friends list</b> to <b>Public</b> on Steam.</li>
-<li><b>Xbox:</b> fold out <b>“How to get the Xbox key”</b> and follow the steps there.</li>
+<li><b>Xbox:</b> fold out <b>“How to get the Xbox key (OpenXBL)”</b> and follow the steps there.</li>
 <li>Click ${g('Check connection')} for each. Green means: it works. Then ${b('Save &amp; apply')}.</li>
 </ol>
-${shot('freunde', [], 'The native Friends page contains Steam and Xbox settings. Scroll down for more fields.')}
+${shot('freunde', [], 'The native Friends page contains Steam, Xbox and PlayStation settings. Scroll down for more fields.')}
 <div class="box secret"><p>The keys are like <b>passwords</b>. Don't show them to anyone.</p></div>
-<div class="box tip"><p><b>PlayStation:</b> open <b>“How to get the PlayStation code”</b> and follow the steps. Sony does not officially offer this, so use is unofficial and at your own risk. The code is like a password.</p></div>
+<div class="box warn"><p><b>PlayStation (optional, unofficial):</b> Sony offers no official interface for friends. ScreenBuddy therefore uses the <b>NPSSO code</b> of your PlayStation sign-in. This is <b>at your own risk</b>: Sony may change the interface at any time or restrict your account. The feature is <b>off by default</b>; leave the <b>PlayStation code (NPSSO)</b> field empty if you don't want it. To set it up, open <b>“How to get the PlayStation code (NPSSO)”</b> and follow the steps, paste the code and click ${g('Check connection')}. The code is like a password, is stored only encrypted on your PC and is sent only to Sony. It expires after about two months; just fetch a new one then.</p></div>
 ${help([['It says the friends list is private.', 'On Steam, set the friends list to <b>Public</b> (step 4) and check again.'],
+  ['PlayStation says the sign-in expired or is invalid.', 'The NPSSO code has expired or was copied wrongly. Fetch a new one (it has 64 characters) and click <b>Check connection</b> again.'],
   ['A friend appears twice in the list.', 'At the very bottom under <b>“Merge people”</b>, choose both accounts and click <b>Link</b>.'],
   ['Discord friends now appear twice on the display.', 'In the <b>Overview</b>, turn off the <b>“Discord friends”</b> page. The shared list already includes Discord.']])}`},
 
@@ -437,21 +438,21 @@ ${help([['It says the friends list is private.', 'On Steam, set the friends list
 <p class="lead">EA doesn't tell anyone who your friends are. That's why you write the names down yourself.</p>
 <ol class="do">
 <li>Click <b>“Battlefield 6”</b> on the left.</li>
-<li>Write your <b>EA name</b> in the field at the bottom. If you play on PlayStation or Xbox, choose that next to it.</li>
-<li>Click ${g('Add')}. Do the same for each friend.</li>
-<li>Click ${g('Check')} next to a name. If a <b>rank</b> appears in green, the name is correct.</li>
+<li>Write your <b>EA name</b> on one line of the <b>EA IDs</b> list. If you play on PlayStation or Xbox, append <b>@psn</b> or <b>@xbox</b> to the name, for example <b>Name@psn</b>.</li>
+<li>Do the same for each friend, one line per name.</li>
+<li>Under <b>Check a name</b>, type a name into the <b>EA ID</b> field and click ${g('Check')}. If a <b>rank</b> appears in green, the name is correct.</li>
 </ol>
 ${shot('bf6', [], 'Battlefield 6 settings in the native interface. Scroll down for the player list.')}
 ${help([['It says “Player not found”.', 'Look closely at the spelling. Upper and lower case, and zero and O, often get mixed up. Ask your friend for their exact EA name.'],
-  ['My friend plays on a console.', 'When adding, choose <b>PlayStation</b> or <b>Xbox</b> to the right of the field.']])}`},
+  ['My friend plays on a console.', 'Append <b>@psn</b> (PlayStation) or <b>@xbox</b> (Xbox) to the name, for example <b>Name@psn</b>.']])}`},
 
 {need: 'blogs', t: 'News', html: () => `
 <p class="kicker">News</p><h1>Pick some websites</h1>
 <p class="lead">The display shows the newest articles from websites that often post new things (for example news sites or blogs).</p>
 <ol class="do">
 <li>Click <b>“Blogs”</b> on the left.</li>
-<li>Copy the website's address from your browser and paste it into the field at the bottom.</li>
-<li>Click ${g('Add')} and then ${g('Check')}. Green means: it works.</li>
+<li>Copy the website's address from your browser and paste it into the <b>Feed URLs</b> list, one address per line.</li>
+<li>Paste the address under <b>Check a feed</b> into the <b>URL</b> field and click ${g('Check')}. Green means: it works.</li>
 </ol>
 ${shot('blogs', [], 'The native RSS page. Scroll down for addresses and the check action.')}
 ${help([['It says “No feed found”.', 'Some sites don\'t offer an article list for programs. Try another site, or add <span class="key">/feed/</span> to the end of the address.']])}`},
@@ -504,7 +505,7 @@ ${shot('ha_setup', [], 'Address, access token and connection check on the native
 <h2>2. Choose tiles</h2>
 <ol class="do">
 <li>Under <b>Entities</b> you see the list from Home Assistant. Type part of a name into ${b('Search entities …')}, for example “living”.</li>
-<li>Click ${b('Add')} next to the value you want. At most <b>4</b> fit on the page; tiles follow the order of the list. ${b('Remove')} takes one out again.</li>
+<li>Tick the value you want. Its ID then appears at the top in the <b>Entity IDs</b> list. At most <b>4</b> fit on the page; tiles follow the order of the list. Untick it to remove it again.</li>
 <li>Turn on ${b('Show page')} at the top and click ${b('Save &amp; apply')} at the bottom.</li>
 </ol>
 <p>The entity selector is farther down on the same page. Scroll down in the middle panel.</p>
@@ -553,7 +554,7 @@ ${shot('bar', [], 'Save &amp; apply is at the bottom right of the native window.
 <ol class="do">
 <li>Can't see the icon? Click the little arrow <span class="key">^</span>.</li>
 <li><b>Double-click</b> the orange icon. The settings open.</li>
-<li>With a <b>right-click</b> on the icon you see: <b>Open settings</b>, <b>Open guide</b>, <b>Restart</b> and <b>Quit</b>. <b>Open guide</b> shows this guide in your browser, even without the settings window. The <b>Open guide</b> button in the settings also opens it in your browser, so you can keep both side by side.</li>
+<li>With a <b>right-click</b> on the icon you see: <b>Open settings</b>, <b>Open guide</b>, <b>Restart</b> and <b>Quit</b>. <b>Open guide</b> shows this guide in your browser, even without the settings window. The <b>Guide (German)</b> and <b>Guide (English)</b> buttons on the <b>Overview</b> page also open it in your browser, so you can keep both side by side.</li>
 <li>If you ticked the Start menu entry, you'll also find the program there: <b>ScreenBuddy</b> (version 2.3.0: <b>FuchsLabs USB-Display</b>).</li>
 </ol>
 <div class="box tip"><p>Closing the window only hides the settings. The display keeps running.</p></div>`},
@@ -564,11 +565,11 @@ ${shot('bar', [], 'Save &amp; apply is at the bottom right of the native window.
 <p class="lead" style="text-align:center">You've set everything up. Now you can watch the pages change.</p>
 <h2>If something doesn't work later</h2>
 ${help([['The display stays dark.', 'Check whether the orange icon is at the bottom right. If not: open the program from the Start menu (or double-click the EXE). Then check display status on <b>Overview</b>.'],
-  ['The picture looks shifted or strange.', 'Briefly unplug the cable and plug it back in. Or click <b>Restart</b> on the <b>Display</b> page.'],
+  ['The picture looks shifted or strange.', 'Briefly unplug the cable and plug it back in. Or click <b>Restart</b> on the <b>Updates &amp; startup</b> page.'],
   ['The display is too dark.', 'On the <b>Display</b> page, slide <b>Brightness</b> to the right, then <b>Save &amp; apply</b>.'],
   ['I want to get rid of the program.', 'Open Windows <b>Settings → Apps</b>, choose <b>ScreenBuddy</b> (version 2.3.0: <b>FuchsLabs USB-Display</b>) and click <b>Uninstall</b>. Windows asks whether your settings and credentials should be deleted too.']], 'Help with problems')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Have fun! · © 2026 FuchsLabs</p>`},
-{t: 'Companion: independent phone display', html: () => `<h1>USB display and phone at the same time</h1><p class="lead">Companion preview from version 2.3.0: both outputs have their own pages and timers.</p><ol><li>Keep the USB/HDMI display type. Enable Companion in its tab, then save and apply.</li><li>Install the Companion app (separate download; on Android TV it appears in the TV launcher, and left/right on the remote switches the page). An older debug APK uses a different certificate and cannot be directly updated; agree on backup and migration before uninstalling it. A fresh installation needs pairing again. Use the same private network or USB tethering. Pair with the local code and compare the certificate fingerprint.</li><li>Choose pages and timing under Companion → Independent Companion display. Choose the other output under Display → Pages on USB display / monitor.</li><li>The extra controls appear only while Companion is enabled. Enable and configure each data source in its own tab.</li></ol><p>Swiping changes only the phone view. Native resolution follows connection and rotation. The first connected phone determines the shared Companion size; other phones share its pages. Larger requests are reduced proportionally to 2560 pixels per edge / 4,194,304 pixels. Real Redmi output, injected gestures and reconnect were tested over USB tethering with the predecessor 0.2.1-preview. The user also confirmed sharp output, finger swipes and taps. Wi-Fi and physical USB output in the same new PC instance need separate acceptance.</p>`}
+{t: 'Companion: independent phone display', html: () => `<h1>USB display and phone at the same time</h1><p class="lead">Companion preview from version 2.3.0: both outputs have their own pages and timers.</p><ol><li>Keep the USB/HDMI display type. Enable Companion in its tab, then save and apply.</li><li>Install the Companion app (separate download; on Android TV it appears in the TV launcher, and left/right on the remote switches the page). An older debug APK uses a different certificate and cannot be directly updated; agree on backup and migration before uninstalling it. A fresh installation needs pairing again. Use the same private network or USB tethering. Pair with the local code and compare the certificate fingerprint.</li><li>Choose pages and timing under Companion → Pages for Companion.Choose the other output under Display → Pages on USB display / monitor.</li><li>The extra controls appear only while Companion is enabled. Enable and configure each data source in its own tab.</li></ol><p>Swiping changes only the phone view. Native resolution follows connection and rotation. The first connected phone determines the shared Companion size; other phones share its pages. Larger requests are reduced proportionally to 2560 pixels per edge / 4,194,304 pixels. Real Redmi output, injected gestures and reconnect were tested over USB tethering with the predecessor 0.2.1-preview. The user also confirmed sharp output, finger swipes and taps. Wi-Fi and physical USB output in the same new PC instance need separate acceptance.</p>`}
 ];
 
 const $ = s => document.querySelector(s);

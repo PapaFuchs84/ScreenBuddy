@@ -6,9 +6,15 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.9.3] – 2026-10-31
+
 ### Added
 
 - **PlayStation friends** in the combined friends list (badge “P”, online status and current game). Unofficial Sony interface via the NPSSO code, DPAPI-encrypted, optional and off by default; includes a how-to for the code, a connection check and linking via `psn:Name`.
+
+### Fixed
+
+- Sony authorization codes containing a dot (`v3.…`) are accepted during PlayStation sign-in; connection diagnostics are written to the log.
 
 ## [2.9.2] – 2026-10-31
 
