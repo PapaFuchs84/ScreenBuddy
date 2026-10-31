@@ -45,7 +45,7 @@ flowchart LR
 
 - **Ein Prozess, mehrere Ausgaben:** Seiten werden einmal pro Ausgabegröße gerendert und an USB-Display, Monitor und Companion geliefert.
 - **Datenquellen entkoppelt:** jede Quelle liefert Modelle (`models.h`), die Renderer ist von den Quellen getrennt.
-- **Selbst gezeichnete Oberfläche** (Direct2D/DirectWrite) statt WebView2; der lokale HTTP-Dienst bleibt für Companion-Kopplung und Anleitung.
+- **Selbst gezeichnete Oberfläche** (Direct2D/DirectWrite) statt WebView2; der lokale HTTP-Dienst (`webui`, Standardport 8765, nur `127.0.0.1`) bleibt als Schnittstelle und für die eingebettete Anleitung; `/` liefert keine HTML-Einstellungsseite mehr.
 - **Sicherheit durch Voreinstellung:** Plugins sind rein deklarativ, Installationen bleiben ausgeschaltet, Hosts brauchen Freigabe.
 
 ## 5. Bausteinsicht
@@ -63,10 +63,10 @@ Gruppierung nach den Dateien in `cpp/src/`:
 | Ausgabe | `output.h`, `serial_display`, `monitor_display`, `network_display`, `touch` | USB-Display, Vollbild-Monitor, Netzwerk-/Companion-Ausgabe, Touch-Eingabe |
 | Companion | `companion`, `companion_server` | Kopplung, TLS-WebSocket, Gerätesitzungen (plattformneutral, unter Linux testbar) |
 | Plugins | `plugins`, `plugin_render`, `plugin_settings`, `plugin_transport`, `plugin_catalog`, `plugin_catalog_net`, `plugin_store`, `plugin_sign` | Manifest, Rendern, Einstellungen, Abruf (nur GET auf öffentliche HTTPS-Hosts), Katalog/Index, Store, Signaturprüfung |
-| Einstellungsoberfläche | `settings_window`, `native_settings`, `ui_kit`, `ui_logic`, `ui_pages`, `ui_page_*` | Fenster, Steuerelemente, Logik, eine Datei je Einstellungsseite |
+| Einstellungsoberfläche | `native_settings`, `ui_kit`, `ui_logic`, `ui_pages`, `ui_page_*` | Fenster, Steuerelemente, Logik, eine Datei je Einstellungsseite |
 | Ressourcen | `resources` | eingebettete Anleitung, Symbole, Versionsdaten |
 
-Nicht Teil der aktuellen App: der historische Python-Stand 1.x im Hauptordner (`*.py`, `build.bat`) und `cpp/third_party/webview2` (nur Lizenz/Altlast).
+Nicht Teil der aktuellen App: der historische Python-Stand 1.x im Hauptordner (`*.py`, `build.bat`), `cpp/src/settings_window.cpp` (alte WebView2-Einstellungsseite, nicht in `CMakeLists.txt` eingebunden) und `cpp/third_party/webview2` (Altbestand mit Headern und Bibliotheken, wird nicht gelinkt).
 
 ## 6. Laufzeitsicht
 
@@ -83,7 +83,7 @@ sequenceDiagram
 ```
 
 - Mehrere Companions laufen seit 2.7 gleichzeitig, synchron oder unabhängig, mit eigener Auflösung und optional eigener Seitenliste.
-- Kopplung: QR-Code oder PIN (6-stellig), Port 8777, nur private IPv4-Adressen, mDNS `_fuchslabs-display._tcp`, SHA-256-Fingerabdruck sichert TLS, Schlüssel DPAPI-geschützt in `companion.json` ([Protokoll](COMPANION-PROTOKOLL.md)).
+- Kopplung: QR-Code oder PIN (6-stellig, 2 Minuten gültig, Sperre nach Fehlversuchen), Standardport 8777 (muss sich vom Port 8765 unterscheiden), nur private IPv4-Adressen, mDNS `_fuchslabs-display._tcp`, SHA-256-Fingerabdruck sichert TLS, Schlüssel DPAPI-geschützt in `companion.json` ([Protokoll](COMPANION-PROTOKOLL.md)).
 - Update-Hinweis: höchstens einmal am Tag, nie automatische Installation.
 
 ## 7. Verteilung
@@ -99,7 +99,7 @@ Eine unsignierte `ScreenBuddy.exe` (Installer, App, Updater, Deinstaller). Stand
 
 ## 9. Offene Punkte
 
-- Dieses Dokument wurde nicht gegen den Quellcode Zeile für Zeile geprüft; die Bausteintabelle gibt die Dateinamen und dokumentierten Funktionen wieder.
+- Dateiliste, Ports, Pfade, PIN-Regeln, Loopback-Prüfungen, Update-Takt und Plugin-Transport (nur GET, HTTPS, keine Weiterleitungen) wurden stichprobenartig gegen `cpp/src/` und `CMakeLists.txt` geprüft; das Dokument ist nicht Zeile für Zeile verifiziert.
 - Online-Plugins und CRL/OCSP-Prüfungen gelten weiter als experimentell.
 - Packaging-Umleitung unter Windows kann einen anderen Einstellungsstand sichtbar machen (siehe [Release-Notizen 2.7](RELEASE-NOTES-2.7.md)).
 - Juristische Prüfung der Store-Bedingungen steht aus.
