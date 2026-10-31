@@ -6,6 +6,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+## [2.9.0] – 2026-10-31
+
+Companion 1.0.2 (Android-TV-Einstieg mit D-Pad-Navigation). Noch offen für 2.9.1: Plugin-Store-Typ „Theme“, Maus-Tooltip der Statuspunkte.
+
 ### Neu
 
 - **Farben & Design**: Neue Option „An Windows anpassen" (Hell/Dunkel und Akzentfarbe von Windows, folgt Änderungen live, Kontrastdesign nutzt die Systemfarben; Text und Balken werden automatisch kontrastkorrigiert). Eigene Themes als JSON-Dateien mit Editor, Live-Vorschau, Kontrastwarnung, Duplizieren, Löschen, Import und Export; „Eigene Farben" werden automatisch migriert. Drei Beispiel-Themes (Cupertino-, Material-, Fluent-Stil) unter `cpp/examples/themes`. Das Einstellungsfenster bietet „Windows" als Darstellung.

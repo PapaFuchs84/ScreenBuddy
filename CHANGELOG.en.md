@@ -6,6 +6,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.9.0] – 2026-10-31
+
+Companion 1.0.2 (Android TV entry with D-pad navigation). Still open for 2.9.1: plugin store type "theme", mouse tooltip for the status dots.
+
 ### Added
 
 - **Colors & design**: new "Match Windows" option (Windows light/dark and accent color, follows changes live, high contrast uses the system colors; text and bars are contrast-corrected automatically). Custom themes as JSON files with editor, live preview, contrast warning, duplicate, delete, import and export; "Custom colors" migrate automatically. Three example themes (Cupertino, Material, Fluent style) in `cpp/examples/themes`. The settings window offers "Windows" as appearance.
