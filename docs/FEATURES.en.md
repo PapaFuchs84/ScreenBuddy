@@ -9,6 +9,7 @@ Moved out of the README (as of 2.7.0). German: [FUNKTIONEN.md](FUNKTIONEN.md). O
 - [Home Assistant (from 2.1.0)](#home-assistant-from-210)
 - [New on streaming (from 2.8.0)](#new-on-streaming-from-280)
 - [Spotify (from 2.8.0)](#spotify-from-280)
+- [Colors & design (from 2.9.0)](#colors--design-from-290)
 - [Android Companion app (from 2.3.0, multiple devices from 2.7.0)](#android-companion-app-from-230-multiple-devices-from-270)
 - [Plugin store and plugins (from 2.6.0)](#plugin-store-and-plugins-from-260)
 - [Browse views (from 2.0.4)](#browse-views-from-204)
@@ -31,17 +32,23 @@ Developed as 2.0.7; that version was not released separately, so the feature is 
 
 The **New on streaming** page shows movies and series released in the last 30 days that are included in the subscription (flatrate) of the providers you choose. Each row has the title, date, movie or series, and the provider logo (at most 3 per title, further ones as “+n”). Up to 6 rows, newest first. If a logo is missing or still loading, the abbreviation (e.g. NF, PV, D+, ATV+, WOW, RTL+) is shown instead.
 
-- **Setup:** under **Settings → New on streaming** turn the page on and enter a free TMDB key (on an existing installation also tick the page under *Pages & order*) (themoviedb.org → Settings → API; the v3 key or the “API Read Access Token” both work). Like the other keys it is stored DPAPI-encrypted in `config.toml` and never logged or shown. **Check key & load providers** loads your region's provider list from TMDB; tick the providers you want (up to 30). Preselected: Netflix (8), Prime Video (9 and 119), Disney+ (337), Apple TV+ (350), WOW (30) and RTL+ (298). If an ID differs in your region, fix it via the loaded list.
+- **Setup:** under **Settings → New on streaming** turn the page on and enter a free TMDB key (on an existing installation also tick the page under *Pages & order*) (themoviedb.org → Settings → API; the v3 key or the “API Read Access Token” both work). Like the other keys it is stored DPAPI-encrypted in `config.toml` and never logged or shown. **Check key & load providers** loads your region's provider list from TMDB; tick the providers you want (up to 30). Preselected: Netflix (8), Prime Video (9 and 119), Disney+ (337), Apple TV+ (350), WOW (30) and RTL+ (2750, region DE). If an ID differs in your region, fix it via the loaded list.
 - **Region:** follows the app language (German: DE, English: US); can be overridden with two letters in the **Region** field (`region` under `[streaming]`), e.g. `AT`.
 - **Requests:** GET only, over HTTPS to `api.themoviedb.org/3`. Each refresh makes two discover requests (movies, series) plus – only for the shown entries, remembered once – one provider request per entry; at most hourly (1 hour cache), with short pauses between requests. On errors the old entries stay visible and the app retries after 10 minutes (15 minutes on “rate limit”, next hour on an invalid key).
 - **Provider logos:** TMDB supplies a `logo_path` per provider; the image comes from `image.tmdb.org` (size w92, GET only over HTTPS, no redirects, size limit, PNG/JPEG only). Each logo is loaded once in the background and stored under `cache/tmdb-logos/<provider ID>.png` in the data folder (file name from the number only), then scaled in memory to row height as a rounded square. The display never waits for it; until then, or on errors, the abbreviation is shown. The logos are trademarks of the providers ([THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md)). TMDB additionally sees the image requests.
 - **Display without data:** “No key” (page on, but no key), “Loading data …”, “No data” (error or offline, never a crash).
 - **Privacy:** TMDB sees your IP address and the chosen region/provider list, not your accounts at the streaming services.
-- **Credit:** This product uses the TMDB API but is not endorsed or certified by TMDB. Provider data: JustWatch. The page carries the footer “TMDB / JustWatch”; the notice is also in the settings (Updates & startup → Credits) and in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). The official TMDB logo is not included yet.
+- **Credit:** This product uses the TMDB API but is not endorsed or certified by TMDB. Provider data: JustWatch. The page carries the footer “TMDB / JustWatch”; the notice is also in the settings (Updates & startup → Credits) and in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). The official TMDB logo appears in the attribution of the README and THIRD-PARTY-NOTICES.md (from 2.9.0).
 
 ## Spotify (from 2.8.0)
 
-Shows the current track with cover and progress; with touch (monitor, Companion) buttons control previous, play/pause and next (Spotify Premium required). Sign-in uses PKCE with your own Spotify developer app; the token is stored DPAPI-encrypted in `spotify.token`. While music plays, an amplifier (16 bars) shows the Windows system output level, read locally and not recorded (can be switched off). Setup and limits: [SPOTIFY.en.md](SPOTIFY.en.md).
+Shows the current track with cover and progress; with touch (monitor, Companion) buttons control previous, play/pause and next (Spotify Premium required). Sign-in uses PKCE with your own Spotify developer app; the token is stored DPAPI-encrypted in `spotify.token`. While music plays, an amplifier (16 bars) shows the Windows system output level, read locally and not recorded (can be switched off). Setup and limits: [SPOTIFY.en.md](SPOTIFY.en.md). From 2.9.0 the analysis only starts when the visible playback page is drawn and ends at most three seconds after leaving it. Not included: amplifier for playback on a phone or speaker.
+
+## Colors & design (from 2.9.0)
+
+**Settings → Colors & design:** Light (FuchsLabs), Dark (FuchsLabs), **Match Windows** or your own themes. Windows mode: light/dark and accent from Windows, changes apply live, high contrast uses the system colours; text and bars are contrast-corrected automatically. Custom themes are JSON files (editor with live preview, contrast warning, duplicate, delete, import, export); three examples (Cupertino, Material, Fluent style) are in `cpp/examples/themes`. The choice applies to the USB display, monitor and Companion. Details, format and limits: [THEMES.md](THEMES.md) (bilingual).
+
+**Status dots in the navigation:** green = set up and on, grey = not set up or off; only for data sources and connections, with a legend. Not included yet: mouse tooltip for the dots.
 
 ## Android Companion app (from 2.3.0, multiple devices from 2.7.0)
 

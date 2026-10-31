@@ -5,7 +5,7 @@
 
 </div>
 
-Stand: ScreenBuddy 2.8.0 (Release v2.8.0, 31.10.2026). Diese Seite ist der Einstieg in alle Dokumente. Sie ist nach Zielgruppe geordnet; jedes Dokument hat genau einen Zweck.
+Stand: ScreenBuddy 2.9.0 (Entwurf bis zur Veröffentlichung von v2.9.0). Diese Seite ist der Einstieg in alle Dokumente. Sie ist nach Zielgruppe geordnet; jedes Dokument hat genau einen Zweck.
 
 ## Aufbau und Prinzipien
 
@@ -59,7 +59,9 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 | Dokument | Zweck | Status |
 |---|---|---|
 | [`../CHANGELOG.md`](../CHANGELOG.md) · [English](../CHANGELOG.en.md) · [`../cpp/CHANGELOG.md`](../cpp/CHANGELOG.md) | Änderungen je Version | aktuell |
-| [`RELEASE-NOTES-2.8.md`](RELEASE-NOTES-2.8.md) | Release-Notizen der aktuellen Version | aktuell |
+| [`RELEASE-NOTES-2.9.md`](RELEASE-NOTES-2.9.md) | Release-Notizen der aktuellen Version | aktuell |
+| [`THEMES.md`](THEMES.md) | Farbdesigns: Windows-Farben, eigene Themes (DE/EN) | aktuell |
+| [`RELEASE-NOTES-2.8.md`](RELEASE-NOTES-2.8.md) | Release-Notizen 2.8 | historisch |
 | [`RELEASE-NOTES-2.7.md`](RELEASE-NOTES-2.7.md) | Release-Notizen 2.7 | historisch |
 | [`../cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md) | Testprotokoll | Stand 2.6.0, kein Eintrag für 2.7.0 |
 | [`PRUEFSTAND-HISTORIE.md`](PRUEFSTAND-HISTORIE.md) | Prüfstände 2.0.3 bis 2.6.0 (aus dem README ausgelagert) | historisch |

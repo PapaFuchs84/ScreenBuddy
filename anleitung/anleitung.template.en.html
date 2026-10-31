@@ -208,7 +208,7 @@ const STEPS = [
 </div>
 <p>You always do just <b>one small step</b>. The top right shows how far you've got. When you're done, press ${b('Next →')} at the bottom.</p>
 <div class="box tip"><p>If something doesn't work, every step has a <b>“Not working?”</b> button at the bottom. It tells you what you can do.</p></div>
-<div class="box warn"><p>The app itself can be switched between <b>German and English</b>. In ScreenBuddy 2.6, choose <b>EN</b> at the top; in earlier 2.3.0, select <b>English</b> under <b>“Sprache · Language”</b> and save. The native screenshots below still show German labels.</p></div>`},
+<div class="box warn"><p>The app itself can be switched between <b>German and English</b>. In ScreenBuddy 2.9, choose <b>EN</b> at the top; in earlier 2.3.0, select <b>English</b> under <b>“Sprache · Language”</b> and save. The native screenshots below still show German labels.</p></div>`},
 
 {t: 'What do you want to see?', html: () => `
 <p class="kicker">Choose</p><h1>What should your display show?</h1>
@@ -222,7 +222,7 @@ const STEPS = [
 <li><b>The display</b> with its <b>USB cable</b>.</li>
 <li><b>A Windows PC</b> (Windows 10 or 11, 64-bit) with internet.</li>
 <li><b>The file <span class="key">ScreenBuddy.exe</span></b>. You download it in the next step. There is no ZIP to unpack.</li>
-<li><b>No extra runtime for ScreenBuddy 2.6</b>. Python, WebView2 and a Visual C++ redistributable are not required. Earlier 2.3.0 still needs WebView2.</li>
+<li><b>No extra runtime for ScreenBuddy 2.9</b>. Python, WebView2 and a Visual C++ redistributable are not required. Earlier 2.3.0 still needs WebView2.</li>
 ${sel.discord ? '<li><b>Your Discord account</b> and a Discord server where you are the boss (admin). If you\'re not, ask the server\'s boss to help you.</li>' : ''}
 ${sel.friends ? '<li><b>Your Steam account</b> and/or <b>your Xbox account</b>.</li>' : ''}
 ${sel.bf6 ? '<li><b>The EA names</b> of you and your Battlefield friends.</li>' : ''}
@@ -233,10 +233,10 @@ ${sel.bf6 ? '<li><b>The EA names</b> of you and your Battlefield friends.</li>' 
 {t: 'Get the program', html: () => `
 <p class="kicker">Download</p><h1>Download the program</h1>
 <p class="lead">ScreenBuddy is <b>one single file</b>. There is nothing to unpack.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.6:</b> Download <span class="key">ScreenBuddy.exe</span>. This guide shows anonymous native example captures from the 2.5 development with German labels; choose EN in the app for English controls. Earlier 2.3.0 uses different menus and its own bundled guide.</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.9:</b> Download <span class="key">ScreenBuddy.exe</span>. This guide shows anonymous native example captures from the 2.5 development with German labels (the 2.9 colors & design page and status dots are described in text only); choose EN in the app for English controls. Earlier 2.3.0 uses different menus and its own bundled guide.</p></div>
 <ol class="do">
 <li>Open this page: <a href="https://github.com/PapaFuchs84/ScreenBuddy/releases/latest" target="_blank" rel="noopener">Latest release on GitHub</a>. Or use the file from whoever sent you this guide.</li>
-<li>Download <span class="key">ScreenBuddy.exe</span> from release 2.6.0 and verify its SHA-256 using the supplied checksum file.</li>
+<li>Download <span class="key">ScreenBuddy.exe</span> from release 2.9.0 and verify its SHA-256 using the supplied checksum file.</li>
 <li>It normally lands in your <b>Downloads</b> folder.</li>
 </ol>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock win">
@@ -265,9 +265,9 @@ ${help([['I can\'t find the file.', 'Look in the <b>Downloads</b> folder. You ca
 <li>Click ${b('Install')}. Wait a moment. Then it says <b>“Done! The app is starting now.”</b></li>
 </ol>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock win">
-<div class="tb">ScreenBuddy 2.6 – Installation<span>— ☐ ✕</span></div>
+<div class="tb">ScreenBuddy 2.9 – Installation<span>— ☐ ✕</span></div>
 <div class="files" style="display:block;padding:16px;text-align:left">
-<p style="margin:0 0 8px"><b>Installation · ScreenBuddy 2.6</b></p>
+<p style="margin:0 0 8px"><b>Installation · ScreenBuddy 2.9</b></p>
 <p style="margin:0 0 8px">☑ Start with Windows (only the fox icon in the notification area)<br>☑ Start menu entry</p>
 <p style="margin:0;text-align:right"><span class="btnname hlbtn">Install</span></p></div></div></figure>
 <div class="box tip"><p><b>Did you have version 1.x?</b> Then one more tick box appears: <b>“Retire the old 1.x version”</b>. Leave it on: your settings and credentials are carried over. The old folder gets the suffix <span class="key">-1.x-alt</span> and stays as a backup.</p></div>
@@ -300,7 +300,7 @@ ${shot('start', [[286, 196, 869, 63]], 'The first card shows display status. Che
 <p>If that works, your little display lights up now too. 🎉</p>
 ${help([['It says “The display\'s vendor app is running”.', `Click ${g('Close vendor app')} next to it. If <b>“Vendor app autostart”</b> appears below it, click ${g('Turn off')} there. Windows then asks once whether you allow it: click <b>Yes</b>.`],
   ['It says “Display not found”.', 'Unplug the USB cable and plug it back in. Try another USB port on the PC. Then wait a few seconds.'],
-  ['Published 2.3.0 says WebView2 is missing.', 'Install the <b>Microsoft Edge WebView2 runtime</b> and restart 2.3.0. ScreenBuddy 2.6 has a native settings window.'],
+  ['Published 2.3.0 says WebView2 is missing.', 'Install the <b>Microsoft Edge WebView2 runtime</b> and restart 2.3.0. ScreenBuddy 2.9 has a native settings window.'],
   ['The window didn\'t open.', 'At the bottom right next to the clock there is a small orange icon (maybe behind the arrow <span class="key">^</span>). Double-click it.'],
   ['The picture on the display is upside down.', 'No problem, you\'ll fix that in the step “Rotate picture and brightness”.']])}`},
 
@@ -347,6 +347,12 @@ ${shot('uebersicht', [], 'The native Pages &amp; order view with checkboxes and 
 <p>If it's upside down:</p>
 <ol class="do"><li>Click <b>Display</b> on the left (German screenshot: <b>Anzeige</b>).</li><li>Under <b>Orientation</b>, choose the other option: <b>“Landscape”</b> instead of <b>“Landscape 180°”</b> or the other way round.</li></ol>
 ${shot('display', [], 'Orientation is on Display, below the brightness slider.')}`},
+
+{t: 'Colors and design', html: () => `
+<p class="kicker">New in 2.9</p><h1>How should it look?</h1>
+<p class="lead">If you like the colors, just press ${b('Next →')}. You can change them at any time.</p>
+<ol class="do"><li>Click <b>"Colors &amp; design"</b> on the left.</li><li>Choose <b>Light</b> or <b>Dark</b> in the FuchsLabs style. Or choose <b>"Match Windows"</b>: the display then takes light or dark and the accent color from Windows and follows when you change it in Windows.</li><li>Your own colors: create a <b>theme</b>, change the colors in the editor and check the preview. The editor warns when text would be hard to read and can fix the contrast. <b>Import</b> and <b>Export</b> swap themes as a file. Three examples (in the style of Apple, Google and Microsoft interfaces) are in the <b>cpp/examples/themes</b> folder of the GitHub project.</li><li>Click ${b('Save & apply')}.</li></ol>
+<div class="box tip"><p>In the list on the left, a <b>green dot</b> shows that a data source is set up and switched on. <b>Grey</b> means not set up yet or off. A legend sits at the bottom of the list.</p></div>`},
 
 {need: 'discord', t: 'Discord 1: create a bot', html: () => `
 <p class="kicker">Discord · part 1 of 3</p><h1>Make yourself a little Discord helper</h1>
@@ -538,7 +544,7 @@ ${shot('bar', [], 'Save &amp; apply is at the bottom right of the native window.
 {t: 'Find it again', html: () => `
 <p class="kicker">Later</p><h1>How to find the settings again</h1>
 <p class="lead">The program runs quietly in the background. It has a small <b>orange icon</b> at the bottom right next to the clock.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.6:</b> The native interface already includes the phase-2 pages for Discord, friends, Home Assistant, Companion pairing with QR code and device management, and Colors &amp; design. The source editor, page ordering, updates and autostart are also available natively. All settings open in the native window; this illustrated HTML guide remains available in the browser. Source plugins require their settings and approval for every host. Earlier 2.3.0 uses the previous interface.</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.9:</b> The native interface already includes the phase-2 pages for Discord, friends, Home Assistant, Companion pairing with QR code and device management, and Colors &amp; design. The source editor, page ordering, updates and autostart are also available natively. All settings open in the native window; this illustrated HTML guide remains available in the browser. Source plugins require their settings and approval for every host. Earlier 2.3.0 uses the previous interface.</p></div>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
 <span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22/10/2026</div></div></div></figure>
@@ -560,7 +566,7 @@ ${help([['The display stays dark.', 'Check whether the orange icon is at the bot
   ['The display is too dark.', 'On the <b>Display</b> page, slide <b>Brightness</b> to the right, then <b>Save &amp; apply</b>.'],
   ['I want to get rid of the program.', 'Open Windows <b>Settings → Apps</b>, choose <b>ScreenBuddy</b> (version 2.3.0: <b>FuchsLabs USB-Display</b>) and click <b>Uninstall</b>. Windows asks whether your settings and credentials should be deleted too.']], 'Help with problems')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Have fun! · © 2026 FuchsLabs</p>`},
-{t: 'Companion: independent phone display', html: () => `<h1>USB display and phone at the same time</h1><p class="lead">Companion preview from version 2.3.0: both outputs have their own pages and timers.</p><ol><li>Keep the USB/HDMI display type. Enable Companion in its tab, then save and apply.</li><li>Install the Companion app 1.0 (separate download). An older debug APK uses a different certificate and cannot be directly updated; agree on backup and migration before uninstalling it. A fresh installation needs pairing again. Use the same private network or USB tethering. Pair with the local code and compare the certificate fingerprint.</li><li>Choose pages and timing under Companion → Independent Companion display. Choose the other output under Display → Pages on USB display / monitor.</li><li>The extra controls appear only while Companion is enabled. Enable and configure each data source in its own tab.</li></ol><p>Swiping changes only the phone view. Native resolution follows connection and rotation. The first connected phone determines the shared Companion size; other phones share its pages. Larger requests are reduced proportionally to 2560 pixels per edge / 4,194,304 pixels. Real Redmi output, injected gestures and reconnect were tested over USB tethering with the predecessor 0.2.1-preview. The user also confirmed sharp output, finger swipes and taps. Wi-Fi and physical USB output in the same new PC instance need separate acceptance.</p>`}
+{t: 'Companion: independent phone display', html: () => `<h1>USB display and phone at the same time</h1><p class="lead">Companion preview from version 2.3.0: both outputs have their own pages and timers.</p><ol><li>Keep the USB/HDMI display type. Enable Companion in its tab, then save and apply.</li><li>Install the Companion app (separate download; on Android TV it appears in the TV launcher, and left/right on the remote switches the page). An older debug APK uses a different certificate and cannot be directly updated; agree on backup and migration before uninstalling it. A fresh installation needs pairing again. Use the same private network or USB tethering. Pair with the local code and compare the certificate fingerprint.</li><li>Choose pages and timing under Companion → Independent Companion display. Choose the other output under Display → Pages on USB display / monitor.</li><li>The extra controls appear only while Companion is enabled. Enable and configure each data source in its own tab.</li></ol><p>Swiping changes only the phone view. Native resolution follows connection and rotation. The first connected phone determines the shared Companion size; other phones share its pages. Larger requests are reduced proportionally to 2560 pixels per edge / 4,194,304 pixels. Real Redmi output, injected gestures and reconnect were tested over USB tethering with the predecessor 0.2.1-preview. The user also confirmed sharp output, finger swipes and taps. Wi-Fi and physical USB output in the same new PC instance need separate acceptance.</p>`}
 ];
 
 const $ = s => document.querySelector(s);
