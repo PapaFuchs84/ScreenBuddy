@@ -9,7 +9,8 @@ Zeigt den aktuell gespielten Titel mit Cover, Künstler, Album und Fortschritt a
 1. Auf [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) eine App anlegen („Web API“ ankreuzen).
 2. Als **Redirect URI** exakt die Adresse aus *Einstellungen → Spotify* eintragen (Standard `http://127.0.0.1:8765/spotify/callback`; folgt dem Port der Einstellungsseite).
 3. Die **Client-ID** in ScreenBuddy einfügen, „Seite anzeigen“ einschalten, speichern.
-4. „Bei Spotify anmelden“ klicken, im Browser zustimmen. Fertig.
+4. „Bei Spotify anmelden“ klicken, im Browser zustimmen.
+5. Bei einer bestehenden Installation die Seite unter *Einstellungen → Seiten & Reihenfolge* anhaken (Display und, falls gewünscht, Companion-Seitenliste). Neue Seiten werden nicht automatisch angezeigt. Fertig.
 
 Ein Client Secret wird nicht gebraucht (Anmeldung per PKCE).
 
