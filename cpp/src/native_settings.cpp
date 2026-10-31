@@ -240,16 +240,32 @@ struct NativeSettings::Impl : ui::Host {
     }
     void update_device() {
         if (!device_title) return;
-        device_title->text = ui::T((L"Gerät: " + output_name(false)).c_str(), (L"Device: " + output_name(true)).c_str());
+        // Alle verbundenen Geräte: das Hauptdisplay (USB/Monitor) und jede verbundene Companion-App.
         std::wstring size = status_.size.first > 0 ? std::to_wstring(status_.size.first) + L" × " + std::to_wstring(status_.size.second) : L"–";
-        std::wstring de = size + (status_.display_ok ? L" · verbunden" : L" · nicht verbunden");
-        std::wstring en = size + (status_.display_ok ? L" · connected" : L" · not connected");
-        if (!status_.display_error.empty()) { de += L"\n" + widen(status_.display_error); en += L"\n" + widen(status_.display_error); }
+        std::wstring de, en;
+        int connected = 0;
+        const std::string o = initial_.at("display").value("output", "serial");
+        if (o != "network") {
+            de = output_name(false) + L" · " + size + (status_.display_ok ? L" · verbunden" : L" · nicht verbunden");
+            en = output_name(true) + L" · " + size + (status_.display_ok ? L" · connected" : L" · not connected");
+            if (status_.display_ok) ++connected;
+        }
+        const ojson& cc = status_.companion;
+        if (cc.is_object() && cc.contains("clients") && cc["clients"].is_array()) {
+            for (const auto& x : cc["clients"]) {
+                std::wstring who = widen(x.value("name", std::string("Companion")) + " (" + x.value("ip", std::string()) + ")");
+                de += (de.empty() ? L"" : L"\n") + std::wstring(L"Companion · ") + who + L" · verbunden";
+                en += (en.empty() ? L"" : L"\n") + std::wstring(L"Companion · ") + who + L" · connected";
+                ++connected;
+            }
+        }
+        if (o == "network" && connected == 0) { de = L"Kein Gerät verbunden"; en = L"No device connected"; }
+        if (!status_.display_error.empty() && o != "network") { de += L"\n" + widen(status_.display_error); en += L"\n" + widen(status_.display_error); }
+        device_title->text = ui::Text(L"Verbundene Geräte: " + std::to_wstring(connected), L"Connected devices: " + std::to_wstring(connected));
         device_detail->text = ui::Text(de, en);
-        device_detail->tone = status_.display_ok ? ui::Label::Muted : ui::Label::Danger;
+        device_detail->tone = (connected > 0 || o == "network") ? ui::Label::Muted : ui::Label::Danger;
         frame->relayout();
     }
-
     // ---------------- Seiten
     void build(Slot& slot) {
         auto root = std::make_unique<ui::Column>();
@@ -457,12 +473,25 @@ struct NativeSettings::Impl : ui::Host {
         theme->layout(c, w - 18 - tw, (HeaderH - 28) / 2, tw);
         lang->layout(c, w - 18 - tw - 10 - lw, (HeaderH - 28) / 2, lw);
         // Navigation in Gruppen
+        // Passt die Navigation nicht in die Höhe, werden Einträge und Gruppenabstände enger (statt unter die Fußleiste zu laufen).
+        int groups = 0, last_group = -1;
+        for (auto& s : slots) if (int(s.info.group) != last_group) { last_group = int(s.info.group); ++groups; }
+        const float avail = h - FooterH - (HeaderH + 12) - 6;
+        float gap0 = 18, gapN = 26, item_h = 36;
+        float need = slots.size() * item_h + gap0 + gapN * std::max(0, groups - 1);
+        if (need > avail) {
+            float k = avail / need;
+            item_h = std::max(26.f, item_h * k);
+            gap0 = std::max(16.f, gap0 * k);
+            gapN = std::max(22.f, gapN * k);
+        }
         float y = HeaderH + 12;
         int group = -1;
         for (auto& s : slots) {
-            if (int(s.info.group) != group) { group = int(s.info.group); y += group == 0 ? 18 : 26; }
+            if (int(s.info.group) != group) { group = int(s.info.group); y += group == 0 ? gap0 : gapN; }
             s.nav->layout(c, 10, y, NavW - 20);
-            y += 36;
+            s.nav->rc.bottom = s.nav->rc.top + std::min(34.f, item_h - 2);
+            y += item_h;
         }
         nav_y0 = HeaderH + 12;
         // Fußleiste

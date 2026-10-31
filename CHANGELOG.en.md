@@ -8,11 +8,13 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Added
 
+- **Settings**: the Overview shortcuts now have icons plus new buttons for the guide (German/English) and the Plugin workshop. The right-hand “Device” panel lists all connected devices: the USB display or monitor and every connected Companion app (name, IP address).
 - **Spotify page**: current track with cover art, progress and – with touch – buttons for previous, play/pause and next (Spotify Web API). Sign-in uses PKCE without a client secret and your own Spotify developer app; tokens are DPAPI-encrypted in `spotify.token`. Settings → Spotify, docs: [docs/SPOTIFY.en.md](docs/SPOTIFY.en.md). Covered by automated checks (PKCE test vector, reply parsing, buttons, rendering); the real Spotify login has not yet been tested with an account.
 - **New on streaming**: new display page with movies and series of the last 30 days on the chosen streaming providers (title, date, movie/series, provider abbreviation). Source: TMDB API v3 (GET only over HTTPS, 1 h cache), provider data from JustWatch. Settings: page on/off, title, TMDB key (masked, DPAPI), region (automatic from the language, overridable), provider multi-select from the TMDB list (preset: Netflix, Prime Video, Disney+, Apple TV+, WOW, RTL+) and number of entries. Without a key the page shows “No key”, on errors or offline “No data”. Required credit “This product uses the TMDB API but is not endorsed or certified by TMDB. Provider data: JustWatch.” in the settings, the guide and `THIRD-PARTY-NOTICES.md`; footer “TMDB / JustWatch” on the page. New config section `[streaming]`, new page key `streaming`. The official TMDB logo is not included yet. Only the logic was tested automatically on Linux; the Windows UI and display have not been built or tested on a device yet.
 
 ### Fixed
 
+- Settings window: the left navigation adapts to the window height and no longer runs under the footer (no overlap with “No unsaved changes”).
 - **Companion app 1.0.1**: the background now runs edge to edge, while content stays inside the safe area clear of rounded display corners (Android 12+, radius from the system) and the camera cut-out; reported resolution and touch coordinates refer to the safe area. Verified on the Pixel 10 Pro (corners 157 px, cut-out at the top); Redmi 8 without rounding is unchanged.
 - TMDB: the RTL+ preset uses TMDB ID 2750 (region DE) instead of 298.
 - `--uninstall` aborts in test instances (`FUCHSLABS_INSTANCE`) without their own `FUCHSLABS_INSTALL_DIR` instead of deleting the real installation (EXE) while leaving the autostart entry and programs-list entry behind.

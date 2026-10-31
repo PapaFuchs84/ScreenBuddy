@@ -3,6 +3,7 @@
 #include "ui_pages.h"
 
 #include <algorithm>
+#include <shellapi.h>
 
 #include "app.h"
 #include "native_settings.h"
@@ -33,11 +34,19 @@ public:
         Card* jump = root.add<Card>(T(L"Schnellzugriff", L"Shortcuts"));
         auto row = jump->add<ButtonRow>();
         Host* h = &host;
-        row->add(T(L"Anzeige", L"Display"), Button::Secondary, [h] { h->navigate("display"); });
-        row->add(T(L"Seiten & Reihenfolge", L"Pages & order"), Button::Secondary, [h] { h->navigate("pages"); });
-        row->add(T(L"Datenquellen", L"Data sources"), Button::Secondary, [h] { h->navigate("system"); });
-        row->add(Text(L"Companion"), Button::Secondary, [h] { h->navigate("companion"); });
-        row->add(Text(L"Plugins"), Button::Secondary, [h] { h->navigate("plugins"); });
+        row->add(T(L"🖥  Anzeige", L"🖥  Display"), Button::Secondary, [h] { h->navigate("display"); });
+        row->add(T(L"🗂  Seiten & Reihenfolge", L"🗂  Pages & order"), Button::Secondary, [h] { h->navigate("pages"); });
+        row->add(T(L"📊  Datenquellen", L"📊  Data sources"), Button::Secondary, [h] { h->navigate("system"); });
+        row->add(Text(L"📱  Companion"), Button::Secondary, [h] { h->navigate("companion"); });
+        row->add(Text(L"🧩  Plugins"), Button::Secondary, [h] { h->navigate("plugins"); });
+        // Anleitung (Deutsch/Englisch) und Plugin-Werkstatt laufen im lokalen Server dieser App
+        const int ui_port = host.config().at("ui").value("port", 8765);
+        auto open_local = [h, ui_port](const std::wstring& path) {
+            ShellExecuteW(h->window(), L"open", (L"http://127.0.0.1:" + std::to_wstring(ui_port) + path).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        };
+        row->add(T(L"📖  Anleitung (DE)", L"📖  Guide (German)"), Button::Secondary, [open_local] { open_local(L"/anleitung?lang=de"); });
+        row->add(T(L"📖  Anleitung (EN)", L"📖  Guide (English)"), Button::Secondary, [open_local] { open_local(L"/anleitung?lang=en"); });
+        row->add(T(L"🛠  Plugin-Werkstatt", L"🛠  Plugin workshop"), Button::Secondary, [open_local] { open_local(L"/plugin-werkstatt"); });
         Card* setup = root.add<Card>(T(L"Einrichtung in 3 Schritten", L"Set up in 3 steps"),
             T(L"Wähle die Ausgabe, richte deine Inhalte ein und bestimme die Seiten auf dem Display.",
               L"Choose an output, set up your content, then choose the pages shown on the display."));
