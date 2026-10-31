@@ -41,7 +41,7 @@ Seite **Streaming-Neustarts** („New on streaming“): zeigt Filme und Serien, 
 
 ## Spotify (ab 2.8.0)
 
-Zeigt den aktuell gespielten Titel mit Cover und Fortschritt; mit Touch (Monitor, Companion) steuern Tasten Zurück, Wiedergabe/Pause und Weiter (Spotify Premium nötig). Anmeldung per PKCE mit eigener Spotify-Developer-App, das Token liegt DPAPI-verschlüsselt in spotify.token. Bei laufender Wiedergabe zeigt ein Amplifier (16 Balken) den Pegel der Windows-Systemausgabe, lokal gelesen und nicht aufgezeichnet (abschaltbar). Einrichtung und Grenzen: [SPOTIFY.md](SPOTIFY.md).
+Zeigt den aktuell gespielten Titel mit Cover und Fortschritt; mit Touch (Monitor, Companion) steuern Tasten Zurück, Wiedergabe/Pause und Weiter (Spotify Premium nötig). Anmeldung per PKCE mit eigener Spotify-Developer-App, das Token liegt DPAPI-verschlüsselt in spotify.token. Bei laufender Wiedergabe zeigt ein Amplifier (16 Balken) den Pegel der Windows-Systemausgabe, lokal gelesen und nicht aufgezeichnet (abschaltbar). Läuft die Musik woanders (Handy, Lautsprecher, Connect) und die Systemausgabe bleibt 4 s still, zeigt er eine als „simuliert“ gekennzeichnete Animation. Die Balkenfarbe ist wählbar (Pegel Grün/Gelb/Rot, Verlauf im Design, einfarbig). Einrichtung und Grenzen: [SPOTIFY.md](SPOTIFY.md).
 
 ## Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)
 

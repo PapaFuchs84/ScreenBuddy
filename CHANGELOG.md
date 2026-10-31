@@ -8,6 +8,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ### Neu
 
+- **Amplifier bei Remote-Wiedergabe**: Läuft Spotify auf Handy, Lautsprecher oder Connect und die Systemausgabe bleibt 4 s still, zeigt der Amplifier eine Animation aus Titel und Takt, klar mit „simuliert" gekennzeichnet (keine Messung, kein Mikrofon, keine Spotify-Analyse-API). Neue Einstellung „Balkenfarbe": Pegel (Grün/Gelb/Rot, Standard), Verlauf im Design oder einfarbig.
 - **Farben & Design**: Neue Option „An Windows anpassen" (Hell/Dunkel und Akzentfarbe von Windows, folgt Änderungen live, Kontrastdesign nutzt die Systemfarben; Text und Balken werden automatisch kontrastkorrigiert). Eigene Themes als JSON-Dateien mit Editor, Live-Vorschau, Kontrastwarnung, Duplizieren, Löschen, Import und Export; „Eigene Farben" werden automatisch migriert. Drei Beispiel-Themes (Cupertino-, Material-, Fluent-Stil) unter `cpp/examples/themes`. Das Einstellungsfenster bietet „Windows" als Darstellung.
 - **Navigation**: Statuspunkte nur noch bei Datenquellen und Verbindungen (grün = eingerichtet und eingeschaltet, grau = nicht eingerichtet oder aus), mit Legende.
 - Noch offen: Plugin-Store-Typ „Theme", Maus-Tooltip für die Punkte.

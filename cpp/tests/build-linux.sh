@@ -14,4 +14,7 @@ g++ -std=c++20 -O1 -g -Wall -Wextra -pthread \
 # Streaming-Neustarts (TMDB): reine Logik, feste JSON-Beispiele, kein Netzzugriff
 g++ -std=c++20 -O1 -g -Wall -Wextra -Isrc -I"${NLOHMANN_INCLUDE:-/usr/include}" \
     src/tmdb_logic.cpp tests/tmdb_tests.cpp -o "$OUT/tmdb-tests"
+# Amplifier: Simulation und Farbstufen (reine Logik)
+g++ -std=c++20 -O1 -g -Wall -Wextra -Isrc src/amp_logic.cpp tests/amp_tests.cpp -o "$OUT/amp-tests"
+"$OUT/amp-tests"
 "$OUT/tmdb-tests"

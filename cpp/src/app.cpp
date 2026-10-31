@@ -18,6 +18,7 @@
 #include "plugin_render.h"
 #include "plugin_transport.h"
 #include "rss.h"
+#include "amp_logic.h"
 #include "audio_levels.h"
 #include "spotify.h"
 #include "tmdb.h"
@@ -589,14 +590,18 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             out.push_back(std::move(pe));
         } else if (key == "spotify") {
             spotify::Snapshot snap = spotify_->snapshot();
-            PageEntry pe{key, 1, [this, snap](int, RendererSet& rs) {
+            const std::string amp_color = cfg_["spotify"].value("amp_color", std::string("level"));
+            PageEntry pe{key, 1, [this, snap, amp_color](int, RendererSet& rs) {
                 std::vector<float> lv;
+                bool sim = false;
                 // Erst beim Zeichnen einer sichtbaren Kachel aktivieren, nicht beim Auflisten aller Seiten.
                 if (meter_ && snap.playing) {
-                    meter_->touch();
+                    meter_->touch(audio::amp_seed(snap.title, snap.artist));
                     lv = meter_->levels();
+                    sim = meter_->simulated();   // Wiedergabe läuft woanders (Handy/Lautsprecher/Connect): Animation statt Messung
                 }
-                return rs.spotify.render(snap, 0, lv.empty() ? nullptr : &lv);
+                const auto mode = audio::parse_amp_color(amp_color);
+                return rs.spotify.render(snap, 0, lv.empty() ? nullptr : &lv, mode == audio::AmpColor::Theme ? 0 : mode == audio::AmpColor::Level ? 1 : 2, sim);
             }};
             if (snap.controls && (snap.state == spotify::State::Playing || snap.state == spotify::State::Paused)) {
                 using Cmd = spotify::SpotifyClient::Command;
@@ -880,7 +885,7 @@ void App::display_loop() {
             render_view(false, dirty);
             if (companion_output_) render_view(true, dirty);
         }
-        const int steps = (meter_ && meter_->active() && meter_->available()) ? 2 : 10;   // mit Amplifier ≈ 8 Bilder/s
+        const int steps = (meter_ && meter_->active() && (meter_->available() || meter_->simulated())) ? 2 : 10;   // mit Amplifier ≈ 8 Bilder/s
         for (int i = 0; i < steps && !stop_; ++i) Sleep(50);
     }
 }

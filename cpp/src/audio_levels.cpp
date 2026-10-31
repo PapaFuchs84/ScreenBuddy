@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cmath>
 #include <complex>
+#include "amp_logic.h"
 #include "util.h"
 
 namespace fl::audio {
@@ -96,15 +97,28 @@ void LevelMeter::stop() {
     stop_ = true;
     if (thread_.joinable()) thread_.join();
     available_ = false;
+    simulated_ = false;
 }
 
-void LevelMeter::touch() { touched_ = now_ms(); }
+void LevelMeter::touch(uint32_t seed) { touched_ = now_ms(); seed_ = seed; }
 bool LevelMeter::active() const { return now_ms() - touched_.load() < 3000; }
 
 std::vector<float> LevelMeter::levels() {
-    if (!available_) return {};
+    if (!available_ && !simulated_) return {};
     std::lock_guard lk(mu_);
     return std::vector<float>(levels_, levels_ + Bands);
+}
+
+// Simulierte Balken für Remote-Wiedergabe (Handy, Lautsprecher, Connect): nur im Meter-Thread aufrufen.
+void LevelMeter::sim_tick(float* cur, long long t, long long& last_calc) {
+    if (t - last_calc < 70) return;
+    last_calc = t;
+    float next[Bands]{};
+    simulate_levels(double(t) / 1000.0, seed_.load(), next, Bands);
+    smooth_levels(cur, next, Bands);
+    { std::lock_guard lk(mu_); std::copy(cur, cur + Bands, levels_); }
+    simulated_ = true;
+    if (on_update_) on_update_();
 }
 
 void LevelMeter::run() {
@@ -146,6 +160,8 @@ void LevelMeter::run() {
             LOGI("audio", "Amplifier: Systemausgabe wird gelesen (%d Hz, %d Kanäle)", sr, ch);
             available_ = true;
             long long last_data = now_ms(), last_calc = 0;
+            last_signal_ = now_ms();
+            bool was_active = false;
             float cur[Bands]{};
             ring.clear();
             while (!stop_) {
@@ -175,11 +191,16 @@ void LevelMeter::run() {
                 }
                 if (ring.size() > size_t(FftN) * 2) ring.erase(ring.begin(), ring.end() - FftN * 2);
                 const long long t = now_ms();
-                if (!active()) { ring.clear(); continue; }      // Seite nicht sichtbar: nichts rechnen
+                if (!active()) { ring.clear(); was_active = false; simulated_ = false; continue; }   // Seite nicht sichtbar: nichts rechnen
+                if (!was_active) { was_active = true; last_signal_ = t; }
                 if (t - last_calc < 70) continue;                // ≈ 14 Aktualisierungen pro Sekunde
-                last_calc = t;
                 float next[Bands]{};
                 if (t - last_data < 250 && ring.size() >= size_t(FftN)) spectrum_bands(ring.data(), int(ring.size()), sr, next, Bands);
+                float peak = 0;
+                for (float v : next) peak = std::max(peak, v);
+                if (peak > 0.03f) { last_signal_ = t; simulated_ = false; }
+                if (t - last_signal_ >= SilenceMs) { sim_tick(cur, t, last_calc); continue; }   // Systemausgabe still, Wiedergabe läuft woanders
+                last_calc = t;
                 if (smooth_levels(cur, next, Bands)) {
                     { std::lock_guard lk(mu_); std::copy(cur, cur + Bands, levels_); }
                     if (on_update_) on_update_();
@@ -190,7 +211,16 @@ void LevelMeter::run() {
         if (fmt) CoTaskMemFree(fmt);
         release(cap); release(client); release(dev); release(en);
         available_ = false;
-        for (int i = 0; i < 100 && !stop_ && !ok; ++i) Sleep(50);   // bei Fehler 5 s warten
+        // bei Fehler 5 s warten; ohne lesbares Ausgabegerät läuft die Wiedergabe sicher woanders → simulieren
+        {
+            float sim_cur[Bands]{};
+            long long sim_calc = 0, quiet_since = now_ms();
+            for (int i = 0; i < 100 && !stop_ && !ok; ++i) {
+                Sleep(50);
+                if (active() && now_ms() - quiet_since >= SilenceMs) sim_tick(sim_cur, now_ms(), sim_calc);
+                else if (!active()) { quiet_since = now_ms(); simulated_ = false; }
+            }
+        }
         if (ok && !stop_) Sleep(500);
     }
     if (com) CoUninitialize();

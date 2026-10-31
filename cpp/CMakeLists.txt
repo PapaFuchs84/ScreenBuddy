@@ -27,7 +27,7 @@ endforeach()
 
 set(CORE_SOURCES
     src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp
-    src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/audio_levels.cpp src/discord.cpp
+    src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/amp_logic.cpp src/audio_levels.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
     src/ui_kit.cpp src/ui_logic.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
@@ -66,6 +66,9 @@ target_link_options(fl-monitor-tests PRIVATE /MANIFEST:NO)
 add_executable(fl-tmdb-tests tests/tmdb_tests.cpp src/tmdb_logic.cpp)
 target_include_directories(fl-tmdb-tests PRIVATE src)
 target_link_libraries(fl-tmdb-tests PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(fl-amp-tests tests/amp_tests.cpp src/amp_logic.cpp)
+target_include_directories(fl-amp-tests PRIVATE src)
 
 add_executable(fl-plugin-tests tests/plugins_tests.cpp src/plugins.cpp)
 target_include_directories(fl-plugin-tests PRIVATE src)

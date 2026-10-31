@@ -41,7 +41,7 @@ The **New on streaming** page shows movies and series released in the last 30 da
 
 ## Spotify (from 2.8.0)
 
-Shows the current track with cover and progress; with touch (monitor, Companion) buttons control previous, play/pause and next (Spotify Premium required). Sign-in uses PKCE with your own Spotify developer app; the token is stored DPAPI-encrypted in `spotify.token`. While music plays, an amplifier (16 bars) shows the Windows system output level, read locally and not recorded (can be switched off). Setup and limits: [SPOTIFY.en.md](SPOTIFY.en.md).
+Shows the current track with cover and progress; with touch (monitor, Companion) buttons control previous, play/pause and next (Spotify Premium required). Sign-in uses PKCE with your own Spotify developer app; the token is stored DPAPI-encrypted in `spotify.token`. While music plays, an amplifier (16 bars) shows the Windows system output level, read locally and not recorded (can be switched off). If music plays elsewhere (phone, speaker, Connect) and the system output stays silent for 4 s, it shows an animation labelled “simulated”. Bar colour is selectable (level green/yellow/red, theme gradient, single colour). Setup and limits: [SPOTIFY.en.md](SPOTIFY.en.md).
 
 ## Android Companion app (from 2.3.0, multiple devices from 2.7.0)
 
