@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "name": "Fluent-Stil Dunkel",
+  "style": "fluent",
+  "base": "dunkel",
+  "dark": true,
+  "colors": {
+    "bg": "#202020",
+    "card": "#2C2C2C",
+    "line": "#505050",
+    "header": "#60CDFF",
+    "accent": "#60CDFF",
+    "text": "#FFFFFF",
+    "muted": "#C2C2C2",
+    "success": "#6CCB5F",
+    "danger": "#FF99A4"
+  }
+}

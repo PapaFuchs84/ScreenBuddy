@@ -1,16 +1,17 @@
 {
   "version": 1,
   "name": "Fluent-Stil",
+  "style": "fluent",
   "base": "hell",
   "dark": false,
   "colors": {
     "bg": "#F3F3F3",
     "card": "#FFFFFF",
-    "line": "#E0E0E0",
-    "header": "#0F6CBD",
-    "accent": "#0F6CBD",
+    "line": "#8A8A8A",
+    "header": "#005FB8",
+    "accent": "#005FB8",
     "text": "#1A1A1A",
-    "muted": "#5F5F5F",
+    "muted": "#616161",
     "success": "#107C10",
     "danger": "#C42B1C"
   }

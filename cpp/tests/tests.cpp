@@ -26,6 +26,7 @@
 #include "touch.h"
 #include "update.h"
 #include "ui_logic.h"
+#include "ui_shell_material.h"
 
 using namespace fl;
 namespace fs = std::filesystem;
@@ -781,6 +782,56 @@ static void test_render(const fs::path& out) {
 
 static void test_themes() {
     namespace th = theme;
+    // Same palette, different structural profiles: strict input, round-trip,
+    // geometry and matching row hit targets, independent of color differences.
+    for (auto style : {th::Style::FuchsLabs, th::Style::Cupertino, th::Style::Fluent, th::Style::Material}) {
+        th::Custom source;
+        source.name = "Profile test"; source.base = "hell";
+        source.colors = th::builtin(false); source.style = style;
+        std::string error;
+        auto parsed = th::parse(th::to_json(source), error);
+        CHECK(parsed && parsed->style == style);
+        CHECK(th::resolve_custom(*parsed).style == style);
+        render::apply_theme({{"theme_inline", th::to_json(source)}});
+        using Sys = render::SysRenderer;
+        const auto areas = Sys::regions(480, 320, style);
+        for (size_t i = 0; i < areas.size(); ++i) {
+            const auto& a = areas[i];
+            CHECK(a.x >= 0 && a.y >= 34 && a.w > 0 && a.h > 0 && a.x + a.w <= 480 && a.y + a.h <= 302);
+            for (int scale : {1, 2})
+                CHECK_EQ(Sys::zone_at(480 * scale, 320 * scale, int((a.x + a.w / 2) * scale), int((a.y + a.h / 2) * scale)), a.zone);
+            for (size_t j = 0; j < i; ++j) {
+                const auto& b = areas[j];
+                CHECK(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+            }
+        }
+        render::Renderer renderer(480, 320, "Profile");
+        CHECK(renderer.rows_per_page() == (style == th::Style::Cupertino ? 5 : style == th::Style::Material ? 5 : 6));
+        const int row = style == th::Style::Cupertino ? 48 : style == th::Style::Material ? 52 : 44;
+        CHECK(render::Renderer::row_at(480, 320, 36 + row) == 1);
+        CHECK(render::Renderer::row_at(480, 320, 35 + row) == 0);
+        auto j = th::to_json(source); j["style"] = "download-and-run";
+        CHECK(!th::parse(j, error));
+        j["style"] = 9; CHECK(!th::parse(j, error));
+    }
+    th::Custom legacy; legacy.name = "Cupertino-Stil"; legacy.base = "hell"; legacy.colors = th::builtin(false);
+    std::string profile_error;
+    auto old_starter = th::to_json(legacy); old_starter.erase("style");
+    CHECK(th::parse(old_starter, profile_error)->style == th::Style::Cupertino);
+    auto override_style = th::to_json(legacy); override_style["style"] = "fuchslabs";
+    CHECK(th::parse(override_style, profile_error)->style == th::Style::FuchsLabs);
+    CHECK(th::parse(th::to_json(*th::parse(override_style, profile_error)), profile_error)->style == th::Style::FuchsLabs);
+    for (auto style : {th::Style::Cupertino, th::Style::Fluent, th::Style::Material}) {
+        for (bool dark : {false, true}) {
+            const auto p = th::correct_contrast(th::profile_palette(style, dark));
+            CHECK(th::contrast_warnings(p).empty());
+            CHECK(th::contrast(p.text, p.bg) >= th::MIN_TEXT);
+            CHECK(th::contrast(p.text, p.card) >= th::MIN_TEXT);
+            CHECK(dark ? p.bg.r < 60 : p.bg.r > 200);
+        }
+    }
+    render::set_theme("hell");
+
     // FuchsLabs-CI: Text und Akzentschrift lesbar
     for (bool dark : {false, true}) {
         auto p = th::builtin(dark);
@@ -1057,11 +1108,37 @@ static int touch_probe(int x0, int y0, int x1, int y1) {
     return ok ? 0 : 1;
 }
 
+static void test_material_shell() {
+    using namespace ui::shell;
+    const auto inside = [](const ui::Rect& r, float w, float h) {
+        return r.left >= 0 && r.top >= 0 && r.right >= r.left && r.bottom >= r.top && r.right <= w && r.bottom <= h;
+    };
+    for (float w : {980.f, 1180.f, 1920.f}) for (float h : {680.f, 800.f, 1080.f})
+        for (bool inspector : {false, true}) for (bool dirty : {false, true}) {
+            const auto m = layout_material(w, h, inspector, dirty, 220, 80);
+            CHECK(inside(m.body, w, h) && m.body.right > m.body.left && m.body.bottom > m.body.top);
+            CHECK(m.tabs.bottom <= m.body.top && m.header.bottom <= m.tabs.top);
+            CHECK(m.appearance.right < m.language.left && m.language.right < m.preview_toggle.left);
+            CHECK(m.rail.right < m.body.left && m.inspector_visible == inspector);
+            if (inspector) CHECK(m.body.right < m.inspector.left && inside(m.inspector, w, h));
+            if (dirty) {
+                CHECK(inside(m.save, w, h) && inside(m.discard, w, h));
+                CHECK(m.discard.left >= m.body.left && m.discard.right < m.save.left && m.save.top > m.body.bottom);
+            } else CHECK(m.save.right == 0 && m.discard.right == 0);
+            for (size_t i = 0; i < m.destinations.size(); ++i) {
+                CHECK(inside(m.destinations[i], w, h));
+                CHECK(m.destinations[i].bottom - m.destinations[i].top >= 48);
+                if (i) CHECK(m.destinations[i-1].bottom < m.destinations[i].top);
+            }
+        }
+}
+
 int main(int argc, char** argv) {
     SetConsoleOutputCP(CP_UTF8);
     if (argc >= 6 && std::string(argv[1]) == "touch")
         return touch_probe(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
     gfx_init();
+    test_material_shell();
     if (argc >= 2 && std::string(argv[1]) == "dpp") {
         argc_probe_winstore = argc >= 3;
         ssl_probe(false);
