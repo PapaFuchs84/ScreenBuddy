@@ -19,6 +19,7 @@ std::vector<std::unique_ptr<Page>> create_pages() {
     pages.push_back(make_discord_page());
     pages.push_back(make_bf6_page());
     pages.push_back(make_rss_page());
+    pages.push_back(make_streaming_page());
     pages.push_back(make_homeassistant_page());
     // Verbindung
     pages.push_back(make_companion_page());

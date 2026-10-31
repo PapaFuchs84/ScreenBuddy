@@ -29,6 +29,7 @@ namespace fl {
 
 namespace bf6 { class Bf6Stats; }
 namespace rss { class RssFeeds; }
+namespace tmdb { class TmdbFeed; }
 namespace sysinfo { class SysMonitor; }
 namespace discord { class DiscordFeed; }
 namespace friends { class FriendsHub; }
@@ -176,6 +177,7 @@ private:
 
     std::unique_ptr<bf6::Bf6Stats> bf6_;
     std::unique_ptr<rss::RssFeeds> rss_;
+    std::unique_ptr<tmdb::TmdbFeed> streaming_;
     std::unique_ptr<sysinfo::SysMonitor> sys_;
     std::unique_ptr<discord::DiscordFeed> discord_;
     std::unique_ptr<friends::FriendsHub> friends_;

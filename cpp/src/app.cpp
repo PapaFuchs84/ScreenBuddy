@@ -18,6 +18,7 @@
 #include "plugin_render.h"
 #include "plugin_transport.h"
 #include "rss.h"
+#include "tmdb.h"
 #include "sysinfo.h"
 #include "tray.h"
 #include "update.h"
@@ -32,6 +33,7 @@ struct App::RendererSet {
     render::Renderer discord, friends;
     render::Bf6Renderer bf6;
     render::RssRenderer rss;
+    render::StreamRenderer stream;
     render::SysRenderer system;
     render::HaRenderer ha;
     RendererSet(int w, int h, const ojson& cfg)
@@ -39,6 +41,7 @@ struct App::RendererSet {
           friends(w, h, cfg["friends"].value("title", "Freunde")),
           bf6(w, h, cfg["bf6"].value("title", "Battlefield 6 · Rangliste")),
           rss(w, h, cfg["rss"].value("title", "Blog-Updates")),
+          stream(w, h, cfg["streaming"].value("title", "Neu bei Streaming")),
           system(w, h, cfg["system"].value("title", "System"), cfg["system"].value("net_unit", "bit")),
           ha(w, h, cfg["homeassistant"].value("title", "Home Assistant")) {}
 };
@@ -75,6 +78,9 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
         bf6_ = std::make_unique<bf6::Bf6Stats>(bf);
     if (b(rs, "enabled") && rs.contains("feeds") && rs["feeds"].is_array() && !rs["feeds"].empty())
         rss_ = std::make_unique<rss::RssFeeds>(rs);
+    // Streaming-Neustarts: auch ohne Key anlegen, damit die Seite „Kein Key“ zeigt (Anfragen gibt es erst mit Key)
+    if (b(cfg_["streaming"], "enabled") && !preview_dir_)
+        streaming_ = std::make_unique<tmdb::TmdbFeed>(cfg_["streaming"], cfg_["ui"].value("language", "de"));
     if (b(sy, "enabled", true)) sys_ = std::make_unique<sysinfo::SysMonitor>(sy);
     // Discord wird gebraucht, wenn seine Seite an ist oder die gemeinsame Freundesliste es einbezieht
     bool want_discord = b(dc, "enabled", true) || (b(fr, "enabled") && b(fr, "include_discord", true));
@@ -242,6 +248,7 @@ App::~App() {
     if (discord_) discord_->stop();
     if (bf6_) bf6_->stop();
     if (rss_) rss_->stop();
+    if (streaming_) streaming_->stop();
     if (sys_) sys_->stop();
 }
 
@@ -327,6 +334,7 @@ std::vector<std::string> App::active_pages(bool companion, const std::vector<std
                                         {"friends", friends_ != nullptr},
                                         {"bf6", bf6_ != nullptr},
                                         {"rss", rss_ != nullptr},
+                                        {"streaming", streaming_ != nullptr},
                                         {"homeassistant", ha_ != nullptr}};
     std::vector<std::string> out;
     bool network = dp_.value("output", "serial") == "network";
@@ -541,6 +549,9 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             for (auto& e : entities)
                 pe.actions.push_back(e.toggle ? std::function<void()>([this, id = e.id] { ha_->request_toggle(id); }) : std::function<void()>());
             out.push_back(std::move(pe));
+        } else if (key == "streaming") {
+            auto snap = streaming_->snapshot();
+            out.push_back({key, 1, [snap](int, RendererSet& rs) { return rs.stream.render(snap.state, snap.items, snap.updated); }});
         } else if (key == "rss") {
             auto posts = rss_->posts();
             auto updated = rss_->updated();
@@ -887,6 +898,7 @@ void App::run() {
     auto dirty = [this] { mark_dirty(); };
     if (bf6_) bf6_->start(dirty);
     if (rss_) rss_->start(dirty);
+    if (streaming_) streaming_->start(dirty);
     if (ha_) ha_->start();
     if (discord_) discord_->start();
     if (friends_) friends_->start();
@@ -1152,6 +1164,7 @@ void App::run() {
     if (discord_) discord_->stop();
     if (bf6_) bf6_->stop();
     if (rss_) rss_->stop();
+    if (streaming_) streaming_->stop();
     if (sys_) sys_->stop();
     if (out_) {
         if (b(dp_, "screen_off_on_exit", true) && !restart_) {

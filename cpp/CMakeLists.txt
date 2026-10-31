@@ -27,11 +27,11 @@ endforeach()
 
 set(CORE_SOURCES
     src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/render.cpp
-    src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/friends.cpp src/ha.cpp src/discord.cpp
+    src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/friends.cpp src/ha.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
     src/ui_kit.cpp src/ui_logic.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
-    src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_homeassistant.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_store.cpp src/ui_page_app.cpp
+    src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_streaming.cpp src/ui_page_homeassistant.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_store.cpp src/ui_page_app.cpp
     src/companion.cpp src/companion_server.cpp src/network_display.cpp
     src/plugins.cpp src/plugin_sign.cpp src/plugin_catalog.cpp src/plugin_catalog_net.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
 
@@ -60,6 +60,11 @@ target_link_options(fl-tests PRIVATE /MANIFEST:NO)
 add_executable(fl-monitor-tests tests/monitor_tests.cpp)
 target_link_libraries(fl-monitor-tests PRIVATE flcore)
 target_link_options(fl-monitor-tests PRIVATE /MANIFEST:NO)
+
+# Streaming-Neustarts (TMDB): reine Logik mit festen JSON-Beispielen, kein Netzzugriff; unter Linux: tests/build-linux.sh
+add_executable(fl-tmdb-tests tests/tmdb_tests.cpp src/tmdb_logic.cpp)
+target_include_directories(fl-tmdb-tests PRIVATE src)
+target_link_libraries(fl-tmdb-tests PRIVATE nlohmann_json::nlohmann_json)
 
 add_executable(fl-plugin-tests tests/plugins_tests.cpp src/plugins.cpp)
 target_include_directories(fl-plugin-tests PRIVATE src)

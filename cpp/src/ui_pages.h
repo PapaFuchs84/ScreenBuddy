@@ -17,6 +17,7 @@ std::unique_ptr<Page> make_friends_page();
 std::unique_ptr<Page> make_discord_page();
 std::unique_ptr<Page> make_bf6_page();
 std::unique_ptr<Page> make_rss_page();
+std::unique_ptr<Page> make_streaming_page();
 std::unique_ptr<Page> make_homeassistant_page();
 std::unique_ptr<Page> make_companion_page();
 std::unique_ptr<Page> make_plugins_page();
