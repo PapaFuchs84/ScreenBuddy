@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+- Designsysteme in Entwicklung: Cupertino (gruppiert, großzügige Zeilen), Fluent (kompakte Geometrie, Auswahlindikator), Material (tonale Flächen, Pillen und Zustandsfeedback). Optionales streng validiertes `style` in Themes, Editor-Auswahl, native Einstellungen und Display-Rendering; vorhandene Start-Themes werden anhand ihrer exakten Namen zugeordnet. Keine Store-Veröffentlichung.
+
 ### Hinzugefügt
 
 - **Plugin-Store: Themes**: Farbdesigns lassen sich über den signierten Store teilen und installieren (Karte „Themes“ im Plugin-Store). Eigene signierte Liste `themes.json`, nur Farben, kein Code; Signatur, Größe, SHA-256 und Schema werden geprüft, gesperrte Themes erscheinen nicht, ein Theme gleichen Namens wird nie überschrieben. Drei Start-Themes unter `store-seed/themes`. Wartungswerkzeug: `fl-plugin-sign build-themes|check-themes`.

@@ -769,6 +769,44 @@ static void test_render(const fs::path& out) {
 
 static void test_themes() {
     namespace th = theme;
+    // Same palette, different structural profiles: strict input, round-trip,
+    // geometry and matching row hit targets, independent of color differences.
+    for (auto style : {th::Style::FuchsLabs, th::Style::Cupertino, th::Style::Fluent, th::Style::Material}) {
+        th::Custom source;
+        source.name = "Profile test"; source.base = "hell";
+        source.colors = th::builtin(false); source.style = style;
+        std::string error;
+        auto parsed = th::parse(th::to_json(source), error);
+        CHECK(parsed && parsed->style == style);
+        CHECK(th::resolve_custom(*parsed).style == style);
+        render::apply_theme({{"theme_inline", th::to_json(source)}});
+        render::Renderer renderer(480, 320, "Profile");
+        CHECK(renderer.rows_per_page() == (style == th::Style::Cupertino ? 5 : style == th::Style::Material ? 5 : 6));
+        const int row = style == th::Style::Cupertino ? 48 : style == th::Style::Material ? 52 : 44;
+        CHECK(render::Renderer::row_at(480, 320, 36 + row) == 1);
+        CHECK(render::Renderer::row_at(480, 320, 35 + row) == 0);
+        auto j = th::to_json(source); j["style"] = "download-and-run";
+        CHECK(!th::parse(j, error));
+        j["style"] = 9; CHECK(!th::parse(j, error));
+    }
+    th::Custom legacy; legacy.name = "Cupertino-Stil"; legacy.base = "hell"; legacy.colors = th::builtin(false);
+    std::string profile_error;
+    auto old_starter = th::to_json(legacy); old_starter.erase("style");
+    CHECK(th::parse(old_starter, profile_error)->style == th::Style::Cupertino);
+    auto override_style = th::to_json(legacy); override_style["style"] = "fuchslabs";
+    CHECK(th::parse(override_style, profile_error)->style == th::Style::FuchsLabs);
+    CHECK(th::parse(th::to_json(*th::parse(override_style, profile_error)), profile_error)->style == th::Style::FuchsLabs);
+    for (auto style : {th::Style::Cupertino, th::Style::Fluent, th::Style::Material}) {
+        for (bool dark : {false, true}) {
+            const auto p = th::correct_contrast(th::profile_palette(style, dark));
+            CHECK(th::contrast_warnings(p).empty());
+            CHECK(th::contrast(p.text, p.bg) >= th::MIN_TEXT);
+            CHECK(th::contrast(p.text, p.card) >= th::MIN_TEXT);
+            CHECK(dark ? p.bg.r < 60 : p.bg.r > 200);
+        }
+    }
+    render::set_theme("hell");
+
     // FuchsLabs-CI: Text und Akzentschrift lesbar
     for (bool dark : {false, true}) {
         auto p = th::builtin(dark);

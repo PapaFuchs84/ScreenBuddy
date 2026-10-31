@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+- Design systems in development: Cupertino grouped surfaces and spacious rows, Fluent compact geometry and selection indicator, Material tonal surfaces, pill shapes and state feedback. Optional strictly validated theme `style`, editor selection, native settings and display rendering; existing starter themes are recognized by exact names. No store publication.
+
 ### Added
 
 - **Plugin store: themes**: color designs can be shared and installed through the signed store ("Themes" card in the plugin store). Separate signed list `themes.json`, colors only, no code; signature, size, SHA-256 and schema are checked, revoked themes are hidden, a theme with the same name is never overwritten. Three starter themes in `store-seed/themes`. Maintenance tool: `fl-plugin-sign build-themes|check-themes`.

@@ -13,5 +13,6 @@
     "muted": "#5F5F5F",
     "success": "#107C10",
     "danger": "#C42B1C"
-  }
+  },
+  "style": "fluent"
 }

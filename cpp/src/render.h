@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "config.h"
+#include "theme.h"
 #include "gfx.h"
 #include "models.h"
 #include "spotify.h"
@@ -20,6 +21,7 @@ namespace fl::render {
 
 // Farben des aktuellen Designs (hell, dunkel oder eigen)
 struct Theme {
+    theme::Style style = theme::Style::FuchsLabs;
     Color bg, card, line, orange, accent, text, muted, head_text, warn, hot, down;
     Color bar;   // Balken/Schalter; gleich der Kopfzeilenfarbe, bei "An Windows anpassen" die kontrastgeprüfte Akzentfarbe
     std::map<std::string, Color> status;  // online | idle | dnd | offline

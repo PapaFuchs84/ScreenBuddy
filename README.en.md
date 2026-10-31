@@ -24,6 +24,8 @@
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
 
+**In development:** Cupertino, Fluent and Material design profiles control shapes, typography, spacing and native interaction feedback as well as colors. [Details and limits](docs/THEMES.md#design-systems-in-development).
+
 **New in 2.9.0:** colors & design (match Windows, custom themes with editor, import/export and three example themes), uniform status dots with legend in the navigation, a fair mix of all chosen providers on the streaming page, spectrum amplifier on the Spotify page, Android TV entry for the Companion app and the official TMDB logo; see [Release notes 2.9](docs/RELEASE-NOTES-2.9.md) (German/English).
 
 **New in 2.8.0:** Spotify page (track, cover, touch buttons; [guide](docs/SPOTIFY.en.md)) and a “New on streaming” page with TMDB data; fix for the uninstall guard in test instances. [Release notes 2.8](docs/RELEASE-NOTES-2.8.md) (German/English).

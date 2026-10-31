@@ -13,5 +13,6 @@
     "muted": "#636366",
     "success": "#248A3D",
     "danger": "#D70015"
-  }
+  },
+  "style": "cupertino"
 }

@@ -31,7 +31,19 @@ struct Palette {
     bool operator==(const Palette& o) const;
 };
 
+enum class Style { FuchsLabs, Cupertino, Fluent, Material };
+struct Design {
+    Style style = Style::FuchsLabs;
+    float card_radius = 8, button_radius = 8, spacing = 12;
+    bool grouped = false, tonal = false, underline_selection = false;
+};
+Design design(Style style);
+Palette profile_palette(Style style, bool dark);
+std::optional<Style> parse_style(const std::string& value);
+const char* style_name(Style style);
+
 struct Custom {
+    Style style = Style::FuchsLabs;
     std::string id;     // Dateiname ohne .json (nur [a-z0-9-])
     std::string name;   // Anzeigename
     std::string base;   // "hell" | "dunkel": woher Zusatzfarben (Warnung/Status) kommen
@@ -104,6 +116,7 @@ bool migrate_config(ojson& cfg, const Store& store);
 
 // "hell" | "dunkel" | "windows" | "custom:<id>" → Palette (+ dark-Kennzeichen); unbekanntes Theme → FuchsLabs hell
 struct Resolved {
+    Style style = Style::FuchsLabs;
     Palette colors{};
     Color bar{};            // Balken/Schalter: bei Windows die korrigierte Akzentfarbe (≥ 3:1), sonst die Kopfzeilenfarbe
     bool dark = false;

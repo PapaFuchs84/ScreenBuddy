@@ -18,11 +18,12 @@ namespace fl::render {
 
 namespace {
 
-constexpr int HEADER_H = 34, FOOTER_H = 18, ROW_H = 44, AVATAR = 32, LOGO_SIZE = 20;   // LOGO_SIZE: Anbieter-Logo (Streaming)
+constexpr int HEADER_H = 34, FOOTER_H = 18, AVATAR = 32, LOGO_SIZE = 20;   // LOGO_SIZE: Anbieter-Logo (Streaming)
 constexpr float SYS_GAP = 6, SYS_SMALL = 62;   // Systemansicht: Abstand und Höhe der Karten RAM / Datenträger
 
 Theme g_theme;
 std::mutex g_mutex;
+int row_height() { return g_theme.style == theme::Style::Cupertino ? 48 : g_theme.style == theme::Style::Material ? 52 : 44; }
 
 Color mix(Color a, Color b, double t) {
     auto m = [t](uint8_t x, uint8_t y) { return (uint8_t)std::nearbyint(x + (y - x) * t); };
@@ -97,6 +98,7 @@ double contrast(Color a, Color b) {
 void set_theme(const std::string& name, const std::map<std::string, std::string>& custom) {
     struct BarSync { Theme& t; ~BarSync() { t.bar = t.orange; } } bar_sync{g_theme};
     Theme& t = g_theme;
+    t.style = theme::Style::FuchsLabs;
     t.orange = brand::ORANGE;
     t.head_text = brand::NAVY;
     if (name == "dunkel") {
@@ -125,6 +127,7 @@ void set_theme(const std::string& name, const std::map<std::string, std::string>
 
 void set_resolved(const theme::Resolved& r) {
     Theme& t = g_theme;
+    t.style = r.style;
     const theme::Palette& p = r.colors;
     const bool dark = r.base == "dunkel";
     t.bg = p.bg; t.card = p.card; t.line = p.line; t.orange = p.header; t.accent = p.accent; t.text = p.text; t.muted = p.muted;
@@ -233,17 +236,19 @@ Renderer::Renderer(int w_, int h_, std::string title_) : W(w_), H(h_), title(std
     f_big = font(18, true);
 }
 
-Font Renderer::font(int size, bool bold) const { return Font{(float)std::max(6, pyround_i(size * s)), bold}; }
+Font Renderer::font(int size, bool bold) const { Font result{(float)std::max(6, pyround_i(size * s)), bold};
+    if (g_theme.style != theme::Style::FuchsLabs) result.family = g_theme.style == theme::Style::Material ? L"Roboto" : g_theme.style == theme::Style::Fluent ? L"Segoe UI Variable" : L"Segoe UI";
+    return result; }
 
-int Renderer::rows_per_page() const { return std::max(1, ((int)h - HEADER_H - FOOTER_H) / ROW_H); }
+int Renderer::rows_per_page() const { return std::max(1, ((int)h - HEADER_H - FOOTER_H) / row_height()); }
 
 int Renderer::row_at(int w_px, int h_px, int y_px) {
     float sc = scale_for(w_px, h_px);
     float lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
     float ly = y_px / sc, top = HEADER_H + 2;
-    int per = std::max(1, ((int)lh - HEADER_H - FOOTER_H) / ROW_H);
-    if (ly < top || ly >= lh - FOOTER_H || ly >= top + per * ROW_H) return -1;
-    return (int)((ly - top) / ROW_H);
+    int per = std::max(1, ((int)lh - HEADER_H - FOOTER_H) / row_height());
+    if (ly < top || ly >= lh - FOOTER_H || ly >= top + per * row_height()) return -1;
+    return (int)((ly - top) / row_height());
 }
 
 int Renderer::pages(size_t items) const {
@@ -315,16 +320,17 @@ Image Renderer::welcome(const std::string& wtitle, const std::string& text) {
 void Renderer::header(Canvas& d, std::time_t now, const std::string& info) {
     // Orange Kopfzeile mit Creme-Fuchs; Schrift in Navy (bzw. Weiß bei dunkler eigener Kopfzeilenfarbe)
     const Theme& t = g_theme;
-    d.rectangle(0, 0, w, HEADER_H - 1, t.orange);
-    float x = 8;
+    d.rectangle(0, 0, w, HEADER_H - 1, t.style == theme::Style::FuchsLabs ? t.orange : t.bg);
+    if (t.style != theme::Style::FuchsLabs) d.line({{8, HEADER_H - 1}, {w - 8, HEADER_H - 1}}, t.line, 1);
+    float x = t.style == theme::Style::FuchsLabs ? 8.f : theme::design(t.style).spacing;
     d.fox(x, (float)((HEADER_H - ICON) / 2), pyround_i(ICON * s), false);
     x += ICON + 6;
     std::string clock = clock_hhmm(now ? now : std::time(nullptr));
-    d.text(w - 8, HEADER_H / 2, clock, f_title, t.head_text, "rm");
+    d.text(w - 8, HEADER_H / 2, clock, f_title, t.style == theme::Style::FuchsLabs ? t.head_text : t.muted, "rm");
     float cx = w - 8 - d.textlength(clock, f_title) - 12;
     float title_width = cx - x - (info.empty() ? 0 : d.textlength(tr(info), f_small) + 10);
-    d.text(x, HEADER_H / 2, fit(d, tr(title), f_title, std::max(0.f, title_width)), f_title, t.head_text, "lm");
-    d.text(cx, HEADER_H / 2, info, f_small, t.head_text, "rm");
+    d.text(x, HEADER_H / 2, fit(d, tr(title), f_title, std::max(0.f, title_width)), f_title, t.style == theme::Style::FuchsLabs ? t.head_text : t.text, "lm");
+    d.text(cx, HEADER_H / 2, info, f_small, t.style == theme::Style::FuchsLabs ? t.head_text : t.muted, "rm");
 }
 
 void Renderer::footer(Canvas& d, const std::string& left) {
@@ -361,7 +367,7 @@ Image Renderer::render_friends(std::vector<Friend> friends, int page, bool conne
     } else {
         int per = rows_per_page();
         page = ((page % n) + n) % n;
-        for (int i = 0; i < per && page * per + i < (int)friends.size(); ++i) row(d, friends[page * per + i], body_top + i * ROW_H);
+        for (int i = 0; i < per && page * per + i < (int)friends.size(); ++i) row(d, friends[page * per + i], body_top + i * row_height());
     }
     footer(d, n > 1 ? strprintf("Seite %d/%d", ((page % n) + n) % n + 1, n) : "");
     return d.finish();
@@ -403,7 +409,7 @@ void Renderer::avatar(Canvas& d, const Friend& f, float x, float y, bool faded) 
 
 void Renderer::row(Canvas& d, const Friend& f, float y) {
     const Theme& t = g_theme;
-    float ax = 10, ay = y + (ROW_H - AVATAR) / 2;
+    float ax = 10, ay = y + (row_height() - AVATAR) / 2;
     avatar(d, f, ax, ay, f.status == "offline");
     // Statuspunkt unten rechts am Avatar, wie in Discord
     float r = 6, cx = ax + AVATAR - 4, cy = ay + AVATAR - 4;
@@ -429,9 +435,9 @@ void Renderer::row(Canvas& d, const Friend& f, float y) {
         Color act_col = starts_with_any(f.activity, {"Spielt", "Streamt"}) ? t.accent : t.muted;
         d.text(tx, y + 31, fit(d, line2, f_act, max_w), f_act, act_col, "lm");
     } else {
-        d.text(tx, y + ROW_H / 2, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
+        d.text(tx, y + row_height() / 2, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
     }
-    d.line({{tx, y + ROW_H - 1}, {w - 10, y + ROW_H - 1}}, t.line, 1);
+    d.line({{tx, y + row_height() - 1}, {w - 10, y + row_height() - 1}}, t.line, 1);
 }
 
 // ---------- Battlefield 6 ----------
@@ -468,7 +474,7 @@ Image Bf6Renderer::render(std::vector<Bf6Player> players, int page, std::optiona
     } else {
         int per = rows_per_page();
         for (int i = 0; i < per && page * per + i < (int)players.size(); ++i)
-            bf_row(d, players[page * per + i], page * per + i + 1, body_top + i * ROW_H);
+            bf_row(d, players[page * per + i], page * per + i + 1, body_top + i * row_height());
     }
     std::string left = updated ? "Stand " + clock_hhmm(*updated) : "";
     if (n > 1) left = strprintf("Seite %d/%d", page + 1, n) + (left.empty() ? "" : " · " + left);
@@ -478,7 +484,7 @@ Image Bf6Renderer::render(std::vector<Bf6Player> players, int page, std::optiona
 
 void Bf6Renderer::bf_row(Canvas& d, const Bf6Player& p, int pos, float y) {
     const Theme& t = g_theme;
-    float cy = y + ROW_H / 2;
+    float cy = y + row_height() / 2;
     Color pos_col = pos <= 3 && p.error.empty() ? t.accent : t.muted;
     d.text(24, cy, std::to_string(pos) + ".", f_pos, pos_col, "rm");
     float ix = 30;
@@ -513,7 +519,7 @@ void Bf6Renderer::bf_row(Canvas& d, const Bf6Player& p, int pos, float y) {
         col = t.accent;
     }
     d.text(tx, y + 31, fit(d, line2, f_act, max_w), f_act, col, "lm");
-    d.line({{tx, y + ROW_H - 1}, {w - 10, y + ROW_H - 1}}, t.line, 1);
+    d.line({{tx, y + row_height() - 1}, {w - 10, y + row_height() - 1}}, t.line, 1);
 }
 
 // ---------- System ----------
@@ -577,7 +583,7 @@ Image SysRenderer::render(const SysSnapshot& sn, std::time_t now) {
 
 void SysRenderer::card(Canvas& d, float x, float y, float cw, float ch, const std::string& ctitle, const std::string& sub) {
     const Theme& t = g_theme;
-    d.rounded_rectangle(x, y, x + cw, y + ch, 8, t.card);
+    d.rounded_rectangle(x, y, x + cw, y + ch, theme::design(t.style).card_radius, t.card);
     d.text(x + 10, y + 13, ctitle, f_card, t.accent, "lm");
     if (!sub.empty()) {
         float tx = x + 16 + d.textlength(ctitle, f_card);

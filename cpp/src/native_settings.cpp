@@ -367,6 +367,7 @@ struct NativeSettings::Impl : ui::Host {
         update_device();
     }
     void apply_theme() {
+        kit->use_design(initial_["display"]);
         kit->use_windows(theme->index == 2);
         if (theme->index != 2) kit->dark = theme->index == 1;
         BOOL dark = kit->dark;
@@ -454,6 +455,7 @@ struct NativeSettings::Impl : ui::Host {
         logo->name = ui::Text(L"ScreenBuddy");
         const std::string settings_theme = initial_.at("ui").value("settings_theme", "auto");
         const bool windows = settings_theme == "windows";
+        kit->use_design(initial_["display"]);
         kit->use_windows(windows);
         const bool dark = windows ? kit->dark : (settings_theme == "dunkel" || (settings_theme != "hell" && ui::system_prefers_dark()));
         kit->dark = dark;

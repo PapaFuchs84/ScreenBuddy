@@ -50,6 +50,7 @@
 
 #include "config.h"
 #include "gfx.h"
+#include "theme.h"
 
 namespace fl {
 class App;
@@ -98,7 +99,9 @@ public:
     IDWriteTextFormat* format(Font f);
     IDWriteInlineObject* ellipsis(Font f);
     ID2D1StrokeStyle* dashed();
-    const Theme& theme() const { return windows_ ? win_theme_ : Theme::get(dark); }
+    const Theme& theme() const { return windows_ ? win_theme_ : designed_ ? design_theme_[dark ? 1 : 0] : Theme::get(dark); }
+    void use_design(const ojson& display);
+    fl::theme::Design design;
     // "An Windows anpassen": Hell/Dunkel und Akzentfarbe des Systems (Kopfzeile und Logo bleiben Fuchs-Orange)
     void use_windows(bool on);
     bool windows() const { return windows_; }
@@ -109,7 +112,8 @@ private:
     ComPtr<IDWriteTextFormat> formats_[10];
     ComPtr<IDWriteInlineObject> ellipsis_[10];
     ComPtr<ID2D1StrokeStyle> dashed_;
-    bool windows_ = false;
+    bool windows_ = false, designed_ = false;
+    Theme design_theme_[2];
     Theme win_theme_;
 };
 
@@ -143,6 +147,7 @@ public:
     Rect rc{};                 // nach layout(): Lage im Dokument der Surface (DIP)
     bool visible = true, enabled = true;
     bool track_dirty = true;   // false: zählt nicht als ungespeicherte Änderung (sofort wirksame Aktionen)
+    bool pressed = false;
     bool hot = false;          // Maus darüber
     Text name;                 // Name für Sprachausgabe; Row setzt ihn auf ihre Beschriftung
     std::function<void()> on_change;

@@ -51,6 +51,26 @@ const Theme& Theme::get(bool dark) {
     return dark ? night : light;
 }
 
+void Kit::use_design(const ojson& display) {
+    auto resolved = fl::theme::resolve(display.value("theme", std::string("hell")), fl::theme::Store());
+    design = fl::theme::design(resolved.style);
+    designed_ = resolved.style != fl::theme::Style::FuchsLabs;
+    for (auto& f : formats_) f.Reset();
+    for (auto& e : ellipsis_) e.Reset();
+    if (!designed_) return;
+    for (int mode = 0; mode < 2; ++mode) {
+    const auto p = fl::theme::correct_contrast(bool(mode) == resolved.dark ? resolved.colors : fl::theme::profile_palette(resolved.style, mode != 0));
+    design_theme_[mode] = Theme::get(mode != 0);
+    auto& t = design_theme_[mode];
+    t.bg = from(p.bg); t.card = from(p.card); t.input = from(p.bg); t.line = from(p.line);
+    t.text = t.side_text = from(p.text); t.muted = t.side_muted = from(p.muted);
+    t.side = from(p.bg); t.nav_active = from(p.card);
+    t.accent = t.accent_text = from(p.accent); t.on_accent = from(fl::theme::readable_on(p.accent));
+    t.header = from(p.header); t.header_text = from(fl::theme::readable_on(p.header));
+    t.success = from(p.success); t.danger = from(p.danger); t.dark = mode != 0;
+    }
+}
+
 void Kit::use_windows(bool on) {
     windows_ = on;
     if (!on) return;
@@ -97,7 +117,7 @@ IDWriteTextFormat* Kit::format(Font f) {
         {L"Bahnschrift", DWRITE_FONT_WEIGHT_SEMI_BOLD, 12},// Label
     };
     const auto& s = specs[int(f)];
-    if (FAILED(dw_->CreateTextFormat(s.family, nullptr, s.weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
+    if (FAILED(dw_->CreateTextFormat(design.style == fl::theme::Style::FuchsLabs ? s.family : design.style == fl::theme::Style::Fluent ? L"Segoe UI Variable" : L"Segoe UI", nullptr, s.weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
                                      s.size, L"de-de", slot.GetAddressOf())))
         throw std::runtime_error("Native settings: CreateTextFormat");
     return slot.Get();
@@ -272,7 +292,7 @@ float Card::layout(Ctx& c, float x, float y, float w) {
         if (!item->visible) continue;
         bool row = dynamic_cast<Row*>(item.get()) != nullptr;
         if (!first || g.title_h > 0 || g.desc_h > 0) g.dividers.push_back(cy);
-        float pad = row ? 0.f : 10.f;
+        float pad = row ? 0.f : c.kit.design.spacing - 2;
         cy += pad;
         cy += item->layout(c, x + pad_x, cy, inner);
         cy += pad;
@@ -285,7 +305,7 @@ float Card::layout(Ctx& c, float x, float y, float w) {
 }
 void Card::paint(Ctx& c) {
     auto& g = *this;
-    c.fill(rc, c.th.card, 12);
+    c.fill(rc, c.th.card, c.kit.design.card_radius);
     if (placeholder) {
         c.brush->SetColor(c.th.accent); c.brush->SetOpacity(c.dim);
         c.rt->DrawRoundedRectangle(D2D1::RoundedRect(inflate(rc, -1), 12, 12), c.brush, 1.5f, c.kit.dashed());
@@ -400,9 +420,11 @@ void ImageView::paint(Ctx& c) {
 void Toggle::paint(Ctx& c) {
     Rect track{rc.right - 44, rc.top + (rh(rc) - 24) / 2, rc.right - 2, 0};
     track.bottom = track.top + 24;
-    c.fill(track, on ? c.th.accent : (c.th.dark ? c.th.line : rgb(214, 186, 152)), 12);
+    c.fill(track, on ? c.th.accent : c.th.line, 12);
+    if (c.kit.design.tonal && !on) c.frame(track, c.th.muted, 12, 2);
     float kx = on ? track.right - 12 : track.left + 12;
-    c.circle({kx, track.top + 12}, 9, from(brand::WHITE));
+    c.circle({kx, track.top + 12}, c.kit.design.tonal && !on ? 6.f : 9.f, from(brand::WHITE));
+    if (hot && c.kit.design.tonal) c.circle({kx, track.top + 12}, 15, alpha(c.th.accent, .12f));
 }
 void Toggle::set(bool v, Surface& s) {
     if (v == on) return;
@@ -545,26 +567,32 @@ std::wstring Combo::value(bool en) const { return index >= 0 && index < int(opti
 
 float Button::pref_width(Ctx& c) { return c.text_width(c.s(text), Font::Button) + 40; }
 void Button::paint(Ctx& c) {
+    const float radius = std::min(c.kit.design.button_radius, rh(rc) / 2);
     switch (kind) {
     case Primary:
-        if (enabled) for (int i = 3; i >= 1; --i) c.fill(inflate(rc, float(i) * 3), alpha(c.th.accent, .07f * float(4 - i)), 8 + float(i) * 3);
-        c.fill(rc, c.th.accent, 8);
+        if (enabled && c.kit.design.style == fl::theme::Style::FuchsLabs) for (int i = 3; i >= 1; --i) c.fill(inflate(rc, float(i) * 3), alpha(c.th.accent, .07f * float(4 - i)), 8 + float(i) * 3);
+        c.fill(rc, c.th.accent, radius);
         c.text(c.s(text), rc, Font::Button, c.th.on_accent, DWRITE_TEXT_ALIGNMENT_CENTER);
         break;
     case Secondary:
-        c.fill(rc, c.th.dark ? c.th.bg : from(brand::WHITE, .55f), 8);
-        c.frame(rc, c.th.line, 8);
+        c.fill(rc, c.th.dark ? c.th.bg : from(brand::WHITE, .55f), radius);
+        c.frame(rc, c.th.line, radius);
         c.text(c.s(text), rc, Font::Button, c.th.text, DWRITE_TEXT_ALIGNMENT_CENTER);
         break;
     case Danger:
-        c.frame(rc, c.th.danger, 8, 1.5f);
+        c.frame(rc, c.th.danger, radius, 1.5f);
         c.text(c.s(text), rc, Font::Button, c.th.danger, DWRITE_TEXT_ALIGNMENT_CENTER);
         break;
     case Ghost:
         c.text(c.s(text), rc, Font::Button, c.th.accent_text, DWRITE_TEXT_ALIGNMENT_CENTER);
         break;
     }
-    if (hot && enabled) c.fill(rc, c.th.dark ? from(brand::WHITE, .07f) : from(brand::NAVY, .06f), 8);
+    if (pressed && enabled && c.kit.design.style != fl::theme::Style::FuchsLabs) {
+        const float opacity = c.kit.design.tonal ? .18f : c.kit.design.grouped ? .22f : .12f;
+        c.fill(rc, alpha(c.th.text, opacity), radius);
+        if (c.kit.design.underline_selection) c.frame(inflate(rc, -2), alpha(c.th.text, .3f), radius, 1);
+    }
+    if (hot && enabled) c.fill(rc, c.th.dark ? alpha(c.th.text, c.kit.design.tonal ? .12f : .06f) : alpha(c.th.text, c.kit.design.tonal ? .08f : .04f), radius);
 }
 bool Button::key(UINT vk, Surface& s) {
     if (vk == VK_SPACE || vk == VK_RETURN) { activate(s); return true; }
@@ -890,8 +918,11 @@ std::wstring ItemList::value(bool en) const {
 // ---------------------------------------------------------------- Navigation
 void NavItem::paint(Ctx& c) {
     if (active) {
-        c.fill(rc, c.th.nav_active, 8);
-        c.fill({rc.left, rc.top + 4, rc.left + 3, rc.bottom - 4}, c.th.accent, 1.5f);
+        c.fill(rc, c.th.nav_active, c.kit.design.tonal ? rh(rc) / 2 : c.kit.design.button_radius);
+        if (c.kit.design.underline_selection)
+            c.fill({rc.left + 14, rc.top + 7, rc.left + 17, rc.bottom - 7}, c.th.accent, 1.5f);
+        else if (!c.kit.design.grouped && !c.kit.design.tonal)
+            c.fill({rc.left, rc.top + 4, rc.left + 3, rc.bottom - 4}, c.th.accent, 1.5f);
     } else if (hot) c.fill(rc, c.th.dark ? from(brand::WHITE, .05f) : from(brand::NAVY, .07f), 8);
     if (has_dot) c.circle({rc.left + 16, (rc.top + rc.bottom) / 2}, 4, dot_on ? c.th.success : alpha(c.th.side_muted, .45f));
     c.text(c.s(text), {rc.left + 30, rc.top, rc.right - 8, rc.bottom}, Font::Nav, active ? c.th.text : c.th.side_text);
@@ -1533,6 +1564,8 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         Widget* w = hit(p);
         if (!w) { if (GetFocus() != hwnd_) SetFocus(hwnd_); return 0; }
         capture_ = w;
+        w->pressed = true;
+        invalidate();
         SetCapture(hwnd_);
         if (w->focusable()) focus(w, false);
         w->press(p, *this);
@@ -1541,6 +1574,8 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
     case WM_LBUTTONUP: {
         // ReleaseCapture sends WM_CAPTURECHANGED synchronously, which clears both fields.
         Widget* w = capture_;
+        if (w) w->pressed = false;
+        invalidate();
         const bool dragged_thumb = thumb_drag_;
         capture_ = nullptr;
         thumb_drag_ = false;
@@ -1550,7 +1585,9 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     }
     case WM_CAPTURECHANGED:
+        if (capture_) capture_->pressed = false;
         capture_ = nullptr;
+        invalidate();
         if (thumb_drag_) { thumb_drag_ = false; invalidate(); }
         return 0;
     case WM_MOUSEWHEEL:
