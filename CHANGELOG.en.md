@@ -6,6 +6,12 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Added
+
+- **Colors & design**: new "Match Windows" option (Windows light/dark and accent color, follows changes live, high contrast uses the system colors; text and bars are contrast-corrected automatically). Custom themes as JSON files with editor, live preview, contrast warning, duplicate, delete, import and export; "Custom colors" migrate automatically. Three example themes (Cupertino, Material, Fluent style) in `cpp/examples/themes`. The settings window offers "Windows" as appearance.
+- **Navigation**: status dots only for data sources and connections (green = set up and on, grey = not set up or off), with a legend.
+- Still open: plugin store type "theme", mouse tooltip for the dots.
+
 ### Fixed
 
 - Streaming relaunches: the page showed almost only Netflix because all chosen providers were queried together and sorted by date. The app now queries each provider separately (up to 8 groups) and picks the newest title per provider in turn, so every chosen provider appears with its logo.

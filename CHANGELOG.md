@@ -6,6 +6,12 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Neu
+
+- **Farben & Design**: Neue Option „An Windows anpassen" (Hell/Dunkel und Akzentfarbe von Windows, folgt Änderungen live, Kontrastdesign nutzt die Systemfarben; Text und Balken werden automatisch kontrastkorrigiert). Eigene Themes als JSON-Dateien mit Editor, Live-Vorschau, Kontrastwarnung, Duplizieren, Löschen, Import und Export; „Eigene Farben" werden automatisch migriert. Drei Beispiel-Themes (Cupertino-, Material-, Fluent-Stil) unter `cpp/examples/themes`. Das Einstellungsfenster bietet „Windows" als Darstellung.
+- **Navigation**: Statuspunkte nur noch bei Datenquellen und Verbindungen (grün = eingerichtet und eingeschaltet, grau = nicht eingerichtet oder aus), mit Legende.
+- Noch offen: Plugin-Store-Typ „Theme", Maus-Tooltip für die Punkte.
+
 ### Behoben
 
 - Streaming-Neustarts: Die Seite zeigte fast nur Netflix, weil alle gewählten Anbieter in einer Abfrage nach Datum sortiert wurden. Jetzt fragt die App je Anbieter getrennt ab (bis zu 8 Gruppen) und wählt reihum je Anbieter den neuesten Titel; so erscheinen alle gewählten Anbieter, jeweils mit Logo.
