@@ -51,7 +51,7 @@ Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C
 | **Blog-Updates** | neuester Beitrag je Blog; den Feed findet die App selbst | RSS/Atom | 30 min |
 | **Streaming-Neustarts** (neu in 2.8.0) | neue Filme und Serien der letzten 30 Tage bei deinen gewählten Streaming-Anbietern (Titel, Datum, Film/Serie, Anbieter) | [TMDB](https://www.themoviedb.org) API, Anbieterdaten von JustWatch; eigener Key | 1 h |
 | **Home Assistant** | bis zu 4 Sensoren (Wert, Einheit) oder Schalter (per Touch schaltbar) | Home-Assistant-REST-API | 15 s |
-| **Spotify** (neu in 2.8.0) | aktueller Titel mit Cover und Fortschritt, Amplifier-Balken; mit Touch Zurück/Pause/Weiter (Premium) | Spotify Web API, [Anleitung](docs/SPOTIFY.md) | 4 s |
+| **Spotify** (neu in 2.8.0) | aktueller Titel mit Cover und Fortschritt, Amplifier-Balken im Querformat; mit Touch Zurück/Pause/Weiter (Premium) | Spotify Web API, [Anleitung](docs/SPOTIFY.md) | 4 s |
 | **Plugins** | eigene Seiten aus geprüften, deklarativen Plugins | Plugin-Store oder lokales Manifest | je Plugin |
 
 *Streaming-Neustarts nutzen die TMDB-API: This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.*

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Amplifier: touch the activity timer only from the rendered Spotify tile while playing; publish every decay step including the final zero.
+
 - Amplifier (udio_levels.cpp): WASAPI loopback capture thread (LevelMeter), 1024-point FFT to 16 log bands (60 Hz–14 kHz), attack/decay smoothing, runs only while the Spotify page is shown (	ouch()); SpotifyRenderer::render(snap, now, levels) draws bars in landscape while playing; display loop shortens its sleep to 100 ms while active; config key spotify.amp. Tests: 22 new checks in 	est_spotify (sine → band, silence, bounds, rendering). Windows build: all suites passed.
 
 ## 2.8.0 – 31 October 2026

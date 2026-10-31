@@ -6,6 +6,11 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Behoben
+
+- Spotify-Amplifier: Aktivierung erst beim Zeichnen der sichtbaren Wiedergabeseite; nach dem Seitenwechsel endet die Analyse nach höchstens drei Sekunden. Restbalken klingen vollständig auf null ab.
+
+
 ### Hinzugefügt
 
 - **Spotify: Amplifier-Anzeige**: bei laufender Wiedergabe zeigen 16 Balken den Pegel der Windows-Systemausgabe (Spektrum, ca. 8 Bilder pro Sekunde, nur im Querformat). Die Systemausgabe wird lokal per WASAPI-Loopback gelesen, nichts wird aufgezeichnet oder gespeichert, die Analyse läuft nur, solange die Spotify-Seite sichtbar ist. Schalter: Einstellungen → Spotify → *Amplifier-Anzeige* (spotify.amp, Standard an). Gilt für Display, Monitor und Companion; die tatsächliche Bildrate hängt vom Ausgabegerät ab.

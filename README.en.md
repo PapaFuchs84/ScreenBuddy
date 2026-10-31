@@ -51,7 +51,7 @@ A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary sc
 | **Blog updates** | newest post per blog; the app finds the feed itself | RSS/Atom | 30 min |
 | **New on streaming** (new in 2.8.0) | new movies and series of the last 30 days on your chosen streaming services (title, date, movie/series, service) | [TMDB](https://www.themoviedb.org) API, provider data from JustWatch; your own key | 1 h |
 | **Home Assistant** | up to 4 sensors (value, unit) or switches (flippable by touch) | Home Assistant REST API | 15 s |
-| **Spotify** (new in 2.8.0) | current track with cover and progress, amplifier bars; with touch previous/pause/next (Premium) | Spotify Web API, [guide](docs/SPOTIFY.en.md) | 4 s |
+| **Spotify** (new in 2.8.0) | current track with cover and progress, amplifier bars in landscape; with touch previous/pause/next (Premium) | Spotify Web API, [guide](docs/SPOTIFY.en.md) | 4 s |
 | **Plugins** | your own pages from reviewed, declarative plugins | plugin store or local manifest | per plugin |
 
 *New on streaming uses the TMDB API: This product uses the TMDB API but is not endorsed or certified by TMDB. Provider data: JustWatch.*

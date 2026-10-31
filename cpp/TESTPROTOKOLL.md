@@ -1,5 +1,15 @@
 # Testprotokoll – Stand 31.10.2026
 
+## Amplifier-Korrektur nach PR #32 (31.10.2026, noch unveröffentlicht)
+
+- GitHub-Status geprüft: PR #32 wurde als `12fd87a` gemergt; sein Baum stimmt mit der lokalen Ausgangsbasis `d4a1c48` überein. Separater Worktree `screenbuddy-amplifier-fix`, Branch `fix/amplifier-visibility-decay`.
+- Code-Review: `page_list` aktivierte den Pegelmesser bereits beim Auflisten aller Seiten. Aktivierung in den Zeichen-Callback der tatsächlich ausgewählten Spotify-Kachel verschoben, nur bei Wiedergabe. Nachlauf bleibt höchstens 3 s. Die WASAPI-Verbindung bleibt offen; nur die FFT-Berechnung pausiert. Dies ist eine Codepfadprüfung, keine neue physische Sichtabnahme.
+- Code-Review: Änderungsschwelle von 0,012 unterdrückte letzte Abkling-Schritte einschließlich null. Gemeinsame Glättungs-/Änderungsfunktion publiziert jetzt jeden Schritt. Regression prüft das tatsächlich publizierte Ende bei Stille, Ruhezustand und Anstieg.
+- Isolierter MSVC-Release-Build erfolgreich. 356 Kern-, 111 TMDB-, 251 Plugin-, 41 Beispiel-, 127 Store-, 140 Transport-, 135 Plugin-Einstellungs-, 11 Monitor- und 361 Companion-Prüfungen bestanden: **1.533**, dazu **2 Installer-Prüfungen** in eigenen Installationsordnern. Test-Temp separat; kein Test gegen Port 8765. CMake blieb in der Sandbox bei der Compilerprüfung hängen; außerhalb der Sandbox lief der Build erfolgreich.
+- README DE/EN, Referenz, Spotify-Doku DE/EN, Changelogs und Anleitungen aktualisiert. 157 lokale Markdown-Linkziele und 8 JavaScript-Blöcke bestanden; Spotify-Schritte zwischen Vorlagen und Ressourcen identisch.
+- Offen: erneute physische Abnahme auf Redmi 8, Pixel und USB-Display, gemessene serielle Bildrate, Wechsel des Windows-Standard-Audiogeräts. Keine Installation auf dem Echtsystem, kein Release/Tag, kein Wiki-Push. Themes-Auftrag bleibt beim Koordinator; kein neuer Chat angelegt.
+
+
 ## Veröffentlichung ScreenBuddy 2.8.0 + Companion 1.0.1 (31.10.2026)
 
 - Windows-Build: 330 Kern-, 111 TMDB-, 251 Plugin-, 41 Beispiel-, 127 Store-, 140 Transport-, 135 Plugin-Einstellungs-, 11 Monitor- und 361 Companion-Prüfungen bestanden (1.507 insgesamt) sowie 2 Installer-Prüfungen, nach Integration des Branches `feature/streaming-logos` (Anbieter-Logos). Netflix-Logos auf dem Redmi 8 beobachtet, Prime-Logos laut Streaming-Thread live geladen, übrige Anbieter und Fehlerfall ohne Netz nicht am Gerät geprüft. Gefunden und behoben: Merge-Namenskonflikt in `tests.cpp`, Seitenzahlprüfungen (neue Seite), RTL+-Anbieter-ID (298 → 2750 laut TMDB-Anbieterliste DE).

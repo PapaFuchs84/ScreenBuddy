@@ -579,12 +579,15 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             out.push_back(std::move(pe));
         } else if (key == "spotify") {
             spotify::Snapshot snap = spotify_->snapshot();
-            std::vector<float> lv;
-            if (meter_) {
-                meter_->touch();   // Seite ist gerade dran: Pegelanalyse aktiv halten
-                if (snap.playing) lv = meter_->levels();
-            }
-            PageEntry pe{key, 1, [snap, lv](int, RendererSet& rs) { return rs.spotify.render(snap, 0, lv.empty() ? nullptr : &lv); }};
+            PageEntry pe{key, 1, [this, snap](int, RendererSet& rs) {
+                std::vector<float> lv;
+                // Erst beim Zeichnen einer sichtbaren Kachel aktivieren, nicht beim Auflisten aller Seiten.
+                if (meter_ && snap.playing) {
+                    meter_->touch();
+                    lv = meter_->levels();
+                }
+                return rs.spotify.render(snap, 0, lv.empty() ? nullptr : &lv);
+            }};
             if (snap.controls && (snap.state == spotify::State::Playing || snap.state == spotify::State::Paused)) {
                 using Cmd = spotify::SpotifyClient::Command;
                 for (Cmd c : {Cmd::Previous, Cmd::PlayPause, Cmd::Next})

@@ -72,6 +72,17 @@ void spectrum_bands(const float* mono, int n, int sample_rate, float* out, int b
     }
 }
 
+bool smooth_levels(float* current, const float* target, int count) {
+    bool changed = false;
+    for (int b = 0; b < count; ++b) {
+        float v = target[b] > current[b] ? current[b] + (target[b] - current[b]) * 0.75f : current[b] * 0.80f;
+        if (v < 0.01f) v = 0;
+        if (v != current[b]) changed = true;   // auch den letzten Abfall auf exakt null veröffentlichen
+        current[b] = v;
+    }
+    return changed;
+}
+
 LevelMeter::LevelMeter(std::function<void()> on_update) : on_update_(std::move(on_update)) {}
 LevelMeter::~LevelMeter() { stop(); }
 
@@ -169,14 +180,7 @@ void LevelMeter::run() {
                 last_calc = t;
                 float next[Bands]{};
                 if (t - last_data < 250 && ring.size() >= size_t(FftN)) spectrum_bands(ring.data(), int(ring.size()), sr, next, Bands);
-                bool changed = false;
-                for (int b = 0; b < Bands; ++b) {
-                    float v = next[b] > cur[b] ? cur[b] + (next[b] - cur[b]) * 0.75f : cur[b] * 0.80f;   // schneller Anstieg, weicher Abfall
-                    if (v < 0.01f) v = 0;
-                    if (std::fabs(v - cur[b]) > 0.012f) changed = true;
-                    cur[b] = v;
-                }
-                if (changed) {
+                if (smooth_levels(cur, next, Bands)) {
                     { std::lock_guard lk(mu_); std::copy(cur, cur + Bands, levels_); }
                     if (on_update_) on_update_();
                 }
