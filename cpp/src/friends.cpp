@@ -278,6 +278,11 @@ static std::string psn_access_token(const std::string& npsso) {
     auto r = http::fetch(auth);
     if (r.status == 0) throw FriendsError("PlayStation ist nicht erreichbar");
     std::string code = psn::code_from_location(r.location);
+    if (code.empty()) {  // Diagnose ohne Geheimnisse: nur Status und ob/welcher Fehler in der Weiterleitung steht
+        auto e = r.location.find("error");
+        LOGW("friends", "PlayStation-Anmeldung: HTTP %d, Weiterleitung %s, %s", r.status, r.location.empty() ? "fehlt" : "ohne Code",
+             e == std::string::npos ? "kein Fehlerhinweis" : r.location.substr(e, 60).c_str());
+    }
     if (code.empty()) throw FriendsError("PlayStation: NPSSO-Code abgelaufen oder ungültig – bitte einen neuen holen");
     psn_token_request(ss, http::query({{"code", code}, {"redirect_uri", PSN_REDIRECT}, {"grant_type", "authorization_code"},
                                        {"token_format", "jwt"}}));

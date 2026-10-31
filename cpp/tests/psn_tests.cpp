@@ -70,6 +70,7 @@ int main() {
 
     // Weiterleitung nach der Anmeldung
     CHECK(code_from_location("com.scee.psxandroid.scecompcall://redirect/?code=Abc123&cid=1") == "Abc123");
+    CHECK(code_from_location("com.scee.psxandroid.scecompcall://redirect/?code=v3.AbC-12_x~y&cid=1") == "v3.AbC-12_x~y");   // echte Codes beginnen mit „v3.“
     CHECK(code_from_location("https://x/?error=access_denied").empty());
     CHECK(code_from_location("https://x/?xcode=1").empty());
     CHECK(code_from_location("https://x/?code=a%20b").empty());

@@ -99,7 +99,7 @@ std::string code_from_location(const std::string& location) {
     if (pos == std::string::npos) return "";
     if (pos > 0 && location[pos - 1] != '?' && location[pos - 1] != '&') return "";
     std::string code = location.substr(pos + 5, location.find_first_of("&#", pos + 5) - pos - 5);
-    return std::all_of(code.begin(), code.end(), [](unsigned char c) { return std::isalnum(c) || c == '-' || c == '_'; }) ? code : "";
+    return std::all_of(code.begin(), code.end(), [](unsigned char c) { return std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~'; }) ? code : "";
 }
 
 }  // namespace fl::psn
