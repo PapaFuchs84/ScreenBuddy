@@ -5,6 +5,7 @@
 #include <openssl/sha.h>
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cstring>
 #include <memory>
 #include <set>
@@ -23,6 +24,7 @@ std::string prefix(Kind kind) {
         case Kind::index: return "FuchsLabs-ScreenBuddy-Plugin-Index-v1\n";
         case Kind::revoked: return "FuchsLabs-ScreenBuddy-Plugin-Revoked-v1\n";
         case Kind::previews: return "FuchsLabs-ScreenBuddy-Plugin-Previews-v1\n";
+        case Kind::themes: return "FuchsLabs-ScreenBuddy-Theme-List-v1\n";
     }
     return "";
 }
@@ -257,6 +259,104 @@ PreviewsResult open_previews(const PublicKey& key, std::string_view document, st
       catch (const Json::exception&) { return {std::nullopt, "Invalid previews value."}; }
 }
 
+namespace {
+bool slug_text(const std::string& s) {
+    return !s.empty() && s.size() <= 48 && std::all_of(s.begin(), s.end(), [](char c) { return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-'; }) &&
+           s.front() != '-' && s.back() != '-';
+}
+bool hex_color(const Json& v) {
+    if (!v.is_string()) return false;
+    const auto s = v.get<std::string>();
+    return s.size() == 7 && s[0] == '#' && std::all_of(s.begin() + 1, s.end(), [](unsigned char c) { return std::isxdigit(c) != 0; });
+}
+// Port of fl::theme utf8_ok: valid UTF-8, no control/bidi/zero-width characters and none of < > " \\ / & `.
+bool theme_name_ok(const std::string& s, size_t& chars) {
+    chars = 0;
+    for (size_t i = 0; i < s.size();) {
+        const unsigned char c = static_cast<unsigned char>(s[i]);
+        const size_t n = c < 0x80 ? 1 : (c >> 5) == 6 ? 2 : (c >> 4) == 14 ? 3 : (c >> 3) == 30 ? 4 : 0;
+        if (!n || i + n > s.size()) return false;
+        uint32_t cp = n == 1 ? c : c & (0xFF >> (n + 1));
+        for (size_t k = 1; k < n; ++k) {
+            const unsigned char cc = static_cast<unsigned char>(s[i + k]);
+            if ((cc & 0xC0) != 0x80) return false;
+            cp = (cp << 6) | (cc & 0x3F);
+        }
+        if ((n == 2 && cp < 0x80) || (n == 3 && cp < 0x800) || (n == 4 && cp < 0x10000) || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) return false;
+        if (cp < 0x20 || cp == 0x7F || (cp >= 0x80 && cp < 0xA0) || (cp >= 0x202A && cp <= 0x202E) || (cp >= 0x2066 && cp <= 0x2069) ||
+            cp == 0x200B || cp == 0xFEFF || cp == 0x2028 || cp == 0x2029) return false;
+        if (cp == '<' || cp == '>' || cp == '"' || cp == '\\' || cp == '/' || cp == '&' || cp == '`') return false;
+        i += n;
+        ++chars;
+    }
+    return true;
+}
+} // namespace
+
+std::string theme_problem(std::string_view bytes, std::string* name_out) {
+    if (bytes.empty() || bytes.size() > theme_limit) return "Theme size outside the allowed range.";
+    auto parsed = parse_strict_json(bytes, theme_limit);
+    if (!parsed || !parsed->is_object()) return "Invalid theme JSON.";
+    const Json& j = *parsed;
+    try {
+        only(j, {"version", "name", "base", "dark", "colors"});
+        for (const char* k : {"version", "name", "base", "dark", "colors"}) if (!j.contains(k)) return "Theme field missing.";
+        if (!j.contains("version") || !j["version"].is_number_integer() || j["version"].get<int>() != 1) return "Unsupported theme version.";
+        if (!j.contains("name") || !j["name"].is_string()) return "Invalid theme name.";
+        const auto name = j["name"].get<std::string>();
+        size_t chars = 0;
+        const auto is_space = [](unsigned char ch) { return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'; };
+        if (name.empty() || name.size() > 160 || !theme_name_ok(name, chars) || chars < 1 || chars > 40 || is_space(name.front()) || is_space(name.back()))
+            return "Invalid theme name.";
+        if (!j.contains("base") || !j["base"].is_string() || (j["base"] != "hell" && j["base"] != "dunkel")) return "Invalid theme base.";
+        if (!j.contains("dark") || !j["dark"].is_boolean()) return "Invalid theme flag.";
+        if (!j.contains("colors") || !j["colors"].is_object()) return "Invalid theme colours.";
+        static const char* keys[9] = {"bg", "card", "line", "header", "accent", "text", "muted", "success", "danger"};
+        only(j["colors"], {"bg", "card", "line", "header", "accent", "text", "muted", "success", "danger"});
+        for (const char* k : keys) if (!j["colors"].contains(k) || !hex_color(j["colors"][k])) return "Theme colours must be #RRGGBB.";
+        if (name_out) *name_out = name;
+    } catch (const Invalid& e) { return e.what; }
+      catch (const Json::exception&) { return "Invalid theme value."; }
+    return {};
+}
+
+bool theme_matches(const ThemeEntry& e, std::string_view bytes) {
+    std::string name;
+    return bytes.size() == e.size && sha256_hex(bytes) == e.sha256 && theme_problem(bytes, &name).empty() && name == e.name;
+}
+
+ThemesResult open_themes(const PublicKey& key, std::string_view document, std::string_view signature) {
+    if (!verify(Kind::themes, key, document, signature)) return {std::nullopt, "Theme list signature invalid."};
+    try {
+        auto j = parse_strict_json(document, index_limit);
+        need(j.has_value(), "Invalid theme list JSON.");
+        only(*j, {"schema_version", "sequence", "themes"});
+        need(j->contains("schema_version") && (*j)["schema_version"] == 1, "Unsupported theme list schema.");
+        ThemeList list;
+        list.sequence = seq(*j);
+        need(j->contains("themes") && (*j)["themes"].is_array() && (*j)["themes"].size() <= max_entries, "Invalid theme list.");
+        std::set<std::string> ids;
+        for (const auto& v : (*j)["themes"]) {
+            only(v, {"id", "name", "description", "version", "author", "license", "file", "sha256", "size"});
+            ThemeEntry e;
+            e.id = text(v, "id", 48); e.name = text(v, "name", 160); e.description = text(v, "description", 500, true);
+            e.version = text(v, "version", 14); e.author = text(v, "author", 320); e.license = text(v, "license", 32);
+            e.file = text(v, "file", 200); e.sha256 = text(v, "sha256", 64);
+            need(slug_text(e.id), "Invalid theme ID.");
+            need(ids.insert(e.id).second, "Duplicate theme ID.");
+            need(version_text(e.version), "Invalid version.");
+            need(std::any_of(std::begin(store_licenses), std::end(store_licenses), [&](const char* x) { return e.license == x; }), "Unsupported license.");
+            need(e.file == "themes/" + e.id + "/" + e.id + ".fltheme.json", "Unexpected theme path.");
+            need(hex_digits(e.sha256, 64), "Invalid SHA-256.");
+            need(v.contains("size") && v["size"].is_number_unsigned() && v["size"].get<size_t>() > 0 && v["size"].get<size_t>() <= theme_limit, "Invalid size.");
+            e.size = v["size"].get<size_t>();
+            list.items.push_back(std::move(e));
+        }
+        return {std::move(list), {}};
+    } catch (const Invalid& e) { return {std::nullopt, e.what}; }
+      catch (const Json::exception&) { return {std::nullopt, "Invalid theme list value."}; }
+}
+
 bool is_revoked(const Revocations& list, std::string_view id, std::string_view version) {
     return std::any_of(list.items.begin(), list.items.end(), [&](const Revocation& r) {
         return r.id == id && (r.all || std::find(r.versions.begin(), r.versions.end(), version) != r.versions.end());
@@ -327,5 +427,27 @@ BuildResult build_previews(const std::vector<PreviewInput>& images, int sequence
     std::sort(entries.begin(), entries.end(), [](const Json& a, const Json& b) { return a["id"] < b["id"]; });
     Json doc = {{"schema_version", 1}, {"sequence", sequence}, {"previews", entries}};
     return {doc.dump(2) + "\n", {}};
+}
+BuildResult build_themes(const std::vector<ThemeInput>& themes, int sequence) {
+    if (themes.size() > max_entries || sequence < 0 || sequence > 2000000000) return {std::nullopt, "Invalid build input."};
+    std::vector<Json> entries;
+    std::set<std::string> ids;
+    for (const auto& in : themes) {
+        std::string name;
+        const auto problem = theme_problem(in.theme_bytes, &name);
+        if (!problem.empty()) return {std::nullopt, "Theme invalid (" + in.id + "): " + problem};
+        if (!slug_text(in.id)) return {std::nullopt, "Invalid theme ID: " + in.id};
+        if (!ids.insert(in.id).second) return {std::nullopt, "Duplicate theme ID: " + in.id};
+        if (std::none_of(std::begin(store_licenses), std::end(store_licenses), [&](const char* x) { return in.license == x; }))
+            return {std::nullopt, "Unsupported theme license: " + in.id};
+        if (!version_text(in.version) || !plain_text(in.author, 320) || !plain_text(in.license, 32) || (!in.description.empty() && !plain_text(in.description, 500)))
+            return {std::nullopt, "Invalid theme metadata: " + in.id};
+        entries.push_back({{"id", in.id}, {"name", name}, {"description", in.description}, {"version", in.version}, {"author", in.author},
+            {"license", in.license}, {"file", "themes/" + in.id + "/" + in.id + ".fltheme.json"}, {"sha256", sha256_hex(in.theme_bytes)}, {"size", in.theme_bytes.size()}});
+    }
+    std::sort(entries.begin(), entries.end(), [](const Json& a, const Json& b) { return a["id"] < b["id"]; });
+    Json doc = {{"schema_version", 1}, {"sequence", sequence}, {"themes", entries}};
+    auto text_out = doc.dump(2) + "\n";
+    return {text_out, {}};
 }
 } // namespace fl::plugins::sign

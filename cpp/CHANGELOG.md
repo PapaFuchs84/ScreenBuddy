@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Plugin store type "theme": separate signed `themes.json` (Kind::themes, own signature domain; `open_themes`, `theme_problem`, `theme_matches`, `build_themes` in plugin_sign), `Catalog::list_themes/install_theme` (cache `themes.cache`, rollback protection, revocation applies), host importer = `theme::Store::import_text`; store page card "Themes"; tool commands `build-themes`, `check-themes`, `sign|verify themes`; seed themes in `store-seed/themes`. Linux: 111 + 77 checks and tool e2e passed; Windows part not yet built.
+- Tooltip on nav status dots (`Widget::tip`, `Surface::tip_update`, 500 ms timer, own-drawn). Contrast correction merged into one `push` per color (theme.cpp). Not yet built on Windows.
+
 ## 2.9.0 – 31 October 2026
 
 - Themes (theme.h/.cpp, ui_page_design.cpp): display.theme = hell | dunkel | windows | custom:<id>; "Match Windows" (AppsUseLightTheme, accent from DWM, high contrast = system colors, live via WM_SETTINGCHANGE, contrast correction text 4.5:1 / bars 3:1); custom themes as strict JSON v1 in the themes folder with editor, preview, duplicate/delete/import/export; old "Eigene Farben" migrate automatically; three example themes in cpp/examples/themes. Settings window gets a "Windows" appearance. Plugin-store type "theme" and device tests are still open.

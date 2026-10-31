@@ -6,6 +6,15 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **Plugin-Store: Themes**: Farbdesigns lassen sich über den signierten Store teilen und installieren (Karte „Themes“ im Plugin-Store). Eigene signierte Liste `themes.json`, nur Farben, kein Code; Signatur, Größe, SHA-256 und Schema werden geprüft, gesperrte Themes erscheinen nicht, ein Theme gleichen Namens wird nie überschrieben. Drei Start-Themes unter `store-seed/themes`. Wartungswerkzeug: `fl-plugin-sign build-themes|check-themes`.
+- **Navigation**: Maus-Tooltip an den Statuspunkten der Seitenleiste.
+
+### Behoben
+
+- Kontrastkorrektur: Anpassungen gegen Hintergrund und Karte heben sich nicht mehr gegenseitig auf (alle Regeln einer Farbe werden gemeinsam erfüllt).
+
 ## [2.9.0] – 2026-10-31
 
 ### Hinzugefügt

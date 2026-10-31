@@ -166,6 +166,8 @@ public:
     virtual std::wstring value(bool) const { return {}; }
     virtual bool checked() const { return false; }
     virtual bool wants_focus_ring() const { return true; }
+    // Maus-Tooltip: Text für die Stelle p (Dokumentkoordinaten) oder leer. Erscheint nach kurzer Ruhe der Maus.
+    virtual std::wstring tip(Point, bool /*english*/) const { return {}; }
     bool live() const { return visible && enabled; }
 };
 using WidgetPtr = std::unique_ptr<Widget>;
@@ -490,6 +492,8 @@ public:
     Role role() const override { return Role::NavTab; }
     bool checked() const override { return active; }
     std::wstring value(bool en) const override { return has_dot ? dot_hint.get(en) : std::wstring(); }
+    // Tooltip nur über dem Statuspunkt (linker Streifen des Eintrags)
+    std::wstring tip(Point p, bool en) const override { return has_dot && p.x < rc.left + 30 ? dot_hint.get(en) : std::wstring(); }
 };
 
 // Platzhalter in der Tab-Reihenfolge: leitet den Fokus in eine andere Surface (Inhaltsbereich).
@@ -567,6 +571,12 @@ private:
     HBRUSH input_brush_ = nullptr;
     Accessible* acc_ = nullptr;
     bool tracking_ = false;
+    // Tooltip: Text der Maus-Stelle, erscheint nach 500 ms Ruhe, verschwindet bei Bewegung, Klick, Scrollen oder Verlassen
+    std::wstring tip_text_;
+    Point tip_at_{};          // Fensterkoordinaten (DIP)
+    bool tip_shown_ = false;
+    void tip_update(Widget* w, Point doc, LPARAM lp);
+    void tip_hide();
     void paint();
     void create_target();
     Widget* hit(Point doc) const;

@@ -1190,6 +1190,7 @@ void Surface::set_root(Widget* root) {
     }
     root_ = root;
     focus_ = hover_ = capture_ = nullptr;
+    tip_text_.clear(); tip_shown_ = false;
     scroll_ = 0;
     relayout();
 }
@@ -1369,6 +1370,25 @@ Point Surface::doc_point(LPARAM lp) const {
     return {GET_X_LPARAM(lp) * 96.f / dpi_, GET_Y_LPARAM(lp) * 96.f / dpi_ + scroll_};
 }
 
+constexpr UINT_PTR TIP_TIMER = 0x7A11;
+constexpr UINT TIP_DELAY_MS = 500;
+
+void Surface::tip_hide() {
+    KillTimer(hwnd_, TIP_TIMER);
+    tip_text_.clear();
+    if (tip_shown_) { tip_shown_ = false; invalidate(); }
+}
+
+void Surface::tip_update(Widget* w, Point doc, LPARAM lp) {
+    std::wstring text = w ? w->tip(doc, kit.english) : std::wstring();
+    tip_at_ = {GET_X_LPARAM(lp) * 96.f / dpi_, GET_Y_LPARAM(lp) * 96.f / dpi_};
+    if (text == tip_text_ && !text.empty()) return;   // gleicher Hinweis: nicht neu starten, Position bleibt
+    tip_hide();
+    if (text.empty()) return;
+    tip_text_ = std::move(text);
+    SetTimer(hwnd_, TIP_TIMER, TIP_DELAY_MS, nullptr);
+}
+
 void Surface::paint() {
     PAINTSTRUCT ps;
     BeginPaint(hwnd_, &ps);
@@ -1405,6 +1425,19 @@ void Surface::paint() {
     Rect t = thumb();
     if (rw(t) > 0) c.fill(t, alpha(th.muted, thumb_drag_ ? .8f : .45f), 3);
     if (on_overlay) on_overlay(c, sz);
+    if (tip_shown_ && !tip_text_.empty()) {
+        const float tw = std::min(c.text_width(tip_text_, Font::Small), 320.f);
+        const float th_ = c.text_height(tip_text_, tw, Font::Small);
+        const float w = tw + 20, h = th_ + 12;
+        float x = std::clamp(tip_at_.x + 12, 4.f, std::max(4.f, sz.width - w - 4));
+        float y = tip_at_.y + 22;
+        if (y + h > sz.height - 4) y = std::max(4.f, tip_at_.y - h - 8);
+        Rect box{x, y, x + w, y + h};
+        c.fill({box.left + 1, box.top + 2, box.right + 1, box.bottom + 3}, alpha(th.text, .12f), 6);   // leichter Schatten
+        c.fill(box, th.card, 6);
+        c.frame(box, th.line, 6, 1);
+        c.text(tip_text_, {box.left + 10, box.top + 6, box.right - 10, box.bottom - 6}, Font::Small, th.text, DWRITE_TEXT_ALIGNMENT_LEADING, true, false);
+    }
     if (rt_->EndDraw() == D2DERR_RECREATE_TARGET) {
         rt_.Reset(); brush_.Reset();
         invalidate();
@@ -1455,7 +1488,7 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
             scroll_to((y - 4) / std::max(1.f, sz.height - 8 - h) * (doc_h_ - sz.height));
             return 0;
         }
-        if (capture_) { capture_->drag(p, *this); return 0; }
+        if (capture_) { tip_hide(); capture_->drag(p, *this); return 0; }
         Widget* w = hit(p);
         if (w != hover_) {
             if (hover_) hover_->hot = false;
@@ -1463,9 +1496,18 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
             if (hover_) hover_->hot = true;
             invalidate();
         }
+        tip_update(w, p, lp);
         return 0;
     }
+    case WM_TIMER:
+        if (wp == TIP_TIMER) {
+            KillTimer(hwnd_, TIP_TIMER);
+            if (!tip_text_.empty() && hover_) { tip_shown_ = true; invalidate(); }
+            return 0;
+        }
+        break;
     case WM_MOUSELEAVE:
+        tip_hide();
         tracking_ = false;
         if (hover_) { hover_->hot = false; hover_ = nullptr; invalidate(); }
         return 0;
@@ -1476,6 +1518,7 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         }
         break;
     case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK: {
+        tip_hide();
         keyboard_cues = false;
         Point p = doc_point(lp);
         Rect t = thumb();
@@ -1513,6 +1556,7 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
     case WM_MOUSEWHEEL:
         if (scrollable_) {
             int delta = GET_WHEEL_DELTA_WPARAM(wp);
+            tip_hide();
             scroll_to(scroll_ - float(delta) / WHEEL_DELTA * 56.f);
             return 0;
         }

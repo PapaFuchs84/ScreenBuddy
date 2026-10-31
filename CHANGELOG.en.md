@@ -6,6 +6,15 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Added
+
+- **Plugin store: themes**: color designs can be shared and installed through the signed store ("Themes" card in the plugin store). Separate signed list `themes.json`, colors only, no code; signature, size, SHA-256 and schema are checked, revoked themes are hidden, a theme with the same name is never overwritten. Three starter themes in `store-seed/themes`. Maintenance tool: `fl-plugin-sign build-themes|check-themes`.
+- **Navigation**: mouse tooltip on the sidebar status dots.
+
+### Fixed
+
+- Contrast correction: adjustments against background and card no longer cancel each other (all rules of one color are satisfied together).
+
 ## [2.9.0] – 2026-10-31
 
 ### Added

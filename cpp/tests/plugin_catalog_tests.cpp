@@ -232,6 +232,61 @@ int main() {
         server.files["previews.json.sig"] = std::string(88, 'A') + "\n";
         CHECK(pc.refresh().state == Availability::available && pc.has_preview("clock-a") && pc.index()->plugins.size() == 2);
     }
+    // Themes: optional extra document (themes.json). Signed, size/hash checked, strict colours, revocation applies.
+    {
+        server.publish({manifest("clock-a", "1.0.0")}, 11);
+        auto theme = [](const std::string& name, const std::string& header = "#007AFF") {
+            Json j = {{"version", 1}, {"name", name}, {"base", "hell"}, {"dark", false},
+                {"colors", {{"bg", "#F2F2F7"}, {"card", "#FFFFFF"}, {"line", "#D1D1D6"}, {"header", header}, {"accent", "#0056B3"},
+                            {"text", "#1C1C1E"}, {"muted", "#636366"}, {"success", "#248A3D"}, {"danger", "#D70015"}}}};
+            return j.dump(2);
+        };
+        const auto ocean = theme("Ozean"), sand = theme("Sand", "#C2A878");
+        auto publish_themes = [&](int sequence, const std::vector<sign::ThemeInput>& in) {
+            auto built = sign::build_themes(in, sequence);
+            server.files["themes.json"] = *built.index_json;
+            server.files["themes.json.sig"] = *sign::sign_document(sign::Kind::themes, server.keys.private_pem, *built.index_json) + "\n";
+        };
+        Catalog tc(key, root / "cache-themes", server.fetcher(), "2.5.0");
+        CHECK(tc.refresh().state == Availability::available && !tc.has_themes() && tc.list_themes("", {}).empty());   // none published yet
+        publish_themes(1, {{"ozean", ocean, "Ruhiges Blau", "1.0.0", "FuchsLabs", "MIT"}, {"sand", sand, "", "1.0.0", "FuchsLabs", "CC0-1.0"}});
+        server.files["themes/ozean/ozean.fltheme.json"] = ocean;
+        server.files["themes/sand/sand.fltheme.json"] = sand;
+        CHECK(tc.refresh().state == Availability::available && tc.has_themes());
+        auto cards = tc.list_themes("", {"sand"});
+        CHECK(cards.size() == 2 && cards[0].entry.id == "ozean" && cards[0].status == ThemeStatus::not_installed && cards[1].status == ThemeStatus::installed);
+        CHECK(tc.list_themes("blau", {}).size() == 1 && tc.list_themes("gibtsnicht", {}).empty());
+        // Install hands verified bytes to the host importer; a plugin install is unaffected.
+        std::string got;
+        CHECK(tc.install_theme("ozean", [&](std::string_view b) { got = std::string(b); return StoreResult{true, {}}; }) && got == ocean);
+        CHECK(!tc.install_theme("unknown", [&](std::string_view) { return StoreResult{true, {}}; }));
+        // Manipulated download, wrong name inside, oversized, hostile colours: refused before the importer runs.
+        bool called = false;
+        auto spy = [&](std::string_view) { called = true; return StoreResult{true, {}}; };
+        server.files["themes/ozean/ozean.fltheme.json"] = ocean + " ";
+        CHECK(!tc.install_theme("ozean", spy) && !called);
+        server.files["themes/ozean/ozean.fltheme.json"] = ocean;
+        // Restart offline: cached, re-verified list still usable.
+        server.online = false;
+        Catalog again(key, root / "cache-themes", server.fetcher(), "2.5.0");
+        CHECK(again.has_themes() && again.list_themes("", {}).size() == 2);
+        server.online = true;
+        // Rollback and bad signature keep the accepted list.
+        publish_themes(0, {});
+        CHECK(tc.refresh().state == Availability::available && tc.list_themes("", {}).size() == 2);
+        publish_themes(1, {{"ozean", ocean, "", "1.0.0", "FuchsLabs", "MIT"}});
+        server.files["themes.json.sig"] = std::string(88, 'A') + "\n";
+        CHECK(tc.refresh().state == Availability::available && tc.list_themes("", {}).size() == 2);
+        // Revocation hides and blocks a theme.
+        publish_themes(2, {{"ozean", ocean, "", "1.0.0", "FuchsLabs", "MIT"}, {"sand", sand, "", "1.0.0", "FuchsLabs", "CC0-1.0"}});
+        server.files["themes/ozean/ozean.fltheme.json"] = ocean;
+        server.files["themes/sand/sand.fltheme.json"] = sand;
+        Json rv = {{"schema_version", 1}, {"sequence", 12}, {"revoked", Json::array({{{"id", "sand"}, {"versions", "all"}, {"reason", "test"}}})}};
+        server.files["revoked.json"] = rv.dump();
+        server.files["revoked.json.sig"] = *sign::sign_document(sign::Kind::revoked, server.keys.private_pem, server.files["revoked.json"]) + "\n";
+        CHECK(tc.refresh().state == Availability::available);
+        CHECK(tc.list_themes("", {}).size() == 1 && !tc.install_theme("sand", spy) && !called);
+    }
     fs::remove_all(root);
     std::printf("plugin catalog: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;

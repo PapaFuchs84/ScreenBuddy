@@ -71,7 +71,10 @@ public:
     void collect(Host&, ojson& patch) override {
         if (combo_ && combo_->index >= 0 && combo_->index < int(keys_.size())) patch["display"]["theme"] = keys_[size_t(combo_->index)];
     }
-    void shown(Host&) override { visible_ = true; }
+    void shown(Host&) override {
+        visible_ = true;
+        if (combo_ && th::Store().list().size() != themes_.size()) reload(selected_key());   // z. B. Theme aus dem Store installiert
+    }
     void hidden(Host&) override {
         visible_ = false;
         again_ = false;

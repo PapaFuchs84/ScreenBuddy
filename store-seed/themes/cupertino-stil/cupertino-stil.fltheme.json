@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "Cupertino-Stil",
+  "base": "hell",
+  "dark": false,
+  "colors": {
+    "bg": "#F2F2F7",
+    "card": "#FFFFFF",
+    "line": "#D1D1D6",
+    "header": "#007AFF",
+    "accent": "#0056B3",
+    "text": "#1C1C1E",
+    "muted": "#636366",
+    "success": "#248A3D",
+    "danger": "#D70015"
+  }
+}

@@ -22,7 +22,13 @@ Dateien: `%LOCALAPPDATA%\FuchsLabs\USB-Display\themes\<id>.json` (max. 8 KB, max
 ```
 Streng geprüft: genau diese Schlüssel, Version 1, alle neun Farben als `#RRGGBB`, Name 1–40 Zeichen ohne `< > " \ / & ``, `base` hell/dunkel. Ungültige Dateien werden ignoriert und angezeigt. Der Editor bietet Hex-Eingabe, Live-Vorschau, Kontrastwarnung, „Kontrast korrigieren“, Duplizieren, Löschen, Import und Export. Die alte Einstellung „Eigene Farben“ wird beim ersten Start in das Theme „Eigene Farben“ umgezogen. Beispiele (Stil-Anlehnung, ohne fremde Logos): `cpp/examples/themes`.
 
-**Noch nicht enthalten:** Teilen über den Plugin-Store (Typ „theme“), Maus-Tooltip der Statuspunkte.
+## Themes aus dem Store
+Einstellungen › **Plugin-Store** › Karte „Themes“: signierte Farbdesigns suchen und mit einem Klick installieren. Das Format ist dasselbe JSON wie bei eigenen Themes (nur neun Farben, kein Code); der Store liefert sie in einer eigenen, signierten Liste `themes.json` (ältere App-Versionen lesen sie nicht und bleiben unberührt). Vor der Installation werden Signatur, Größe, SHA-256 und das strenge Theme-Schema geprüft, gesperrte Themes (Sperrliste) erscheinen nicht. Ein Theme mit gleichem Namen wird nie überschrieben (Schutz vor Verlust eigener Änderungen); zum Aktualisieren erst unter „Farben & Design“ löschen.
+
+**Für Autoren (Store-Repo):** `themes/<id>/<id>.fltheme.json` (das Theme) und `themes/<id>/<id>.fltheme.meta.json` (`description`, `version` x.y.z, `author`, `license` MIT oder CC0-1.0). Wartung: `fl-plugin-sign build-themes <Ordner> <out> <Folge>`, `sign themes`, `check-themes` (CI). Beispiele: `store-seed/themes`.
+
+## Statuspunkte
+Seitenleiste: Maus kurz über dem Punkt ruhen lassen (0,5 s) zeigt „Eingerichtet und eingeschaltet“ (grün) bzw. „Nicht eingerichtet oder ausgeschaltet“ (grau).
 
 ## English
 Settings › **Colors & design**: Light (FuchsLabs), Dark (FuchsLabs), **Match Windows** or your own themes. The choice applies to the USB display, monitor and Companion (the image is rendered on the PC). The selection is kept with "Save & apply"; theme files are saved immediately.
@@ -31,4 +37,8 @@ Settings › **Colors & design**: Light (FuchsLabs), Dark (FuchsLabs), **Match W
 
 **Custom themes**: files in `%LOCALAPPDATA%\FuchsLabs\USB-Display\themes\<id>.json`, same JSON format as above (version 1, nine `#RRGGBB` colours, name 1–40 characters), strictly validated; invalid files are ignored and listed. The editor offers hex input, live preview, contrast warning, "Fix contrast", duplicate, delete, import and export. The old "Custom colors" migrate on first start. Example themes (style-inspired, no third-party logos): `cpp/examples/themes`.
 
-**Not included yet**: sharing via the plugin store (type "theme"), mouse tooltip for status dots.
+**Themes from the store**: Settings › **Plugin store** › "Themes" card: browse signed color designs and install with one click. Same JSON as custom themes (nine colors, no code), delivered in a separate signed list `themes.json` (older app versions ignore it). Signature, size, SHA-256 and the strict theme schema are checked before installation; revoked themes are hidden. A theme with the same name is never overwritten; delete it under "Colors & design" first to update.
+
+**Authors (store repo)**: `themes/<id>/<id>.fltheme.json` plus `<id>.fltheme.meta.json` (`description`, `version`, `author`, `license` MIT or CC0-1.0). Maintenance: `fl-plugin-sign build-themes|sign themes|check-themes`. Examples: `store-seed/themes`.
+
+**Status dots**: hover the dot in the sidebar for half a second to see "Set up and switched on" (green) or "Not set up or switched off" (grey).

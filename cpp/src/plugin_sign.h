@@ -21,7 +21,7 @@ inline constexpr const char* store_public_key_hex = "9d276b02a9a5ea934a3c73d48ac
 std::string sha256_hex(std::string_view data);
 
 // Signed documents carry a domain prefix so a signature for one kind never validates as another.
-enum class Kind { index, revoked, previews };
+enum class Kind { index, revoked, previews, themes };
 struct PublicKey { std::array<unsigned char, 32> raw{}; };
 std::optional<PublicKey> public_key_from_hex(std::string_view hex64);
 
@@ -77,6 +77,24 @@ bool preview_matches(const PreviewEntry& entry, std::string_view png_bytes);
 bool png_dimensions_ok(std::string_view png_bytes);  // Signatur, IHDR (Länge, CRC, Werte), Größe, IEND-Abschluss
 unsigned png_crc32(std::string_view data);           // CRC-32 wie in PNG-Chunks (auch für Tests)
 
+// Themes are listed in a SEPARATE signed document (themes.json), like previews: older apps never read it, so the strict
+// plugin index stays unchanged. Each theme is themes/<id>/<id>.fltheme.json, the same strict JSON as a user theme file
+// (docs/THEMES.md): data only, nine colours, no code.
+inline constexpr size_t theme_limit = 8192;  // = theme::MAX_FILE_BYTES
+struct ThemeEntry { std::string id, name, description, version, author, license, file, sha256; size_t size = 0; };
+struct ThemeList { int sequence = 0; std::vector<ThemeEntry> items; };
+struct ThemesResult {
+    std::optional<ThemeList> list;
+    std::string error;
+    explicit operator bool() const { return list.has_value(); }
+};
+ThemesResult open_themes(const PublicKey& key, std::string_view document, std::string_view signature_base64);
+// Pure check of a theme file (same rules as fl::theme::parse, kept here so the signing tools and Linux tests need no Windows code):
+// exactly version/name/base/dark/colors, name 1-40 characters without < > " \ / & `, base hell|dunkel, nine #RRGGBB colours. Empty = ok.
+std::string theme_problem(std::string_view theme_bytes, std::string* name_out = nullptr);
+// Size, SHA-256 and a valid theme whose name equals the signed entry.
+bool theme_matches(const ThemeEntry& entry, std::string_view theme_bytes);
+
 // ---- Signing side (tools/tests only; the app never holds a private key) ----
 struct KeyPair { std::string private_pem, public_hex; };
 std::optional<KeyPair> generate_keypair();
@@ -88,4 +106,7 @@ struct BuildResult { std::optional<std::string> index_json; std::string error; }
 BuildResult build_index(const std::vector<BuildInput>& manifests, int sequence, const std::string& generated);
 struct PreviewInput { std::string id, png_bytes; };
 BuildResult build_previews(const std::vector<PreviewInput>& images, int sequence);
+// Theme metadata lives in a sidecar next to the theme file: <id>/<id>.fltheme.meta.json is NOT published; build input carries it.
+struct ThemeInput { std::string id, theme_bytes, description, version, author, license; };
+BuildResult build_themes(const std::vector<ThemeInput>& themes, int sequence);
 } // namespace fl::plugins::sign

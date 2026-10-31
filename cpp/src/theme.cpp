@@ -84,13 +84,15 @@ std::vector<Warning> contrast_warnings(const Palette& p) {
     return out;
 }
 
-// Farbe in Richtung Schwarz/Weiß schieben, bis sie zu allen Hintergründen den Mindestkontrast erreicht
-static Color push(Color c, const std::vector<Color>& bgs, double need) {
-    auto ok = [&](Color x) { for (Color b : bgs) if (contrast(x, b) < need) return false; return true; };
+// Farbe in Richtung Schwarz/Weiß schieben, bis sie ALLE Vorgaben (Hintergrund + Mindestkontrast) gleichzeitig erreicht.
+// Alle Vorgaben einer Farbe gehören in einen Aufruf: getrennte Schritte können sich gegenseitig aufheben (2.9.1).
+struct Need { Color bg; double min; };
+static Color push(Color c, const std::vector<Need>& needs) {
+    auto ok = [&](Color x) { for (const Need& n : needs) if (contrast(x, n.bg) < n.min) return false; return true; };
     if (ok(c)) return c;
     double avg = 0;
-    for (Color b : bgs) avg += lum(b);
-    avg /= (double)bgs.size();
+    for (const Need& n : needs) avg += lum(n.bg);
+    avg /= (double)needs.size();
     const Color first = avg > 0.4 ? Color{0, 0, 0} : Color{255, 255, 255};
     const Color second = avg > 0.4 ? Color{255, 255, 255} : Color{0, 0, 0};
     for (Color target : {first, second})
@@ -103,19 +105,15 @@ static Color push(Color c, const std::vector<Color>& bgs, double need) {
 
 Palette correct_contrast(const Palette& in, std::vector<std::string>* changed) {
     Palette p = in;
-    auto fix = [&](const char* key, std::vector<const char*> on, double need) {
-        std::vector<Color> bgs;
-        for (const char* b : on) bgs.push_back(*p.slot(b));
-        Color* c = p.slot(key);
-        Color n = push(*c, bgs, need);
-        if (!(n == *c)) { *c = n; if (changed) changed->push_back(key); }
-    };
-    fix("text", {"bg", "card"}, MIN_TEXT);
-    fix("muted", {"bg", "card"}, MIN_TEXT);
-    fix("accent", {"bg"}, MIN_TEXT);
-    fix("accent", {"card"}, MIN_BAR);   // Akzent liegt meist auf Karten als Überschrift; FuchsLabs-Glut auf Sand hat 4,2:1
-    fix("success", {"card"}, MIN_BAR);
-    fix("danger", {"card"}, MIN_BAR);
+    // Pro Farbe genau ein Aufruf mit allen Regeln aus RULES (Text/Nebentext/Akzent/Status gegen Hintergrund und Karte)
+    for (const char* key : {"text", "muted", "accent", "success", "danger"}) {
+        std::vector<Need> needs;
+        for (const auto& r : RULES)
+            if (std::string(r.fg) == key) needs.push_back({*p.slot(r.bg), r.min});
+        Color* col = p.slot(key);
+        Color n = push(*col, needs);
+        if (!(n == *col)) { *col = n; if (changed) changed->push_back(key); }
+    }
     // Kopfzeile (Balken): nur Hintergrund der Karten zählt; Fuchs-Orange auf Creme erreicht das nicht und bleibt Marke
     return p;
 }
@@ -509,7 +507,7 @@ Resolved resolve(const std::string& key, const Store& store, const WindowsSettin
         r.base = r.dark ? "dunkel" : "hell";
         r.colors = windows_palette(w);
         // Balken in der Akzentfarbe, gegen Hintergrund und Karte mindestens 3:1
-        r.bar = push(w.high_contrast ? r.colors.header : r.colors.accent, {r.colors.bg, r.colors.card}, MIN_BAR);
+        r.bar = push(w.high_contrast ? r.colors.header : r.colors.accent, {{r.colors.bg, MIN_BAR}, {r.colors.card, MIN_BAR}});
         return r;
     }
     if (key.rfind(CUSTOM_PREFIX, 0) == 0)

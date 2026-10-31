@@ -20,6 +20,7 @@
 #include "rss.h"
 #include "audio_levels.h"
 #include "spotify.h"
+#include "theme.h"
 #include "tmdb.h"
 #include "sysinfo.h"
 #include "tray.h"
@@ -1115,6 +1116,18 @@ void App::run() {
                 }
                 out.cards.push_back(std::move(c));
             }
+            // Themes (signed themes.json): "installed" = a local theme with the same name exists
+            {
+                std::set<std::string> local_names;
+                for (const auto& t : theme::Store().list()) local_names.insert(t.name);
+                for (const auto& tc : store_client->catalog->list_themes(search, {})) {
+                    NativeThemeCard t;
+                    t.id = tc.entry.id; t.name = tc.entry.name; t.description = tc.entry.description; t.version = tc.entry.version;
+                    t.author = tc.entry.author; t.license = tc.entry.license;
+                    t.status = local_names.count(t.name) ? "installed" : "not_installed";
+                    out.themes.push_back(std::move(t));
+                }
+            }
             return out;
         };
         actions.store_list = store_snapshot;
@@ -1143,6 +1156,19 @@ void App::run() {
             std::lock_guard lk(store_client->mu);
             if (!store_client->catalog) return {};
             return store_client->catalog->preview(id).value_or(std::string());
+        };
+        actions.store_theme_install = [store_client, store_enabled](const std::string& id) {
+            if (!store_enabled()) throw std::runtime_error("Der Plugin-Store ist ausgeschaltet.");
+            std::lock_guard lk(store_client->mu);
+            if (!store_client->catalog) throw std::runtime_error("Der Plugin-Store ist nicht verfügbar.");
+            std::string error;
+            const auto result = store_client->catalog->install_theme(id, [&error](std::string_view bytes) {
+                plugins::StoreResult out;
+                out.ok = theme::Store().import_text(std::string(bytes), error).has_value();   // prüft nochmals streng und speichert atomar
+                out.error = error;
+                return out;
+            });
+            if (!result) throw std::runtime_error(result.error.empty() ? "Theme-Installation fehlgeschlagen." : result.error);
         };
         actions.store_install = [this, store_client](const std::string& id) {
             std::lock_guard lk(store_client->mu);

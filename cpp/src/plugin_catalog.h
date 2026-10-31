@@ -40,6 +40,10 @@ struct Filter {
     bool show_revoked = false;
 };
 
+// Theme cards (separate signed themes.json). `installed` = a local theme with this id exists (the host decides by file name).
+enum class ThemeStatus { not_installed, installed, revoked };
+struct ThemeCard { sign::ThemeEntry entry; ThemeStatus status = ThemeStatus::not_installed; };
+
 class Catalog {
 public:
     // `cache_dir`: dedicated directory for verified copies + the last accepted sequence numbers.
@@ -66,12 +70,21 @@ public:
     std::optional<std::string> preview(const std::string& id);
     bool has_preview(const std::string& id) const;
 
+    // Themes (best effort, like previews): listing needs the verified index+revocation list, so revoked themes never appear.
+    std::vector<ThemeCard> list_themes(const std::string& text, const std::set<std::string>& installed_ids) const;
+    // Download, verify (size, SHA-256, strict theme, name = signed name, not revoked) and hand the bytes to `importer`
+    // (host: fl::theme::Store::import_text, which validates again). Nothing is executed; a theme is only colours.
+    using ThemeImporter = std::function<StoreResult(std::string_view)>;
+    StoreResult install_theme(const std::string& id, const ThemeImporter& importer);
+    bool has_themes() const { return themes_.has_value() && index_.has_value(); }
+
     const std::optional<sign::Index>& index() const { return index_; }
     const std::optional<sign::Revocations>& revocations() const { return revoked_; }
 
 private:
     void load_cache();
     void refresh_previews();
+    void refresh_themes();
     bool save_cache(const std::string& index, const std::string& index_sig, const std::string& revoked, const std::string& revoked_sig);
     sign::PublicKey key_;
     std::filesystem::path dir_;
@@ -79,6 +92,7 @@ private:
     std::string app_version_;
     std::optional<sign::Index> index_;
     std::optional<sign::Revocations> revoked_;
+    std::optional<sign::ThemeList> themes_;  // optional extra document; absence never affects the index
     std::optional<sign::Previews> previews_; // optional extra document; absence never affects the index
 };
 } // namespace fl::plugins::catalog
