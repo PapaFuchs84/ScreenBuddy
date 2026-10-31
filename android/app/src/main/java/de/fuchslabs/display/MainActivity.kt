@@ -58,8 +58,8 @@ class MainActivity : AppCompatActivity() {
         val dp = resources.displayMetrics.density
         fun pad(v: View, p: Int) = v.setPadding((p * dp).toInt(), (p * dp).toInt(), (p * dp).toInt(), (p * dp).toInt())
         fun label(s: Int) = TextView(this).apply { setText(s); setTextColor(text); textSize = 16f; typeface = Typeface.DEFAULT_BOLD; setPadding((4 * dp).toInt(), (20 * dp).toInt(), (4 * dp).toInt(), (6 * dp).toInt()) }
-        fun gap(v: View, top: Int = 8) = v.apply { layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = (top * dp).toInt() } }
-        fun field(e: EditText) = e.apply { setTextColor(text); setHintTextColor(textSec); setBackgroundResource(R.drawable.field_bg); textSize = 16f; minHeight = (52 * dp).toInt(); setPadding((14 * dp).toInt(), 0, (14 * dp).toInt(), 0); isFocusable = true }
+        fun gap(v: View, top: Int = 8, h: Int = -2) = v.apply { layoutParams = LinearLayout.LayoutParams(-1, if (h > 0) (h * dp).toInt() else h).apply { topMargin = (top * dp).toInt() } }
+        fun field(e: EditText) = e.apply { setTextColor(text); setHintTextColor(textSec); setBackgroundResource(R.drawable.field_bg); textSize = 16f; minHeight = (52 * dp).toInt(); setPadding((14 * dp).toInt(), (8 * dp).toInt(), (14 * dp).toInt(), (8 * dp).toInt()); gravity = Gravity.CENTER_VERTICAL; isFocusable = true }
         fun button(s: Int, click: () -> Unit) = Button(this).apply {
             setText(s); setTextColor(onPrimary); setBackgroundResource(R.drawable.btn_primary); isAllCaps = false; textSize = 16f; typeface = Typeface.DEFAULT_BOLD
             minHeight = (52 * dp).toInt(); stateListAnimator = null; setOnClickListener { click() }
@@ -89,7 +89,7 @@ class MainActivity : AppCompatActivity() {
         host = field(EditText(this)).apply { setHint(R.string.hint_host); inputType = InputType.TYPE_TEXT_VARIATION_URI; setSingleLine() }
         port = field(EditText(this)).apply { setHint(R.string.hint_port); setText(Protocol.DEFAULT_PORT.toString()); inputType = InputType.TYPE_CLASS_NUMBER; setSingleLine() }
         pin = field(EditText(this)).apply { setHint(R.string.hint_pin); inputType = InputType.TYPE_CLASS_NUMBER; setSingleLine() }
-        col.addView(gap(host)); col.addView(gap(port)); col.addView(gap(pin))
+        col.addView(gap(host, 8, 52)); col.addView(gap(port, 8, 52)); col.addView(gap(pin, 8, 52))
         col.addView(gap(button(R.string.btn_manual_pair) { manualPair() }, 12))
 
         col.addView(label(R.string.section_orientation))
