@@ -35,6 +35,7 @@ namespace discord { class DiscordFeed; }
 namespace friends { class FriendsHub; }
 namespace ha { class HaClient; }
 namespace spotify { class SpotifyClient; }
+namespace audio { class LevelMeter; }
 namespace update { class UpdateChecker; }
 class Tray;
 
@@ -186,6 +187,7 @@ private:
     std::unique_ptr<friends::FriendsHub> friends_;
     std::unique_ptr<ha::HaClient> ha_;
     std::unique_ptr<spotify::SpotifyClient> spotify_;
+    std::unique_ptr<audio::LevelMeter> meter_;   // Amplifier der Spotify-Seite (Systemausgabe, nur lokal)
     std::unique_ptr<update::UpdateChecker> update_;
     std::unique_ptr<plugins::Store> plugins_;
     std::unique_ptr<plugins::SettingsStore> plugin_settings_;

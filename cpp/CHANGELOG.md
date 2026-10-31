@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Amplifier (udio_levels.cpp): WASAPI loopback capture thread (LevelMeter), 1024-point FFT to 16 log bands (60 Hz–14 kHz), attack/decay smoothing, runs only while the Spotify page is shown (	ouch()); SpotifyRenderer::render(snap, now, levels) draws bars in landscape while playing; display loop shortens its sleep to 100 ms while active; config key spotify.amp. Tests: 22 new checks in 	est_spotify (sine → band, silence, bounds, rendering). Windows build: all suites passed.
+
 ## 2.8.0 – 31 October 2026
 
 - Settings shell: navigation compacts to fit the height (min. item 26 px); device panel lists the main display and all Companion clients from NetworkDisplay::status() (clients); overview shortcuts with icon glyphs and links to /anleitung (de/en) and /plugin-werkstatt via the local server. Companion 1.0.1 (versionCode 5): FrameView draws the frame with CLAMP shader edge to edge and keeps content inside cut-out/rounded-corner insets.

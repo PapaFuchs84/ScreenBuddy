@@ -7,6 +7,7 @@
 
 #include "config.h"
 #include "friends.h"
+#include "audio_levels.h"
 #include "ha.h"
 #include "gfx.h"
 #include "http.h"
@@ -406,6 +407,31 @@ static void test_spotify() {
     // Rendern mit Titel, ohne Cover und in den Zuständen ohne Wiedergabe
     render::SpotifyRenderer r(480, 320, "Spotify");
     CHECK_EQ(r.render(render::demo_spotify()).w, 480);
+    // Amplifier: Spektrumbänder (reine Logik) und Balkenzeichnung
+    {
+        const int sr = 48000, n = 2048;
+        std::vector<float> sine(n), silence(n, 0.f);
+        for (int i = 0; i < n; ++i) sine[(size_t)i] = 0.5f * std::sin(2.0f * 3.14159265f * 1000.0f * float(i) / float(sr));
+        float lv[audio::Bands], lv0[audio::Bands];
+        audio::spectrum_bands(sine.data(), n, sr, lv, audio::Bands);
+        audio::spectrum_bands(silence.data(), n, sr, lv0, audio::Bands);
+        int peak = 0;
+        for (int b = 1; b < audio::Bands; ++b) if (lv[b] > lv[peak]) peak = b;
+        // 1 kHz liegt bei logarithmisch geteilten Bändern 60 Hz … 14 kHz im Band 8 oder 9 (Index ≈ 7–9)
+        CHECK(peak >= 6 && peak <= 10);
+        CHECK(lv[peak] > 0.5f);
+        float quiet = 0; for (int b = 0; b < audio::Bands; ++b) quiet = std::max(quiet, lv0[b]);
+        CHECK(quiet == 0.f);
+        for (int b = 0; b < audio::Bands; ++b) CHECK(lv[b] >= 0.f && lv[b] <= 1.f);
+        float tiny[16] = {};
+        audio::spectrum_bands(tiny, 16, sr, lv, audio::Bands);   // zu wenig Samples: alles 0, kein Absturz
+        CHECK(lv[0] == 0.f);
+        std::vector<float> bars(audio::Bands, 0.7f);
+        auto with = r.render(render::demo_spotify(), 0, &bars), without = r.render(render::demo_spotify(), 0, nullptr);
+        CHECK(with.px != without.px);   // Balken verändern das Bild
+        spotify::Snapshot paused = render::demo_spotify(); paused.playing = false;
+        CHECK(r.render(paused, 0, &bars).px == r.render(paused, 0, nullptr).px);   // bei Pause keine Balken
+    }
     spotify::Snapshot idle;
     for (auto st : {spotify::State::NotSetUp, spotify::State::LoggedOut, spotify::State::Connecting, spotify::State::Idle, spotify::State::Error}) {
         idle.state = st;

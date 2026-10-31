@@ -14,6 +14,10 @@ Zeigt den aktuell gespielten Titel mit Cover, Künstler, Album und Fortschritt a
 
 Ein Client Secret wird nicht gebraucht (Anmeldung per PKCE).
 
+## Amplifier-Anzeige
+
+Bei laufender Wiedergabe zeigen 16 Balken den Pegel der Windows-Systemausgabe (Spektrum, nur Querformat). Ausschalten: *Einstellungen → Spotify → Amplifier-Anzeige*. Die Systemausgabe wird lokal gelesen und sofort zu Balken verrechnet; es wird nichts aufgezeichnet, gespeichert oder gesendet, und die Analyse läuft nur, solange die Spotify-Seite zu sehen ist. Wird die Musik nicht über den PC abgespielt (z. B. auf dem Handy), bleiben die Balken flach.
+
 ## Grenzen
 
 - **Steuern braucht Spotify Premium** (Vorgabe von Spotify). Die Anzeige geht auch ohne Premium.
