@@ -6,6 +6,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **PlayStation-Freunde** in der gemeinsamen Freundesliste (Marke „P“, Online-Status und gespieltes Spiel). Inoffizielle Sony-Schnittstelle über den NPSSO-Code, DPAPI-verschlüsselt, optional und standardmäßig aus; mit Hilfe zum Code, Verbindungsprüfung und Verknüpfung per `psn:Name`.
+
 ## [2.9.2] – 2026-10-31
 
 ### Hinzugefügt
@@ -21,6 +25,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 - Designsysteme: Kachelbeschriftungen der Übersicht („Seiten auf dem Display“) werden umbrochen statt abgeschnitten; Slider-Spur in Material/Cupertino/Fluent hell aus der Akzentfarbe statt Beige; Systemanzeige bei Material und Cupertino mit 8 px Abstand zur Fußzeile.
 - Kontrast der hellen Designsysteme: Beispiel-Themes und eingebaute Paletten erreichen Text, Nebentext, Akzent, Kopfzeilenschrift, Erfolg/Fehler mit mindestens 4,5:1, Trennlinien, Statuspunkte und Balken mit mindestens 3:1; Warn- und Offline-Farben im hellen Display abgedunkelt.
 - Web-API: `POST /api/config` ohne `{"config": …}` meldet jetzt einen Fehler (400), statt wirkungslos `ok:true` zu liefern.
+
 ## [2.9.1] – 2026-10-31
 
 ### Hinzugefügt

@@ -265,8 +265,8 @@ bool SettingsServer::start() {
         json_reply(res, {{"ok", true}, {"feed", feeds.resolved(url)}, {"source", sel.empty() ? "" : sel[0].source},
                          {"latest", sel.empty() ? "" : sel[0].title}});
     });
-    svr.Post(R"(/api/check/friends/(steam|xbox))", [&app](const httplib::Request& req, httplib::Response& res) {
-        // Zugang zu Steam oder Xbox prüfen. Leere Felder kommen aus den gespeicherten Einstellungen
+    svr.Post(R"(/api/check/friends/(steam|xbox|psn))", [&app](const httplib::Request& req, httplib::Response& res) {
+        // Zugang zu Steam, Xbox oder PlayStation prüfen. Leere Felder kommen aus den gespeicherten Einstellungen
         std::string platform = req.matches[1];
         ojson body = body_json(req);
         ojson saved = app.cfg()["friends"];
@@ -274,7 +274,7 @@ bool SettingsServer::start() {
             return j.is_object() && j.contains(k) && j[k].is_string() ? trim(j[k].get<std::string>()) : std::string();
         };
         std::string key = str(body, "key");
-        if (key.empty()) key = str(saved, platform + "_api_key");
+        if (key.empty()) key = str(saved, platform == "psn" ? "psn_npsso" : platform + "_api_key");
         if (key.empty()) return json_reply(res, {{"ok", false}, {"error", "Bitte zuerst den Schlüssel eintragen"}});
         std::vector<friends::Account> accounts;
         try {
@@ -283,6 +283,8 @@ bool SettingsServer::start() {
                 if (sid.empty()) sid = str(saved, "steam_id");
                 if (sid.empty()) return json_reply(res, {{"ok", false}, {"error", "Bitte den Link zu deinem Steam-Profil eintragen"}});
                 accounts = friends::fetch_steam(key, sid);
+            } else if (platform == "psn") {
+                accounts = friends::fetch_psn(key);
             } else {
                 accounts = friends::fetch_xbox(key);
             }

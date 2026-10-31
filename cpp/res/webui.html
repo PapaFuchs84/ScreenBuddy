@@ -181,7 +181,7 @@ const EN = {
   'Der Bot ist gerade nicht verbunden. Trage zuerst einen gültigen Token ein.': 'The bot is not connected right now. Enter a valid token first.',
   'IDs, durch Komma getrennt': 'IDs, separated by commas', 'leer = alle Server des Bots': 'empty = all of the bot\'s servers',
   'Zeigt, wer auf deinen Servern online ist. Dafür nutzt die App einen eigenen Bot.': 'Shows who is online on your servers. The app uses its own bot for this.',
-  'Verbindung': 'Connection', 'Seite anzeigen': 'Show page', 'Bot-Token': 'Bot token', 'Gespeichert. Leer lassen, um ihn zu behalten.': 'Saved. Leave empty to keep it.',
+  'Verbindung': 'Connection', 'Seite anzeigen': 'Show page', 'Bot-Token': 'Bot token',
   'Wie ein Passwort. Wie du ihn bekommst, steht unten.': 'Like a password. How to get it is explained below.', 'Token einfügen': 'Paste token',
   'Offline-Freunde anzeigen': 'Show offline friends', 'Ausgegraut mit in der Liste': 'Greyed out in the list',
   'So bekommst du den Bot-Token (5 Minuten)': 'How to get the bot token (5 minutes)', 'Klicke unten auf ': 'Click ', 'Discord-Entwicklerseite': 'Discord developer page',
@@ -222,7 +222,13 @@ const EN = {
   ' und melde dich mit deinem Xbox- bzw. Microsoft-Konto an.': ' below and sign in with your Xbox or Microsoft account.',
   'Danach bist du in deinem Bereich (Dashboard). Dort bei ': 'You are now in your dashboard. Under ', ' einen neuen Schlüssel erstellen.': ', create a new key.',
   'Den Schlüssel kopieren und oben bei ': 'Copy the key and paste it above into ', ' einfügen. Dann ': '. Then click ',
-  'Für PlayStation gibt es keine offizielle Schnittstelle. Der inoffizielle Weg kann zur Sperre des Kontos führen und ist deshalb nicht eingebaut.': 'There is no official API for PlayStation. The unofficial route can get your account banned, so it is not included.',
+  'Inoffiziell: Sony bietet keine Schnittstelle für Freunde. Du brauchst einen NPSSO-Code (wirkt wie ein Passwort, läuft nach etwa zwei Monaten ab). Nutzung auf eigenes Risiko.': 'Unofficial: Sony offers no interface for friends. You need an NPSSO code (works like a password, expires after about two months). Use at your own risk.',
+  'PlayStation-Code (NPSSO)': 'PlayStation code (NPSSO)', 'Gespeichert. Leer lassen, um ihn zu behalten.': 'Saved. Leave empty to keep it.', 'Code einfügen': 'Paste code',
+  'So bekommst du den PlayStation-Code': 'How to get the PlayStation code', 'PlayStation-Seite öffnen': 'Open PlayStation website', 'Code-Seite öffnen': 'Open code page',
+  ' und melde dich an.': ' below and sign in.',
+  'Öffne danach in demselben Browser ': 'Then, in the same browser, open ', ' Dort steht eine kurze Zeile mit ': ' It shows a short line with ', ' und einem langen Code.': ' and a long code.',
+  'Kopiere nur den Code (oder die ganze Zeile) und füge ihn oben bei ': 'Copy only the code (or the whole line) and paste it above into ',
+  'Der Code wirkt wie dein Passwort – gib ihn nie weiter. Nach etwa zwei Monaten läuft er ab, dann holst du einfach einen neuen.': 'The code works like your password – never share it. It expires after about two months; then just fetch a new one.',
   'Personen zusammenführen': 'Merge people', 'Wenn jemand auf zwei Plattformen verschieden heißt: Wähle beide Konten und klicke Verknüpfen.': 'If someone has different names on two platforms: choose both accounts and click Link.',
   // Battlefield, Blogs
   'Die Rangliste deiner EA-Freunde. Eine Freundesliste gibt EA nicht heraus, deshalb trägst du die Namen hier ein.': 'The leaderboard of your EA friends. EA does not share friend lists, so you add the names here.',
@@ -393,7 +399,7 @@ const howto = (title, items, ...links) => h('details', {class: 'howto'}, h('summ
 function isActive(p) {
   const c = cfg[p];
   if (p === 'discord') return c.enabled && (c.token_set || meta.discord_ready) && !(cfg.friends.enabled && cfg.friends.include_discord);
-  if (p === 'friends') return c.enabled && ((c.include_discord && cfg.discord.token_set) || c.steam_api_key_set || c.xbox_api_key_set);
+  if (p === 'friends') return c.enabled && ((c.include_discord && cfg.discord.token_set) || c.steam_api_key_set || c.xbox_api_key_set || c.psn_npsso_set);
   if (p === 'bf6') return c.enabled && c.players.length > 0; if (p === 'rss') return c.enabled && c.feeds.length > 0;
   if (p === 'homeassistant') return c.enabled && !!c.url && c.token_set && c.entities.length > 0;
   return c.enabled;
@@ -623,7 +629,7 @@ function checker(platform, body) {
 }
 function linksEditor() {
   const box = h('div'); let accounts = [], suggestions = [];
-  const NAMES = {discord: 'Discord', steam: 'Steam', xbox: 'Xbox'};
+  const NAMES = {discord: 'Discord', steam: 'Steam', xbox: 'Xbox', psn: 'PlayStation'};
   const parse = e => { const [name, ...members] = e.split('|'); return {name, members}; };
   const draw = () => {
     const rows = cfg.friends.links.map((e, i) => { const l = parse(e);
@@ -688,8 +694,17 @@ function viewFriends() {
         ['Danach bist du in deinem Bereich (Dashboard). Dort bei ', B('API Keys'), ' einen neuen Schlüssel erstellen.'],
         ['Den Schlüssel kopieren und oben bei ', B('OpenXBL-Schlüssel'), ' einfügen. Dann ', B('Verbindung prüfen'), '.']],
         ext('https://xbl.io/', 'OpenXBL öffnen'))),
-    card('PlayStation', null, h('p', {class: 'note', style: 'margin:0'},
-      'Für PlayStation gibt es keine offizielle Schnittstelle. Der inoffizielle Weg kann zur Sperre des Kontos führen und ist deshalb nicht eingebaut.')),
+    card('PlayStation', 'Inoffiziell: Sony bietet keine Schnittstelle für Freunde. Du brauchst einen NPSSO-Code (wirkt wie ein Passwort, läuft nach etwa zwei Monaten ab). Nutzung auf eigenes Risiko.',
+      connBadge('psn'),
+      row('PlayStation-Code (NPSSO)', f.psn_npsso_set ? 'Gespeichert. Leer lassen, um ihn zu behalten.' : 'Wird gleich erklärt',
+        text('friends', 'psn_npsso', f.psn_npsso_set ? '••••••••••••' : 'Code einfügen', 'password')),
+      checker('psn', () => ({key: cfg.friends.psn_npsso})),
+      howto('So bekommst du den PlayStation-Code', [
+        ['Klicke unten auf ', B('PlayStation-Seite öffnen'), ' und melde dich an.'],
+        ['Öffne danach in demselben Browser ', B('Code-Seite öffnen'), '. Dort steht eine kurze Zeile mit ', B('npsso'), ' und einem langen Code.'],
+        ['Kopiere nur den Code (oder die ganze Zeile) und füge ihn oben bei ', B('PlayStation-Code (NPSSO)'), ' einfügen. Dann ', B('Verbindung prüfen'), '.'],
+        ['Der Code wirkt wie dein Passwort – gib ihn nie weiter. Nach etwa zwei Monaten läuft er ab, dann holst du einfach einen neuen.']],
+        ext('https://www.playstation.com/', 'PlayStation-Seite öffnen'), ext('https://ca.account.sony.com/api/v1/ssocookie', 'Code-Seite öffnen'))),
     card('Personen zusammenführen', 'Wenn jemand auf zwei Plattformen verschieden heißt: Wähle beide Konten und klicke Verknüpfen.', linksEditor())];
 }
 

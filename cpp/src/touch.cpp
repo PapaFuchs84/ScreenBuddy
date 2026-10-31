@@ -28,6 +28,9 @@ Targets friend_targets(const Friend& person) {
     auto xbox = person.ids.find("xbox");
     if (xbox != person.ids.end() && !trim(xbox->second).empty())
         out.push_back({"https://account.xbox.com/Profile?gamertag=" + http::url_encode(xbox->second), ""});
+    auto psn = person.ids.find("psn");
+    if (psn != person.ids.end() && !trim(psn->second).empty())
+        out.push_back({"https://my.playstation.com/profile/" + http::url_encode(psn->second), ""});
     return out;
 }
 

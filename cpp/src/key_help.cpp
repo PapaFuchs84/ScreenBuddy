@@ -8,7 +8,7 @@ namespace fl::keyhelp {
 namespace {
 
 const char* const kHosts[] = {
-    "discord.com", "steamcommunity.com", "xbl.io", "www.themoviedb.org",
+    "discord.com", "steamcommunity.com", "xbl.io", "www.playstation.com", "ca.account.sony.com", "www.themoviedb.org",
     "developer.spotify.com", "my.home-assistant.io", "www.home-assistant.io",
 };
 
@@ -45,6 +45,19 @@ std::vector<Help> build() {
          L"In the “Profile”/dashboard area create an API key or copy the existing one.",
          L"Paste the key here, save and click “Check connection”."},
         {{"https://xbl.io/", L"OpenXBL öffnen", L"Open OpenXBL"}}});
+    v.push_back({"psn", L"So bekommst du den PlayStation-Code (NPSSO)", L"How to get the PlayStation code (NPSSO)",
+        {L"Auf playstation.com im Browser mit deinem PlayStation-Konto anmelden.",
+         L"Im selben Browser die zweite Seite öffnen. Dort steht eine kurze Zeile mit „npsso“ und einem langen Code.",
+         L"Nur den Code kopieren (oder die ganze Zeile) und hier einfügen, speichern, „Verbindung prüfen“ klicken.",
+         L"Wichtig: Dieser Code wirkt wie dein Passwort – nie weitergeben. Er läuft nach etwa zwei Monaten ab, dann einfach neu holen.",
+         L"Hinweis: Sony bietet dafür keine offizielle Schnittstelle. Die Nutzung ist inoffiziell und geschieht auf eigenes Risiko."},
+        {L"Sign in to playstation.com in your browser with your PlayStation account.",
+         L"In the same browser open the second page. It shows a short line with “npsso” and a long code.",
+         L"Copy only the code (or the whole line), paste it here, save and click “Check connection”.",
+         L"Important: this code works like your password – never share it. It expires after about two months; just fetch a new one.",
+         L"Note: Sony offers no official interface for this. Use is unofficial and at your own risk."},
+        {{"https://www.playstation.com/", L"PlayStation-Seite öffnen", L"Open PlayStation website"},
+         {"https://ca.account.sony.com/api/v1/ssocookie", L"Code-Seite öffnen (nach der Anmeldung)", L"Open code page (after signing in)"}}});
     v.push_back({"tmdb", L"So bekommst du den TMDB-Key", L"How to get the TMDB key",
         {L"Kostenloses Konto bei themoviedb.org anlegen oder anmelden.",
          L"Einstellungen › API: einen API-Key beantragen (Privatnutzung, Angaben nach Wahrheit).",

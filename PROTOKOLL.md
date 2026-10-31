@@ -28,7 +28,8 @@ Kurzer Verlauf, wie die App entstanden ist, und welche Entscheidungen dabei gefa
 - **Dokumentation immer mitpflegen.** Bei Änderungen und Releases die betroffene Doku im selben Arbeitsgang aktualisieren, einschließlich vorhandener Sprachfassungen, Versions-/Downloadlinks und Prüfstatus. Dauerhafte Projektregel in `AGENTS.md` und der PR-Vorlage.
 
 - **Discord nur über einen eigenen Bot.** Freundeslisten mit dem persönlichen Zugang wären ein „Self-Bot“ und können zur Kontosperre führen. Der Bot sieht die Mitglieder der Server, auf die er eingeladen ist.
-- **Kein PlayStation, kein EA-Freundesabruf.** Es gibt keine offiziellen Schnittstellen; der inoffizielle PlayStation-Weg kann zur Sperre führen. EA-Namen werden deshalb von Hand eingetragen.
+- **Kein EA-Freundesabruf.** Es gibt keine offizielle Schnittstelle. EA-Namen werden deshalb von Hand eingetragen.
+- **PlayStation (31.10., Basti):** doch eingebaut, aber nur lesend und ausdrücklich inoffiziell (NPSSO-Code, DPAPI-verschlüsselt, optional). Vorbild: die Endpunkte des MIT-lizenzierten Projekts `tmrp/psn-mcp`; der Code ist nativ in C++ neu geschrieben, es wird kein Node-Code ausgeliefert.
 - **Steam über die offizielle Web-API, Xbox über OpenXBL.** Beide brauchen einen kostenlosen Schlüssel; bei Steam muss die Freundesliste öffentlich sein.
 - **Kein Ab- und Aufblenden.** Das Display liest Helligkeitsbefehle während einer Bildübertragung als Bilddaten.
 - **HWiNFO für Temperatur und Lüfter.** Windows liefert diese Werte nicht ohne Hilfsprogramm. Die kostenlose Version schaltet die Freigabe nach 12 Stunden ab, daher der Neustart alle 11 Stunden.
