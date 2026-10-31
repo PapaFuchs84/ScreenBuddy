@@ -192,8 +192,9 @@ const FEAT = [
   ['bf6', '🎖️', 'Battlefield 6', 'Eine Rangliste von dir und deinen Freunden'],
   ['blogs', '📰', 'Neuigkeiten', 'Die neuesten Artikel von Webseiten, die du magst'],
   ['streaming', '🎬', 'Neu bei Streaming', 'Neue Filme und Serien bei Netflix, Disney+ und Co.'],
-  ['homeassistant', '🏠', 'Home Assistant', 'Werte und Schalter aus deinem Smart Home']];
-let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true, streaming: false, homeassistant: false}, cur = 0, seen = new Set();
+  ['homeassistant', '🏠', 'Home Assistant', 'Werte und Schalter aus deinem Smart Home'],
+  ['spotify', '🎵', 'Spotify', 'Das Lied, das gerade bei Spotify läuft']];
+let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true, streaming: false, homeassistant: false, spotify: false}, cur = 0, seen = new Set();
 try { Object.assign(sel, JSON.parse(localStorage.getItem('fl-guide-sel') || '{}')); } catch (e) {}
 const saveSel = () => { try { localStorage.setItem('fl-guide-sel', JSON.stringify(sel)); } catch (e) {} };
 
@@ -465,6 +466,17 @@ ${help([['Auf dem Display steht „Kein Key“.', 'Trage den Key in den Einstell
 <p class="lead">Hier musst du nichts machen. Die Seite zeigt sofort, wie viel dein PC gerade arbeitet.</p>
 <figure><div class="shot" data-zoom style="max-width:520px"><img src="${IMG.page_system}" alt="Systemseite"></div></figure>
 <div class="box tip"><p><b>Für Profis:</b> Steht bei CPU-Temperatur und Lüfter nur ein Strich „–“? Dafür braucht der PC das kostenlose Programm <b>HWiNFO64</b>. Installiere es von <a href="https://www.hwinfo.com/" target="_blank" rel="noopener">hwinfo.com</a>. Starte es und schalte in seinen Einstellungen die <b>Shared Memory Unterstützung</b> ein. Frag dafür am besten einen Erwachsenen.</p></div>`},
+
+{need: 'spotify', t: 'Spotify', html: () => `
+<p class="kicker">Spotify</p><h1>Dein Lied auf dem Display</h1>
+<p class="lead">Das Display zeigt das Lied, das gerade bei Spotify läuft, mit Bild und Fortschritt. Mit Touch kannst du dort auch Zurück, Pause und Weiter drücken (dafür braucht Spotify ein Premium-Konto).</p>
+<ol class="do">
+<li>Lege auf <b>developer.spotify.com/dashboard</b> eine App an und kreuze „Web API“ an.</li>
+<li>Trage als <b>Redirect URI</b> genau die Adresse ein, die in ScreenBuddy unter <b>Spotify</b> steht.</li>
+<li>Kopiere die <b>Client-ID</b> in ScreenBuddy, schalte die Seite an und speichere.</li>
+<li>Klicke auf <b>„Bei Spotify anmelden“</b> und stimme im Browser zu.</li>
+</ol>
+${help([['Es steht „kein aktives Gerät“.', 'Starte Spotify einmal am Handy oder PC und spiele ein Lied ab.'], ['Die Tasten tun nichts.', 'Das Steuern geht nur mit Spotify Premium. Die Anzeige geht auch ohne.']])}`},
 
 {need: 'homeassistant', t: 'Home Assistant', html: () => `
 <p class="kicker">Smart Home</p><h1>Home Assistant auf dem Display</h1>

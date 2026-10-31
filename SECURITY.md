@@ -6,8 +6,9 @@
 
 | Version | Sicherheitskorrekturen |
 |---|---|
-| 2.7.0 | aktueller Release |
-| 2.0.0–2.6.0 | auf 2.7.0 aktualisieren |
+| 2.8.0 | aktueller Release |
+| 2.7.0 | auf 2.8.0 aktualisieren |
+| 2.0.0–2.6.0 | auf 2.8.0 aktualisieren |
 | 1.2 | historisch |
 | 1.1 | nur nach Rücksprache |
 | 1.0 | ❌ |

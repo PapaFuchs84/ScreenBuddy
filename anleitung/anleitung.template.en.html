@@ -192,8 +192,9 @@ const FEAT = [
   ['bf6', '🎖️', 'Battlefield 6', 'A leaderboard of you and your friends'],
   ['blogs', '📰', 'News', 'The newest articles from websites you like'],
   ['streaming', '🎬', 'New on streaming', 'New movies and series on Netflix, Disney+ and more'],
-  ['homeassistant', '🏠', 'Home Assistant', 'Values and switches from your smart home']];
-let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true, streaming: false, homeassistant: false}, cur = 0, seen = new Set();
+  ['homeassistant', '🏠', 'Home Assistant', 'Values and switches from your smart home'],
+  ['spotify', '🎵', 'Spotify', 'The song playing on Spotify right now']];
+let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true, streaming: false, homeassistant: false, spotify: false}, cur = 0, seen = new Set();
 try { Object.assign(sel, JSON.parse(localStorage.getItem('fl-guide-sel') || '{}')); } catch (e) {}
 const saveSel = () => { try { localStorage.setItem('fl-guide-sel', JSON.stringify(sel)); } catch (e) {} };
 
@@ -465,6 +466,17 @@ ${help([['The display says “No key”.', 'Enter the key in the settings and sa
 <p class="lead">You don't need to do anything here. The page immediately shows how hard your PC is working.</p>
 <figure><div class="shot" data-zoom style="max-width:520px"><img src="${IMG.page_system}" alt="System page"></div></figure>
 <div class="box tip"><p><b>For pros:</b> Is there only a dash “–” for CPU temperature and fan? For that the PC needs the free program <b>HWiNFO64</b>. Install it from <a href="https://www.hwinfo.com/" target="_blank" rel="noopener">hwinfo.com</a>. Start it and turn on <b>Shared Memory Support</b> in its settings. Best ask a grown-up for help with this.</p></div>`},
+
+{need: 'spotify', t: 'Spotify', html: () => `
+<p class="kicker">Spotify</p><h1>Your song on the display</h1>
+<p class="lead">The display shows the song playing on Spotify right now, with cover and progress. With touch you can also press previous, pause and next (Spotify requires a Premium account for this).</p>
+<ol class="do">
+<li>Create an app at <b>developer.spotify.com/dashboard</b> and tick “Web API”.</li>
+<li>Enter exactly the address shown in ScreenBuddy under <b>Spotify</b> as the <b>Redirect URI</b>.</li>
+<li>Copy the <b>Client ID</b> into ScreenBuddy, turn the page on and save.</li>
+<li>Click <b>“Sign in to Spotify”</b> and agree in the browser.</li>
+</ol>
+${help([['It says “no active device”.', 'Open Spotify on your phone or PC once and play a song.'], ['The buttons do nothing.', 'Controlling needs Spotify Premium. The display works without it.']])}`},
 
 {need: 'homeassistant', t: 'Home Assistant', html: () => `
 <p class="kicker">Smart home</p><h1>Home Assistant on the display</h1>
