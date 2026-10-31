@@ -83,7 +83,8 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
         rss_ = std::make_unique<rss::RssFeeds>(rs);
     // Streaming-Neustarts: auch ohne Key anlegen, damit die Seite „Kein Key“ zeigt (Anfragen gibt es erst mit Key)
     if (b(cfg_["streaming"], "enabled") && !preview_dir_)
-        streaming_ = std::make_unique<tmdb::TmdbFeed>(cfg_["streaming"], cfg_["ui"].value("language", "de"));
+        streaming_ = std::make_unique<tmdb::TmdbFeed>(cfg_["streaming"], cfg_["ui"].value("language", "de"),
+                                                      cfg_path_.parent_path() / L"cache" / L"tmdb-logos");
     if (b(sy, "enabled", true)) sys_ = std::make_unique<sysinfo::SysMonitor>(sy);
     // Discord wird gebraucht, wenn seine Seite an ist oder die gemeinsame Freundesliste es einbezieht
     bool want_discord = b(dc, "enabled", true) || (b(fr, "enabled") && b(fr, "include_discord", true));
@@ -584,7 +585,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             out.push_back(std::move(pe));
         } else if (key == "streaming") {
             auto snap = streaming_->snapshot();
-            out.push_back({key, 1, [snap](int, RendererSet& rs) { return rs.stream.render(snap.state, snap.items, snap.updated); }});
+            out.push_back({key, 1, [snap](int, RendererSet& rs) { return rs.stream.render(snap.state, snap.items, snap.updated, 0, &snap.logos); }});
         } else if (key == "rss") {
             auto posts = rss_->posts();
             auto updated = rss_->updated();

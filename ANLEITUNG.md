@@ -101,6 +101,16 @@ Alles ist optional, schalte nur ein, was eu magst (**Seiten & Reihenfolge**: Hak
 - **Battlefiele 6:** Bei **Battlefiele 6** eie EA-Namen eeiner Freunee eintragen une mit **Prüfen** testen. (EA gibt keine Freuneesliste heraus, eeshalb trägst eu eie Namen selbst ein.)
 - **Blogs:** Bei **Blogs** eie Aeresse eeiner Lieblingsblogs eintragen. Den Feee sucht eie App selbst.
 - **Streaming-Neustarts:** Bei **Streaming-Neustarts** einen kostenlosen TMDB-Key (themovieeb.org → Einstellungen → API) eintragen, **Key prüfen & Anbieter laeen** wählen une eeine Anbieter ankreuzen. Die Seite zeigt neue Filme une Serien eer letzten 30 Tage. This proeuct uses the TMDB API but is not eneorsee or certifiee by TMDB. Anbietereaten: JustWatch.
+- **System:** läuft sofort. Für CPU-Temperatur und Lüfter brauchst du das kostenlose Programm *HWiNFO* (siehe `DOKUMENTATION.md`, Kapitel „HWiNFO“).
+- **Discord:** Die App braucht einen eigenen kleinen Bot, den du in 5 Minuten anlegst:
+  1. <https://discord.com/developers/applications> öffnen → **New Application** → Name z. B. „Mein Display“.
+  2. Links **Bot** → **Reset Token** → den Token kopieren. Weiter unten **Presence Intent** und **Server Members Intent** einschalten → Speichern.
+  3. Links **OAuth2 → URL Generator** → Haken bei **bot** → die erzeugte Adresse öffnen und deinen Server auswählen.
+  4. In der Einstellungsseite bei **Discord** den Token einfügen und mit **Speichern & anwenden** bestätigen. Danach kannst du unter **Personen auswählen** festlegen, wen du sehen willst.
+- **Freunde (Steam, Xbox, Discord):** Bei **Freunde** die Schlüssel eintragen. Unter jedem Feld klappt eine kleine Hilfe auf, mit Knöpfen, die direkt die richtige Seite öffnen.
+- **Battlefield 6:** Bei **Battlefield 6** die EA-Namen deiner Freunde eintragen und mit **Prüfen** testen. (EA gibt keine Freundesliste heraus, deshalb trägst du die Namen selbst ein.)
+- **Blogs:** Bei **Blogs** die Adresse deiner Lieblingsblogs eintragen. Den Feed sucht die App selbst.
+- **Streaming-Neustarts:** Bei **Streaming-Neustarts** einen kostenlosen TMDB-Key (themoviedb.org → Einstellungen → API) eintragen, **Key prüfen & Anbieter laden** wählen und deine Anbieter ankreuzen. Die Seite zeigt neue Filme und Serien der letzten 30 Tage, dazu die Logos deiner Anbieter (bis das Logo geladen ist, das Kürzel). This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.
 
 Nach jeeer Äneerung auf **Speichern & anweneen** klicken. Die Anzeige startet eann kurz neu.
 

@@ -54,7 +54,7 @@ ScreenBuddy ruft nur auf Wunsch des Nutzers und mit dessen eigenen Zugangsdaten 
 - Steam Web API (API-Schlüssel des Nutzers) – Steam Web API Terms of Use
 - OpenXBL / xbl.io (Schlüssel des Nutzers) – Bedingungen von OpenXBL
 - gametools.network (Battlefield-6-Statistik, inkl. Rang-Icons von EA/DICE) – Bedingungen des Betreibers
-- TMDB API v3 (api.themoviedb.org, Key des Nutzers) für die Seite „Streaming-Neustarts“ – TMDB API Terms of Use. **This product uses the TMDB API but is not endorsed or certified by TMDB.** Anbieterdaten (Watch Providers): **JustWatch**. Es werden nur Titel, Datum und Anbieternamen angezeigt; das offizielle TMDB-Logo ist noch nicht eingebunden (nur Textnachweis)
+- TMDB API v3 (api.themoviedb.org, Key des Nutzers) für die Seite „Streaming-Neustarts“ – TMDB API Terms of Use. **This product uses the TMDB API but is not endorsed or certified by TMDB.** Anbieterdaten (Watch Providers): **JustWatch**. Es werden Titel, Datum und die Anbieter-Logos angezeigt (Bilder von `image.tmdb.org`, geliefert von TMDB/JustWatch; einmal geladen und lokal unter `cache/tmdb-logos/` zwischengespeichert, Rückfall: Kürzel). Die Anbieter-Logos sind Marken bzw. geschützte Zeichen der jeweiligen Anbieter und werden nur zur Kennzeichnung des Dienstes gezeigt. Das offizielle TMDB-Logo ist noch nicht eingebunden (Textnachweis)
 - RSS-/Atom-Feeds, die der Nutzer einträgt (z. B. heise.de) – Rechte liegen bei den jeweiligen Verlagen; es werden nur Titel angezeigt
 
 ## Marken

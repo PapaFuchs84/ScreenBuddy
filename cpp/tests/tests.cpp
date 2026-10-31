@@ -681,8 +681,9 @@ static void test_render(const fs::path& out) {
                                     {"Noch ein Blog", "Zweiter Beitrag mit etwas längerem Titel, der umbricht und noch weiter geht als gedacht", 1792606500 - 7200, ""},
                                     {"heise online", "heise+ | Test: Sehr langer Titel mit Präfix", std::nullopt, ""}};
             save_png(out / (pre + "blogs.png"), rr.render(posts, 1792606500, 1792606500));
+            const StreamLogos stream_logos = render::demo_stream_logos();
             render::StreamRenderer st(w, h, "Neu bei Streaming");
-            save_png(out / (pre + "streaming.png"), st.render(StreamState::Ok, render::demo_stream(), 1792606500, 1792606500));
+            save_png(out / (pre + "streaming.png"), st.render(StreamState::Ok, render::demo_stream(), 1792606500, 1792606500, &stream_logos));
             save_png(out / (pre + "streaming-nokey.png"), st.render(StreamState::NoKey, {}, std::nullopt, 1792606500));
             save_png(out / (pre + "streaming-error.png"), st.render(StreamState::Error, {}, std::nullopt, 1792606500));
             render::SysRenderer sr(w, h, "System", "bit");

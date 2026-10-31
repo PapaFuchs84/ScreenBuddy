@@ -74,6 +74,7 @@ public:
         Card* credits = root.add<Card>(T(L"Nachweis", L"Credit"));
         credits->add<Note>(Text(L"This product uses the TMDB API but is not endorsed or certified by TMDB."));
         credits->add<Note>(T(L"Anbieterdaten: JustWatch", L"Provider data: JustWatch"));
+        credits->add<Note>(T(L"Anbieter-Logos: Marken der jeweiligen Anbieter", L"Provider logos: trademarks of the respective providers"));
         tick(host, host.status());
     }
     void collect(Host&, ojson& patch) override { form_.collect(patch); }
