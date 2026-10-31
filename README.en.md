@@ -8,7 +8,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.8.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.9.0-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -24,7 +24,11 @@
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
 
-**New in 2.8.0:** Spotify page (track, cover, touch buttons; [guide](docs/SPOTIFY.en.md)) and a “New on streaming” page with TMDB data; fix for the uninstall guard in test instances. [Release notes 2.8](docs/RELEASE-NOTES-2.8.md) (German/English).`n`n**New in 2.7.0:** several Companion devices at once (synchronised or independent), sortable and hideable plugin pages, signed store preview images, interactive Plugin Workshop; store installations stay disabled until you enable them. [Release notes 2.7](docs/RELEASE-NOTES-2.7.md) (German/English).
+**New in 2.9.0:** colors & design (match Windows, custom themes with editor, import/export and three example themes), uniform status dots with legend in the navigation, a fair mix of all chosen providers on the streaming page, spectrum amplifier on the Spotify page, Android TV entry for the Companion app and the official TMDB logo; see [Release notes 2.9](docs/RELEASE-NOTES-2.9.md) (German/English).
+
+**New in 2.8.0:** Spotify page (track, cover, touch buttons; [guide](docs/SPOTIFY.en.md)) and a “New on streaming” page with TMDB data; fix for the uninstall guard in test instances. [Release notes 2.8](docs/RELEASE-NOTES-2.8.md) (German/English).
+
+**New in 2.7.0:** several Companion devices at once (synchronised or independent), sortable and hideable plugin pages, signed store preview images, interactive Plugin Workshop; store installations stay disabled until you enable them. [Release notes 2.7](docs/RELEASE-NOTES-2.7.md) (German/English).
 
 ## Contents
 
@@ -54,7 +58,7 @@ A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary sc
 | **Spotify** (new in 2.8.0) | current track with cover and progress, amplifier bars in landscape; with touch previous/pause/next (Premium) | Spotify Web API, [guide](docs/SPOTIFY.en.md) | 4 s |
 | **Plugins** | your own pages from reviewed, declarative plugins | plugin store or local manifest | per plugin |
 
-*New on streaming uses the TMDB API: This product uses the TMDB API but is not endorsed or certified by TMDB. Provider data: JustWatch.*
+<img src="docs/logo/tmdb.svg" height="14" alt="TMDB logo"> *New on streaming uses the TMDB API: This product uses the TMDB API but is not endorsed or certified by TMDB. Provider data: JustWatch.*
 
 Plus:
 
@@ -90,7 +94,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.8.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.8.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app 1.0.1 for Android is a separate download.
+1. Download **ScreenBuddy.exe** from [release 2.9.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
@@ -207,7 +211,7 @@ App translations are in `cpp/src/i18n.cpp`, native page text under `cpp/src/ui_p
 - The local service is **only reachable on `127.0.0.1`** and protected against DNS rebinding, CSRF and framing by other sites.
 - All connections use HTTPS with certificate checks; packages are pinned to exact versions.
 
-Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: [release notes 2.8](docs/RELEASE-NOTES-2.8.md); the [test record](cpp/TESTPROTOKOLL.md) has the entry for 2.8.0 (31 October 2026). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
+Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: [release notes 2.9](docs/RELEASE-NOTES-2.9.md); the [test record](cpp/TESTPROTOKOLL.md) has the entry for 2.8.0 (31 October 2026); the results of the release run-through for 2.9.0 will be in the release notes 2.9 once available. Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
 
 ## Testing and feedback
 
