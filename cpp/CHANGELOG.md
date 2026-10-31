@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.9.0 – 31 October 2026
+
 - Themes (theme.h/.cpp, ui_page_design.cpp): display.theme = hell | dunkel | windows | custom:<id>; "Match Windows" (AppsUseLightTheme, accent from DWM, high contrast = system colors, live via WM_SETTINGCHANGE, contrast correction text 4.5:1 / bars 3:1); custom themes as strict JSON v1 in the themes folder with editor, preview, duplicate/delete/import/export; old "Eigene Farben" migrate automatically; three example themes in cpp/examples/themes. Settings window gets a "Windows" appearance. Plugin-store type "theme" and device tests are still open.
 - Navigation status dots only for data sources/connections (green = set up and on, grey = not set up or off), with legend and accessible hint; settings-only pages show no dot.
 

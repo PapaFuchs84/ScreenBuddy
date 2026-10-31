@@ -36,7 +36,7 @@ private:
     void run();
     std::function<void()> on_update_;
     void sim_tick(float* cur, long long t, long long& last_calc);
-    std::atomic<bool> stop_{false}, available_{false}, simulated_{false};
+    std::atomic<bool> stop_{false}, available_{false}, simulated_{false}, device_changed_{false};
     std::atomic<long long> touched_{0};
     std::atomic<uint32_t> seed_{0};
     long long last_signal_ = 0;               // nur im Meter-Thread

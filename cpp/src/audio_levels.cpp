@@ -44,6 +44,30 @@ long long now_ms() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
+// Meldet einen Wechsel des Standard-Ausgabegeräts (Windows-Einstellung, Kopfhörer, HDMI …), damit der Loopback neu aufgebaut wird.
+class DeviceWatcher final : public IMMNotificationClient {
+public:
+    explicit DeviceWatcher(std::atomic<bool>& flag) : flag_(flag) {}
+    ULONG STDMETHODCALLTYPE AddRef() override { return ++refs_; }
+    ULONG STDMETHODCALLTYPE Release() override { return --refs_; }   // gehört dem Aufrufer (Stack), nie selbst löschen
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID id, void** out) override {
+        if (id == __uuidof(IUnknown) || id == __uuidof(IMMNotificationClient)) { *out = static_cast<IMMNotificationClient*>(this); AddRef(); return S_OK; }
+        *out = nullptr;
+        return E_NOINTERFACE;
+    }
+    HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged(EDataFlow flow, ERole role, LPCWSTR) override {
+        if (flow == eRender && role == eConsole) flag_ = true;
+        return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE OnDeviceStateChanged(LPCWSTR, DWORD) override { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnDeviceAdded(LPCWSTR) override { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnDeviceRemoved(LPCWSTR) override { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnPropertyValueChanged(LPCWSTR, const PROPERTYKEY) override { return S_OK; }
+private:
+    std::atomic<bool>& flag_;
+    std::atomic<ULONG> refs_{1};
+};
+
 template <class T> void release(T*& p) { if (p) { p->Release(); p = nullptr; } }
 }  // namespace
 
@@ -132,6 +156,9 @@ void LevelMeter::run() {
         IAudioCaptureClient* cap = nullptr;
         WAVEFORMATEX* fmt = nullptr;
         bool ok = false;
+        device_changed_ = false;
+        DeviceWatcher watcher(device_changed_);
+        bool watching = false;
         if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, IID_PPV_ARGS(&en))) &&
             SUCCEEDED(en->GetDefaultAudioEndpoint(eRender, eConsole, &dev)) &&
             SUCCEEDED(dev->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client))) &&
@@ -139,6 +166,7 @@ void LevelMeter::run() {
             SUCCEEDED(client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK, 2000000, 0, fmt, nullptr)) &&
             SUCCEEDED(client->GetService(IID_PPV_ARGS(&cap))) && SUCCEEDED(client->Start()))
             ok = true;
+        if (en) watching = SUCCEEDED(en->RegisterEndpointNotificationCallback(&watcher));
         bool is_float = false, pcm16 = false, pcm32 = false;
         int ch = 0, sr = 0;
         if (ok) {
@@ -166,6 +194,7 @@ void LevelMeter::run() {
             ring.clear();
             while (!stop_) {
                 Sleep(20);
+                if (device_changed_) { LOGI("audio", "Amplifier: Standard-Ausgabegerät gewechselt – Loopback wird neu aufgebaut"); break; }
                 UINT32 packet = 0;
                 if (FAILED(cap->GetNextPacketSize(&packet))) break;   // Gerät gewechselt/entfernt: neu aufbauen
                 while (packet && !stop_) {
@@ -207,6 +236,7 @@ void LevelMeter::run() {
                 }
             }
         }
+        if (watching) en->UnregisterEndpointNotificationCallback(&watcher);
         if (client) client->Stop();
         if (fmt) CoTaskMemFree(fmt);
         release(cap); release(client); release(dev); release(en);
@@ -221,7 +251,7 @@ void LevelMeter::run() {
                 else if (!active()) { quiet_since = now_ms(); simulated_ = false; }
             }
         }
-        if (ok && !stop_) Sleep(500);
+        if (ok && !stop_ && !device_changed_) Sleep(500);
     }
     if (com) CoUninitialize();
 }

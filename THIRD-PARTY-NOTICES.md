@@ -60,3 +60,8 @@ ScreenBuddy ruft nur auf Wunsch des Nutzers und mit dessen eigenen Zugangsdaten 
 ## Marken
 
 TMDB, JustWatch, Netflix, Prime Video, Disney+, Apple TV+, WOW, RTL+, Battlefield, EA, Discord, Steam, Xbox, Windows, Segoe und Bahnschrift sind Marken bzw. geschützte Namen ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen und wird von ihnen nicht unterstützt. Name und Fuchs-Logo „FuchsLabs“ sind von einer Open-Source-Lizenz des Codes ausgenommen.
+
+## TMDB-Logo / TMDB logo
+
+Das offizielle TMDB-Logo (docs/logo/tmdb.svg) stammt von https://www.themoviedb.org/about/logos-attribution und wird gemäß den TMDB-Attributionsregeln nur zur Quellenangabe verwendet. This product uses the TMDB API but is not endorsed or certified by TMDB.
+

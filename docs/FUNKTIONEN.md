@@ -1,6 +1,6 @@
 # ScreenBuddy · Funktionen im Detail
 
-Aus dem README ausgelagert (Stand 2.7.0). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
+Aus dem README ausgelagert (Stand 2.9.0). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
 
 ## Inhalt
 
@@ -9,6 +9,7 @@ Aus dem README ausgelagert (Stand 2.7.0). Englisch: [FEATURES.en.md](FEATURES.en
 - [Home Assistant (ab 2.1.0)](#home-assistant-ab-210)
 - [Streaming-Neustarts (ab 2.8.0)](#streaming-neustarts-ab-280)
 - [Spotify (ab 2.8.0)](#spotify-ab-280)
+- [Farben & Design (ab 2.9.0)](#farben--design-ab-290)
 - [Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)](#android-companion-app-ab-230-mehrere-geräte-ab-270)
 - [Plugin-Store und Plugins (ab 2.6.0)](#plugin-store-und-plugins-ab-260)
 - [Ansichten durchblättern (ab 2.0.4)](#ansichten-durchblättern-ab-204)
@@ -29,19 +30,25 @@ Seite **Home Assistant** mit bis zu 4 Kacheln. **Sensoren** (auch Binärsensoren
 
 ## Streaming-Neustarts (ab 2.8.0)
 
-Seite **Streaming-Neustarts** („New on streaming“): zeigt Filme und Serien, die in den letzten 30 Tagen erschienen sind und bei den gewählten Anbietern im Abo (Flatrate) laufen. Pro Zeile Titel, Datum, Film oder Serie und das Logo des Anbieters (höchstens 3 je Titel, weitere als „+n“). Bis zu 6 Zeilen, neueste zuerst. Fehlt ein Logo oder lädt es noch, steht stattdessen das Kürzel (z. B. NF, PV, D+, ATV+, WOW, RTL+).
+Seite **Streaming-Neustarts** („New on streaming“): zeigt Filme und Serien, die in den letzten 30 Tagen erschienen sind und bei den gewählten Anbietern im Abo (Flatrate) laufen. Pro Zeile Titel, Datum, Film oder Serie und das Logo des Anbieters (höchstens 3 je Titel, weitere als „+n“). Bis zu 6 Zeilen. Ab 2.9.0 fragt die App je Anbieter getrennt ab (bis zu 8 Gruppen) und wählt reihum je Anbieter den neuesten Titel, damit alle gewählten Anbieter erscheinen. Fehlt ein Logo oder lädt es noch, steht stattdessen das Kürzel (z. B. NF, PV, D+, ATV+, WOW, RTL+).
 
-- **Einrichtung:** unter **Einstellungen → Streaming-Neustarts** die Seite einschalten und einen kostenlosen TMDB-Key eintragen (bei bestehender Installation die Seite zusätzlich unter *Seiten & Reihenfolge* anhaken) (themoviedb.org → Einstellungen → API; der v3-Key oder das „API Read Access Token“ funktionieren). Der Key liegt wie die anderen Schlüssel DPAPI-verschlüsselt in `config.toml` und wird nie protokolliert oder angezeigt. **Key prüfen & Anbieter laden** holt die Anbieterliste deiner Region aus TMDB; mit Haken wählst du die Anbieter (bis zu 30). Vorgewählt sind Netflix (8), Prime Video (9 und 119), Disney+ (337), Apple TV+ (350), WOW (30) und RTL+ (298). Weicht eine ID in deiner Region ab, korrigiere sie über die geladene Liste.
+- **Einrichtung:** unter **Einstellungen → Streaming-Neustarts** die Seite einschalten und einen kostenlosen TMDB-Key eintragen (bei bestehender Installation die Seite zusätzlich unter *Seiten & Reihenfolge* anhaken) (themoviedb.org → Einstellungen → API; der v3-Key oder das „API Read Access Token“ funktionieren). Der Key liegt wie die anderen Schlüssel DPAPI-verschlüsselt in `config.toml` und wird nie protokolliert oder angezeigt. **Key prüfen & Anbieter laden** holt die Anbieterliste deiner Region aus TMDB; mit Haken wählst du die Anbieter (bis zu 30). Vorgewählt sind Netflix (8), Prime Video (9 und 119), Disney+ (337), Apple TV+ (350), WOW (30) und RTL+ (2750, Region DE). Weicht eine ID in deiner Region ab, korrigiere sie über die geladene Liste.
 - **Region:** folgt der App-Sprache (Deutsch: DE, Englisch: US); im Feld **Region** (`region` unter `[streaming]`) mit zwei Buchstaben überschreibbar, z. B. `AT`.
 - **Abruf:** nur GET über HTTPS an `api.themoviedb.org/3`. Je Aktualisierung zwei Suchanfragen (Filme, Serien) plus – nur für die angezeigten Einträge und einmal gemerkt – eine Anbieterabfrage je Eintrag; höchstens stündlich (Cache 1 Stunde), kleine Pausen zwischen den Anfragen. Bei Fehlern bleiben alte Einträge sichtbar, die App versucht es nach 10 Minuten (bei „Limit erreicht“ nach 15 Minuten, bei ungültigem Key erst zur nächsten Stunde) erneut.
 - **Anbieter-Logos:** TMDB liefert zu jedem Anbieter einen `logo_path`; das Bild kommt von `image.tmdb.org` (Größe w92, nur GET über HTTPS, keine Weiterleitungen, Größenlimit, nur PNG/JPEG). Jedes Logo wird einmal im Hintergrund geladen und unter `cache/tmdb-logos/<Anbieter-ID>.png` im Datenordner abgelegt (Dateiname nur aus der Zahl), dann im Speicher als abgerundetes Quadrat auf Zeilenhöhe skaliert. Das Display wartet nie darauf; bis dahin oder bei Fehlern steht das Kürzel. Die Logos sind Marken der Anbieter ([THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md)). TMDB sieht dafür zusätzlich den Bildabruf.
 - **Anzeige ohne Daten:** „Kein Key“ (Seite an, aber kein Key), „Lade Daten …“, „Keine Daten“ (Fehler oder offline, nie ein Absturz).
 - **Datenschutz:** TMDB sieht deine IP-Adresse und die gewählte Region/Anbieterliste, nicht dein Konto bei den Streaming-Diensten.
-- **Nachweis:** This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch. Die Seite trägt die Fußzeile „TMDB / JustWatch“; der Hinweis steht auch in den Einstellungen (Updates & Autostart → Nachweise) und in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). Das offizielle TMDB-Logo ist noch nicht eingebunden.
+- **Nachweis:** This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch. Die Seite trägt die Fußzeile „TMDB / JustWatch“; der Hinweis steht auch in den Einstellungen (Updates & Autostart → Nachweise) und in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). Das offizielle TMDB-Logo steht in der Quellenangabe von README und THIRD-PARTY-NOTICES.md (ab 2.9.0).
 
 ## Spotify (ab 2.8.0)
 
-Zeigt den aktuell gespielten Titel mit Cover und Fortschritt; mit Touch (Monitor, Companion) steuern Tasten Zurück, Wiedergabe/Pause und Weiter (Spotify Premium nötig). Anmeldung per PKCE mit eigener Spotify-Developer-App, das Token liegt DPAPI-verschlüsselt in spotify.token. Bei laufender Wiedergabe zeigt ein Amplifier (16 Balken) den Pegel der Windows-Systemausgabe, lokal gelesen und nicht aufgezeichnet (abschaltbar). Läuft die Musik woanders (Handy, Lautsprecher, Connect) und die Systemausgabe bleibt 4 s still, zeigt er eine als „simuliert“ gekennzeichnete Animation. Die Balkenfarbe ist wählbar (Pegel Grün/Gelb/Rot, Verlauf im Design, einfarbig). Einrichtung und Grenzen: [SPOTIFY.md](SPOTIFY.md).
+Zeigt den aktuell gespielten Titel mit Cover und Fortschritt; mit Touch (Monitor, Companion) steuern Tasten Zurück, Wiedergabe/Pause und Weiter (Spotify Premium nötig). Anmeldung per PKCE mit eigener Spotify-Developer-App, das Token liegt DPAPI-verschlüsselt in spotify.token. Bei laufender Wiedergabe zeigt ein Amplifier (16 Balken) den Pegel der Windows-Systemausgabe, lokal gelesen und nicht aufgezeichnet (abschaltbar). Läuft die Musik woanders (Handy, Lautsprecher, Connect) und die Systemausgabe bleibt 4 s still, zeigt er eine als „simuliert“ gekennzeichnete Animation. Die Balkenfarbe ist wählbar (Pegel Grün/Gelb/Rot, Verlauf im Design, einfarbig). Ein Wechsel des Standard-Audiogeräts wird erkannt. Einrichtung und Grenzen: [SPOTIFY.md](SPOTIFY.md). Ab 2.9.0 startet die Analyse erst beim Zeichnen der sichtbaren Wiedergabeseite und endet nach dem Seitenwechsel nach höchstens drei Sekunden. Nicht enthalten: Amplifier bei Wiedergabe auf Handy oder Lautsprecher.
+
+## Farben & Design (ab 2.9.0)
+
+**Einstellungen → Farben & Design:** Hell (FuchsLabs), Dunkel (FuchsLabs), **An Windows anpassen** oder eigene Themes. Windows-Modus: Hell/Dunkel und Akzentfarbe aus Windows, Änderungen wirken live, das Kontrastdesign nutzt die Systemfarben; Text und Balken werden automatisch kontrastkorrigiert. Eigene Themes sind JSON-Dateien (Editor mit Live-Vorschau, Kontrastwarnung, Duplizieren, Löschen, Import, Export); drei Beispiele (Cupertino-, Material-, Fluent-Stil) liegen unter `cpp/examples/themes`. Die Auswahl gilt für USB-Display, Bildschirm und Companion. Details, Format und Grenzen: [THEMES.md](THEMES.md).
+
+**Statuspunkte in der Navigation:** grün = eingerichtet und eingeschaltet, grau = nicht eingerichtet oder aus; nur bei Datenquellen und Verbindungen, mit Legende. Noch nicht enthalten: Maus-Tooltip für die Punkte.
 
 ## Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)
 
