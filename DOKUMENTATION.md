@@ -41,6 +41,10 @@ Auf der Einstellungsseite **Plugin-Store** (neben Companion und Plugins) findest
 
 Entwickelt als 2.0.7; diese Version wurde nicht einzeln veröffentlicht, die Funktion steht ab 2.0.8 zur Verfügung. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
 
+## Spotify (ab 2.8.0)
+
+Zeigt den aktuellen Titel mit Cover; mit Touch steuern Tasten Zurück, Wiedergabe/Pause und Weiter (Spotify Premium nötig). Einrichtung: [docs/SPOTIFY.md](docs/SPOTIFY.md).
+
 ## Home Assistant (ab 2.1.0)
 
 Neue Seite **Home Assistant** mit bis zu 4 Kacheln. **Sensoren** (auch Binärsensoren) zeigen Wert und Einheit. **Schalter** (Schalter, Licht, Ventilator, Eingabe-Schalter) zeigen An/Aus und lassen sich bei aktivem Touch per Tipp umlegen. Ohne Touch kannst du in den Einstellungen nur Sensoren wählen. Einrichtung unter **Einstellungen → Home Assistant**: Adresse (z. B. http://homeassistant.local:8123), ein langlebiges Zugriffstoken (Profil in Home Assistant → Sicherheit) und die Entitäten aus der Liste, die **Verbindung prüfen** direkt aus Home Assistant lädt. Das Token liegt wie die anderen Schlüssel DPAPI-verschlüsselt in config.toml. Die App fragt die REST-API alle 15 Sekunden ab; ein Tipp auf einen Schalter wirkt sofort. Schlösser, Rollläden und Alarmanlagen lassen sich bewusst nicht schalten. Bei einer Adresse mit http:// laufen Token und Werte unverschlüsselt durchs Heimnetz; nutze dort https://, wenn Home Assistant es anbietet.
@@ -140,6 +144,7 @@ Bei regulärer Installation liegt `config.toml` unter `%LOCALAPPDATA%\FuchsLabs\
 | `[bf6]` | `enabled` (false), `players` ([], PC-Namen; Konsole als `"Name@psn"` / `"Name@xbox"`), `refresh_minutes` (15), `title` |
 | `[rss]` | `enabled` (false), `feeds` ([]), `refresh_minutes` (30), `max_items` (4), `max_per_feed` (1), `title` |
 | `[homeassistant]` | `enabled` (false), `title` ("Home Assistant"), `url` (z. B. "http://homeassistant.local:8123"), `token` (verschlüsselt), `entities` ([], höchstens 4, z. B. `"sensor.wohnzimmer_temperatur"`) |
+| `[spotify]` | `enabled` (false), `title` ("Spotify"), `client_id` (32 Zeichen aus deiner Spotify-Developer-App; Anmeldung und Tokens siehe [docs/SPOTIFY.md](docs/SPOTIFY.md), Tokens liegen in `spotify.token`, nicht in der Konfiguration) |
 | `[ui]` | `enabled` (true), `port` (8765), `setup_done` (false), `language` ("de" oder "en"; beim ersten Start wie die Windows-Sprache – gilt für Einstellungsseite, Display und Infobereich), `update_check` (true; höchstens einmal am Tag die GitHub-Releases abfragen und eine neuere Version melden, nie automatisch installieren), `plugin_store` (true; Plugin-Store höchstens einmal täglich abrufen, false = kein Abruf) |
 
 ---
