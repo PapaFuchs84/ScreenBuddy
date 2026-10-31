@@ -1,13 +1,8 @@
 <div align="center">
 
-**ScreenBuddy 2.7.0:** store preview images, plugin page ordering, Plugin Workshop and independent or synchronised Companions. [Release notes](docs/RELEASE-NOTES-2.7.md).
-
-
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
 # ScreenBuddy
-
-**New in 2.6:** plugin store inside the app (settings page **Plugin store**, next to Companion and Plugins) with a signed index, a signed revocation list and eight starter plugins. Installed plugins stay off until you enable them; every host needs your consent. Companion app 1.0 is a separate download. [Release notes](docs/RELEASE-NOTES-2.6.md) · [Status and limits](docs/SCREENBUDDY-2.6.en.md) · [Plugin guide](docs/PLUGIN-SYSTEM.en.md) · [Store terms](docs/PLUGIN-STORE-TERMS.md) · [Examples](cpp/examples/plugins/README.md).
 
 [Deutsch](README.md) · **English**
 
@@ -27,7 +22,9 @@
 
 </div>
 
-A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required. Earlier version 2.3.0 still required WebView2.
+A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
+
+**New in 2.7.0:** several Companion devices at once (synchronised or independent), sortable and hideable plugin pages, signed store preview images, interactive Plugin Workshop; store installations stay disabled until you enable them. [Release notes 2.7](docs/RELEASE-NOTES-2.7.md) (German/English).
 
 ## Contents
 
@@ -53,47 +50,23 @@ A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary sc
 | **Battlefield 6 · Leaderboard** | the EA friends you add, ranked, with badge, K/D and win rate | [gametools.network](https://api.gametools.network) | 15 min |
 | **Blog updates** | newest post per blog; the app finds the feed itself | RSS/Atom | 30 min |
 | **Home Assistant** | up to 4 sensors (value, unit) or switches (flippable by touch) | Home Assistant REST API | 15 s |
+| **Plugins** | your own pages from reviewed, declarative plugins | plugin store or local manifest | per plugin |
 
 Plus:
 
-- **Native Windows settings window** (Direct2D/DirectWrite, no WebView2; the local service at `http://127.0.0.1:8765/` serves Companion and the guide at `/anleitung`) with live preview, page order, connection status per platform and fold-out help next to every key field
+- **Native Windows settings window** (Direct2D/DirectWrite, no WebView2) with live preview, page order, connection status per platform and fold-out help next to every key field. The local service at `http://127.0.0.1:8765/` serves Companion and the guide at `/anleitung`.
 - **First-run setup without prior knowledge**: detects the display, closes and disables the vendor app if you want, autostart without admin rights
-- **German or English**: the settings page, display and tray menu can be switched; on first start the language follows Windows
-- **Plugin store** (from 2.6.0, settings page, can be switched off): search, check and install reviewed data plugins from the signed store `PapaFuchs84/ScreenBuddy-Plugins`. Before installation the card shows which hosts a plugin would send data to. Installed plugins stay off until you enable them under **Plugins**. See the [2.6.0 release notes](docs/RELEASE-NOTES-2.6.md).
+- **Plugin store** (from 2.6.0, can be switched off): signed store with checks before installation; plugins stay off until you enable them. More: [Plugin store and plugins](docs/FEATURES.en.md#plugin-store-and-plugins-from-260)
+- **Android Companion** (from 2.3.0, several devices from 2.7.0): phone or tablet as an additional display, pairing via QR code or PIN. More: [Companion](docs/FEATURES.en.md#android-companion-app-from-230-multiple-devices-from-270)
 - **Design**: FuchsLabs style in light or dark, or **custom colours** via colour pickers with a contrast warning
 - **Any resolution**: pages are rendered sharply at the real size; wide bars show several pages side by side
-- **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages, tap a blog post to open it in the browser, tap RAM, Drive or Network on the system page to open Task Manager, “Programs and Features” or a speed test); Windows touch assignment checks and setup under **Display**
+- **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages; taps on posts, friends, players and system cards open matching targets); Windows touch assignment checks and setup under **Display**. Details: [touch and update notice](docs/FEATURES.en.md#system-page-touch-and-update-notice-from-220), [touch targets](docs/FEATURES.en.md#touch-targets-and-playtime-from-207)
+- **Home Assistant** with sensors and switches: [setup and security notes](docs/FEATURES.en.md#home-assistant-from-210)
+- **German or English**: the settings page, display and tray menu can be switched; on first start the language follows Windows
 - **Illustrated guide** to click through, easy enough for kids, embedded in the EXE in English and German
-- **Update notice** (can be turned off): reports a new GitHub version at most once a day in the tray and in the settings, but never installs by itself
-- **Single EXE** for installation, updates and uninstallation; no Python or Visual C++ redistributable required. WebView2 is not required.
-
-## System page touch and update notice (from 2.2.0)
-
-**Touch on the system page:** With touch active (screen output only), tapping the **RAM** card opens Task Manager, **Drive** opens “Programs and Features” (`appwiz.cpl`), and **Network** opens the speed test <https://www.speedtest.net/de> in the default browser. The CPU and GPU cards do not react. Windows opens the windows, usually on the main screen.
-
-**Update notice:** At most once a day (at the earliest 45 seconds after start) the app queries the public GitHub releases, without a key or account. If a newer published version exists, a balloon appears at the fox icon (clicking it opens the settings) and **Settings → Start** shows “New version … available” with a link to the download page. **Check now** queries outside the schedule (at most every 5 minutes). Nothing is ever downloaded or installed; to update you download the new EXE yourself and start it. Turn it off under **Settings → Start → Notify about new versions** or with `update_check = false` in `[ui]`. Only an ordinary request with the program name and version in the user agent is sent; as with any request, GitHub sees your IP address. The time of the last check is stored in `update-check.json` next to `config.toml`.
-
-## Touch targets and playtime (from 2.0.7)
-
-With touch enabled, tapping a BF6 player opens their GameTools profile in the browser. The leaderboard also shows hours played. Tapping a friend preferably opens the Steam chat with that person (Steam app required). Without a Steam account, their Discord profile opens (choose **Message** there), otherwise their Xbox profile on xbox.com in the browser. If the target's app is not installed, the next target is used. Windows and tabs are controlled by the platform app/browser. [Usage, prerequisites and limits](docs/TOUCH-2.0.7.en.md). [Validation](cpp/TESTPROTOKOLL.md).
-
-## Home Assistant (from 2.1.0)
-
-New **Home Assistant** page with up to 4 tiles. **Sensors** (including binary sensors) show value and unit. **Switches** (switch, light, fan, input boolean) show On/Off and can be flipped by tapping when touch is active. Without touch only sensors can be chosen in the settings. Set it up under **Settings → Home Assistant**: address (e.g. `http://homeassistant.local:8123`), a long-lived access token (profile in Home Assistant → Security) and the entities from the list that **Check connection** loads straight from Home Assistant. Like the other keys, the token is stored DPAPI-encrypted in `config.toml`. The app polls the REST API every 15 seconds; tapping a switch takes effect immediately. Locks, covers and alarm panels are deliberately not switchable. With an `http://` address the token and values cross your home network unencrypted; use `https://` if Home Assistant offers it.
-
-## Android Companion App (from 2.3.0)
-
-Use an Android phone or tablet as an independent secondary display alongside your USB/HDMI screen. The Companion app is version 1.0 as a separate download; the device test of 27 Oct 2026 refers to its predecessor 0.2.1-preview.
-- **Independent pages & rotation timers:** Configure separate page lists and intervals for the smartphone (under **Companion → Independent Companion display**); data sources and theme remain shared.
-- **Pairing via QR code or PIN:** Click **Pair device** under the **Companion** tab. The Android app scans the QR code or connects manually using address, port (8777) and a 6-digit PIN; a SHA-256 certificate fingerprint secures the TLS connection.
-- **Touch & gestures:** Swipes navigate pages only on the phone. Interactive tiles (smart home, friends, system actions) respond directly to finger taps.
-- **Native resolution & rotation:** The phone automatically reports orientation (portrait/landscape) and resolution; the PC renders matching frames at full clarity.
-- [Setup and limits](docs/COMPANION.en.md) · [Companion protocol details](docs/COMPANION-PROTOKOLL.md)
-
-## Browse views (2.0.4)
-
-
-In **Settings → Overview**, use **Previous view** and **Next view** to cycle through the running display views directly. The position and visible pages appear below the live preview. Long lists include their subpages; wide displays advance by one tile group, as with touch navigation. Each manual change restarts the configured page duration, then automatic cycling continues. Buttons are disabled when there are no views or all views already fit on screen. No save or restart is needed. Changes to page selection and order take effect after **Save & apply**.
+- **Browse views** in the settings: [description](docs/FEATURES.en.md#browse-views-from-204)
+- **Update notice** (can be turned off): reports a new GitHub version at most once a day, but never installs by itself
+- **Single EXE** for installation, updates and uninstallation
 
 ## Pictures
 
@@ -119,7 +92,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
 5. Configure pages and data sources. Reopen settings from the fox tray icon or by starting the installed app again. Closing the settings window leaves the display running; use **Quit** in the tray to stop it.
 
-The installer can import Version 1.x settings and retains the old folder with a `-1.x-alt` suffix. Updates keep an existing destination configuration. The illustrated guide opens in your default browser from the settings window or **Open guide** in the tray and is embedded in the EXE; no ZIP or `_internal` folder is needed.
+The installer can import Version 1.x settings and retains the old folder with a `-1.x-alt` suffix. Updates keep an existing destination configuration. Back up the EXE, `config.toml` and `companion.json` before every upgrade. The illustrated guide opens in your default browser from the settings window or **Open guide** in the tray and is embedded in the EXE.
 
 For an HDMI/USB-C touchscreen, choose the intended monitor under **Display**. If taps appear on another screen, select **Assign touch display**, press Enter to skip other screens, and touch the intended touchscreen. Then select **Check again**. A USB touch connection is required. See [HDMI/USB-C and touch](cpp/README.md#hdmiusb-c-and-touch).
 
@@ -184,6 +157,7 @@ Tokens and keys are only stored encrypted (`dpapi:…`). All keys with their def
 |---|---|---|
 | 3.5" USB display 480 × 320 (“revision A”) | USB (serial, 115200 baud) | found automatically; COM port can be set by hand |
 | Second screen of any size, e.g. 10.25" 1920 × 720 | HDMI or USB-C (DisplayPort) | borderless full screen on the chosen screen, optional touch |
+| Android phone or tablet (Android 8+) | Wi-Fi/USB tethering, Companion app | several devices possible |
 | GPU stats | Nvidia with driver (`nvidia-smi`) | other GPUs show “–” |
 
 ## Building and development
@@ -196,9 +170,9 @@ cd ScreenBuddy\cpp
 build.bat nopause
 ```
 
-The C++ build installs dependencies from the pinned vcpkg manifest/overlay, builds Release, runs core, plugin, monitor, Companion and isolated installer checks, and writes `cpp\dist\ScreenBuddy.exe` locally. The root `build.bat` belongs to the historical Python 1.x version. See [C++ build notes](cpp/README.md#build) and [contribution guide](CONTRIBUTING.en.md).
+The C++ build installs dependencies from the pinned vcpkg manifest/overlay, builds Release, runs core, plugin, monitor, Companion and isolated installer checks, and writes `cpp\dist\ScreenBuddy.exe` locally. The root `build.bat` belongs to the historical Python 1.x version. See [C++ build notes](cpp/README.md#build), [architecture](docs/ARCHITEKTUR.md) (German) and the [contribution guide](CONTRIBUTING.en.md).
 
-The WebView2 SDK files and licence notices remain under `cpp/third_party/webview2`, but current 2.5 and 2.6 sources no longer link them. The loopback HTTP service and embedded guide remain available. App translations are in `cpp/src/i18n.cpp`, native page text under `cpp/src/ui_page_*.cpp`; the former HTML source remains only for historical tests under `cpp/res/webui.html` and is not embedded in the 2.5 or 2.6 executables. `/` no longer serves HTML settings.
+App translations are in `cpp/src/i18n.cpp`, native page text under `cpp/src/ui_page_*.cpp`. WebView2 files remain only under `cpp/third_party/webview2` and are not linked; `/` no longer serves HTML settings.
 
 ## Project layout
 
@@ -209,6 +183,8 @@ The WebView2 SDK files and licence notices remain under `cpp/third_party/webview
 | `cpp/tests/` | C++ checks |
 | `cpp/overlay-ports/`, `cpp/vcpkg.json` | Dependency versions and D++ build settings |
 | `cpp/TESTPROTOKOLL.md` | Local Windows/display validation record |
+| `android/` | Android Companion app |
+| `docs/` | Technical documentation, see the [overview](docs/README.md) (German) |
 | Root `*.py`, root `build.bat`, `anleitung/` | Historical Python 1.x sources and generation of the current DE/EN guide |
 
 ## Security and privacy
@@ -218,27 +194,32 @@ The WebView2 SDK files and licence notices remain under `cpp/third_party/webview
 - The local service is **only reachable on `127.0.0.1`** and protected against DNS rebinding, CSRF and framing by other sites.
 - All connections use HTTPS with certificate checks; packages are pinned to exact versions.
 
-Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ 2.0 audit. Current validation: [test record](cpp/TESTPROTOKOLL.md). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
+Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: [test record](cpp/TESTPROTOKOLL.md). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
 
 ## Testing and feedback
 
-The app is in testing. Please report bugs and ideas via **Issues → New issue** using the “Bug report” or “Idea or feedback” forms. Where to find the log `usb-display.log` and what must never be sent: [`TESTPHASE.en.md`](TESTPHASE.en.md).
+The app is in testing. Please report bugs and ideas via **Issues → New issue** using the “Bug report” or “Idea or feedback” forms. Where to find the log `usb-design.log`'s location and what must never be sent: [`TESTPHASE.en.md`](TESTPHASE.en.md).
+
+**Validation of 2.7.0:** 1,493 automated checks passed in the release build; real-system observation with two Android devices and the USB display (480 × 320). Multi-device checks via adb are simulations; DPI/screen-reader, Windows sign-in, Wi-Fi and boot acceptance remain open. Complete results and all limits: [release notes 2.7](docs/RELEASE-NOTES-2.7.md). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
 
 ## Documents
+
+All documents by audience (German): [`docs/README.md`](docs/README.md). The most important ones:
 
 | File | Content |
 |---|---|
 | [`README.md`](README.md) | this README in German |
-| [`docs/RELEASE-NOTES-2.6.md`](docs/RELEASE-NOTES-2.6.md) | release notes 2.6.0: plugin store, signing, starter plugins, Companion 1.0, test limits (DE/EN) |
-| [`docs/SCREENBUDDY-2.6.en.md`](docs/SCREENBUDDY-2.6.en.md) | status and limits 2.6 ([Deutsch](docs/SCREENBUDDY-2.6.md)) |
+| [`docs/FEATURES.en.md`](docs/FEATURES.en.md) | features in detail ([Deutsch](docs/FUNKTIONEN.md)) |
+| [`docs/PLUGIN-SYSTEM.en.md`](docs/PLUGIN-SYSTEM.en.md) | plugin guide ([Deutsch](docs/PLUGIN-SYSTEM.md)), [tutorial](docs/PLUGIN-TUTORIAL.en.md), [store terms](docs/PLUGIN-STORE-TERMS.md) |
+| [`docs/COMPANION.en.md`](docs/COMPANION.en.md) | Companion setup ([Deutsch](docs/COMPANION.md)) |
+| [`docs/RELEASE-NOTES-2.7.md`](docs/RELEASE-NOTES-2.7.md) | release notes of the current version (German/English) |
 | [`CHANGELOG.en.md`](CHANGELOG.en.md) | changes per version ([Deutsch](CHANGELOG.md)) |
-| [`CONTRIBUTING.en.md`](CONTRIBUTING.en.md) | contributing: workflow, style, rules ([Deutsch](CONTRIBUTING.md)) |
+| [`CONTRIBUTING.en.md`](CONTRIBUTING.en.md) | contributing ([Deutsch](CONTRIBUTING.md)) |
 | [`SECURITY.en.md`](SECURITY.en.md) | reporting vulnerabilities ([Deutsch](SECURITY.md)) |
 | [`TESTPHASE.en.md`](TESTPHASE.en.md) | feedback during testing ([Deutsch](TESTPHASE.md)) |
-| [`DOKUMENTATION.md`](DOKUMENTATION.md) | full reference: pages, settings, `config.toml`, HWiNFO, troubleshooting (German) |
+| [`DOKUMENTATION.md`](DOKUMENTATION.md) | full reference (German) |
 | [`ANLEITUNG.md`](ANLEITUNG.md) | quick start for users (German) |
-| [`PROTOKOLL.md`](PROTOKOLL.md) | project history and decisions (German) |
-| [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) | security and performance review (German) |
+| [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) | architecture for developers (German) |
 
 ## Support
 
@@ -249,27 +230,3 @@ Like the app? FuchsLabs appreciates a coffee: [☕ paypal.me/SHerbst84](https://
 The code is released under the [MIT License](LICENSE), © 2026 FuchsLabs. The name and fox-head logo are excluded ([TRADEMARKS.md](TRADEMARKS.md)). Third-party components retain their own licences ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
 Battlefield, Discord, Steam and Xbox are trademarks of their respective owners. FuchsLabs is not affiliated with them.
-
-## Validation of 2.6.0
-
-Test limits and automated check counts are in the [2.6.0 release notes](docs/RELEASE-NOTES-2.6.md#test-limits). The store installation in an isolated instance is stated separately there.
-
-## Validation of 2.3.0
-
-Release build: 236 core, 11 monitor and 335 Companion/TLS checks passed. Also passed: 39 isolated app-integration checks, 2 installer config-preservation checks, 22 browser checks (DE/EN), and 20 Android protocol tests. On the Redmi 8, native dimensions, portrait/landscape rotation, automatic page changes, taps, swipes and reconnect were confirmed; the user also confirmed a sharp image and finger operation. **Open:** physical USB output and Redmi together in the same new PC instance, Wi-Fi, Android launch at boot and multiple real devices. See the [test record](cpp/TESTPROTOKOLL.md).
-
-## Validation of 2.2.0 (historical)
-
-Release build, 225 core checks (new: hit areas of the system page, version comparison, parsing of the GitHub response) and 11 monitor basics passed; the hit areas match the rendered system page (preview image). **Still open:** tapping on real touch hardware (Task Manager, “Programs and Features”, speed test), the balloon and the settings entry with a genuinely newer release, and a Windows sign-in test for 2.2.0. See the [test record](cpp/TESTPROTOKOLL.md).
-
-## Validation of 2.0.3
-
-Release build, 86 core checks and 56 monitor/touch checks with injected Windows input passed (the 56 include 11 basic checks). Installed 2.0.3: actual file version, hash, API version, autostart entry and `display_ok=true` verified outside package redirection. Physical touch hardware, the complete Windows assignment wizard and a new Windows sign-in test for 2.0.3 remain untested. See [test record](cpp/TESTPROTOKOLL.md).
-
-The earlier 2.0 validation included comparison with 1.x on COM7 and user confirmation of the physical display and a successful Windows reboot with the tray icon.
-
-The first real reboot test failed due to packaged-host installation redirection. Installation and the actual Windows Run entry were subsequently corrected outside that context; the user subsequently confirmed a successful Windows reboot with the tray icon appearing automatically.
-
-## Validation of 2.7.0
-
-See [release notes](docs/RELEASE-NOTES-2.7.md) for current automated and real-device results and remaining limits. Historical 2.6.0 results above refer to that release.
