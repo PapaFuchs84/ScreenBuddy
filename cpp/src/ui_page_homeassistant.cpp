@@ -35,6 +35,7 @@ public:
         result_ = conn->row<Label>(T(L"Prüfung", L"Check"), Text(), Text(L"–"), Font::Small, Label::Muted);
         check_ = conn->add<ButtonRow>()->add(T(L"Verbindung prüfen & Entitäten laden", L"Check connection & load entities"),
                                              Button::Secondary, [this] { load(); });
+        add_key_help(root, host, "homeassistant");
 
         Card* ent = root.add<Card>(T(L"Entitäten", L"Entities"),
                                    T(L"Höchstens 4. Sensoren zeigen den Wert, Schalter (nur mit Touch) lassen sich per Tipp umlegen.",

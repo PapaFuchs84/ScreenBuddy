@@ -6,6 +6,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- Hilfe für API-Keys und Tokens: Unter den Zugangsfeldern von Discord, Steam, Xbox, TMDB, Spotify und Home Assistant erklärt eine Karte „So bekommst du …“ in kurzen Schritten (DE/EN), wo der Schlüssel entsteht, und öffnet per Knopf die offizielle Seite. Nur feste https-Adressen werden geöffnet; Schlüssel werden nicht gelesen oder protokolliert. Anleitung und Doku ergänzt.
+
 ## [2.9.0] – 2026-10-31
 
 ### Hinzugefügt

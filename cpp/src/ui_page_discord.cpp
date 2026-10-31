@@ -30,6 +30,7 @@ public:
         state_ = conn->row<Label>(T(L"Status", L"Status"), Text(), Text(L"…"), Font::Small, Label::Muted);
         form_.secret(*conn, "discord", "token", T(L"Bot-Token", L"Bot token"),
                      T(L"Leer lassen = gespeichertes Token behalten", L"Leave empty to keep the saved token"));
+        add_key_help(root, host, "discord");
 
         Card* pick = root.add<Card>(T(L"Personen auswählen", L"Pick people"),
                                     T(L"Ohne Auswahl werden alle Mitglieder angezeigt, mit Auswahl nur die angehakten.",
