@@ -56,7 +56,7 @@ static void test_config() {
     fs::remove(tmp);
     ojson cfg = config::load(tmp);
     CHECK_EQ(cfg["ui"]["port"].get<int>(), 8765);
-    CHECK_EQ(cfg["display"]["pages"].size(), (size_t)7);
+    CHECK_EQ(cfg["display"]["pages"].size(), (size_t)8);
     ojson in = {{"display", {{"brightness", "250"}, {"theme", "dunkel"}, {"color_bg", "#aabbcc"}}},
                 {"discord", {{"token", "geheim"}, {"guild_ids", {"123456789012345678", " ", "5"}}}},
                 {"rss", {{"feeds", {"a.de", "a.de", " b.de "}}}}};
@@ -81,8 +81,8 @@ static void test_config() {
     // Der Key kommt nie in die öffentliche Sicht
     ojson keyed = config::merge(cfg, {{"streaming", {{"api_key", "0123456789abcdef0123456789abcdef"}}}});
     CHECK_EQ(keyed["streaming"]["api_key"].get<std::string>(), std::string("0123456789abcdef0123456789abcdef"));
-    ojson pub = config::public_view(keyed);
-    CHECK(pub["streaming"]["api_key"].get<std::string>().empty() && pub["streaming"]["api_key_set"].get<bool>());
+    ojson pub_stream = config::public_view(keyed);
+    CHECK(pub_stream["streaming"]["api_key"].get<std::string>().empty() && pub_stream["streaming"]["api_key_set"].get<bool>());
     bool threw = false;
     try {
         config::merge(cfg, {{"display", {{"theme", "rosa"}}}});
@@ -134,7 +134,7 @@ static void test_config() {
                                                         {"visible_pages", {"system", "plugin:wetter", "plugin:"}}}}});
     CHECK_EQ(with_plugin["display"]["pages"][0], ojson("plugin:wetter"));
     CHECK_EQ(with_plugin["display"]["pages"][1], ojson("system"));
-    CHECK_EQ(with_plugin["display"]["pages"].size(), (size_t)8);
+    CHECK_EQ(with_plugin["display"]["pages"].size(), (size_t)9);
     CHECK_EQ(with_plugin["display"]["visible_pages"], ojson::array({"system", "plugin:wetter"}));
     CHECK(config::is_page_key("plugin:wetter"));
     CHECK(!config::is_page_key("plugin:"));
