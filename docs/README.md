@@ -23,11 +23,11 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 | Dokument | Zweck | Status |
 |---|---|---|
 | [`README.md`](../README.md) · [English](../README.en.md) | Überblick, Schnellstart, Konfiguration | aktuell |
-| [`ANLEITUNG.md`](../ANLEITUNG.md) | Schnellstart; die bebilderte Anleitung steckt in der EXE | Stand 2.3.0, Versions- und Menüangaben veraltet |
+| [`ANLEITUNG.md`](../ANLEITUNG.md) | Schnellstart; die bebilderte Anleitung steckt in der EXE | Version und Menünamen am 31.10.2026 korrigiert (Bilder der bebilderten Anleitung teils 2.5) |
 | [`FUNKTIONEN.md`](FUNKTIONEN.md) · [English](FEATURES.en.md) | Funktionen im Detail: Touch, Update-Hinweis, Home Assistant, Companion, Ansichten | aktuell |
 | [`COMPANION.md`](COMPANION.md) · [English](COMPANION.en.md) | Android-Companion einrichten, mehrere Geräte | aktuell |
 | [`TOUCH-2.0.7.md`](TOUCH-2.0.7.md) · [English](TOUCH-2.0.7.en.md) | Touch-Ziele und Spielstunden | aktuell |
-| [`../DOKUMENTATION.md`](../DOKUMENTATION.md) | Referenz: Seiten, `config.toml`, HWiNFO, Fehlerbehebung | Stand 2.6.0 |
+| [`../DOKUMENTATION.md`](../DOKUMENTATION.md) | Referenz: Seiten, `config.toml`, HWiNFO, Fehlerbehebung | Version und Menünamen am 31.10.2026 korrigiert; Prüfstandskapitel historisch |
 | [`../TESTPHASE.md`](../TESTPHASE.md) · [English](../TESTPHASE.en.md) | Rückmeldungen in der Testphase | aktuell |
 
 ## Für Plugin-Autoren
@@ -77,7 +77,8 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 
 ## Bekannte Lücken dieser Neuordnung
 
-- [`../cpp/README.md`](../cpp/README.md) enthält noch gewachsene, teils englische Abschnitte (2.0.x bis 2.7) und Altstände; eine Bereinigung steht aus.
-- `DOKUMENTATION.md` (Stand 2.6.0) wurde nicht umgeschrieben, sondern nur eingeordnet.
+- [`../cpp/README.md`](../cpp/README.md) enthält noch gewachsene, teils englische Abschnitte (2.0.x bis 2.7) und Altstände; die Versions-, Menü- und WebView2-Angaben wurden am 31.10.2026 korrigiert, historische Abschnitte sind als solche gekennzeichnet.
+- `DOKUMENTATION.md` wurde nicht umgeschrieben; am 31.10.2026 wurden nur Version, Menünamen und WebView2-Angaben korrigiert. Die Prüfstandskapitel bleiben historisch.
+- Offen nach der Prüfung vom 31.10.2026: `TESTPHASE.md`/`TESTPHASE.en.md` nennen nur „Version 2.0“ für den Logpfad. Die Unterstützungstabelle in `SECURITY.md`/`SECURITY.en.md` nennt 2.7.0 als aktuell; dass ältere 2.x „auf 2.7.0 aktualisieren“ sollen, ist eine Festlegung des Maintainers. Nicht gegen den Code belegt sind „Statuszeile aktualisiert sich alle 5 Sekunden“ (`DOKUMENTATION.md`, Kapitel 3) und der frühere Deinstallationsname „FuchsLabs USB-Display“. `cpp/TESTPROTOKOLL.md` hat keinen Eintrag für 2.7.0.
 - Die bebilderte Anleitung (`anleitung/`, `cpp/res/`) wurde nicht angefasst; ein Teil der Bilder stammt noch von 2.5.
 - Das GitHub-Wiki (`Home.md`) steht auf 2.7.0; seine Links auf diese Übersicht funktionieren erst nach dem Merge dieses Branches nach `main`.

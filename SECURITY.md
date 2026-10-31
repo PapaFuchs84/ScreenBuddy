@@ -6,8 +6,8 @@
 
 | Version | Sicherheitskorrekturen |
 |---|---|
-| 2.3.0 | aktueller Release |
-| 2.0.0–2.2.0 | auf 2.3.0 aktualisieren |
+| 2.7.0 | aktueller Release |
+| 2.0.0–2.6.0 | auf 2.7.0 aktualisieren |
 | 1.2 | historisch |
 | 1.1 | nur nach Rücksprache |
 | 1.0 | ❌ |
@@ -40,4 +40,4 @@ Ein Plugin, das Daten an unerwartete Hosts sendet, täuscht, Rechte oder Marken 
 
 Der letzte Prüfbericht steht in [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md).
 
-> Der verlinkte Prüfbericht betrifft den historischen Python-Stand 1.x. Er ist kein vollständiger C++-Audit; siehe [aktuelles Testprotokoll](cpp/TESTPROTOKOLL.md). WebView2 Runtime ist eine separate Voraussetzung.
+> Der verlinkte Prüfbericht betrifft den historischen Python-Stand 1.x. Er ist kein vollständiger C++-Audit; siehe [aktuelles Testprotokoll](cpp/TESTPROTOKOLL.md). Seit 2.5.0 wird keine WebView2-Runtime mehr benötigt (die frühere Version 2.3.0 braucht sie noch).

@@ -6,8 +6,8 @@
 
 | Version | Security fixes |
 |---|---|
-| 2.3.0 | current release |
-| 2.0.0–2.2.0 | update to 2.3.0 |
+| 2.7.0 | current release |
+| 2.0.0–2.6.0 | update to 2.7.0 |
 | 1.2 | historical |
 | 1.1 | on request only |
 | 1.0 | ❌ |
@@ -40,4 +40,4 @@ Report a plugin that sends data to unexpected hosts, deceives users, infringes r
 
 The latest review report is in [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German).
 
-> The linked review covers historical Python 1.x. It is not a full C++ 2.0 audit; see [current test record](cpp/TESTPROTOKOLL.md). WebView2 Runtime is a separate prerequisite.
+> The linked review covers historical Python 1.x. It is not a full C++ 2.0 audit; see [current test record](cpp/TESTPROTOKOLL.md). Since 2.5.0 no WebView2 Runtime is required any more (the earlier 2.3.0 still needs it).
