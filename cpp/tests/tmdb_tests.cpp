@@ -91,7 +91,7 @@ static void test_providers() {
     CHECK(merged.front().name == "Alpha Beta Gamma Delta");   // alphabetisch
     CHECK(!parse_providers("kein json") && !parse_providers("{}") && !parse_providers(R"({"results":{}})"));
     CHECK(abbreviation(8, "") == "NF" && abbreviation(9, "x") == "PV" && abbreviation(119, "") == "PV");
-    CHECK(abbreviation(337, "") == "D+" && abbreviation(350, "") == "ATV+" && abbreviation(30, "") == "WOW" && abbreviation(298, "") == "RTL+");
+    CHECK(abbreviation(337, "") == "D+" && abbreviation(350, "") == "ATV+" && abbreviation(30, "") == "WOW" && abbreviation(298, "") == "RTL+" && abbreviation(2750, "") == "RTL+");
     CHECK(abbreviation(15, "Hulu") == "Hulu");
     CHECK(abbreviation(777, "Alpha Beta Gamma Delta") == "ABG");
     CHECK(abbreviation(531, "Paramount Plus") == "Par+");

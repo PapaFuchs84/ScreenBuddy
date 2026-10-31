@@ -139,16 +139,16 @@ std::vector<Selected> parse_selection(const std::vector<std::string>& lines) {
 
 std::string abbreviation(int id, const std::string& name) {
     static const std::map<int, const char*> known = {{8, "NF"}, {9, "PV"}, {119, "PV"}, {2100, "PV"}, {337, "D+"},
-                                                     {350, "ATV+"}, {30, "WOW"}, {298, "RTL+"}};
+                                                     {350, "ATV+"}, {30, "WOW"}, {298, "RTL+"}, {2750, "RTL+"}};
     if (auto it = known.find(id); it != known.end()) return it->second;
     auto d = derive_abbreviation(name);
     return d.empty() ? "#" + std::to_string(id) : d;
 }
 
 std::vector<std::string> default_provider_lines() {
-    // TMDB-Provider-IDs (Region DE): Netflix 8, Prime Video 9 (alt: 119), Disney+ 337, Apple TV+ 350, WOW 30, RTL+ 298.
+    // TMDB-Provider-IDs (Region DE): Netflix 8, Prime Video 9 (alt: 119), Disney+ 337, Apple TV+ 350, WOW 30, RTL+ 2750 (298 nur Altbestand).
     // Die Liste in den Einstellungen lädt die echten Anbieter aus TMDB; ungültige IDs bleiben ohne Treffer.
-    return {"8|Netflix", "9|Prime Video", "119|Prime Video", "337|Disney+", "350|Apple TV+", "30|WOW", "298|RTL+"};
+    return {"8|Netflix", "9|Prime Video", "119|Prime Video", "337|Disney+", "350|Apple TV+", "30|WOW", "2750|RTL+"};
 }
 
 std::optional<std::vector<Provider>> parse_providers(const std::string& text) {
