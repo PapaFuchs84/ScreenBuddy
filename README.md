@@ -116,7 +116,7 @@ Für einen HDMI-/USB-C-Touchscreen unter **Anzeige** den vorgesehenen Monitor w�
 | Battlefield 6 | nur die EA-IDs deiner Freunde | kostenlos |
 | CPU-Temperatur und Lüfter | [HWiNFO64](https://www.hwinfo.com/), eingerichtet mit `hwinfo-einrichten.bat` | kostenlos |
 
-PlayStation und ein automatischer EA-Freundesabruf sind bewusst nicht eingebaut: Dafür gibt es keine offiziellen Schnittstellen, und inoffizielle Wege können zur Kontosperre führen.
+Ein automatischer EA-Freundesabruf ist bewusst nicht eingebaut (keine offizielle Schnittstelle). PlayStation-Freunde gibt es nur über Sonys inoffizielle Schnittstelle (NPSSO-Code, auf eigenes Risiko; Sony kann sie jederzeit ändern oder das Konto einschränken). Sie ist optional und standardmäßig aus.
 
 ## Konfiguration
 

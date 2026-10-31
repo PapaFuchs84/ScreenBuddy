@@ -1,5 +1,5 @@
 // © 2026 FuchsLabs
-// Datenquelle Freunde (Steam, Xbox, Discord gemeinsam).
+// Datenquelle Freunde (Steam, Xbox, PlayStation, Discord gemeinsam).
 #include "ui_pages.h"
 
 #include <algorithm>
@@ -17,6 +17,7 @@ using logic::Account;
 std::wstring platform_name(const std::string& p) {
     if (p == "steam") return L"Steam";
     if (p == "xbox") return L"Xbox";
+    if (p == "psn") return L"PlayStation";
     if (p == "discord") return L"Discord";
     return widen(p);
 }
@@ -26,7 +27,7 @@ class FriendsPage : public Page {
 public:
     PageInfo info() const override {
         return {"friends", Group::Sources, T(L"Freunde", L"Friends"),
-                T(L"Gemeinsame Freundesliste aus Steam, Xbox und Discord", L"Combined friends list from Steam, Xbox and Discord")};
+                T(L"Gemeinsame Freundesliste aus Steam, Xbox, PlayStation und Discord", L"Combined friends list from Steam, Xbox, PlayStation and Discord")};
     }
     bool shows_status() const override { return true; }
     bool active(const ojson& cfg) const override { return flag(cfg, "friends", "enabled"); }
@@ -58,8 +59,15 @@ public:
         xbox_button_ = xbox->add<ButtonRow>()->add(T(L"Verbindung prüfen", L"Check connection"), Button::Secondary,
                                                   [this] { check("xbox"); });
         add_key_help(root, host, "xbox");
-        root.add<Note>(T(L"PlayStation: Es gibt keine offizielle Schnittstelle. Der inoffizielle Weg kann zur Sperre des Kontos führen und ist deshalb nicht eingebaut.",
-                         L"PlayStation: there is no official interface. The unofficial route can get the account banned and is therefore not included."));
+        Card* psn = root.add<Card>(Text(L"PlayStation"), T(L"Inoffiziell: Sony bietet keine Schnittstelle für Freunde. Du brauchst einen NPSSO-Code (wirkt wie ein Passwort, läuft nach etwa zwei Monaten ab). Nutzung auf eigenes Risiko.",
+                                                           L"Unofficial: Sony offers no interface for friends. You need an NPSSO code (works like a password, expires after about two months). Use at your own risk."));
+        psn_state_ = psn->row<Label>(T(L"Status", L"Status"), Text(), Text(L"…"), Font::Small, Label::Muted);
+        psn_key_ = form_.secret(*psn, "friends", "psn_npsso", T(L"PlayStation-Code (NPSSO)", L"PlayStation code (NPSSO)"),
+                                T(L"Leer lassen = gespeicherten Code behalten", L"Leave empty to keep the saved code"));
+        psn_result_ = psn->row<Label>(T(L"Prüfung", L"Check"), Text(), Text(L"–"), Font::Small, Label::Muted);
+        psn_button_ = psn->add<ButtonRow>()->add(T(L"Verbindung prüfen", L"Check connection"), Button::Secondary,
+                                                 [this] { check("psn"); });
+        add_key_help(root, host, "psn");
 
         Card* merge = root.add<Card>(T(L"Personen zusammenführen", L"Merge people"),
                                      T(L"Wer auf zwei Plattformen verschieden heißt: beide Konten wählen und „Verknüpfen“. "
@@ -85,8 +93,8 @@ public:
         accept_ = sug->add(T(L"Vorschlag übernehmen", L"Accept suggestion"), Button::Secondary, [this] { accept(true); });
         reject_ = sug->add(T(L"Vorschlag verwerfen", L"Dismiss suggestion"), Button::Ghost, [this] { accept(false); });
         links_ = form_.list(*merge, "friends", "links", T(L"Verknüpfungen", L"Links"),
-                            T(L"Eine Person pro Zeile: Name|discord:ID|steam:ID|xbox:Name – hier lassen sich Einträge auch löschen",
-                              L"One person per line: Name|discord:ID|steam:ID|xbox:Name – entries can also be deleted here"));
+                            T(L"Eine Person pro Zeile: Name|discord:ID|steam:ID|xbox:Name|psn:Name – hier lassen sich Einträge auch löschen",
+                              L"One person per line: Name|discord:ID|steam:ID|xbox:Name|psn:Name – entries can also be deleted here"));
         fill_accounts();
         tick(host, host.status());
     }
@@ -95,8 +103,9 @@ public:
     void tick(Host&, const Status& s) override {
         set(steam_state_, s, "steam");
         set(xbox_state_, s, "xbox");
+        set(psn_state_, s, "psn");
         const bool idle = !host_->busy();
-        for (Button* b : {steam_button_, xbox_button_}) if (b) b->enabled = idle;
+        for (Button* b : {steam_button_, xbox_button_, psn_button_}) if (b) b->enabled = idle;
         if (suggestions_list_) {
             const bool any = !suggestions_.empty();
             if (accept_) accept_->enabled = any && idle;
@@ -107,9 +116,9 @@ public:
 private:
     Form form_;
     Host* host_ = nullptr;
-    Label *steam_state_ = nullptr, *xbox_state_ = nullptr, *steam_result_ = nullptr, *xbox_result_ = nullptr, *account_info_ = nullptr;
-    TextField *steam_key_ = nullptr, *steam_id_ = nullptr, *xbox_key_ = nullptr, *links_ = nullptr;
-    Button *steam_button_ = nullptr, *xbox_button_ = nullptr, *link_ = nullptr, *accept_ = nullptr, *reject_ = nullptr;
+    Label *steam_state_ = nullptr, *xbox_state_ = nullptr, *psn_state_ = nullptr, *steam_result_ = nullptr, *xbox_result_ = nullptr, *psn_result_ = nullptr, *account_info_ = nullptr;
+    TextField *steam_key_ = nullptr, *steam_id_ = nullptr, *xbox_key_ = nullptr, *psn_key_ = nullptr, *links_ = nullptr;
+    Button *steam_button_ = nullptr, *xbox_button_ = nullptr, *psn_button_ = nullptr, *link_ = nullptr, *accept_ = nullptr, *reject_ = nullptr;
     Combo *a_ = nullptr, *b_ = nullptr;
     ItemList* suggestions_list_ = nullptr;
     std::vector<Account> accounts_;
@@ -125,16 +134,16 @@ private:
 
     void check(const std::string& platform) {
         // Eingegebene Werte; leere Felder ersetzt der Arbeits-Thread durch die gespeicherten
-        std::string key = trim(narrow((platform == "steam" ? steam_key_ : xbox_key_)->text()));
+        std::string key = trim(narrow((platform == "steam" ? steam_key_ : platform == "psn" ? psn_key_ : xbox_key_)->text()));
         std::string id = trim(narrow(steam_id_->text()));
-        Label* result = platform == "steam" ? steam_result_ : xbox_result_;
+        Label* result = platform == "steam" ? steam_result_ : platform == "psn" ? psn_result_ : xbox_result_;
         result->text = T(L"Prüfe …", L"Checking …");
         result->tone = Label::Muted;
         Host* h = host_;
         h->run([this, h, platform, key, id]() mutable -> std::function<void()> {
             const ojson saved = h->app().cfg()["friends"];
             auto str = [&](const char* k) { return saved.contains(k) && saved[k].is_string() ? trim(saved[k].get<std::string>()) : std::string(); };
-            if (key.empty()) key = str((platform + "_api_key").c_str());
+            if (key.empty()) key = str(platform == "psn" ? "psn_npsso" : (platform + "_api_key").c_str());
             if (id.empty()) id = str("steam_id");
             Text message;
             Label::Tone tone = Label::Danger;
@@ -142,7 +151,7 @@ private:
             else if (platform == "steam" && id.empty()) message = T(L"Bitte den Link zu deinem Steam-Profil eintragen.", L"Please enter the link to your Steam profile.");
             else {
                 try {
-                    auto accounts = platform == "steam" ? friends::fetch_steam(key, id) : friends::fetch_xbox(key);
+                    auto accounts = platform == "steam" ? friends::fetch_steam(key, id) : platform == "psn" ? friends::fetch_psn(key) : friends::fetch_xbox(key);
                     int online = int(std::count_if(accounts.begin(), accounts.end(), [](auto& a) { return a.status != "offline"; }));
                     message = Text(L"Verbunden: " + std::to_wstring(accounts.size()) + L" Freunde, " + std::to_wstring(online) + L" gerade online",
                                    L"Connected: " + std::to_wstring(accounts.size()) + L" friends, " + std::to_wstring(online) + L" online now");
@@ -153,7 +162,7 @@ private:
             }
             key.clear();  // Geheimnis nicht länger halten als nötig
             return [this, platform, message, tone] {
-                Label* r = platform == "steam" ? steam_result_ : xbox_result_;
+                Label* r = platform == "steam" ? steam_result_ : platform == "psn" ? psn_result_ : xbox_result_;
                 if (!r) return;
                 r->text = message;
                 r->tone = tone;

@@ -116,7 +116,7 @@ For an HDMI/USB-C touchscreen, choose the intended monitor under **Display**. If
 | Battlefield 6 | just your friends' EA IDs | free |
 | CPU temperature and fan | [HWiNFO64](https://www.hwinfo.com/), set up with `hwinfo-einrichten.bat` | free |
 
-PlayStation and automatic EA friend lists are deliberately not included: there are no official APIs for them, and the unofficial PlayStation route can get accounts banned.
+An automatic EA friend list is deliberately not included (no official API). PlayStation friends are only available through Sony’s unofficial interface (NPSSO code, at your own risk; Sony may change it at any time or restrict the account). It is optional and off by default.
 
 ## Configuration
 

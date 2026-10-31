@@ -1,6 +1,6 @@
 // © 2026 FuchsLabs
-// Gemeinsame Freundesliste: führt Discord, Steam und Xbox zu einer Liste zusammen.
-// Steam: offizielle Web-API (Freundesliste im Profil muss öffentlich sein). Xbox: Dienst OpenXBL.
+// Gemeinsame Freundesliste: führt Discord, Steam, Xbox und PlayStation zu einer Liste zusammen.
+// Steam: offizielle Web-API (Freundesliste im Profil muss öffentlich sein). Xbox: Dienst OpenXBL. PlayStation: inoffizielle Schnittstelle (NPSSO-Code).
 // Dieselbe Person auf mehreren Plattformen erscheint nur einmal – automatisch bei gleichem Namen oder manuell
 // über „Verknüpfungen“ (Einstellungsseite).
 #pragma once
@@ -30,7 +30,7 @@ struct Account {
     bool mobile = false;
     std::string avatar_url;
     ImagePtr avatar;
-    std::string handle;  // Xbox: Gamertag wie geliefert (name ist bereinigt)
+    std::string handle;  // Xbox: Gamertag, PlayStation: Online-ID wie geliefert (name ist bereinigt)
 };
 
 struct FriendsError : std::runtime_error {  // Meldung, die der Nutzer versteht
@@ -41,6 +41,7 @@ std::vector<Account> parse_steam_players(const nlohmann::json& data);
 std::vector<Account> parse_xbox_people(const nlohmann::json& data);
 std::vector<Account> fetch_steam(const std::string& key, const std::string& steam_id);
 std::vector<Account> fetch_xbox(const std::string& key);
+std::vector<Account> fetch_psn(const std::string& npsso);  // inoffiziell: NPSSO-Code der PlayStation-Anmeldung
 std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const std::vector<std::string>& links, bool auto_merge);
 ojson suggest_links(const ojson& accounts, const std::vector<std::string>& links, bool auto_merge, size_t limit = 12);
 std::string norm(const std::string& name);
@@ -66,7 +67,7 @@ private:
     ojson cfg_;
     discord::DiscordFeed* discord_;
     std::function<void()> on_change_;
-    std::map<std::string, std::vector<Account>> accounts_{{"steam", {}}, {"xbox", {}}};
+    std::map<std::string, std::vector<Account>> accounts_{{"steam", {}}, {"xbox", {}}, {"psn", {}}};
     std::map<std::string, std::string> errors_;
     std::map<std::string, ojson> info_;
     std::map<std::string, ImagePtr> avatars_;

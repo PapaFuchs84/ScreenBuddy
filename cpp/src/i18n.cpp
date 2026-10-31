@@ -102,6 +102,13 @@ static const std::unordered_map<std::string, std::string>& en() {
         {"Xbox: Abruflimit von OpenXBL erreicht, ich versuche es später wieder",
          "Xbox: OpenXBL rate limit reached, trying again later"},
         {"OpenXBL ist nicht erreichbar", "OpenXBL is not reachable"},
+        {"PlayStation ist nicht erreichbar", "PlayStation is not reachable"},
+        {"PlayStation: zu viele Abrufe, ich versuche es später wieder", "PlayStation: too many requests, trying again later"},
+        {"PlayStation: Anmeldung abgelaufen oder ungültig – bitte einen neuen NPSSO-Code holen",
+         "PlayStation: sign-in expired or invalid – please fetch a new NPSSO code"},
+        {"PlayStation: NPSSO-Code abgelaufen oder ungültig – bitte einen neuen holen",
+         "PlayStation: NPSSO code expired or invalid – please fetch a new one"},
+        {"PlayStation: Der NPSSO-Code ist ungültig (er hat 64 Zeichen)", "PlayStation: the NPSSO code is invalid (it has 64 characters)"},
         {"Name fehlt", "Name missing"},
         // Spotify
         {"Spotify ist nicht fertig eingerichtet", "Spotify is not fully set up"},

@@ -53,13 +53,14 @@ ScreenBuddy ruft nur auf Wunsch des Nutzers und mit dessen eigenen Zugangsdaten 
 - Discord (Bot-Token des Nutzers) – Discord Developer Terms / Policy
 - Steam Web API (API-Schlüssel des Nutzers) – Steam Web API Terms of Use
 - OpenXBL / xbl.io (Schlüssel des Nutzers) – Bedingungen von OpenXBL
+- PlayStation Network (inoffizielle Schnittstelle, NPSSO-Code des Nutzers, nicht mit Sony verbunden). Endpunkte nach dem MIT-lizenzierten Projekt tmrp/psn-mcp (Copyright der Autoren); kein Code übernommen
 - gametools.network (Battlefield-6-Statistik, inkl. Rang-Icons von EA/DICE) – Bedingungen des Betreibers
 - TMDB API v3 (api.themoviedb.org, Key des Nutzers) für die Seite „Streaming-Neustarts“ – TMDB API Terms of Use. **This product uses the TMDB API but is not endorsed or certified by TMDB.** Anbieterdaten (Watch Providers): **JustWatch**. Es werden Titel, Datum und die Anbieter-Logos angezeigt (Bilder von `image.tmdb.org`, geliefert von TMDB/JustWatch; einmal geladen und lokal unter `cache/tmdb-logos/` zwischengespeichert, Rückfall: Kürzel). Die Anbieter-Logos sind Marken bzw. geschützte Zeichen der jeweiligen Anbieter und werden nur zur Kennzeichnung des Dienstes gezeigt. Das offizielle TMDB-Logo ist noch nicht eingebunden (Textnachweis)
 - RSS-/Atom-Feeds, die der Nutzer einträgt (z. B. heise.de) – Rechte liegen bei den jeweiligen Verlagen; es werden nur Titel angezeigt
 
 ## Marken
 
-TMDB, JustWatch, Netflix, Prime Video, Disney+, Apple TV+, WOW, RTL+, Battlefield, EA, Discord, Steam, Xbox, Windows, Segoe und Bahnschrift sind Marken bzw. geschützte Namen ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen und wird von ihnen nicht unterstützt. Name und Fuchs-Logo „FuchsLabs“ sind von einer Open-Source-Lizenz des Codes ausgenommen.
+TMDB, JustWatch, Netflix, Prime Video, Disney+, Apple TV+, WOW, RTL+, Battlefield, EA, Discord, Steam, Xbox, PlayStation, Windows, Segoe und Bahnschrift sind Marken bzw. geschützte Namen ihrer jeweiligen Inhaber. FuchsLabs steht in keiner Verbindung zu ihnen und wird von ihnen nicht unterstützt. Name und Fuchs-Logo „FuchsLabs“ sind von einer Open-Source-Lizenz des Codes ausgenommen.
 
 ## TMDB-Logo / TMDB logo
 

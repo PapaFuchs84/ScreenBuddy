@@ -31,7 +31,7 @@ build\screenbuddy-release\ScreenBuddy.exe --run --no-lcd -c test.toml
 - App/display translations: `cpp/src/i18n.cpp`; native settings text: `cpp/src/ui_page_*.cpp`. The former HTML settings page `cpp/res/webui.html` remains in the source tree only for historical tests.
 - Colours/logo: `cpp/src/brand.h`; rendering: `gfx.cpp` and `render.cpp`. Windows fonts only; no brightness commands during a display frame transfer.
 - Dependency changes: `cpp/vcpkg.json`, its pinned baseline and `cpp/overlay-ports/`. Keep third-party licence notices.
-- Use only authorized/public data APIs; do not implement Discord self-bots or unofficial PlayStation logins.
+- Use only authorized/public data APIs; do not implement Discord self-bots. Only exception: the optional PlayStation lookup, clearly labelled unofficial (read-only access to your own friends list).
 - Store credentials through `cpp/src/secure.cpp` (Windows DPAPI). Never commit configuration, credentials, logs or private screenshots; review `git diff --cached`.
 
 ## Versions and reports

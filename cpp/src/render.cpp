@@ -368,9 +368,10 @@ Image Renderer::render_friends(std::vector<Friend> friends, int page, bool conne
 }
 
 float Renderer::badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) {
-    // Kleine Plattform-Marken (D/S/X) rechts oben in der Zeile; Rückgabe: belegte Breite
+    // Kleine Plattform-Marken (D/S/X/P) rechts oben in der Zeile; Rückgabe: belegte Breite
     static const std::map<std::string, std::pair<std::string, Color>> BADGE = {
-        {"discord", {"D", {88, 101, 242}}}, {"steam", {"S", {35, 98, 148}}}, {"xbox", {"X", {16, 124, 16}}}};
+        {"discord", {"D", {88, 101, 242}}}, {"steam", {"S", {35, 98, 148}}}, {"xbox", {"X", {16, 124, 16}}},
+        {"psn", {"P", {0, 67, 156}}}};
     float x = right;
     for (auto it = platforms.rbegin(); it != platforms.rend(); ++it) {
         auto b = BADGE.count(*it) ? BADGE.at(*it) : std::make_pair(std::string("?"), g_theme.muted);
