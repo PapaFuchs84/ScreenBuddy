@@ -54,7 +54,7 @@ Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C
 | **Spotify** (neu in 2.8.0) | aktueller Titel mit Cover und Fortschritt, Amplifier-Balken im Querformat; mit Touch Zurück/Pause/Weiter (Premium) | Spotify Web API, [Anleitung](docs/SPOTIFY.md) | 4 s |
 | **Plugins** | eigene Seiten aus geprüften, deklarativen Plugins | Plugin-Store oder lokales Manifest | je Plugin |
 
-*Streaming-Neustarts nutzen die TMDB-API: This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.*
+<img src="docs/logo/tmdb.svg" height="14" alt="TMDB-Logo"> *Streaming-Neustarts nutzen die TMDB-API: This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.*
 
 Dazu kommen:
 
