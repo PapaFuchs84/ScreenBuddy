@@ -1,6 +1,6 @@
 # © 2026 FuchsLabs – ScreenBuddy (C++)
 cmake_minimum_required(VERSION 3.24)
-project(ScreenBuddy VERSION 2.9.3 LANGUAGES CXX RC)
+project(ScreenBuddy VERSION 2.9.4 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

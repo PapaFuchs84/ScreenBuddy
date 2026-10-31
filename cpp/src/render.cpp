@@ -856,6 +856,16 @@ StreamRenderer::StreamRenderer(int w_, int h_, std::string t) : Renderer(w_, h_,
     f_kind = font(13, true);
 }
 
+int StreamRenderer::row_at(int w_px, int h_px, int y_px) {
+    float sc = scale_for(w_px, h_px);
+    float lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
+    float top = HEADER_H + 2, bot = lh - FOOTER_H, y = y_px / sc;
+    float rh = (float)floordiv(bot - top, MAX_ROWS);
+    if (y < top || y >= bot || rh <= 0) return -1;
+    int row = (int)((y - top) / rh);
+    return row < MAX_ROWS ? row : -1;
+}
+
 Image StreamRenderer::render(StreamState state, const std::vector<StreamItem>& items, std::optional<std::time_t> updated,
                              std::time_t now, const StreamLogos* logos) {
     const Theme& t = g_theme;
@@ -1049,6 +1059,8 @@ int SpotifyRenderer::button_at(int w_px, int h_px, int x_px, int y_px) {
     float lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
     float x = x_px / sc, y = y_px / sc;
     Layout l = layout(lw, lh);
+    if (x >= l.cover_x && x < l.cover_x + l.cover_size &&
+        y >= l.cover_y && y < l.cover_y + l.cover_size) return COVER;
     for (int i = 0; i < 3; ++i) {
         // großzügige Trefferfläche (mindestens 44 Punkte), damit Finger sie sicher treffen
         float r = std::max(l.btn_r[i] + 6, 24.f);

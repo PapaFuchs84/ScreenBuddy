@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Planned for 2.9.4: snapshot-bound TMDB touch rows, Spotify desktop cover action, and clearer bilingual TMDB application help.
+
 ## 2.9.3 – 31 October 2026
 
 - PlayStation friends in the friends list (unofficial Sony interface via NPSSO, DPAPI-encrypted, off by default); authorization codes with a dot are accepted, diagnostics in the log.

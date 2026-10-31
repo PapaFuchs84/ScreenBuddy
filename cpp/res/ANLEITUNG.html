@@ -460,8 +460,11 @@ ${help([['Da steht „Kein Feed gefunden“.', 'Manche Seiten machen keine Artik
 {need: 'streaming', t: 'Neu bei Streaming', html: () => `
 <p class="kicker">Neu bei Streaming</p><h1>Neue Filme und Serien</h1>
 <p class="lead">Das Display zeigt, was in den letzten 30 Tagen neu bei deinen Streaming-Anbietern erschienen ist: Titel, Datum, Film oder Serie und das Logo des Anbieters (bis es geladen ist, sein Kürzel).</p>
+<p>Bei aktivem Touch öffnet ein Tipp auf einen Film oder eine Serie die passende TMDB-Infoseite am PC im Standardbrowser (neuer Tab gemäß Browsereinstellung).</p>
 <ol class="do">
 <li>Hol dir auf <b>themoviedb.org</b> ein kostenloses Konto und unter <b>Einstellungen → API</b> deinen Key. In ScreenBuddy öffnet die Karte <b>„So bekommst du den TMDB-Key“</b> mit dem Knopf <b>„TMDB-API-Seite öffnen“</b> direkt die richtige Seite.</li>
+<li>Bei der Beantragung für private Nutzung <b>Developer</b> wählen und die Bedingungen lesen. <b>Type of Use:</b> Desktop Application (falls angeboten). <b>Application Name:</b> ScreenBuddy. <b>Application URL:</b> https://github.com/PapaFuchs84/ScreenBuddy (Projektseite). <b>Application Summary:</b> „Display new movie and TV releases from my streaming providers on my personal ScreenBuddy display.“</li>
+<li>In persönliche Felder deinen eigenen Namen, E-Mail und die verlangten Kontakt-/Adressangaben eintragen. Optionale Felder dürfen leer bleiben. Die Feldnamen können abweichen. Nach dem Absenden den <b>API Key (v3)</b> oder vollständigen <b>API Read Access Token</b> kopieren – nicht dein TMDB-Passwort.</li>
 <li>Klicke links auf <b>„Streaming-Neustarts“</b>, schalte die Seite an und füge den Key ein. Er wird verschlüsselt gespeichert.</li>
 <li>Klicke auf ${g('Key prüfen & Anbieter laden')} und setze bei der Liste Haken bei deinen Anbietern. Vorgewählt sind Netflix, Prime Video, Disney+, Apple TV+, WOW und RTL+.</li>
 <li>Die Region folgt der App-Sprache (Deutsch: DE, Englisch: US). Du kannst sie im Feld <b>Region</b> ändern.</li>
@@ -479,6 +482,7 @@ ${help([['Auf dem Display steht „Kein Key“.', 'Trage den Key in den Einstell
 <p class="kicker">Spotify</p><h1>Dein Lied auf dem Display</h1>
 <p class="lead">Das Display zeigt das Lied, das gerade bei Spotify läuft, mit Bild und Fortschritt. Mit Touch kannst du dort auch Zurück, Pause und Weiter drücken (dafür braucht Spotify ein Premium-Konto).</p>
 <p>Im Querformat zeigt die <b>Amplifier-Anzeige</b> 16 Balken der Windows-Systemausgabe. Unter Einstellungen → Spotify lässt sie sich ausschalten. Die Analyse endet spätestens drei Sekunden nach dem letzten Anzeigen der laufenden Wiedergabe; bei Stille fallen die Balken auf null. Die Audioverbindung bleibt lokal geöffnet, es wird nichts aufgezeichnet oder gesendet.</p>
+<p>Ein Tipp auf das geladene Cover öffnet die Spotify-App am PC. Dafür ist kein Premium nötig; Spotify muss installiert sein. Ohne Cover ist diese Aktion inaktiv.</p>
 <ol class="do">
 <li>Lege auf <b>developer.spotify.com/dashboard</b> eine App an und kreuze „Web API“ an. Die Karte <b>„So bekommst du die Spotify-Client-ID“</b> in ScreenBuddy führt dich mit dem Knopf <b>„Spotify-Dashboard öffnen“</b> dorthin.</li>
 <li>Trage als <b>Redirect URI</b> genau die Adresse ein, die in ScreenBuddy unter <b>Spotify</b> steht.</li>

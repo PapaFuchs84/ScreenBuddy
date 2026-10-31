@@ -1,5 +1,7 @@
 <div align="center">
 
+**In preparation for 2.9.4:** touch streaming titles to open details in the PC browser, tap Spotify cover art to launch the desktop app, and clearer TMDB key help. New tabs follow the default browser settings.
+
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
 # ScreenBuddy

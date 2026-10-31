@@ -71,11 +71,22 @@ Rows post_rows(const std::vector<Post>& posts) {
     return out;
 }
 
+Rows stream_rows(const std::vector<StreamItem>& items) {
+    Rows out;
+    for (size_t i = 0; i < items.size() && i < render::StreamRenderer::MAX_ROWS; ++i) {
+        const auto& item = items[i];
+        out.push_back(item.id > 0 ? Targets{{"https://www.themoviedb.org/" +
+            std::string(item.series ? "tv/" : "movie/") + std::to_string(item.id), ""}} : Targets{});
+    }
+    return out;
+}
+
 const Targets* at(const std::vector<Tile>& tiles, int x, int y) {
     for (const auto& t : tiles) {
         const auto& b = t.box;
         if (x < b.x || x >= b.x + b.w || y < b.y || y >= b.y + b.h) continue;
-        int row = t.rss ? render::RssRenderer::row_at(b.w, b.h, y - b.y) : render::Renderer::row_at(b.w, b.h, y - b.y);
+        int row = t.streaming ? render::StreamRenderer::row_at(b.w, b.h, y - b.y) :
+                  t.rss ? render::RssRenderer::row_at(b.w, b.h, y - b.y) : render::Renderer::row_at(b.w, b.h, y - b.y);
         return row >= 0 && row < (int)t.rows.size() && !t.rows[row].empty() ? &t.rows[row] : nullptr;
     }
     return nullptr;

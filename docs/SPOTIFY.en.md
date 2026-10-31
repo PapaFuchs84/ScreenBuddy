@@ -4,6 +4,8 @@
 
 Shows the current track with cover art, artist, album and progress on the display. With touch (monitor, Companion) the buttons ⏮ ⏯ ⏭ control playback.
 
+From 2.9.4, tapping loaded cover art opens the Spotify app on the PC (including Companion touch). Premium is not required. Spotify must be installed; no cover or missing app means nothing opens.
+
 ## Set up (one time, free)
 
 1. Create an app at [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) (tick "Web API").

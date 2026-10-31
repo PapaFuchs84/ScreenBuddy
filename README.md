@@ -1,5 +1,7 @@
 <div align="center">
 
+**In Vorbereitung für 2.9.4:** Streaming-Titel per Touch am PC im Browser öffnen, Spotify-Cover zum Start der PC-App antippen und verständlichere TMDB-Key-Hilfe. Neue Browser-Tabs richten sich nach den Einstellungen des Standardbrowsers.
+
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
 # ScreenBuddy

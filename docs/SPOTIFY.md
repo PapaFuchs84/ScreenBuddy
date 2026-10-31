@@ -4,6 +4,8 @@
 
 Zeigt den aktuell gespielten Titel mit Cover, Künstler, Album und Fortschritt auf dem Display. Mit Touch (Monitor, Companion) steuern die Tasten ⏮ ⏯ ⏭ die Wiedergabe.
 
+Ab 2.9.4 öffnet ein Tipp auf das geladene Cover die Spotify-App am PC (auch bei Touch über Companion). Kein Premium nötig. Spotify muss installiert sein; ohne Cover oder bei fehlender App wird nichts geöffnet.
+
 ## Einrichten (einmalig, kostenlos)
 
 1. Auf [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) eine App anlegen („Web API“ ankreuzen).
