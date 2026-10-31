@@ -17,6 +17,7 @@
 #include "output.h"
 #include "render.h"
 #include "sysinfo.h"
+#include "theme.h"
 #include "util.h"
 #include "winsetup.h"
 
@@ -216,6 +217,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         std::wstring msg = widen("config.toml ist fehlerhaft:\n" + std::string(e.what()));
         MessageBoxW(nullptr, msg.c_str(), L"ScreenBuddy", MB_ICONERROR);
         return 1;
+    }
+    if (!test_instance() && theme::migrate_config(cfg, theme::Store())) {   // altes "Eigene Farben" → Theme
+        try { config::save(cfg_path, cfg); } catch (const std::exception& e) { LOGW("app", "Theme-Migration: %s", e.what()); }
     }
     if (first_run) cfg["ui"]["language"] = (GetUserDefaultUILanguage() & 0x3FF) == 0x07 ? "de" : "en";
     i18n::set_lang(cfg["ui"].value("language", "de"));

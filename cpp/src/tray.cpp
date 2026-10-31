@@ -143,6 +143,14 @@ bool Tray::handle(void* hwnd_v, unsigned msg, unsigned long long wp, long long l
         result = 0;
         return true;
     }
+    if (msg == WM_SETTINGCHANGE || msg == WM_THEMECHANGED || msg == WM_SYSCOLORCHANGE) {
+        const wchar_t* area = msg == WM_SETTINGCHANGE ? reinterpret_cast<const wchar_t*>(lp) : nullptr;
+        const bool relevant = msg != WM_SETTINGCHANGE || wp == SPI_SETHIGHCONTRAST ||
+                              (area && (wcsncmp(area, L"ImmersiveColorSet", 18) == 0 ||
+                                    wcsncmp(area, L"WindowsThemeElement", 20) == 0));
+        if (relevant && on_system_theme) on_system_theme();
+        return false;   // Standardbehandlung bleibt
+    }
     if (msg == WM_TIMER && wp == ID_RETRY_TIMER) {
         add_icon(hwnd, (HICON)icon_, tip_, added_, false);
         if (added_ || ++retry_count_ >= 30) {

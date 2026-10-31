@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "render.h"
+#include "theme.h"
 
 #include <windows.h>
 
@@ -93,6 +94,7 @@ double contrast(Color a, Color b) {
 }
 
 void set_theme(const std::string& name, const std::map<std::string, std::string>& custom) {
+    struct BarSync { Theme& t; ~BarSync() { t.bar = t.orange; } } bar_sync{g_theme};
     Theme& t = g_theme;
     t.orange = brand::ORANGE;
     t.head_text = brand::NAVY;
@@ -120,16 +122,36 @@ void set_theme(const std::string& name, const std::map<std::string, std::string>
         t.head_text = contrast(brand::NAVY, t.orange) >= contrast(brand::WHITE, t.orange) ? brand::NAVY : brand::WHITE;
 }
 
+void set_resolved(const theme::Resolved& r) {
+    Theme& t = g_theme;
+    const theme::Palette& p = r.colors;
+    const bool dark = r.base == "dunkel";
+    t.bg = p.bg; t.card = p.card; t.line = p.line; t.orange = p.header; t.accent = p.accent; t.text = p.text; t.muted = p.muted;
+    t.head_text = theme::readable_on(p.header);
+    t.bar = r.bar;
+    t.status = dark ? std::map<std::string, Color>{{"online", p.success}, {"idle", {240, 178, 50}}, {"dnd", p.danger}, {"offline", {128, 132, 142}}}
+                    : std::map<std::string, Color>{{"online", p.success}, {"idle", {200, 140, 0}}, {"dnd", p.danger}, {"offline", {140, 140, 140}}};
+    t.warn = dark ? Color{240, 178, 50} : Color{190, 120, 0};
+    t.hot = p.danger; t.down = p.success;
+}
+
 void apply_theme(const ojson& dp) {
     auto str = [&](const char* k, const char* def) {
         return dp.contains(k) && dp[k].is_string() ? dp[k].get<std::string>() : std::string(def);
     };
-    if (str("theme", "hell") == "eigen") {
+    if (dp.contains("theme_inline") && dp["theme_inline"].is_object()) {   // ungespeicherte Vorschau des Theme-Editors
+        std::string err;
+        if (auto t = theme::parse(dp["theme_inline"], err)) { set_resolved(theme::resolve_custom(*t)); return; }
+    }
+    const std::string key = str("theme", "hell");
+    if (key == "windows" || key.rfind("custom:", 0) == 0) {
+        set_resolved(theme::resolve(key, theme::Store()));
+    } else if (key == "eigen") {
         std::map<std::string, std::string> custom;
         for (const char* k : {"bg", "card", "header", "accent", "text", "muted"}) custom[k] = str((std::string("color_") + k).c_str(), "");
         set_theme(str("color_base", "hell"), custom);
     } else {
-        set_theme(str("theme", "hell"));
+        set_theme(key);
     }
 }
 
@@ -567,7 +589,7 @@ void SysRenderer::bar(Canvas& d, float x, float y, float bw, std::optional<doubl
     float r = (float)floordiv(bh, 2);
     d.rounded_rectangle(x, y, x + bw, y + bh, r, t.bg);
     if (pct && *pct) {
-        Color c = *pct >= 90 ? t.hot : t.orange;
+        Color c = *pct >= 90 ? t.hot : t.bar;
         d.rounded_rectangle(x, y, x + std::max(bh, (float)(int)(bw * std::min(*pct, 100.0) / 100)), y + bh, r, c);
     }
 }
@@ -608,7 +630,7 @@ void SysRenderer::net_card(Canvas& d, float x, float y, float cw, float ch, cons
     card(d, x, y, cw, ch, "Netzwerk", sn.net_name);
     arrow(d, x + 16, y + 36, true, t.down);
     d.text(x + cw - 10, y + 36, fmt_rate(sn.net_down, net_unit), f_val, t.text, "rm");
-    arrow(d, x + 16, y + 56, false, t.orange);
+    arrow(d, x + 16, y + 56, false, t.bar);
     d.text(x + cw - 10, y + 56, fmt_rate(sn.net_up, net_unit), f_val, t.text, "rm");
     // Verlauf der letzten 60 s (Download grün, Upload orange)
     float gx0 = x + 10, gx1 = x + cw - 10, gy0 = y + 70, gy1 = y + ch - 8;
@@ -616,7 +638,7 @@ void SysRenderer::net_card(Canvas& d, float x, float y, float cw, float ch, cons
     double peak = 1.0;
     for (double v : sn.down_hist) peak = std::max(peak, v);
     for (double v : sn.up_hist) peak = std::max(peak, v);
-    for (auto [hist, c] : {std::make_pair(&sn.down_hist, t.down), std::make_pair(&sn.up_hist, t.orange)}) {
+    for (auto [hist, c] : {std::make_pair(&sn.down_hist, t.down), std::make_pair(&sn.up_hist, t.bar)}) {
         if (hist->size() < 2) continue;
         size_t n = hist->size();
         std::vector<PointF> pts;
@@ -822,7 +844,7 @@ void HaRenderer::cell(Canvas& d, const Cell& c, const HaEntity& e, bool compact)
     if (is_switch) {
         // Schiebeschalter: Orange = an
         float tw = compact ? 40.f : 52.f, th = compact ? 22.f : 28.f, x = static_cast<float>(c.x0 + 12), y = cy - th / 2.f;
-        d.rounded_rectangle(x, y, x + tw, y + th, th / 2, e.on ? t.orange : t.line);
+        d.rounded_rectangle(x, y, x + tw, y + th, th / 2, e.on ? t.bar : t.line);
         float r = th / 2 - 3, kx = e.on ? x + tw - th / 2 : x + th / 2;
         d.ellipse(kx - r, cy - r, kx + r, cy + r, e.on ? t.head_text : t.muted);
         d.text(x + tw + 12, cy, (e.on ? ha_format_value("on") : ha_format_value("off")), compact ? f_value_small : f_value, e.on ? t.text : t.muted, "lm");
@@ -954,7 +976,7 @@ Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const s
                     float v = std::clamp((*levels)[(size_t)i], 0.f, 1.f);
                     float bh = std::max(2.f, v * ah);
                     float x0 = ax + i * (bw + gap);
-                    d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), v > 0.85f ? t.accent : t.orange);
+                    d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), v > 0.85f ? t.accent : t.bar);
                 }
             }
         }
@@ -962,14 +984,14 @@ Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const s
         long long pos = spotify::live_progress(snap, now ? now : mono());
         float frac = snap.duration_ms > 0 ? std::min(1.f, (float)pos / snap.duration_ms) : 0.f;
         d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + l.text_w, l.bar_y + 6, 3, t.line);
-        if (frac > 0) d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + std::max(6.f, l.text_w * frac), l.bar_y + 6, 3, t.orange);
+        if (frac > 0) d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + std::max(6.f, l.text_w * frac), l.bar_y + 6, 3, t.bar);
         d.text(l.text_x, l.times_y, spotify::format_time(pos), f_time, t.muted, "lm");
         d.text(l.text_x + l.text_w, l.times_y, spotify::format_time(snap.duration_ms), f_time, t.muted, "rm");
         if (snap.controls) {   // Tasten nur, wenn Touch an ist – sonst wäre ein Tipp ohne Wirkung
             for (int i = 0; i < 3; ++i) {
                 float cx = l.btn_x[i], cy = l.btn_y, r = l.btn_r[i];
                 bool main = i == PLAY_PAUSE;
-                d.ellipse(cx - r, cy - r, cx + r, cy + r, main ? t.orange : t.card);
+                d.ellipse(cx - r, cy - r, cx + r, cy + r, main ? t.bar : t.card);
                 Color ink = main ? t.head_text : t.text;
                 float k = r * 0.42f;
                 if (i == PLAY_PAUSE && snap.playing) {

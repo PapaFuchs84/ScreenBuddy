@@ -14,6 +14,7 @@
 #include <toml++/toml.hpp>
 
 #include "secure.h"
+#include "theme.h"
 #include "tmdb_logic.h"
 #include "util.h"
 
@@ -81,11 +82,10 @@ static const std::map<Key, std::pair<long long, long long>> LIMITS = {
 static const std::map<Key, std::vector<std::string>> CHOICES = {
     {{"display", "orientation"}, {"landscape", "reverse_landscape", "portrait", "reverse_portrait"}},
     {{"system", "net_unit"}, {"bit", "byte"}},
-    {{"display", "theme"}, {"hell", "dunkel", "eigen"}},
     {{"display", "color_base"}, {"hell", "dunkel"}},
     {{"display", "output"}, {"serial", "monitor", "network"}},
     {{"ui", "language"}, {"de", "en"}},
-    {{"ui", "settings_theme"}, {"auto", "hell", "dunkel"}},
+    {{"ui", "settings_theme"}, {"auto", "hell", "dunkel", "windows"}},
 };
 static const std::set<Key> ID_LISTS = {{"discord", "guild_ids"}, {"discord", "friend_ids"}, {"discord", "ignore_ids"}};
 static const std::vector<Key> SECRETS = {{"discord", "token"}, {"friends", "steam_api_key"}, {"friends", "xbox_api_key"},
@@ -275,6 +275,8 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
     }
     if (k == Key{"streaming", "api_key"} && !v.empty() && tmdb::key_kind(v) == tmdb::KeyKind::None)
         throw std::invalid_argument("Ungültiger TMDB-Key");
+    if (k == Key{"display", "theme"} && !(v == "eigen" || theme::valid_theme_key(v)))
+        throw std::invalid_argument("erlaubt: hell, dunkel, windows, custom:<id>");
     if (auto it = CHOICES.find(k); it != CHOICES.end() && !std::count(it->second.begin(), it->second.end(), v))
         throw std::invalid_argument("erlaubt: " + join(it->second, ", "));
     if (sec == "display" && is_color_key(key) && !v.empty()) {
