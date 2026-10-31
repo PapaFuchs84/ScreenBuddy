@@ -858,6 +858,14 @@ static void test_themes() {
     CHECK(th::valid_theme_key("hell") && th::valid_theme_key("windows") && th::valid_theme_key("custom:abc"));
     CHECK(!th::valid_theme_key("custom:../x") && !th::valid_theme_key("Windows") && !th::valid_theme_key("custom:") && !th::valid_theme_key("eigen"));
 
+    // Mitgelieferte Beispiel-Themes (Stil-Anlehnung): gültig und gut lesbar
+    for (const char* f : {"cupertino-stil", "material-stil", "fluent-stil"}) {
+        std::ifstream in(fs::path(FL_THEME_EXAMPLE_DIR) / (std::string(f) + ".json"), std::ios::binary);
+        std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        auto ex = th::parse(ojson::parse(text, nullptr, false), err);
+        CHECK(ex.has_value());
+        CHECK(ex && th::contrast_warnings(ex->colors).empty());
+    }
     // Ablage (eigener Ordner, nie die echte Installation)
     fs::path dir = fs::temp_directory_path() / "fl-test-themes";
     std::error_code ec;

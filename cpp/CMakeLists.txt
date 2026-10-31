@@ -55,6 +55,7 @@ target_link_options(ScreenBuddy PRIVATE /MANIFEST:NO /OPT:REF /OPT:ICF /DYNAMICB
 # Tests (Konsole): Parser, Konfiguration, Zeichnen
 add_executable(fl-tests tests/tests.cpp res/app.rc)
 target_link_libraries(fl-tests PRIVATE flcore)
+target_compile_definitions(fl-tests PRIVATE FL_THEME_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/themes")
 target_link_options(fl-tests PRIVATE /MANIFEST:NO)
 
 add_executable(fl-monitor-tests tests/monitor_tests.cpp)
