@@ -927,6 +927,20 @@ static void test_themes() {
     CHECK(mig && mig->dark && mig->colors.bg == Color(16, 16, 16) && mig->colors.header == Color(0, 170, 0) &&
           mig->colors.card == brand::NAVY);
     CHECK(!th::migrate_config(cfg, st));
+    // Vorhandenes Theme gleicher ID wird nie überschrieben; nicht beschreibbare Ablage lässt die Einstellung unverändert
+    ojson cfg2 = {{"display", {{"theme", "eigen"}, {"color_base", "hell"}, {"color_bg", "#222222"}}}};
+    CHECK(th::migrate_config(cfg2, st));
+    CHECK_EQ(cfg2["display"]["theme"].get<std::string>(), std::string("custom:eigene-farben-2"));
+    CHECK(st.load("eigene-farben") && st.load("eigene-farben")->colors.bg == Color(16, 16, 16));
+    ojson cfg3 = {{"display", {{"theme", "eigen"}, {"color_bg", "#222222"}}}};
+    {   // Ablage ist eine Datei statt eines Ordners
+        fs::path blocked = fs::temp_directory_path() / "fl-test-themes-blocked";
+        std::ofstream(blocked) << "x";
+        CHECK(!th::migrate_config(cfg3, th::Store(blocked)));
+        CHECK_EQ(cfg3["display"]["theme"].get<std::string>(), std::string("eigen"));
+        CHECK_EQ(cfg3["display"]["color_bg"].get<std::string>(), std::string("#222222"));
+        fs::remove(blocked, ec);
+    }
     // Einstellungen: nur gültige Themes
     ojson inc = {{"display", {{"theme", "windows"}}}};
     CHECK_EQ(config::merge(config::defaults(), inc)["display"]["theme"].get<std::string>(), std::string("windows"));
