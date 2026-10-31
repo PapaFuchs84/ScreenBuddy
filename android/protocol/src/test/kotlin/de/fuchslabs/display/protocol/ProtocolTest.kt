@@ -141,6 +141,21 @@ class ProtocolTest {
         assertTrue(g.acceptText(ServerMessage.Ready(1520, 720))) // Update nach resize bleibt erlaubt
         assertTrue(g.acceptFrame())
     }
+    @Test fun dpadMapsToSwipeProtocol() {
+        // DPAD_RIGHT (vorwaerts) = Fingerwisch "left"; DPAD_LEFT (zurueck) = Fingerwisch "right".
+        assertEquals(SwipeDir.LEFT, DpadNavigation.toSwipe(DpadNavigation.KEYCODE_DPAD_RIGHT))
+        assertEquals(SwipeDir.RIGHT, DpadNavigation.toSwipe(DpadNavigation.KEYCODE_DPAD_LEFT))
+        assertNull(DpadNavigation.toSwipe(DpadNavigation.KEYCODE_DPAD_CENTER))
+        assertNull(DpadNavigation.toSwipe(DpadNavigation.KEYCODE_ENTER))
+        assertNull(DpadNavigation.toSwipe(4)) // KEYCODE_BACK bleibt unberuehrt
+    }
+    @Test fun dpadCenterAndEnterConsumedWithoutAction() {
+        assertTrue(DpadNavigation.isConsumedWithoutAction(DpadNavigation.KEYCODE_DPAD_CENTER))
+        assertTrue(DpadNavigation.isConsumedWithoutAction(DpadNavigation.KEYCODE_ENTER))
+        assertFalse(DpadNavigation.isConsumedWithoutAction(DpadNavigation.KEYCODE_DPAD_LEFT))
+        assertFalse(DpadNavigation.isConsumedWithoutAction(DpadNavigation.KEYCODE_DPAD_RIGHT))
+        assertFalse(DpadNavigation.isConsumedWithoutAction(4)) // KEYCODE_BACK
+    }
     @Test fun swipeClassification() {
         val d = 100f; val v = 500f
         assertEquals(SwipeDir.LEFT, SwipeClassifier.classify(-200f, 10f, -1500f, d, v))

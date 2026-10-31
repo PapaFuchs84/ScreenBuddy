@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
+import android.view.WindowManager
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -29,6 +30,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var host: EditText
     private lateinit var port: EditText
     private lateinit var pin: EditText
+    /** Geraete ohne jede Kamera (z. B. viele Android-TV-Boxen) sollen den QR-Scan weder anbieten noch danach fragen. */
+    private val hasCamera: Boolean by lazy { packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
 
     private val scan = registerForActivityResult(ScanContract()) { r ->
         val text = r.contents ?: return@registerForActivityResult
@@ -45,6 +48,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Auch waehrend der Einrichtung darf der TV nicht in den Bildschirmschoner wechseln.
+        // Das Window-Flag wirkt nur, solange diese Activity sichtbar ist.
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         store = Store(this)
         val orange = getColor(R.color.fl_orange); val navy = getColor(R.color.fl_navy); val creme = getColor(R.color.fl_creme)
         val dp = resources.displayMetrics.density
@@ -61,7 +67,10 @@ class MainActivity : AppCompatActivity() {
 
         lastBtn = button(R.string.btn_scan) { store.paired()?.let { startActivity(Intent(this, DisplayActivity::class.java)) } }
         col.addView(lastBtn)
-        col.addView(button(R.string.btn_scan) { requestScan() })
+        // Ohne Kamera (z. B. Android TV) QR-Einstieg ausblenden statt einer Berechtigung, die ohnehin scheitert;
+        // manuelle Kopplung bleibt der einzige, hervorgehobene Weg.
+        if (hasCamera) col.addView(button(R.string.btn_scan) { requestScan() })
+        else col.addView(TextView(this).apply { setText(R.string.info_no_camera); setTextColor(getColor(R.color.fl_nebel)); textSize = 13f; pad(this, 4) })
 
         col.addView(label(R.string.section_found))
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -122,6 +131,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestScan() {
+        if (!hasCamera) return // Abwehr falls doch aufgerufen; der Button ist bereits ausgeblendet.
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) launchScan()
         else camPerm.launch(Manifest.permission.CAMERA)
     }

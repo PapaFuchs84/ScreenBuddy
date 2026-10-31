@@ -11,9 +11,11 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 - Streaming-Neustarts: Die Seite zeigte fast nur Netflix, weil alle gewählten Anbieter in einer Abfrage nach Datum sortiert wurden. Jetzt fragt die App je Anbieter getrennt ab (bis zu 8 Gruppen) und wählt reihum je Anbieter den neuesten Titel; so erscheinen alle gewählten Anbieter, jeweils mit Logo.
 - Spotify-Amplifier: Aktivierung erst beim Zeichnen der sichtbaren Wiedergabeseite; nach dem Seitenwechsel endet die Analyse nach höchstens drei Sekunden. Restbalken klingen vollständig auf null ab.
 
+- **Companion / Android TV:** Auch die sichtbare Einrichtung hält den Bildschirm eingeschaltet und verhindert den Bildschirmschoner. Die Vollbildanzeige behält ihren bestehenden Schutz; nach dem Verlassen der App gelten die normalen TV-Einstellungen.
 
 ### Hinzugefügt
 
+- **Companion / Android TV:** eigener Eintrag im TV-Launcher (Leanback, mit Banner); Fernbedienung: Pfeil links/rechts wechselt die Seite (ein Druck, ein Wechsel), OK ohne Aktion, Zurück unverändert; kurzer Hinweis beim Verbinden. Ohne Kamera wird der QR-Scan nicht angeboten und keine Kameraberechtigung erfragt, manuelle Kopplung bleibt. Geprüft am BeyondTV (Android 11) per ADB-Tasteneingaben; physische Fernbedienung, Standby/CEC und Langzeit sind nicht geprüft.
 - **Spotify: Amplifier-Anzeige**: bei laufender Wiedergabe zeigen 16 Balken den Pegel der Windows-Systemausgabe (Spektrum, ca. 8 Bilder pro Sekunde, nur im Querformat). Die Systemausgabe wird lokal per WASAPI-Loopback gelesen, nichts wird aufgezeichnet oder gespeichert, die Analyse läuft nur, solange die Spotify-Seite sichtbar ist. Schalter: Einstellungen → Spotify → *Amplifier-Anzeige* (spotify.amp, Standard an). Gilt für Display, Monitor und Companion; die tatsächliche Bildrate hängt vom Ausgabegerät ab.
 
 ## [2.8.0] – 2026-10-31

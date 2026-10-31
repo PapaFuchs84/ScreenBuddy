@@ -38,4 +38,6 @@
     <string name="orient_landscape">Landscape (preferred)</string>
     <string name="orient_auto">Auto (rotate with sensor)</string>
     <string name="orient_portrait">Portrait</string>
+    <string name="tv_dpad_hint">◄ ► switch page · OK has no action yet</string>
+    <string name="info_no_camera">This device has no camera. Use manual pairing below.</string>
 </resources>

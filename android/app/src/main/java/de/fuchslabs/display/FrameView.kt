@@ -3,11 +3,13 @@ package de.fuchslabs.display
 import android.content.Context
 import android.graphics.*
 import android.view.GestureDetector
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.os.Build
 import android.view.View
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import de.fuchslabs.display.protocol.DpadNavigation
 import de.fuchslabs.display.protocol.Letterbox
 import de.fuchslabs.display.protocol.Protocol
 import de.fuchslabs.display.protocol.ImageLimits
@@ -58,6 +60,9 @@ class FrameView(ctx: Context) : View(ctx) {
 
     init {
         setBackgroundColor(Color.parseColor("#0E1628"))
+        // Fokussierbar, damit eine Fernbedienung (D-Pad) Key-Events an diese View statt ins Leere schickt.
+        isFocusable = true
+        isFocusableInTouchMode = true
         ViewCompat.setOnApplyWindowInsetsListener(this) { _, wi ->
             val cut = wi.getInsets(WindowInsetsCompat.Type.displayCutout())
             // Ein Rechteck verliert an einer Rundung mit Radius r etwa r * (1 - 1/sqrt(2)) je Achse.
@@ -142,4 +147,22 @@ class FrameView(ctx: Context) : View(ctx) {
     }
 
     override fun performClick(): Boolean = super.performClick()
+
+    // D-Pad LEFT/RIGHT auf das Wisch-Protokoll abgebildet (siehe DpadNavigation); CENTER/ENTER
+    // bewusst ohne Aktion konsumiert. repeatCount != 0 (gehaltene Taste) wird verschluckt, damit
+    // genau ein Tastendruck genau einen Seitenwechsel ausloest.
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        val swipe = DpadNavigation.toSwipe(keyCode)
+        if (swipe != null) {
+            if (event.repeatCount == 0) onSwipe?.invoke(swipe)
+            return true
+        }
+        if (DpadNavigation.isConsumedWithoutAction(keyCode)) return true
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (DpadNavigation.toSwipe(keyCode) != null || DpadNavigation.isConsumedWithoutAction(keyCode)) return true
+        return super.onKeyUp(keyCode, event)
+    }
 }

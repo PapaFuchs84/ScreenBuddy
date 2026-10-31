@@ -14,9 +14,11 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 - Spotify amplifier: activate analysis when drawing the visible playback page; analysis expires within three seconds after leaving it. Residual bars decay fully to zero.
 
+- **Companion / Android TV:** Visible setup now keeps the screen on and prevents the screensaver. The full-screen display retains its existing protection; normal TV settings apply after leaving the app.
 
 ### Added
 
+- **Companion / Android TV:** own Android TV launcher entry (leanback, with banner); remote: left/right switches the page (one press, one switch), OK has no action, Back unchanged; short hint on connect. Without a camera the QR scan is not offered and no camera permission is requested; manual pairing remains. Checked on a BeyondTV (Android 11) with ADB key input; physical remote, standby/CEC and long-term runs are not tested.
 - **Spotify: amplifier display**: while music plays, 16 bars show the level of the Windows system output (spectrum, about 8 frames per second, landscape only). The system output is read locally via WASAPI loopback; nothing is recorded or stored, and the analysis only runs while the Spotify page is visible. Switch: Settings → Spotify → *Amplifier display* (spotify.amp, on by default). Applies to the display, monitor and Companion; the actual frame rate depends on the output device.
 
 ## [2.8.0] – 2026-10-31
