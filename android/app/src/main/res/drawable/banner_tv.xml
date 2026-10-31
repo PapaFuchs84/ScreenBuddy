@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android-TV-Banner (Leanback-Launcher-Kachel): Markenfarbe plus zentriertes App-Symbol, keine eigene Rastergrafik. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/fl_orange" />
+    <item android:gravity="center" android:width="96dp" android:height="96dp">
+        <bitmap android:src="@drawable/ic_launcher_fg" android:gravity="center" />
+    </item>
+</layer-list>

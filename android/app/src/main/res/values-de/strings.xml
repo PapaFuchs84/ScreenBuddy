@@ -38,4 +38,6 @@
     <string name="orient_landscape">Quer (bevorzugt)</string>
     <string name="orient_auto">Auto (Sensor)</string>
     <string name="orient_portrait">Hoch</string>
+    <string name="tv_dpad_hint">◄ ► Seite wechseln · OK hat noch keine Funktion</string>
+    <string name="info_no_camera">Dieses Gerät hat keine Kamera. Bitte unten manuell koppeln.</string>
 </resources>

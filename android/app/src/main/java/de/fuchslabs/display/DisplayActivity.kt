@@ -2,6 +2,7 @@ package de.fuchslabs.display
 
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.util.DisplayMetrics
 import android.os.Build
@@ -23,10 +24,13 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
     private lateinit var store: Store
     private lateinit var frameView: FrameView
     private lateinit var status: TextView
+    private lateinit var dpadHint: TextView
     private var client: DisplayClient? = null
     private var pairingPin: String? = null
     private var lastBack = 0L
     private var trustDialog: AlertDialog? = null
+    private var dpadHintShown = false
+    private val isTv: Boolean by lazy { packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,9 +41,18 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
             setTextColor(getColor(R.color.fl_creme)); textSize = 16f
             setBackgroundColor(0xAA14213D.toInt()); setPadding(32, 16, 32, 16)
         }
+        dpadHint = TextView(this).apply {
+            setText(R.string.tv_dpad_hint)
+            setTextColor(getColor(R.color.fl_creme)); textSize = 14f
+            setBackgroundColor(0xAA14213D.toInt()); setPadding(24, 12, 24, 12)
+            visibility = View.GONE
+        }
         val root = FrameLayout(this)
         root.addView(frameView, FrameLayout.LayoutParams(-1, -1))
         root.addView(status, FrameLayout.LayoutParams(-2, -2, android.view.Gravity.CENTER))
+        root.addView(dpadHint, FrameLayout.LayoutParams(-2, -2, android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL).apply {
+            bottomMargin = (24 * resources.displayMetrics.density).toInt()
+        })
         setContentView(root)
         requestedOrientation = when (store.orientation) {
             "auto" -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
@@ -75,7 +88,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemUi()
+        if (hasFocus) { hideSystemUi(); frameView.requestFocus() }
     }
 
     private fun hideSystemUi() {
@@ -130,6 +143,12 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
             DisplayClient.State.RECONNECTING -> R.string.status_reconnecting
             else -> R.string.status_idle
         })
+        // Einmaliger, kurzer Bedienhinweis fuer Fernbedienungen; nur auf Android-TV-Geraeten.
+        if (state == DisplayClient.State.CONNECTED && isTv && !dpadHintShown) {
+            dpadHintShown = true
+            dpadHint.visibility = View.VISIBLE
+            dpadHint.postDelayed({ dpadHint.visibility = View.GONE }, 4000)
+        }
     }
 
     override fun onUnverifiedFingerprint(fp: String, trust: () -> Unit) {

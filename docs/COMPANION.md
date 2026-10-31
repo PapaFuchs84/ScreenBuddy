@@ -4,6 +4,10 @@
 
 USB-Display bzw. HDMI-Bildschirm und Android-Companion können gleichzeitig laufen. Beide haben eigene Seitenlisten, Seitenpositionen, Wechselintervalle und Touch-Ziele. Datenquellen, Konten und Design bleiben gemeinsam. Eine Seite muss in ihrem Datenquellen-Reiter eingeschaltet und eingerichtet sein, bevor sie auf einer Anzeige erscheinen kann.
 
+Solange die Einrichtung oder Vollbildanzeige der Companion-App sichtbar ist, bleibt der Bildschirm eingeschaltet; der Android-TV-Bildschirmschoner wird in dieser Zeit unterdrückt. Nach dem Verlassen der App gelten wieder die normalen TV-Einstellungen. Die App ändert keine globalen Bildschirmschoner- oder Energiespareinstellungen.
+
+Auf Android TV erscheint die App im TV-Launcher. Mit der Fernbedienung wechseln Pfeil links/rechts die Seite, OK hat keine Funktion, Zurück (zweimal) verlässt die Anzeige. Ohne Kamera entfällt der QR-Scan; Adresse, Port und PIN manuell eingeben. **Prüfstand:** BeyondTV (Android 11) am 31.10.2026 mit ADB-Tasteneingaben; echte Fernbedienung, Standby/CEC und Langzeitbetrieb offen.
+
 1. Den bisherigen Display-Typ beibehalten; unter **Companion** den Dienst einschalten und **Speichern & anwenden** wählen.
 2. Auf dem Android-Gerät die Companion-App 1.0 installieren (separater Download). PC und Handy müssen sich im selben privaten IPv4-Netz erreichen können; USB-Tethering ist ebenfalls möglich.
 3. Unter **Companion → Gerät koppeln** den Code anzeigen und in der Handy-App per QR-Code oder Adresse, Port und PIN koppeln; Zertifikat-Fingerabdruck vergleichen. PIN nur lokal verwenden, nicht in Berichten veröffentlichen.

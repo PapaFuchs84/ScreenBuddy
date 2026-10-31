@@ -4,6 +4,10 @@
 
 The USB display or HDMI monitor and Android Companion can run at the same time, with separate page selections, positions, timers and touch targets. Data sources, accounts and theme stay shared. Enable and configure each data source in its tab before selecting its page for an output.
 
+While Companion setup or its full-screen display is visible, the screen stays on and the Android TV screensaver is suppressed. After leaving the app, normal TV settings apply again. The app does not change global screensaver or power settings.
+
+On Android TV the app appears in the TV launcher. With the remote, left/right switches the page, OK has no function, and Back (twice) leaves the display. Without a camera the QR scan is omitted; enter address, port and PIN manually. **Test status:** BeyondTV (Android 11) on 31 October 2026 with ADB key input; physical remote, standby/CEC and long-term use are untested.
+
 1. Keep the existing display type. Enable **Companion**, then choose **Save & apply**.
 2. Install the Companion app 1.0 on Android (separate download). The phone and PC must reach each other on a private IPv4 network; USB tethering also works.
 3. Under **Companion → Pair a device**, show the local code. Scan its QR code or enter address, port and PIN in the app and compare the certificate fingerprint. Keep pairing codes private.
