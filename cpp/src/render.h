@@ -145,6 +145,7 @@ public:
     Image render(StreamState state, const std::vector<StreamItem>& items, std::optional<std::time_t> updated,
                  std::time_t now = 0, const StreamLogos* logos = nullptr);
     static constexpr int MAX_ROWS = tmdb::MAX_ITEMS;
+    static int row_at(int w_px, int h_px, int y_px);
 
 private:
     Font f_item, f_kind;
@@ -177,7 +178,7 @@ public:
     // simulated: Balken sind keine Messung (Remote-Wiedergabe) → kleiner Hinweis "simuliert"
     Image render(const spotify::Snapshot& snap, double now = 0, const std::vector<float>* levels = nullptr,
                  int color = 1, bool simulated = false);
-    enum Button { PREVIOUS = 0, PLAY_PAUSE = 1, NEXT = 2 };
+    enum Button { PREVIOUS = 0, PLAY_PAUSE = 1, NEXT = 2, COVER = 3 };
     // Welche Taste liegt bei Pixel (x, y) einer Kachelfläche w × h? -1 = keine. Für „Tippen steuert Spotify“.
     static int button_at(int w_px, int h_px, int x_px, int y_px);
 

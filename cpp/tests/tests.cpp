@@ -412,13 +412,13 @@ static void test_spotify() {
 
     // Tasten: es gibt Treffer für alle drei, in der Kopfzeile keinen
     for (auto sz : {std::pair<int, int>{480, 320}, std::pair<int, int>{320, 480}, std::pair<int, int>{800, 480}}) {
-        int hits[3] = {0, 0, 0};
+        int hits[4] = {0, 0, 0, 0};
         for (int y = 0; y < sz.second; ++y)
             for (int x = 0; x < sz.first; ++x) {
                 int b = render::SpotifyRenderer::button_at(sz.first, sz.second, x, y);
                 if (b >= 0) ++hits[b];
             }
-        CHECK(hits[0] > 0 && hits[1] > 0 && hits[2] > 0);
+        CHECK(hits[0] > 0 && hits[1] > 0 && hits[2] > 0 && hits[3] > 0);
         CHECK_EQ(render::SpotifyRenderer::button_at(sz.first, sz.second, 2, 2), -1);
     }
     // Rendern mit Titel, ohne Cover und in den Zuständen ohne Wiedergabe
@@ -480,6 +480,19 @@ static void test_spotify() {
     if (act) (*act)();
     CHECK_EQ(taps, 1);
     CHECK(touch::action_at(tiles, 2, 2) == nullptr);
+    // Cover öffnet auch ohne Premium/Steueraktionen; Wiedergabetasten bleiben inaktiv.
+    tile.cells.assign(4, {});
+    int coverTaps = 0;
+    tile.cells[render::SpotifyRenderer::COVER] = [&coverTaps] { ++coverTaps; };
+    tile.box = {480, 0, 480, 320};
+    tiles = {tile};
+    auto* coverAction = touch::action_at(tiles, 500, 100);
+    CHECK(coverAction != nullptr);
+    if (coverAction) (*coverAction)();
+    CHECK_EQ(coverTaps, 1);
+    CHECK(touch::action_at(tiles, 480 + bx, by) == nullptr);
+    tiles[0].cells[render::SpotifyRenderer::COVER] = {};
+    CHECK(touch::action_at(tiles, 500, 100) == nullptr);
 }
 static void test_ha() {    auto sp = ha::parse_spec(" sensor.wohnzimmer_temp | Wohnzimmer ");
     CHECK(sp && sp->id == "sensor.wohnzimmer_temp" && sp->label == "Wohnzimmer");
@@ -677,6 +690,37 @@ static void test_touch_targets() {
     auto saved = bfrows[0][0].url;
     players[0].query = "Changed";
     CHECK_EQ(bfrows[0][0].url, saved);  // Ziele bleiben an den angezeigten Snapshot gebunden
+
+    std::vector<StreamItem> stream(3);
+    stream[0].id = 11;
+    stream[1].id = 22; stream[1].series = true;
+    auto streamrows = touch::stream_rows(stream);
+    CHECK_EQ(streamrows[0][0].url, std::string("https://www.themoviedb.org/movie/11"));
+    CHECK_EQ(streamrows[1][0].url, std::string("https://www.themoviedb.org/tv/22"));
+    CHECK(streamrows[2].empty());
+    stream[0].id = 99;
+    CHECK_EQ(streamrows[0][0].url, std::string("https://www.themoviedb.org/movie/11"));
+    touch::Tile streamingTile{{480, 0, 480, 320}, false, streamrows};
+    streamingTile.streaming = true;
+    CHECK(touch::at({streamingTile}, 490, 95)->at(0).url == streamrows[1][0].url);
+    CHECK(!touch::at({streamingTile}, 490, 10));
+    CHECK(!touch::at({streamingTile}, 490, 150));
+    CHECK(!touch::at({streamingTile}, 490, 310));
+    CHECK(!touch::at({streamingTile}, 479, 95));
+    for (auto [w, h] : {std::pair{480, 320}, {320, 480}, {637, 720}, {1280, 720}}) {
+        int counts[6] = {};
+        for (int y = 0; y < h; ++y) {
+            int row = render::StreamRenderer::row_at(w, h, y);
+            if (row >= 0) { CHECK(row < 6); ++counts[row]; }
+        }
+        for (int count : counts) CHECK(count > 0);
+        CHECK_EQ(render::StreamRenderer::row_at(w, h, 0), -1);
+        CHECK_EQ(render::StreamRenderer::row_at(w, h, h - 1), -1);
+    }
+    int spotifyLaunches = 0;
+    CHECK(!touch::dispatch({{"spotify:", "spotify"}}, [](auto&) { return false; },
+        [&spotifyLaunches](auto&) { ++spotifyLaunches; return true; }));
+    CHECK_EQ(spotifyLaunches, 0);
 
     auto posts = touch::post_rows({{"", "", {}, "https://example.org/article"}, {"", "", {}, "file:///C:/evil.exe"},
                                   {"", "", {}, "steam://run/123"}, {"", "", {}, "https://example.org/\n"},

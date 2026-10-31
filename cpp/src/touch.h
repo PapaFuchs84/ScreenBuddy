@@ -17,8 +17,9 @@ struct Tile {
     render::Box box;
     bool rss = false;
     Rows rows;
+    bool streaming = false;
     bool sys = false;                             // Systemansicht: cells[0..2] = RAM, Datenträger, Netzwerk
-    bool spotify = false;                         // Spotify-Seite: cells[0..2] = Zurück, Wiedergabe/Pause, Weiter
+    bool spotify = false;                         // Spotify: cells[0..2] = Wiedergabe, cells[3] = Cover öffnet App
     bool ha = false;                              // Home-Assistant-Kacheln: je Kachel eine Aktion (Schalter umlegen) oder leer
     std::vector<std::function<void()>> cells;
 };
@@ -27,6 +28,7 @@ Targets player_targets(const Bf6Player& player);
 Rows friend_rows(std::vector<Friend> people, int page, int per);
 Rows player_rows(std::vector<Bf6Player> players, int page, int per);
 Rows post_rows(const std::vector<Post>& posts);
+Rows stream_rows(const std::vector<StreamItem>& items);
 // Schalt-Aktion der angetippten Home-Assistant-Kachel (nullptr = keine)
 const std::function<void()>* action_at(const std::vector<Tile>& tiles, int x, int y);
 const Targets* at(const std::vector<Tile>& tiles, int x, int y);

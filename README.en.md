@@ -1,5 +1,6 @@
 <div align="center">
 
+
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
 # ScreenBuddy
@@ -8,7 +9,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.9.3-F77F00)
+![Version](https://img.shields.io/badge/version-2.9.4-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -23,6 +24,8 @@
 </div>
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
+
+**New in 2.9.4:** tap a streaming movie or series to open its TMDB details in the PC browser; tap Spotify cover art to open the Spotify desktop app. TMDB key application explained with field examples. [Release notes 2.9.4](docs/RELEASE-NOTES-2.9.4.md). New tabs follow browser settings; verified with Chrome on Meanmachine.
 
 **New in 2.9.3:** PlayStation friends in the combined friends list (badge “P”, online status and current game). Sony offers no official interface for this: the feature uses the NPSSO code of your PlayStation sign-in, is **unofficial**, **optional**, **off by default** and **at your own risk** (Sony may change it at any time or restrict the account). The code is stored DPAPI-encrypted and sent only to Sony; an authorisation code with a dot (`v3.…`) is accepted. [Release notes 2.9.3](docs/RELEASE-NOTES-2.9.3.md).
 
@@ -102,7 +105,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.9.3](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.3). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
+1. Download **ScreenBuddy.exe** from [release 2.9.4](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.4). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **EN** with the **DE | EN** switch at the top right of the settings window, then **Save & apply**.
@@ -220,11 +223,13 @@ App translations are in `cpp/src/i18n.cpp`, native page text under `cpp/src/ui_p
 - The local service is **only reachable on `127.0.0.1`** and protected against DNS rebinding, CSRF and framing by other sites.
 - All connections use HTTPS with certificate checks; packages are pinned to exact versions.
 
-Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: the [test record](cpp/TESTPROTOKOLL.md) (German) has the entry “Release 2.9.3” (31 October 2026); the 2.9.x release notes are listed under [Documents](#documents). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
+Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: the [test record](cpp/TESTPROTOKOLL.md) (German) has the entry “Release 2.9.4” (31 October 2026); the 2.9.x release notes are listed under [Documents](#documents). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
 
 ## Testing and feedback
 
 The app is in testing. Please report bugs and ideas via **Issues → New issue** using the “Bug report” or “Idea or feedback” forms. Where to find the log `usb-display.log` and what must never be sent: [`TESTPHASE.en.md`](TESTPHASE.en.md).
+
+**Validation of 2.9.4:** release build and automated suites green (3327 core checks), two installer checks, 39 app integration and 17 multiple-device checks. After upgrading Meanmachine, real Redmi ADB taps opened correct new Chrome tabs for a movie/series and restored Spotify via cover art. TMDB help visually checked in DE/EN. Original configuration restored byte-identically. Physical finger input, Pixel/TV and other browsers not tested. [Details](docs/RELEASE-NOTES-2.9.4.md).
 
 **Validation of 2.9.3:** release build green with all built-in suites (among them 1357 core, 119 TMDB, 251 plugin, 127 store, 140 transport, 135 settings and 361 Companion checks, plus two installer checks); the EXE reports 2.9.3; on the real system COM7 was connected and the Companion server started, Redmi and Android TV showed pages (adb screenshots). PlayStation live returned one account with a fresh code. **Not verified:** PlayStation status/game on the devices, store install/update through the UI, and physical acceptance. Details and limits: [test record](cpp/TESTPROTOKOLL.md) (German). Previous state: [release notes 2.8](docs/RELEASE-NOTES-2.8.md) (1,507 checks). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
 
@@ -238,7 +243,7 @@ All documents by audience (German): [`docs/README.md`](docs/README.md). The most
 | [`docs/FEATURES.en.md`](docs/FEATURES.en.md) | features in detail ([Deutsch](docs/FUNKTIONEN.md)) |
 | [`docs/PLUGIN-SYSTEM.en.md`](docs/PLUGIN-SYSTEM.en.md) | plugin guide ([Deutsch](docs/PLUGIN-SYSTEM.md)), [tutorial](docs/PLUGIN-TUTORIAL.en.md), [store terms](docs/PLUGIN-STORE-TERMS.md) |
 | [`docs/COMPANION.en.md`](docs/COMPANION.en.md) | Companion setup ([Deutsch](docs/COMPANION.md)) |
-| [`docs/RELEASE-NOTES-2.9.3.md`](docs/RELEASE-NOTES-2.9.3.md) | release notes of the current version (German/English; earlier: [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
+| [`docs/RELEASE-NOTES-2.9.4.md`](docs/RELEASE-NOTES-2.9.4.md) | release notes of the current version (German/English; earlier: [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
 | [`CHANGELOG.en.md`](CHANGELOG.en.md) | changes per version ([Deutsch](CHANGELOG.md)) |
 | [`CONTRIBUTING.en.md`](CONTRIBUTING.en.md) | contributing ([Deutsch](CONTRIBUTING.md)) |
 | [`SECURITY.en.md`](SECURITY.en.md) | reporting vulnerabilities ([Deutsch](SECURITY.md)) |

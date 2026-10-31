@@ -1,6 +1,6 @@
 # ScreenBuddy · Features in detail
 
-Moved out of the README (status 2.9.3). German: [FUNKTIONEN.md](FUNKTIONEN.md). Overview of all documents (German): [docs/README.md](README.md).
+Moved out of the README (status 2.9.4). German: [FUNKTIONEN.md](FUNKTIONEN.md). Overview of all documents (German): [docs/README.md](README.md).
 
 ## Contents
 
@@ -87,3 +87,7 @@ More: [Plugin system](PLUGIN-SYSTEM.en.md) · [Tutorial](PLUGIN-TUTORIAL.en.md) 
 ## Browse views (from 2.0.4)
 
 Since 2.0.4 the running display can be advanced with a button press, without saving or restarting. In the native interface (from 2.5.0) **Show previous page** and **Show next page** under **Settings → Companion** do this; they act on the Companion output (on all connected devices in independent mode). For the main display the step is available only through the local interface (`POST /api/pages/step`). The former “Previous view”/“Next view” buttons under **Overview** do not exist in the native interface. Changes to page selection and order take effect after **Save & apply**.
+
+## Streaming and Spotify touch (2.9.4)
+
+With touch enabled, a streaming title opens its TMDB details in the default browser on the PC. Verified as a new tab with Chrome on Meanmachine; tab/window behavior follows the browser. Tapping loaded Spotify cover art opens the Spotify desktop app without requiring Premium. No cover means no action; a missing app does not crash ScreenBuddy. Playback buttons remain separate. TMDB help explains the application with field examples.

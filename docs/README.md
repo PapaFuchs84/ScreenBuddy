@@ -5,7 +5,7 @@
 
 </div>
 
-Stand: ScreenBuddy 2.9.3. Diese Seite ist der Einstieg in alle Dokumente. Sie ist nach Zielgruppe geordnet; jedes Dokument hat genau einen Zweck.
+Stand: ScreenBuddy 2.9.4. Diese Seite ist der Einstieg in alle Dokumente. Sie ist nach Zielgruppe geordnet; jedes Dokument hat genau einen Zweck.
 
 ## Aufbau und Prinzipien
 
@@ -24,7 +24,7 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 |---|---|---|
 | [`README.md`](../README.md) · [English](../README.en.md) | Überblick, Schnellstart, Konfiguration | aktuell |
 | [`ANLEITUNG.md`](../ANLEITUNG.md) | Schnellstart; die bebilderte Anleitung steckt in der EXE | Version, Menünamen und PlayStation-Angaben am 31.10.2026 gegen den Code geprüft (Bilder der bebilderten Anleitung teils 2.5) |
-| [`FUNKTIONEN.md`](FUNKTIONEN.md) · [English](FEATURES.en.md) | Funktionen im Detail: Touch, Update-Hinweis, Home Assistant, Streaming, Spotify, PlayStation-Freunde, Farben & Design, Companion, Plugin-Store, Ansichten | aktuell (2.9.3) |
+| [`FUNKTIONEN.md`](FUNKTIONEN.md) · [English](FEATURES.en.md) | Funktionen im Detail: Touch, Update-Hinweis, Home Assistant, Streaming, Spotify, PlayStation-Freunde, Farben & Design, Companion, Plugin-Store, Ansichten | aktuell (2.9.4) |
 | [`COMPANION.md`](COMPANION.md) · [English](COMPANION.en.md) | Android-Companion einrichten, mehrere Geräte | aktuell |
 | [`TOUCH-2.0.7.md`](TOUCH-2.0.7.md) · [English](TOUCH-2.0.7.en.md) | Touch-Ziele und Spielstunden | aktuell |
 | [`../DOKUMENTATION.md`](../DOKUMENTATION.md) | Referenz: Seiten, `config.toml`, HWiNFO, Fehlerbehebung | Version und Menünamen am 31.10.2026 korrigiert; Prüfstandskapitel historisch |
@@ -59,12 +59,12 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 | Dokument | Zweck | Status |
 |---|---|---|
 | [`../CHANGELOG.md`](../CHANGELOG.md) · [English](../CHANGELOG.en.md) · [`../cpp/CHANGELOG.md`](../cpp/CHANGELOG.md) | Änderungen je Version | aktuell |
-| [`RELEASE-NOTES-2.9.3.md`](RELEASE-NOTES-2.9.3.md) | Release-Notizen der aktuellen Version | aktuell |
+| [`RELEASE-NOTES-2.9.4.md`](RELEASE-NOTES-2.9.4.md) | Release-Notizen der aktuellen Version | aktuell |
 | [`RELEASE-NOTES-2.9.2.md`](RELEASE-NOTES-2.9.2.md), [`RELEASE-NOTES-2.9.1.md`](RELEASE-NOTES-2.9.1.md), [`RELEASE-NOTES-2.9.md`](RELEASE-NOTES-2.9.md) | Release-Notizen 2.9.x | historisch |
 | [`THEMES.md`](THEMES.md) | Farbdesigns: Windows-Farben, Designsysteme, eigene Themes (DE/EN) | aktuell |
 | [`RELEASE-NOTES-2.8.md`](RELEASE-NOTES-2.8.md) | Release-Notizen 2.8 | historisch |
 | [`RELEASE-NOTES-2.7.md`](RELEASE-NOTES-2.7.md) | Release-Notizen 2.7 | historisch |
-| [`../cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md) | Testprotokoll | aktuell, jüngster Eintrag „Release 2.9.3“ (31.10.2026) |
+| [`../cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md) | Testprotokoll | aktuell, jüngster Eintrag „Release 2.9.4“ (31.10.2026) |
 | [`PRUEFSTAND-HISTORIE.md`](PRUEFSTAND-HISTORIE.md) | Prüfstände 2.0.3 bis 2.6.0 (aus dem README ausgelagert) | historisch |
 | [`RELEASE-NOTES-2.6.md`](RELEASE-NOTES-2.6.md), [`RELEASE-NOTES-2.5.md`](RELEASE-NOTES-2.5.md) | frühere Release-Notizen | historisch |
 | [`RELEASE-CHECKLIST-2.5.md`](RELEASE-CHECKLIST-2.5.md), [`HARDWARE-ACCEPTANCE-2.5.md`](HARDWARE-ACCEPTANCE-2.5.md) | Checklisten (Stand 2.5; bei neuen Releases anlegen statt umschreiben) | historisch |

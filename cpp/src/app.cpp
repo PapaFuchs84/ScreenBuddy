@@ -610,10 +610,19 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                 for (Cmd c : {Cmd::Previous, Cmd::PlayPause, Cmd::Next})
                     pe.actions.push_back([this, c] { if (spotify_) spotify_->request_command(c); });
             }
+            pe.actions.resize(4);
+            if (snap.cover && !snap.cover->empty() &&
+                (snap.state == spotify::State::Playing || snap.state == spotify::State::Paused)) {
+                pe.actions[render::SpotifyRenderer::COVER] = [] {
+                    if (!touch::open({{"spotify:", "spotify"}}))
+                        LOGW("app", "Spotify-App konnte nicht geöffnet werden");
+                };
+            }
             out.push_back(std::move(pe));
         } else if (key == "streaming") {
             auto snap = streaming_->snapshot();
-            out.push_back({key, 1, [snap](int, RendererSet& rs) { return rs.stream.render(snap.state, snap.items, snap.updated, 0, &snap.logos); }});
+            out.push_back({key, 1, [snap](int, RendererSet& rs) { return rs.stream.render(snap.state, snap.items, snap.updated, 0, &snap.logos); },
+                [snap](int, RendererSet&) { return snap.state == tmdb::State::Ok ? touch::stream_rows(snap.items) : touch::Rows{}; }});
         } else if (key == "rss") {
             auto posts = rss_->posts();
             auto updated = rss_->updated();
@@ -641,6 +650,7 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
                 tile.ha = p.key == "homeassistant";
                 tile.sys = p.key == "system";
                 tile.spotify = p.key == "spotify";
+                tile.streaming = p.key == "streaming";
                 tile.cells = p.actions;
                 taps.push_back(std::move(tile));
                 break;

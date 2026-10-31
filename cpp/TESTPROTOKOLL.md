@@ -1,5 +1,12 @@
 # Testprotokoll – Stand 31.10.2026
 
+## Release 2.9.4 – 31.10.2026
+
+- Release-Build erfolgreich: 3327 Kernprüfungen, 119 TMDB, Key-Hilfe OK, 37 PSN, 13 Amp, 251 Plugins, 41 Beispiele, 127 Store, 140 Transport, 135 Settings, 111 Signatur, 77 Katalog, 11 Monitor, 361 Companion; zwei isolierte Installerprüfungen, 39 App-Integrations- und 17 Mehrgeräteprüfungen bestanden.
+- Meanmachine von 2.9.3 auf 2.9.4 aktualisiert; EXE/Config/Kopplungen vorher lokal gesichert. Konfiguration beim Update erhalten und nach temporären Testseiten bytegenau zurückgestellt; USB-Display verbunden. Spotify-Token wurde regulär aktualisiert; Kopplungsdatei blieb beim Update unverändert.
+- Redmi 8 hatte einen alten Testserver gespeichert. Nach ausdrücklicher Zustimmung des Nutzers neu mit Meanmachine gekoppelt, Fingerprint abgeglichen. Reale ADB-Tipps auf den angezeigten Film und die Serie öffneten jeweils die richtige TMDB-Seite in einem neuen PC-Chrome-Tab. Cover-Tipp öffnete die vorher minimierte Spotify-App. Wiedergabe danach pausiert. Native erweiterte TMDB-Hilfe in DE/EN visuell geprüft, Sprache ohne Speichern zurückgestellt.
+- Keine physische Fingerabnahme, kein Pixel-/TV-Test, kein Screenreader-/weiterer Browsertest. API-Antrag nicht mit persönlichen Daten abgesendet. Standardbrowser entscheidet über Tab/Fenster. Alle Testbilder, Logs, Tokens und Konfigurationen bleiben lokal.
+
 ## Release 2.9.3 – 31.10.2026
 
 - Basis main 909e34d (PR #46, PlayStation-Freunde inkl. Punkt-Code-Fix). Release-Build per build.bat grün: 1357 Kern, 119 TMDB, 251 Plugins, 41 Beispiele, 127 Store, 140 Transport, 135 Settings, 11 Monitor, 361 Companion, zwei Installerchecks. EXE meldet 2.9.3.

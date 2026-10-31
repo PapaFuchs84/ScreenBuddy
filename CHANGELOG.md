@@ -6,6 +6,14 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+## [2.9.4] – 2026-10-31
+
+### Hinzugefügt
+
+- Touch auf Streaming-Titel öffnet die passende TMDB-Infoseite am PC im Standardbrowser.
+- Touch auf das Spotify-Cover öffnet die Spotify-App am PC, auch ohne Premium.
+- TMDB-Key-Beantragung mit Feldbeispielen in deutscher/englischer Hilfe erklärt.
+
 ### Geändert
 
 - **Companion-App 1.0.3** (versionCode 7): modernes Login-/Kopplungs-Design in Hell und Dunkel nach Systemeinstellung, Kontrast mindestens 4,5:1, abgerundete Buttons und Felder, sichtbarer Fokusrahmen für die Fernbedienung. Protokoll und App-ID unverändert.
