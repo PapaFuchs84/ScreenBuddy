@@ -468,11 +468,11 @@ bool migrate_config(ojson& cfg, const Store& store) {
     if (!d.contains("theme") || d["theme"] != "eigen") return false;
     auto custom = migrate_legacy(d, "Eigene Farben");
     std::string err;
-    if (custom && store.save(*custom, err)) {
-        d["theme"] = std::string(CUSTOM_PREFIX) + custom->id;
-    } else {
-        d["theme"] = custom ? custom->base : "hell";   // Ablage nicht beschreibbar: wenigstens Hell/Dunkel behalten
-    }
+    if (!custom) return false;
+    custom->id.clear();   // freie ID vergeben, nie ein vorhandenes Theme überschreiben
+    // Ablage nicht beschreibbar: Konfiguration unverändert lassen ("eigen" bleibt gültig), nächster Start versucht es erneut
+    if (!store.save(*custom, err)) return false;
+    d["theme"] = std::string(CUSTOM_PREFIX) + custom->id;
     for (const char* k : {"color_bg", "color_card", "color_header", "color_accent", "color_text", "color_muted"}) d[k] = "";
     d["color_base"] = "hell";
     return true;
