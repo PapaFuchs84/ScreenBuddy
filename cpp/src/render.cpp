@@ -8,6 +8,7 @@
 #include <cmath>
 #include <regex>
 
+#include "amp_logic.h"
 #include "brand.h"
 #include "ha.h"
 #include "i18n.h"
@@ -927,7 +928,7 @@ int SpotifyRenderer::button_at(int w_px, int h_px, int x_px, int y_px) {
     return -1;
 }
 
-Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const std::vector<float>* levels) {
+Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const std::vector<float>* levels, int color, bool simulated) {
     using spotify::State;
     const Theme& t = g_theme;
     Canvas d(W, H, s, t.bg);
@@ -976,8 +977,20 @@ Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const s
                     float v = std::clamp((*levels)[(size_t)i], 0.f, 1.f);
                     float bh = std::max(2.f, v * ah);
                     float x0 = ax + i * (bw + gap);
-                    d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), v > 0.85f ? t.accent : t.bar);
+                    Color c = v > 0.85f ? t.accent : t.bar;
+                    if (color == 1) {
+                        uint8_t rgb[3];
+                        audio::level_rgb(v, rgb);
+                        c = Color{rgb[0], rgb[1], rgb[2]};
+                    } else if (color == 2) {   // Verlauf im Design: Balken → Akzent → Heiß
+                        auto mix = [](Color a, Color b, float k) {
+                            return Color{uint8_t(a.r + (b.r - a.r) * k), uint8_t(a.g + (b.g - a.g) * k), uint8_t(a.b + (b.b - a.b) * k)};
+                        };
+                        c = v < 0.6f ? mix(t.bar, t.accent, v / 0.6f) : mix(t.accent, t.hot, (v - 0.6f) / 0.4f);
+                    }
+                    d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), c);
                 }
+                if (simulated) d.text(ax + aw, ay0 + 6, tr("simuliert"), font(11), t.muted, "rm");
             }
         }
         // Fortschritt

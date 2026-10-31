@@ -108,6 +108,7 @@ static const std::unordered_map<std::string, std::string>& en() {
         {"Bei Spotify anmelden: Einstellungen › Spotify", "Sign in to Spotify: Settings › Spotify"},
         {"Verbinde mit Spotify …", "Connecting to Spotify …"},
         {"Spotify nicht erreichbar", "Spotify not reachable"},
+        {"simuliert", "simulated"},
         {"Es läuft gerade nichts – Wiedergabe in Spotify starten", "Nothing is playing – start playback in Spotify"},
         {"Werbung", "Advertisement"},
         {"Spotify ist nicht erreichbar – Netzwerk prüfen", "Spotify is not reachable – check the network"},
