@@ -161,6 +161,8 @@ void run_demo(Output* lcd, const ojson& cfg, const std::optional<fs::path>& prev
     for (int p = 0; p < r.pages(friends.size()); ++p) frames.push_back(r.render_friends(friends, p));
     for (int p = 0; p < br.pages(players.size()); ++p) frames.push_back(br.render(players, p, now));
     frames.push_back(rr.render(posts, now));
+    render::SpotifyRenderer spr(w, h, cfg["spotify"].value("title", "Spotify"));
+    frames.push_back(spr.render(render::demo_spotify()));
     if (lcd) lcd->connect();
     double secs = cfg["display"].value("page_seconds", 15);
     for (size_t i = 0; i < frames.size(); ++i) {

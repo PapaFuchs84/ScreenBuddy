@@ -23,9 +23,9 @@ public:
         tiles_ = root.add<Tiles>();
         tiles_->name = T(L"Kennzahlen", L"Key figures");
         Card* conn = root.add<Card>(T(L"Verbindungen", L"Connections"), T(L"Wird jede Sekunde aktualisiert.", L"Refreshed every second."));
-        static const char* keys[] = {"discord", "steam", "xbox", "homeassistant"};
-        static const wchar_t* names[] = {L"Discord", L"Steam", L"Xbox", L"Home Assistant"};
-        for (int i = 0; i < 4; ++i) {
+        static const char* keys[] = {"discord", "steam", "xbox", "homeassistant", "spotify"};
+        static const wchar_t* names[] = {L"Discord", L"Steam", L"Xbox", L"Home Assistant", L"Spotify"};
+        for (int i = 0; i < 5; ++i) {
             states_[i] = conn->row<Label>(Text(names[i]), Text(), T(L"…", L"…"), Font::Small, Label::Muted);
             states_[i]->wrap = true;
             keys_[i] = keys[i];
@@ -57,8 +57,8 @@ public:
 private:
     Host* host_ = nullptr;
     Tiles* tiles_ = nullptr;
-    Label* states_[4]{};
-    const char* keys_[4]{};
+    Label* states_[5]{};
+    const char* keys_[5]{};
     void update(const Status& s) {
         const ojson& cfg = host_->config();
         int sources = 0;
@@ -71,7 +71,7 @@ private:
             {Text(std::to_wstring(sources) + L" / " + std::to_wstring(config::PAGES.size())), T(L"Aktive Quellen", L"Active sources")},
             {Text(std::to_wstring(pages)), T(L"Seiten auf dem Display", L"Pages on the display")},
         };
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < 5; ++i) {
             if (!states_[i]) continue;
             Label::Tone tone = Label::Muted;
             ojson c = s.connections.is_object() && s.connections.contains(keys_[i]) ? s.connections.at(keys_[i]) : ojson();

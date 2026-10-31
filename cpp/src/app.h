@@ -33,6 +33,7 @@ namespace sysinfo { class SysMonitor; }
 namespace discord { class DiscordFeed; }
 namespace friends { class FriendsHub; }
 namespace ha { class HaClient; }
+namespace spotify { class SpotifyClient; }
 namespace update { class UpdateChecker; }
 class Tray;
 
@@ -80,6 +81,7 @@ public:
     bool plugin_save_settings(const std::string& id, const ojson& patch, std::string& error);
     bool plugin_remove(const std::string& id, std::string& error);
     std::optional<Image> plugin_preview(std::string_view manifest, std::string& error);
+    spotify::SpotifyClient* spotify() { return spotify_.get(); }   // nullptr = Seite aus oder keine Client-ID
     NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 
 private:
@@ -180,6 +182,7 @@ private:
     std::unique_ptr<discord::DiscordFeed> discord_;
     std::unique_ptr<friends::FriendsHub> friends_;
     std::unique_ptr<ha::HaClient> ha_;
+    std::unique_ptr<spotify::SpotifyClient> spotify_;
     std::unique_ptr<update::UpdateChecker> update_;
     std::unique_ptr<plugins::Store> plugins_;
     std::unique_ptr<plugins::SettingsStore> plugin_settings_;

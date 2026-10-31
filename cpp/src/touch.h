@@ -18,6 +18,7 @@ struct Tile {
     bool rss = false;
     Rows rows;
     bool sys = false;                             // Systemansicht: cells[0..2] = RAM, Datenträger, Netzwerk
+    bool spotify = false;                         // Spotify-Seite: cells[0..2] = Zurück, Wiedergabe/Pause, Weiter
     bool ha = false;                              // Home-Assistant-Kacheln: je Kachel eine Aktion (Schalter umlegen) oder leer
     std::vector<std::function<void()>> cells;
 };

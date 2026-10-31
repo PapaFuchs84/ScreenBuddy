@@ -14,6 +14,7 @@
 #include "config.h"
 #include "gfx.h"
 #include "models.h"
+#include "spotify.h"
 
 namespace fl::render {
 
@@ -145,7 +146,27 @@ private:
     void cell(Canvas& d, const Cell& c, const HaEntity& e, bool compact);
 };
 
+// Spotify: Cover, Titel, Fortschritt und drei Tasten (Zurück, Wiedergabe/Pause, Weiter)
+class SpotifyRenderer : public Renderer {
+public:
+    SpotifyRenderer(int w, int h, std::string title);
+    Image render(const spotify::Snapshot& snap, double now = 0);
+    enum Button { PREVIOUS = 0, PLAY_PAUSE = 1, NEXT = 2 };
+    // Welche Taste liegt bei Pixel (x, y) einer Kachelfläche w × h? -1 = keine. Für „Tippen steuert Spotify“.
+    static int button_at(int w_px, int h_px, int x_px, int y_px);
+
+private:
+    struct Layout {
+        float cover_x, cover_y, cover_size;
+        float text_x, text_w, title_y, bar_y, times_y;
+        float btn_y, btn_x[3], btn_r[3];
+    };
+    static Layout layout(float w, float h);
+    Font f_track, f_artist, f_time;
+};
+
 std::string ago(std::optional<std::time_t> t, std::time_t now = 0);
+spotify::Snapshot demo_spotify();
 std::vector<HaEntity> demo_ha();
 std::vector<Friend> demo_friends();
 std::vector<Bf6Player> demo_players();

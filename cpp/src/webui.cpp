@@ -16,6 +16,7 @@
 #include "rss.h"
 #include "sysinfo.h"
 #include "util.h"
+#include "spotify.h"
 #include "winsetup.h"
 
 namespace fl {
@@ -93,7 +94,7 @@ bool SettingsServer::start() {
         // nur das Öffnen der Startseite per Link bleibt erlaubt.
         std::string site = req.has_header("Sec-Fetch-Site") ? req.get_header_value("Sec-Fetch-Site") : "same-origin";
         if (site != "same-origin" && site != "none" &&
-            !(req.path == "/" && req.get_header_value("Sec-Fetch-Mode") == "navigate")) {
+            !((req.path == "/" || req.path == "/spotify/callback") && req.get_header_value("Sec-Fetch-Mode") == "navigate")) {
             res.status = 403;
             res.set_content("Anfrage abgelehnt", "text/plain; charset=utf-8");
             return httplib::Server::HandlerResponse::Handled;
@@ -286,6 +287,34 @@ bool SettingsServer::start() {
         }
         int online = (int)std::count_if(accounts.begin(), accounts.end(), [](auto& a) { return a.status != "offline"; });
         json_reply(res, {{"ok", true}, {"count", accounts.size()}, {"online", online}});
+    });
+    // Rückkehr von Spotify nach der Anmeldung (Browser-Weiterleitung, daher GET; prüft den state-Wert selbst)
+    svr.Get("/spotify/callback", [&app](const httplib::Request& req, httplib::Response& res) {
+        auto param = [&](const char* k) { return req.has_param(k) ? req.get_param_value(k) : std::string(); };
+        auto* client = app.spotify();
+        std::string error = client ? client->finish_login(param("code"), param("state"), param("error")) : "Spotify ist in ScreenBuddy nicht eingeschaltet";
+        const bool en = app.cfg()["ui"].value("language", "de") == "en";
+        auto html_escape = [](std::string s) {
+            std::string o;
+            for (char c : s) {
+                if (c == '<') o += "&lt;";
+                else if (c == '>') o += "&gt;";
+                else if (c == '&') o += "&amp;";
+                else if (c == '"') o += "&quot;";
+                else o += c;
+            }
+            return o;
+        };
+        std::string head = error.empty() ? (en ? "Signed in to Spotify" : "Bei Spotify angemeldet")
+                                         : (en ? "Sign-in failed" : "Anmeldung fehlgeschlagen");
+        std::string body = error.empty() ? (en ? "You can close this tab and go back to ScreenBuddy." : "Du kannst diesen Tab schließen und zu ScreenBuddy zurückkehren.")
+                                         : html_escape(tr(error));
+        res.set_header("Cache-Control", "no-store");
+        res.set_header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'");
+        res.set_content("<!doctype html><meta charset=utf-8><title>ScreenBuddy</title><body style=\"font-family:Segoe UI,sans-serif;"
+                        "background:#1b1b1f;color:#f2f2f2;display:flex;align-items:center;justify-content:center;height:100vh;margin:0\">"
+                        "<div style=\"text-align:center\"><h1 style=\"color:#ff8a00\">" + head + "</h1><p>" + body + "</p><p style=\"opacity:.6\">FuchsLabs</p></div></body>",
+                        "text/html; charset=utf-8");
     });
     svr.Post("/api/ha/entities", [&app](const httplib::Request& req, httplib::Response& res) {
         // Verbindung prüfen und die wählbaren Entitäten laden. Leere Felder kommen aus den gespeicherten Einstellungen.

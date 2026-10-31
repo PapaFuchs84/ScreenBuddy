@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Spotify page (`spotify.cpp`, `SpotifyRenderer`, `ui_page_spotify.cpp`, `/spotify/callback` in the local server, `touch::Tile::spotify`): PKCE login, DPAPI-protected refresh token file, polling of `/v1/me/player`, cover download (i.scdn.co only), touch buttons via `Command`. Windows build: 321 + 251 + 41 + 127 + 140 + 135 + 11 + 361 checks passed; real Spotify account flow not tested.
+
 ## 2.7.0 – 31 October 2026
 
 - Store installation passes force_disabled through the host importer to Store::import_manifest; the disabled marker is persisted before the manifest, including offline plugins and updates. Direct local imports keep their previous behavior. Regression coverage checks reload and host importer handling.
