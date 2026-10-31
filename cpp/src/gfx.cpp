@@ -342,7 +342,7 @@ struct Canvas::Impl {
         ComPtr<ID2D1SolidColorBrush> brush;
     };
     BrushEntry brushes[16]{};
-    int brush_count = 0;
+    int brush_count = 0, next_evict = 0;
     bool done = false;
 
     ID2D1SolidColorBrush* brush(Color c) {
@@ -352,11 +352,11 @@ struct Canvas::Impl {
         }
         ComPtr<ID2D1SolidColorBrush> b;
         rt->CreateSolidColorBrush(col(c), &b);
-        if (brush_count < 16) {
-            brushes[brush_count] = {k, b};
-            brush_count++;
-        }
-        return b.Get();
+        if (!b) return nullptr;
+        // Cache voll: ältesten Eintrag ersetzen, damit der Cache den Pinsel weiter besitzt (sonst Zeiger auf zerstörten Pinsel)
+        const int slot = brush_count < 16 ? brush_count++ : next_evict++ % 16;
+        brushes[slot] = {k, b};
+        return brushes[slot].brush.Get();
     }
     ComPtr<ID2D1Bitmap> bitmap(const Image& img) {
         ComPtr<ID2D1Bitmap> b;
