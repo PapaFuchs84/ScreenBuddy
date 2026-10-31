@@ -16,7 +16,7 @@ namespace fl::render {
 
 namespace {
 
-constexpr int HEADER_H = 34, FOOTER_H = 18, ROW_H = 44, AVATAR = 32;
+constexpr int HEADER_H = 34, FOOTER_H = 18, ROW_H = 44, AVATAR = 32, LOGO_SIZE = 20;   // LOGO_SIZE: Anbieter-Logo (Streaming)
 constexpr float SYS_GAP = 6, SYS_SMALL = 62;   // Systemansicht: Abstand und Höhe der Karten RAM / Datenträger
 
 Theme g_theme;
@@ -705,7 +705,7 @@ StreamRenderer::StreamRenderer(int w_, int h_, std::string t) : Renderer(w_, h_,
 }
 
 Image StreamRenderer::render(StreamState state, const std::vector<StreamItem>& items, std::optional<std::time_t> updated,
-                             std::time_t now) {
+                             std::time_t now, const StreamLogos* logos) {
     const Theme& t = g_theme;
     Canvas d(W, H, s, t.bg);
     header(d, now, "");
@@ -733,7 +733,25 @@ Image StreamRenderer::render(StreamState state, const std::vector<StreamItem>& i
             const std::string kind = tr(it.series ? "Serie" : "Film");
             d.text(10, y + 32, kind, f_kind, t.accent, "lm");
             const float kx = 10 + d.textlength(kind, f_kind) + 10;
-            d.text(kx, y + 32, fit(d, join(it.providers, " · "), f_act, w - 10 - kx), f_act, t.muted, "lm");
+            // Anbieter: Logos (höchstens MAX_LOGOS, Rest „+n“); fehlt ein Logo, steht an seiner Stelle das Kürzel
+            const int shown = tmdb::logos_shown(it.providers.size());
+            float lx = kx;
+            for (int k = 0; k < shown; ++k) {
+                const StreamLogos::const_iterator none = logos ? logos->end() : StreamLogos::const_iterator();
+                StreamLogos::const_iterator li = none;
+                if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
+                if (logos && li != none && li->second && !li->second->empty()) {
+                    const int px = pyround_i(LOGO_SIZE * s);
+                    d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
+                    lx += LOGO_SIZE + 4;
+                } else {
+                    const std::string& ab = it.providers[k];
+                    d.text(lx, y + 32, ab, f_act, t.muted, "lm");
+                    lx += d.textlength(ab, f_act) + 8;
+                }
+            }
+            const std::string more = tmdb::logos_overflow(it.providers.size());
+            if (!more.empty()) d.text(lx, y + 32, more, f_act, t.muted, "lm");
             if (i < n - 1) d.line({{10, y + rh - 1}, {w - 10, y + rh - 1}}, t.line, 1);
         }
     }
@@ -991,6 +1009,8 @@ std::vector<StreamItem> demo_stream() {
     auto mk = [](int id, const char* title, const char* date, bool series, std::vector<std::string> prov) {
         StreamItem it;
         it.id = id; it.title = title; it.date = date; it.series = series; it.providers = std::move(prov);
+        static const std::map<std::string, int> ids = {{"NF", 8}, {"PV", 9}, {"D+", 337}, {"ATV+", 350}, {"WOW", 30}, {"RTL+", 2750}};
+        for (auto& ab : it.providers) it.provider_ids.push_back(ids.at(ab));
         return it;
     };
     return {mk(1, "Der Leuchtturm am Ende der Welt", "2026-10-30", false, {"NF"}),
@@ -998,6 +1018,22 @@ std::vector<StreamItem> demo_stream() {
             mk(3, "Fuchsbau", "2026-10-24", false, {"ATV+"}),
             mk(4, "Die Ersatzspieler von Hinterdorf", "2026-10-21", true, {"RTL+"}),
             mk(5, "Mitternachtsexpress", "2026-10-15", false, {"WOW", "NF"})};
+}
+
+StreamLogos demo_stream_logos() {
+    // Platzhalter für Vorschau und Tests: einfarbige, abgerundete Kacheln mit dem Kürzel; kein Netz, keine Marken-Logos
+    struct Spec { int id; const char* ab; Color c; };
+    const Spec specs[] = {{8, "NF", {150, 30, 40}}, {9, "PV", {30, 110, 160}}, {337, "D+", {40, 60, 140}},
+                          {350, "TV", {60, 60, 60}}, {30, "WOW", {170, 70, 30}}, {2750, "RTL", {130, 40, 130}}};
+    StreamLogos out;
+    for (const auto& sp : specs) {
+        Canvas c(64, 64, 1.f, sp.c);
+        c.text(32, 32, sp.ab, Font{22, true}, Color{255, 255, 255}, "mm");
+        Image img = c.finish();
+        tmdb::round_corners(img.px, img.w, img.h, 64 * 0.2f);
+        out[sp.id] = std::make_shared<const Image>(std::move(img));
+    }
+    return out;
 }
 
 std::vector<HaEntity> demo_ha() {

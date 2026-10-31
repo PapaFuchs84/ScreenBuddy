@@ -155,7 +155,63 @@ static void test_matching() {
     CHECK(match_providers(ITEM_PROVIDERS, "DE", {}).empty());
 }
 
+static const char* ITEM_LOGOS = R"({"id":101,"results":{"DE":{"flatrate":[
+   {"provider_id":8,"provider_name":"Netflix","logo_path":"/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg"},
+   {"provider_id":9,"provider_name":"Amazon Prime Video","logo_path":"/emthp39XA2YScoYL1p0sdbAH2WA.jpg"},
+   {"provider_id":119,"provider_name":"Amazon Prime Video","logo_path":"/other.jpg"},
+   {"provider_id":337,"provider_name":"Disney Plus"}]}}})";
+
+static void test_logos() {
+    auto m = match_provider_details(ITEM_LOGOS, "DE", parse_selection({"8|Netflix", "9|Prime Video", "119|Prime Video", "337|Disney+"}));
+    CHECK(m.size() == 3);   // 9 und 119: ein Anbieter
+    CHECK(m[0].id == 8 && m[0].abbr == "NF" && m[0].logo_path == "/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg");
+    CHECK(m[1].id == 9 && m[2].id == 337 && m[2].logo_path.empty());
+    CHECK(match_provider_details("kaputt", "DE", {}).empty());
+
+    CHECK(logo_url("/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg") == "https://image.tmdb.org/t/p/w92/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg");
+    CHECK(logo_url("/a-b_c.d/e.png") == "https://image.tmdb.org/t/p/w92/a-b_c.d/e.png");
+    CHECK(!logo_url(""));
+    CHECK(!logo_url("/"));
+    CHECK(!logo_url("x.jpg"));                    // muss mit / beginnen
+    CHECK(!logo_url("/../etc/x.jpg"));            // kein ..
+    CHECK(!logo_url("/a/..b.jpg"));
+    CHECK(!logo_url("//evil.example/x.jpg"));     // kein //
+    CHECK(!logo_url("/x.gif"));                   // nur .jpg/.png
+    CHECK(!logo_url("/x.jpg.exe"));
+    CHECK(!logo_url("/.jpg"));
+    CHECK(!logo_url("/x y.jpg"));
+    CHECK(!logo_url("/x?a=1.jpg"));
+    CHECK(!logo_url("/x%2e.jpg"));
+    CHECK(!logo_url("/x\\y.jpg"));
+    CHECK(!logo_url("/x:80.jpg"));
+    CHECK(!logo_url("/x@h.jpg"));
+    CHECK(!logo_url(std::string("/x\0y.jpg", 9)));
+    CHECK(!logo_url("/" + std::string(MAX_LOGO_PATH, 'a') + ".jpg"));   // zu lang
+
+    CHECK(logo_cache_name(8) == "8.png" && logo_cache_name(2100) == "2100.png");
+    CHECK(logo_cache_name(0).empty() && logo_cache_name(-3).empty());
+
+    CHECK(logos_shown(0) == 0 && logos_shown(2) == 2 && logos_shown(3) == 3 && logos_shown(7) == MAX_LOGOS);
+    CHECK(logos_overflow(3).empty() && logos_overflow(0).empty());
+    CHECK(logos_overflow(4) == "+1" && logos_overflow(7) == "+4");
+
+    // Ecken abrunden: Mitte unverändert, Ecke transparent, Randpixel teilweise
+    std::vector<uint32_t> px(20 * 20, 0xFF808080u);
+    round_corners(px, 20, 20, 6.f);
+    CHECK(px[10 * 20 + 10] == 0xFF808080u);
+    CHECK((px[0] >> 24) == 0);
+    CHECK((px[10] >> 24) == 0xFF);   // Kantenmitte bleibt deckend
+    uint32_t edge = px[1 * 20 + 2];
+    CHECK((edge >> 24) < 0xFF);
+    CHECK(((edge >> 16) & 0xFF) <= (edge >> 24));   // vormultipliziert: Farbe nie heller als Alpha
+    std::vector<uint32_t> small(4, 0xFFFFFFFFu);
+    round_corners(small, 4, 4, 0.f);   // Radius 0: nichts ändern
+    CHECK(small[0] == 0xFFFFFFFFu);
+    round_corners(small, 0, 0, 5.f);   // ungültige Größe: kein Absturz
+}
+
 int main() {
+    test_logos();
     test_dates();
     test_region_and_key();
     test_providers();

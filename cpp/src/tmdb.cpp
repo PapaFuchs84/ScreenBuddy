@@ -4,6 +4,8 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <fstream>
+#include <iterator>
 
 #include "http.h"
 #include "netguard.h"
@@ -17,6 +19,23 @@ constexpr size_t MAX_BYTES = 2'000'000;
 constexpr DWORD PACE_MS = 300;             // Abstand zwischen Anfragen (TMDB erlaubt deutlich mehr, wir bleiben sparsam)
 constexpr double RETRY_AFTER_ERROR_S = 600;
 constexpr double RETRY_AFTER_LIMIT_S = 900;
+constexpr size_t LOGO_MAX_BYTES = 200'000;   // w92-Logos sind wenige KB groß
+constexpr int LOGO_PX = 64;                   // Speichergröße (quadratisch); der Renderer skaliert auf die Zeilenhöhe
+constexpr int LOGO_DECODE_MAX = 512;
+
+bool is_png(const std::string& b) { return b.size() >= 12 && b.compare(0, 8, "\x89PNG\r\n\x1a\n") == 0; }
+bool is_jpeg(const std::string& b) { return b.size() >= 12 && (unsigned char)b[0] == 0xFF && (unsigned char)b[1] == 0xD8 && (unsigned char)b[2] == 0xFF; }
+
+// Bytes → quadratisches, abgerundetes Logo; nur PNG/JPEG, nur plausible Größen
+ImagePtr make_logo(const std::string& bytes, bool round) {
+    if (!is_png(bytes) && !is_jpeg(bytes)) return nullptr;
+    auto img = decode_image(bytes);
+    if (!img || img->w > LOGO_DECODE_MAX || img->h > LOGO_DECODE_MAX) return nullptr;
+    Image sq = thumbnail(*img, LOGO_PX, LOGO_PX);
+    if (sq.w != LOGO_PX || sq.h != LOGO_PX) sq = resize(sq, LOGO_PX, LOGO_PX);
+    if (round) round_corners(sq.px, sq.w, sq.h, LOGO_PX * 0.2f);
+    return std::make_shared<const Image>(std::move(sq));
+}
 
 std::string str(const ojson& cfg, const char* k) {
     return cfg.contains(k) && cfg[k].is_string() ? cfg[k].get<std::string>() : std::string();
@@ -67,7 +86,8 @@ std::vector<Provider> list_providers(const std::string& key_in, const std::strin
     return all;
 }
 
-TmdbFeed::TmdbFeed(const ojson& cfg, std::string lang) : lang_(lang == "en" ? "en" : "de") {
+TmdbFeed::TmdbFeed(const ojson& cfg, std::string lang, std::filesystem::path logo_dir)
+    : lang_(lang == "en" ? "en" : "de"), logo_dir_(std::move(logo_dir)) {
     key_ = trim(str(cfg, "api_key"));
     region_ = region_for(lang_, str(cfg, "region"));
     std::vector<std::string> lines;
@@ -149,27 +169,110 @@ void TmdbFeed::refresh() {
     for (auto& it : top) {
         if (stop_) return;
         const std::string ck = (it.series ? "s:" : "m:") + std::to_string(it.id);
+        auto apply = [&](const std::vector<ProviderMatch>& ms) {
+            for (const auto& m : ms) {
+                it.providers.push_back(m.abbr);
+                it.provider_ids.push_back(m.id);
+                if (logo_url(m.logo_path)) logo_paths_[m.id] = m.logo_path;
+            }
+        };
         if (auto c = kuerzel_cache_.find(ck); c != kuerzel_cache_.end()) {
-            it.providers = c->second;
+            apply(c->second);
             continue;
         }
         auto got = get(item_providers_path(it.series, it.id));
         if (got.status == 200) {
-            it.providers = match_providers(got.body, region_, sel_);
+            auto ms = match_provider_details(got.body, region_, sel_);
             if (kuerzel_cache_.size() > 200) kuerzel_cache_.clear();
-            kuerzel_cache_[ck] = it.providers;
+            apply(ms);
+            kuerzel_cache_[ck] = std::move(ms);
         } else if (sel_.size() == 1) {
             it.providers = {abbreviation(sel_[0].id, sel_[0].name)};   // eindeutig, auch ohne Einzelabfrage
+            it.provider_ids = {sel_[0].id};
         }
         if (got.status == 401 || got.status == 403 || got.status == 429) break;
         Sleep(PACE_MS);
     }
+    // Logos nachladen: jedes einmal, danach aus dem Cache; fehlende bleiben beim Kürzel
+    load_logos(top);
     std::lock_guard lk(mu_);
     snap_.items = std::move(top);
     snap_.state = State::Ok;
     snap_.message.clear();
     snap_.updated = std::time(nullptr);
     retry_s_ = 0;
+}
+
+// Logo laden: Speicher → Cache-Datei → TMDB (einmal). Dateiname nur aus der numerischen ID; nie ein Pfad aus Fremddaten.
+ImagePtr TmdbFeed::load_logo(int id, const std::string& logo_path) {
+    namespace fs = std::filesystem;
+    const std::string name = logo_cache_name(id);
+    if (name.empty()) return nullptr;
+    const fs::path file = logo_dir_.empty() ? fs::path() : logo_dir_ / fs::path(name);
+    if (!file.empty()) {
+        std::error_code ec;
+        const auto size = fs::file_size(file, ec);
+        if (!ec && size > 0 && size <= LOGO_MAX_BYTES) {
+            std::ifstream in(file, std::ios::binary);
+            std::string bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+            if (auto img = make_logo(bytes, true)) return img;
+        }
+    }
+    auto url = logo_url(logo_path);
+    if (!url || !netguard::public_url(*url)) return nullptr;
+    http::Request r;
+    r.url = *url;
+    r.headers.push_back({"User-Agent", UA});
+    r.timeout_ms = TIMEOUT_MS;
+    r.max_bytes = LOGO_MAX_BYTES;
+    r.follow_redirects = false;
+    auto resp = http::fetch(r);
+    if (resp.status != 200 || resp.truncated) return nullptr;
+    auto img = make_logo(resp.body, false);   // ungerundet speichern, Ecken erst im Speicher
+    if (!img) return nullptr;
+    if (!file.empty()) {
+        std::error_code ec;
+        fs::create_directories(logo_dir_, ec);
+        const std::string png = encode_png(*img);
+        const fs::path tmp = file.wstring() + L".tmp";
+        {
+            std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
+            out.write(png.data(), (std::streamsize)png.size());
+        }
+        fs::rename(tmp, file, ec);
+        if (ec) fs::remove(tmp, ec);
+    }
+    Image rounded = *img;
+    round_corners(rounded.px, rounded.w, rounded.h, LOGO_PX * 0.2f);
+    return std::make_shared<const Image>(std::move(rounded));
+}
+
+void TmdbFeed::load_logos(const std::vector<Item>& items) {
+    bool changed = false;
+    for (const auto& it : items)
+        for (int id : it.provider_ids) {
+            if (stop_) return;
+            if (logos_.count(id) || logo_failed_.count(id)) continue;
+            auto p = logo_paths_.find(id);
+            if (p == logo_paths_.end()) continue;
+            ImagePtr img;
+            try {
+                img = load_logo(id, p->second);
+            } catch (const std::exception& e) {
+                LOGW("tmdb", "Logo %d nicht lesbar (%s)", id, e.what());
+            }
+            if (img) {
+                logos_[id] = std::move(img);
+                changed = true;
+            } else {
+                logo_failed_.insert(id);   // Kürzel bleibt; neuer Versuch erst nach Neustart
+            }
+            Sleep(PACE_MS);
+        }
+    if (changed) {
+        std::lock_guard lk(mu_);
+        snap_.logos = logos_;
+    }
 }
 
 void TmdbFeed::start(std::function<void()> on_update) {

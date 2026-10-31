@@ -208,6 +208,7 @@ public:
             T(L"Datenquellen der Seite „Streaming-Neustarts“", L"Data sources of the “New on streaming” page"));
         credits->add<Note>(Text(L"This product uses the TMDB API but is not endorsed or certified by TMDB."));
         credits->add<Note>(T(L"Anbieterdaten: JustWatch", L"Provider data: JustWatch"));
+        credits->add<Note>(T(L"Anbieter-Logos: Marken der jeweiligen Anbieter", L"Provider logos: trademarks of the respective providers"));
         Card* control = root.add<Card>(T(L"ScreenBuddy steuern", L"Control ScreenBuddy"),
             T(L"Neu starten lädt alle Einstellungen neu. Beenden macht das Display dunkel.", L"Restart reloads all settings. Quit turns the display dark."));
         auto control_row = control->add<ButtonRow>();

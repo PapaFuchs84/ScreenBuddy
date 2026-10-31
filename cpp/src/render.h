@@ -128,12 +128,12 @@ private:
     std::vector<std::string> wrap(Canvas& d, const std::string& text, const Font& f, float max_w, int lines = 2);
 };
 
-// Streaming-Neustarts: bis zu 6 Zeilen (Titel, Datum, Film/Serie, Anbieter-Kürzel), Fußzeile „TMDB / JustWatch“
+// Streaming-Neustarts: bis zu 6 Zeilen (Titel, Datum, Film/Serie, Anbieter-Logos, Rückfall Kürzel), Fußzeile „TMDB / JustWatch“
 class StreamRenderer : public Renderer {
 public:
     StreamRenderer(int w, int h, std::string title);
     Image render(StreamState state, const std::vector<StreamItem>& items, std::optional<std::time_t> updated,
-                 std::time_t now = 0);
+                 std::time_t now = 0, const StreamLogos* logos = nullptr);
     static constexpr int MAX_ROWS = tmdb::MAX_ITEMS;
 
 private:
@@ -181,6 +181,7 @@ std::string ago(std::optional<std::time_t> t, std::time_t now = 0);
 spotify::Snapshot demo_spotify();
 std::vector<HaEntity> demo_ha();
 std::vector<StreamItem> demo_stream();
+StreamLogos demo_stream_logos();   // Platzhalter-Kacheln zu den IDs aus demo_stream(), ohne Netz
 std::vector<Friend> demo_friends();
 std::vector<Bf6Player> demo_players();
 

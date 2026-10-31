@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <map>
 #include <set>
@@ -261,8 +262,8 @@ std::vector<Item> merge_items(std::vector<Item> movies, std::vector<Item> series
     return out;
 }
 
-std::vector<std::string> match_providers(const std::string& text, const std::string& region, const std::vector<Selected>& sel) {
-    std::vector<std::string> out;
+std::vector<ProviderMatch> match_provider_details(const std::string& text, const std::string& region, const std::vector<Selected>& sel) {
+    std::vector<ProviderMatch> out;
     json j = json::parse(text, nullptr, false);
     if (!j.is_object() || !j.contains("results") || !j["results"].is_object() || !j["results"].contains(region)) return out;
     const json& r = j["results"][region];
@@ -274,10 +275,56 @@ std::vector<std::string> match_providers(const std::string& text, const std::str
         if (s == sel.end()) continue;
         std::string name = s->name;
         if (name.empty() && p.contains("provider_name") && p["provider_name"].is_string()) name = p["provider_name"].get<std::string>();
-        const std::string ab = abbreviation(id, name);
-        if (std::find(out.begin(), out.end(), ab) == out.end()) out.push_back(ab);
+        ProviderMatch m;
+        m.id = id;
+        m.abbr = abbreviation(id, name);
+        if (p.contains("logo_path") && p["logo_path"].is_string()) m.logo_path = p["logo_path"].get<std::string>();
+        if (std::none_of(out.begin(), out.end(), [&](const ProviderMatch& x) { return x.abbr == m.abbr; })) out.push_back(std::move(m));
     }
     return out;
+}
+
+std::vector<std::string> match_providers(const std::string& text, const std::string& region, const std::vector<Selected>& sel) {
+    std::vector<std::string> out;
+    for (auto& m : match_provider_details(text, region, sel)) out.push_back(std::move(m.abbr));
+    return out;
+}
+
+// ---------------------------------------------------------------- Logos
+std::optional<std::string> logo_url(const std::string& path) {
+    if (path.size() < 6 || path.size() > MAX_LOGO_PATH || path[0] != '/') return std::nullopt;
+    for (unsigned char c : path)
+        if (!(std::isalnum(c) || c == '_' || c == '.' || c == '/' || c == '-')) return std::nullopt;
+    if (path.find("..") != std::string::npos || path.find("//") != std::string::npos) return std::nullopt;
+    auto ends = [&](const char* ext) {
+        const std::string e = ext;
+        return path.size() > e.size() + 1 && path.compare(path.size() - e.size(), e.size(), e) == 0;
+    };
+    if (!ends(".jpg") && !ends(".png")) return std::nullopt;
+    return std::string(LOGO_HOST) + path;
+}
+
+std::string logo_cache_name(int id) { return id > 0 ? std::to_string(id) + ".png" : std::string(); }
+
+int logos_shown(size_t count) { return (int)std::min<size_t>(count, MAX_LOGOS); }
+
+std::string logos_overflow(size_t count) { return count > (size_t)MAX_LOGOS ? "+" + std::to_string(count - MAX_LOGOS) : std::string(); }
+
+void round_corners(std::vector<uint32_t>& px, int w, int h, float radius) {
+    if (w <= 0 || h <= 0 || px.size() < (size_t)w * h || radius <= 0) return;
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            // Abstand des Pixelmittelpunkts zur Ecke, nur in den vier Eckfeldern
+            const float cx = x + 0.5f < radius ? radius : (x + 0.5f > w - radius ? w - radius : x + 0.5f);
+            const float cy = y + 0.5f < radius ? radius : (y + 0.5f > h - radius ? h - radius : y + 0.5f);
+            const float dx = x + 0.5f - cx, dy = y + 0.5f - cy;
+            const float dist = std::sqrt(dx * dx + dy * dy);
+            const float cov = std::clamp(radius - dist + 0.5f, 0.f, 1.f);
+            if (cov >= 1.f) continue;
+            uint32_t& v = px[(size_t)y * w + x];
+            auto ch = [&](int shift) { return (uint32_t)std::lround(((v >> shift) & 0xFF) * cov) << shift; };
+            v = ch(24) | ch(16) | ch(8) | ch(0);
+        }
 }
 
 // ---------------------------------------------------------------- Datum

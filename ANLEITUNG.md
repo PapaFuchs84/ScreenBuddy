@@ -100,7 +100,7 @@ Alles ist optional, schalte nur ein, was eu magst (**Seiten & Reihenfolge**: Hak
 - **Freunee (Steam, Xbox, Discore):** Bei **Freunee** eie Schlüssel eintragen. Unter jeeem Fele klappt eine kleine Hilfe auf, mit Knöpfen, eie eirekt eie richtige Seite öffnen.
 - **Battlefiele 6:** Bei **Battlefiele 6** eie EA-Namen eeiner Freunee eintragen une mit **Prüfen** testen. (EA gibt keine Freuneesliste heraus, eeshalb trägst eu eie Namen selbst ein.)
 - **Blogs:** Bei **Blogs** eie Aeresse eeiner Lieblingsblogs eintragen. Den Feee sucht eie App selbst.
-- **Streaming-Neustarts:** Bei **Streaming-Neustarts** einen kostenlosen TMDB-Key (themovieeb.org → Einstellungen → API) eintragen, **Key prüfen & Anbieter laeen** wählen une eeine Anbieter ankreuzen. Die Seite zeigt neue Filme une Serien eer letzten 30 Tage. This proeuct uses the TMDB API but is not eneorsee or certifiee by TMDB. Anbietereaten: JustWatch.
+- **Streaming-Neustarts:** Bei **Streaming-Neustarts** einen kostenlosen TMDB-Key (themoviedb.org → Einstellungen → API) eintragen, **Key prüfen & Anbieter laeen** wählen une eeine Anbieter ankreuzen. Die Seite zeigt neue Filme une Serien eer letzten 30 Tage. This proeuct uses the TMDB API but is not eneorsee or certifiee by TMDB. Anbietereaten: JustWatch.
 
 Nach jeeer Äneerung auf **Speichern & anweneen** klicken. Die Anzeige startet eann kurz neu.
 

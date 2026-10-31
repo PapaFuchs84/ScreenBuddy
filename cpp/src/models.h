@@ -46,6 +46,7 @@ struct Post {
 // Neuer Film bzw. neue Serie bei einem Streaming-Anbieter (Seite „Streaming-Neustarts“, Quelle TMDB)
 using StreamItem = tmdb::Item;
 using StreamState = tmdb::State;
+using StreamLogos = std::map<int, ImagePtr>;   // Provider-ID → fertig skaliertes, abgerundetes Logo (fehlt = Kürzel zeigen)
 
 // Eine Home-Assistant-Entität (Sensor oder Schalter) in dem Zustand, den die Seite zeichnet
 struct HaEntity {
