@@ -10,7 +10,6 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 - Streaming-Neustarts: Die Seite zeigte fast nur Netflix, weil alle gewählten Anbieter in einer Abfrage nach Datum sortiert wurden. Jetzt fragt die App je Anbieter getrennt ab (bis zu 8 Gruppen) und wählt reihum je Anbieter den neuesten Titel; so erscheinen alle gewählten Anbieter, jeweils mit Logo.
 - Spotify-Amplifier: Aktivierung erst beim Zeichnen der sichtbaren Wiedergabeseite; nach dem Seitenwechsel endet die Analyse nach höchstens drei Sekunden. Restbalken klingen vollständig auf null ab.
-
 - **Companion / Android TV:** Auch die sichtbare Einrichtung hält den Bildschirm eingeschaltet und verhindert den Bildschirmschoner. Die Vollbildanzeige behält ihren bestehenden Schutz; nach dem Verlassen der App gelten die normalen TV-Einstellungen.
 
 ### Hinzugefügt

@@ -13,7 +13,6 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ### Fixed
 
 - Spotify amplifier: activate analysis when drawing the visible playback page; analysis expires within three seconds after leaving it. Residual bars decay fully to zero.
-
 - **Companion / Android TV:** Visible setup now keeps the screen on and prevents the screensaver. The full-screen display retains its existing protection; normal TV settings apply after leaving the app.
 
 ### Added
