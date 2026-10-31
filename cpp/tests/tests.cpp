@@ -423,6 +423,16 @@ static void test_spotify() {
         float quiet = 0; for (int b = 0; b < audio::Bands; ++b) quiet = std::max(quiet, lv0[b]);
         CHECK(quiet == 0.f);
         for (int b = 0; b < audio::Bands; ++b) CHECK(lv[b] >= 0.f && lv[b] <= 1.f);
+        // Veröffentlichte Pegel müssen bei Stille vollständig verschwinden (auch Schritte < 0.012).
+        float current = 1.f, published = 1.f, zero = 0.f;
+        for (int step = 0; step < 32; ++step) {
+            if (audio::smooth_levels(&current, &zero, 1)) published = current;
+        }
+        CHECK_EQ(published, 0.f);
+        CHECK(!audio::smooth_levels(&current, &zero, 1));
+        float full = 1.f;
+        CHECK(audio::smooth_levels(&current, &full, 1));
+        CHECK_EQ(current, 0.75f);
         float tiny[16] = {};
         audio::spectrum_bands(tiny, 16, sr, lv, audio::Bands);   // zu wenig Samples: alles 0, kein Absturz
         CHECK(lv[0] == 0.f);

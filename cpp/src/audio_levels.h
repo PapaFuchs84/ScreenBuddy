@@ -15,6 +15,9 @@ constexpr int Bands = 16;
 // Reine Logik (testbar): Spektrum von n Mono-Samples in `bands` logarithmische Bänder (≈ 60 Hz … 14 kHz), Werte 0..1.
 void spectrum_bands(const float* mono, int n, int sample_rate, float* out, int bands);
 
+// Schneller Anstieg, weicher Abfall bis exakt null.
+bool smooth_levels(float* current, const float* target, int count);
+
 class LevelMeter {
 public:
     explicit LevelMeter(std::function<void()> on_update);

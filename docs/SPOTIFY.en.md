@@ -18,6 +18,8 @@ No client secret is needed (sign-in uses PKCE).
 
 While music plays, 16 bars show the level of the Windows system output (spectrum, landscape only). Switch off: *Settings → Spotify → Amplifier display*. The system output is read locally and immediately turned into bars; nothing is recorded, stored or sent, and the analysis only runs while the Spotify page is visible. If the music does not play through the PC (for example on a phone), the bars stay flat.
 
+Analysis expires within three seconds of the last playback-page render; pausing does not renew it. The local audio capture stream stays open even when spectrum calculation is inactive. Residual bars decay fully to zero during silence.
+
 ## Limits
 
 - **Controlling needs Spotify Premium** (Spotify's rule). Showing the track works without Premium.

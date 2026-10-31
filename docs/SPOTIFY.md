@@ -18,6 +18,8 @@ Ein Client Secret wird nicht gebraucht (Anmeldung per PKCE).
 
 Bei laufender Wiedergabe zeigen 16 Balken den Pegel der Windows-Systemausgabe (Spektrum, nur Querformat). Ausschalten: *Einstellungen → Spotify → Amplifier-Anzeige*. Die Systemausgabe wird lokal gelesen und sofort zu Balken verrechnet; es wird nichts aufgezeichnet, gespeichert oder gesendet, und die Analyse läuft nur, solange die Spotify-Seite zu sehen ist. Wird die Musik nicht über den PC abgespielt (z. B. auf dem Handy), bleiben die Balken flach.
 
+Die Analyse endet spätestens drei Sekunden nach dem letzten Zeichnen der Wiedergabeseite; bei Pause wird sie nicht weiter aktiviert. Der lokale Audioeingang bleibt geöffnet, auch wenn keine Spektrumberechnung läuft. Restbalken fallen bei Stille vollständig auf null.
+
 ## Grenzen
 
 - **Steuern braucht Spotify Premium** (Vorgabe von Spotify). Die Anzeige geht auch ohne Premium.

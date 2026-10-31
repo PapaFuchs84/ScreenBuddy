@@ -6,6 +6,11 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Fixed
+
+- Spotify amplifier: activate analysis when drawing the visible playback page; analysis expires within three seconds after leaving it. Residual bars decay fully to zero.
+
+
 ### Added
 
 - **Spotify: amplifier display**: while music plays, 16 bars show the level of the Windows system output (spectrum, about 8 frames per second, landscape only). The system output is read locally via WASAPI loopback; nothing is recorded or stored, and the analysis only runs while the Spotify page is visible. Switch: Settings → Spotify → *Amplifier display* (spotify.amp, on by default). Applies to the display, monitor and Companion; the actual frame rate depends on the output device.
