@@ -13,6 +13,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ### Behoben
 
+- **Companion-App 1.0.1**: Der Bildinhalt hält jetzt Abstand zu abgerundeten Display-Ecken (Android 12+, Radius aus der System-Auskunft) und zum Kamera-Ausschnitt; gemeldete Auflösung und Touch-Koordinaten beziehen sich auf den sicheren Bereich. Geprüft am Pixel 10 Pro (Ecken 157 px, Ausschnitt oben); Redmi 8 ohne Rundungen unverändert.
+- TMDB: Voreinstellung für RTL+ nutzt die TMDB-ID 2750 (Region DE) statt 298.
 - `--uninstall` bricht in Testinstanzen (`FUCHSLABS_INSTANCE`) ohne eigenen `FUCHSLABS_INSTALL_DIR` ab, statt die echte Installation (EXE) zu löschen und Autostart-Eintrag samt Programmliste zu hinterlassen.
 
 ## [2.7.0] – 2026-10-31
