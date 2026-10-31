@@ -15,6 +15,7 @@
 
 #include "brand.h"
 #include "native_settings.h"
+#include "theme.h"
 #include "ui_logic.h"
 #include "util.h"
 
@@ -48,6 +49,18 @@ const Theme& Theme::get(bool dark) {
         return t;
     }();
     return dark ? night : light;
+}
+
+void Kit::use_windows(bool on) {
+    windows_ = on;
+    if (!on) return;
+    const auto w = fl::theme::read_windows_settings();
+    const auto p = fl::theme::windows_palette(w);
+    dark = !w.light;
+    win_theme_ = Theme::get(dark);
+    win_theme_.accent = from(w.high_contrast ? p.accent : (w.has_accent ? w.accent : p.accent));
+    win_theme_.on_accent = from(fl::theme::readable_on(w.high_contrast ? p.accent : (w.has_accent ? w.accent : p.accent)));
+    win_theme_.accent_text = from(p.accent);   // Akzent als Schrift: kontrastkorrigiert
 }
 
 bool system_prefers_dark() {
@@ -880,7 +893,7 @@ void NavItem::paint(Ctx& c) {
         c.fill(rc, c.th.nav_active, 8);
         c.fill({rc.left, rc.top + 4, rc.left + 3, rc.bottom - 4}, c.th.accent, 1.5f);
     } else if (hot) c.fill(rc, c.th.dark ? from(brand::WHITE, .05f) : from(brand::NAVY, .07f), 8);
-    c.circle({rc.left + 16, (rc.top + rc.bottom) / 2}, 4, dot_on ? c.th.success : alpha(c.th.side_muted, .45f));
+    if (has_dot) c.circle({rc.left + 16, (rc.top + rc.bottom) / 2}, 4, dot_on ? c.th.success : alpha(c.th.side_muted, .45f));
     c.text(c.s(text), {rc.left + 30, rc.top, rc.right - 8, rc.bottom}, Font::Nav, active ? c.th.text : c.th.side_text);
 }
 bool NavItem::key(UINT vk, Surface& s) {

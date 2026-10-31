@@ -17,6 +17,7 @@ public:
         return {"discord", Group::Sources, Text(L"Discord"),
                 T(L"Bot-Zugang, Server und Personen der Discord-Seite", L"Bot access, servers and people of the Discord page")};
     }
+    bool shows_status() const override { return true; }
     bool active(const ojson& cfg) const override { return flag(cfg, "discord", "enabled") && flag(cfg, "discord", "token_set"); }
     void build(Host& host, Column& root) override {
         form_ = Form(host);

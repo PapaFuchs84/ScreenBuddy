@@ -1,5 +1,5 @@
 // © 2026 FuchsLabs
-// App: Farben & Design (Display-Farbschema) sowie Updates & Autostart.
+// App: Updates & Autostart (Farben & Design: ui_page_design.cpp).
 #include "ui_pages.h"
 
 #include <algorithm>
@@ -35,139 +35,6 @@ bool release_page_url(std::string_view url) {
     });
 }
 
-class DesignPage : public Page {
-public:
-    PageInfo info() const override {
-        return {"design", Group::App, T(L"Farben & Design", L"Colors & design"),
-                T(L"Farbschema des Displays – die Vorschau rechts zeigt die Wahl sofort", L"Color scheme of the display – the preview shows your choice right away")};
-    }
-    void build(Host& host, Column& root) override {
-        form_ = Form(host);
-        host_ = &host;
-        previewing_ = again_ = false;
-        visible_ = false;
-        ++preview_generation_;
-        Card* card = root.add<Card>();
-        theme_ = form_.segment(*card, "display", "theme", T(L"Farbschema", L"Color scheme"),
-            T(L"Gilt für USB-Display, Bildschirm und Companion", L"Applies to USB display, monitor and Companion"),
-            {"hell", "dunkel", "eigen"}, {T(L"Hell", L"Light"), T(L"Dunkel", L"Dark"), T(L"Eigene Farben", L"Custom colors")});
-        theme_->on_change = [this] { preview(); };
-
-        Card* colors = root.add<Card>(T(L"Eigene Farben", L"Custom colors"),
-            T(L"Gilt für das Display, sobald oben „Eigene Farben“ gewählt ist. Leere Farben kommen von der Vorlage. "
-              L"Die Vorschau rechts zeigt die Änderung sofort, übernommen wird sie erst mit „Speichern & anwenden“.",
-              L"Applies to the display once “Custom colors” is selected above. Empty colors come from the base. "
-              L"The preview on the right shows changes right away; they are only kept with “Save & apply”."));
-        base_ = form_.segment(*colors, "display", "color_base", T(L"Ausgangsfarben", L"Base colors"),
-            T(L"Leere Farben kommen von dieser Vorlage", L"Empty colors come from this base"),
-            {"hell", "dunkel"}, {T(L"Hell (Creme)", L"Light (cream)"), T(L"Dunkel (Navy)", L"Dark (navy)")});
-        base_->on_change = [this] { refresh_fallbacks(); changed(); };
-        const ojson& d = host.config().at("display");
-        struct Def { const char* key; Text label; };
-        const Def defs[] = {{"bg", T(L"Hintergrund", L"Background")}, {"card", T(L"Karten", L"Cards")},
-                            {"header", T(L"Kopfzeile & Balken", L"Header & bars")}, {"accent", T(L"Akzentschrift", L"Accent text")},
-                            {"text", T(L"Schrift", L"Text")}, {"muted", T(L"Nebentext", L"Secondary text")}};
-        fields_.clear();
-        for (const auto& def : defs) {
-            std::string value = d.value(std::string("color_") + def.key, "");
-            ColorField* f = colors->row<ColorField>(def.label, Text(), value);
-            f->name = def.label;
-            f->field.on_change = [this] { changed(); };
-            fields_.push_back({def.key, f});
-        }
-        refresh_fallbacks(false);
-        auto reset = colors->add<ButtonRow>();
-        reset->add(T(L"Zurücksetzen", L"Reset"), Button::Secondary, [this] {
-            for (auto& [key, f] : fields_) f->set_hex("");
-            changed();
-        });
-        readable_ = root.add<Note>(Text(), Note::Info);
-        update_readable(false);
-    }
-    void collect(Host&, ojson& patch) override {
-        form_.collect(patch);
-        for (auto& [key, f] : fields_) {
-            if (!f->valid()) throw Invalid(host_->english() ? "Enter a color as #RRGGBB or leave it empty." : "Farbe als #RRGGBB eingeben oder leer lassen.", &f->field);
-            patch["display"]["color_" + key] = f->hex();
-        }
-    }
-    void shown(Host&) override { visible_ = true; }
-    void hidden(Host&) override {
-        visible_ = false;
-        again_ = false;
-        ++preview_generation_;
-    }
-private:
-    Form form_;
-    Host* host_ = nullptr;
-    Segment *theme_ = nullptr, *base_ = nullptr;
-    Note* readable_ = nullptr;
-    std::vector<std::pair<std::string, ColorField*>> fields_;
-    bool previewing_ = false, again_ = false;
-    bool visible_ = false;
-    uint64_t preview_generation_ = 0;
-
-    std::string base_name() const { return base_ && base_->index == 1 ? "dunkel" : "hell"; }
-    void refresh_fallbacks(bool layout = true) {
-        const ojson presets = render::presets_json();
-        const std::string base = base_name();
-        for (auto& [key, f] : fields_) {
-            f->fallback = presets.contains(base) ? presets[base].value(key, "") : "";
-            f->field.hint = Text(widen(f->fallback));
-            f->field.restyle(host_->surface());
-        }
-        if (layout) host_->surface().invalidate();
-    }
-    void changed() {
-        update_readable();
-        preview();
-    }
-    void update_readable(bool layout = true) {
-        if (!readable_) return;
-        std::map<std::string, std::string> colors;
-        for (auto& [key, f] : fields_) colors[key] = f->effective();
-        const auto warn = logic::color_warnings(colors);
-        auto name = [](const std::string& id) {
-            if (id == "text_bg") return T(L"Schrift auf Hintergrund", L"text on background");
-            if (id == "text_card") return T(L"Schrift auf Karten", L"text on cards");
-            if (id == "muted_bg") return T(L"Nebentext auf Hintergrund", L"secondary text on background");
-            return T(L"Akzentschrift auf Hintergrund", L"accent text on background");
-        };
-        if (warn.empty()) {
-            readable_->kind = Note::Info;
-            readable_->text = T(L"Alles gut lesbar. Die Schrift auf der Kopfzeile wählt die App selbst (Navy oder Weiß).",
-                                L"Everything is easy to read. The app picks the header text colour itself (navy or white).");
-        } else {
-            std::wstring de, en;
-            for (const auto& id : warn) { de += (de.empty() ? L"" : L", ") + name(id).de; en += (en.empty() ? L"" : L", ") + name(id).en; }
-            readable_->kind = Note::Warn;
-            readable_->text = Text(L"Schwer lesbar: " + de + L". Wähle dort mehr Unterschied zwischen hell und dunkel.",
-                                   L"Hard to read: " + en + L". Choose more difference between light and dark there.");
-        }
-        if (layout) host_->relayout();
-    }
-    // Live-Vorschau im Vorschaubereich; läuft nie doppelt, Änderungen währenddessen lösen genau einen Folgeaufruf aus.
-    void preview() {
-        if (!visible_) return;
-        for (auto& [key, f] : fields_) if (!f->valid()) return;
-        if (previewing_) { again_ = true; return; }
-        previewing_ = true;
-        again_ = false;
-        static const char* themes[] = {"hell", "dunkel", "eigen"};
-        ojson display = {{"theme", themes[std::clamp(theme_->index, 0, 2)]}, {"color_base", base_name()}};
-        for (auto& [key, f] : fields_) display["color_" + key] = f->hex();
-        Host* h = host_;
-        const auto generation = preview_generation_;
-        h->run([this, h, display, generation]() -> std::function<void()> {
-            auto frame = h->app().preview_theme(display);
-            return [this, h, frame, generation] {
-                previewing_ = false;
-                if (visible_ && generation == preview_generation_ && frame) h->preview(frame);
-                if (visible_ && again_) preview();
-            };
-        });
-    }
-};
 class AppPage : public Page {
 public:
     PageInfo info() const override {
@@ -358,6 +225,5 @@ private:
 };
 
 }  // namespace
-std::unique_ptr<Page> make_design_page() { return std::make_unique<DesignPage>(); }
 std::unique_ptr<Page> make_app_page() { return std::make_unique<AppPage>(); }
 }  // namespace fl::ui

@@ -459,6 +459,16 @@ std::string App::display_error() {
     return display_error_;
 }
 
+void App::system_theme_changed() {
+    const std::string key = s(dp_, "theme", "hell");
+    if (key != "windows" && key.rfind("custom:", 0) != 0) return;
+    {
+        std::lock_guard rl(render::mutex());
+        render::apply_theme(dp_);
+    }
+    mark_dirty();
+}
+
 std::optional<Image> App::preview_theme(const ojson& override) {
     // Aktuelles Bild mit anderen Farben zeichnen, ohne sie zu übernehmen (unter der Zeichensperre, die Anzeige kann
     // also nicht dazwischen mit den Vorschaufarben zeichnen)
@@ -1182,6 +1192,7 @@ void App::run() {
         ShellExecuteW(nullptr, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     };
     tray.on_balloon = [this] { show_settings(); };
+    tray.on_system_theme = [this] { system_theme_changed(); };
     tray.start();
     {
         std::lock_guard lk(notify_mu_);

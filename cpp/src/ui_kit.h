@@ -98,7 +98,10 @@ public:
     IDWriteTextFormat* format(Font f);
     IDWriteInlineObject* ellipsis(Font f);
     ID2D1StrokeStyle* dashed();
-    const Theme& theme() const { return Theme::get(dark); }
+    const Theme& theme() const { return windows_ ? win_theme_ : Theme::get(dark); }
+    // "An Windows anpassen": Hell/Dunkel und Akzentfarbe des Systems (Kopfzeile und Logo bleiben Fuchs-Orange)
+    void use_windows(bool on);
+    bool windows() const { return windows_; }
     bool english = false, dark = false;
 private:
     ComPtr<ID2D1Factory> d2d_;
@@ -106,6 +109,8 @@ private:
     ComPtr<IDWriteTextFormat> formats_[10];
     ComPtr<IDWriteInlineObject> ellipsis_[10];
     ComPtr<ID2D1StrokeStyle> dashed_;
+    bool windows_ = false;
+    Theme win_theme_;
 };
 
 class Surface;
@@ -470,6 +475,8 @@ public:
     Text text;
     std::string id;
     bool active = false, dot_on = false;
+    bool has_dot = true;   // nur Datenquellen/Verbindungen zeigen einen Statuspunkt
+    Text dot_hint;         // Hinweis für Sprachausgabe: eingerichtet und an / nicht eingerichtet oder aus
     std::function<void()> on_open;
     std::function<void(int)> on_step;  // Pfeil hoch/runter
     NavItem(Text t, std::string i) : text(std::move(t)), id(std::move(i)) {}
@@ -482,6 +489,7 @@ public:
     void activate(Surface& s) override;
     Role role() const override { return Role::NavTab; }
     bool checked() const override { return active; }
+    std::wstring value(bool en) const override { return has_dot ? dot_hint.get(en) : std::wstring(); }
 };
 
 // Platzhalter in der Tab-Reihenfolge: leitet den Fokus in eine andere Surface (Inhaltsbereich).
@@ -622,6 +630,7 @@ public:
     virtual void build(Host& host, Column& root) = 0;
     virtual void collect(Host&, ojson&) {}
     virtual bool active(const ojson&) const { return false; }
+    virtual bool shows_status() const { return false; }   // Statuspunkt in der Navigation (Datenquelle/Verbindung)
     virtual void shown(Host&) {}
     virtual void hidden(Host&) {}
     virtual void tick(Host&, const Status&) {}

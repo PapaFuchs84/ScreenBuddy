@@ -34,6 +34,7 @@ public:
                 T(L"Android-App im Heimnetz: Ausgabe, Kopplung, Geräte und eigene Seitenauswahl",
                   L"Android app on your home network: output, pairing, devices and its own page selection")};
     }
+    bool shows_status() const override { return true; }
     bool active(const ojson& cfg) const override {
         return flag(cfg, "companion", "enabled") || cfg.at("display").value("output", "") == "network";
     }

@@ -28,6 +28,7 @@ public:
         return {"friends", Group::Sources, T(L"Freunde", L"Friends"),
                 T(L"Gemeinsame Freundesliste aus Steam, Xbox und Discord", L"Combined friends list from Steam, Xbox and Discord")};
     }
+    bool shows_status() const override { return true; }
     bool active(const ojson& cfg) const override { return flag(cfg, "friends", "enabled"); }
     void build(Host& host, Column& root) override {
         form_ = Form(host);

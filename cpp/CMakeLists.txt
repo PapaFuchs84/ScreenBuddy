@@ -26,12 +26,12 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
-    src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/render.cpp
+    src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/audio_levels.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
     src/ui_kit.cpp src/ui_logic.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
-    src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_streaming.cpp src/ui_page_homeassistant.cpp src/ui_page_spotify.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_store.cpp src/ui_page_app.cpp
+    src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_streaming.cpp src/ui_page_homeassistant.cpp src/ui_page_spotify.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_store.cpp src/ui_page_app.cpp src/ui_page_design.cpp
     src/companion.cpp src/companion_server.cpp src/network_display.cpp
     src/plugins.cpp src/plugin_sign.cpp src/plugin_catalog.cpp src/plugin_catalog_net.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
 
@@ -55,6 +55,7 @@ target_link_options(ScreenBuddy PRIVATE /MANIFEST:NO /OPT:REF /OPT:ICF /DYNAMICB
 # Tests (Konsole): Parser, Konfiguration, Zeichnen
 add_executable(fl-tests tests/tests.cpp res/app.rc)
 target_link_libraries(fl-tests PRIVATE flcore)
+target_compile_definitions(fl-tests PRIVATE FL_THEME_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/themes")
 target_link_options(fl-tests PRIVATE /MANIFEST:NO)
 
 add_executable(fl-monitor-tests tests/monitor_tests.cpp)

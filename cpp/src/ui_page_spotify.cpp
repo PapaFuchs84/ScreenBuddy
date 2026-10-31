@@ -35,6 +35,7 @@ public:
         return {"spotify", Group::Sources, Text(L"Spotify"),
                 T(L"Aktuellen Titel mit Cover anzeigen und per Touch steuern", L"Show the current track with cover art and control it by touch")};
     }
+    bool shows_status() const override { return true; }
     bool active(const ojson& cfg) const override { return flag(cfg, "spotify", "enabled"); }
     void build(Host& host, Column& root) override {
         form_ = Form(host);

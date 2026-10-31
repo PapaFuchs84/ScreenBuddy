@@ -58,6 +58,7 @@ public:
     std::optional<Image> device_frame(const std::string& device_id);   // Vorschau einer Companion-App (eigenes Bild, sonst das gemeinsame)
     ojson page_navigation(bool companion = false);
     std::optional<Image> preview_theme(const ojson& display_override);
+    void system_theme_changed();   // "An Windows anpassen": Farben neu lesen und neu zeichnen
     bool display_ok();
     std::string display_error();
     std::optional<std::string> discord_status();   // nullopt = Discord nicht eingerichtet

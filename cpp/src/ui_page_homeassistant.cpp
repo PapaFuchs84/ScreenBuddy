@@ -18,6 +18,7 @@ public:
         return {"homeassistant", Group::Sources, Text(L"Home Assistant"),
                 T(L"Sensoren und Schalter aus deinem Smart Home", L"Sensors and switches from your smart home")};
     }
+    bool shows_status() const override { return true; }
     bool active(const ojson& cfg) const override { return flag(cfg, "homeassistant", "enabled"); }
     void build(Host& host, Column& root) override {
         form_ = Form(host);

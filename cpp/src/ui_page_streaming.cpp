@@ -20,6 +20,7 @@ public:
         return {"streaming", Group::Sources, T(L"Streaming-Neustarts", L"New on streaming"),
                 T(L"Neue Filme und Serien bei deinen Streaming-Anbietern", L"New movies and series on your streaming services")};
     }
+    bool shows_status() const override { return true; }
     bool active(const ojson& cfg) const override { return flag(cfg, "streaming", "enabled"); }
     void build(Host& host, Column& root) override {
         form_ = Form(host);

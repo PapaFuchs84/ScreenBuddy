@@ -62,7 +62,7 @@ Dazu kommen:
 - **Ersteinrichtung ohne Vorkenntnisse**: erkennt das Display, beendet und deaktiviert auf Wunsch die Hersteller-App, Autostart ohne Administratorrechte
 - **Plugin-Store** (ab 2.6.0, abschaltbar): signierter Store mit Prüfung vor der Installation; Plugins bleiben aus, bis du sie aktivierst. Mehr: [Plugin-Store und Plugins](docs/FUNKTIONEN.md#plugin-store-und-plugins-ab-260)
 - **Android-Companion** (ab 2.3.0, mehrere Geräte ab 2.7.0): Handy oder Tablet als weitere Anzeige, Kopplung per QR-Code oder PIN. Mehr: [Companion](docs/FUNKTIONEN.md#android-companion-app-ab-230-mehrere-geräte-ab-270)
-- **Design**: FuchsLabs-CI in Hell oder Dunkel, oder **eigene Farben** per Farbwähler mit Kontrastwarnung
+- **Design**: FuchsLabs-CI in Hell oder Dunkel, **An Windows anpassen** (Hell/Dunkel und Akzentfarbe, live) oder **eigene Themes** (JSON, Editor mit Kontrastwarnung, Import/Export), siehe [docs/THEMES.md](docs/THEMES.md)
 - **Jede Auflösung**: Seiten werden scharf auf die echte Größe gerendert; breite Leisten zeigen mehrere Seiten nebeneinander
 - **HDMI/USB-C-Bildschirme** als randloses Vollbild über der Taskleiste, optional mit **Touch** (wischen oder tippen zum Blättern, Tipp auf Beiträge, Freunde, Spieler und Systemkarten öffnet passende Ziele); Prüfung und Einrichtung der Windows-Touch-Zuordnung unter **Anzeige**. Details: [Touch und Update-Hinweis](docs/FUNKTIONEN.md#systemseite-per-touch-und-update-hinweis-ab-220), [Touch-Ziele](docs/FUNKTIONEN.md#touch-ziele-und-spielstunden-ab-208)
 - **Home Assistant** mit Sensoren und Schaltern: [Einrichtung und Sicherheitshinweise](docs/FUNKTIONEN.md#home-assistant-ab-210)
@@ -123,7 +123,7 @@ orientation = "landscape"  # auch reverse_landscape, portrait, reverse_portrait
 brightness = 90
 page_seconds = 15
 pages = ["system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify"]   # Reihenfolge
-theme = "hell"             # "hell", "dunkel" oder "eigen"
+theme = "hell"             # "hell", "dunkel", "windows" oder "custom:<id>"
 touch = true               # nur bei output = "monitor"
 
 [bf6]

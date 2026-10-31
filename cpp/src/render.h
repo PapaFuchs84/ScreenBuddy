@@ -21,11 +21,12 @@ namespace fl::render {
 // Farben des aktuellen Designs (hell, dunkel oder eigen)
 struct Theme {
     Color bg, card, line, orange, accent, text, muted, head_text, warn, hot, down;
+    Color bar;   // Balken/Schalter; gleich der Kopfzeilenfarbe, bei "An Windows anpassen" die kontrastgeprüfte Akzentfarbe
     std::map<std::string, Color> status;  // online | idle | dnd | offline
 };
 const Theme& theme();
 void set_theme(const std::string& name, const std::map<std::string, std::string>& custom = {});
-void apply_theme(const ojson& display);   // aus den Display-Einstellungen
+void apply_theme(const ojson& display);   // theme: hell | dunkel | windows | custom:<id>; theme_inline = ungespeicherte Vorschau
 std::mutex& mutex();                      // Zeichnen und Design wechseln nur unter dieser Sperre
 
 std::string hex_color(Color c);

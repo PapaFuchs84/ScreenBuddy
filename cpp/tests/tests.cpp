@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <filesystem>
+#include <set>
 #include <fstream>
 
 #include "config.h"
@@ -15,6 +16,9 @@
 #include "installer.h"
 #include "netguard.h"
 #include "render.h"
+#include "theme.h"
+#include "ui_pages.h"
+#include "brand.h"
 #include "rss.h"
 #include "spotify.h"
 #include "secure.h"
@@ -763,6 +767,192 @@ static void test_render(const fs::path& out) {
     render::set_theme("hell");
 }
 
+static void test_themes() {
+    namespace th = theme;
+    // FuchsLabs-CI: Text und Akzentschrift lesbar
+    for (bool dark : {false, true}) {
+        auto p = th::builtin(dark);
+        CHECK(th::contrast(p.text, p.bg) >= th::MIN_TEXT);
+        CHECK(th::contrast(p.text, p.card) >= th::MIN_TEXT);
+        CHECK(th::contrast(p.accent, p.bg) >= th::MIN_TEXT);
+    }
+    CHECK(th::contrast_warnings(th::builtin(false)).empty());
+    CHECK(th::contrast_warnings(th::builtin(true)).empty());
+    // Windows-Farben: Hell/Dunkel, Akzent ersetzt nur accent, Kopfzeile bleibt Fuchs-Orange
+    th::WindowsSettings w;
+    w.light = true; w.has_accent = true; w.accent = {255, 255, 0};   // Gelb auf Hell: müsste korrigiert werden
+    auto pl = th::windows_palette(w);
+    CHECK(pl.header == brand::ORANGE);
+    CHECK(th::contrast(pl.accent, pl.bg) >= th::MIN_TEXT);
+    CHECK(th::contrast(pl.accent, pl.card) >= th::MIN_BAR);
+    CHECK(th::contrast_warnings(th::Palette{pl.bg, pl.card, pl.line, pl.header, pl.accent, pl.text, pl.muted, pl.success, pl.danger}).size() <= 1);
+    w.light = false; w.accent = {0, 0, 128};   // Dunkelblau auf Dunkel: muss aufgehellt werden
+    auto pd = th::windows_palette(w);
+    CHECK(th::contrast(pd.accent, pd.bg) >= th::MIN_TEXT);
+    CHECK(th::contrast(pd.text, pd.bg) >= th::MIN_TEXT);
+    CHECK(pd.bg.r < 64 && pl.bg.r > 200);
+    w.has_accent = false;   // ohne Windows-Akzent: Markenfarbe
+    CHECK(th::windows_palette(w).accent == brand::ORANGE);
+    // Kontrastdesign: Systemfarben
+    th::WindowsSettings hc;
+    hc.high_contrast = true; hc.light = false;
+    hc.hc_bg = {0, 0, 0}; hc.hc_text = {255, 255, 255}; hc.hc_accent = {255, 255, 0}; hc.hc_muted = {60, 60, 60};
+    auto ph = th::windows_palette(hc);
+    CHECK(ph.bg == Color(0, 0, 0));
+    CHECK(ph.accent == Color(255, 255, 0));
+    CHECK(th::contrast(ph.muted, ph.bg) >= th::MIN_TEXT);   // dunkles GrayText wird angehoben
+    // Balken-Farbe ≥ 3:1 gegen Hintergrund und Karte
+    for (bool light : {true, false}) {
+        th::WindowsSettings x; x.light = light; x.has_accent = true; x.accent = {200, 200, 200};
+        auto r = th::resolve("windows", th::Store(fs::temp_directory_path() / "fl-no-such-themes"), &x);
+        CHECK(r.windows);
+        CHECK(th::contrast(r.bar, r.colors.bg) >= th::MIN_BAR);
+        CHECK(th::contrast(r.bar, r.colors.card) >= th::MIN_BAR);
+    }
+    // Korrektur: zu geringer Kontrast wird behoben, bg bleibt
+    th::Palette bad = th::builtin(false);
+    bad.text = bad.bg; bad.muted = bad.card;
+    std::vector<std::string> changed;
+    auto fixed = th::correct_contrast(bad, &changed);
+    CHECK(fixed.bg == bad.bg);
+    CHECK(th::contrast(fixed.text, fixed.bg) >= th::MIN_TEXT && th::contrast(fixed.text, fixed.card) >= th::MIN_TEXT);
+    CHECK(!changed.empty());
+    CHECK(!th::contrast_warnings(bad).empty());
+
+    // JSON strikt
+    th::Custom c;
+    c.name = "Mein Design"; c.base = "dunkel"; c.dark = true; c.colors = th::builtin(true);
+    ojson j = th::to_json(c);
+    std::string err;
+    auto back = th::parse(j, err);
+    CHECK(back.has_value());
+    CHECK(back && back->colors == c.colors && back->name == c.name && back->dark);
+    auto bad_json = [&](auto mutate) { ojson x = th::to_json(c); mutate(x); std::string e; return !th::parse(x, e).has_value() && !e.empty(); };
+    CHECK(bad_json([](ojson& x) { x["extra"] = 1; }));
+    CHECK(bad_json([](ojson& x) { x.erase("version"); }));
+    CHECK(bad_json([](ojson& x) { x["version"] = 2; }));
+    CHECK(bad_json([](ojson& x) { x["version"] = "1"; }));
+    CHECK(bad_json([](ojson& x) { x["name"] = ""; }));
+    CHECK(bad_json([](ojson& x) { x["name"] = "<b>x</b>"; }));
+    CHECK(bad_json([](ojson& x) { x["name"] = "a/b"; }));
+    CHECK(bad_json([](ojson& x) { x["name"] = std::string(41, 'a'); }));
+    CHECK(bad_json([](ojson& x) { x["name"] = " lead"; }));
+    CHECK(bad_json([](ojson& x) { x["name"] = "tab\there"; }));
+    CHECK(bad_json([](ojson& x) { x["name"] = "rtl\xE2\x80\xAE" "x"; }));
+    CHECK(bad_json([](ojson& x) { x["name"] = "\xC3\x28"; }));
+    CHECK(bad_json([](ojson& x) { x["base"] = "windows"; }));
+    CHECK(bad_json([](ojson& x) { x["dark"] = "yes"; }));
+    CHECK(bad_json([](ojson& x) { x["colors"]["bg"] = "#FFF"; }));
+    CHECK(bad_json([](ojson& x) { x["colors"]["bg"] = "red"; }));
+    CHECK(bad_json([](ojson& x) { x["colors"]["bg"] = "#GG0000"; }));
+    CHECK(bad_json([](ojson& x) { x["colors"]["bg"] = "#12345678"; }));
+    CHECK(bad_json([](ojson& x) { x["colors"]["bg"] = " #123456"; }));
+    CHECK(bad_json([](ojson& x) { x["colors"]["bg"] = 5; }));
+    CHECK(bad_json([](ojson& x) { x["colors"].erase("danger"); }));
+    CHECK(bad_json([](ojson& x) { x["colors"]["glow"] = "#000000"; }));
+    CHECK(bad_json([](ojson& x) { x["colors"] = ojson::array(); }));
+    { std::string e; CHECK(!th::parse(ojson::array(), e).has_value()); }
+    CHECK_EQ(th::slugify("Mein Design!"), std::string("mein-design"));
+    CHECK_EQ(th::slugify("Größe"), std::string("gr-e"));
+    CHECK_EQ(th::slugify("!!!"), std::string("theme"));
+    CHECK_EQ(th::slugify("Windows"), std::string("windows-theme"));
+    CHECK(th::valid_id("abc-1") && !th::valid_id("../x") && !th::valid_id("A") && !th::valid_id("-a") && !th::valid_id("hell") && !th::valid_id(""));
+    CHECK(th::valid_theme_key("hell") && th::valid_theme_key("windows") && th::valid_theme_key("custom:abc"));
+    CHECK(!th::valid_theme_key("custom:../x") && !th::valid_theme_key("Windows") && !th::valid_theme_key("custom:") && !th::valid_theme_key("eigen"));
+
+    // Statuspunkte der Navigation: nur Datenquellen/Verbindungen, nie reine Einstellungsseiten
+    {
+        std::set<std::string> dots;
+        for (auto& page : ui::create_pages()) if (page->shows_status()) dots.insert(page->info().id);
+        CHECK(dots == std::set<std::string>({"system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify", "companion"}));
+    }
+    // Mitgelieferte Beispiel-Themes (Stil-Anlehnung): gültig und gut lesbar
+    for (const char* f : {"cupertino-stil", "material-stil", "fluent-stil"}) {
+        std::ifstream in(fs::path(FL_THEME_EXAMPLE_DIR) / (std::string(f) + ".json"), std::ios::binary);
+        std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        auto ex = th::parse(ojson::parse(text, nullptr, false), err);
+        CHECK(ex.has_value());
+        CHECK(ex && th::contrast_warnings(ex->colors).empty());
+    }
+    // Ablage (eigener Ordner, nie die echte Installation)
+    fs::path dir = fs::temp_directory_path() / "fl-test-themes";
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+    th::Store st(dir);
+    CHECK(st.list().empty());
+    th::Custom a = c;
+    CHECK(st.save(a, err) && a.id == "mein-design");
+    th::Custom a2 = c;
+    CHECK(st.save(a2, err) && a2.id == "mein-design-2");   // gleicher Name: eigene Datei
+    CHECK_EQ(st.list().size(), (size_t)2);
+    auto ld = st.load("mein-design");
+    CHECK(ld && ld->colors == c.colors);
+    CHECK(!st.load("../mein-design") && !st.load("nope"));
+    auto dup = st.duplicate("mein-design", err);
+    CHECK(dup && dup->name == "Mein Design (Kopie)" && dup->id != "mein-design");
+    CHECK(st.rename("mein-design", "Neuer Name", err));
+    CHECK(st.load("mein-design") && st.load("mein-design")->name == "Neuer Name");
+    CHECK(!st.rename("mein-design", "<x>", err));
+    fs::path exp = fs::temp_directory_path() / "fl-test-theme-export.json";
+    CHECK(st.export_file("mein-design", exp, err));
+    auto imp = st.import_file(exp, err);
+    CHECK(imp && imp->name == "Neuer Name" && imp->id != "mein-design");
+    auto write_file = [&](const fs::path& p, const std::string& s) { std::ofstream f(p, std::ios::binary); f << s; };
+    write_file(dir / "kaputt.json", "{ nicht json");
+    write_file(dir / "zu-gross.json", std::string(th::MAX_FILE_BYTES + 1, ' '));
+    write_file(dir / "Gross.json", th::to_json(c).dump());
+    std::vector<std::string> problems;
+    auto all = st.list(&problems);
+    CHECK_EQ(problems.size(), (size_t)3);
+    for (auto& t : all) CHECK(th::valid_id(t.id));
+    write_file(exp, std::string(th::MAX_FILE_BYTES + 1, ' '));
+    CHECK(!st.import_file(exp, err));
+    write_file(exp, "{}");
+    CHECK(!st.import_file(exp, err));
+    CHECK(!st.import_file(fs::temp_directory_path() / "fl-test-theme-export.txt", err));
+    CHECK(st.import_text(std::string("\xEF\xBB\xBF") + th::to_json(c).dump(), err).has_value());   // BOM erlaubt
+    CHECK(st.remove("mein-design-2", err) && !st.remove("mein-design-2", err) && !st.remove("../x", err));
+    // Resolve
+    auto rc = th::resolve("custom:mein-design", st);
+    CHECK(rc.found && !rc.windows && rc.dark && rc.colors == c.colors && rc.bar == c.colors.header);
+    CHECK(!th::resolve("custom:gibts-nicht", st).found);
+    CHECK(th::resolve("dunkel", st).dark && !th::resolve("hell", st).dark);
+    // Migration von "Eigene Farben"
+    ojson cfg = {{"display", {{"theme", "eigen"}, {"color_base", "dunkel"}, {"color_bg", "#101010"}, {"color_card", ""},
+                              {"color_header", "#00AA00"}, {"color_accent", ""}, {"color_text", "#FFFFFF"}, {"color_muted", ""}}}};
+    CHECK(th::migrate_config(cfg, st));
+    CHECK_EQ(cfg["display"]["theme"].get<std::string>(), std::string("custom:eigene-farben"));
+    CHECK_EQ(cfg["display"]["color_bg"].get<std::string>(), std::string(""));
+    auto mig = st.load("eigene-farben");
+    CHECK(mig && mig->dark && mig->colors.bg == Color(16, 16, 16) && mig->colors.header == Color(0, 170, 0) &&
+          mig->colors.card == brand::NAVY);
+    CHECK(!th::migrate_config(cfg, st));
+    // Einstellungen: nur gültige Themes
+    ojson inc = {{"display", {{"theme", "windows"}}}};
+    CHECK_EQ(config::merge(config::defaults(), inc)["display"]["theme"].get<std::string>(), std::string("windows"));
+    inc["display"]["theme"] = "custom:mein-design";
+    CHECK(config::merge(config::defaults(), inc)["display"]["theme"] == "custom:mein-design");
+    for (const char* bad : {"custom:../x", "Windows", "custom:", "blau"}) {
+        inc["display"]["theme"] = bad;
+        bool threw = false;
+        try { config::merge(config::defaults(), inc); } catch (const std::invalid_argument&) { threw = true; }
+        CHECK(threw);
+    }
+    // Darstellung: Windows-Thema und Vorschau eines ungespeicherten Themes
+    render::apply_theme({{"theme", "windows"}});
+    CHECK(render::theme().bar.r + render::theme().bar.g + render::theme().bar.b >= 0);
+    ojson inl = th::to_json(c);
+    inl["colors"]["bg"] = "#123456";
+    render::apply_theme({{"theme", "hell"}, {"theme_inline", inl}});
+    CHECK(render::theme().bg == Color(0x12, 0x34, 0x56));
+    render::apply_theme({{"theme", "hell"}, {"theme_inline", ojson{{"x", 1}}}});   // ungültige Vorschau → Theme gilt
+    CHECK(render::theme().bg == brand::CREME);
+    render::set_theme("dunkel");
+    CHECK(render::theme().bar == render::theme().orange);
+    render::set_theme("hell");
+    fs::remove_all(dir, ec);
+    fs::remove(exp, ec);
+}
 #include <dpp/dpp.h>
 
 #include <openssl/err.h>
@@ -859,7 +1049,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}, {"themes", test_themes}}) {
         std::printf("· %s\n", name);
         fn();
     }

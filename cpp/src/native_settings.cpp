@@ -367,7 +367,8 @@ struct NativeSettings::Impl : ui::Host {
         update_device();
     }
     void apply_theme() {
-        kit->dark = theme->index == 1;
+        kit->use_windows(theme->index == 2);
+        if (theme->index != 2) kit->dark = theme->index == 1;
         BOOL dark = kit->dark;
         DwmSetWindowAttribute(frame->hwnd(), 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));
         frame->restyle();
@@ -392,7 +393,7 @@ struct NativeSettings::Impl : ui::Host {
             }
         }
         patch["ui"]["language"] = lang->index == 1 ? "en" : "de";
-        if (theme->dirty()) patch["ui"]["settings_theme"] = theme->index == 1 ? "dunkel" : "hell";
+        if (theme->dirty()) patch["ui"]["settings_theme"] = theme->index == 2 ? "windows" : theme->index == 1 ? "dunkel" : "hell";
         patch["ui"]["setup_done"] = true;
         try { config::merge(initial_, patch); }  // vor dem Speichern prüfen
         catch (const std::exception& e) { toast(ui::Text(widen(e.what())), ui::ToastKind::Error); return; }
@@ -452,14 +453,16 @@ struct NativeSettings::Impl : ui::Host {
         logo->framed = false;
         logo->name = ui::Text(L"ScreenBuddy");
         const std::string settings_theme = initial_.at("ui").value("settings_theme", "auto");
-        const bool dark = settings_theme == "dunkel" || (settings_theme != "hell" && ui::system_prefers_dark());
+        const bool windows = settings_theme == "windows";
+        kit->use_windows(windows);
+        const bool dark = windows ? kit->dark : (settings_theme == "dunkel" || (settings_theme != "hell" && ui::system_prefers_dark()));
         kit->dark = dark;
         kit->english = initial_.at("ui").value("language", "de") == "en";
         lang = own<ui::Segment>(std::vector<ui::Text>{ui::Text(L"DE"), ui::Text(L"EN")}, kit->english ? 1 : 0);
         lang->header_style = true;
         lang->name = ui::T(L"Sprache", L"Language");
         lang->on_change = [this] { apply_language(); };
-        theme = own<ui::Segment>(std::vector<ui::Text>{ui::T(L"☀ Hell", L"☀ Light"), ui::T(L"☾ Dunkel", L"☾ Dark")}, dark ? 1 : 0);
+        theme = own<ui::Segment>(std::vector<ui::Text>{ui::T(L"☀ Hell", L"☀ Light"), ui::T(L"☾ Dunkel", L"☾ Dark"), ui::Text(L"Windows")}, windows ? 2 : dark ? 1 : 0);
         theme->header_style = true;
         theme->name = ui::T(L"Darstellung des Fensters", L"Window appearance");
         theme->on_change = [this] { apply_theme(); };
@@ -473,7 +476,11 @@ struct NativeSettings::Impl : ui::Host {
         std::stable_sort(slots.begin(), slots.end(), [](const Slot& a, const Slot& b) { return int(a.info.group) < int(b.info.group); });
         for (size_t i = 0; i < slots.size(); ++i) {
             auto nav = own<ui::NavItem>(slots[i].info.title, slots[i].info.id);
-            nav->dot_on = slots[i].page->active(initial_);
+            nav->has_dot = slots[i].page->shows_status();
+            nav->dot_on = nav->has_dot && slots[i].page->active(initial_);
+            if (nav->has_dot)
+                nav->dot_hint = nav->dot_on ? ui::T(L"Eingerichtet und eingeschaltet", L"Set up and switched on")
+                                            : ui::T(L"Nicht eingerichtet oder ausgeschaltet", L"Not set up or switched off");
             nav->on_open = [this, i] { open(int(i), false); };
             nav->on_step = [this](int d) { step(d); };
             slots[i].nav = nav;
@@ -527,7 +534,7 @@ struct NativeSettings::Impl : ui::Host {
         // Passt die Navigation nicht in die Höhe, werden Einträge und Gruppenabstände enger (statt unter die Fußleiste zu laufen).
         int groups = 0, last_group = -1;
         for (auto& s : slots) if (int(s.info.group) != last_group) { last_group = int(s.info.group); ++groups; }
-        const float avail = h - FooterH - (HeaderH + 12) - 6;
+        const float avail = h - FooterH - (HeaderH + 12) - 6 - 24;   // 24: Legende der Statuspunkte
         float gap0 = 18, gapN = 26, item_h = 36;
         float need = slots.size() * item_h + gap0 + gapN * std::max(0, groups - 1);
         if (need > avail) {
@@ -577,6 +584,15 @@ struct NativeSettings::Impl : ui::Host {
         if (preview_visible) {
             c.fill({w - PreviewW, HeaderH, w, h - FooterH}, th.side);
             c.line({w - PreviewW, HeaderH}, {w - PreviewW, h - FooterH}, th.dark ? th.line : ui::from(brand::GLUT, .35f));
+        }
+        {   // Legende der Punkte in der Navigation
+            const float ly = h - FooterH - 20;
+            c.circle({26, ly}, 4, th.success);
+            c.text(kit->english ? L"set up & on" : L"eingerichtet & an", {36, ly - 9, 118, ly + 9}, ui::Font::Small, th.side_muted);
+            ui::Rgba grey = th.side_muted;
+            grey.a *= .45f;
+            c.circle({126, ly}, 4, grey);
+            c.text(kit->english ? L"not set up / off" : L"nicht eingerichtet / aus", {136, ly - 9, NavW - 6, ly + 9}, ui::Font::Small, th.side_muted);
         }
         c.fill({0, 0, w, HeaderH}, th.header);
         c.circle({35, HeaderH / 2}, 18, ui::from(brand::NAVY));
@@ -662,6 +678,10 @@ struct NativeSettings::Impl : ui::Host {
             if (wp == PollTimer) poll();
             if (wp == ToastTimer) { KillTimer(frame->hwnd(), ToastTimer); toast_text = {}; frame->invalidate(); }
             return true;
+        case WM_SETTINGCHANGE:
+        case WM_THEMECHANGED:
+            if (theme && theme->index == 2) apply_theme();   // Windows-Farben live nachziehen
+            return false;
         case ResultsMsg: consume(); return true;
         case WM_DESTROY:
             KillTimer(frame->hwnd(), PollTimer); shown = false; live_window = nullptr; PostQuitMessage(0);

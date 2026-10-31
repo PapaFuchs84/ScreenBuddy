@@ -62,7 +62,7 @@ Plus:
 - **First-run setup without prior knowledge**: detects the display, closes and disables the vendor app if you want, autostart without admin rights
 - **Plugin store** (from 2.6.0, can be switched off): signed store with checks before installation; plugins stay off until you enable them. More: [Plugin store and plugins](docs/FEATURES.en.md#plugin-store-and-plugins-from-260)
 - **Android Companion** (from 2.3.0, several devices from 2.7.0): phone or tablet as an additional display, pairing via QR code or PIN. More: [Companion](docs/FEATURES.en.md#android-companion-app-from-230-multiple-devices-from-270)
-- **Design**: FuchsLabs style in light or dark, or **custom colours** via colour pickers with a contrast warning
+- **Design**: FuchsLabs style in light or dark, **match Windows** (light/dark and accent colour, live) or **custom themes** (JSON, editor with contrast warning, import/export), see [docs/THEMES.md](docs/THEMES.md)
 - **Any resolution**: pages are rendered sharply at the real size; wide bars show several pages side by side
 - **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages; taps on posts, friends, players and system cards open matching targets); Windows touch assignment checks and setup under **Display**. Details: [touch and update notice](docs/FEATURES.en.md#system-page-touch-and-update-notice-from-220), [touch targets](docs/FEATURES.en.md#touch-targets-and-playtime-from-208)
 - **Home Assistant** with sensors and switches: [setup and security notes](docs/FEATURES.en.md#home-assistant-from-210)
@@ -123,7 +123,7 @@ orientation = "landscape"  # also reverse_landscape, portrait, reverse_portrait
 brightness = 90
 page_seconds = 15
 pages = ["system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify"]   # order
-theme = "hell"             # "hell" (light), "dunkel" (dark) or "eigen" (custom)
+theme = "hell"             # "hell" (light), "dunkel" (dark), "windows" or "custom:<id>"
 touch = true               # only with output = "monitor"
 
 [bf6]

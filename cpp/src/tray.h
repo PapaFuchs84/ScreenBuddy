@@ -17,6 +17,7 @@ public:
     ~Tray();
     std::function<void()> on_balloon;  // Klick auf eine Sprechblase (z. B. Update-Hinweis)
     void notify(const std::string& title, const std::string& text);   // Sprechblase am Tray-Symbol (aus jedem Thread)
+    std::function<void()> on_system_theme;  // Windows-Farben/Hell-Dunkel geändert (WM_SETTINGCHANGE "ImmersiveColorSet")
     std::function<void()> on_guide;  // „Anleitung öffnen“ im Menü (im Standardbrowser), vor start() setzen
     void start();
     void stop();

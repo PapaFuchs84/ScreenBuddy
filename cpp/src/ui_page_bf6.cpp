@@ -15,6 +15,7 @@ public:
         return {"bf6", Group::Sources, Text(L"Battlefield 6"),
                 T(L"Rangliste deiner Mitspieler", L"Leaderboard of your fellow players")};
     }
+    bool shows_status() const override { return true; }
     bool active(const ojson& cfg) const override { return flag(cfg, "bf6", "enabled"); }
     void build(Host& host, Column& root) override {
         form_ = Form(host);
