@@ -12,6 +12,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 - Touching Spotify cover art opens the Spotify desktop app, without requiring Premium.
 - TMDB key application explained with field examples in German/English help.
 
+### Changed
+
+- **Companion app 1.0.3** (versionCode 7): modern login/pairing design in light and dark following the system setting, contrast at least 4.5:1, rounded buttons and fields, visible focus ring for remote control. Protocol and app ID unchanged.
+
 ## [2.9.3] – 2026-10-31
 
 ### Added

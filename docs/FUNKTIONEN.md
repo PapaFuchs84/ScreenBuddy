@@ -68,7 +68,7 @@ Zeigt den aktuell gespielten Titel mit Cover und Fortschritt; mit Touch (Monitor
 
 ## Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)
 
-Ein Android-Handy oder -Tablet als zusätzliche Anzeige neben dem USB-/HDMI-Bildschirm. Ab 2.3.0 gab es den Companion als Vorschau-APK; die aktuelle Companion-App 1.0.2 (versionCode 6, Android 8+) ist ein separater Download. Seit 2.7.0 laufen mehrere Companions gleichzeitig, **synchron oder unabhängig**.
+Ein Android-Handy oder -Tablet als zusätzliche Anzeige neben dem USB-/HDMI-Bildschirm. Ab 2.3.0 gab es den Companion als Vorschau-APK; die aktuelle Companion-App 1.0.3 (versionCode 7, Android 8+) ist ein separater Download. Seit 2.7.0 laufen mehrere Companions gleichzeitig, **synchron oder unabhängig**.
 
 - **Eigene Seiten und Zeitgeber:** Der Companion hat gegenüber USB/HDMI eine eigene Seitenliste und ein eigenes Intervall (unter **Companion**). Im unabhängigen Modus (`sync = false`) hat zusätzlich jedes Gerät eigene Seitenposition, Auflösung, Bedienung und optional eine eigene Seitenliste. Datenquellen und Design bleiben gemeinsam. Standard ist die synchrone Anzeige.
 - **Kopplung per QR-Code oder PIN:** Den Kopplungscode zeigst du unter **Einstellungen → Companion → Gerät koppeln**. Die Android-App scannt den QR-Code oder verbindet sich mit Adresse, Port (Standard 8777) und 6-stelliger PIN; ein SHA-256-Zertifikat-Fingerabdruck sichert die TLS-Verbindung.

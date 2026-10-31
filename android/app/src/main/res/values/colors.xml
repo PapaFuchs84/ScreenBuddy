@@ -8,4 +8,14 @@
     <color name="fl_navy_deep">#0E1628</color>
     <color name="fl_nebel">#68605C</color>
     <color name="ic_launcher_background">#F77F00</color>
+
+    <!-- Semantische Farben (hell). Kontrast: Text/Hintergrund >= 4.5:1 -->
+    <color name="ui_bg">#FFF4E6</color>
+    <color name="ui_surface">#FFFFFF</color>
+    <color name="ui_text">#14213D</color>
+    <color name="ui_text_secondary">#5A524E</color>
+    <color name="ui_primary">#B05200</color>
+    <color name="ui_on_primary">#FFFFFF</color>
+    <color name="ui_stroke">#8A7F78</color>
+    <color name="ui_focus">#14213D</color>
 </resources>

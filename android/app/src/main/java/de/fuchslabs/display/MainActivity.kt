@@ -52,43 +52,52 @@ class MainActivity : AppCompatActivity() {
         // Das Window-Flag wirkt nur, solange diese Activity sichtbar ist.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         store = Store(this)
-        val orange = getColor(R.color.fl_orange); val navy = getColor(R.color.fl_navy); val creme = getColor(R.color.fl_creme)
+        val text = getColor(R.color.ui_text); val textSec = getColor(R.color.ui_text_secondary); val onPrimary = getColor(R.color.ui_on_primary); val bg = getColor(R.color.ui_bg)
+        val night = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        androidx.core.view.WindowInsetsControllerCompat(window, window.decorView).apply { isAppearanceLightStatusBars = !night; isAppearanceLightNavigationBars = !night }
         val dp = resources.displayMetrics.density
         fun pad(v: View, p: Int) = v.setPadding((p * dp).toInt(), (p * dp).toInt(), (p * dp).toInt(), (p * dp).toInt())
-        fun label(s: Int) = TextView(this).apply { setText(s); setTextColor(navy); textSize = 16f; typeface = Typeface.DEFAULT_BOLD; pad(this, 4) }
+        fun label(s: Int) = TextView(this).apply { setText(s); setTextColor(text); textSize = 16f; typeface = Typeface.DEFAULT_BOLD; setPadding((4 * dp).toInt(), (20 * dp).toInt(), (4 * dp).toInt(), (6 * dp).toInt()) }
+        fun gap(v: View, top: Int = 8, h: Int = -2) = v.apply { layoutParams = LinearLayout.LayoutParams(-1, if (h > 0) (h * dp).toInt() else h).apply { topMargin = (top * dp).toInt() } }
+        fun field(e: EditText) = e.apply { setTextColor(text); setHintTextColor(textSec); setBackgroundResource(R.drawable.field_bg); textSize = 16f; minHeight = (52 * dp).toInt(); setPadding((14 * dp).toInt(), (8 * dp).toInt(), (14 * dp).toInt(), (8 * dp).toInt()); gravity = Gravity.CENTER_VERTICAL; isFocusable = true }
         fun button(s: Int, click: () -> Unit) = Button(this).apply {
-            setText(s); setTextColor(creme); setBackgroundColor(orange); setOnClickListener { click() }
+            setText(s); setTextColor(onPrimary); setBackgroundResource(R.drawable.btn_primary); isAllCaps = false; textSize = 16f; typeface = Typeface.DEFAULT_BOLD
+            minHeight = (52 * dp).toInt(); stateListAnimator = null; setOnClickListener { click() }
         }
 
-        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; pad(this, 16) }
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; pad(this, 20) }
+        fun secondary(s: String, click: () -> Unit) = Button(this).apply {
+            this.text = s; setTextColor(text); setBackgroundResource(R.drawable.btn_secondary); isAllCaps = false; textSize = 15f
+            minHeight = (48 * dp).toInt(); stateListAnimator = null; setOnClickListener { click() }
+        }
         col.addView(ImageView(this).apply { setImageResource(R.mipmap.ic_launcher) },
             LinearLayout.LayoutParams((72 * dp).toInt(), (72 * dp).toInt()))
-        col.addView(TextView(this).apply { setText(R.string.title_connect); textSize = 22f; setTextColor(navy); typeface = Typeface.DEFAULT_BOLD; pad(this, 4) })
+        col.addView(TextView(this).apply { setText(R.string.title_connect); textSize = 24f; setTextColor(text); typeface = Typeface.DEFAULT_BOLD; pad(this, 4) })
 
         lastBtn = button(R.string.btn_scan) { store.paired()?.let { startActivity(Intent(this, DisplayActivity::class.java)) } }
-        col.addView(lastBtn)
+        col.addView(gap(lastBtn))
         // Ohne Kamera (z. B. Android TV) QR-Einstieg ausblenden statt einer Berechtigung, die ohnehin scheitert;
         // manuelle Kopplung bleibt der einzige, hervorgehobene Weg.
-        if (hasCamera) col.addView(button(R.string.btn_scan) { requestScan() })
-        else col.addView(TextView(this).apply { setText(R.string.info_no_camera); setTextColor(getColor(R.color.fl_nebel)); textSize = 13f; pad(this, 4) })
+        if (hasCamera) col.addView(gap(button(R.string.btn_scan) { requestScan() }))
+        else col.addView(TextView(this).apply { setText(R.string.info_no_camera); setTextColor(textSec); textSize = 14f; pad(this, 4) })
 
         col.addView(label(R.string.section_found))
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         col.addView(list)
 
         col.addView(label(R.string.section_manual))
-        host = EditText(this).apply { setHint(R.string.hint_host); inputType = InputType.TYPE_TEXT_VARIATION_URI; setSingleLine() }
-        port = EditText(this).apply { setHint(R.string.hint_port); setText(Protocol.DEFAULT_PORT.toString()); inputType = InputType.TYPE_CLASS_NUMBER; setSingleLine() }
-        pin = EditText(this).apply { setHint(R.string.hint_pin); inputType = InputType.TYPE_CLASS_NUMBER; setSingleLine() }
-        col.addView(host); col.addView(port); col.addView(pin)
-        col.addView(button(R.string.btn_manual_pair) { manualPair() })
+        host = field(EditText(this)).apply { setHint(R.string.hint_host); inputType = InputType.TYPE_TEXT_VARIATION_URI; setSingleLine() }
+        port = field(EditText(this)).apply { setHint(R.string.hint_port); setText(Protocol.DEFAULT_PORT.toString()); inputType = InputType.TYPE_CLASS_NUMBER; setSingleLine() }
+        pin = field(EditText(this)).apply { setHint(R.string.hint_pin); inputType = InputType.TYPE_CLASS_NUMBER; setSingleLine() }
+        col.addView(gap(host, 8, 52)); col.addView(gap(port, 8, 52)); col.addView(gap(pin, 8, 52))
+        col.addView(gap(button(R.string.btn_manual_pair) { manualPair() }, 12))
 
         col.addView(label(R.string.section_orientation))
         val modes = listOf("landscape" to R.string.orient_landscape, "auto" to R.string.orient_auto, "portrait" to R.string.orient_portrait)
         col.addView(RadioGroup(this).apply {
             orientation = RadioGroup.VERTICAL
             val ids = modes.map { (key, res) ->
-                RadioButton(this@MainActivity).apply { id = View.generateViewId(); setText(res); tag = key; setTextColor(navy) }
+                RadioButton(this@MainActivity).apply { id = View.generateViewId(); setText(res); tag = key; setTextColor(text); textSize = 16f; minHeight = (48 * dp).toInt() }
                     .also { addView(it) }
             }
             ids.firstOrNull { it.tag == store.orientation }?.isChecked = true
@@ -97,19 +106,19 @@ class MainActivity : AppCompatActivity() {
 
         col.addView(label(R.string.section_launcher))
         val sw1 = Switch(this).apply {
-            setText(R.string.setting_launcher); isChecked = store.launcherMode
+            setTextColor(text); minHeight = (48 * dp).toInt(); setText(R.string.setting_launcher); isChecked = store.launcherMode
             setOnCheckedChangeListener { _, on -> setLauncher(on) }
         }
         col.addView(sw1)
-        col.addView(TextView(this).apply { setText(R.string.setting_launcher_desc); setTextColor(getColor(R.color.fl_nebel)); textSize = 13f })
+        col.addView(TextView(this).apply { setText(R.string.setting_launcher_desc); setTextColor(textSec); textSize = 14f; pad(this, 4) })
         col.addView(Switch(this).apply {
-            setText(R.string.setting_boot); isChecked = store.bootStart
+            setTextColor(text); minHeight = (48 * dp).toInt(); setText(R.string.setting_boot); isChecked = store.bootStart
             setOnCheckedChangeListener { _, on -> store.bootStart = on }
         })
-        forgetBtn = Button(this).apply { setText(R.string.btn_forget); setOnClickListener { store.forget(); sw1.isChecked = false; refresh() } }
-        col.addView(forgetBtn)
+        forgetBtn = secondary(getString(R.string.btn_forget)) { store.forget(); sw1.isChecked = false; refresh() }
+        col.addView(gap(forgetBtn, 20))
 
-        setContentView(ScrollView(this).apply { setBackgroundColor(creme); addView(col) })
+        setContentView(ScrollView(this).apply { setBackgroundColor(bg); isFillViewport = true; addView(col) })
         discovery = Discovery(this) { found = it; refresh() }
     }
 
@@ -117,15 +126,19 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() { discovery.stop(); super.onStop() }
 
     private fun refresh() {
+        val dp = resources.displayMetrics.density
         val p = store.paired()
         lastBtn.visibility = if (p != null) View.VISIBLE else View.GONE
         if (p != null) lastBtn.text = getString(R.string.btn_connect_last, p.name)
         forgetBtn.visibility = if (p != null) View.VISIBLE else View.GONE
         // mDNS-Funde ueberschreiben nie den gespeicherten Host/Port (Spoofing-Schutz); nur manuell neu koppeln.
         list.removeAllViews()
-        if (found.isEmpty()) list.addView(TextView(this).apply { setText(R.string.found_none); setTextColor(getColor(R.color.fl_nebel)) })
+        if (found.isEmpty()) list.addView(TextView(this).apply { setText(R.string.found_none); setTextColor(getColor(R.color.ui_text_secondary)) })
         for (f in found) list.addView(Button(this).apply {
             text = "${f.name}  (${f.host}:${f.port})"
+            setTextColor(getColor(R.color.ui_text)); setBackgroundResource(R.drawable.btn_secondary); isAllCaps = false; textSize = 15f
+            minHeight = (48 * dp).toInt(); stateListAnimator = null
+            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = (8 * dp).toInt() }
             setOnClickListener { host.setText(f.host); port.setText(f.port.toString()); pin.requestFocus() }
         })
     }
