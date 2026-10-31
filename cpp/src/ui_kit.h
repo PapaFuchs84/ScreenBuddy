@@ -50,6 +50,7 @@
 
 #include "config.h"
 #include "gfx.h"
+#include "theme.h"
 
 namespace fl {
 class App;
@@ -98,7 +99,9 @@ public:
     IDWriteTextFormat* format(Font f);
     IDWriteInlineObject* ellipsis(Font f);
     ID2D1StrokeStyle* dashed();
-    const Theme& theme() const { return windows_ ? win_theme_ : Theme::get(dark); }
+    const Theme& theme() const { return windows_ ? win_theme_ : designed_ ? design_theme_[dark ? 1 : 0] : Theme::get(dark); }
+    void use_design(const ojson& display);
+    fl::theme::Design design;
     // "An Windows anpassen": Hell/Dunkel und Akzentfarbe des Systems (Kopfzeile und Logo bleiben Fuchs-Orange)
     void use_windows(bool on);
     bool windows() const { return windows_; }
@@ -109,7 +112,8 @@ private:
     ComPtr<IDWriteTextFormat> formats_[10];
     ComPtr<IDWriteInlineObject> ellipsis_[10];
     ComPtr<ID2D1StrokeStyle> dashed_;
-    bool windows_ = false;
+    bool windows_ = false, designed_ = false;
+    Theme design_theme_[2];
     Theme win_theme_;
 };
 
@@ -143,6 +147,7 @@ public:
     Rect rc{};                 // nach layout(): Lage im Dokument der Surface (DIP)
     bool visible = true, enabled = true;
     bool track_dirty = true;   // false: zählt nicht als ungespeicherte Änderung (sofort wirksame Aktionen)
+    bool pressed = false;
     bool hot = false;          // Maus darüber
     Text name;                 // Name für Sprachausgabe; Row setzt ihn auf ihre Beschriftung
     std::function<void()> on_change;
@@ -261,7 +266,7 @@ class Tiles : public Widget {
 public:
     struct Tile { Text value, label; };
     std::vector<Tile> tiles;
-    float height(Ctx&, float) override { return 70; }
+    float height(Ctx& c, float) override { return c.kit.design.tonal ? 176.f : 70.f; }
     void paint(Ctx& c) override;
     std::wstring value(bool en) const override;
 };
@@ -477,6 +482,8 @@ public:
     Text text;
     std::string id;
     bool active = false, dot_on = false;
+    bool rail = false, search_result = false;
+    int icon = 0;
     bool has_dot = true;   // nur Datenquellen/Verbindungen zeigen einen Statuspunkt
     Text dot_hint;         // Hinweis für Sprachausgabe: eingerichtet und an / nicht eingerichtet oder aus
     std::function<void()> on_open;
@@ -484,7 +491,7 @@ public:
     NavItem(Text t, std::string i) : text(std::move(t)), id(std::move(i)) {}
     float height(Ctx&, float) override { return 34; }
     void paint(Ctx& c) override;
-    bool focusable() const override { return active; }  // nur der aktive Eintrag ist Tab-Stopp, Pfeile wechseln
+    bool focusable() const override { return active || search_result; }
     bool clickable() const override { return true; }
     bool key(UINT vk, Surface& s) override;
     void release(Point p, Surface& s) override;

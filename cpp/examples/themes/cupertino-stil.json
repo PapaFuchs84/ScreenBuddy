@@ -1,6 +1,7 @@
 {
   "version": 1,
   "name": "Cupertino-Stil",
+  "style": "cupertino",
   "base": "hell",
   "dark": false,
   "colors": {

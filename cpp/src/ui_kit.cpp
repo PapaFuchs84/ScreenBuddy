@@ -51,13 +51,33 @@ const Theme& Theme::get(bool dark) {
     return dark ? night : light;
 }
 
+void Kit::use_design(const ojson& display) {
+    auto resolved = fl::theme::resolve(display.value("theme", std::string("hell")), fl::theme::Store());
+    design = fl::theme::design(resolved.style);
+    designed_ = resolved.style != fl::theme::Style::FuchsLabs;
+    for (auto& f : formats_) f.Reset();
+    for (auto& e : ellipsis_) e.Reset();
+    if (!designed_) return;
+    for (int mode = 0; mode < 2; ++mode) {
+    const auto p = fl::theme::correct_contrast(bool(mode) == resolved.dark ? resolved.colors : fl::theme::profile_palette(resolved.style, mode != 0));
+    design_theme_[mode] = Theme::get(mode != 0);
+    auto& t = design_theme_[mode];
+    t.bg = from(p.bg); t.card = from(p.card); t.input = from(p.bg); t.line = from(p.line);
+    t.text = t.side_text = from(p.text); t.muted = t.side_muted = from(p.muted);
+    t.side = from(p.bg); t.nav_active = from(p.card);
+    t.accent = t.accent_text = from(p.accent); t.on_accent = from(fl::theme::readable_on(p.accent));
+    t.header = from(p.bg); t.header_text = from(p.text);
+    t.success = from(p.success); t.danger = from(p.danger); t.dark = mode != 0;
+    }
+}
+
 void Kit::use_windows(bool on) {
     windows_ = on;
     if (!on) return;
     const auto w = fl::theme::read_windows_settings();
     const auto p = fl::theme::windows_palette(w);
     dark = !w.light;
-    win_theme_ = Theme::get(dark);
+    win_theme_ = designed_ ? design_theme_[dark ? 1 : 0] : Theme::get(dark);   // Profil: Profilpalette statt FuchsLabs-Orange
     win_theme_.accent = from(w.high_contrast ? p.accent : (w.has_accent ? w.accent : p.accent));
     win_theme_.on_accent = from(fl::theme::readable_on(w.high_contrast ? p.accent : (w.has_accent ? w.accent : p.accent)));
     win_theme_.accent_text = from(p.accent);   // Akzent als Schrift: kontrastkorrigiert
@@ -97,8 +117,16 @@ IDWriteTextFormat* Kit::format(Font f) {
         {L"Bahnschrift", DWRITE_FONT_WEIGHT_SEMI_BOLD, 12},// Label
     };
     const auto& s = specs[int(f)];
-    if (FAILED(dw_->CreateTextFormat(s.family, nullptr, s.weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
-                                     s.size, L"de-de", slot.GetAddressOf())))
+    float size = s.size;
+    if (design.style == fl::theme::Style::Cupertino && f == Font::H1) size = 24;
+    if (design.style == fl::theme::Style::Fluent && f == Font::H1) size = 28;
+    if (design.style == fl::theme::Style::Material) {
+        if (f == Font::H1) size = 34;
+        if (f == Font::Nav || f == Font::Strong) size = 16;
+        if (f == Font::Tile) size = 32;
+    }
+    if (FAILED(dw_->CreateTextFormat(design.style == fl::theme::Style::FuchsLabs ? s.family : design.style == fl::theme::Style::Fluent ? L"Segoe UI Variable" : L"Segoe UI", nullptr, s.weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
+                                     size, L"de-de", slot.GetAddressOf())))
         throw std::runtime_error("Native settings: CreateTextFormat");
     return slot.Get();
 }
@@ -272,7 +300,7 @@ float Card::layout(Ctx& c, float x, float y, float w) {
         if (!item->visible) continue;
         bool row = dynamic_cast<Row*>(item.get()) != nullptr;
         if (!first || g.title_h > 0 || g.desc_h > 0) g.dividers.push_back(cy);
-        float pad = row ? 0.f : 10.f;
+        float pad = row ? 0.f : c.kit.design.spacing - 2;
         cy += pad;
         cy += item->layout(c, x + pad_x, cy, inner);
         cy += pad;
@@ -285,7 +313,7 @@ float Card::layout(Ctx& c, float x, float y, float w) {
 }
 void Card::paint(Ctx& c) {
     auto& g = *this;
-    c.fill(rc, c.th.card, 12);
+    c.fill(rc, c.th.card, c.kit.design.style == fl::theme::Style::FuchsLabs ? 12.f : c.kit.design.card_radius);
     if (placeholder) {
         c.brush->SetColor(c.th.accent); c.brush->SetOpacity(c.dim);
         c.rt->DrawRoundedRectangle(D2D1::RoundedRect(inflate(rc, -1), 12, 12), c.brush, 1.5f, c.kit.dashed());
@@ -294,7 +322,8 @@ void Card::paint(Ctx& c) {
         Rect b{rc.right - pad_x - bw, rc.top + 10, rc.right - pad_x, rc.top + 30};
         c.fill(b, c.th.accent, 10);
         c.text(badge, b, Font::Label, c.th.on_accent, DWRITE_TEXT_ALIGNMENT_CENTER);
-    } else c.frame(rc, c.th.line, 12);
+    } else if (!c.kit.design.grouped && !c.kit.design.tonal)
+        c.frame(rc, c.th.line, c.kit.design.style == fl::theme::Style::FuchsLabs ? 12.f : c.kit.design.card_radius);
     float x = rc.left + pad_x, y = rc.top + pad_y + 10;
     if (g.title_h > 0) {
         c.text(c.s(title), {x, y, rc.right - pad_x - (placeholder ? 90.f : 0.f), y + g.title_h}, Font::Nav, c.th.text,
@@ -302,7 +331,7 @@ void Card::paint(Ctx& c) {
         y += g.title_h + 3;
     }
     if (g.desc_h > 0) c.text(c.s(desc), {x, y, rc.right - pad_x, y + g.desc_h}, Font::Small, c.th.muted, DWRITE_TEXT_ALIGNMENT_LEADING, true, false);
-    for (float d : g.dividers) c.line({rc.left + pad_x, d}, {rc.right - pad_x, d}, c.th.line);
+    if (!c.kit.design.tonal) for (float d : g.dividers) c.line({rc.left + pad_x, d}, {rc.right - pad_x, d}, c.th.line);
 }
 
 // ---------------------------------------------------------------- Anzeige
@@ -344,11 +373,32 @@ void Note::paint(Ctx& c) {
 
 void Tiles::paint(Ctx& c) {
     if (tiles.empty()) return;
+    if (c.kit.design.tonal && tiles.size() > 1) {
+        const float hero_right = rc.left + rw(rc) * .52f;
+        const Rect hero{rc.left, rc.top, hero_right, rc.bottom};
+        c.fill(hero, c.th.card, 28);
+        c.text(c.s(tiles[0].label), {hero.left + 20,hero.top + 20,hero.right - 20,hero.top + 46}, Font::Body, c.th.muted);
+        c.text(c.s(tiles[0].value), {hero.left + 20,hero.top + 58,hero.right - 20,hero.bottom - 24}, Font::Tile, c.th.accent_text);
+        const float rh_ = (rh(rc) - 8 * float(tiles.size() - 2)) / float(tiles.size() - 1);
+        for (size_t i = 1; i < tiles.size(); ++i) {
+            const float y = rc.top + float(i - 1) * (rh_ + 8);
+            Rect r{hero_right + 12,y,rc.right,y + rh_}; c.fill(r, c.th.card, 16);
+            c.text(c.s(tiles[i].label), {r.left + 14,r.top + 5,r.right - 12,r.top + 24}, Font::Small, c.th.muted);
+            c.text(c.s(tiles[i].value), {r.left + 14,r.top + 22,r.right - 12,r.bottom - 4}, Font::Strong, c.th.text);
+        }
+        return;
+    }
     const float gap = 10, n = float(tiles.size());
-    float tw = (rw(rc) - gap * (n - 1)) / n;
+    const bool grouped = c.kit.design.grouped;
+    if (grouped) c.fill(rc, c.th.card, 12);
+    float tw = (rw(rc) - (grouped ? 0 : gap) * (n - 1)) / n;
     for (size_t i = 0; i < tiles.size(); ++i) {
-        Rect r{rc.left + i * (tw + gap), rc.top, rc.left + i * (tw + gap) + tw, rc.bottom};
-        c.fill(r, c.th.card, 12); c.frame(r, c.th.line, 12);
+        Rect r{rc.left + i * (tw + (grouped ? 0 : gap)), rc.top, rc.left + i * (tw + (grouped ? 0 : gap)) + tw, rc.bottom};
+        if (!grouped) {
+            const float radius = c.kit.design.style == fl::theme::Style::FuchsLabs ? 12.f : c.kit.design.card_radius;
+            c.fill(r, c.th.card, radius); c.frame(r, c.th.line, radius);
+        }
+        else if (i) c.line({r.left,r.top + 14},{r.left,r.bottom - 14},c.th.line);
         c.text(c.s(tiles[i].value), {r.left + 12, r.top + 10, r.right - 8, r.top + 40}, Font::Tile, c.th.accent_text);
         c.text(c.s(tiles[i].label), {r.left + 12, r.top + 42, r.right - 8, r.bottom - 8}, Font::Small, c.th.muted);
     }
@@ -400,9 +450,13 @@ void ImageView::paint(Ctx& c) {
 void Toggle::paint(Ctx& c) {
     Rect track{rc.right - 44, rc.top + (rh(rc) - 24) / 2, rc.right - 2, 0};
     track.bottom = track.top + 24;
-    c.fill(track, on ? c.th.accent : (c.th.dark ? c.th.line : rgb(214, 186, 152)), 12);
+    c.fill(track, on ? c.th.accent : c.kit.design.style == fl::theme::Style::FuchsLabs && !c.th.dark ? rgb(214, 186, 152) : c.th.line, 12);
+    if (c.kit.design.tonal && !on) c.frame(track, c.th.muted, 12, 2);
     float kx = on ? track.right - 12 : track.left + 12;
-    c.circle({kx, track.top + 12}, 9, from(brand::WHITE));
+    const bool designed = c.kit.design.style != fl::theme::Style::FuchsLabs;
+    // Profile: Knopf folgt der Akzentfarbe (hell auf dunkler, dunkel auf heller Spur); aus = Umrissfarbe gegen die Spur
+    c.circle({kx, track.top + 12}, c.kit.design.tonal && !on ? 6.f : 9.f, !designed ? from(brand::WHITE) : on ? c.th.on_accent : c.th.muted);
+    if (hot && c.kit.design.tonal) c.circle({kx, track.top + 12}, 15, alpha(c.th.accent, .12f));
 }
 void Toggle::set(bool v, Surface& s) {
     if (v == on) return;
@@ -470,7 +524,8 @@ void Segment::paint(Ctx& c) {
     std::vector<float> widths;
     for (auto& o : options) { widths.push_back(c.text_width(c.s(o), Font::Label) + (header_style ? 22 : 28)); total += widths.back(); }
     float scale = total > 0 ? (rw(rc) - 2) / total : 1;
-    Rgba base = header_style ? from(brand::NAVY, .13f) : c.th.input;
+    const bool profile_header = header_style && c.kit.design.style != fl::theme::Style::FuchsLabs;
+    Rgba base = profile_header ? c.th.card : header_style ? from(brand::NAVY, .13f) : c.th.input;
     c.fill(rc, base, header_style ? 14.f : 8.f);
     if (!header_style) c.frame(rc, c.th.line, 8);
     float x = rc.left + 1;
@@ -478,8 +533,8 @@ void Segment::paint(Ctx& c) {
         float w = widths[i] * scale;
         Rect r{x, rc.top + 1, x + w, rc.bottom - 1};
         bool sel = int(i) == index;
-        if (sel) c.fill(r, header_style ? from(brand::NAVY) : c.th.accent, header_style ? 13.f : 7.f);
-        Rgba fg = header_style ? (sel ? from(brand::CREME) : from(brand::NAVY)) : (sel ? c.th.on_accent : c.th.muted);
+        if (sel) c.fill(r, profile_header ? c.th.accent : header_style ? from(brand::NAVY) : c.th.accent, header_style ? 13.f : 7.f);
+        Rgba fg = profile_header ? (sel ? c.th.on_accent : c.th.text) : header_style ? (sel ? from(brand::CREME) : from(brand::NAVY)) : (sel ? c.th.on_accent : c.th.muted);
         c.text(c.s(options[i]), r, Font::Label, fg, DWRITE_TEXT_ALIGNMENT_CENTER);
         x += w;
         stops.push_back(x);
@@ -545,26 +600,36 @@ std::wstring Combo::value(bool en) const { return index >= 0 && index < int(opti
 
 float Button::pref_width(Ctx& c) { return c.text_width(c.s(text), Font::Button) + 40; }
 void Button::paint(Ctx& c) {
+    const float radius = std::min(c.kit.design.button_radius, rh(rc) / 2);
     switch (kind) {
     case Primary:
-        if (enabled) for (int i = 3; i >= 1; --i) c.fill(inflate(rc, float(i) * 3), alpha(c.th.accent, .07f * float(4 - i)), 8 + float(i) * 3);
-        c.fill(rc, c.th.accent, 8);
+        if (enabled && c.kit.design.style == fl::theme::Style::FuchsLabs) for (int i = 3; i >= 1; --i) c.fill(inflate(rc, float(i) * 3), alpha(c.th.accent, .07f * float(4 - i)), 8 + float(i) * 3);
+        c.fill(rc, c.th.accent, radius);
         c.text(c.s(text), rc, Font::Button, c.th.on_accent, DWRITE_TEXT_ALIGNMENT_CENTER);
         break;
     case Secondary:
-        c.fill(rc, c.th.dark ? c.th.bg : from(brand::WHITE, .55f), 8);
-        c.frame(rc, c.th.line, 8);
+        c.fill(rc, c.th.dark ? c.th.bg : from(brand::WHITE, .55f), radius);
+        if (c.kit.design.tonal) c.fill(rc, alpha(c.th.accent, c.th.dark ? .16f : .10f), radius);
+        c.frame(rc, c.th.line, radius);
         c.text(c.s(text), rc, Font::Button, c.th.text, DWRITE_TEXT_ALIGNMENT_CENTER);
         break;
     case Danger:
-        c.frame(rc, c.th.danger, 8, 1.5f);
+        c.frame(rc, c.th.danger, radius, 1.5f);
         c.text(c.s(text), rc, Font::Button, c.th.danger, DWRITE_TEXT_ALIGNMENT_CENTER);
         break;
     case Ghost:
         c.text(c.s(text), rc, Font::Button, c.th.accent_text, DWRITE_TEXT_ALIGNMENT_CENTER);
         break;
     }
-    if (hot && enabled) c.fill(rc, c.th.dark ? from(brand::WHITE, .07f) : from(brand::NAVY, .06f), 8);
+    if (pressed && enabled && c.kit.design.style != fl::theme::Style::FuchsLabs) {
+        const float opacity = c.kit.design.tonal ? .18f : c.kit.design.grouped ? .22f : .12f;
+        c.fill(rc, alpha(c.th.text, opacity), radius);
+        if (c.kit.design.underline_selection) c.frame(inflate(rc, -2), alpha(c.th.text, .3f), radius, 1);
+    }
+    if (hot && enabled) {
+        if (c.kit.design.style == fl::theme::Style::FuchsLabs) c.fill(rc, c.th.dark ? from(brand::WHITE, .07f) : from(brand::NAVY, .06f), radius);
+        else c.fill(rc, c.th.dark ? alpha(c.th.text, c.kit.design.tonal ? .12f : .06f) : alpha(c.th.text, c.kit.design.tonal ? .08f : .04f), radius);
+    }
 }
 bool Button::key(UINT vk, Surface& s) {
     if (vk == VK_SPACE || vk == VK_RETURN) { activate(s); return true; }
@@ -889,12 +954,43 @@ std::wstring ItemList::value(bool en) const {
 
 // ---------------------------------------------------------------- Navigation
 void NavItem::paint(Ctx& c) {
+    if (rail) {
+        const float cx = (rc.left + rc.right) / 2, cy = rc.top + 22;
+        const Rect indicator{rc.left + 10,rc.top + 3,rc.right - 10,rc.top + 39};
+        if (active || hot || pressed) c.fill(indicator, alpha(c.th.accent, active ? .18f : pressed ? .16f : .08f), 18);
+        const Rgba ink = active ? c.th.accent_text : c.th.text;
+        if (icon == 0) {
+            for (int y = 0; y < 2; ++y) for (int x = 0; x < 2; ++x)
+                c.frame({cx - 9 + x * 10.f,cy - 9 + y * 10.f,cx - 2 + x * 10.f,cy - 2 + y * 10.f}, ink, 2, 1.5f);
+        } else if (icon == 1) {
+            c.frame({cx - 10,cy - 8,cx + 10,cy + 5}, ink, 3, 1.6f);
+            c.line({cx,cy + 5},{cx,cy + 10},ink,1.6f); c.line({cx - 6,cy + 10},{cx + 6,cy + 10},ink,1.6f);
+        } else if (icon == 2) {
+            for (int i = 0; i < 3; ++i) c.fill({cx - 10 + i * 8.f,cy + 7 - i * 5.f,cx - 5 + i * 8.f,cy + 10},ink,2);
+        } else if (icon == 3) {
+            c.frame({cx - 9,cy - 8,cx + 9,cy + 9},ink,4,1.6f); c.circle({cx,cy - 9},4,ink); c.circle({cx + 9,cy + 1},4,ink);
+        } else {
+            for (int i = 0; i < 3; ++i) {
+                const float y = cy - 8 + i * 8.f, x = cx + (i == 1 ? 4.f : -4.f);
+                c.line({cx - 10,y},{cx + 10,y},ink,1.5f); c.circle({x,y},3,ink);
+            }
+        }
+        c.text(c.s(text), {rc.left,rc.top + 43,rc.right,rc.bottom},Font::Small,
+            active ? c.th.accent_text : c.th.muted,DWRITE_TEXT_ALIGNMENT_CENTER);
+        return;
+    }
     if (active) {
-        c.fill(rc, c.th.nav_active, 8);
-        c.fill({rc.left, rc.top + 4, rc.left + 3, rc.bottom - 4}, c.th.accent, 1.5f);
+        c.fill(rc, c.kit.design.grouped ? alpha(c.th.accent, c.th.dark ? .22f : .14f) : c.th.nav_active,
+               c.kit.design.tonal ? rh(rc) / 2 : c.kit.design.button_radius);
+        if (c.kit.design.underline_selection)
+            c.fill({rc.left + 14, rc.top + 7, rc.left + 17, rc.bottom - 7}, c.th.accent, 1.5f);
+        else if (!c.kit.design.grouped && !c.kit.design.tonal)
+            c.fill({rc.left, rc.top + 4, rc.left + 3, rc.bottom - 4}, c.th.accent, 1.5f);
     } else if (hot) c.fill(rc, c.th.dark ? from(brand::WHITE, .05f) : from(brand::NAVY, .07f), 8);
-    if (has_dot) c.circle({rc.left + 16, (rc.top + rc.bottom) / 2}, 4, dot_on ? c.th.success : alpha(c.th.side_muted, .45f));
-    c.text(c.s(text), {rc.left + 30, rc.top, rc.right - 8, rc.bottom}, Font::Nav, active ? c.th.text : c.th.side_text);
+    const float shift = c.kit.design.underline_selection ? 11.f : 0.f;   // Fluent: Auswahlstrich bei +14..17 nicht überdecken
+    if (has_dot) c.circle({rc.left + 16 + shift, (rc.top + rc.bottom) / 2}, 4, dot_on ? c.th.success : alpha(c.th.side_muted, .45f));
+    c.text(c.s(text), {rc.left + 30 + shift, rc.top, rc.right - 8, rc.bottom}, Font::Nav,
+           active ? (c.kit.design.grouped ? c.th.accent_text : c.th.text) : c.th.side_text);
 }
 bool NavItem::key(UINT vk, Surface& s) {
     if (vk == VK_UP || vk == VK_DOWN) { if (on_step) on_step(vk == VK_UP ? -1 : 1); return true; }
@@ -1533,6 +1629,8 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         Widget* w = hit(p);
         if (!w) { if (GetFocus() != hwnd_) SetFocus(hwnd_); return 0; }
         capture_ = w;
+        w->pressed = true;
+        invalidate();
         SetCapture(hwnd_);
         if (w->focusable()) focus(w, false);
         w->press(p, *this);
@@ -1541,6 +1639,8 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
     case WM_LBUTTONUP: {
         // ReleaseCapture sends WM_CAPTURECHANGED synchronously, which clears both fields.
         Widget* w = capture_;
+        if (w) w->pressed = false;
+        invalidate();
         const bool dragged_thumb = thumb_drag_;
         capture_ = nullptr;
         thumb_drag_ = false;
@@ -1550,7 +1650,9 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     }
     case WM_CAPTURECHANGED:
+        if (capture_) capture_->pressed = false;
         capture_ = nullptr;
+        invalidate();
         if (thumb_drag_) { thumb_drag_ = false; invalidate(); }
         return 0;
     case WM_MOUSEWHEEL:

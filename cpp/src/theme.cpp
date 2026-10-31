@@ -17,6 +17,40 @@ namespace fl::theme {
 
 namespace fs = std::filesystem;
 
+Design design(Style style) {
+    switch (style) {
+    case Style::Cupertino: return {style, 12, 10, 16, true, false, false};
+    case Style::Fluent: return {style, 8, 4, 12, false, false, true};
+    case Style::Material: return {style, 20, 1000, 16, false, true, false};
+    default: return {};
+    }
+}
+Palette profile_palette(Style style, bool dark) {
+    if (style == Style::Cupertino) return dark
+        ? Palette{{0,0,0},{28,28,30},{56,56,58},{10,132,255},{100,170,255},{242,242,247},{174,174,178},{48,209,88},{255,105,97}}
+        : Palette{{242,242,247},{255,255,255},{209,209,214},{0,122,255},{0,86,179},{28,28,30},{99,99,102},{36,138,61},{215,0,21}};
+    if (style == Style::Fluent) return dark
+        ? Palette{{32,32,32},{44,44,44},{80,80,80},{96,205,255},{96,205,255},{255,255,255},{194,194,194},{108,203,95},{255,153,164}}
+        : Palette{{243,243,243},{255,255,255},{209,209,209},{0,95,184},{0,95,184},{26,26,26},{97,97,97},{16,124,16},{196,43,28}};
+    if (style == Style::Material) return dark
+        ? Palette{{20,18,24},{33,31,38},{73,69,79},{208,188,255},{208,188,255},{230,225,229},{202,196,208},{129,199,132},{242,184,181}}
+        : Palette{{254,247,255},{243,237,247},{202,196,208},{103,80,164},{103,80,164},{29,27,32},{73,69,79},{46,125,50},{179,38,30}};
+    return builtin(dark);
+}
+const char* style_name(Style style) {
+    switch (style) {
+    case Style::Cupertino: return "cupertino";
+    case Style::Fluent: return "fluent";
+    case Style::Material: return "material";
+    default: return "fuchslabs";
+    }
+}
+std::optional<Style> parse_style(const std::string& value) {
+    for (auto s : {Style::FuchsLabs, Style::Cupertino, Style::Fluent, Style::Material})
+        if (value == style_name(s)) return s;
+    return std::nullopt;
+}
+
 // ---------------------------------------------------------------- Palette
 Color* Palette::slot(const std::string& k) {
     if (k == "bg") return &bg;
@@ -252,7 +286,7 @@ std::optional<Custom> parse(const ojson& j, std::string& err) {
     err.clear();
     auto fail = [&](std::string m) -> std::optional<Custom> { err = std::move(m); return std::nullopt; };
     if (!j.is_object()) return fail("kein JSON-Objekt");
-    static const std::set<std::string> top = {"version", "name", "base", "dark", "colors"};
+    static const std::set<std::string> top = {"version", "name", "base", "dark", "colors", "style"};
     for (auto& [k, v] : j.items()) if (!top.count(k)) return fail("unbekannter Schlüssel: " + k.substr(0, 40));
     for (const char* k : {"version", "name", "base", "dark", "colors"}) if (!j.contains(k)) return fail(std::string("fehlt: ") + k);
     if (!j["version"].is_number_integer() || j["version"].get<long long>() != FORMAT_VERSION) return fail("version muss 1 sein");
@@ -261,7 +295,19 @@ std::optional<Custom> parse(const ojson& j, std::string& err) {
     if (!j["dark"].is_boolean()) return fail("dark muss true/false sein");
     if (!j["colors"].is_object()) return fail("colors fehlt");
     Custom t;
+    if (j.contains("style")) {
+        if (!j["style"].is_string()) return fail("style muss ein Designprofil sein");
+        auto style = parse_style(j["style"].get<std::string>());
+        if (!style) return fail("unbekanntes Designprofil");
+        t.style = *style;
+    }
     t.name = j["name"].get<std::string>();
+    // Upgrade only the three exact starter-theme names; explicit style always wins.
+    if (!j.contains("style")) {
+        if (t.name == "Cupertino-Stil") t.style = Style::Cupertino;
+        else if (t.name == "Fluent-Stil") t.style = Style::Fluent;
+        else if (t.name == "Material-Stil") t.style = Style::Material;
+    }
     t.base = j["base"].get<std::string>();
     t.dark = j["dark"].get<bool>();
     const ojson& c = j["colors"];
@@ -287,7 +333,10 @@ ojson to_json(const Custom& t) {
         Color col = *t.colors.slot(k);
         c[k] = strprintf("#%02X%02X%02X", col.r, col.g, col.b);
     }
-    return {{"version", FORMAT_VERSION}, {"name", t.name}, {"base", t.base}, {"dark", t.dark}, {"colors", c}};
+    ojson result = {{"version", FORMAT_VERSION}, {"name", t.name}, {"base", t.base}, {"dark", t.dark}, {"colors", c}};
+    if (t.style != Style::FuchsLabs || t.name == "Cupertino-Stil" || t.name == "Fluent-Stil" || t.name == "Material-Stil")
+        result["style"] = style_name(t.style);
+    return result;
 }
 
 std::optional<Custom> migrate_legacy(const ojson& d, const std::string& name) {
@@ -484,6 +533,7 @@ bool valid_theme_key(const std::string& k) {
 
 Resolved resolve_custom(const Custom& t) {
     Resolved r;
+    r.style = t.style;
     r.colors = t.colors;
     r.bar = t.colors.header;
     r.dark = t.dark;

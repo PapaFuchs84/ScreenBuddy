@@ -89,6 +89,7 @@ private:
     Button *duplicate_ = nullptr, *remove_ = nullptr, *export_ = nullptr;
     TextField* name_ = nullptr;
     Segment* base_ = nullptr;
+    Combo* style_ = nullptr;
     Toggle* dark_ = nullptr;
     std::vector<std::pair<std::string, ColorField*>> fields_;
     std::vector<th::Custom> themes_;
@@ -174,7 +175,7 @@ private:
     void rebuild_editor() {
         editor_->clear();
         fields_.clear();
-        name_ = nullptr; base_ = nullptr; dark_ = nullptr; warn_ = nullptr;
+        name_ = nullptr; base_ = nullptr; style_ = nullptr; dark_ = nullptr; warn_ = nullptr;
         const th::Custom* c = selected_custom();
         if (!c) {
             editor_->title = T(L"Theme-Editor", L"Theme editor");
@@ -194,13 +195,21 @@ private:
         name_->limit = 40;
         name_->track_dirty = false;
         name_->on_change = [this] { changed(); };
-        base_ = editor_->row<Segment>(T(L"Basis", L"Base"), T(L"Woher Zusatzfarben (Status, Warnungen) stammen", L"Where extra colors (status, warnings) come from"),
+        base_ = editor_->row<Segment>(T(L"Basis", L"Base"), T(L"Designprofile: lädt die Hell-/Dunkel-Palette und ersetzt die neun Farbwerte. FuchsLabs: nur Zusatzfarben.", L"Design profiles: loads the light/dark palette and replaces all nine colors. FuchsLabs: extra colors only."),
                                       std::vector<Text>{T(L"Hell", L"Light"), T(L"Dunkel", L"Dark")}, c->base == "dunkel" ? 1 : 0);
         base_->track_dirty = false;
-        base_->on_change = [this] { changed(); };
+        base_->on_change = [this] { apply_profile_palette(); changed(); };
+        style_ = editor_->row<Combo>(T(L"Designsystem", L"Design system"),
+            T(L"Formen, Abstände, Schrift und Interaktionsfeedback; das Einstellungsfenster folgt nach Anwenden.", L"Shapes, spacing, typography and interaction feedback; settings follow after applying."),
+            std::vector<Text>{Text(L"FuchsLabs"), Text(L"Cupertino"), Text(L"Fluent"), Text(L"Material")}, int(c->style));
+        style_->track_dirty = false;
+        style_->on_change = [this] { apply_profile_palette(); changed(); };
         dark_ = editor_->row<Toggle>(T(L"Dunkles Design", L"Dark design"), T(L"Kennzeichnet das Theme als dunkel", L"Marks the theme as dark"), c->dark);
         dark_->track_dirty = false;
-        dark_->on_change = [this] { changed(); };
+        dark_->on_change = [this] {
+            if (style_ && style_->index != 0) { base_->index = dark_->on ? 1 : 0; apply_profile_palette(); }
+            changed();
+        };
         for (const char* key : th::COLOR_KEYS) {
             Color col = *c->colors.slot(key);
             ColorField* f = editor_->row<ColorField>(color_name(key), Text(), strprintf("#%02X%02X%02X", col.r, col.g, col.b));
@@ -222,6 +231,7 @@ private:
         if (!name_) { err = "-"; return std::nullopt; }
         ojson j = {{"version", th::FORMAT_VERSION}, {"name", narrow(name_->text())}, {"base", base_->index == 1 ? "dunkel" : "hell"},
                    {"dark", dark_->on}, {"colors", ojson::object()}};
+        j["style"] = th::style_name(static_cast<th::Style>(style_->index));
         for (auto& [key, f] : fields_) j["colors"][key] = f->hex();
         auto t = th::parse(j, err);
         if (t) if (const th::Custom* sel = selected_custom()) t->id = sel->id;
@@ -254,6 +264,16 @@ private:
                 warn_->text = Text(L"Schwer lesbar: " + de + L". Mehr Unterschied zwischen hell und dunkel wählen oder „Kontrast korrigieren“.",
                                    L"Hard to read: " + en_ + L". Choose more difference between light and dark, or use “Fix contrast”.");
             }
+        }
+    }
+
+    void apply_profile_palette() {
+        if (!style_ || style_->index == 0 || !dark_) return;
+        dark_->on = base_->index == 1;
+        const auto palette = th::profile_palette(static_cast<th::Style>(style_->index), dark_->on);
+        for (auto& [key, field] : fields_) {
+            const auto color = *palette.slot(key);
+            field->set_hex(strprintf("#%02X%02X%02X", color.r, color.g, color.b));
         }
     }
 

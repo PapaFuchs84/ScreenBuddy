@@ -1,6 +1,6 @@
 # © 2026 FuchsLabs – ScreenBuddy (C++)
 cmake_minimum_required(VERSION 3.24)
-project(ScreenBuddy VERSION 2.9.1 LANGUAGES CXX RC)
+project(ScreenBuddy VERSION 2.9.2 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,7 +29,7 @@ set(CORE_SOURCES
     src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/key_help.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/amp_logic.cpp src/audio_levels.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
-    src/installer.cpp src/resources.cpp src/native_settings.cpp src/touch.cpp src/update.cpp
+    src/installer.cpp src/resources.cpp src/native_settings.cpp src/ui_shell_material.cpp src/touch.cpp src/update.cpp
     src/ui_kit.cpp src/ui_logic.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
     src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_streaming.cpp src/ui_page_homeassistant.cpp src/ui_page_spotify.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_store.cpp src/ui_page_app.cpp src/ui_page_design.cpp
     src/companion.cpp src/companion_server.cpp src/network_display.cpp

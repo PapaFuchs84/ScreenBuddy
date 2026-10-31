@@ -41,6 +41,7 @@ void paste(Image& dst, const Image& src, int x, int y);   // ohne Mischen (Kache
 struct Font {
     float size = 12;   // Pixel
     bool bold = false; // Bahnschrift SemiBold, sonst Segoe UI
+    std::wstring family; // optional installed design-system font; falls back to Segoe UI
 };
 
 struct PointF {

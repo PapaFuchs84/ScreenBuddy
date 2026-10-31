@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "name": "Cupertino-Stil Dunkel",
+  "style": "cupertino",
+  "base": "dunkel",
+  "dark": true,
+  "colors": {
+    "bg": "#000000",
+    "card": "#1C1C1E",
+    "line": "#38383A",
+    "header": "#0A84FF",
+    "accent": "#64AAFF",
+    "text": "#F2F2F7",
+    "muted": "#AEAEB2",
+    "success": "#30D158",
+    "danger": "#FF6961"
+  }
+}
