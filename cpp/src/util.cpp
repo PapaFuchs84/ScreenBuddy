@@ -264,6 +264,11 @@ bool test_instance() {
     return GetEnvironmentVariableW(L"FUCHSLABS_INSTANCE", buf, 64) > 0;
 }
 
+bool test_on_real_install() {
+    wchar_t buf[8];
+    return test_instance() && GetEnvironmentVariableW(L"FUCHSLABS_INSTALL_DIR", buf, 8) == 0;
+}
+
 std::filesystem::path exe_path() {
     std::wstring buf(MAX_PATH, L'\0');
     while (true) {

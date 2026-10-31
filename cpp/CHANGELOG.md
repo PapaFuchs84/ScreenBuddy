@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Uninstall guard: `run_uninstall` and `finish_uninstall` refuse to run in a test instance without `FUCHSLABS_INSTALL_DIR` (`test_on_real_install()`), so tests can no longer delete the real install.
+
 ## 2.7.0 – 31 October 2026
 
 - Store installation passes force_disabled through the host importer to Store::import_manifest; the disabled marker is persisted before the manifest, including offline plugins and updates. Direct local imports keep their previous behavior. Regression coverage checks reload and host importer handling.

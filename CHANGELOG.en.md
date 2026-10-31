@@ -6,6 +6,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Fixed
+
+- `--uninstall` aborts in test instances (`FUCHSLABS_INSTANCE`) without their own `FUCHSLABS_INSTALL_DIR` instead of deleting the real installation (EXE) while leaving the autostart entry and programs-list entry behind.
+
 ## [2.7.0] – 2026-10-31
 
 ### Added
