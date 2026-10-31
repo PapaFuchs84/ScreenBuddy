@@ -125,7 +125,8 @@ void LevelMeter::stop() {
 }
 
 void LevelMeter::touch(uint32_t seed) { touched_ = now_ms(); seed_ = seed; }
-bool LevelMeter::active() const { return now_ms() - touched_.load() < 3000; }
+void LevelMeter::touch() { touched_ = now_ms(); }
+bool LevelMeter::active() const { return transfer_ || now_ms() - touched_.load() < 3000; }
 
 std::vector<float> LevelMeter::levels() {
     if (!available_ && !simulated_) return {};

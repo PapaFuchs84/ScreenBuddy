@@ -26,9 +26,11 @@ public:
     ~LevelMeter();
     void start();
     void stop();
-    void touch(uint32_t seed = 0);  // Die Seite ist gerade sichtbar: Analyse aktiv halten (läuft sonst nicht); seed = Titel für die Simulation
+    void touch(uint32_t seed);  // sichtbare Wiedergabe; seed = Titel für die Simulation
+    void touch();              // Aktivität verlängern, Titel-Seed beibehalten
     bool simulated() const { return simulated_; }   // Balken sind simuliert (Wiedergabe läuft woanders, Systemausgabe bleibt still)
     bool active() const;          // zuletzt vor < 3 s berührt
+    void visible_transfer(bool active) { transfer_ = active; }
     bool available() const { return available_; }   // Ausgabegerät lesbar
     std::vector<float> levels();  // Bands Werte 0..1 (leer, wenn nicht verfügbar)
 
@@ -38,6 +40,7 @@ private:
     void sim_tick(float* cur, long long t, long long& last_calc);
     std::atomic<bool> stop_{false}, available_{false}, simulated_{false}, device_changed_{false};
     std::atomic<long long> touched_{0};
+    std::atomic<bool> transfer_{false};
     std::atomic<uint32_t> seed_{0};
     long long last_signal_ = 0;               // nur im Meter-Thread
     std::mutex mu_;

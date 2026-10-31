@@ -24,6 +24,8 @@
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
 
+**Neu in 2.9.1:** drei installierbare Store-Themes, Tooltips an Statuspunkten, Key-Hilfe mit offiziellen Links, Erkennung von Audiogerätewechseln, simulierte Amplifier-Anzeige bei Remote-Wiedergabe und wählbare Balkenfarben; Korrekturen für Kontrast und Pinsel-Cache. [Release-Notizen 2.9.1](docs/RELEASE-NOTES-2.9.1.md).
+
 **Neu in 2.9.0:** Farben & Design (An Windows anpassen, eigene Themes mit Editor, Import/Export und drei Beispiel-Themes), einheitliche Statuspunkte mit Legende in der Navigation, faire Mischung aller gewählten Anbieter auf der Streaming-Seite, Spektrum-Amplifier auf der Spotify-Seite, Android-TV-Einstieg der Companion-App und das offizielle TMDB-Logo. [Release-Notizen 2.9](docs/RELEASE-NOTES-2.9.md).
 
 **Neu in 2.8.0:** Spotify-Seite (Titel, Cover, Touch-Tasten; [Anleitung](docs/SPOTIFY.md)) und Seite „Neu bei Streaming“ mit TMDB-Daten; Fehlerkorrektur im Uninstall-Schutz für Testinstanzen. [Release-Notizen 2.8](docs/RELEASE-NOTES-2.8.md).

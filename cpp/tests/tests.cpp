@@ -349,6 +349,18 @@ static void test_ui_logic() {
     CHECK(std::count(qr.px.begin(), qr.px.end(), 0xFF000000u) > 100);
 }
 static void test_spotify() {
+    // Slow serial writes must not expire the visible playback lease.
+    {
+        audio::LevelMeter meter([] {});
+        meter.touch();
+        meter.visible_transfer(true);
+        Sleep(3100);
+        CHECK(meter.active());
+        meter.visible_transfer(false);
+        CHECK(!meter.active());
+        meter.touch();
+        CHECK(meter.active());
+    }
     // RFC 7636, Anhang B: bekannter PKCE-Testvektor
     CHECK_EQ(spotify::challenge_of("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"), std::string("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"));
     std::string v = spotify::make_verifier();
