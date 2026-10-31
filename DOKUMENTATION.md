@@ -2,15 +2,15 @@
 
 **Companion-Vorschau ab 2.3.0:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
 
-Version 2.6.0 · Stand 30.10.2026 · © 2026 FuchsLabs
+Version 2.7.0 · Stand 31.10.2026 · © 2026 FuchsLabs
 
-Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, „Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein natives Windows-Einstellungsfenster (Direct2D/DirectWrite, ohne WebView2 seit 2.5). Ab 2.6 gibt es den Plugin-Store in der App (Abschnitt unten). Stand und Grenzen: [docs/SCREENBUDDY-2.6.md](docs/SCREENBUDDY-2.6.md). Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
+Die App steuert ein 3,5"-USB-Display (480 × 320 Pixel, Hardware-„Revision A“) direkt an und ersetzt die Hersteller-App des Displays. Sie zeigt System, Freunde, Discord, Battlefield 6 und Blogs im Wechsel und verwendet ein natives Windows-Einstellungsfenster (Direct2D/DirectWrite, ohne WebView2 seit 2.5). Ab 2.6 gibt es den Plugin-Store in der App (Abschnitt unten). Neu in 2.7.0: mehrere Companions gleichzeitig, sortierbare Plugin-Seiten, Store-Vorschaubilder und die Plugin-Werkstatt ([Release-Notizen 2.7](docs/RELEASE-NOTES-2.7.md)). Stand und Grenzen von 2.6: [docs/SCREENBUDDY-2.6.md](docs/SCREENBUDDY-2.6.md). Für den schnellen Einstieg gibt es die `ANLEITUNG.md`; dieses Dokument ist die ausführliche Referenz.
 
 ## Companion-App für Android (Companion-Vorschau ab 2.3.0)
 
 Die PC-Seite ist eingebaut; die Android-App gibt es als **Companion-App 1.0** als separaten Download (nicht Teil der Windows-EXE). Ein Handy oder Tablet im selben WLAN zeigt dann das Display (automatische Auflösung nach Meldung der App) und meldet Gesten/Tipps zurück.
 
-- **Einschalten:** **Einstellungen → Companion → Companion einschalten** und speichern (läuft dann zusätzlich zum USB-Display) oder unter **Display → Display-Typ** „Companion-App (Android, über WLAN)“ wählen (nur das Handy, kein USB-Display). Standard: aus. Windows fragt beim ersten Start eventuell nach der Firewall: „Private Netzwerke“ erlauben.
+- **Einschalten:** **Einstellungen → Companion → Companion zusätzlich aktivieren** und speichern (läuft dann zusätzlich zum USB-Display) oder unter **Anzeige → Display-Typ** „Netzwerk“ wählen (nur das Handy, kein USB-Display). Standard: aus. Windows fragt beim ersten Start eventuell nach der Firewall: „Private Netzwerke“ erlauben.
 - **Koppeln:** **Kopplungscode anzeigen** zeigt QR-Code, 6-stellige PIN und den Fingerabdruck des Zertifikats. In der App den QR-Code scannen (oder Adresse und PIN eintippen und den Fingerabdruck vergleichen). Der Code gilt 2 Minuten und nur einmal; nach 5 falschen Versuchen ist das Koppeln 5 Minuten gesperrt.
 - **Netz:** nur private IPv4-Adressen des PCs (10.x, 172.16–31.x, 192.168.x), Port 8777 (`[companion] port`, nie 8765), Verbindung mit TLS. Mehrere Handys: `[companion] sync` (Standard `true` = alle zeigen dasselbe; `false` = jedes Handy unabhängig mit eigener Position, Auflösung und optional eigener Seitenliste, siehe [Companion](docs/COMPANION.md)). Der PC kündigt sich per mDNS als `_fuchslabs-display._tcp` an (Windows 10 1809 oder neuer); sonst die IP-Adresse in der App eintragen.
 - **Gespeichert:** `companion.json` neben der `config.toml` (TLS-Zertifikat, DPAPI-verschlüsselter TLS-Schlüssel, je Gerät ein DPAPI-verschlüsselter Schlüssel). Unter **Gekoppelte Geräte** lässt sich jedes Gerät entfernen; seine Verbindung wird sofort getrennt. Wer `companion.json` löscht, bekommt ein neues Zertifikat und muss alle Geräte neu koppeln.
@@ -35,11 +35,11 @@ Auf der Einstellungsseite **Plugin-Store** (neben Companion und Plugins) findest
 
 **Touch auf der Systemseite:** Bei aktivem Touch (nur bei Ausgabe auf einen Bildschirm) öffnet ein Tipp auf die Karte **RAM** den Task-Manager, auf **Datenträger** „Programme und Features“ (`appwiz.cpl`) und auf **Netzwerk** den Geschwindigkeitstest <https://www.speedtest.net/de> im Standardbrowser. Die CPU- und GPU-Karten reagieren nicht. Die Fenster öffnet Windows, meist auf dem Hauptbildschirm.
 
-**Update-Hinweis:** Die App fragt höchstens einmal am Tag (frühestens 45 Sekunden nach dem Start) die öffentlichen GitHub-Releases ab, ohne Zugangsschlüssel und ohne Konto. Gibt es eine neuere, veröffentlichte Version, erscheint eine Sprechblase am Fuchs-Symbol (ein Klick öffnet die Einstellungen), und **Einstellungen → Start** zeigt „Neue Version … verfügbar“ mit Link zur Download-Seite. **Jetzt prüfen** fragt außerplanmäßig nach (höchstens alle 5 Minuten). Es wird nie etwas heruntergeladen oder installiert; zum Aktualisieren lädst du die neue EXE selbst herunter und startest sie. Abschalten: **Einstellungen → Start → Auf neue Versionen hinweisen** bzw. `update_check = false` unter `[ui]`. Gesendet wird nur eine gewöhnliche Abfrage mit dem Programmnamen und der Version im User-Agent; GitHub sieht dabei wie bei jedem Abruf deine IP-Adresse. Der Zeitpunkt der letzten Abfrage steht in `update-check.json` neben der `config.toml`.
+**Update-Hinweis:** Die App fragt höchstens einmal am Tag (frühestens 45 Sekunden nach dem Start) die öffentlichen GitHub-Releases ab, ohne Zugangsschlüssel und ohne Konto. Gibt es eine neuere, veröffentlichte Version, erscheint eine Sprechblase am Fuchs-Symbol (ein Klick darauf öffnet die Einstellungen), und **Einstellungen → Updates & Autostart** zeigt „Neue Version verfügbar: …“. **Release-Seite öffnen** führt zur Download-Seite, **Jetzt nach Updates suchen** fragt außerplanmäßig nach (höchstens alle 5 Minuten). Es wird nie etwas heruntergeladen oder installiert; zum Aktualisieren lädst du die neue EXE selbst herunter und startest sie. Abschalten: **Einstellungen → Updates & Autostart → Automatisch nach Updates suchen** bzw. `update_check = false` unter `[ui]`. Gesendet wird nur eine gewöhnliche Abfrage mit dem Programmnamen und der Version im User-Agent; GitHub sieht dabei wie bei jedem Abruf deine IP-Adresse. Der Zeitpunkt der letzten Abfrage steht in `update-check.json` neben der `config.toml`.
 
-## Touch-Ziele und Spielstunden (ab 2.0.7)
+## Touch-Ziele und Spielstunden (ab 2.0.8)
 
-Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
+Entwickelt als 2.0.7; diese Version wurde nicht einzeln veröffentlicht, die Funktion steht ab 2.0.8 zur Verfügung. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
 
 ## Home Assistant (ab 2.1.0)
 
@@ -49,7 +49,7 @@ Schritt für Schritt mit Bildern: bebilderte Anleitung, Schritt „Home Assistan
 
 ## Ansichten durchblättern (2.0.4)
 
-Unter **Einstellungen → Übersicht** kannst du mit **Vorherige Ansicht** und **Nächste Ansicht** direkt durch die laufenden Display-Ansichten blättern. Die Position und die sichtbaren Seiten stehen unter der Live-Vorschau. Lange Listen blättern mit ihren Unterseiten, breite Displays wechseln wie bei der Touchbedienung um eine Kachelgruppe. Nach einem manuellen Wechsel beginnt die eingestellte Anzeigedauer neu; danach läuft der automatische Wechsel weiter. Bei keiner oder nur einer vollständig sichtbaren Ansicht sind die Knöpfe deaktiviert. Dafür ist kein Speichern oder Neustart nötig. Geänderte Seitenauswahl und Reihenfolge gelten nach **Speichern & anwenden**.
+Seit 2.0.4 lässt sich die laufende Anzeige per Knopfdruck weiterschalten, ohne zu speichern oder neu zu starten. In der nativen Oberfläche (ab 2.5.0) stehen dafür **Vorige Seite zeigen** und **Nächste Seite zeigen** unter **Einstellungen → Companion** bereit; sie wirken auf die Companion-Ausgabe. Für die Hauptanzeige gibt es den Schritt nur über die lokale Schnittstelle (`POST /api/pages/step`). Die früheren Knöpfe „Vorherige Ansicht“/„Nächste Ansicht“ unter **Übersicht** sind in der nativen Oberfläche nicht vorhanden. Geänderte Seitenauswahl und Reihenfolge gelten nach **Speichern & anwenden**.
 
 ## Inhalt
 
@@ -105,25 +105,25 @@ Ausführliche Einrichtung der Datenquellen: [Schnellstart](ANLEITUNG.md).
 
 ## 3. Einstellungsseite
 
-Sie erscheint in einem nativen Win32-Fenster (Direct2D/DirectWrite, ohne WebView2 seit 2.5). Der interne Dienst läuft in der App und ist nur auf deinem PC erreichbar: `http://127.0.0.1:8765/` (Port einstellbar); die bebilderte Anleitung liegt unter `/anleitung`. Änderungen werden erst mit **Speichern & anwenden** übernommen; die Anzeige startet dann etwa 10 Sekunden neu.
+Sie erscheint in einem nativen Win32-Fenster (Direct2D/DirectWrite, ohne WebView2 seit 2.5). Der interne Dienst läuft in der App und ist nur auf deinem PC erreichbar: `http://127.0.0.1:8765/` (Port einstellbar über `[ui] port` in der `config.toml`); die bebilderte Anleitung liegt unter `/anleitung`, die Plugin-Werkstatt unter `/plugin-werkstatt`. Änderungen werden erst mit **Speichern & anwenden** übernommen; die Anzeige startet dann kurz neu.
 
 | Bereich | Einstellungen |
 |---|---|
-| **Start** | Zustand (Display, Discord, Version mit Update-Hinweis und **Jetzt prüfen**), Hersteller-App beenden/abschalten, Autostart, Sprache, **Auf neue Versionen hinweisen**, Ersteinrichtung |
-| **Übersicht** | Live-Vorschau des Displays, Seiten ein/aus und Reihenfolge, Anzeigedauer, Helligkeit |
+| **Updates & Autostart** | installierte Version mit Update-Prüfung (**Automatisch nach Updates suchen**, **Jetzt nach Updates suchen**, **Release-Seite öffnen**), **Mit Windows starten**, Hersteller-App beenden/Autostart abschalten, **Neu starten**, **Beenden**. Sprache und Hell/Dunkel des Fensters stehen oben rechts. |
+| **Übersicht** | Kennzahlen (Display verbunden, Auflösung, aktive Quellen, Seiten), Verbindungsstatus von Discord, Steam, Xbox und Home Assistant, Schnellzugriff, „Einrichtung in 3 Schritten“ |\n| **Seiten & Reihenfolge** | Seiten (auch aktivierte Plugins) ein-/ausblenden und mit ▲/▼ sortieren |\n| **Farben & Design** | Farbschema des Displays mit Vorschau |
 | **Freunde** | gemeinsame Liste: Seite an/aus, Discord einbeziehen, Steam- und Xbox-Zugang mit „Verbindung prüfen“ und Anleitung, Personen zusammenführen |
 | **Discord** | Seite an/aus, Bot-Token, Offline-Freunde, Auswahl der Personen aus den Server-Mitgliedern, Server- und Ignorierlisten |
 | **Battlefield 6** | Spieler hinzufügen (PC/PlayStation/Xbox), sofort **Prüfen**, Abrufintervall |
 | **Blogs** | Blog-Adressen hinzufügen und mit **Prüfen** testen, Anzahl Beiträge, Intervall |
 | **System** | Netzwerkadapter, Einheit (Mbit/s oder MB/s), Laufwerk, Sensoren für CPU-Temperatur und Lüfter |
 | **Companion, Plugins, Plugin-Store** | Companion (Kopplung, Geräte), Plugins und Plugin-Store (Schalter „Plugin-Store verwenden“, Suche, Installation, Abgleich) |
-| **Display** | Display-Typ, HDMI-/USB-C-Monitor, Touch-Steuerung und Touch-Zuordnung, Ausrichtung, COM-Port, Zurücksetzen beim Start, Ausschalten beim Beenden, Port der Einstellungsseite, Neu starten, Beenden |
+| **Anzeige** | Display-Typ (USB, Monitor, Netzwerk), Anzeigedauer pro Seite, Helligkeit, Ausrichtung, COM-Port, Bildschirm, Touch-Steuerung und Touch-Zuordnung, Zurücksetzen beim Start, Ausschalten beim Beenden |
 
-**Verbindungsstatus:** In den Reitern Discord und Freunde zeigt eine Statuszeile dauerhaft, ob der Zugang funktioniert: grün mit Kontoname, Anzahl der Freunde und Zeitpunkt der letzten erfolgreichen Abfrage (Discord: live), rot mit der Fehlermeldung, wenn etwas nicht klappt (bei Steam/Xbox mit dem Zeitpunkt des letzten Erfolgs), grau, wenn nichts eingerichtet ist. Sie aktualisiert sich alle 5 Sekunden von selbst.
+**Verbindungsstatus:** Auf den Seiten Discord und Freunde zeigt eine Statuszeile dauerhaft, ob der Zugang funktioniert: grün mit Kontoname, Anzahl der Freunde und Zeitpunkt der letzten erfolgreichen Abfrage (Discord: live), rot mit der Fehlermeldung, wenn etwas nicht klappt (bei Steam/Xbox mit dem Zeitpunkt des letzten Erfolgs), grau, wenn nichts eingerichtet ist. Sie aktualisiert sich alle 5 Sekunden von selbst.
 
 Der Bot-Token wird nie an den Browser zurückgegeben; das Feld zeigt nur, ob einer gespeichert ist. Leer lassen = behalten.
 
-**HDMI/USB-C und Touch ab 2.0.3:** Unter **Display** den vorgesehenen Bildschirm auswählen; die Vollbildausgabe bleibt über der Taskleiste, ohne den Tastaturfokus zu übernehmen. Die Touch-Zuordnung zeigt, welchem Bildschirm Windows ein Touchgerät zugeordnet hat. Erscheinen Berührungen auf einem anderen Monitor, **Touch-Bildschirm zuordnen** wählen. Im Windows-Assistenten andere Bildschirme mit Enter überspringen, dann den gewünschten Touchscreen berühren; Esc bricht ab. Die Vollbildausgabe pausiert währenddessen und kehrt nach Ende des Assistenten zurück. Anschließend **Erneut prüfen** wählen und bei Bedarf die Touch-Steuerung aktivieren und speichern. HDMI überträgt nur das Bild; für Touch muss zusätzlich die USB-Verbindung des Geräts bestehen. Echte Touch-Hardware und der vollständige Assistentenablauf sind noch nicht physisch abgenommen; siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
+**HDMI/USB-C und Touch ab 2.0.3:** Unter **Anzeige** den vorgesehenen Bildschirm auswählen; die Vollbildausgabe bleibt über der Taskleiste, ohne den Tastaturfokus zu übernehmen. Die Touch-Zuordnung zeigt, welchem Bildschirm Windows ein Touchgerät zugeordnet hat. Erscheinen Berührungen auf einem anderen Monitor, **Touch-Bildschirm zuordnen** wählen. Im Windows-Assistenten andere Bildschirme mit Enter überspringen, dann den gewünschten Touchscreen berühren; Esc bricht ab. Die Vollbildausgabe pausiert währenddessen und kehrt nach Ende des Assistenten zurück. Anschließend **Erneut prüfen** wählen und bei Bedarf die Touch-Steuerung aktivieren und speichern. HDMI überträgt nur das Bild; für Touch muss zusätzlich die USB-Verbindung des Geräts bestehen. Echte Touch-Hardware und der vollständige Assistentenablauf sind noch nicht physisch abgenommen; siehe [Testprotokoll](cpp/TESTPROTOKOLL.md).
 
 ---
 
@@ -164,26 +164,26 @@ Abhängigkeiten sind über vcpkg-Manifest und D++-Overlay festgelegt; WebView2-S
 
 ## 7. Effizienz
 
-Die C++-Version verwendet Windows-Grafik-APIs und statisch gelinkte Bibliotheken. WebView2 erzeugt für das Einstellungsfenster zusätzliche Laufzeitprozesse. Alte Python-Messwerte und ursprüngliche C++-Schätzungen sind kein belegter Ressourcenverbrauch der 2.0-Version. Einen reproduzierbaren CPU-/Speichervergleich gibt es bisher nicht.
+Die C++-Version verwendet Windows-Grafik-APIs und statisch gelinkte Bibliotheken. Bis 2.3.0 erzeugte WebView2 für das Einstellungsfenster zusätzliche Laufzeitprozesse; seit 2.5.0 entfällt das. Alte Python-Messwerte und ursprüngliche C++-Schätzungen sind kein belegter Ressourcenverbrauch der 2.0-Version. Einen reproduzierbaren CPU-/Speichervergleich gibt es bisher nicht.
 
 Bestätigte Funktionsprüfungen: [cpp/TESTPROTOKOLL.md](cpp/TESTPROTOKOLL.md).
 
 ## 8. Fehlerbehebung
 
-Das Protokoll steht in `usb-display.log` neben der EXE. Die meisten Probleme erklärt die Seite **Start** direkt.
+Das Protokoll steht in `usb-display.log` neben der EXE. Die meisten Probleme erklärt die Seite **Updates & Autostart** bzw. **Übersicht** direkt.
 
 | Symptom | Ursache und Lösung |
 |---|---|
-| „Die Hersteller-App des Displays läuft …“ | Auf **Start** → **Hersteller-App beenden**, danach deren Autostart **abschalten**. |
-| „Display nicht gefunden“ | Kabel prüfen, anderen USB-Anschluss probieren; notfalls bei **Display** den COM-Port von Hand eintragen (Geräte-Manager → Anschlüsse). Die App versucht es alle 10 Sekunden erneut. |
-| Bild steht auf dem Kopf | **Display → Ausrichtung** auf die gedrehte Variante stellen. |
+| „Die Hersteller-App des Displays läuft …“ | Unter **Updates & Autostart** → **Hersteller-App beenden**, danach **Autostart der Hersteller-App abschalten**. |
+| „Display nicht gefunden“ | Kabel prüfen, anderen USB-Anschluss probieren; notfalls unter **Anzeige** den COM-Port von Hand eintragen (Geräte-Manager → Anschlüsse). Die App versucht es alle 10 Sekunden erneut. |
+| Bild steht auf dem Kopf | **Anzeige → Ausrichtung** auf die gedrehte Variante (Quer 180°) stellen. |
 | Taskleiste liegt über der HDMI-/USB-C-Anzeige, Tippen unten öffnet das Startmenü | Auf 2.0.5 aktualisieren: Solange die Anzeige läuft, wird die Taskleiste auf diesem Bildschirm ausgeblendet und beim Beenden wieder gezeigt. |
-| Wischen auf dem Touchscreen wechselt keine Seite | **Display → Touch-Steuerung** einschalten und speichern. Ab 2.0.5 steht jede erkannte Geste im Protokoll `usb-display.log`; ein Hinweis erscheint dort auch, wenn Touch ausgeschaltet ist. |
-| Berührungen erscheinen auf einem anderen Bildschirm | **Display → Touch-Bildschirm zuordnen**; im Windows-Assistenten den vorgesehenen Touchscreen identifizieren. Danach **Erneut prüfen** wählen. |
+| Wischen auf dem Touchscreen wechselt keine Seite | **Anzeige → Touch-Steuerung** einschalten und speichern. Ab 2.0.5 steht jede erkannte Geste im Protokoll `usb-display.log`; ein Hinweis erscheint dort auch, wenn Touch ausgeschaltet ist. |
+| Berührungen erscheinen auf einem anderen Bildschirm | **Anzeige → Touch-Bildschirm zuordnen**; im Windows-Assistenten den vorgesehenen Touchscreen identifizieren. Danach **Erneut prüfen** wählen. |
 | Kein Touchscreen erkannt | USB-Touchverbindung und Windows-Treiber prüfen, dann **Erneut prüfen**. Das HDMI-Bild allein stellt keinen Touch-Eingang bereit. |
-| Display zu dunkel | **Übersicht → Helligkeit** erhöhen. |
+| Display zu dunkel | **Anzeige → Helligkeit** erhöhen. |
 | Dünner Streifen an fester Stelle, auch bei einfarbigen Bildern | Hardware- oder Kabelproblem des Displays; Kabel neu stecken, anderen Anschluss probieren. |
-| Bildfehler, verschobene Zeilen | **Display → Beim Start zurücksetzen** an lassen, Display einmal ab- und anstecken. |
+| Bildfehler, verschobene Zeilen | **Anzeige → Beim Start zurücksetzen** an lassen, Display einmal ab- und anstecken. |
 | Discord: „Bot-Token ungültig“ | Token im Developer Portal neu erzeugen und eintragen. |
 | Discord: „… beide Intents einschalten“ | Developer Portal → Bot → Presence Intent und Server Members Intent einschalten. |
 | Discord: „Der Bot ist auf keinem Server“ | Bot per OAuth2-Adresse einladen. |
