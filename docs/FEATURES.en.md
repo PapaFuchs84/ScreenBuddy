@@ -7,6 +7,8 @@ Moved out of the README (as of 2.7.0). German: [FUNKTIONEN.md](FUNKTIONEN.md). O
 - [System page touch and update notice (from 2.2.0)](#system-page-touch-and-update-notice-from-220)
 - [Touch targets and playtime (from 2.0.8)](#touch-targets-and-playtime-from-208)
 - [Home Assistant (from 2.1.0)](#home-assistant-from-210)
+- [New on streaming (from 2.8.0)](#new-on-streaming-from-280)
+- [Spotify (from 2.8.0)](#spotify-from-280)
 - [Android Companion app (from 2.3.0, multiple devices from 2.7.0)](#android-companion-app-from-230-multiple-devices-from-270)
 - [Plugin store and plugins (from 2.6.0)](#plugin-store-and-plugins-from-260)
 - [Browse views (from 2.0.4)](#browse-views-from-204)
@@ -24,6 +26,22 @@ Developed as 2.0.7; that version was not released separately, so the feature is 
 ## Home Assistant (from 2.1.0)
 
 **Home Assistant** page with up to 4 tiles. **Sensors** (including binary sensors) show value and unit. **Switches** (switch, light, fan, input boolean) show On/Off and can be flipped by tapping when touch is active. Without touch only sensors can be chosen in the settings. Set it up under **Settings → Home Assistant**: address (e.g. `http://homeassistant.local:8123`), a long-lived access token (profile in Home Assistant → Security) and the entities from the list that **Check connection** loads straight from Home Assistant. Like the other keys, the token is stored DPAPI-encrypted in `config.toml`. The app polls the REST API every 15 seconds; tapping a switch takes effect immediately. Locks, covers and alarm panels are deliberately not switchable. With an `http://` address the token and values cross your home network unencrypted; use `https://` if Home Assistant offers it.
+
+## New on streaming (from 2.8.0)
+
+The **New on streaming** page shows movies and series released in the last 30 days that are included in the subscription (flatrate) of the providers you choose. Each row has the title, date, movie or series, and the provider logo (at most 3 per title, further ones as “+n”). Up to 6 rows, newest first. If a logo is missing or still loading, the abbreviation (e.g. NF, PV, D+, ATV+, WOW, RTL+) is shown instead.
+
+- **Setup:** under **Settings → New on streaming** turn the page on and enter a free TMDB key (on an existing installation also tick the page under *Pages & order*) (themoviedb.org → Settings → API; the v3 key or the “API Read Access Token” both work). Like the other keys it is stored DPAPI-encrypted in `config.toml` and never logged or shown. **Check key & load providers** loads your region's provider list from TMDB; tick the providers you want (up to 30). Preselected: Netflix (8), Prime Video (9 and 119), Disney+ (337), Apple TV+ (350), WOW (30) and RTL+ (298). If an ID differs in your region, fix it via the loaded list.
+- **Region:** follows the app language (German: DE, English: US); can be overridden with two letters in the **Region** field (`region` under `[streaming]`), e.g. `AT`.
+- **Requests:** GET only, over HTTPS to `api.themoviedb.org/3`. Each refresh makes two discover requests (movies, series) plus – only for the shown entries, remembered once – one provider request per entry; at most hourly (1 hour cache), with short pauses between requests. On errors the old entries stay visible and the app retries after 10 minutes (15 minutes on “rate limit”, next hour on an invalid key).
+- **Provider logos:** TMDB supplies a `logo_path` per provider; the image comes from `image.tmdb.org` (size w92, GET only over HTTPS, no redirects, size limit, PNG/JPEG only). Each logo is loaded once in the background and stored under `cache/tmdb-logos/<provider ID>.png` in the data folder (file name from the number only), then scaled in memory to row height as a rounded square. The display never waits for it; until then, or on errors, the abbreviation is shown. The logos are trademarks of the providers ([THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md)). TMDB additionally sees the image requests.
+- **Display without data:** “No key” (page on, but no key), “Loading data …”, “No data” (error or offline, never a crash).
+- **Privacy:** TMDB sees your IP address and the chosen region/provider list, not your accounts at the streaming services.
+- **Credit:** This product uses the TMDB API but is not endorsed or certified by TMDB. Provider data: JustWatch. The page carries the footer “TMDB / JustWatch”; the notice is also in the settings (Updates & startup → Credits) and in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md). The official TMDB logo is not included yet.
+
+## Spotify (from 2.8.0)
+
+Shows the current track with cover and progress; with touch (monitor, Companion) buttons control previous, play/pause and next (Spotify Premium required). Sign-in uses PKCE with your own Spotify developer app; the token is stored DPAPI-encrypted in `spotify.token`. Setup and limits: [SPOTIFY.en.md](SPOTIFY.en.md).
 
 ## Android Companion app (from 2.3.0, multiple devices from 2.7.0)
 

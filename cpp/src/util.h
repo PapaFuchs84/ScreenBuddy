@@ -13,8 +13,8 @@
 
 namespace fl {
 
-inline constexpr const char* VERSION = "2.7.0";
-inline constexpr const char* UA = "ScreenBuddy/2.7.0";
+inline constexpr const char* VERSION = "2.8.0";
+inline constexpr const char* UA = "ScreenBuddy/2.8.0";
 
 // ---------- Text ----------
 std::wstring widen(std::string_view s);
@@ -45,6 +45,8 @@ std::string run_hidden(const std::wstring& cmdline, unsigned timeout_ms, int* ex
 // Testinstanz neben der echten App (Umgebungsvariable FUCHSLABS_INSTANCE): eigener Mutex, verändert weder
 // Autostart noch installierte Dateien
 bool test_instance();
+// Testinstanz ohne eigenen FUCHSLABS_INSTALL_DIR: würde die echte Installation anfassen
+bool test_on_real_install();
 
 // ---------- Pfade ----------
 std::filesystem::path exe_path();

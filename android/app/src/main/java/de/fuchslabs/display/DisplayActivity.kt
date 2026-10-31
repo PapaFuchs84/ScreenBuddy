@@ -94,7 +94,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
 
     /** Tatsaechliche Pixelgroesse der Anzeige in aktueller Rotation (Vollbild, ohne Systemleisten-Abzug). */
     private fun realSize(): Pair<Int, Int> {
-        val v = if (frameView.width > 0 && frameView.height > 0) frameView.width to frameView.height else null
+        val v = if (frameView.contentWidth > 0 && frameView.contentHeight > 0) frameView.contentWidth to frameView.contentHeight else null
         if (v != null) return v
         val dm = DisplayMetrics()
         @Suppress("DEPRECATION") windowManager.defaultDisplay.getRealMetrics(dm)

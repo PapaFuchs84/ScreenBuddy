@@ -41,7 +41,7 @@ OLEAUT.SysFreeString.argtypes = [ctypes.c_void_p]
 
 ROLE_SLIDER, ROLE_LIST, ROLE_PAGETAB, ROLE_PUSHBUTTON, ROLE_COMBOBOX = 0x33, 0x21, 0x25, 0x2B, 0x2E
 NAV = ["Übersicht", "Anzeige", "Seiten & Reihenfolge", "System", "Freunde", "Discord", "Battlefield 6", "Blogs (RSS)",
-       "Home Assistant", "Companion", "Plugins", "Plugin-Store", "Farben & Design", "Updates & Autostart"]
+       "Streaming-Neustarts", "Home Assistant", "Spotify", "Companion", "Plugins", "Plugin-Store", "Farben & Design", "Updates & Autostart"]
 
 
 class GUID(ctypes.Structure):

@@ -32,6 +32,24 @@ static const std::unordered_map<std::string, std::string>& en() {
         {"Freunde", "Friends"},
         {"Battlefield 6 · Rangliste", "Battlefield 6 · Leaderboard"},
         {"Blog-Updates", "Blog updates"},
+        // Streaming-Neustarts (TMDB)
+        {"Neu bei Streaming", "New on streaming"},
+        {"Kein Key", "No key"},
+        {"Keine Daten", "No data"},
+        {"Lade Daten …", "Loading data …"},
+        {"Keine Neustarts gefunden", "No new releases found"},
+        {"TMDB-Key in den Einstellungen eintragen", "Enter the TMDB key in the settings"},
+        {"Film", "Movie"},
+        {"Serie", "Series"},
+        {"Bitte zuerst den TMDB-Key eintragen", "Please enter the TMDB key first"},
+        {"Ungültige Region (zwei Buchstaben, z. B. DE)", "Invalid region (two letters, e.g. DE)"},
+        {"TMDB ist nicht erreichbar – Netzwerk prüfen", "TMDB is unreachable – check the network"},
+        {"TMDB-Key ungültig", "TMDB key invalid"},
+        {"TMDB-Limit erreicht – später erneut", "TMDB rate limit reached – try again later"},
+        {"TMDB: unerwartete Antwort", "TMDB: unexpected response"},
+        {"Keine Anbieter gewählt", "No providers selected"},
+        {"Ungültiger TMDB-Key", "Invalid TMDB key"},
+        {"Region als zwei Buchstaben erwartet (z. B. DE)", "Region expected as two letters (e.g. DE)"},
         {"Datenträger", "Drive"},
         {"Netzwerk", "Network"},
         {"Takt", "Clock"},
@@ -85,6 +103,26 @@ static const std::unordered_map<std::string, std::string>& en() {
          "Xbox: OpenXBL rate limit reached, trying again later"},
         {"OpenXBL ist nicht erreichbar", "OpenXBL is not reachable"},
         {"Name fehlt", "Name missing"},
+        // Spotify
+        {"Spotify ist nicht fertig eingerichtet", "Spotify is not fully set up"},
+        {"Bei Spotify anmelden: Einstellungen › Spotify", "Sign in to Spotify: Settings › Spotify"},
+        {"Verbinde mit Spotify …", "Connecting to Spotify …"},
+        {"Spotify nicht erreichbar", "Spotify not reachable"},
+        {"Es läuft gerade nichts – Wiedergabe in Spotify starten", "Nothing is playing – start playback in Spotify"},
+        {"Werbung", "Advertisement"},
+        {"Spotify ist nicht erreichbar – Netzwerk prüfen", "Spotify is not reachable – check the network"},
+        {"Spotify: Client-ID ungültig", "Spotify: client ID invalid"},
+        {"Spotify: Anmeldung abgelaufen – bitte neu anmelden", "Spotify: sign-in expired – please sign in again"},
+        {"Spotify: Zugriff verweigert – bitte neu anmelden", "Spotify: access denied – please sign in again"},
+        {"Spotify: unerwartete Antwort", "Spotify: unexpected reply"},
+        {"Spotify bremst die Abfragen – kurze Pause", "Spotify is rate-limiting requests – short pause"},
+        {"Steuern braucht Spotify Premium", "Controlling playback needs Spotify Premium"},
+        {"Kein aktives Spotify-Gerät – Wiedergabe in Spotify starten", "No active Spotify device – start playback in Spotify"},
+        {"Bitte zuerst die Client-ID eintragen und speichern", "Please enter the client ID and save first"},
+        {"Anmeldung abgelaufen oder ungültig – bitte erneut anmelden", "Sign-in expired or invalid – please sign in again"},
+        {"Zugriff abgelehnt", "Access denied"},
+        {"Anmeldung abgebrochen", "Sign-in cancelled"},
+        {"Spotify ist in ScreenBuddy nicht eingeschaltet", "Spotify is not turned on in ScreenBuddy"},
         // Home Assistant
         {"Nicht verfügbar", "Unavailable"},
         {"Keine Entitäten eingetragen", "No entities set up"},
@@ -172,6 +210,7 @@ static const std::vector<std::pair<std::regex, std::string>>& patterns() {
             {R"(^vor (\d+) Tagen$)", "$1 days ago"},
             {R"(^(\d+) Server$)", "$1 servers"},
             {R"(^(\d+) Entitäten$)", "$1 entities"},
+            {R"(^TMDB antwortet mit Fehler (\d+)$)", "TMDB replied with error $1"},
             {R"(^Home Assistant antwortet mit Fehler (\d+)$)", "Home Assistant replied with error $1"},
             {R"(^Home Assistant: Entität (\S+) nicht gefunden$)", "Home Assistant: entity $1 not found"},
             {R"(^(\d+) Freunde, (\d+) online$)", "$1 friends, $2 online"},
@@ -192,8 +231,8 @@ static const std::vector<std::pair<std::regex, std::string>>& patterns() {
     return p;
 }
 
-std::string tr(const std::string& text) {
-    if (g_lang == "de" || text.empty()) return text;
+static std::string translate(const std::string& text) {
+    if (text.empty()) return text;
     auto& m = en();
     if (auto it = m.find(text); it != m.end()) return it->second;
     if (text.find(" · ") != std::string::npos) {  // z. B. „Spielt X · 42 min“, „Fehler · Fehler“
@@ -201,7 +240,7 @@ std::string tr(const std::string& text) {
         std::vector<std::string> out;
         bool changed = false;
         for (auto& p : parts) {
-            out.push_back(tr(p));
+            out.push_back(translate(p));
             changed |= out.back() != p;
         }
         if (changed) return join(out, " · ");
@@ -210,9 +249,12 @@ std::string tr(const std::string& text) {
         if (std::regex_match(text, rx)) return std::regex_replace(text, rx, rep);
     if (auto i = text.find(": "); i != std::string::npos) {  // „display.port: erlaubt: …“
         std::string head = text.substr(0, i), rest = text.substr(i + 2);
-        if (head.find('.') != std::string::npos && head.find(' ') == std::string::npos) return head + ": " + tr(rest);
+        if (head.find('.') != std::string::npos && head.find(' ') == std::string::npos) return head + ": " + translate(rest);
     }
     return text;
 }
+
+std::string tr(const std::string& text) { return g_lang == "de" ? text : translate(text); }
+std::string to_english(const std::string& text) { return translate(text); }
 
 }  // namespace fl::i18n

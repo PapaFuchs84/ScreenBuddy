@@ -15,6 +15,7 @@
 #include "netguard.h"
 #include "render.h"
 #include "rss.h"
+#include "spotify.h"
 #include "secure.h"
 #include "util.h"
 #include "touch.h"
@@ -55,7 +56,7 @@ static void test_config() {
     fs::remove(tmp);
     ojson cfg = config::load(tmp);
     CHECK_EQ(cfg["ui"]["port"].get<int>(), 8765);
-    CHECK_EQ(cfg["display"]["pages"].size(), (size_t)6);
+    CHECK_EQ(cfg["display"]["pages"].size(), (size_t)8);
     ojson in = {{"display", {{"brightness", "250"}, {"theme", "dunkel"}, {"color_bg", "#aabbcc"}}},
                 {"discord", {{"token", "geheim"}, {"guild_ids", {"123456789012345678", " ", "5"}}}},
                 {"rss", {{"feeds", {"a.de", "a.de", " b.de "}}}}};
@@ -64,6 +65,24 @@ static void test_config() {
     CHECK_EQ(m["display"]["color_bg"].get<std::string>(), std::string("#AABBCC"));
     CHECK_EQ(m["discord"]["guild_ids"].size(), (size_t)2);
     CHECK_EQ(m["rss"]["feeds"].size(), (size_t)2);
+    // Streaming-Neustarts: Standardwerte, Region, Anbieter-Zeilen, Key-Prüfung
+    CHECK_EQ(cfg["streaming"]["providers"].size(), (size_t)7);
+    CHECK_EQ(cfg["streaming"]["api_key"].get<std::string>(), std::string(""));
+    ojson sm = config::merge(cfg, {{"streaming", {{"region", "at"}, {"max_items", 99}, {"refresh_minutes", 5},
+                                                  {"providers", {"8|Netflix", "x", "8|doppelt", " 337 ", "350|A|B"}}}}});
+    CHECK_EQ(sm["streaming"]["region"].get<std::string>(), std::string("AT"));
+    CHECK_EQ(sm["streaming"]["max_items"].get<int>(), 6);
+    CHECK_EQ(sm["streaming"]["refresh_minutes"].get<int>(), 60);
+    CHECK_EQ(sm["streaming"]["providers"], ojson::array({"8|Netflix", "337", "350|A B"}));
+    bool bad_region = false, bad_key = false;
+    try { config::merge(cfg, {{"streaming", {{"region", "Deutschland"}}}}); } catch (const std::invalid_argument&) { bad_region = true; }
+    try { config::merge(cfg, {{"streaming", {{"api_key", "zu kurz & ungültig"}}}}); } catch (const std::invalid_argument&) { bad_key = true; }
+    CHECK(bad_region && bad_key);
+    // Der Key kommt nie in die öffentliche Sicht
+    ojson keyed = config::merge(cfg, {{"streaming", {{"api_key", "0123456789abcdef0123456789abcdef"}}}});
+    CHECK_EQ(keyed["streaming"]["api_key"].get<std::string>(), std::string("0123456789abcdef0123456789abcdef"));
+    ojson pub_stream = config::public_view(keyed);
+    CHECK(pub_stream["streaming"]["api_key"].get<std::string>().empty() && pub_stream["streaming"]["api_key_set"].get<bool>());
     bool threw = false;
     try {
         config::merge(cfg, {{"display", {{"theme", "rosa"}}}});
@@ -115,7 +134,7 @@ static void test_config() {
                                                         {"visible_pages", {"system", "plugin:wetter", "plugin:"}}}}});
     CHECK_EQ(with_plugin["display"]["pages"][0], ojson("plugin:wetter"));
     CHECK_EQ(with_plugin["display"]["pages"][1], ojson("system"));
-    CHECK_EQ(with_plugin["display"]["pages"].size(), (size_t)7);
+    CHECK_EQ(with_plugin["display"]["pages"].size(), (size_t)9);
     CHECK_EQ(with_plugin["display"]["visible_pages"], ojson::array({"system", "plugin:wetter"}));
     CHECK(config::is_page_key("plugin:wetter"));
     CHECK(!config::is_page_key("plugin:"));
@@ -324,8 +343,92 @@ static void test_ui_logic() {
     CHECK(qr.w == qr.h && qr.w > 40 && qr.px.front() == 0xFFFFFFFFu);
     CHECK(std::count(qr.px.begin(), qr.px.end(), 0xFF000000u) > 100);
 }
-static void test_ha() {
-    auto sp = ha::parse_spec(" sensor.wohnzimmer_temp | Wohnzimmer ");
+static void test_spotify() {
+    // RFC 7636, Anhang B: bekannter PKCE-Testvektor
+    CHECK_EQ(spotify::challenge_of("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"), std::string("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"));
+    std::string v = spotify::make_verifier();
+    CHECK_EQ(v.size(), (size_t)64);
+    CHECK(v != spotify::make_verifier());
+    const std::string raw("\xfb\xff\xfe", 3);
+    CHECK_EQ(spotify::base64url(raw), std::string("-__-"));
+    CHECK(spotify::valid_client_id("0123456789abcdef0123456789ABCDEF"));
+    CHECK(!spotify::valid_client_id("zzzz") && !spotify::valid_client_id("") && !spotify::valid_client_id("0123456789abcdef0123456789abcdeg"));
+    CHECK_EQ(spotify::redirect_uri(8765), std::string("http://127.0.0.1:8765/spotify/callback"));
+    std::string url = spotify::authorize_url("abc", spotify::redirect_uri(8765), "chal", "st");
+    CHECK(url.rfind("https://accounts.spotify.com/authorize?", 0) == 0);
+    CHECK(url.find("code_challenge_method=S256") != std::string::npos && url.find("state=st") != std::string::npos);
+    CHECK(url.find("redirect_uri=http%3A%2F%2F127.0.0.1%3A8765%2Fspotify%2Fcallback") != std::string::npos);
+    CHECK(url.find("client_secret") == std::string::npos);
+
+    nlohmann::json data = {{"is_playing", true}, {"progress_ms", 83000},
+                           {"item", {{"name", "Numb"}, {"duration_ms", 187000},
+                                     {"artists", {{{"name", "Linkin Park"}}, {{"name", "Jay-Z"}}}},
+                                     {"album", {{"name", "Meteora"},
+                                                {"images", {{{"url", "https://i.scdn.co/image/big"}, {"width", 640}},
+                                                            {{"url", "https://i.scdn.co/image/mid"}, {"width", 300}},
+                                                            {{"url", "https://i.scdn.co/image/small"}, {"width", 64}},
+                                                            {{"url", "https://evil.example/x.png"}, {"width", 250}}}}}}}}};
+    auto snap = spotify::parse_player(data, true);
+    CHECK(snap.state == spotify::State::Playing && snap.playing && snap.controls);
+    CHECK_EQ(snap.title, std::string("Numb"));
+    CHECK_EQ(snap.artist, std::string("Linkin Park, Jay-Z"));
+    CHECK_EQ(snap.album, std::string("Meteora"));
+    CHECK(snap.progress_ms == 83000 && snap.duration_ms == 187000);
+    CHECK_EQ(spotify::cover_url(data), std::string("https://i.scdn.co/image/mid"));   // kleinstes ab 200 px, nur Spotify-Server
+    data["is_playing"] = false;
+    CHECK(spotify::parse_player(data, false).state == spotify::State::Paused);
+    CHECK(spotify::parse_player(nlohmann::json(), true).state == spotify::State::Idle);
+    CHECK_EQ(spotify::cover_url(nlohmann::json::object()), std::string(""));
+    nlohmann::json episode = {{"is_playing", true}, {"item", {{"name", "Folge 1"}, {"duration_ms", 1000}, {"show", {{"name", "Podcast"}}}}}};
+    CHECK_EQ(spotify::parse_player(episode, false).artist, std::string("Podcast"));
+
+    CHECK_EQ(spotify::format_time(187000), std::string("3:07"));
+    CHECK_EQ(spotify::format_time(-5), std::string("0:00"));
+    CHECK_EQ(spotify::format_time(3725000), std::string("1:02:05"));
+    spotify::Snapshot s;
+    s.playing = true; s.progress_ms = 10000; s.duration_ms = 12000; s.fetched_at = 100;
+    CHECK_EQ(spotify::live_progress(s, 101), 11000LL);
+    CHECK_EQ(spotify::live_progress(s, 150), 12000LL);   // nie über die Dauer
+    s.playing = false;
+    CHECK_EQ(spotify::live_progress(s, 150), 10000LL);
+
+    // Tasten: es gibt Treffer für alle drei, in der Kopfzeile keinen
+    for (auto sz : {std::pair<int, int>{480, 320}, std::pair<int, int>{320, 480}, std::pair<int, int>{800, 480}}) {
+        int hits[3] = {0, 0, 0};
+        for (int y = 0; y < sz.second; ++y)
+            for (int x = 0; x < sz.first; ++x) {
+                int b = render::SpotifyRenderer::button_at(sz.first, sz.second, x, y);
+                if (b >= 0) ++hits[b];
+            }
+        CHECK(hits[0] > 0 && hits[1] > 0 && hits[2] > 0);
+        CHECK_EQ(render::SpotifyRenderer::button_at(sz.first, sz.second, 2, 2), -1);
+    }
+    // Rendern mit Titel, ohne Cover und in den Zuständen ohne Wiedergabe
+    render::SpotifyRenderer r(480, 320, "Spotify");
+    CHECK_EQ(r.render(render::demo_spotify()).w, 480);
+    spotify::Snapshot idle;
+    for (auto st : {spotify::State::NotSetUp, spotify::State::LoggedOut, spotify::State::Connecting, spotify::State::Idle, spotify::State::Error}) {
+        idle.state = st;
+        CHECK_EQ(r.render(idle).h, 320);
+    }
+    // Touch: ein Tipp auf die Wiedergabetaste führt zur Aktion
+    int taps = 0;
+    touch::Tile tile{};
+    tile.box = render::Box{0, 0, 480, 320};
+    tile.spotify = true;
+    for (int i = 0; i < 3; ++i) tile.cells.push_back([&taps] { ++taps; });
+    std::vector<touch::Tile> tiles = {tile};
+    int bx = 0, by = 0;
+    for (int y = 0; y < 320 && !bx; ++y)
+        for (int x = 0; x < 480; ++x)
+            if (render::SpotifyRenderer::button_at(480, 320, x, y) == 1) { bx = x; by = y; break; }
+    auto* act = touch::action_at(tiles, bx, by);
+    CHECK(act != nullptr);
+    if (act) (*act)();
+    CHECK_EQ(taps, 1);
+    CHECK(touch::action_at(tiles, 2, 2) == nullptr);
+}
+static void test_ha() {    auto sp = ha::parse_spec(" sensor.wohnzimmer_temp | Wohnzimmer ");
     CHECK(sp && sp->id == "sensor.wohnzimmer_temp" && sp->label == "Wohnzimmer");
     CHECK(!ha::parse_spec("Sensor.X"));
     CHECK(!ha::parse_spec("kein id"));
@@ -578,6 +681,11 @@ static void test_render(const fs::path& out) {
                                     {"Noch ein Blog", "Zweiter Beitrag mit etwas längerem Titel, der umbricht und noch weiter geht als gedacht", 1792606500 - 7200, ""},
                                     {"heise online", "heise+ | Test: Sehr langer Titel mit Präfix", std::nullopt, ""}};
             save_png(out / (pre + "blogs.png"), rr.render(posts, 1792606500, 1792606500));
+            const StreamLogos stream_logos = render::demo_stream_logos();
+            render::StreamRenderer st(w, h, "Neu bei Streaming");
+            save_png(out / (pre + "streaming.png"), st.render(StreamState::Ok, render::demo_stream(), 1792606500, 1792606500, &stream_logos));
+            save_png(out / (pre + "streaming-nokey.png"), st.render(StreamState::NoKey, {}, std::nullopt, 1792606500));
+            save_png(out / (pre + "streaming-error.png"), st.render(StreamState::Error, {}, std::nullopt, 1792606500));
             render::SysRenderer sr(w, h, "System", "bit");
             SysSnapshot sn;
             sn.cpu_name = "Ryzen 7 5700X";
@@ -715,7 +823,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}}) {
         std::printf("· %s\n", name);
         fn();
     }

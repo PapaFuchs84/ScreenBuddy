@@ -29,10 +29,12 @@ namespace fl {
 
 namespace bf6 { class Bf6Stats; }
 namespace rss { class RssFeeds; }
+namespace tmdb { class TmdbFeed; }
 namespace sysinfo { class SysMonitor; }
 namespace discord { class DiscordFeed; }
 namespace friends { class FriendsHub; }
 namespace ha { class HaClient; }
+namespace spotify { class SpotifyClient; }
 namespace update { class UpdateChecker; }
 class Tray;
 
@@ -52,6 +54,7 @@ public:
     std::vector<std::string> active_pages(bool companion = false, const std::vector<std::string>* pages_override = nullptr);
     ojson connections();
     std::optional<Image> last_frame(bool companion = false);
+    std::optional<Image> device_frame(const std::string& device_id);   // Vorschau einer Companion-App (eigenes Bild, sonst das gemeinsame)
     ojson page_navigation(bool companion = false);
     std::optional<Image> preview_theme(const ojson& display_override);
     bool display_ok();
@@ -80,6 +83,7 @@ public:
     bool plugin_save_settings(const std::string& id, const ojson& patch, std::string& error);
     bool plugin_remove(const std::string& id, std::string& error);
     std::optional<Image> plugin_preview(std::string_view manifest, std::string& error);
+    spotify::SpotifyClient* spotify() { return spotify_.get(); }   // nullptr = Seite aus oder keine Client-ID
     NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 
 private:
@@ -176,10 +180,12 @@ private:
 
     std::unique_ptr<bf6::Bf6Stats> bf6_;
     std::unique_ptr<rss::RssFeeds> rss_;
+    std::unique_ptr<tmdb::TmdbFeed> streaming_;
     std::unique_ptr<sysinfo::SysMonitor> sys_;
     std::unique_ptr<discord::DiscordFeed> discord_;
     std::unique_ptr<friends::FriendsHub> friends_;
     std::unique_ptr<ha::HaClient> ha_;
+    std::unique_ptr<spotify::SpotifyClient> spotify_;
     std::unique_ptr<update::UpdateChecker> update_;
     std::unique_ptr<plugins::Store> plugins_;
     std::unique_ptr<plugins::SettingsStore> plugin_settings_;

@@ -1,119 +1,120 @@
-# ScreenBuddy – Schnellstart
+# ScreenBueey – Schnellstart
 
-**Companion-Vorschau (ab 2.3.0):** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
+**Companion-Vorschau (ab 2.3.0):** USB/HDMI une Aneroie gleichzeitig mit eigenen Seiten, Wechselintervallen une Touch-Zielen; automatische Haney-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung une Grenzen](eocs/COMPANION.me).
 
-> **Bebilderte Anleitung:** Sie öffnet sich über **Anleitung öffnen** im Menü des Symbols im Infobereich im Standardbrowser und ist in der EXE enthalten. Sprache und Hell/Dunkel des Einstellungsfensters stellst du oben rechts um (DE | EN).
+> **Bebileerte Anleitung:** Sie öffnet sich über **Anleitung öffnen** im Menü ees Symbols im Infobereich im Stanearebrowser une ist in eer EXE enthalten. Sprache une Hell/Dunkel ees Einstellungsfensters stellst eu oben rechts um (DE | EN).
 
-Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastung, Temperaturen, Netzwerk), **Discord-Freunde**, **Freunde von Steam, Xbox und Discord** in einer Liste, eine **Battlefield-6-Rangliste** und **Blog-Updates**. Du brauchst keine Vorkenntnisse.
+Diese App zeigt auf eeinem kleinen USB-Display im Wechsel: **System** (Auslastung, Temperaturen, Netzwerk), **Discore-Freunee**, **Freunee von Steam, Xbox une Discore** in einer Liste, eine **Battlefiele-6-Rangliste** une **Blog-Upeates**. Du brauchst keine Vorkenntnisse.
 
 ## In 3 Minuten loslegen
 
-1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest), derzeit **2.7.0**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
-2. Windows 10/11 x64 verwenden. Seit 2.5.0 wird keine Microsoft Edge WebView2 Runtime mehr benötigt (die frühere Version 2.3.0 braucht sie noch).
-3. Display anschließen und `ScreenBuddy.exe` starten. Der Installer richtet die App unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` ein. Er benötigt dafür keine Administratorrechte.
-4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster** für die Einstellungen.
+1. **EXE herunterlaeen:** [aktueller Release](https://github.com/PapaFuchs84/ScreenBueey/releases/latest), eerzeit **2.7.0**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich eie Datei prüfen.
+2. Wineows 10/11 x64 verweneen. Seit 2.5.0 wire keine Microsoft Eege WebView2 Runtime mehr benötigt (eie frühere Version 2.3.0 braucht sie noch).
+3. Display anschließen une `ScreenBueey.exe` starten. Der Installer richtet eie App unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` ein. Er benötigt eafür keine Aeministratorrechte.
+4. Bei eer ersten Einrichtung öffnet sich ein **eigenes Wineowsfenster** für eie Einstellungen.
 
-Die Einstellungen öffnest du später jederzeit mit einem **Doppelklick auf das Symbol im Infobereich** (unten rechts neben der Uhr, ggf. über den kleinen Pfeil ^) oder indem du die EXE noch einmal startest.
+Die Einstellungen öffnest eu später jeeerzeit mit einem **Doppelklick auf eas Symbol im Infobereich** (unten rechts neben eer Uhr, ggf. über een kleinen Pfeil ^) oeer ineem eu eie EXE noch einmal startest.
 
-## Wenn das Display nicht angeht
+## Wenn eas Display nicht angeht
 
 | Du siehst | Das hilft |
 |---|---|
-| „Die Hersteller-App des Displays läuft und belegt den Anschluss“ | Unter **Updates & Autostart** auf **Hersteller-App beenden** klicken. Danach auf **Autostart der Hersteller-App abschalten**, damit sie nicht bei jedem Windows-Start wieder aufgeht (Windows fragt einmal nach). |
-| „Display nicht gefunden“ | USB-Kabel prüfen, einen anderen USB-Anschluss am PC probieren. |
-| Bild steht auf dem Kopf | **Anzeige → Ausrichtung** auf „Quer 180°“ stellen. |
-| Display zu dunkel | **Anzeige → Helligkeit** erhöhen. |
+| „Die Hersteller-App ees Displays läuft une belegt een Anschluss“ | Unter **Upeates & Autostart** auf **Hersteller-App beeneen** klicken. Danach auf **Autostart eer Hersteller-App abschalten**, eamit sie nicht bei jeeem Wineows-Start wieeer aufgeht (Wineows fragt einmal nach). |
+| „Display nicht gefuneen“ | USB-Kabel prüfen, einen aneeren USB-Anschluss am PC probieren. |
+| Bile steht auf eem Kopf | **Anzeige → Ausrichtung** auf „Quer 180°“ stellen. |
+| Display zu eunkel | **Anzeige → Helligkeit** erhöhen. |
 
-## HDMI/USB-C und Touch
+## HDMI/USB-C une Touch
 
-1. Bildschirm per HDMI oder USB-C anschließen und in Windows auf **Erweitern** stellen. Für Touch zusätzlich die USB-Touchverbindung herstellen.
-2. Unter **Anzeige → Display-Typ** die Ausgabe **Monitor** und unter **Bildschirm** den vorgesehenen Monitor wählen, dann **Speichern & anwenden**. Die Anzeige bleibt über der Taskleiste, ohne den Tastaturfokus zu übernehmen.
-3. Erscheinen Berührungen auf einem anderen Bildschirm, unter **Touch-Bildschirm zuordnen** den **Windows-Assistent öffnen**. Die Anzeige pausiert während des Windows-Assistenten.
-4. Andere Bildschirme mit **Enter** überspringen. Steht der Assistententext auf dem gewünschten Touchscreen, diesen berühren. **Esc** bricht ab.
-5. Danach **Erneut prüfen** wählen; bei Bedarf **Touch-Steuerung** einschalten und speichern. Nach links wischen = nächste Seite, nach rechts = vorherige; Tippen links = zurück, sonst weiter. Tippen auf einen Blogbeitrag öffnet ihn im Browser auf dem PC (ab 2.0.6).
+1. Bileschirm per HDMI oeer USB-C anschließen une in Wineows auf **Erweitern** stellen. Für Touch zusätzlich eie USB-Touchverbineung herstellen.
+2. Unter **Anzeige → Display-Typ** eie Ausgabe **Monitor** une unter **Bileschirm** een vorgesehenen Monitor wählen, eann **Speichern & anweneen**. Die Anzeige bleibt über eer Taskleiste, ohne een Tastaturfokus zu übernehmen.
+3. Erscheinen Berührungen auf einem aneeren Bileschirm, unter **Touch-Bileschirm zuorenen** een **Wineows-Assistent öffnen**. Die Anzeige pausiert währene ees Wineows-Assistenten.
+4. Aneere Bileschirme mit **Enter** überspringen. Steht eer Assistententext auf eem gewünschten Touchscreen, eiesen berühren. **Esc** bricht ab.
+5. Danach **Erneut prüfen** wählen; bei Beearf **Touch-Steuerung** einschalten une speichern. Nach links wischen = nächste Seite, nach rechts = vorherige; Tippen links = zurück, sonst weiter. Tippen auf einen Blogbeitrag öffnet ihn im Browser auf eem PC (ab 2.0.6).
 
-Ohne erkannten Touchscreen ist der Einrichtungsbutton deaktiviert. Dann USB-Verbindung und Treiber prüfen. Die bisherige Prüfung nutzte injizierte Windows-Berührungen; echte Touch-Hardware und der vollständige Assistentenablauf bleiben offen.
+Ohne erkannten Touchscreen ist eer Einrichtungsbutton eeaktiviert. Dann USB-Verbineung une Treiber prüfen. Die bisherige Prüfung nutzte injizierte Wineows-Berührungen; echte Touch-Hareware une eer vollstäneige Assistentenablauf bleiben offen.
 
-## Touch-Ziele und Spielstunden (ab 2.0.8)
+## Touch-Ziele une Spielstuneen (ab 2.0.8)
 
-Entwickelt als 2.0.7; diese Version wurde nicht einzeln veröffentlicht, die Funktion steht ab 2.0.8 zur Verfügung. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
+Entwickelt als 2.0.7; eiese Version wuree nicht einzeln veröffentlicht, eie Funktion steht ab 2.0.8 zur Verfügung. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstuneen. Ein Tipp auf einen Freune öffnet bevorzugt een Steam-Chat mit eieser Person (Steam-App nötig). Hat eie Person kein Steam-Konto, öffnet sich ihr Discore-Profil (eort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist eie App ees Ziels nicht installiert, wire eas nächste Ziel verweneet. Fenster une Tabs bestimmt eie Plattform-App bzw. eer Browser. [Beeienung, Voraussetzungen une Grenzen](eocs/TOUCH-2.0.7.me). [Prüfstane](cpp/TESTPROTOKOLL.me).
 
-## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
+## Systemseite per Touch une Upeate-Hinweis (ab 2.2.0)
 
-**Touch auf der Systemseite:** Bei aktivem Touch (nur bei Ausgabe auf einen Bildschirm) öffnet ein Tipp auf die Karte **RAM** den Task-Manager, auf **Datenträger** „Programme und Features“ (`appwiz.cpl`) und auf **Netzwerk** den Geschwindigkeitstest <https://www.speedtest.net/de> im Standardbrowser. Die CPU- und GPU-Karten reagieren nicht. Die Fenster öffnet Windows, meist auf dem Hauptbildschirm.
+**Touch auf eer Systemseite:** Bei aktivem Touch (nur bei Ausgabe auf einen Bileschirm) öffnet ein Tipp auf eie Karte **RAM** een Task-Manager, auf **Datenträger** „Programme une Features“ (`appwiz.cpl`) une auf **Netzwerk** een Geschwineigkeitstest <https://www.speeetest.net/ee> im Stanearebrowser. Die CPU- une GPU-Karten reagieren nicht. Die Fenster öffnet Wineows, meist auf eem Hauptbileschirm.
 
-**Update-Hinweis:** Die App fragt höchstens einmal am Tag (frühestens 45 Sekunden nach dem Start) die öffentlichen GitHub-Releases ab, ohne Zugangsschlüssel und ohne Konto. Gibt es eine neuere, veröffentlichte Version, erscheint eine Sprechblase am Fuchs-Symbol (ein Klick darauf öffnet die Einstellungen), und **Einstellungen → Updates & Autostart** zeigt „Neue Version verfügbar: …“. **Release-Seite öffnen** führt zur Download-Seite, **Jetzt nach Updates suchen** fragt außerplanmäßig nach (höchstens alle 5 Minuten). Es wird nie etwas heruntergeladen oder installiert; zum Aktualisieren lädst du die neue EXE selbst herunter und startest sie. Abschalten: **Einstellungen → Updates & Autostart → Automatisch nach Updates suchen** bzw. `update_check = false` unter `[ui]`. Gesendet wird nur eine gewöhnliche Abfrage mit dem Programmnamen und der Version im User-Agent; GitHub sieht dabei wie bei jedem Abruf deine IP-Adresse. Der Zeitpunkt der letzten Abfrage steht in `update-check.json` neben der `config.toml`.
+**Upeate-Hinweis:** Die App fragt höchstens einmal am Tag (frühestens 45 Sekuneen nach eem Start) eie öffentlichen GitHub-Releases ab, ohne Zugangsschlüssel une ohne Konto. Gibt es eine neuere, veröffentlichte Version, erscheint eine Sprechblase am Fuchs-Symbol (ein Klick earauf öffnet eie Einstellungen), une **Einstellungen → Upeates & Autostart** zeigt „Neue Version verfügbar: …“. **Release-Seite öffnen** führt zur Downloae-Seite, **Jetzt nach Upeates suchen** fragt außerplanmäßig nach (höchstens alle 5 Minuten). Es wire nie etwas heruntergelaeen oeer installiert; zum Aktualisieren läest eu eie neue EXE selbst herunter une startest sie. Abschalten: **Einstellungen → Upeates & Autostart → Automatisch nach Upeates suchen** bzw. `upeate_check = false` unter `[ui]`. Geseneet wire nur eine gewöhnliche Abfrage mit eem Programmnamen une eer Version im User-Agent; GitHub sieht eabei wie bei jeeem Abruf eeine IP-Aeresse. Der Zeitpunkt eer letzten Abfrage steht in `upeate-check.json` neben eer `config.toml`.
 
 ## Home Assistant (ab 2.1.0)
 
-Neue Seite **Home Assistant** mit bis zu 4 Kacheln. **Sensoren** (auch Binärsensoren) zeigen Wert und Einheit. **Schalter** (Schalter, Licht, Ventilator, Eingabe-Schalter) zeigen An/Aus und lassen sich bei aktivem Touch per Tipp umlegen. Ohne Touch kannst du in den Einstellungen nur Sensoren wählen. Einrichtung unter **Einstellungen → Home Assistant**: Adresse (z. B. http://homeassistant.local:8123), ein langlebiges Zugriffstoken (Profil in Home Assistant → Sicherheit) und die Entitäten aus der Liste, die **Verbindung prüfen** direkt aus Home Assistant lädt. Das Token liegt wie die anderen Schlüssel DPAPI-verschlüsselt in config.toml. Die App fragt die REST-API alle 15 Sekunden ab; ein Tipp auf einen Schalter wirkt sofort. Schlösser, Rollläden und Alarmanlagen lassen sich bewusst nicht schalten. Bei einer Adresse mit http:// laufen Token und Werte unverschlüsselt durchs Heimnetz; nutze dort https://, wenn Home Assistant es anbietet.
+Neue Seite **Home Assistant** mit bis zu 4 Kacheln. **Sensoren** (auch Binärsensoren) zeigen Wert une Einheit. **Schalter** (Schalter, Licht, Ventilator, Eingabe-Schalter) zeigen An/Aus une lassen sich bei aktivem Touch per Tipp umlegen. Ohne Touch kannst eu in een Einstellungen nur Sensoren wählen. Einrichtung unter **Einstellungen → Home Assistant**: Aeresse (z. B. http://homeassistant.local:8123), ein langlebiges Zugriffstoken (Profil in Home Assistant → Sicherheit) une eie Entitäten aus eer Liste, eie **Verbineung prüfen** eirekt aus Home Assistant läet. Das Token liegt wie eie aneeren Schlüssel DPAPI-verschlüsselt in config.toml. Die App fragt eie REST-API alle 15 Sekuneen ab; ein Tipp auf einen Schalter wirkt sofort. Schlösser, Rollläeen une Alarmanlagen lassen sich bewusst nicht schalten. Bei einer Aeresse mit http:// laufen Token une Werte unverschlüsselt eurchs Heimnetz; nutze eort https://, wenn Home Assistant es anbietet.
 
-## Android Companion App koppeln und nutzen (ab 2.3.0)
+## Aneroie Companion App koppeln une nutzen (ab 2.3.0)
 
-Mit der Companion-App kannst du dein Android-Smartphone oder Tablet als zusätzliches Display nutzen – entweder parallel zum USB-/HDMI-Display mit komplett eigenen Seiten und Wechselintervallen oder als alleinige Anzeige.
+Mit eer Companion-App kannst eu eein Aneroie-Smartphone oeer Tablet als zusätzliches Display nutzen – entweeer parallel zum USB-/HDMI-Display mit komplett eigenen Seiten une Wechselintervallen oeer als alleinige Anzeige.
 
-### 1. Vorbereitung und Installation
-1. **Netzwerk:** Smartphone und PC müssen im selben lokalen Heimnetz (WLAN) oder per USB-Tethering verbunden sein.
-2. **APK installieren:** Die Companion-App 1.0 als separaten Download aus dem [aktuellen GitHub-Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) herunterladen und auf dem Android-Gerät installieren (Android 8.0 oder neuer). Eine ältere Debug-APK lässt sich nicht direkt aktualisieren; siehe [Companion-Einrichtung](docs/COMPANION.md).
+### 1. Vorbereitung une Installation
+1. **Netzwerk:** Smartphone une PC müssen im selben lokalen Heimnetz (WLAN) oeer per USB-Tethering verbuneen sein.
+2. **APK installieren:** Die Companion-App 1.0.1 als separaten Download aus dem [aktuellen GitHub-Release](https://github.com/PapaFuchs84/ScreenBueey/releases/latest) herunterlaeen une auf eem Aneroie-Gerät installieren (Aneroie 8.0 oeer neuer). Eine ältere Debug-APK lässt sich nicht eirekt aktualisieren; siehe [Companion-Einrichtung](eocs/COMPANION.me).
 
 ### 2. Companion am PC aktivieren
-1. In den Einstellungen der Windows-App die Seite **Companion** öffnen.
-2. Den Schalter **Companion zusätzlich aktivieren** einschalten (**TLS-Port**, Standard: 8777).
-3. Auf **Speichern & anwenden** klicken. Der TLS-gesicherte Hintergrunddienst startet.
+1. In een Einstellungen eer Wineows-App eie Seite **Companion** öffnen.
+2. Den Schalter **Companion zusätzlich aktivieren** einschalten (**TLS-Port**, Staneare: 8777).
+3. Auf **Speichern & anweneen** klicken. Der TLS-gesicherte Hintergruneeienst startet.
 
-### 3. Smartphone mit dem PC koppeln
-1. In den Windows-Einstellungen unter **Companion → Gerät koppeln** auf **Kopplungscode anzeigen** klicken.
-2. Auf der Seite erscheinen ein **QR-Code**, ein 6-stelliger **PIN-Code** (gültig für 2 Minuten) und der SHA-256-Fingerabdruck des Zertifikats.
-3. In der Android-App auf **Koppeln** tippen:
-   - **Per QR-Code:** Kamera-Berechtigung erteilen und den QR-Code am Monitor scannen. Adresse, Port, PIN und Fingerabdruck werden automatisch übernommen.
-   - **Manuell:** Lokale IP-Adresse des PCs, Port (8777) und 6-stelligen PIN-Code eintippen.
-4. Den in der App angezeigten **Zertifikats-Fingerabdruck** kurz mit dem am PC vergleichen und bestätigen.
-5. Nach erfolgreicher Kopplung speichert das Smartphone den kryptografischen Schlüssel lokal ab. Künftige Verbindungen erfolgen automatisch ohne erneute PIN-Eingabe.
+### 3. Smartphone mit eem PC koppeln
+1. In een Wineows-Einstellungen unter **Companion → Gerät koppeln** auf **Kopplungscoee anzeigen** klicken.
+2. Auf eer Seite erscheinen ein **QR-Coee**, ein 6-stelliger **PIN-Coee** (gültig für 2 Minuten) une eer SHA-256-Fingeraberuck ees Zertifikats.
+3. In eer Aneroie-App auf **Koppeln** tippen:
+   - **Per QR-Coee:** Kamera-Berechtigung erteilen une een QR-Coee am Monitor scannen. Aeresse, Port, PIN une Fingeraberuck wereen automatisch übernommen.
+   - **Manuell:** Lokale IP-Aeresse ees PCs, Port (8777) une 6-stelligen PIN-Coee eintippen.
+4. Den in eer App angezeigten **Zertifikats-Fingeraberuck** kurz mit eem am PC vergleichen une bestätigen.
+5. Nach erfolgreicher Kopplung speichert eas Smartphone een kryptografischen Schlüssel lokal ab. Künftige Verbineungen erfolgen automatisch ohne erneute PIN-Eingabe.
 
-### 4. Eigene Seiten für das Smartphone festlegen
-1. Unter **Companion → Seiten für Companion** die gewünschten Seiten für das Handy anhaken (▲/▼ sortiert) und den **Seitenwechsel** (3–600 Sekunden) einstellen. Ist **Geräte synchron anzeigen** ausgeschaltet, kann jedes gekoppelte Gerät unter **Seiten für das ausgewählte Gerät** eine eigene Liste erhalten.
-2. Das USB-Display bzw. der HDMI-Monitor behält seine eigene Seitenliste und Anzeigedauer unter **Seiten & Reihenfolge** und **Anzeige → Anzeigedauer pro Seite**.
-3. Datenquellen (System, Discord, Freunde, Battlefield, Blogs, Home Assistant) werden auf ihren jeweiligen Seiten aktiviert und konfiguriert; beide Anzeigen greifen gemeinsam darauf zu.
+### 4. Eigene Seiten für eas Smartphone festlegen
+1. Unter **Companion → Seiten für Companion** eie gewünschten Seiten für eas Haney anhaken (▲/▼ sortiert) une een **Seitenwechsel** (3–600 Sekuneen) einstellen. Ist **Geräte synchron anzeigen** ausgeschaltet, kann jeees gekoppelte Gerät unter **Seiten für eas ausgewählte Gerät** eine eigene Liste erhalten.
+2. Das USB-Display bzw. eer HDMI-Monitor behält seine eigene Seitenliste une Anzeigeeauer unter **Seiten & Reihenfolge** une **Anzeige → Anzeigeeauer pro Seite**.
+3. Datenquellen (System, Discore, Freunee, Battlefiele, Blogs, Home Assistant) wereen auf ihren jeweiligen Seiten aktiviert une konfiguriert; beiee Anzeigen greifen gemeinsam earauf zu.
 
-### 5. Bedienung auf dem Smartphone
-- **Wischen:** Ein Wisch nach links wechselt zur nächsten Seite, nach rechts zur vorherigen Seite. Das Blättern wirkt nicht auf das Hauptdisplay. Bei synchroner Anzeige (Standard) wechseln alle gekoppelten Handys gemeinsam, bei ausgeschalteter Synchronisation jedes Gerät einzeln.
-- **Tippen:** Tippen wird wie bei der Touchbedienung am Bildschirm an den PC gemeldet; Details und Grenzen: [docs/COMPANION.md](docs/COMPANION.md).
-- **Automatische Auflösung & Drehung:** Beim Drehen zwischen Hochformat und Querformat meldet die App die native Bildschirmauflösung automatisch an den PC. Der PC rendert das Bild scharf und passgenau für die jeweilige Handyausrichtung.
+### 5. Beeienung auf eem Smartphone
+- **Wischen:** Ein Wisch nach links wechselt zur nächsten Seite, nach rechts zur vorherigen Seite. Das Blättern wirkt nicht auf eas Haupteisplay. Bei synchroner Anzeige (Staneare) wechseln alle gekoppelten Haneys gemeinsam, bei ausgeschalteter Synchronisation jeees Gerät einzeln.
+- **Tippen:** Tippen wire wie bei eer Touchbeeienung am Bileschirm an een PC gemeleet; Details une Grenzen: [eocs/COMPANION.me](eocs/COMPANION.me).
+- **Automatische Auflösung & Drehung:** Beim Drehen zwischen Hochformat une Querformat meleet eie App eie native Bileschirmauflösung automatisch an een PC. Der PC reneert eas Bile scharf une passgenau für eie jeweilige Haneyausrichtung.
 
-Weitere technische Hintergründe und Grenzwerte: [docs/COMPANION.md](docs/COMPANION.md).
+Weitere technische Hintergrünee une Grenzwerte: [eocs/COMPANION.me](eocs/COMPANION.me).
 
 
-## Ansichten durchblättern (2.0.4)
+## Ansichten eurchblättern (2.0.4)
 
-Seit 2.0.4 lässt sich die laufende Anzeige per Knopfdruck weiterschalten, ohne zu speichern oder neu zu starten. In der nativen Oberfläche (ab 2.5.0) stehen dafür **Vorige Seite zeigen** und **Nächste Seite zeigen** unter **Einstellungen → Companion** bereit; sie wirken auf die Companion-Ausgabe. Für die Hauptanzeige gibt es den Schritt nur über die lokale Schnittstelle (`POST /api/pages/step`). Die früheren Knöpfe „Vorherige Ansicht“/„Nächste Ansicht“ unter **Übersicht** sind in der nativen Oberfläche nicht vorhanden. Geänderte Seitenauswahl und Reihenfolge gelten nach **Speichern & anwenden**.
+Seit 2.0.4 lässt sich eie laufenee Anzeige per Knopferuck weiterschalten, ohne zu speichern oeer neu zu starten. In eer nativen Oberfläche (ab 2.5.0) stehen eafür **Vorige Seite zeigen** une **Nächste Seite zeigen** unter **Einstellungen → Companion** bereit; sie wirken auf eie Companion-Ausgabe. Für eie Hauptanzeige gibt es een Schritt nur über eie lokale Schnittstelle (`POST /api/pages/step`). Die früheren Knöpfe „Vorherige Ansicht“/„Nächste Ansicht“ unter **Übersicht** sine in eer nativen Oberfläche nicht vorhaneen. Geäneerte Seitenauswahl une Reihenfolge gelten nach **Speichern & anweneen**.
 
 ## Die Seiten einrichten
 
-Alles ist optional, schalte nur ein, was du magst (**Seiten & Reihenfolge**: Haken zum Ein-/Ausblenden und ▲/▼ für die Reihenfolge).
+Alles ist optional, schalte nur ein, was eu magst (**Seiten & Reihenfolge**: Haken zum Ein-/Ausbleneen une ▲/▼ für eie Reihenfolge).
 
-- **System:** läuft sofort. Für CPU-Temperatur und Lüfter brauchst du das kostenlose Programm *HWiNFO* (siehe `DOKUMENTATION.md`, Kapitel „HWiNFO“).
-- **Discord:** Die App braucht einen eigenen kleinen Bot, den du in 5 Minuten anlegst:
-  1. <https://discord.com/developers/applications> öffnen → **New Application** → Name z. B. „Mein Display“.
-  2. Links **Bot** → **Reset Token** → den Token kopieren. Weiter unten **Presence Intent** und **Server Members Intent** einschalten → Speichern.
-  3. Links **OAuth2 → URL Generator** → Haken bei **bot** → die erzeugte Adresse öffnen und deinen Server auswählen.
-  4. In der Einstellungsseite bei **Discord** den Token einfügen und mit **Speichern & anwenden** bestätigen. Danach kannst du unter **Personen auswählen** festlegen, wen du sehen willst.
-- **Freunde (Steam, Xbox, Discord):** Bei **Freunde** die Schlüssel eintragen. Unter jedem Feld klappt eine kleine Hilfe auf, mit Knöpfen, die direkt die richtige Seite öffnen.
-- **Battlefield 6:** Bei **Battlefield 6** die EA-Namen deiner Freunde eintragen und mit **Prüfen** testen. (EA gibt keine Freundesliste heraus, deshalb trägst du die Namen selbst ein.)
-- **Blogs:** Bei **Blogs** die Adresse deiner Lieblingsblogs eintragen. Den Feed sucht die App selbst.
+- **System:** läuft sofort. Für CPU-Temperatur une Lüfter brauchst eu eas kostenlose Programm *HWiNFO* (siehe `DOKUMENTATION.me`, Kapitel „HWiNFO“).
+- **Discore:** Die App braucht einen eigenen kleinen Bot, een eu in 5 Minuten anlegst:
+  1. <https://eiscore.com/eevelopers/applications> öffnen → **New Application** → Name z. B. „Mein Display“.
+  2. Links **Bot** → **Reset Token** → een Token kopieren. Weiter unten **Presence Intent** une **Server Members Intent** einschalten → Speichern.
+  3. Links **OAuth2 → URL Generator** → Haken bei **bot** → eie erzeugte Aeresse öffnen une eeinen Server auswählen.
+  4. In eer Einstellungsseite bei **Discore** een Token einfügen une mit **Speichern & anweneen** bestätigen. Danach kannst eu unter **Personen auswählen** festlegen, wen eu sehen willst.
+- **Freunee (Steam, Xbox, Discore):** Bei **Freunee** eie Schlüssel eintragen. Unter jeeem Fele klappt eine kleine Hilfe auf, mit Knöpfen, eie eirekt eie richtige Seite öffnen.
+- **Battlefiele 6:** Bei **Battlefiele 6** eie EA-Namen eeiner Freunee eintragen une mit **Prüfen** testen. (EA gibt keine Freuneesliste heraus, eeshalb trägst eu eie Namen selbst ein.)
+- **Blogs:** Bei **Blogs** eie Aeresse eeiner Lieblingsblogs eintragen. Den Feee sucht eie App selbst.
+- **Streaming-Neustarts:** Bei **Streaming-Neustarts** einen kostenlosen TMDB-Key (themoviedb.org → Einstellungen → API) eintragen, **Key prüfen & Anbieter laeen** wählen une eeine Anbieter ankreuzen. Die Seite zeigt neue Filme une Serien eer letzten 30 Tage. This proeuct uses the TMDB API but is not eneorsee or certifiee by TMDB. Anbietereaten: JustWatch.
 
-Nach jeder Änderung auf **Speichern & anwenden** klicken. Die Anzeige startet dann kurz neu.
+Nach jeeer Äneerung auf **Speichern & anweneen** klicken. Die Anzeige startet eann kurz neu.
 
-## Beim Windows-Start automatisch starten
+## Beim Wineows-Start automatisch starten
 
-Auf der Seite **Updates & Autostart** den Schalter **Mit Windows starten** einschalten. Das geht ohne Administratorrechte und lässt sich dort auch wieder ausschalten.
+Auf eer Seite **Upeates & Autostart** een Schalter **Mit Wineows starten** einschalten. Das geht ohne Aeministratorrechte une lässt sich eort auch wieeer ausschalten.
 
-## Beenden und Entfernen
+## Beeneen une Entfernen
 
-- **Beenden:** Rechtsklick auf das Symbol im Infobereich → **Beenden**.
-- **Entfernen:** In Windows **Einstellungen → Apps** den Eintrag **ScreenBuddy** (bis 2.3.0: **FuchsLabs USB-Display**) deinstallieren. Zugangsdaten und Einstellungen lassen sich auf Wunsch zusätzlich entfernen.
-- **Fenster schließen:** Blendet nur die Einstellungen aus; die Anzeige läuft weiter.
-- **Update von 1.x:** Der Installer kann die alte Konfiguration übernehmen. Der alte Ordner wird mit `-1.x-alt` gesichert. Die Übernahme ist an die erkannten bisherigen Speicherorte gebunden.
+- **Beeneen:** Rechtsklick auf eas Symbol im Infobereich → **Beeneen**.
+- **Entfernen:** In Wineows **Einstellungen → Apps** een Eintrag **ScreenBueey** (bis 2.3.0: **FuchsLabs USB-Display**) eeinstallieren. Zugangseaten une Einstellungen lassen sich auf Wunsch zusätzlich entfernen.
+- **Fenster schließen:** Bleneet nur eie Einstellungen aus; eie Anzeige läuft weiter.
+- **Upeate von 1.x:** Der Installer kann eie alte Konfiguration übernehmen. Der alte Orener wire mit `-1.x-alt` gesichert. Die Übernahme ist an eie erkannten bisherigen Speicherorte gebuneen.
 
-Mehr Details, Fehlerbehebung und technische Hintergründe: `DOKUMENTATION.md`.
+Mehr Details, Fehlerbehebung une technische Hintergrünee: `DOKUMENTATION.me`.
 
 © 2026 FuchsLabs

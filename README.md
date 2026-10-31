@@ -8,7 +8,7 @@
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.7.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.8.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -24,7 +24,7 @@
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
 
-**Neu in 2.7.0:** mehrere Companion-Geräte gleichzeitig (synchron oder unabhängig), sortier- und ausblendbare Plugin-Seiten, signierte Store-Vorschaubilder, interaktive Plugin-Werkstatt; Store-Installationen bleiben ausgeschaltet, bis du sie aktivierst. [Release-Notizen 2.7](docs/RELEASE-NOTES-2.7.md).
+**Neu in 2.8.0:** Spotify-Seite (Titel, Cover, Touch-Tasten; [Anleitung](docs/SPOTIFY.md)) und Seite „Neu bei Streaming“ mit TMDB-Daten; Fehlerkorrektur im Uninstall-Schutz für Testinstanzen. [Release-Notizen 2.8](docs/RELEASE-NOTES-2.8.md).`n`n**Neu in 2.7.0:** mehrere Companion-Geräte gleichzeitig (synchron oder unabhängig), sortier- und ausblendbare Plugin-Seiten, signierte Store-Vorschaubilder, interaktive Plugin-Werkstatt; Store-Installationen bleiben ausgeschaltet, bis du sie aktivierst. [Release-Notizen 2.7](docs/RELEASE-NOTES-2.7.md).
 
 ## Inhalt
 
@@ -49,8 +49,12 @@ Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C
 | **Discord-Freunde** | Status, Aktivität, Avatar | eigener Discord-Bot | sofort |
 | **Battlefield 6 · Rangliste** | eingetragene EA-Freunde nach Rang, mit Abzeichen, K/D und Siegquote | [gametools.network](https://api.gametools.network) | 15 min |
 | **Blog-Updates** | neuester Beitrag je Blog; den Feed findet die App selbst | RSS/Atom | 30 min |
+| **Streaming-Neustarts** (neu in 2.8.0) | neue Filme und Serien der letzten 30 Tage bei deinen gewählten Streaming-Anbietern (Titel, Datum, Film/Serie, Anbieter) | [TMDB](https://www.themoviedb.org) API, Anbieterdaten von JustWatch; eigener Key | 1 h |
 | **Home Assistant** | bis zu 4 Sensoren (Wert, Einheit) oder Schalter (per Touch schaltbar) | Home-Assistant-REST-API | 15 s |
+| **Spotify** (neu in 2.8.0) | aktueller Titel mit Cover und Fortschritt; mit Touch Zurück/Pause/Weiter (Premium) | Spotify Web API, [Anleitung](docs/SPOTIFY.md) | 4 s |
 | **Plugins** | eigene Seiten aus geprüften, deklarativen Plugins | Plugin-Store oder lokales Manifest | je Plugin |
+
+*Streaming-Neustarts nutzen die TMDB-API: This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.*
 
 Dazu kommen:
 
@@ -86,7 +90,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus [Release 2.7.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.7.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App 1.0 für Android ist ein separater Download.
+1. **ScreenBuddy.exe** aus [Release 2.8.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.8.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App 1.0.1 für Android ist ein separater Download.
 2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
@@ -118,7 +122,7 @@ output = "serial"          # "serial" = 3,5"-USB-Display, "monitor" = HDMI/USB-C
 orientation = "landscape"  # auch reverse_landscape, portrait, reverse_portrait
 brightness = 90
 page_seconds = 15
-pages = ["system", "friends", "discord", "bf6", "rss", "homeassistant"]   # Reihenfolge
+pages = ["system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify"]   # Reihenfolge
 theme = "hell"             # "hell", "dunkel" oder "eigen"
 touch = true               # nur bei output = "monitor"
 
@@ -129,6 +133,15 @@ players = ["FuchsKumpel", "Lena_Sniper@psn"]
 [rss]
 enabled = true
 feeds = ["https://winfuture.de/"]
+
+[streaming]
+enabled = true
+region = ""                # leer = Deutsch: DE, Englisch: US
+providers = ["8|Netflix", "337|Disney+"]   # TMDB-Provider-IDs; der Key steht verschlüsselt in api_key
+
+[spotify]
+enabled = true
+client_id = ""             # Client-ID deiner Spotify-Developer-App
 
 [homeassistant]
 enabled = true
@@ -191,13 +204,13 @@ Der C++-Build installiert die Abhängigkeiten aus dem festgelegten vcpkg-Manifes
 - Der lokale Dienst ist **nur auf `127.0.0.1`** erreichbar und gegen DNS-Rebinding, CSRF und Einbetten in fremde Seiten geschützt.
 - Alle Verbindungen laufen über HTTPS mit Zertifikatsprüfung; Pakete sind auf genaue Versionen festgelegt.
 
-Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md); er ist kein vollständiger Audit der C++-Version. Aktuelle Validierung: [Release-Notizen 2.7](docs/RELEASE-NOTES-2.7.md); das [Testprotokoll](cpp/TESTPROTOKOLL.md) ist auf dem Stand 2.6.0 (30.10.2026) und enthält keinen Eintrag für 2.7.0. Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
+Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md); er ist kein vollständiger Audit der C++-Version. Aktuelle Validierung: [Release-Notizen 2.8](docs/RELEASE-NOTES-2.8.md); das [Testprotokoll](cpp/TESTPROTOKOLL.md) enthält den Eintrag für 2.8.0 (31.10.2026). Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
 
 ## Testphase und Rückmeldungen
 
 Die App ist in der Testphase. Fehler und Ideen bitte über **Issues → New issue** mit den Vorlagen „Fehlerbericht“ oder „Idee oder Rückmeldung“ melden. Wo das Protokoll `usb-display.log` liegt und was nie mitgeschickt werden darf, steht in [`TESTPHASE.md`](TESTPHASE.md).
 
-**Prüfstand 2.7.0:** 1.493 automatisierte Prüfungen im Release-Build bestanden; Echtsystem mit zwei Android-Geräten und dem USB-Display (480 × 320) beobachtet. Mehrgeräteprüfungen per adb sind Simulationen; DPI-/Screenreader-, Windows-Anmelde-, WLAN- und Boot-Abnahme stehen aus. Vollständig und mit allen Grenzen: [Release-Notizen 2.7](docs/RELEASE-NOTES-2.7.md). Ältere Prüfstände: [Historie](docs/PRUEFSTAND-HISTORIE.md).
+**Prüfstand 2.8.0:** 1.507 automatisierte Prüfungen im Release-Build bestanden; Echtsystem mit zwei Android-Geräten, dem USB-Display (480 × 320), echtem TMDB-Key und Spotify-Konto beobachtet. Offen: TMDB-Logo, Store-Update, DPI-/Screenreader-, Windows-Anmelde-, WLAN- und Boot-Abnahme. Vollständig und mit allen Grenzen: [Release-Notizen 2.8](docs/RELEASE-NOTES-2.8.md). Vorheriger Stand: [2.7](docs/RELEASE-NOTES-2.7.md). Ältere Prüfstände: [Historie](docs/PRUEFSTAND-HISTORIE.md).
 
 ## Dokumente
 

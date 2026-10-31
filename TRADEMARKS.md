@@ -4,10 +4,10 @@
 
 Erlaubt: unveränderte Verwendung, um auf dieses Projekt zu verweisen (z. B. „basiert auf ScreenBuddy von FuchsLabs“, Screenshots, Berichte). Nicht erlaubt: Forks oder abgeleitete Produkte unter dem Namen „FuchsLabs“ oder mit dem Fuchskopf-Logo zu veröffentlichen oder damit den Eindruck eines offiziellen Produkts zu erwecken. Forks nutzen bitte einen eigenen Namen und ein eigenes Logo.
 
-Battlefield, EA, Discord, Steam, Xbox und Windows sind Marken ihrer jeweiligen Inhaber; FuchsLabs steht in keiner Verbindung zu ihnen.
+Battlefield, EA, Discord, Spotify, Steam, Xbox und Windows sind Marken ihrer jeweiligen Inhaber; FuchsLabs steht in keiner Verbindung zu ihnen. Die auf der Seite „Streaming-Neustarts“ gezeigten Anbieter-Logos (Quelle TMDB/JustWatch) sind Marken der jeweiligen Streaming-Anbieter.
 
 **English:** The code is MIT-licensed (see `LICENSE`). Excluded are the name "FuchsLabs", the fox-head logo, the fox brand styling and the app icon (`cpp/res/app.ico`, logo images in the guide and docs). They remain © 2026 FuchsLabs, all rights reserved.
 
 Allowed: unmodified use to refer to this project (e.g. "based on ScreenBuddy by FuchsLabs", screenshots, reviews). Not allowed: publishing forks or derivative products under the name "FuchsLabs" or with the fox-head logo, or implying an official product. Please give forks their own name and logo.
 
-Battlefield, EA, Discord, Steam, Xbox and Windows are trademarks of their respective owners; FuchsLabs is not affiliated with them.
+Battlefield, EA, Discord, Spotify, Steam, Xbox and Windows are trademarks of their respective owners; FuchsLabs is not affiliated with them. The provider logos shown on the "New on streaming" page (source: TMDB/JustWatch) are trademarks of the respective streaming providers.

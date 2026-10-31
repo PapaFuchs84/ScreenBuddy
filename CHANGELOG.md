@@ -6,6 +6,22 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+## [2.8.0] – 2026-10-31
+
+### Hinzugefügt
+
+- **Einstellungen**: Der Schnellzugriff auf der Übersicht hat Symbole und neue Knöpfe für die Anleitung (Deutsch/Englisch) und die Plugin-Werkstatt. Die rechte Seitenleiste „Gerät“ zeigt jedes verbundene Gerät (USB-Display bzw. Monitor, jede Companion-App mit Name, IP-Adresse und Seitenposition) als eigene anwählbare Karte; die Live-Vorschau zeigt das gewählte Gerät.
+- **Spotify-Seite**: aktueller Titel mit Cover, Fortschritt und – mit Touch – Tasten für Zurück, Wiedergabe/Pause und Weiter (Spotify Web API). Anmeldung per PKCE ohne Client Secret mit eigener Spotify-Developer-App; Tokens DPAPI-verschlüsselt in `spotify.token`. Einstellungen → Spotify, Doku: [docs/SPOTIFY.md](docs/SPOTIFY.md). Automatisiert geprüft (PKCE-Testvektor, Antwort-Auswertung, Tasten, Rendering); der echte Spotify-Login wurde noch nicht mit einem Konto getestet.
+- **Streaming-Neustarts**: neue Display-Seite mit Filmen und Serien der letzten 30 Tage bei den gewählten Streaming-Anbietern (Titel, Datum, Film/Serie, Anbieter-Kürzel). Quelle: TMDB API v3 (nur GET über HTTPS, Cache 1 h), Anbieterdaten von JustWatch. Einstellungen: Seite an/aus, Titel, TMDB-Key (maskiert, DPAPI), Region (Automatik aus der Sprache, überschreibbar), Anbieter-Mehrfachauswahl aus der TMDB-Liste (vorbelegt: Netflix, Prime Video, Disney+, Apple TV+, WOW, RTL+) und Anzahl Einträge. Ohne Key zeigt die Seite „Kein Key“, bei Fehlern oder offline „Keine Daten“. Pflicht-Nachweis „This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.“ in den Einstellungen, der Anleitung und `THIRD-PARTY-NOTICES.md`; Fußzeile „TMDB / JustWatch“ auf der Seite. Neuer Konfigurationsabschnitt `[streaming]`, neuer Seitenschlüssel `streaming`. Das offizielle TMDB-Logo ist noch nicht eingebunden. Automatisiert nur die Logik unter Linux geprüft; Windows-Oberfläche und Anzeige noch nicht gebaut oder am Gerät geprüft.
+- **Streaming-Neustarts: Anbieter-Logos** statt der Kürzel. Die Logos stammen von TMDB/JustWatch (`logo_path` der Anbieter, Bild von `image.tmdb.org`, w92), werden nur per GET über HTTPS ohne Weiterleitung geladen (Größenlimit, nur PNG/JPEG), einmal im Datenordner unter `cache/tmdb-logos/<Anbieter-ID>.png` abgelegt und quadratisch mit abgerundeten Ecken auf Zeilenhöhe skaliert. Je Titel höchstens 3 Logos, weitere als „+n“. Fehlt ein Logo, steht das Kürzel. Geladen wird im Hintergrund-Thread. Die Logos sind Marken der jeweiligen Anbieter. Nur die Logik unter Linux getestet; Windows-Teil und Darstellung am Gerät noch nicht geprüft.
+
+### Behoben
+
+- Einstellungsfenster: Die linke Navigation passt sich der Fensterhöhe an und läuft nicht mehr unter die Fußleiste (kein Überlappen mit „Keine ungespeicherten Änderungen“).
+- **Companion-App 1.0.1**: Der Hintergrund läuft randlos bis an die Bildschirmkanten, der Inhalt bleibt im sicheren Bereich vor abgerundeten Display-Ecken (Android 12+, Radius aus der System-Auskunft) und Kamera-Ausschnitt; gemeldete Auflösung und Touch-Koordinaten beziehen sich auf den sicheren Bereich. Geprüft am Pixel 10 Pro (Ecken 157 px, Ausschnitt oben); Redmi 8 ohne Rundungen unverändert.
+- TMDB: Voreinstellung für RTL+ nutzt die TMDB-ID 2750 (Region DE) statt 298.
+- `--uninstall` bricht in Testinstanzen (`FUCHSLABS_INSTANCE`) ohne eigenen `FUCHSLABS_INSTALL_DIR` ab, statt die echte Installation (EXE) zu löschen und Autostart-Eintrag samt Programmliste zu hinterlassen.
+
 ## [2.7.0] – 2026-10-31
 
 ### Hinzugefügt

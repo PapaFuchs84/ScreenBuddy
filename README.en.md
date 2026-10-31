@@ -8,7 +8,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.7.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.8.0-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -24,7 +24,7 @@
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
 
-**New in 2.7.0:** several Companion devices at once (synchronised or independent), sortable and hideable plugin pages, signed store preview images, interactive Plugin Workshop; store installations stay disabled until you enable them. [Release notes 2.7](docs/RELEASE-NOTES-2.7.md) (German/English).
+**New in 2.8.0:** Spotify page (track, cover, touch buttons; [guide](docs/SPOTIFY.en.md)) and a “New on streaming” page with TMDB data; fix for the uninstall guard in test instances. [Release notes 2.8](docs/RELEASE-NOTES-2.8.md) (German/English).`n`n**New in 2.7.0:** several Companion devices at once (synchronised or independent), sortable and hideable plugin pages, signed store preview images, interactive Plugin Workshop; store installations stay disabled until you enable them. [Release notes 2.7](docs/RELEASE-NOTES-2.7.md) (German/English).
 
 ## Contents
 
@@ -49,8 +49,12 @@ A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary sc
 | **Discord friends** | status, activity, avatar | your own Discord bot | instant |
 | **Battlefield 6 · Leaderboard** | the EA friends you add, ranked, with badge, K/D and win rate | [gametools.network](https://api.gametools.network) | 15 min |
 | **Blog updates** | newest post per blog; the app finds the feed itself | RSS/Atom | 30 min |
+| **New on streaming** (new in 2.8.0) | new movies and series of the last 30 days on your chosen streaming services (title, date, movie/series, service) | [TMDB](https://www.themoviedb.org) API, provider data from JustWatch; your own key | 1 h |
 | **Home Assistant** | up to 4 sensors (value, unit) or switches (flippable by touch) | Home Assistant REST API | 15 s |
+| **Spotify** (new in 2.8.0) | current track with cover and progress; with touch previous/pause/next (Premium) | Spotify Web API, [guide](docs/SPOTIFY.en.md) | 4 s |
 | **Plugins** | your own pages from reviewed, declarative plugins | plugin store or local manifest | per plugin |
+
+*New on streaming uses the TMDB API: This product uses the TMDB API but is not endorsed or certified by TMDB. Provider data: JustWatch.*
 
 Plus:
 
@@ -86,7 +90,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.7.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.7.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app 1.0 for Android is a separate download.
+1. Download **ScreenBuddy.exe** from [release 2.8.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.8.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app 1.0.1 for Android is a separate download.
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
@@ -118,7 +122,7 @@ output = "serial"          # "serial" = 3.5" USB display, "monitor" = HDMI/USB-C
 orientation = "landscape"  # also reverse_landscape, portrait, reverse_portrait
 brightness = 90
 page_seconds = 15
-pages = ["system", "friends", "discord", "bf6", "rss", "homeassistant"]   # order
+pages = ["system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify"]   # order
 theme = "hell"             # "hell" (light), "dunkel" (dark) or "eigen" (custom)
 touch = true               # only with output = "monitor"
 
@@ -129,6 +133,15 @@ players = ["FuchsKumpel", "Lena_Sniper@psn"]
 [rss]
 enabled = true
 feeds = ["https://www.theverge.com/"]
+
+[streaming]
+enabled = true
+region = ""                # empty = German: DE, English: US
+providers = ["8|Netflix", "337|Disney+"]   # TMDB provider IDs; the key is stored encrypted in api_key
+
+[spotify]
+enabled = true
+client_id = ""             # client ID of your Spotify developer app
 
 [homeassistant]
 enabled = true
@@ -194,13 +207,13 @@ App translations are in `cpp/src/i18n.cpp`, native page text under `cpp/src/ui_p
 - The local service is **only reachable on `127.0.0.1`** and protected against DNS rebinding, CSRF and framing by other sites.
 - All connections use HTTPS with certificate checks; packages are pinned to exact versions.
 
-Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: [release notes 2.7](docs/RELEASE-NOTES-2.7.md); the [test record](cpp/TESTPROTOKOLL.md) is at the 2.6.0 state (30 October 2026) and has no entry for 2.7.0. Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
+Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: [release notes 2.8](docs/RELEASE-NOTES-2.8.md); the [test record](cpp/TESTPROTOKOLL.md) has the entry for 2.8.0 (31 October 2026). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
 
 ## Testing and feedback
 
 The app is in testing. Please report bugs and ideas via **Issues → New issue** using the “Bug report” or “Idea or feedback” forms. Where to find the log `usb-display.log` and what must never be sent: [`TESTPHASE.en.md`](TESTPHASE.en.md).
 
-**Validation of 2.7.0:** 1,493 automated checks passed in the release build; real-system observation with two Android devices and the USB display (480 × 320). Multi-device checks via adb are simulations; DPI/screen-reader, Windows sign-in, Wi-Fi and boot acceptance remain open. Complete results and all limits: [release notes 2.7](docs/RELEASE-NOTES-2.7.md). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
+**Validation of 2.8.0:** 1,507 automated checks passed in the release build; real-system observation with two Android devices, the USB display (480 × 320), a real TMDB key and a Spotify account. Open: TMDB logo, store update, DPI/screen-reader, Windows sign-in, Wi-Fi and boot acceptance. Complete results and all limits: [release notes 2.8](docs/RELEASE-NOTES-2.8.md). Previous state: [2.7](docs/RELEASE-NOTES-2.7.md). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
 
 ## Documents
 

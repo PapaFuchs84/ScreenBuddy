@@ -310,6 +310,13 @@ void NetworkDisplay::show_for(const std::string& device, const Image& frame, con
     if (auto srv = server()) srv->frame_changed();
 }
 
+std::optional<Image> NetworkDisplay::frame_for(const std::string& device) {
+    std::lock_guard lk(mu_);
+    auto it = device_frames_.find(device);
+    if (it == device_frames_.end() || it->second->image.empty()) return std::nullopt;
+    return it->second->image;
+}
+
 void NetworkDisplay::forget_device(const std::string& device) {
     std::lock_guard lk(mu_);
     device_frames_.erase(device);

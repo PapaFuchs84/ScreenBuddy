@@ -31,6 +31,41 @@ constexpr UINT ShowMsg = WM_APP + 171, StopMsg = WM_APP + 172, ResultsMsg = WM_A
 constexpr UINT_PTR PollTimer = 1, ToastTimer = 2;
 constexpr float HeaderH = 56, FooterH = 64, NavW = 232, PreviewW = 300;
 
+// Rechte Seite „Gerät“: jedes verbundene Gerät als eigene anwählbare Karte; die Auswahl bestimmt die Live-Vorschau.
+class DeviceList : public ui::Widget {
+public:
+    struct Entry { std::string id; ui::Text title, detail; bool ok = true; };
+    std::vector<Entry> entries;
+    std::string selected = "main";
+    std::function<void(const std::string&)> on_pick;
+    static constexpr float RowH = 54, Gap = 8;
+    float height(ui::Ctx&, float) override { return entries.empty() ? 0 : entries.size() * (RowH + Gap) - Gap; }
+    bool clickable() const override { return true; }
+    ui::Role role() const override { return ui::Role::List; }
+    void paint(ui::Ctx& c) override {
+        for (size_t i = 0; i < entries.size(); ++i) {
+            const auto& e = entries[i];
+            const float top = rc.top + float(i) * (RowH + Gap);
+            ui::Rect r{rc.left, top, rc.right, top + RowH};
+            const bool sel = e.id == selected;
+            c.fill(r, sel ? c.th.nav_active : (c.th.dark ? c.th.card : c.th.bg), 12);
+            c.frame(r, sel ? c.th.accent : c.th.line, 12, sel ? 2.f : 1.f);
+            c.circle({r.right - 16, r.top + RowH / 2}, 4, e.ok ? c.th.success : c.th.danger);
+            c.text(c.s(e.title), {r.left + 14, r.top + 6, r.right - 30, r.top + 28}, ui::Font::Strong, c.th.text);
+            c.text(c.s(e.detail), {r.left + 14, r.top + 28, r.right - 30, r.bottom - 4}, ui::Font::Small, c.th.muted);
+        }
+    }
+    void release(ui::Point p, ui::Surface& s) override {
+        if (p.x < rc.left || p.x > rc.right || p.y < rc.top) return;
+        const size_t i = size_t((p.y - rc.top) / (RowH + Gap));
+        if (i >= entries.size() || selected == entries[i].id) return;
+        selected = entries[i].id;
+        if (on_pick) on_pick(selected);
+        s.invalidate();
+    }
+    void activate(ui::Surface&) override {}
+};
+
 // Rahmen-Widgets in Tab-Reihenfolge; die Lage berechnet die Shell.
 class FrameRoot : public ui::Widget {
 public:
@@ -71,8 +106,8 @@ struct NativeSettings::Impl : ui::Host {
     ui::Segment* theme = nullptr;
     ui::Portal* portal = nullptr;
     ui::ImageView* preview_view = nullptr;
-    ui::Label* device_title = nullptr;
-    ui::Label* device_detail = nullptr;
+    DeviceList* device_list = nullptr;
+    std::string preview_device = "main";   // Gerät, dessen Bild die Live-Vorschau zeigt (UI-Thread)
     ui::Button* discard_button = nullptr;
     ui::Button* save_button = nullptr;
     ui::Status status_;
@@ -194,12 +229,12 @@ struct NativeSettings::Impl : ui::Host {
         if (stopping || !shown || poll_pending.exchange(true)) return;
         const bool need_autostart = !status_.autostart.has_value();
         const std::string output = initial_.at("display").value("output", "serial");
-        enqueue([this, need_autostart, output] {
+        enqueue([this, need_autostart, output, device = preview_device] {
             struct Reset { std::atomic<bool>& v; ~Reset() { v = false; } } reset{poll_pending};
             ui::Status s;
             std::optional<Image> f;
             try {
-                f = app_.last_frame();
+                f = device == "main" ? app_.last_frame() : app_.device_frame(device);
                 s.size = app_.size();
                 s.display_ok = app_.display_ok();
                 s.display_error = app_.display_error();
@@ -239,17 +274,42 @@ struct NativeSettings::Impl : ui::Host {
         return L"USB-Display";
     }
     void update_device() {
-        if (!device_title) return;
-        device_title->text = ui::T((L"Gerät: " + output_name(false)).c_str(), (L"Device: " + output_name(true)).c_str());
-        std::wstring size = status_.size.first > 0 ? std::to_wstring(status_.size.first) + L" × " + std::to_wstring(status_.size.second) : L"–";
-        std::wstring de = size + (status_.display_ok ? L" · verbunden" : L" · nicht verbunden");
-        std::wstring en = size + (status_.display_ok ? L" · connected" : L" · not connected");
-        if (!status_.display_error.empty()) { de += L"\n" + widen(status_.display_error); en += L"\n" + widen(status_.display_error); }
-        device_detail->text = ui::Text(de, en);
-        device_detail->tone = status_.display_ok ? ui::Label::Muted : ui::Label::Danger;
+        if (!device_list) return;
+        // Jedes verbundene Gerät eine eigene Karte: Hauptdisplay (USB/Monitor) und jede verbundene Companion-App.
+        std::vector<DeviceList::Entry> list;
+        const std::string o = initial_.at("display").value("output", "serial");
+        const bool independent = status_.companion.is_object() && status_.companion.value("independent", false);
+        if (o != "network") {
+            std::wstring size = status_.size.first > 0 ? std::to_wstring(status_.size.first) + L" × " + std::to_wstring(status_.size.second) : L"–";
+            DeviceList::Entry e{"main", ui::Text(output_name(false), output_name(true)), {}, status_.display_ok};
+            std::wstring de = size + (status_.display_ok ? L" · verbunden" : L" · nicht verbunden");
+            std::wstring en = size + (status_.display_ok ? L" · connected" : L" · not connected");
+            if (!status_.display_error.empty() && !status_.display_ok) { de = widen(status_.display_error); en = de; }
+            e.detail = ui::Text(de, en);
+            list.push_back(std::move(e));
+        }
+        const ojson& cc = status_.companion;
+        if (cc.is_object() && cc.contains("clients") && cc["clients"].is_array()) {
+            for (const auto& x : cc["clients"]) {
+                const std::string id = x.value("id", std::string());
+                std::wstring ip = widen(x.value("ip", std::string()));
+                std::wstring de = L"Companion · " + ip, en = de;
+                if (x.contains("navigation") && x["navigation"].is_object() && x["navigation"].value("total", 0) > 0) {
+                    std::wstring pos = L" · " + std::to_wstring(x["navigation"].value("index", 0) + 1) + L"/" + std::to_wstring(x["navigation"].value("total", 0));
+                    de += pos; en += pos;
+                }
+                list.push_back({id, ui::Text(widen(x.value("name", std::string("Companion")))), ui::Text(de, en), true});
+            }
+        }
+        (void)independent;
+        if (list.empty()) list.push_back({"none", ui::Text(L"Kein Gerät verbunden", L"No device connected"), {}, false});
+        // Auswahl beibehalten, sonst das erste Gerät
+        bool found = false;
+        for (auto& e : list) if (e.id == device_list->selected) found = true;
+        if (!found) { device_list->selected = list.front().id; preview_device = device_list->selected == "none" ? "main" : device_list->selected; }
+        device_list->entries = std::move(list);
         frame->relayout();
     }
-
     // ---------------- Seiten
     void build(Slot& slot) {
         auto root = std::make_unique<ui::Column>();
@@ -425,11 +485,18 @@ struct NativeSettings::Impl : ui::Host {
         preview_view = own<ui::ImageView>();
         preview_view->name = ui::T(L"Live-Vorschau des Displays", L"Live display preview");
         preview_view->empty_text = ui::T(L"Noch kein Displaybild verfügbar.", L"No display frame available yet.");
-        device_title = own<ui::Label>(ui::Text(L""), ui::Font::Strong);
-        device_detail = own<ui::Label>(ui::Text(L""), ui::Font::Small, ui::Label::Muted);
+        device_list = own<DeviceList>();
+        device_list->name = ui::T(L"Verbundene Geräte", L"Connected devices");
+        device_list->on_pick = [this](const std::string& id) {
+            preview_device = id == "none" ? "main" : id;
+            app_frame.reset();
+            show_frame(std::nullopt);
+            poll();
+        };
+
         discard_button = own<ui::Button>(ui::T(L"Verwerfen", L"Discard"), ui::Button::Secondary, [this] { discard(); });
         save_button = own<ui::Button>(ui::T(L"Speichern & anwenden", L"Save & apply"), ui::Button::Primary, [this] { save(); });
-        frame_root.order.insert(frame_root.order.end(), {discard_button, save_button, preview_view, device_title, device_detail, logo});
+        frame_root.order.insert(frame_root.order.end(), {discard_button, save_button, preview_view, device_list, logo});
         logo_ = logo;
         frame->set_root(&frame_root);
         frame->on_layout = [this](ui::Ctx& c, D2D1_SIZE_F sz) { return layout_frame(c, sz); };
@@ -457,12 +524,25 @@ struct NativeSettings::Impl : ui::Host {
         theme->layout(c, w - 18 - tw, (HeaderH - 28) / 2, tw);
         lang->layout(c, w - 18 - tw - 10 - lw, (HeaderH - 28) / 2, lw);
         // Navigation in Gruppen
+        // Passt die Navigation nicht in die Höhe, werden Einträge und Gruppenabstände enger (statt unter die Fußleiste zu laufen).
+        int groups = 0, last_group = -1;
+        for (auto& s : slots) if (int(s.info.group) != last_group) { last_group = int(s.info.group); ++groups; }
+        const float avail = h - FooterH - (HeaderH + 12) - 6;
+        float gap0 = 18, gapN = 26, item_h = 36;
+        float need = slots.size() * item_h + gap0 + gapN * std::max(0, groups - 1);
+        if (need > avail) {
+            float k = avail / need;
+            item_h = std::max(26.f, item_h * k);
+            gap0 = std::max(16.f, gap0 * k);
+            gapN = std::max(22.f, gapN * k);
+        }
         float y = HeaderH + 12;
         int group = -1;
         for (auto& s : slots) {
-            if (int(s.info.group) != group) { group = int(s.info.group); y += group == 0 ? 18 : 26; }
+            if (int(s.info.group) != group) { group = int(s.info.group); y += group == 0 ? gap0 : gapN; }
             s.nav->layout(c, 10, y, NavW - 20);
-            y += 36;
+            s.nav->rc.bottom = s.nav->rc.top + std::min(34.f, item_h - 2);
+            y += item_h;
         }
         nav_y0 = HeaderH + 12;
         // Fußleiste
@@ -471,7 +551,7 @@ struct NativeSettings::Impl : ui::Host {
         save_button->layout(c, w - 18 - sw, by, sw);
         discard_button->layout(c, w - 18 - sw - 12 - dw, by, dw);
         // Vorschau
-        for (ui::Widget* x : {static_cast<ui::Widget*>(preview_view), static_cast<ui::Widget*>(device_title), static_cast<ui::Widget*>(device_detail)})
+        for (ui::Widget* x : {static_cast<ui::Widget*>(preview_view), static_cast<ui::Widget*>(device_list)})
             x->visible = preview_visible;
         if (preview_visible) {
             float px = w - PreviewW + 18, pw = PreviewW - 36;
@@ -479,9 +559,8 @@ struct NativeSettings::Impl : ui::Host {
             ph = std::min(ph, 300.f);
             preview_view->rc.bottom = preview_view->rc.top + ph;
             float dy = preview_view->rc.bottom + 62;
-            float th = device_title->layout(c, px + 14, dy + 12, pw - 28);
-            float dh = device_detail->layout(c, px + 14, dy + 14 + th, pw - 28);
-            device_card_ = {px, dy, px + pw, dy + 26 + th + dh};
+            const float dh = device_list->layout(c, px, dy, pw);
+            device_card_ = {px, dy, px + pw, dy + dh};
         }
         // Inhaltsbereich als Kindfenster
         RECT r{frame->px(NavW), frame->px(HeaderH), frame->px(preview_visible ? w - PreviewW : w), frame->px(h - FooterH)};
@@ -537,8 +616,6 @@ struct NativeSettings::Impl : ui::Host {
             for (int i = 0; i < total; ++i)
                 c.fill({dx + i * 24.f, dots_y, dx + i * 24.f + 18, dots_y + 5}, i == index ? th.accent : ui::from(brand::NAVY, th.dark ? .6f : .27f), 2.5f);
             c.text(kit->english ? L"DEVICE" : L"GERÄT", {x, device_card_.top - 26, w - 18, device_card_.top - 6}, ui::Font::Section, th.side_muted);
-            c.fill(device_card_, th.dark ? th.card : th.bg, 12);
-            c.frame(device_card_, th.line, 12);
         }
         // Fußleiste: ungespeicherte Änderungen
         std::wstring dirty_text;
