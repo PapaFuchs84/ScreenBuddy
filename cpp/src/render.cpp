@@ -410,6 +410,7 @@ void Renderer::avatar(Canvas& d, const Friend& f, float x, float y, bool faded) 
 void Renderer::row(Canvas& d, const Friend& f, float y) {
     const Theme& t = g_theme;
     float ax = 10, ay = y + (row_height() - AVATAR) / 2;
+    const float l1 = y + row_height() / 2.f - 9, l2 = l1 + 18;   // zwei Zeilen vertikal zentriert (44: 13/31)
     avatar(d, f, ax, ay, f.status == "offline");
     // Statuspunkt unten rechts am Avatar, wie in Discord
     float r = 6, cx = ax + AVATAR - 4, cy = ay + AVATAR - 4;
@@ -427,13 +428,13 @@ void Renderer::row(Canvas& d, const Friend& f, float y) {
     float tx = ax + AVATAR + 12;
     float max_w = w - tx - 10;
     if (f.platforms.size() > 1 || (f.platforms.size() == 1 && f.platforms[0] != "discord"))
-        max_w -= badges(d, f.platforms, w - 10, y + 13);
+        max_w -= badges(d, f.platforms, w - 10, l1);
     Color name_col = f.status != "offline" ? t.text : t.muted;
     std::string line2 = !f.activity.empty() ? f.activity : (STATUS_LABEL.count(f.status) ? STATUS_LABEL.at(f.status) : "");
     if (!line2.empty()) {
-        d.text(tx, y + 13, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
+        d.text(tx, l1, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
         Color act_col = starts_with_any(f.activity, {"Spielt", "Streamt"}) ? t.accent : t.muted;
-        d.text(tx, y + 31, fit(d, line2, f_act, max_w), f_act, act_col, "lm");
+        d.text(tx, l2, fit(d, line2, f_act, max_w), f_act, act_col, "lm");
     } else {
         d.text(tx, y + row_height() / 2, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
     }
@@ -485,6 +486,7 @@ Image Bf6Renderer::render(std::vector<Bf6Player> players, int page, std::optiona
 void Bf6Renderer::bf_row(Canvas& d, const Bf6Player& p, int pos, float y) {
     const Theme& t = g_theme;
     float cy = y + row_height() / 2;
+    const float l1 = cy - 9, l2 = cy + 9;   // zwei Zeilen vertikal zentriert (44: 13/31)
     Color pos_col = pos <= 3 && p.error.empty() ? t.accent : t.muted;
     d.text(24, cy, std::to_string(pos) + ".", f_pos, pos_col, "rm");
     float ix = 30;
@@ -504,10 +506,10 @@ void Bf6Renderer::bf_row(Canvas& d, const Bf6Player& p, int pos, float y) {
     if (p.hours && std::isfinite(*p.hours) && *p.hours >= 0)
         detail += (detail.empty() ? "" : " · ") + strprintf("%.0f h", *p.hours);
     float stat_w = std::max(92.f, d.textlength(tr(detail), f_act) + 8), sx = w - 10;
-    if (p.kd) d.text(sx, y + 13, strprintf("K/D %.2f", *p.kd), f_stat, t.text, "rm");
-    if (!detail.empty()) d.text(sx, y + 31, detail, f_act, t.muted, "rm");
+    if (p.kd) d.text(sx, l1, strprintf("K/D %.2f", *p.kd), f_stat, t.text, "rm");
+    if (!detail.empty()) d.text(sx, l2, detail, f_act, t.muted, "rm");
     float max_w = sx - stat_w - tx;
-    d.text(tx, y + 13, fit(d, p.name, f_name, max_w), f_name, p.error.empty() ? t.text : t.muted, "lm");
+    d.text(tx, l1, fit(d, p.name, f_name, max_w), f_name, p.error.empty() ? t.text : t.muted, "lm");
     std::string line2;
     Color col;
     if (!p.error.empty()) {
@@ -518,7 +520,7 @@ void Bf6Renderer::bf_row(Canvas& d, const Bf6Player& p, int pos, float y) {
         if (!p.rank_name.empty()) line2 += " · " + p.rank_name;
         col = t.accent;
     }
-    d.text(tx, y + 31, fit(d, line2, f_act, max_w), f_act, col, "lm");
+    d.text(tx, l2, fit(d, line2, f_act, max_w), f_act, col, "lm");
     d.line({{tx, y + row_height() - 1}, {w - 10, y + row_height() - 1}}, t.line, 1);
 }
 
@@ -536,49 +538,167 @@ Color SysRenderer::temp_col(std::optional<double> t) const {
     return t && *t >= 85 ? th.hot : t && *t >= 75 ? th.warn : th.text;
 }
 
+std::array<SysRenderer::Region, 5> SysRenderer::regions(float width, float height, theme::Style style) {
+    const float top = HEADER_H + 4.f, bottom = height - FOOTER_H - 4.f;
+    const float body = std::max(0.f, bottom - top);
+    if (style == theme::Style::Cupertino) {
+        std::array<Region, 5> result{};
+        const float x = 12.f, row = body / 5.f, cw = std::max(0.f, width - 24.f);
+        for (size_t i = 0; i < result.size(); ++i)
+            result[i] = {x, top + float(i) * row, cw, row,
+                         i < 2 ? -1 : int(i) - 2};
+        return result;
+    }
+    if (style == theme::Style::Material) {
+        const float x = 8.f, gap = 8.f, cw = std::max(0.f, width - 16.f);
+        const float hero = std::min(94.f, body * .38f);
+        const float lower_top = top + hero + gap;
+        const float lower_h = std::max(0.f, bottom - lower_top);
+        const float gpu_w = std::floor((cw - gap) * .45f);
+        const float right = x + gpu_w + gap, right_w = std::max(0.f, cw - gpu_w - gap);
+        const float small = std::max(0.f, (lower_h - 2.f * gap) / 3.f);
+        return {{{x, top, cw, hero, -1}, {x, lower_top, gpu_w, lower_h, -1},
+                 {right, lower_top, right_w, small, ZONE_RAM},
+                 {right, lower_top + small + gap, right_w, small, ZONE_DISK},
+                 {right, lower_top + 2.f * (small + gap), right_w, small, ZONE_NET}}};
+    }
+    // Preserve the original FuchsLabs layout exactly. Fluent keeps the compact
+    // dashboard composition, with its own margins. Keep the property-card height
+    // large enough to separate its detail line from the progress bar.
+    const bool fluent = style == theme::Style::Fluent;
+    const float gap = fluent ? 8.f : SYS_GAP;
+    const float small = SYS_SMALL;
+    const float left_w = float(floordiv(width - 3.f * gap, 2));
+    const float right = 2.f * gap + left_w, right_w = width - right - gap;
+    const float half = float(floordiv(body - gap, 2));
+    const float net_top = top + 2.f * (small + gap);
+    return {{{gap, top, left_w, half, -1},
+             {gap, top + half + gap, left_w, body - half - gap, -1},
+             {right, top, right_w, small, ZONE_RAM},
+             {right, top + small + gap, right_w, small, ZONE_DISK},
+             {right, net_top, right_w, bottom - net_top, ZONE_NET}}};
+}
+
 int SysRenderer::zone_at(int w_px, int h_px, int x_px, int y_px) {
-    // gleiche Aufteilung wie render(): rechte Spalte mit RAM, Datenträger und Netzwerk
-    float sc = scale_for(w_px, h_px);
-    float lw_ = sc == 1 ? (float)w_px : (float)pyround_i(w_px / sc), lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
-    float lx = x_px / sc, ly = y_px / sc;
-    float top = HEADER_H + 4, bot = lh - FOOTER_H - 4, gap = SYS_GAP;
-    float rx = gap * 2 + (float)floordiv(lw_ - 3 * gap, 2);
-    if (lx < rx || lx >= lw_ - gap || ly < top || ly >= bot) return -1;
-    float disk = top + SYS_SMALL + gap, net = top + 2 * (SYS_SMALL + gap);
-    if (ly < top + SYS_SMALL) return ZONE_RAM;
-    if (ly >= disk && ly < disk + SYS_SMALL) return ZONE_DISK;
-    return ly >= net ? ZONE_NET : -1;
+    if (w_px <= 0 || h_px <= 0 || x_px < 0 || y_px < 0 || x_px >= w_px || y_px >= h_px) return -1;
+    const float sc = scale_for(w_px, h_px);
+    const float logical_w = sc == 1 ? float(w_px) : float(pyround_i(w_px / sc));
+    const float logical_h = sc == 1 ? float(h_px) : float(pyround_i(h_px / sc));
+    const float x = x_px / sc, y = y_px / sc;
+    for (const auto& area : regions(logical_w, logical_h, g_theme.style))
+        if (x >= area.x && x < area.x + area.w && y >= area.y && y < area.y + area.h)
+            return area.zone;
+    return -1;
 }
 
 Image SysRenderer::render(const SysSnapshot& sn, std::time_t now) {
     const Theme& t = g_theme;
     Canvas d(W, H, s, t.bg);
     header(d, now, sn.hwinfo ? "" : "ohne HWiNFO");
-    float top = HEADER_H + 4, bot = h - FOOTER_H - 4, gap = SYS_GAP;
-    float lw = (float)floordiv(w - 3 * gap, 2);
-    float lx = gap, rx = gap * 2 + lw;
-    float rw = w - rx - gap;
-    float half = (float)floordiv(bot - top - gap, 2);
-    usage_card(d, lx, top, lw, half, "CPU", sn.cpu_name, sn.cpu_pct,
-               {{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
-                {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text},
-                {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}});
-    std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
-                           ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB"
-                           : "–";
-    usage_card(d, lx, top + half + gap, lw, bot - top - half - gap, "GPU", sn.gpu_name, sn.gpu_pct,
-               {{"Temp", num(sn.gpu_temp, 0, "°C"), temp_col(sn.gpu_temp)},
-                {"Lüfter", num(sn.gpu_fan, 0, "%"), t.text},
-                {"VRAM", vram, t.text}});
-    float h_small = SYS_SMALL;
-    std::string ram = sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–";
-    bar_card(d, rx, top, rw, h_small, "RAM", ram, sn.ram_pct);
-    std::string disk = sn.disk_label + " " + (sn.disk_temp ? num(sn.disk_temp, 0, "°C") : tr("belegt"));
-    bar_card(d, rx, top + h_small + gap, rw, h_small, "Datenträger", disk, sn.disk_pct);
-    float ny = top + 2 * (h_small + gap);
-    net_card(d, rx, ny, rw, bot - ny, sn);
+    const auto areas = regions(w, h, t.style);
+    if (t.style == theme::Style::Cupertino) {
+        grouped_system(d, areas, sn);
+    } else if (t.style == theme::Style::Material) {
+        expressive_system(d, areas, sn);
+    } else {
+        const auto& cpu = areas[0]; const auto& gpu = areas[1];
+        const auto& ram_area = areas[2]; const auto& disk_area = areas[3]; const auto& net = areas[4];
+        usage_card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name, sn.cpu_pct,
+                   {{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
+                    {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text},
+                    {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}});
+        std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
+                               ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
+        usage_card(d, gpu.x, gpu.y, gpu.w, gpu.h, "GPU", sn.gpu_name, sn.gpu_pct,
+                   {{"Temp", num(sn.gpu_temp, 0, "°C"), temp_col(sn.gpu_temp)},
+                    {"Lüfter", num(sn.gpu_fan, 0, "%"), t.text}, {"VRAM", vram, t.text}});
+        std::string ram = sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–";
+        bar_card(d, ram_area.x, ram_area.y, ram_area.w, ram_area.h, "RAM", ram, sn.ram_pct);
+        std::string disk = sn.disk_label + " " + (sn.disk_temp ? num(sn.disk_temp, 0, "°C") : tr("belegt"));
+        bar_card(d, disk_area.x, disk_area.y, disk_area.w, disk_area.h, "Datenträger", disk, sn.disk_pct);
+        net_card(d, net.x, net.y, net.w, net.h, sn);
+    }
     footer(d, "");
     return d.finish();
+}
+
+void SysRenderer::grouped_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& sn) {
+    const Theme& t = g_theme;
+    const auto& first = areas.front(); const auto& last = areas.back();
+    d.rounded_rectangle(first.x, first.y, first.x + first.w, last.y + last.h, 14, t.card);
+    const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
+        ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
+    const std::array<std::string, 5> labels = {"CPU", "GPU", "RAM", "Datenträger", "Netzwerk"};
+    const std::array<std::string, 5> names = {sn.cpu_name, sn.gpu_name,
+        sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–",
+        sn.disk_label, sn.net_name};
+    const std::array<std::string, 5> details = {
+        "Temp " + num(sn.cpu_temp, 0, "°C") + " · " + tr("Takt") + " " + num(sn.cpu_ghz, 2, "GHz") + " · " + tr("Lüfter") + " " + num(sn.cpu_fan, 0, "RPM"),
+        "Temp " + num(sn.gpu_temp, 0, "°C") + " · " + tr("Lüfter") + " " + num(sn.gpu_fan, 0, "%") + " · VRAM " + vram,
+        tr("belegt") + " · " + num(sn.ram_used, 1, "GB"),
+        sn.disk_temp ? "Temp " + num(sn.disk_temp, 0, "°C") : tr("belegt"),
+        "Download " + fmt_rate(sn.net_down, net_unit) + " · Upload " + fmt_rate(sn.net_up, net_unit)};
+    const std::array<std::optional<double>, 5> values = {sn.cpu_pct, sn.gpu_pct, sn.ram_pct, sn.disk_pct, std::nullopt};
+    const Font label = font(13, true), detail = font(11), value = font(18, true);
+    for (size_t i = 0; i < areas.size(); ++i) {
+        const auto& a = areas[i];
+        const float right = a.x + a.w - 12;
+        const float label_y = a.y + 14, detail_y = a.y + 33;
+        const std::string reading = i == 4 ? fmt_rate(sn.net_down, net_unit) : num(values[i], 0, "%");
+        const float reading_left = right - d.textlength(reading, value);
+        const float name_x = a.x + 112;
+        d.text(a.x + 12, label_y, labels[i], label, t.text, "lm");
+        d.text(name_x, label_y, fit(d, names[i], detail, std::max(0.f, reading_left - name_x - 12)), detail, t.muted, "lm");
+        d.text(right, label_y, reading, value, i == 0 ? temp_col(sn.cpu_temp) : i == 1 ? temp_col(sn.gpu_temp) : t.text, "rm");
+        d.text(a.x + 12, detail_y, fit(d, details[i], detail, a.w - 24), detail, t.muted, "lm");
+        if (values[i]) bar(d, a.x + 12, a.y + a.h - 7, a.w - 24, values[i], 3);
+        if (i + 1 < areas.size()) d.line({{a.x + 12, a.y + a.h}, {right, a.y + a.h}}, t.line, 1);
+    }
+}
+
+void SysRenderer::expressive_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& sn) {
+    const Theme& t = g_theme;
+    const auto& cpu = areas[0]; const auto& gpu = areas[1];
+    const Font tiny = font(11), value = font(14, true), hero = font(32, true);
+    card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name);
+    d.text(cpu.x + 14, cpu.y + 53, num(sn.cpu_pct, 0, "%"), hero, t.text, "lm");
+    bar(d, cpu.x + 14, cpu.y + cpu.h - 14, 98, sn.cpu_pct, 5);
+    const std::array<RowVal, 3> cpu_details = {{{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
+        {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text}, {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}}};
+    const float column = (cpu.w - 142) / 3;
+    for (size_t i = 0; i < cpu_details.size(); ++i) {
+        const float x = cpu.x + 132 + float(i) * column;
+        d.text(x, cpu.y + 42, cpu_details[i].label, tiny, t.muted, "lm");
+        d.text(x, cpu.y + 64, fit(d, cpu_details[i].value, value, column - 8), value, cpu_details[i].col, "lm");
+    }
+    d.rounded_rectangle(gpu.x, gpu.y, gpu.x + gpu.w, gpu.y + gpu.h, 20, t.card);
+    d.text(gpu.x + 12, gpu.y + 15, "GPU", f_card, t.accent, "lm");
+    d.text(gpu.x + 12, gpu.y + 35, fit(d, sn.gpu_name, tiny, gpu.w - 24), tiny, t.muted, "lm");
+    d.text(gpu.x + 12, gpu.y + 63, num(sn.gpu_pct, 0, "%"), font(24, true), t.text, "lm");
+    bar(d, gpu.x + 12, gpu.y + 83, gpu.w - 24, sn.gpu_pct, 5);
+    d.text(gpu.x + 12, gpu.y + 105, "Temp " + num(sn.gpu_temp, 0, "°C"), tiny, temp_col(sn.gpu_temp), "lm");
+    d.text(gpu.x + gpu.w - 12, gpu.y + 105, num(sn.gpu_fan, 0, "%") + " " + tr("Lüfter"), tiny, t.muted, "rm");
+    const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
+        ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
+    d.text(gpu.x + 12, gpu.y + 129, fit(d, "VRAM " + vram, tiny, gpu.w - 24), tiny, t.muted, "lm");
+    auto compact = [&](const Region& a, const std::string& title, const std::string& description, std::optional<double> pct) {
+        d.rounded_rectangle(a.x, a.y, a.x + a.w, a.y + a.h, 12, t.card);
+        d.text(a.x + 10, a.y + 12, title, font(12, true), t.accent, "lm");
+        d.text(a.x + a.w - 10, a.y + 12, num(pct, 0, "%"), value, t.text, "rm");
+        d.text(a.x + 10, a.y + 29, fit(d, description, tiny, a.w - 20), tiny, t.muted, "lm");
+        bar(d, a.x + 10, a.y + a.h - 7, a.w - 20, pct, 3);
+    };
+    compact(areas[2], "RAM", sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–", sn.ram_pct);
+    compact(areas[3], "Datenträger", sn.disk_label + (sn.disk_temp ? " · " + num(sn.disk_temp, 0, "°C") : ""), sn.disk_pct);
+    const auto& net = areas[4];
+    d.rounded_rectangle(net.x, net.y, net.x + net.w, net.y + net.h, 12, t.card);
+    d.text(net.x + 10, net.y + 12, "Netzwerk", font(12, true), t.accent, "lm");
+    d.text(net.x + net.w - 10, net.y + 12, fit(d, sn.net_name, tiny, net.w - 100), tiny, t.muted, "rm");
+    // The compact network cell prioritizes both live rates over the old chart.
+    arrow(d, net.x + 15, net.y + 32, true, t.down);
+    d.text(net.x + 28, net.y + 32, fit(d, fmt_rate(sn.net_down, net_unit), tiny, net.w / 2 - 36), tiny, t.text, "lm");
+    arrow(d, net.x + net.w / 2 + 10, net.y + 32, false, t.bar);
+    d.text(net.x + net.w - 10, net.y + 32, fit(d, fmt_rate(sn.net_up, net_unit), tiny, net.w / 2 - 30), tiny, t.text, "rm");
 }
 
 void SysRenderer::card(Canvas& d, float x, float y, float cw, float ch, const std::string& ctitle, const std::string& sub) {

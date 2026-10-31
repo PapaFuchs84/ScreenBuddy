@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.9.2 – 31 October 2026
+
+- Distinct structural shells: Cupertino collapsible sidebar and optional inspector, Fluent functional search/Back/breadcrumb, Material five destinations/context tabs and pending-change actions. System page compositions and shared touch regions differ per profile.
+
 - Paired profile palettes for native appearance; six sample files; base editor loads reference colors explicitly; preserve explicit FuchsLabs override on starter-theme export.
 
 - Optional whitelisted theme style profiles, backward-compatible starter recognition, editor round-trip; native design tokens and pressed/capture feedback; display typography/cache family key, row geometry and matching hit targets. Development branch; validation described in TESTPROTOKOLL.md.

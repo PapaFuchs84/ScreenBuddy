@@ -8,7 +8,7 @@
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.9.1-F77F00)
+![Version](https://img.shields.io/badge/version-2.9.2-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -24,11 +24,11 @@
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
 
-**In Entwicklung:** Cupertino-, Fluent- und Material-Designprofile steuern Formen, Typografie, Abstände und native Interaktionsrückmeldung zusätzlich zu Farben. [Details und Grenzen](docs/THEMES.md#designsysteme-in-entwicklung).
+**Neu in 2.9.2:** Cupertino: einblendbare Sidebar und optionaler Inspector; Fluent: Seitensuche und Zurück-Verlauf; Material: fünf Hauptziele, Unterseiten und schwebende Speicheraktion bei Änderungen. Auch die Systemanzeige nutzt je Profil einen anderen Aufbau. Cupertino-, Fluent- und Material-Designprofile steuern Formen, Typografie, Abstände und native Interaktionsrückmeldung zusätzlich zu Farben. [Details und Grenzen](docs/THEMES.md#designsysteme-ab-292).
 
 Alle drei Designsysteme erhalten eigene Hell-/Dunkel-Paletten; sechs Beispiele und der native Hell/Dunkel-Schalter werden gemeinsam gepflegt.
 
-**Neu in 2.9.1:** drei installierbare Store-Themes, Tooltips an Statuspunkten, Key-Hilfe mit offiziellen Links, Erkennung von Audiogerätewechseln, simulierte Amplifier-Anzeige bei Remote-Wiedergabe und wählbare Balkenfarben; Korrekturen für Kontrast und Pinsel-Cache. [Release-Notizen 2.9.1](docs/RELEASE-NOTES-2.9.1.md).
+**In 2.9.1:** drei installierbare Store-Themes, Tooltips an Statuspunkten, Key-Hilfe mit offiziellen Links, Erkennung von Audiogerätewechseln, simulierte Amplifier-Anzeige bei Remote-Wiedergabe und wählbare Balkenfarben; Korrekturen für Kontrast und Pinsel-Cache. [Release-Notizen 2.9.1](docs/RELEASE-NOTES-2.9.1.md).
 
 **Neu in 2.9.0:** Farben & Design (An Windows anpassen, eigene Themes mit Editor, Import/Export und drei Beispiel-Themes), einheitliche Statuspunkte mit Legende in der Navigation, faire Mischung aller gewählten Anbieter auf der Streaming-Seite, Spektrum-Amplifier auf der Spotify-Seite, Android-TV-Einstieg der Companion-App und das offizielle TMDB-Logo. [Release-Notizen 2.9](docs/RELEASE-NOTES-2.9.md).
 
@@ -100,7 +100,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus [Release 2.9.1](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.1) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
+1. **ScreenBuddy.exe** aus [Release 2.9.2](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.2) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
 2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.

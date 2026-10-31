@@ -266,7 +266,7 @@ class Tiles : public Widget {
 public:
     struct Tile { Text value, label; };
     std::vector<Tile> tiles;
-    float height(Ctx&, float) override { return 70; }
+    float height(Ctx& c, float) override { return c.kit.design.tonal ? 176.f : 70.f; }
     void paint(Ctx& c) override;
     std::wstring value(bool en) const override;
 };
@@ -482,6 +482,8 @@ public:
     Text text;
     std::string id;
     bool active = false, dot_on = false;
+    bool rail = false, search_result = false;
+    int icon = 0;
     bool has_dot = true;   // nur Datenquellen/Verbindungen zeigen einen Statuspunkt
     Text dot_hint;         // Hinweis für Sprachausgabe: eingerichtet und an / nicht eingerichtet oder aus
     std::function<void()> on_open;
@@ -489,7 +491,7 @@ public:
     NavItem(Text t, std::string i) : text(std::move(t)), id(std::move(i)) {}
     float height(Ctx&, float) override { return 34; }
     void paint(Ctx& c) override;
-    bool focusable() const override { return active; }  // nur der aktive Eintrag ist Tab-Stopp, Pfeile wechseln
+    bool focusable() const override { return active || search_result; }
     bool clickable() const override { return true; }
     bool key(UINT vk, Surface& s) override;
     void release(Point p, Surface& s) override;

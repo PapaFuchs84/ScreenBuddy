@@ -6,9 +6,15 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.9.2] – 2026-10-31
+
+### Added
+
+- Distinct window compositions and navigation: Cupertino: collapsible sidebar and optional inspector; Fluent: page search and Back history; Material: five destinations, subpages and floating save actions for pending changes. System displays also use distinct compositions.
+
 - Design systems include paired light/dark palettes, a working native appearance switch and six example files.
 
-- Design systems in development: Cupertino grouped surfaces and spacious rows, Fluent compact geometry and selection indicator, Material tonal surfaces, pill shapes and state feedback. Optional strictly validated theme `style`, editor selection, native settings and display rendering; existing starter themes are recognized by exact names. No store publication.
+- Design systems: Cupertino grouped surfaces and spacious rows, Fluent compact geometry and selection indicator, Material tonal surfaces, pill shapes and state feedback. Optional strictly validated theme `style`, editor selection, native settings and display rendering; existing starter themes are recognized by exact names.
 
 ## [2.9.1] – 2026-10-31
 
