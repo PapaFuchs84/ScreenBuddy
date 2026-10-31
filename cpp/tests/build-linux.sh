@@ -21,3 +21,7 @@ g++ -std=c++20 -O1 -g -Wall -Wextra -Isrc src/amp_logic.cpp tests/amp_tests.cpp 
 # Schlüssel-Hilfen: Links nur offiziell/https, DE/EN vollständig
 g++ -std=c++20 -O1 -g -Wall -Wextra -Isrc src/key_help.cpp tests/key_help_tests.cpp -o "$OUT/key-help-tests"
 "$OUT/key-help-tests"
+# PlayStation-Freunde: Antworten lesen (reine Logik, feste JSON-Beispiele)
+g++ -std=c++20 -O1 -g -Wall -Wextra -Isrc -I"${NLOHMANN_INCLUDE:-/usr/include}" \
+    src/psn_logic.cpp tests/psn_tests.cpp -o "$OUT/psn-tests"
+"$OUT/psn-tests"

@@ -10,7 +10,7 @@ static int fails = 0;
 
 int main() {
     using namespace fl::keyhelp;
-    for (const char* id : {"discord", "steam", "xbox", "tmdb", "spotify", "homeassistant"}) {
+    for (const char* id : {"discord", "steam", "xbox", "psn", "tmdb", "spotify", "homeassistant"}) {
         const Help* h = find(id);
         CHECK(h != nullptr);
         if (!h) continue;
@@ -24,7 +24,7 @@ int main() {
         }
     }
     CHECK(find("unbekannt") == nullptr);
-    CHECK(all().size() == 6);
+    CHECK(all().size() == 7);
     // Nur Adressen aus der Erlaubnisliste, nur https
     CHECK(!is_official_url("http://discord.com/developers"));
     CHECK(!is_official_url("https://discord.com.evil.example/"));

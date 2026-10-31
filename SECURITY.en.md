@@ -29,7 +29,7 @@ FuchsLabs confirms receipt as soon as possible, keeps you updated on the fix and
 ## What the security model covers
 
 - The settings page only listens on `127.0.0.1` and must not be usable from the network or from other websites (host check, custom header for changes, `Sec-Fetch-Site` check, no framing).
-- The Discord token, the Steam and Xbox keys and the Home Assistant token are stored only DPAPI-encrypted in `config.toml`, never appear in the log and are never sent to the browser.
+- The Discord token, the Steam and Xbox keys, the PlayStation NPSSO code (unofficial, works like a password; sent only to Sony) and the Home Assistant token are stored only DPAPI-encrypted in `config.toml`, never appear in the log and are never sent to the browser.
 - Data from the internet (feeds, avatars, player names) is size-limited and only drawn as text.
 - Companion app (off by default): listens only on private IPv4 addresses of the home network (port 8777, never 8765), accepts connections only from private address ranges and speaks TLS only (self-signed certificate; the app checks its fingerprint). Pairing only with the PIN shown on the settings page (2 minutes, single use, locked for 5 minutes after 5 failed attempts). Device keys (32 bytes) and the TLS key are stored DPAPI-encrypted in `companion.json`. A paired device can trigger the same touch targets as a touchscreen (open browser/chat, Home Assistant switches).
 - Plugins are plain JSON data without program code. Sources need HTTPS, public addresses and consent per host; credentials stay DPAPI-protected. The plugin store (if active) checks the Ed25519 signature, SHA-256 and the revocation list before every installation, see [Plugin signing](docs/PLUGIN-SIGNING.md).

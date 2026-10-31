@@ -415,8 +415,9 @@ ojson App::connections() {
         else if (info.is_object() && b(info, "logged_in")) out["spotify"] = {{"state", "idle"}};
         else out["spotify"] = {{"state", set ? "idle" : "off"}};
     }
-    for (auto plat : {"steam", "xbox"}) {
+    for (auto plat : {"steam", "xbox", "psn"}) {
         bool key_set = std::string(plat) == "steam" ? !s(fr, "steam_api_key").empty() && !s(fr, "steam_id").empty()
+                       : std::string(plat) == "psn" ? !s(fr, "psn_npsso").empty()
                                                     : !s(fr, "xbox_api_key").empty();
         ojson info = friends_ ? friends_->info(plat) : ojson();
         if (info.is_object()) {
@@ -502,7 +503,7 @@ std::string App::friends_message() {
     bool inc = b(fr, "include_discord", true);
     if (discord_ && inc)
         if (std::string ds = discord_->status(); !ds.empty()) problems.push_back(ds);
-    bool has_source = (discord_ && inc) || !s(fr, "steam_api_key").empty() || !s(fr, "xbox_api_key").empty();
+    bool has_source = (discord_ && inc) || !s(fr, "steam_api_key").empty() || !s(fr, "xbox_api_key").empty() || !s(fr, "psn_npsso").empty();
     if (!has_source) return "Noch keine Konten verbunden – bitte in den Einstellungen einrichten";
     return join(problems, " · ");
 }

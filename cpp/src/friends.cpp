@@ -11,6 +11,8 @@
 
 #include "discord.h"
 #include "http.h"
+#include "psn_logic.h"
+#include "secure.h"
 #include "render.h"
 #include "util.h"
 
@@ -20,9 +22,9 @@ using json = nlohmann::json;
 
 static const char* STEAM_API = "https://api.steampowered.com";
 static const char* XBOX_API = "https://xbl.io/api/v2";
-static constexpr int STEAM_EVERY = 60, XBOX_EVERY = 180;  // Sekunden zwischen Abrufen (schont die Limits)
+static constexpr int STEAM_EVERY = 60, XBOX_EVERY = 180, PSN_EVERY = 120;  // Sekunden zwischen Abrufen (schont die Limits)
 static constexpr size_t MAX_AVATAR_BYTES = 2'000'000;
-static const std::vector<std::string> PLATFORMS = {"discord", "steam", "xbox"};
+static const std::vector<std::string> PLATFORMS = {"discord", "steam", "xbox", "psn"};
 
 static std::string jstr(const json& j, const char* k) {
     if (!j.is_object() || !j.contains(k) || j[k].is_null()) return "";
@@ -186,6 +188,195 @@ static std::string xbox_self_name(const std::string& key) {
     return "";
 }
 
+// ---------- PlayStation (inoffiziell) ----------
+// Sony hat keine offizielle Schnittstelle. Der NPSSO-Wert (Cookie der angemeldeten Browser-Sitzung) wird wie in der
+// PlayStation-App gegen ein kurzlebiges Zugriffstoken getauscht. Client-ID und -Geheimnis sind die öffentlich bekannten
+// Konstanten der Android-App von Sony (kein Geheimnis dieser App). Der NPSSO-Wert verlässt das Gerät nur Richtung Sony.
+static const char* PSN_CLIENT_ID = "09515159-7237-4370-9b40-3806e67c0891";
+static const char* PSN_CLIENT_SECRET = "ucPjka5tntB2KqsP";
+static const char* PSN_REDIRECT = "com.scee.psxandroid.scecompcall://redirect";
+static const char* PSN_SCOPE = "psn:mobile.v2.core psn:clientapp";
+
+namespace {
+struct PsnSession {
+    std::mutex mu;
+    std::string npsso, access, refresh;
+    std::time_t access_until = 0, refresh_until = 0;
+    std::map<std::string, psn::Profile> profiles;  // Konto-ID → Name/Bild (ändert sich selten, schont die Abrufe)
+};
+PsnSession& psn_session() {
+    static PsnSession s;
+    return s;
+}
+}  // namespace
+
+static void psn_http_error(const http::Response& r, const char* what) {
+    if (r.status == 0) throw FriendsError("PlayStation ist nicht erreichbar");
+    if (r.status == 429) throw FriendsError("PlayStation: zu viele Abrufe, ich versuche es später wieder");
+    if (r.status == 401 || r.status == 403)
+        throw FriendsError("PlayStation: Anmeldung abgelaufen oder ungültig – bitte einen neuen NPSSO-Code holen");
+    throw FriendsError(strprintf("PlayStation antwortet mit Fehler %d (%s)", r.status, what));
+}
+
+static void psn_token_request(PsnSession& ss, const std::string& body) {
+    http::Request req;
+    req.method = "POST";
+    req.url = std::string(psn::AUTH_BASE) + "/token";
+    req.headers = {{"User-Agent", UA},
+                   {"Authorization", "Basic " + secure::base64_encode(std::string(PSN_CLIENT_ID) + ":" + PSN_CLIENT_SECRET)},
+                   {"Content-Type", "application/x-www-form-urlencoded"}};
+    req.body = body;
+    auto r = http::fetch(req);
+    if (r.status != 200) {
+        ss.access.clear();
+        ss.refresh.clear();
+        if (r.status == 400 || r.status == 401)
+            throw FriendsError("PlayStation: Anmeldung abgelaufen oder ungültig – bitte einen neuen NPSSO-Code holen");
+        psn_http_error(r, "Anmeldung");
+    }
+    try {
+        json j = json::parse(r.body);
+        ss.access = jstr(j, "access_token");
+        ss.refresh = jstr(j, "refresh_token");
+        std::time_t now = std::time(nullptr);
+        ss.access_until = now + (j.value("expires_in", 3600) > 120 ? j.value("expires_in", 3600) - 60 : 0);
+        ss.refresh_until = now + j.value("refresh_token_expires_in", 0);
+    } catch (const json::exception&) {
+        ss.access.clear();
+    }
+    if (ss.access.empty()) throw FriendsError("PlayStation ist nicht erreichbar");
+}
+
+static std::string psn_access_token(const std::string& npsso) {
+    PsnSession& ss = psn_session();
+    std::lock_guard lk(ss.mu);
+    if (ss.npsso != npsso) {  // anderer Code: alles Gespeicherte verwerfen
+        ss.npsso = npsso;
+        ss.access.clear();
+        ss.refresh.clear();
+        ss.access_until = ss.refresh_until = 0;
+        ss.profiles.clear();
+    }
+    std::time_t now = std::time(nullptr);
+    if (!ss.access.empty() && ss.access_until > now) return ss.access;
+    if (!ss.refresh.empty() && ss.refresh_until > now + 60) {
+        try {
+            psn_token_request(ss, http::query({{"refresh_token", ss.refresh}, {"grant_type", "refresh_token"},
+                                               {"scope", PSN_SCOPE}, {"token_format", "jwt"}}));
+            return ss.access;
+        } catch (const FriendsError&) {
+            // weiter mit neuer Anmeldung per NPSSO
+        }
+    }
+    if (!psn::valid_npsso(npsso)) throw FriendsError("PlayStation: Der NPSSO-Code ist ungültig (er hat 64 Zeichen)");
+    http::Request auth;
+    auth.url = std::string(psn::AUTH_BASE) + "/authorize?" +
+               http::query({{"access_type", "offline"}, {"client_id", PSN_CLIENT_ID}, {"redirect_uri", PSN_REDIRECT},
+                            {"response_type", "code"}, {"scope", PSN_SCOPE}});
+    auth.headers = {{"User-Agent", UA}, {"Cookie", "npsso=" + npsso}};
+    auth.follow_redirects = false;
+    auto r = http::fetch(auth);
+    if (r.status == 0) throw FriendsError("PlayStation ist nicht erreichbar");
+    std::string code = psn::code_from_location(r.location);
+    if (code.empty()) throw FriendsError("PlayStation: NPSSO-Code abgelaufen oder ungültig – bitte einen neuen holen");
+    psn_token_request(ss, http::query({{"code", code}, {"redirect_uri", PSN_REDIRECT}, {"grant_type", "authorization_code"},
+                                       {"token_format", "jwt"}}));
+    return ss.access;
+}
+
+static json psn_get(const std::string& npsso, const std::string& path, const std::vector<std::pair<std::string, std::string>>& q = {}) {
+    std::string url = std::string(psn::API_BASE) + path + (q.empty() ? "" : "?" + http::query(q));
+    auto r = http::get(url, {{"User-Agent", UA}, {"Authorization", "Bearer " + psn_access_token(npsso)}, {"Accept", "application/json"},
+                             {"Accept-Language", "en-US"}}, 30000);
+    if (r.status == 401) {  // Token vorzeitig ungültig: einmal neu anmelden
+        {
+            PsnSession& ss = psn_session();
+            std::lock_guard lk(ss.mu);
+            ss.access.clear();
+            ss.refresh.clear();
+        }
+        r = http::get(url, {{"User-Agent", UA}, {"Authorization", "Bearer " + psn_access_token(npsso)}, {"Accept", "application/json"},
+                            {"Accept-Language", "en-US"}}, 30000);
+    }
+    if (r.status != 200) psn_http_error(r, "Abruf");
+    try {
+        return json::parse(r.body);
+    } catch (const json::exception&) {
+        throw FriendsError("PlayStation ist nicht erreichbar");
+    }
+}
+
+static psn::Profile psn_profile(const std::string& npsso, const std::string& account_id) {
+    PsnSession& ss = psn_session();
+    {
+        std::lock_guard lk(ss.mu);
+        auto it = ss.profiles.find(account_id);
+        if (it != ss.profiles.end()) return it->second;
+    }
+    psn::Profile p;
+    if (!psn::parse_profile(psn_get(npsso, "/userProfile/v1/internal/users/" + account_id + "/profiles"), p)) return {};
+    std::lock_guard lk(ss.mu);
+    ss.profiles[account_id] = p;
+    return p;
+}
+
+std::vector<Account> fetch_psn(const std::string& npsso_in) {
+    const std::string npsso = psn::clean_npsso(npsso_in);
+    std::vector<std::string> ids;
+    for (int offset = 0; ids.size() < psn::MAX_FRIENDS; offset += 100) {
+        auto page = psn::parse_friend_ids(psn_get(npsso, "/userProfile/v1/internal/users/me/friends",
+                                                   {{"limit", "100"}, {"offset", std::to_string(offset)}}));
+        ids.insert(ids.end(), page.begin(), page.end());
+        if (page.size() < 100) break;
+    }
+    if (ids.size() > psn::MAX_FRIENDS) ids.resize(psn::MAX_FRIENDS);
+    std::map<std::string, psn::Presence> presence;
+    for (size_t i = 0; i < ids.size(); i += psn::PRESENCE_CHUNK) {
+        std::vector<std::string> part(ids.begin() + i, ids.begin() + std::min(ids.size(), i + psn::PRESENCE_CHUNK));
+        for (auto& p : psn::parse_presences(psn_get(npsso, "/userProfile/v1/internal/users/basicPresences",
+                                                     {{"type", "primary"}, {"accountIds", join(part, ",")}})))
+            presence[p.account_id] = p;
+    }
+    std::vector<Account> out;
+    size_t failed = 0;
+    std::string last_error;
+    for (auto& id : ids) {
+        psn::Profile prof;
+        try {
+            prof = psn_profile(npsso, id);
+        } catch (const FriendsError& e) {  // einzelnes Profil nicht lesbar: überspringen, beim nächsten Abruf erneut versuchen
+            ++failed;
+            last_error = e.what();
+        }
+        if (prof.online_id.empty()) {
+            if (failed == ids.size()) throw FriendsError(last_error);
+            continue;
+        }
+        Account a;
+        a.platform = "psn";
+        a.uid = id;
+        a.handle = prof.online_id;
+        a.name = render::clean_text(prof.online_id);
+        if (a.name.empty()) continue;
+        a.avatar_url = prof.avatar_url;
+        if (auto it = presence.find(id); it != presence.end() && it->second.online) {
+            a.status = "online";
+            if (!it->second.game.empty()) a.activity = "Spielt " + render::clean_text(it->second.game);
+        }
+        out.push_back(std::move(a));
+    }
+    return out;
+}
+
+static std::string psn_self_name(const std::string& npsso_in) {
+    // Online-ID des eigenen Kontos (für die Statusanzeige); Fehler sind hier egal
+    try {
+        return render::clean_text(psn_profile(psn::clean_npsso(npsso_in), "me").online_id);
+    } catch (...) {
+        return "";
+    }
+}
+
 // ---------- Zusammenführen ----------
 std::string norm(const std::string& name) {
     // Akzente und Sonderformen vereinheitlichen, dann nur Buchstaben/Ziffern
@@ -308,7 +499,7 @@ std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const s
             auto& acc = accounts[a];
             plats.insert(acc.platform);
             if (acc.status != "offline") online.insert(acc.platform);
-            std::string id = acc.platform == "xbox" ? (acc.handle.empty() ? acc.name : acc.handle) : acc.uid;
+            std::string id = acc.platform == "xbox" || acc.platform == "psn" ? (acc.handle.empty() ? acc.name : acc.handle) : acc.uid;
             if (!id.empty()) f.ids.emplace(acc.platform, id);
         }
         for (auto& p : PLATFORMS) {
@@ -438,13 +629,17 @@ void FriendsHub::start() {
         threads_.emplace_back([this] { loop("xbox", XBOX_EVERY); });
         any = true;
     }
+    if (!cstr(cfg_, "psn_npsso").empty()) {
+        threads_.emplace_back([this] { loop("psn", PSN_EVERY); });
+        any = true;
+    }
     if (!any) on_change_();
 }
 
 std::string FriendsHub::status() {
     std::lock_guard lk(mu_);
     std::vector<std::string> v;
-    for (auto& p : {"steam", "xbox"})
+    for (auto& p : {"steam", "xbox", "psn"})
         if (auto it = errors_.find(p); it != errors_.end()) v.push_back(it->second);
     return join(v, " · ");
 }
@@ -459,6 +654,7 @@ void FriendsHub::loop(const std::string& platform, int every) {
     while (!stop_) {
         try {
             std::vector<Account> accs = platform == "steam" ? fetch_steam(cstr(cfg_, "steam_api_key"), cstr(cfg_, "steam_id"))
+                                        : platform == "psn" ? fetch_psn(cstr(cfg_, "psn_npsso"))
                                                             : fetch_xbox(cstr(cfg_, "xbox_api_key"));
             load_avatars(accs);
             bool need_name;
@@ -469,7 +665,8 @@ void FriendsHub::loop(const std::string& platform, int every) {
             std::string who;
             if (need_name)  // Kontoname nur einmal holen (schont die Abruflimits)
                 who = platform == "steam" ? steam_self_name(cstr(cfg_, "steam_api_key"), cstr(cfg_, "steam_id"))
-                                          : xbox_self_name(cstr(cfg_, "xbox_api_key"));
+                                          : platform == "psn" ? psn_self_name(cstr(cfg_, "psn_npsso"))
+                                                              : xbox_self_name(cstr(cfg_, "xbox_api_key"));
             int online = (int)std::count_if(accs.begin(), accs.end(), [](auto& a) { return a.status != "offline"; });
             std::lock_guard lk(mu_);
             ojson& inf = info_[platform];
@@ -556,7 +753,7 @@ std::vector<Friend> FriendsHub::people() {
         }
     {
         std::lock_guard lk(mu_);
-        for (auto& p : {"steam", "xbox"}) accounts.insert(accounts.end(), accounts_[p].begin(), accounts_[p].end());
+        for (auto& p : {"steam", "xbox", "psn"}) accounts.insert(accounts.end(), accounts_[p].begin(), accounts_[p].end());
     }
     std::vector<std::string> links;
     if (cfg_.contains("links") && cfg_["links"].is_array())
@@ -573,7 +770,7 @@ ojson FriendsHub::all_accounts() {
     std::vector<ojson> out;
     {
         std::lock_guard lk(mu_);
-        for (auto& p : {"steam", "xbox"})
+        for (auto& p : {"steam", "xbox", "psn"})
             for (auto& a : accounts_[p]) out.push_back({{"platform", a.platform}, {"id", a.uid}, {"name", a.name}});
     }
     if (discord_)
