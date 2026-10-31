@@ -13,6 +13,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ### Behoben
 
+- Absturz-Fix im Pinsel-Cache von `gfx.cpp` (aus #37, 3d92295); betraf möglicherweise auch 2.9.0.
 - Kontrastkorrektur: Anpassungen gegen Hintergrund und Karte heben sich nicht mehr gegenseitig auf (alle Regeln einer Farbe werden gemeinsam erfüllt).
 
 ## [2.9.0] – 2026-10-31

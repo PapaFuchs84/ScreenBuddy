@@ -13,6 +13,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Fixed
 
+- Crash fix in the brush cache of `gfx.cpp` (from #37, 3d92295); possibly affected 2.9.0 as well.
 - Contrast correction: adjustments against background and card no longer cancel each other (all rules of one color are satisfied together).
 
 ## [2.9.0] – 2026-10-31
