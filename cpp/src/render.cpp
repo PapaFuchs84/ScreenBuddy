@@ -1009,7 +1009,7 @@ std::vector<StreamItem> demo_stream() {
     auto mk = [](int id, const char* title, const char* date, bool series, std::vector<std::string> prov) {
         StreamItem it;
         it.id = id; it.title = title; it.date = date; it.series = series; it.providers = std::move(prov);
-        static const std::map<std::string, int> ids = {{"NF", 8}, {"PV", 9}, {"D+", 337}, {"ATV+", 350}, {"WOW", 30}, {"RTL+", 298}};
+        static const std::map<std::string, int> ids = {{"NF", 8}, {"PV", 9}, {"D+", 337}, {"ATV+", 350}, {"WOW", 30}, {"RTL+", 2750}};
         for (auto& ab : it.providers) it.provider_ids.push_back(ids.at(ab));
         return it;
     };
@@ -1024,13 +1024,13 @@ StreamLogos demo_stream_logos() {
     // Platzhalter für Vorschau und Tests: einfarbige, abgerundete Kacheln mit dem Kürzel; kein Netz, keine Marken-Logos
     struct Spec { int id; const char* ab; Color c; };
     const Spec specs[] = {{8, "NF", {150, 30, 40}}, {9, "PV", {30, 110, 160}}, {337, "D+", {40, 60, 140}},
-                          {350, "TV", {60, 60, 60}}, {30, "WOW", {170, 70, 30}}, {298, "RTL", {130, 40, 130}}};
+                          {350, "TV", {60, 60, 60}}, {30, "WOW", {170, 70, 30}}, {2750, "RTL", {130, 40, 130}}};
     StreamLogos out;
     for (const auto& sp : specs) {
         Canvas c(64, 64, 1.f, sp.c);
         c.text(32, 32, sp.ab, Font{22, true}, Color{255, 255, 255}, "mm");
         Image img = c.finish();
-        round_corners(img.px, img.w, img.h, 64 * 0.2f);
+        tmdb::round_corners(img.px, img.w, img.h, 64 * 0.2f);
         out[sp.id] = std::make_shared<const Image>(std::move(img));
     }
     return out;
