@@ -28,6 +28,7 @@ class FrameView(ctx: Context) : View(ctx) {
     private var rh = 320
     // Bilineares Filtering statt Nearest-Neighbor beim (seltenen) Skalieren; Normalfall: Bild hat Zielaufloesung (1:1).
     private val paint = Paint(Paint.FILTER_BITMAP_FLAG).apply { isFilterBitmap = true; isDither = true }
+    private val bleedPaint = Paint(Paint.FILTER_BITMAP_FLAG).apply { isFilterBitmap = true }
     private var bgColor = Color.parseColor("#0E1628")
     private val density = resources.displayMetrics.density
     private val swipeMinDistance = density * 64
@@ -116,7 +117,13 @@ class FrameView(ctx: Context) : View(ctx) {
         val lb = Letterbox.compute(contentWidth, contentHeight, b.width.coerceAtLeast(1), b.height.coerceAtLeast(1))
         val ox = insL.toFloat(); val oy = insT.toFloat()
         val dst = RectF(ox + lb.left, oy + lb.top, ox + lb.left + b.width * lb.scale, oy + lb.top + b.height * lb.scale)
-        c.drawBitmap(b, null, dst, paint)
+        // Randlos: das Bild sitzt im sicheren Bereich, seine Randpixel laufen bis an die Bildschirmkanten weiter
+        // (Hintergrund hinter Ausschnitt und Rundungen, Inhalt nur im sicheren Bereich).
+        val shader = BitmapShader(b, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        val m = Matrix().apply { setScale(lb.scale, lb.scale); postTranslate(dst.left, dst.top) }
+        shader.setLocalMatrix(m)
+        bleedPaint.shader = shader
+        c.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bleedPaint)
     }
 
     override fun onTouchEvent(e: MotionEvent): Boolean {

@@ -13,7 +13,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Fixed
 
-- **Companion app 1.0.1**: content now keeps clear of rounded display corners (Android 12+, radius from the system) and the camera cut-out; reported resolution and touch coordinates refer to the safe area. Verified on the Pixel 10 Pro (corners 157 px, cut-out at the top); Redmi 8 without rounding is unchanged.
+- **Companion app 1.0.1**: the background now runs edge to edge, while content stays inside the safe area clear of rounded display corners (Android 12+, radius from the system) and the camera cut-out; reported resolution and touch coordinates refer to the safe area. Verified on the Pixel 10 Pro (corners 157 px, cut-out at the top); Redmi 8 without rounding is unchanged.
 - TMDB: the RTL+ preset uses TMDB ID 2750 (region DE) instead of 298.
 - `--uninstall` aborts in test instances (`FUCHSLABS_INSTANCE`) without their own `FUCHSLABS_INSTALL_DIR` instead of deleting the real installation (EXE) while leaving the autostart entry and programs-list entry behind.
 
