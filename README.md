@@ -204,13 +204,13 @@ Der C++-Build installiert die Abhängigkeiten aus dem festgelegten vcpkg-Manifes
 - Der lokale Dienst ist **nur auf `127.0.0.1`** erreichbar und gegen DNS-Rebinding, CSRF und Einbetten in fremde Seiten geschützt.
 - Alle Verbindungen laufen über HTTPS mit Zertifikatsprüfung; Pakete sind auf genaue Versionen festgelegt.
 
-Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md); er ist kein vollständiger Audit der C++-Version. Aktuelle Validierung: [Release-Notizen 2.7](docs/RELEASE-NOTES-2.7.md); das [Testprotokoll](cpp/TESTPROTOKOLL.md) ist auf dem Stand 2.6.0 (30.10.2026) und enthält keinen Eintrag für 2.7.0. Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
+Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md); er ist kein vollständiger Audit der C++-Version. Aktuelle Validierung: [Release-Notizen 2.8](docs/RELEASE-NOTES-2.8.md); das [Testprotokoll](cpp/TESTPROTOKOLL.md) enthält den Eintrag für 2.8.0 (31.10.2026). Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
 
 ## Testphase und Rückmeldungen
 
 Die App ist in der Testphase. Fehler und Ideen bitte über **Issues → New issue** mit den Vorlagen „Fehlerbericht“ oder „Idee oder Rückmeldung“ melden. Wo das Protokoll `usb-display.log` liegt und was nie mitgeschickt werden darf, steht in [`TESTPHASE.md`](TESTPHASE.md).
 
-**Prüfstand 2.7.0:** 1.493 automatisierte Prüfungen im Release-Build bestanden; Echtsystem mit zwei Android-Geräten und dem USB-Display (480 × 320) beobachtet. Mehrgeräteprüfungen per adb sind Simulationen; DPI-/Screenreader-, Windows-Anmelde-, WLAN- und Boot-Abnahme stehen aus. Vollständig und mit allen Grenzen: [Release-Notizen 2.7](docs/RELEASE-NOTES-2.7.md). Ältere Prüfstände: [Historie](docs/PRUEFSTAND-HISTORIE.md).
+**Prüfstand 2.8.0:** 1.462 automatisierte Prüfungen im Release-Build bestanden; Echtsystem mit zwei Android-Geräten, dem USB-Display (480 × 320), echtem TMDB-Key und Spotify-Konto beobachtet. Offen: TMDB-Logo, Store-Update, DPI-/Screenreader-, Windows-Anmelde-, WLAN- und Boot-Abnahme. Vollständig und mit allen Grenzen: [Release-Notizen 2.8](docs/RELEASE-NOTES-2.8.md). Vorheriger Stand: [2.7](docs/RELEASE-NOTES-2.7.md). Ältere Prüfstände: [Historie](docs/PRUEFSTAND-HISTORIE.md).
 
 ## Dokumente
 

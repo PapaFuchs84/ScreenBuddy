@@ -207,13 +207,13 @@ App translations are in `cpp/src/i18n.cpp`, native page text under `cpp/src/ui_p
 - The local service is **only reachable on `127.0.0.1`** and protected against DNS rebinding, CSRF and framing by other sites.
 - All connections use HTTPS with certificate checks; packages are pinned to exact versions.
 
-Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: [release notes 2.7](docs/RELEASE-NOTES-2.7.md); the [test record](cpp/TESTPROTOKOLL.md) is at the 2.6.0 state (30 October 2026) and has no entry for 2.7.0. Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
+Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: [release notes 2.8](docs/RELEASE-NOTES-2.8.md); the [test record](cpp/TESTPROTOKOLL.md) has the entry for 2.8.0 (31 October 2026). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
 
 ## Testing and feedback
 
 The app is in testing. Please report bugs and ideas via **Issues → New issue** using the “Bug report” or “Idea or feedback” forms. Where to find the log `usb-display.log` and what must never be sent: [`TESTPHASE.en.md`](TESTPHASE.en.md).
 
-**Validation of 2.7.0:** 1,493 automated checks passed in the release build; real-system observation with two Android devices and the USB display (480 × 320). Multi-device checks via adb are simulations; DPI/screen-reader, Windows sign-in, Wi-Fi and boot acceptance remain open. Complete results and all limits: [release notes 2.7](docs/RELEASE-NOTES-2.7.md). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
+**Validation of 2.8.0:** 1,462 automated checks passed in the release build; real-system observation with two Android devices, the USB display (480 × 320), a real TMDB key and a Spotify account. Open: TMDB logo, store update, DPI/screen-reader, Windows sign-in, Wi-Fi and boot acceptance. Complete results and all limits: [release notes 2.8](docs/RELEASE-NOTES-2.8.md). Previous state: [2.7](docs/RELEASE-NOTES-2.7.md). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
 
 ## Documents
 
