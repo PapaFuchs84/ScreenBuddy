@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Spotify page (`spotify.cpp`, `SpotifyRenderer`, `ui_page_spotify.cpp`, `/spotify/callback` in the local server, `touch::Tile::spotify`): PKCE login, DPAPI-protected refresh token file, polling of `/v1/me/player`, cover download (i.scdn.co only), touch buttons via `Command`. Windows build: 321 + 251 + 41 + 127 + 140 + 135 + 11 + 361 checks passed; real Spotify account flow not tested.
+- Uninstall guard: `run_uninstall` and `finish_uninstall` refuse to run in a test instance without `FUCHSLABS_INSTALL_DIR` (`test_on_real_install()`), so tests can no longer delete the real install.
 
 ## 2.7.0 – 31 October 2026
 

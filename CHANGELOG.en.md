@@ -10,6 +10,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 - **Spotify page**: current track with cover art, progress and – with touch – buttons for previous, play/pause and next (Spotify Web API). Sign-in uses PKCE without a client secret and your own Spotify developer app; tokens are DPAPI-encrypted in `spotify.token`. Settings → Spotify, docs: [docs/SPOTIFY.en.md](docs/SPOTIFY.en.md). Covered by automated checks (PKCE test vector, reply parsing, buttons, rendering); the real Spotify login has not yet been tested with an account.
 
+### Fixed
+
+- `--uninstall` aborts in test instances (`FUCHSLABS_INSTANCE`) without their own `FUCHSLABS_INSTALL_DIR` instead of deleting the real installation (EXE) while leaving the autostart entry and programs-list entry behind.
+
 ## [2.7.0] – 2026-10-31
 
 ### Added

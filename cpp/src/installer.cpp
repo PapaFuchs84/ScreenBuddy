@@ -606,6 +606,11 @@ int run_uninstall(bool silent) {
         if (FAILED(TaskDialogIndirect(&tc, &button, nullptr, &verified)) || button != IDYES) return 1;
         purge = verified;
     }
+    // Schutz: Testlauf ohne eigenen Installordner darf die echte Installation nie entfernen
+    if (test_on_real_install()) {
+        LOGE("setup", "Deinstallation abgebrochen: Testinstanz ohne FUCHSLABS_INSTALL_DIR");
+        return 1;
+    }
     fs::path dir = install_dir();
     stop_running_app(config_port(dir / L"config.toml"));
     std::error_code ec;
@@ -637,6 +642,7 @@ int finish_uninstall(const std::wstring& dir_s, unsigned long parent_pid) {
     LocalFree(argv);
     fs::path dir = dir_s;
     std::error_code ec;
+    if (test_on_real_install()) return 1;
     // Sicherheitsnetz: nur den eigenen Ordner leeren
     if (dir.filename() == L"USB-Display" || test_instance()) {
         for (int i = 0; i < 20; ++i) {

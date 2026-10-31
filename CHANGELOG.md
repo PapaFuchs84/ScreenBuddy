@@ -10,6 +10,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 - **Spotify-Seite**: aktueller Titel mit Cover, Fortschritt und – mit Touch – Tasten für Zurück, Wiedergabe/Pause und Weiter (Spotify Web API). Anmeldung per PKCE ohne Client Secret mit eigener Spotify-Developer-App; Tokens DPAPI-verschlüsselt in `spotify.token`. Einstellungen → Spotify, Doku: [docs/SPOTIFY.md](docs/SPOTIFY.md). Automatisiert geprüft (PKCE-Testvektor, Antwort-Auswertung, Tasten, Rendering); der echte Spotify-Login wurde noch nicht mit einem Konto getestet.
 
+### Behoben
+
+- `--uninstall` bricht in Testinstanzen (`FUCHSLABS_INSTANCE`) ohne eigenen `FUCHSLABS_INSTALL_DIR` ab, statt die echte Installation (EXE) zu löschen und Autostart-Eintrag samt Programmliste zu hinterlassen.
+
 ## [2.7.0] – 2026-10-31
 
 ### Hinzugefügt
