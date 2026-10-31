@@ -12,7 +12,7 @@ Entwurf bis zur Veröffentlichung (Datum eintragen) · Windows 10/11 x64 · Comp
 
 ### Prüfung
 
-*Wird nach dem Release-Durchtest (Display, Companion-Geräte, Store-Update, Übernahme der Einstellungen) vom Release-Verantwortlichen ergänzt. Bis dahin gelten keine Aussagen über geprüfte Geräte.* Zum Android-TV-Teil liegt aus der Entwicklung ein Test am BeyondTV (Android 11) per ADB-Tasteneingaben vor; physische Fernbedienung, Standby/CEC und Langzeit sind nicht geprüft.
+*Release-Build: 471 Kern-, 119 TMDB-, 361 Companion- und die übrigen Suiten bestanden, 2 Installer-Erhaltungsprüfungen bestanden. Echtsystem (Meanmachine): Update über den Installer; Migration der vorhandenen „Eigenen Farben“ in ein Theme (Optik unverändert); USB-Display COM7 verbunden; Redmi 8, Pixel 10 Pro und Android-TV (BeyondTV) gekoppelt und mit Live-Bild beobachtet; Streaming mit echtem TMDB-Key (Netflix, Prime Video, Disney+, Apple TV+ gemischt, mit Logo). Nicht geprüft: Store-Update, Themes-Editor am echten Display per Hand, physische TV-Fernbedienung. Codex-Review: Befunde 1 und 2 (Migration) behoben; weitere Befunde folgen in 2.9.1.*
 
 ### Grenzen
 
@@ -30,7 +30,7 @@ Vor dem Upgrade EXE, `config.toml` und `companion.json` sichern. Die Windows-EXE
 
 ### Validation
 
-*To be added by the release owner after the release run-through (display, Companion devices, store update, settings carry-over). Until then no statement is made about tested devices.* For the Android TV part, development tested on a BeyondTV (Android 11) with ADB key input; physical remote, standby/CEC and long-run are not checked.
+*Release build: 471 core, 119 TMDB, 361 Companion and the remaining suites passed, 2 installer-preservation checks passed. Real system (Meanmachine): installer update; migration of existing custom colors into a theme (look unchanged); USB display COM7 connected; Redmi 8, Pixel 10 Pro and Android TV (BeyondTV) paired and observed with live frames; streaming with a real TMDB key (Netflix, Prime Video, Disney+, Apple TV+ mixed, with logos). Not checked: store update, theme editor by hand on the real display, physical TV remote. Codex review: findings 1 and 2 (migration) fixed; further findings follow in 2.9.1.*
 
 ### Limits
 
