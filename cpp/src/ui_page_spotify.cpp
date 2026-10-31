@@ -47,6 +47,12 @@ public:
                      T(L"Zeigt bei laufender Musik Balken zur Lautstärke der Systemausgabe (nur lokal gelesen, nichts wird aufgezeichnet oder gespeichert; braucht Querformat).",
                        L"Shows bars for the system output level while music plays (read locally only, nothing is recorded or stored; needs landscape)."));
 
+        form_.combo(*page, "spotify", "amp_color", T(L"Balkenfarbe", L"Bar colour"),
+                    T(L"Wie die Amplifier-Balken eingefärbt werden. Läuft die Musik auf Handy, Lautsprecher oder Connect, zeigt die Anzeige eine Animation (mit dem Hinweis „simuliert“) statt einer Messung.",
+                      L"How the amplifier bars are coloured. If music plays on a phone, speaker or Connect, the display shows an animation (labelled “simulated”) instead of a measurement."),
+                    {"level", "gradient", "theme"},
+                    {T(L"Pegel (Grün/Gelb/Rot)", L"Level (green/yellow/red)"), T(L"Verlauf im Design", L"Theme gradient"), T(L"Design (einfarbig)", L"Theme (single colour)")});
+
         Card* setup = root.add<Card>(T(L"Spotify-App anlegen", L"Create a Spotify app"),
             T(L"Einmalig, kostenlos und nur für dich. 1) Auf developer.spotify.com › Dashboard eine App anlegen. "
               L"2) Als Redirect URI genau die Adresse unten eintragen. 3) Die Client-ID hier einfügen und speichern. "

@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cmath>
 #include <complex>
+#include "amp_logic.h"
 #include "util.h"
 
 namespace fl::audio {
@@ -42,6 +43,30 @@ void fft(std::vector<std::complex<float>>& a) {
 long long now_ms() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
+
+// Meldet einen Wechsel des Standard-Ausgabegeräts (Windows-Einstellung, Kopfhörer, HDMI …), damit der Loopback neu aufgebaut wird.
+class DeviceWatcher final : public IMMNotificationClient {
+public:
+    explicit DeviceWatcher(std::atomic<bool>& flag) : flag_(flag) {}
+    ULONG STDMETHODCALLTYPE AddRef() override { return ++refs_; }
+    ULONG STDMETHODCALLTYPE Release() override { return --refs_; }   // gehört dem Aufrufer (Stack), nie selbst löschen
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID id, void** out) override {
+        if (id == __uuidof(IUnknown) || id == __uuidof(IMMNotificationClient)) { *out = static_cast<IMMNotificationClient*>(this); AddRef(); return S_OK; }
+        *out = nullptr;
+        return E_NOINTERFACE;
+    }
+    HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged(EDataFlow flow, ERole role, LPCWSTR) override {
+        if (flow == eRender && role == eConsole) flag_ = true;
+        return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE OnDeviceStateChanged(LPCWSTR, DWORD) override { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnDeviceAdded(LPCWSTR) override { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnDeviceRemoved(LPCWSTR) override { return S_OK; }
+    HRESULT STDMETHODCALLTYPE OnPropertyValueChanged(LPCWSTR, const PROPERTYKEY) override { return S_OK; }
+private:
+    std::atomic<bool>& flag_;
+    std::atomic<ULONG> refs_{1};
+};
 
 template <class T> void release(T*& p) { if (p) { p->Release(); p = nullptr; } }
 }  // namespace
@@ -96,15 +121,28 @@ void LevelMeter::stop() {
     stop_ = true;
     if (thread_.joinable()) thread_.join();
     available_ = false;
+    simulated_ = false;
 }
 
-void LevelMeter::touch() { touched_ = now_ms(); }
+void LevelMeter::touch(uint32_t seed) { touched_ = now_ms(); seed_ = seed; }
 bool LevelMeter::active() const { return now_ms() - touched_.load() < 3000; }
 
 std::vector<float> LevelMeter::levels() {
-    if (!available_) return {};
+    if (!available_ && !simulated_) return {};
     std::lock_guard lk(mu_);
     return std::vector<float>(levels_, levels_ + Bands);
+}
+
+// Simulierte Balken für Remote-Wiedergabe (Handy, Lautsprecher, Connect): nur im Meter-Thread aufrufen.
+void LevelMeter::sim_tick(float* cur, long long t, long long& last_calc) {
+    if (t - last_calc < 70) return;
+    last_calc = t;
+    float next[Bands]{};
+    simulate_levels(double(t) / 1000.0, seed_.load(), next, Bands);
+    smooth_levels(cur, next, Bands);
+    { std::lock_guard lk(mu_); std::copy(cur, cur + Bands, levels_); }
+    simulated_ = true;
+    if (on_update_) on_update_();
 }
 
 void LevelMeter::run() {
@@ -118,6 +156,9 @@ void LevelMeter::run() {
         IAudioCaptureClient* cap = nullptr;
         WAVEFORMATEX* fmt = nullptr;
         bool ok = false;
+        device_changed_ = false;
+        DeviceWatcher watcher(device_changed_);
+        bool watching = false;
         if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, IID_PPV_ARGS(&en))) &&
             SUCCEEDED(en->GetDefaultAudioEndpoint(eRender, eConsole, &dev)) &&
             SUCCEEDED(dev->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client))) &&
@@ -125,6 +166,7 @@ void LevelMeter::run() {
             SUCCEEDED(client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK, 2000000, 0, fmt, nullptr)) &&
             SUCCEEDED(client->GetService(IID_PPV_ARGS(&cap))) && SUCCEEDED(client->Start()))
             ok = true;
+        if (en) watching = SUCCEEDED(en->RegisterEndpointNotificationCallback(&watcher));
         bool is_float = false, pcm16 = false, pcm32 = false;
         int ch = 0, sr = 0;
         if (ok) {
@@ -146,10 +188,13 @@ void LevelMeter::run() {
             LOGI("audio", "Amplifier: Systemausgabe wird gelesen (%d Hz, %d Kanäle)", sr, ch);
             available_ = true;
             long long last_data = now_ms(), last_calc = 0;
+            last_signal_ = now_ms();
+            bool was_active = false;
             float cur[Bands]{};
             ring.clear();
             while (!stop_) {
                 Sleep(20);
+                if (device_changed_) { LOGI("audio", "Amplifier: Standard-Ausgabegerät gewechselt – Loopback wird neu aufgebaut"); break; }
                 UINT32 packet = 0;
                 if (FAILED(cap->GetNextPacketSize(&packet))) break;   // Gerät gewechselt/entfernt: neu aufbauen
                 while (packet && !stop_) {
@@ -175,23 +220,38 @@ void LevelMeter::run() {
                 }
                 if (ring.size() > size_t(FftN) * 2) ring.erase(ring.begin(), ring.end() - FftN * 2);
                 const long long t = now_ms();
-                if (!active()) { ring.clear(); continue; }      // Seite nicht sichtbar: nichts rechnen
+                if (!active()) { ring.clear(); was_active = false; simulated_ = false; continue; }   // Seite nicht sichtbar: nichts rechnen
+                if (!was_active) { was_active = true; last_signal_ = t; }
                 if (t - last_calc < 70) continue;                // ≈ 14 Aktualisierungen pro Sekunde
-                last_calc = t;
                 float next[Bands]{};
                 if (t - last_data < 250 && ring.size() >= size_t(FftN)) spectrum_bands(ring.data(), int(ring.size()), sr, next, Bands);
+                float peak = 0;
+                for (float v : next) peak = std::max(peak, v);
+                if (peak > 0.03f) { last_signal_ = t; simulated_ = false; }
+                if (t - last_signal_ >= SilenceMs) { sim_tick(cur, t, last_calc); continue; }   // Systemausgabe still, Wiedergabe läuft woanders
+                last_calc = t;
                 if (smooth_levels(cur, next, Bands)) {
                     { std::lock_guard lk(mu_); std::copy(cur, cur + Bands, levels_); }
                     if (on_update_) on_update_();
                 }
             }
         }
+        if (watching) en->UnregisterEndpointNotificationCallback(&watcher);
         if (client) client->Stop();
         if (fmt) CoTaskMemFree(fmt);
         release(cap); release(client); release(dev); release(en);
         available_ = false;
-        for (int i = 0; i < 100 && !stop_ && !ok; ++i) Sleep(50);   // bei Fehler 5 s warten
-        if (ok && !stop_) Sleep(500);
+        // bei Fehler 5 s warten; ohne lesbares Ausgabegerät läuft die Wiedergabe sicher woanders → simulieren
+        {
+            float sim_cur[Bands]{};
+            long long sim_calc = 0, quiet_since = now_ms();
+            for (int i = 0; i < 100 && !stop_ && !ok; ++i) {
+                Sleep(50);
+                if (active() && now_ms() - quiet_since >= SilenceMs) sim_tick(sim_cur, now_ms(), sim_calc);
+                else if (!active()) { quiet_since = now_ms(); simulated_ = false; }
+            }
+        }
+        if (ok && !stop_ && !device_changed_) Sleep(500);
     }
     if (com) CoUninitialize();
 }

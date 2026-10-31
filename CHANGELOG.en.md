@@ -19,6 +19,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Added
 
+- **Amplifier for remote playback**: if Spotify plays on a phone, speaker or Connect and the system output stays silent for 4 s, the amplifier shows an animation derived from the track and a tempo, clearly labelled “simulated” (no measurement, no microphone, no Spotify analysis API). New “Bar colour” setting: level (green/yellow/red, default), theme gradient, or single colour.
 - **Colors & design**: new "Match Windows" option (Windows light/dark and accent color, follows changes live, high contrast uses the system colors; text and bars are contrast-corrected automatically). Custom themes as JSON files with editor, live preview, contrast warning, duplicate, delete, import and export; "Custom colors" migrate automatically. Three example themes (Cupertino, Material, Fluent style) in `cpp/examples/themes`. The settings window offers "Windows" as appearance.
 - **Navigation**: status dots only for data sources and connections (green = set up and on, grey = not set up or off), with a legend.
 - **Companion / Android TV:** own Android TV launcher entry (leanback, with banner); remote: left/right switches the page (one press, one switch), OK has no action, Back unchanged; short hint on connect. Without a camera the QR scan is not offered and no camera permission is requested; manual pairing remains. Checked on a BeyondTV (Android 11) with ADB key input; physical remote, standby/CEC and long-term runs are not tested.
