@@ -8,27 +8,23 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [2.9.0] – 2026-10-31
 
-Companion 1.0.2 (Android TV entry with D-pad navigation). Still open for 2.9.1: plugin store type "theme", mouse tooltip for the status dots.
-
 ### Added
 
 - **Colors & design**: new "Match Windows" option (Windows light/dark and accent color, follows changes live, high contrast uses the system colors; text and bars are contrast-corrected automatically). Custom themes as JSON files with editor, live preview, contrast warning, duplicate, delete, import and export; "Custom colors" migrate automatically. Three example themes (Cupertino, Material, Fluent style) in `cpp/examples/themes`. The settings window offers "Windows" as appearance.
 - **Navigation**: status dots only for data sources and connections (green = set up and on, grey = not set up or off), with a legend.
-- Still open: plugin store type "theme", mouse tooltip for the dots.
+- **Companion / Android TV:** own Android TV launcher entry (leanback, with banner); remote: left/right switches the page (one press, one switch), OK has no action, Back unchanged; short hint on connect. Without a camera the QR scan is not offered and no camera permission is requested; manual pairing remains. Checked on a BeyondTV (Android 11) with ADB key input; physical remote, standby/CEC and long-term runs are not tested.
+- **Spotify: amplifier display**: while music plays, 16 bars show the level of the Windows system output (spectrum, about 8 frames per second, landscape only). The system output is read locally via WASAPI loopback; nothing is recorded or stored, and the analysis only runs while the Spotify page is visible. Switch: Settings → Spotify → *Amplifier display* (spotify.amp, on by default). Applies to the display, monitor and Companion; the actual frame rate depends on the output device.
+- **New on streaming: official TMDB logo** in the attribution (README, `THIRD-PARTY-NOTICES.md`) next to the required notice; file `docs/logo/tmdb.svg`.
 
 ### Fixed
 
 - Streaming relaunches: the page showed almost only Netflix because all chosen providers were queried together and sorted by date. The app now queries each provider separately (up to 8 groups) and picks the newest title per provider in turn, so every chosen provider appears with its logo.
-
-### Fixed
-
 - Spotify amplifier: activate analysis when drawing the visible playback page; analysis expires within three seconds after leaving it. Residual bars decay fully to zero.
 - **Companion / Android TV:** Visible setup now keeps the screen on and prevents the screensaver. The full-screen display retains its existing protection; normal TV settings apply after leaving the app.
 
-### Added
+### Not included
 
-- **Companion / Android TV:** own Android TV launcher entry (leanback, with banner); remote: left/right switches the page (one press, one switch), OK has no action, Back unchanged; short hint on connect. Without a camera the QR scan is not offered and no camera permission is requested; manual pairing remains. Checked on a BeyondTV (Android 11) with ADB key input; physical remote, standby/CEC and long-term runs are not tested.
-- **Spotify: amplifier display**: while music plays, 16 bars show the level of the Windows system output (spectrum, about 8 frames per second, landscape only). The system output is read locally via WASAPI loopback; nothing is recorded or stored, and the analysis only runs while the Spotify page is visible. Switch: Settings → Spotify → *Amplifier display* (spotify.amp, on by default). Applies to the display, monitor and Companion; the actual frame rate depends on the output device.
+- Sharing themes through the plugin store (type "theme"), a mouse tooltip for the status dots and the amplifier for remote playback (Spotify on a phone or speaker) are **not** part of 2.9.0.
 
 ## [2.8.0] – 2026-10-31
 
