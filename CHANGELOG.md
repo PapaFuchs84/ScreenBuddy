@@ -6,6 +6,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Geändert
+
+- **Companion-App 1.0.3** (versionCode 7): modernes Login-/Kopplungs-Design in Hell und Dunkel nach Systemeinstellung, Kontrast mindestens 4,5:1, abgerundete Buttons und Felder, sichtbarer Fokusrahmen für die Fernbedienung. Protokoll und App-ID unverändert.
+
 ## [2.9.3] – 2026-10-31
 
 ### Hinzugefügt

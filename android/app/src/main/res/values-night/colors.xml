@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dunkel: Kontrast Text/Hintergrund >= 4.5:1 -->
+    <color name="ui_bg">#0E1628</color>
+    <color name="ui_surface">#1A2540</color>
+    <color name="ui_text">#FFF4E6</color>
+    <color name="ui_text_secondary">#C2BAB4</color>
+    <color name="ui_primary">#F77F00</color>
+    <color name="ui_on_primary">#0E1628</color>
+    <color name="ui_stroke">#8C97B0</color>
+    <color name="ui_focus">#FFF4E6</color>
+</resources>

@@ -68,7 +68,7 @@ Wherever ScreenBuddy needs credentials, the settings show a card **“How to get
 
 ## Android Companion app (from 2.3.0, multiple devices from 2.7.0)
 
-Use an Android phone or tablet as an additional display alongside your USB/HDMI screen. From 2.3.0 the Companion was available as a preview APK; the current Companion app 1.0.2 (versionCode 6, Android 8+) is a separate download. Since 2.7.0 several Companions can run at once, **synchronised or independent**.
+Use an Android phone or tablet as an additional display alongside your USB/HDMI screen. From 2.3.0 the Companion was available as a preview APK; the current Companion app 1.0.3 (versionCode 7, Android 8+) is a separate download. Since 2.7.0 several Companions can run at once, **synchronised or independent**.
 
 - **Own pages and timers:** compared with USB/HDMI, the Companion has its own page list and interval (under **Companion**). In independent mode (`sync = false`) each device additionally has its own page position, resolution, input and optionally its own page list. Data sources and theme remain shared. The default is synchronised display.
 - **Pairing via QR code or PIN:** show the pairing code under **Settings → Companion → Pair device**. The Android app scans the QR code or connects using address, port (default 8777) and a 6-digit PIN; a SHA-256 certificate fingerprint secures the TLS connection.
