@@ -262,6 +262,53 @@ std::vector<Item> merge_items(std::vector<Item> movies, std::vector<Item> series
     return out;
 }
 
+std::vector<std::vector<Selected>> group_selection(const std::vector<Selected>& sel, size_t max_groups) {
+    std::vector<std::vector<Selected>> groups;
+    std::vector<std::string> keys;
+    if (max_groups == 0) max_groups = 1;
+    for (const auto& p : sel) {
+        const std::string k = abbreviation(p.id, p.name);
+        auto it = std::find(keys.begin(), keys.end(), k);
+        if (it != keys.end()) {
+            groups[it - keys.begin()].push_back(p);
+        } else if (groups.size() < max_groups) {
+            keys.push_back(k);
+            groups.push_back({p});
+        } else {
+            groups.back().push_back(p);
+        }
+    }
+    return groups;
+}
+
+std::vector<Item> fair_mix(std::vector<std::vector<Item>> groups, size_t max) {
+    for (auto& g : groups)
+        std::stable_sort(g.begin(), g.end(), [](const Item& a, const Item& b) {
+            if (a.date != b.date) return a.date > b.date;
+            return a.title < b.title;
+        });
+    std::vector<Item> out;
+    std::vector<size_t> pos(groups.size(), 0);
+    bool any = true;
+    while (any && out.size() < max) {
+        any = false;
+        for (size_t i = 0; i < groups.size() && out.size() < max; ++i) {
+            while (pos[i] < groups[i].size()) {
+                Item& it = groups[i][pos[i]++];
+                if (std::any_of(out.begin(), out.end(), [&](const Item& x) { return x.id == it.id && x.series == it.series; })) continue;
+                out.push_back(std::move(it));
+                any = true;
+                break;
+            }
+        }
+    }
+    std::stable_sort(out.begin(), out.end(), [](const Item& a, const Item& b) {
+        if (a.date != b.date) return a.date > b.date;
+        return a.title < b.title;
+    });
+    return out;
+}
+
 std::vector<ProviderMatch> match_provider_details(const std::string& text, const std::string& region, const std::vector<Selected>& sel) {
     std::vector<ProviderMatch> out;
     json j = json::parse(text, nullptr, false);

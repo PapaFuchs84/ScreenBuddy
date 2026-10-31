@@ -144,6 +144,27 @@ static void test_items() {
     CHECK(dup.size() == 2);   // Doppelte nur einmal
 }
 
+static void test_fair_mix() {
+    auto sel = parse_selection({"8|Netflix", "9|Prime Video", "119|Prime Video", "337|Disney+"});
+    auto g = group_selection(sel);
+    CHECK(g.size() == 3 && g[1].size() == 2);   // Prime 9/119 eine Gruppe
+    auto many = group_selection(sel, 2);
+    CHECK(many.size() == 2 && many[1].size() == 3);   // Rest in letzter Gruppe
+    CHECK(group_selection({}).empty());
+    auto mk = [](int id, const char* d) { Item i; i.id = id; i.title = "T" + std::to_string(id); i.date = d; return i; };
+    std::vector<Item> nf = {mk(1, "2026-10-30"), mk(2, "2026-10-29"), mk(3, "2026-10-28"), mk(4, "2026-10-27")};
+    std::vector<Item> dp = {mk(10, "2026-10-10")};
+    std::vector<Item> pv = {mk(20, "2026-10-12"), mk(1, "2026-10-30")};
+    auto r = fair_mix({nf, dp, pv}, 4);
+    CHECK(r.size() == 4);
+    CHECK(r[0].id == 1 && r[1].id == 2);   // neueste zuerst
+    bool has10 = false, has20 = false;
+    for (auto& i : r) { has10 |= i.id == 10; has20 |= i.id == 20; }
+    CHECK(has10 && has20);   // kleinere Anbieter nicht verdrängt
+    CHECK(fair_mix({nf}, 2).size() == 2 && fair_mix({}, 3).empty());
+    CHECK(fair_mix({nf, dp}, 99).size() == 5);
+}
+
 static void test_matching() {
     auto sel = parse_selection({"8|Netflix", "9|Prime Video", "119|Prime Video", "337|Disney+"});
     auto de = match_providers(ITEM_PROVIDERS, "DE", sel);
@@ -217,6 +238,7 @@ int main() {
     test_providers();
     test_paths();
     test_items();
+    test_fair_mix();
     test_matching();
     std::printf("tmdb: %d ok, %d fehlgeschlagen\n", passed, failed);
     return failed ? 1 : 0;

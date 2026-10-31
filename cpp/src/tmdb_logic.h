@@ -18,6 +18,7 @@ inline constexpr const char* API_HOST = "https://api.themoviedb.org/3";
 inline constexpr int WINDOW_DAYS = 30;       // Neustarts der letzten 30 Tage
 inline constexpr int MAX_ITEMS = 6;          // so viele Zeilen passen lesbar aufs Display
 inline constexpr int MAX_PROVIDERS = 30;
+inline constexpr size_t MAX_GROUPS = 8;     // höchstens so viele Anbieter-Gruppen mit eigener Abfrage (2 Anfragen je Gruppe)
 inline constexpr int MIN_REFRESH_MINUTES = 60;   // Cache 1 h, schont das Kontingent
 inline constexpr const char* LOGO_HOST = "https://image.tmdb.org/t/p/w92";   // Anbieter-Logos, nur GET über HTTPS
 inline constexpr int MAX_LOGOS = 3;          // höchstens so viele Logos je Titel, der Rest als „+n“
@@ -82,6 +83,12 @@ std::optional<std::vector<Item>> parse_discover(const std::string& json, bool se
                                                 const std::string& to);
 // Filme und Serien mischen: neueste zuerst, doppelte (Art + ID) einmal, höchstens max
 std::vector<Item> merge_items(std::vector<Item> movies, std::vector<Item> series, size_t max);
+// Gewählte Anbieter in Gruppen für getrennte Abfragen: je Kürzel eine Gruppe (Prime 9/119 zusammen);
+// ab max Gruppen landet der Rest in der letzten. So drängt ein Anbieter mit vielen Neustarts die anderen nicht aus der Liste.
+std::vector<std::vector<Selected>> group_selection(const std::vector<Selected>& sel, size_t max_groups = MAX_GROUPS);
+// Faire Auswahl: reihum je Gruppe der neueste noch nicht gewählte Titel (je Gruppe schon nach Datum sortiert),
+// doppelte (Art + ID) einmal; Ergebnis neueste zuerst, höchstens max
+std::vector<Item> fair_mix(std::vector<std::vector<Item>> groups, size_t max);
 // Aus /…/watch/providers: Kürzel der gewählten Anbieter, die in der Region im Abo (flatrate) laufen
 std::vector<std::string> match_providers(const std::string& json, const std::string& region, const std::vector<Selected>& sel);
 // Wie match_providers, aber mit ID und logo_path; je Kürzel einmal (Prime Video 9/119 zählt als ein Anbieter)

@@ -150,21 +150,27 @@ void TmdbFeed::refresh() {
     }
     const std::time_t now = std::time(nullptr);
     const std::string from = add_days(now, -WINDOW_DAYS), to = date_ymd(now);
-    std::vector<Item> lists[2];
-    for (int s = 0; s < 2; ++s) {
-        if (stop_) return;
-        auto got = get(discover_path(s == 1, region_, sel_, from, to, lang_));
-        if (got.status != 200) return;   // Fehler gemeldet, Pause gesetzt
-        auto parsed = parse_discover(got.body, s == 1, from, to);
-        if (!parsed) {
-            set_error("TMDB: unerwartete Antwort");
-            retry_s_ = RETRY_AFTER_ERROR_S;
-            return;
+    // Je Anbieter-Gruppe eigene Abfrage (Filme + Serien), sonst füllt der Anbieter mit den meisten Neustarts
+    // (meist Netflix) die ganze Liste. Anschließend reihum mischen.
+    std::vector<std::vector<Item>> groups;
+    for (const auto& grp : group_selection(sel_)) {
+        std::vector<Item> g;
+        for (int s = 0; s < 2; ++s) {
+            if (stop_) return;
+            auto got = get(discover_path(s == 1, region_, grp, from, to, lang_));
+            if (got.status != 200) return;   // Fehler gemeldet, Pause gesetzt
+            auto parsed = parse_discover(got.body, s == 1, from, to);
+            if (!parsed) {
+                set_error("TMDB: unerwartete Antwort");
+                retry_s_ = RETRY_AFTER_ERROR_S;
+                return;
+            }
+            g.insert(g.end(), std::make_move_iterator(parsed->begin()), std::make_move_iterator(parsed->end()));
+            Sleep(PACE_MS);
         }
-        lists[s] = std::move(*parsed);
-        Sleep(PACE_MS);
+        groups.push_back(std::move(g));
     }
-    auto top = merge_items(std::move(lists[0]), std::move(lists[1]), (size_t)max_items_);
+    auto top = fair_mix(std::move(groups), (size_t)max_items_);
     // Kürzel nur für die angezeigten Einträge; einmal geholt bleibt es im Cache
     for (auto& it : top) {
         if (stop_) return;
