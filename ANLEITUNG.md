@@ -54,7 +54,7 @@ Mit der Companion-App kannst du dein Android-Smartphone oder Tablet als zusätzl
 
 ### 1. Vorbereitung und Installation
 1. **Netzwerk:** Smartphone und PC müssen im selben lokalen Heimnetz (WLAN) oder per USB-Tethering verbunden sein.
-2. **APK installieren:** Die Companion-App 1.0.3 als separaten Download aus dem [aktuellen GitHub-Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) herunterladen und auf dem Android-Gerät installieren (Android 8.0 oder neuer). Eine ältere Debug-APK lässt sich nicht direkt aktualisieren; siehe [Companion-Einrichtung](docs/COMPANION.md).
+2. **APK installieren:** Die Companion-App 1.0.3 als separaten Download aus dem [Companion-Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/companion-v1.0.3) herunterladen und auf dem Android-Gerät installieren (Android 8.0 oder neuer). Eine ältere Debug-APK lässt sich nicht direkt aktualisieren; siehe [Companion-Einrichtung](docs/COMPANION.md).
 
 ### 2. Companion am PC aktivieren
 1. In den Einstellungen der Windows-App die Seite **Companion** öffnen.
