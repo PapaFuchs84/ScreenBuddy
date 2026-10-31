@@ -54,6 +54,7 @@ public:
     std::vector<std::string> active_pages(bool companion = false, const std::vector<std::string>* pages_override = nullptr);
     ojson connections();
     std::optional<Image> last_frame(bool companion = false);
+    std::optional<Image> device_frame(const std::string& device_id);   // Vorschau einer Companion-App (eigenes Bild, sonst das gemeinsame)
     ojson page_navigation(bool companion = false);
     std::optional<Image> preview_theme(const ojson& display_override);
     bool display_ok();

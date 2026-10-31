@@ -434,6 +434,12 @@ std::optional<Image> App::last_frame(bool companion) {
     return companion && companion_output_ ? companion_frame_ : last_frame_;
 }
 
+std::optional<Image> App::device_frame(const std::string& device_id) {
+    if (auto* nd = companion())
+        if (auto f = nd->frame_for(device_id)) return f;
+    return last_frame(true);
+}
+
 ojson App::page_navigation(bool companion) {
     std::lock_guard lk(mu_);
     return companion && companion_output_ ? companion_navigation_ : navigation_;
