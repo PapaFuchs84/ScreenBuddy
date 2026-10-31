@@ -83,8 +83,9 @@ const std::function<void()>* action_at(const std::vector<Tile>& tiles, int x, in
         const auto& b = t.box;
         if (x < b.x || x >= b.x + b.w || y < b.y || y >= b.y + b.h) continue;
         int i = t.sys ? render::SysRenderer::zone_at(b.w, b.h, x - b.x, y - b.y)
+                      : t.spotify ? render::SpotifyRenderer::button_at(b.w, b.h, x - b.x, y - b.y)
                       : t.ha ? render::HaRenderer::cell_at(b.w, b.h, t.cells.size(), x - b.x, y - b.y) : -1;
-        if (!t.ha && !t.sys) return nullptr;
+        if (!t.ha && !t.sys && !t.spotify) return nullptr;
         return i >= 0 && i < (int)t.cells.size() && t.cells[i] ? &t.cells[i] : nullptr;
     }
     return nullptr;

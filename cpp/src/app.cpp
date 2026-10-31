@@ -18,6 +18,7 @@
 #include "plugin_render.h"
 #include "plugin_transport.h"
 #include "rss.h"
+#include "spotify.h"
 #include "sysinfo.h"
 #include "tray.h"
 #include "update.h"
@@ -34,13 +35,15 @@ struct App::RendererSet {
     render::RssRenderer rss;
     render::SysRenderer system;
     render::HaRenderer ha;
+    render::SpotifyRenderer spotify;
     RendererSet(int w, int h, const ojson& cfg)
         : width(w), height(h), discord(w, h, cfg["display"].value("title", "Discord-Freunde")),
           friends(w, h, cfg["friends"].value("title", "Freunde")),
           bf6(w, h, cfg["bf6"].value("title", "Battlefield 6 · Rangliste")),
           rss(w, h, cfg["rss"].value("title", "Blog-Updates")),
           system(w, h, cfg["system"].value("title", "System"), cfg["system"].value("net_unit", "bit")),
-          ha(w, h, cfg["homeassistant"].value("title", "Home Assistant")) {}
+          ha(w, h, cfg["homeassistant"].value("title", "Home Assistant")),
+          spotify(w, h, cfg["spotify"].value("title", "Spotify")) {}
 };
 
 static bool b(const ojson& j, const char* k, bool def = false) {
@@ -82,6 +85,11 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
     if (b(cfg_["homeassistant"], "enabled")) {
         ha_ = std::make_unique<ha::HaClient>(cfg_["homeassistant"], touch_enabled(), dirty);
         if (!ha_->configured()) ha_.reset();
+    }
+    if (b(cfg_["spotify"], "enabled")) {
+        spotify_ = std::make_unique<spotify::SpotifyClient>(cfg_["spotify"], cfg_["ui"].value("port", 8765), touch_enabled(),
+                                                            cfg_path_.parent_path() / L"spotify.token", dirty);
+        if (!spotify_->configured()) spotify_.reset();
     }
     if (b(fr, "enabled"))
         friends_ = std::make_unique<friends::FriendsHub>(fr, b(fr, "include_discord", true) ? discord_.get() : nullptr, dirty);
@@ -238,6 +246,7 @@ App::~App() {
     { std::lock_guard lock(stop_threads_mu_); stop_threads_.clear(); }
     if (update_) update_->stop();
     if (ha_) ha_->stop();
+    if (spotify_) spotify_->stop();
     if (friends_) friends_->stop();
     if (discord_) discord_->stop();
     if (bf6_) bf6_->stop();
@@ -327,7 +336,7 @@ std::vector<std::string> App::active_pages(bool companion, const std::vector<std
                                         {"friends", friends_ != nullptr},
                                         {"bf6", bf6_ != nullptr},
                                         {"rss", rss_ != nullptr},
-                                        {"homeassistant", ha_ != nullptr}};
+                                        {"homeassistant", ha_ != nullptr}, {"spotify", spotify_ != nullptr}};
     std::vector<std::string> out;
     bool network = dp_.value("output", "serial") == "network";
     const ojson own = pages_override ? ojson(*pages_override) : ojson();   // eigene Liste eines Geräts ersetzt companion.pages
@@ -382,6 +391,15 @@ ojson App::connections() {
             out["homeassistant"] = {{"state", "bad"}, {"error", s(info, "error")}, {"at", info.contains("at") ? info["at"] : ojson()}};
         else
             out["homeassistant"] = {{"state", set ? "idle" : "off"}};
+    }
+    {
+        const ojson& sc = cfg_["spotify"];
+        bool set = !s(sc, "client_id").empty();
+        ojson info = spotify_ ? spotify_->info() : ojson();
+        if (info.is_object() && b(info, "ok")) out["spotify"] = {{"state", "ok"}};
+        else if (info.is_object() && !s(info, "error").empty()) out["spotify"] = {{"state", "bad"}, {"error", s(info, "error")}};
+        else if (info.is_object() && b(info, "logged_in")) out["spotify"] = {{"state", "idle"}};
+        else out["spotify"] = {{"state", set ? "idle" : "off"}};
     }
     for (auto plat : {"steam", "xbox"}) {
         bool key_set = std::string(plat) == "steam" ? !s(fr, "steam_api_key").empty() && !s(fr, "steam_id").empty()
@@ -541,6 +559,15 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             for (auto& e : entities)
                 pe.actions.push_back(e.toggle ? std::function<void()>([this, id = e.id] { ha_->request_toggle(id); }) : std::function<void()>());
             out.push_back(std::move(pe));
+        } else if (key == "spotify") {
+            spotify::Snapshot snap = spotify_->snapshot();
+            PageEntry pe{key, 1, [snap](int, RendererSet& rs) { return rs.spotify.render(snap); }};
+            if (snap.controls && (snap.state == spotify::State::Playing || snap.state == spotify::State::Paused)) {
+                using Cmd = spotify::SpotifyClient::Command;
+                for (Cmd c : {Cmd::Previous, Cmd::PlayPause, Cmd::Next})
+                    pe.actions.push_back([this, c] { if (spotify_) spotify_->request_command(c); });
+            }
+            out.push_back(std::move(pe));
         } else if (key == "rss") {
             auto posts = rss_->posts();
             auto updated = rss_->updated();
@@ -567,6 +594,7 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
                 touch::Tile tile{boxes[k], p.key == "rss", p.targets ? p.targets(idx, renderers_for(boxes[k].w, boxes[k].h)) : touch::Rows{}};
                 tile.ha = p.key == "homeassistant";
                 tile.sys = p.key == "system";
+                tile.spotify = p.key == "spotify";
                 tile.cells = p.actions;
                 taps.push_back(std::move(tile));
                 break;
@@ -888,6 +916,7 @@ void App::run() {
     if (bf6_) bf6_->start(dirty);
     if (rss_) rss_->start(dirty);
     if (ha_) ha_->start();
+    if (spotify_) spotify_->start();
     if (discord_) discord_->start();
     if (friends_) friends_->start();
     // The network transport runs on one owned worker, never in rendering or
@@ -1149,6 +1178,7 @@ void App::run() {
     native_settings.reset();
     if (friends_) friends_->stop();
     if (ha_) ha_->stop();
+    if (spotify_) spotify_->stop();
     if (discord_) discord_->stop();
     if (bf6_) bf6_->stop();
     if (rss_) rss_->stop();

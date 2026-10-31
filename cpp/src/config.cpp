@@ -18,7 +18,7 @@
 
 namespace fl::config {
 
-const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss", "homeassistant"};
+const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss", "homeassistant", "spotify"};
 
 bool is_page_key(const std::string& k) {
     if (std::count(PAGES.begin(), PAGES.end(), k)) return true;
@@ -53,6 +53,7 @@ const ojson& defaults() {
                     {"max_per_feed", 1}, {"title", "Blog-Updates"}};
         j["homeassistant"] = {{"enabled", false}, {"title", "Home Assistant"}, {"url", ""}, {"token", ""},
                               {"entities", ojson::array()}};
+        j["spotify"] = {{"enabled", false}, {"title", "Spotify"}, {"client_id", ""}};
         // Companion-App (Android) im Heimnetz: standardmäßig aus; Port nie der der Einstellungsseite
         j["companion"] = {{"enabled", false}, {"port", 8777}, {"page_seconds", 15}, {"pages", PAGES}, {"sync", true}};
         j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true}, {"plugin_store", true},
@@ -328,6 +329,7 @@ static const std::map<std::string, std::string> HEADERS = {
     {"display", "Display und Seitenwechsel (pages = Reihenfolge der Seiten)"},
     {"system", "Systemansicht"},
     {"homeassistant", "Home Assistant (Adresse, Zugriffstoken, bis zu 4 Entitäten; Schalter nur mit Touch)"},
+    {"spotify", "Spotify (Client-ID deiner Spotify-Developer-App; Anmeldung in den Einstellungen, Tokens in spotify.token; Steuern nur mit Touch und Spotify Premium)"},
     {"friends", "Gemeinsame Freundesliste (Discord, Steam, Xbox); links = manuell verknüpfte Personen"},
     {"bf6", "Battlefield-6-Rangliste (EA-IDs, Konsole mit Suffix @psn / @xbox)"},
     {"rss", "Blog-Updates (RSS)"},

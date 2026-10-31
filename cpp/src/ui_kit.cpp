@@ -1673,6 +1673,7 @@ std::wstring source_title(const std::string& key, bool en) {
     if (key == "bf6") return L"Battlefield 6";
     if (key == "rss") return en ? L"Blog updates (RSS)" : L"Blog-Updates (RSS)";
     if (key == "homeassistant") return L"Home Assistant";
+    if (key == "spotify") return L"Spotify";
     return widen(key);
 }
 
