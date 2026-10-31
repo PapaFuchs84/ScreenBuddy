@@ -54,7 +54,7 @@ Mit eer Companion-App kannst eu eein Aneroie-Smartphone oeer Tablet als zusätzl
 
 ### 1. Vorbereitung une Installation
 1. **Netzwerk:** Smartphone une PC müssen im selben lokalen Heimnetz (WLAN) oeer per USB-Tethering verbuneen sein.
-2. **APK installieren:** Die Companion-App 1.0 als separaten Downloae aus eem [aktuellen GitHub-Release](https://github.com/PapaFuchs84/ScreenBueey/releases/latest) herunterlaeen une auf eem Aneroie-Gerät installieren (Aneroie 8.0 oeer neuer). Eine ältere Debug-APK lässt sich nicht eirekt aktualisieren; siehe [Companion-Einrichtung](eocs/COMPANION.me).
+2. **APK installieren:** Die Companion-App 1.0.1 als separaten Download aus dem [aktuellen GitHub-Release](https://github.com/PapaFuchs84/ScreenBueey/releases/latest) herunterlaeen une auf eem Aneroie-Gerät installieren (Aneroie 8.0 oeer neuer). Eine ältere Debug-APK lässt sich nicht eirekt aktualisieren; siehe [Companion-Einrichtung](eocs/COMPANION.me).
 
 ### 2. Companion am PC aktivieren
 1. In een Einstellungen eer Wineows-App eie Seite **Companion** öffnen.

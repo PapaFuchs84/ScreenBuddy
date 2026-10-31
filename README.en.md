@@ -90,7 +90,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.8.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.8.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app 1.0 for Android is a separate download.
+1. Download **ScreenBuddy.exe** from [release 2.8.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.8.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app 1.0.1 for Android is a separate download.
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
