@@ -162,7 +162,8 @@ private:
 class SpotifyRenderer : public Renderer {
 public:
     SpotifyRenderer(int w, int h, std::string title);
-    Image render(const spotify::Snapshot& snap, double now = 0);
+    // levels: optional 0..1 je Balken (Amplifier); nur im Querformat und bei laufender Wiedergabe gezeichnet
+    Image render(const spotify::Snapshot& snap, double now = 0, const std::vector<float>* levels = nullptr);
     enum Button { PREVIOUS = 0, PLAY_PAUSE = 1, NEXT = 2 };
     // Welche Taste liegt bei Pixel (x, y) einer Kachelfläche w × h? -1 = keine. Für „Tippen steuert Spotify“.
     static int button_at(int w_px, int h_px, int x_px, int y_px);

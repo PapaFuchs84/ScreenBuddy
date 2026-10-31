@@ -18,6 +18,7 @@
 #include "plugin_render.h"
 #include "plugin_transport.h"
 #include "rss.h"
+#include "audio_levels.h"
 #include "spotify.h"
 #include "tmdb.h"
 #include "sysinfo.h"
@@ -97,6 +98,7 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
         spotify_ = std::make_unique<spotify::SpotifyClient>(cfg_["spotify"], cfg_["ui"].value("port", 8765), touch_enabled(),
                                                             cfg_path_.parent_path() / L"spotify.token", dirty);
         if (!spotify_->configured()) spotify_.reset();
+        else if (b(cfg_["spotify"], "amp", true)) meter_ = std::make_unique<audio::LevelMeter>(dirty);
     }
     if (b(fr, "enabled"))
         friends_ = std::make_unique<friends::FriendsHub>(fr, b(fr, "include_discord", true) ? discord_.get() : nullptr, dirty);
@@ -253,6 +255,7 @@ App::~App() {
     { std::lock_guard lock(stop_threads_mu_); stop_threads_.clear(); }
     if (update_) update_->stop();
     if (ha_) ha_->stop();
+    if (meter_) meter_->stop();
     if (spotify_) spotify_->stop();
     if (friends_) friends_->stop();
     if (discord_) discord_->stop();
@@ -576,7 +579,12 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             out.push_back(std::move(pe));
         } else if (key == "spotify") {
             spotify::Snapshot snap = spotify_->snapshot();
-            PageEntry pe{key, 1, [snap](int, RendererSet& rs) { return rs.spotify.render(snap); }};
+            std::vector<float> lv;
+            if (meter_) {
+                meter_->touch();   // Seite ist gerade dran: Pegelanalyse aktiv halten
+                if (snap.playing) lv = meter_->levels();
+            }
+            PageEntry pe{key, 1, [snap, lv](int, RendererSet& rs) { return rs.spotify.render(snap, 0, lv.empty() ? nullptr : &lv); }};
             if (snap.controls && (snap.state == spotify::State::Playing || snap.state == spotify::State::Paused)) {
                 using Cmd = spotify::SpotifyClient::Command;
                 for (Cmd c : {Cmd::Previous, Cmd::PlayPause, Cmd::Next})
@@ -859,7 +867,8 @@ void App::display_loop() {
             render_view(false, dirty);
             if (companion_output_) render_view(true, dirty);
         }
-        for (int i = 0; i < 10 && !stop_; ++i) Sleep(50);
+        const int steps = (meter_ && meter_->active() && meter_->available()) ? 2 : 10;   // mit Amplifier ≈ 8 Bilder/s
+        for (int i = 0; i < steps && !stop_; ++i) Sleep(50);
     }
 }
 
@@ -936,6 +945,7 @@ void App::run() {
     if (streaming_) streaming_->start(dirty);
     if (ha_) ha_->start();
     if (spotify_) spotify_->start();
+    if (meter_) meter_->start();
     if (discord_) discord_->start();
     if (friends_) friends_->start();
     // The network transport runs on one owned worker, never in rendering or
@@ -1197,6 +1207,7 @@ void App::run() {
     native_settings.reset();
     if (friends_) friends_->stop();
     if (ha_) ha_->stop();
+    if (meter_) meter_->stop();
     if (spotify_) spotify_->stop();
     if (discord_) discord_->stop();
     if (bf6_) bf6_->stop();

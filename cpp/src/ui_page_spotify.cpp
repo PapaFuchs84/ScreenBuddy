@@ -42,6 +42,9 @@ public:
         Card* page = root.add<Card>(T(L"Seite", L"Page"));
         form_.toggle(*page, "spotify", "enabled", T(L"Seite anzeigen", L"Show page"));
         form_.text(*page, "spotify", "title", T(L"Titel", L"Title"));
+        form_.toggle(*page, "spotify", "amp", T(L"Amplifier-Anzeige", L"Amplifier display"),
+                     T(L"Zeigt bei laufender Musik Balken zur Lautstärke der Systemausgabe (nur lokal gelesen, nichts wird aufgezeichnet oder gespeichert; braucht Querformat).",
+                       L"Shows bars for the system output level while music plays (read locally only, nothing is recorded or stored; needs landscape)."));
 
         Card* setup = root.add<Card>(T(L"Spotify-App anlegen", L"Create a Spotify app"),
             T(L"Einmalig, kostenlos und nur für dich. 1) Auf developer.spotify.com › Dashboard eine App anlegen. "

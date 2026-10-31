@@ -58,7 +58,7 @@ const ojson& defaults() {
                           {"providers", tmdb::default_provider_lines()}, {"max_items", 5}, {"refresh_minutes", 60}};
         j["homeassistant"] = {{"enabled", false}, {"title", "Home Assistant"}, {"url", ""}, {"token", ""},
                               {"entities", ojson::array()}};
-        j["spotify"] = {{"enabled", false}, {"title", "Spotify"}, {"client_id", ""}};
+        j["spotify"] = {{"enabled", false}, {"title", "Spotify"}, {"client_id", ""}, {"amp", true}};
         // Companion-App (Android) im Heimnetz: standardmäßig aus; Port nie der der Einstellungsseite
         j["companion"] = {{"enabled", false}, {"port", 8777}, {"page_seconds", 15}, {"pages", PAGES}, {"sync", true}};
         j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true}, {"plugin_store", true},

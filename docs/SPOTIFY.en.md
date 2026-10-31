@@ -14,6 +14,10 @@ Shows the current track with cover art, artist, album and progress on the displa
 
 No client secret is needed (sign-in uses PKCE).
 
+## Amplifier display
+
+While music plays, 16 bars show the level of the Windows system output (spectrum, landscape only). Switch off: *Settings → Spotify → Amplifier display*. The system output is read locally and immediately turned into bars; nothing is recorded, stored or sent, and the analysis only runs while the Spotify page is visible. If the music does not play through the PC (for example on a phone), the bars stay flat.
+
 ## Limits
 
 - **Controlling needs Spotify Premium** (Spotify's rule). Showing the track works without Premium.

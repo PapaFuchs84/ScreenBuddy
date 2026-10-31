@@ -6,6 +6,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Hinzugefügt
+
+- **Spotify: Amplifier-Anzeige**: bei laufender Wiedergabe zeigen 16 Balken den Pegel der Windows-Systemausgabe (Spektrum, ca. 8 Bilder pro Sekunde, nur im Querformat). Die Systemausgabe wird lokal per WASAPI-Loopback gelesen, nichts wird aufgezeichnet oder gespeichert, die Analyse läuft nur, solange die Spotify-Seite sichtbar ist. Schalter: Einstellungen → Spotify → *Amplifier-Anzeige* (spotify.amp, Standard an). Gilt für Display, Monitor und Companion; die tatsächliche Bildrate hängt vom Ausgabegerät ab.
+
 ## [2.8.0] – 2026-10-31
 
 ### Hinzugefügt

@@ -905,7 +905,7 @@ int SpotifyRenderer::button_at(int w_px, int h_px, int x_px, int y_px) {
     return -1;
 }
 
-Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now) {
+Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const std::vector<float>* levels) {
     using spotify::State;
     const Theme& t = g_theme;
     Canvas d(W, H, s, t.bg);
@@ -943,6 +943,21 @@ Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now) {
         d.text(l.text_x, ty + 28, fit(d, snap.artist, f_artist, l.text_w), f_artist, t.accent, "lm");
         if (!snap.album.empty() && (wide || ty + 52 < l.bar_y - 10))
             d.text(l.text_x, ty + 50, fit(d, snap.album, f_time, l.text_w), f_time, t.muted, "lm");
+        // Amplifier: Balken im freien Bereich zwischen Albumzeile und Fortschritt (nur Querformat, nur bei Wiedergabe)
+        if (levels && !levels->empty() && wide && snap.playing) {
+            const float ax = l.text_x, aw = l.text_w, ay0 = ty + 66, ay1 = l.bar_y - 14;
+            const float ah = ay1 - ay0;
+            if (ah >= 28) {
+                const int n = (int)levels->size();
+                const float gap = 3.f, bw = (aw - gap * (n - 1)) / n;
+                for (int i = 0; i < n; ++i) {
+                    float v = std::clamp((*levels)[(size_t)i], 0.f, 1.f);
+                    float bh = std::max(2.f, v * ah);
+                    float x0 = ax + i * (bw + gap);
+                    d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), v > 0.85f ? t.accent : t.orange);
+                }
+            }
+        }
         // Fortschritt
         long long pos = spotify::live_progress(snap, now ? now : mono());
         float frac = snap.duration_ms > 0 ? std::min(1.f, (float)pos / snap.duration_ms) : 0.f;
