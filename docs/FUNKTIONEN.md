@@ -1,6 +1,6 @@
 # ScreenBuddy · Funktionen im Detail
 
-Aus dem README ausgelagert (Stand 2.9.1). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
+Aus dem README ausgelagert (Stand 2.9.2). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
 
 ## Inhalt
 
@@ -44,38 +44,6 @@ Seite **Streaming-Neustarts** („New on streaming“): zeigt Filme und Serien, 
 
 Zeigt den aktuell gespielten Titel mit Cover und Fortschritt; mit Touch (Monitor, Companion) steuern Tasten Zurück, Wiedergabe/Pause und Weiter (Spotify Premium nötig). Anmeldung per PKCE mit eigener Spotify-Developer-App, das Token liegt DPAPI-verschlüsselt in spotify.token. Bei laufender Wiedergabe zeigt ein Amplifier (16 Balken) den Pegel der Windows-Systemausgabe, lokal gelesen und nicht aufgezeichnet (abschaltbar). Läuft die Musik woanders (Handy, Lautsprecher, Connect) und die Systemausgabe bleibt 4 s still, zeigt er eine als „simuliert“ gekennzeichnete Animation. Die Balkenfarbe ist wählbar (Pegel Grün/Gelb/Rot, Verlauf im Design, einfarbig). Ein Wechsel des Standard-Audiogeräts wird erkannt. Einrichtung und Grenzen: [SPOTIFY.md](SPOTIFY.md). Ab 2.9.0 startet die Analyse erst beim Zeichnen der sichtbaren Wiedergabeseite und endet nach dem Seitenwechsel nach höchstens drei Sekunden. Ab 2.9.1 ist bei Remote-Wiedergabe die simulierte Anzeige verfügbar.
 
-## Hilfe für API-Keys und Tokens (geplant für 2.9.1)
+## Hilfe für API-Keys und Tokens (ab 2.9.1)
 
 Überall, wo ScreenBuddy einen Zugang braucht, steht in den Einstellungen unter dem Feld eine Karte **„So bekommst du …“** mit kurzen nummerierten Schritten und Knöpfen, die die offizielle Seite des Dienstes im Browser öffnen: Discord (Bot-Token), Steam (Web-API-Schlüssel und Datenschutz), Xbox (OpenXBL), TMDB (API-Key), Spotify (Client-ID) und Home Assistant (langlebiges Zugriffstoken). Geöffnet werden nur fest hinterlegte https-Adressen der Anbieter (`cpp/src/key_help.cpp`). Die App liest, protokolliert oder wiederholt dabei keine Schlüssel; eingefügte Werte werden wie bisher verschlüsselt gespeichert. Battlefield 6 und Blogs brauchen keinen Schlüssel.
-
-## Hilfe für API-Keys und Tokens (geplant für 2.9.1)
-
-Überall, wo ScreenBuddy einen Zugang braucht, steht in den Einstellungen unter dem Feld eine Karte **„So bekommst du …“** mit kurzen nummerierten Schritten und Knöpfen, die die offizielle Seite des Dienstes im Browser öffnen: Discord (Bot-Token), Steam (Web-API-Schlüssel und Datenschutz), Xbox (OpenXBL), TMDB (API-Key), Spotify (Client-ID) und Home Assistant (langlebiges Zugriffstoken). Geöffnet werden nur fest hinterlegte https-Adressen der Anbieter (`cpp/src/key_help.cpp`). Die App liest, protokolliert oder wiederholt dabei keine Schlüssel; eingefügte Werte werden wie bisher verschlüsselt gespeichert. Battlefield 6 und Blogs brauchen keinen Schlüssel.
-
-## Farben & Design (ab 2.9.0)
-
-**Einstellungen → Farben & Design:** Hell (FuchsLabs), Dunkel (FuchsLabs), **An Windows anpassen** oder eigene Themes. Windows-Modus: Hell/Dunkel und Akzentfarbe aus Windows, Änderungen wirken live, das Kontrastdesign nutzt die Systemfarben; Text und Balken werden automatisch kontrastkorrigiert. Eigene Themes sind JSON-Dateien (Editor mit Live-Vorschau, Kontrastwarnung, Duplizieren, Löschen, Import, Export); drei Beispiele (Cupertino-, Material-, Fluent-Stil) liegen unter `cpp/examples/themes`. Die Auswahl gilt für USB-Display, Bildschirm und Companion. Details, Format und Grenzen: [THEMES.md](THEMES.md).
-
-**Statuspunkte in der Navigation:** grün = eingerichtet und eingeschaltet, grau = nicht eingerichtet oder aus; nur bei Datenquellen und Verbindungen, mit Legende. Noch nicht enthalten: Maus-Tooltip für die Punkte.
-
-## Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)
-
-Ein Smartphone oder Tablet dient als zusätzliche Anzeige parallel zum USB-/HDMI-Display. Ab 2.3.0 gibt es den Companion als Vorschau-APK; die aktuelle Companion-App 1.0.0 (versionCode 4, Android 8+) ist ein separater Download. Seit 2.7.0 lassen sich mehrere Companions gleichzeitig betreiben, **synchron oder unabhängig**.
-
-- **Eigene Seiten und Intervalle:** der Companion hat gegenüber USB/HDMI eigene Seitenliste und Anzeigedauer (unter **Companion**). Im unabhängigen Betrieb (`sync = false`) hat zusätzlich jedes Gerät eigene Seitenposition, Auflösung, Bedienung und optional eine eigene Seitenliste. Datenquellen und Design bleiben gemeinsam. Voreinstellung ist synchrone Anzeige.
-- **Kopplung per QR-Code oder PIN:** unter **Einstellungen → Companion → Gerät koppeln** den Kopplungscode anzeigen. Die Android-App scannt den QR-Code oder verbindet sich über Adresse, Port (Standard 8777) und 6-stelligen PIN; der SHA-256-Fingerabdruck sichert die TLS-Verbindung.
-- **Touch und Gesten:** im unabhängigen Betrieb schaltet Wischen nur das jeweilige Gerät um, im synchronen Betrieb alle. Tippen und Wischen sind in den [Companion-Hinweisen](COMPANION.md) beschrieben.
-- **Native Auflösung und Drehung:** das Handy meldet Ausrichtung und Pixelmaße; der PC rendert passgenau.
-- [Schritt-für-Schritt-Anleitung zur Kopplung](../ANLEITUNG.md#android-companion-app-koppeln-und-nutzen-ab-230) · [Einrichtung und Grenzen](COMPANION.md) · [Protokoll](COMPANION-PROTOKOLL.md)
-
-Prüfstand: siehe [Release-Notizen 2.7](RELEASE-NOTES-2.7.md). Die automatisierten Mehrgeräteprüfungen sind Simulationen; adb-Gesten ersetzen keine physische Fingerprüfung. Beim Wechsel von einer Debug-APK unterscheidet sich die Signatur; eine direkte Aktualisierung ist dann nicht möglich (siehe [Release-Notizen 2.6](RELEASE-NOTES-2.6.md)). Die Companion-App nie automatisch deinstallieren: lokale Daten und Kopplungen gingen verloren.
-
-## Plugin-Store und Plugins (ab 2.6.0)
-
-Einstellungsseite **Plugin-Store** (neben Companion und Plugins, abschaltbar mit `[ui] plugin_store`): geprüfte Datenplugins aus dem signierten Store `PapaFuchs84/ScreenBuddy-Plugins` suchen, prüfen und installieren. Signierter Index und signierte Sperrliste (Ed25519, fester öffentlicher Schlüssel), Pakete per SHA-256 und Hostangaben geprüft, täglicher Hintergrundabgleich. Vor der Installation steht, an welche Hosts ein Plugin Daten senden würde. Installierte Plugins bleiben aus, bis du sie unter **Plugins** aktivierst; jeder Host braucht deine Freigabe. Seit 2.7.0 bleiben Store-Installationen und Updates auch ohne Netzwerkquellen ausgeschaltet; der lokale direkte Manifestimport verhält sich wie zuvor. Aktivierte Plugins lassen sich unter **Seiten & Reihenfolge** sortieren und ein-/ausblenden. Der Store zeigt signierte Vorschaubilder.
-
-Weiter: [Plugin-System](PLUGIN-SYSTEM.md) · [Tutorial](PLUGIN-TUTORIAL.md) · [Store-Bedingungen](PLUGIN-STORE-BEDINGUNGEN.md) · [Beispiele](../cpp/examples/plugins/README.md). Online-Plugins und CRL/OCSP-Prüfungen bleiben experimentell.
-
-## Ansichten durchblättern (ab 2.0.4)
-
-Seit 2.0.4 lässt sich die laufende Anzeige per Knopfdruck weiterschalten, ohne zu speichern oder neu zu starten. In der nativen Oberfläche (ab 2.5.0) stehen dafür **Vorige Seite zeigen** und **Nächste Seite zeigen** unter **Einstellungen → Companion** bereit; sie wirken auf die Companion-Ausgabe (im unabhängigen Betrieb auf alle verbundenen Geräte). Für die Hauptanzeige gibt es den Schritt nur über die lokale Schnittstelle (`POST /api/pages/step`). Die früheren Knöpfe „Vorherige Ansicht“/„Nächste Ansicht“ unter **Übersicht** sind in der nativen Oberfläche nicht vorhanden. Geänderte Seitenauswahl und Reihenfolge gelten nach **Speichern & anwenden**.

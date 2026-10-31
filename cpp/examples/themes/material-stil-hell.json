@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "name": "Material-Stil Hell",
+  "style": "material",
+  "base": "hell",
+  "dark": false,
+  "colors": {
+    "bg": "#FEF7FF",
+    "card": "#F3EDF7",
+    "line": "#8B8790",
+    "header": "#6750A4",
+    "accent": "#6750A4",
+    "text": "#1D1B20",
+    "muted": "#49454F",
+    "success": "#2D7A31",
+    "danger": "#B3261E"
+  }
+}

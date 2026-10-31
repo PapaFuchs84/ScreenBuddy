@@ -3,6 +3,7 @@
 // denselben logischen Koordinaten, die Leinwand rechnet sie auf echte Pixel um (Schrift wird groß gerendert).
 #pragma once
 
+#include <array>
 #include <ctime>
 #include <functional>
 #include <map>
@@ -12,6 +13,7 @@
 #include <vector>
 
 #include "config.h"
+#include "theme.h"
 #include "gfx.h"
 #include "models.h"
 #include "spotify.h"
@@ -20,6 +22,7 @@ namespace fl::render {
 
 // Farben des aktuellen Designs (hell, dunkel oder eigen)
 struct Theme {
+    theme::Style style = theme::Style::FuchsLabs;
     Color bg, card, line, orange, accent, text, muted, head_text, warn, hot, down;
     Color bar;   // Balken/Schalter; gleich der Kopfzeilenfarbe, bei "An Windows anpassen" die kontrastgeprüfte Akzentfarbe
     std::map<std::string, Color> status;  // online | idle | dnd | offline
@@ -95,10 +98,16 @@ public:
     SysRenderer(int w, int h, std::string title, std::string net_unit);
     Image render(const SysSnapshot& snap, std::time_t now = 0);
     enum Zone { ZONE_RAM = 0, ZONE_DISK = 1, ZONE_NET = 2 };
-    // Welche Karte der rechten Spalte liegt bei Pixel (x, y) einer Kachelfläche w × h? -1 = keine. Für „Tippen öffnet Windows-Werkzeug“.
+    // Shared logical rectangles for drawing and hit testing, ordered CPU/GPU/RAM/Disk/Net.
+    // CPU/GPU are informational (zone -1); the other regions open their Windows tool.
+    struct Region { float x, y, w, h; int zone; };
+    static std::array<Region, 5> regions(float w, float h, theme::Style style);
+    // Welche systemspezifische Region liegt bei Pixel (x, y)? -1 = keine Aktion.
     static int zone_at(int w_px, int h_px, int x_px, int y_px);
 
 private:
+    void grouped_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& snap);
+    void expressive_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& snap);
     std::string net_unit;
     Font f_card, f_huge, f_val, f_lbl;
     struct RowVal {

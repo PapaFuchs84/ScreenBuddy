@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "gfx.h"
+#include <tuple>
 
 #include <windows.h>
 #include <d2d1.h>
@@ -51,25 +52,25 @@ struct FontInfo {
 };
 
 std::mutex g_font_mutex;
-std::map<std::pair<bool, int>, FontInfo> g_fonts;
+std::map<std::tuple<bool, int, std::wstring>, FontInfo> g_fonts;
 
 const FontInfo& font_info(const Font& f) {
     std::lock_guard lk(g_font_mutex);
-    auto key = std::make_pair(f.bold, (int)std::lround(f.size * 100));
+    auto key = std::make_tuple(f.bold, (int)std::lround(f.size * 100), f.family);
     if (auto it = g_fonts.find(key); it != g_fonts.end()) return it->second;
     FontInfo fi;
     ComPtr<IDWriteFontCollection> coll;
     check(g_dw->GetSystemFontCollection(&coll), "Schriften");
     // CI-Schrift für Titel, Namen, Zahlen: Bahnschrift SemiBold (ab Windows 10 dabei); sonst Segoe UI
-    std::wstring family = f.bold ? L"Bahnschrift" : L"Segoe UI";
+    std::wstring family = !f.family.empty() ? f.family : f.bold ? L"Bahnschrift" : L"Segoe UI";
     DWRITE_FONT_WEIGHT weight = f.bold ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
     float size = f.bold ? f.size + 1 : f.size;  // wie Version 1.x (Bahnschrift eine Stufe größer)
     UINT32 idx = 0;
     BOOL exists = FALSE;
     coll->FindFamilyName(family.c_str(), &idx, &exists);
-    if (!exists && f.bold) {
+    if (!exists) {
         family = L"Segoe UI";
-        weight = DWRITE_FONT_WEIGHT_BOLD;
+        weight = f.family.empty() ? DWRITE_FONT_WEIGHT_BOLD : f.bold ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
         size = f.size;
         coll->FindFamilyName(family.c_str(), &idx, &exists);
     }

@@ -161,7 +161,11 @@ bool SettingsServer::start() {
         try {
             ojson body = body_json(req);
             if (!body.is_object()) throw std::invalid_argument("JSON-Objekt erwartet");
-            merged = config::merge(app.cfg(), body.contains("config") ? body["config"] : ojson::object());
+            // Erwartet {"config": {...}}. Ein Body ohne "config" (z. B. {"display":{...}}) wurde früher still als
+            // leere Änderung mit ok:true quittiert – jetzt ein klarer Fehler.
+            if (!body.contains("config") || !body["config"].is_object())
+                throw std::invalid_argument("Body muss {\"config\": {...}} sein");
+            merged = config::merge(app.cfg(), body["config"]);
         } catch (const std::exception& e) {
             json_reply(res, {{"ok", false}, {"error", e.what()}}, 400);
             return;

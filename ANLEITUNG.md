@@ -8,7 +8,7 @@ Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastun
 
 ## In 3 Minuten loslegen
 
-1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest), derzeit **2.9.1**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
+1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest), derzeit **2.9.2**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
 2. Windows 10/11 x64 verwenden. Seit 2.5.0 wird keine Microsoft Edge WebView2 Runtime mehr benötigt (die frühere Version 2.3.0 braucht sie noch).
 3. Display anschließen und `ScreenBuddy.exe` starten. Der Installer richtet die App unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` ein. Er benötigt dafür keine Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster** für die Einstellungen.

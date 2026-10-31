@@ -10,6 +10,22 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 - **PlayStation friends** in the combined friends list (badge “P”, online status and current game). Unofficial Sony interface via the NPSSO code, DPAPI-encrypted, optional and off by default; includes a how-to for the code, a connection check and linking via `psn:Name`.
 
+## [2.9.2] – 2026-10-31
+
+### Added
+
+- Distinct window compositions and navigation: Cupertino: collapsible sidebar and optional inspector; Fluent: page search and Back history; Material: five destinations, subpages and floating save actions for pending changes. System displays also use distinct compositions.
+
+- Design systems include paired light/dark palettes, a working native appearance switch and six example files.
+
+- Design systems: Cupertino grouped surfaces and spacious rows, Fluent compact geometry and selection indicator, Material tonal surfaces, pill shapes and state feedback. Optional strictly validated theme `style`, editor selection, native settings and display rendering; existing starter themes are recognized by exact names.
+
+### Fixed
+
+- Design systems: overview tile captions (“Pages on the display”) wrap instead of being clipped; slider track in light Material/Cupertino/Fluent is tinted from the accent instead of beige; Material and Cupertino system displays keep 8 px above the footer.
+- Contrast of light design systems: sample themes and built-in palettes reach at least 4.5:1 for text, muted text, accent, header text, success/danger and 3:1 for dividers, status dots and bars; warning and offline colors darkened on the light display.
+- Web API: `POST /api/config` without `{"config": …}` now returns an error (400) instead of a no-op `ok:true`.
+
 ## [2.9.1] – 2026-10-31
 
 ### Added
