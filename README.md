@@ -8,7 +8,7 @@
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.9.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.9.1-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -94,7 +94,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus [Release 2.9.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
+1. **ScreenBuddy.exe** aus [Release 2.9.1](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.1) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
 2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.

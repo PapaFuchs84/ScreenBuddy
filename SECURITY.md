@@ -6,10 +6,11 @@
 
 | Version | Sicherheitskorrekturen |
 |---|---|
-| 2.9.0 | aktueller Release |
-| 2.8.0 | auf 2.9.0 aktualisieren |
-| 2.7.0 | auf 2.9.0 aktualisieren |
-| 2.0.0–2.6.0 | auf 2.9.0 aktualisieren |
+| 2.9.1 | aktueller Release |
+| 2.9.0 | auf 2.9.1 aktualisieren |
+| 2.8.0 | auf 2.9.1 aktualisieren |
+| 2.7.0 | auf 2.9.1 aktualisieren |
+| 2.0.0–2.6.0 | auf 2.9.1 aktualisieren |
 | 1.2 | historisch |
 | 1.1 | nur nach Rücksprache |
 | 1.0 | ❌ |

@@ -1,6 +1,6 @@
 # ScreenBuddy · Funktionen im Detail
 
-Aus dem README ausgelagert (Stand 2.9.0). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
+Aus dem README ausgelagert (Stand 2.9.1). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
 
 ## Inhalt
 

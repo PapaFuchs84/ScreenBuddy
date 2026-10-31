@@ -8,7 +8,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.9.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.9.1-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -94,7 +94,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.9.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
+1. Download **ScreenBuddy.exe** from [release 2.9.1](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.1). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
