@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Streaming page (tmdb.cpp, tmdb_logic): one discover query per provider group (`group_selection`, max 8, Prime 9/119 together), `fair_mix` takes the newest title per group round-robin, then sorts by date; fixes Netflix-only lists. Tests: 14 new checks in tmdb_tests (119 total, Linux). Windows build not run.
 - Amplifier: touch the activity timer only from the rendered Spotify tile while playing; publish every decay step including the final zero.
 
 - Amplifier (udio_levels.cpp): WASAPI loopback capture thread (LevelMeter), 1024-point FFT to 16 log bands (60 Hz–14 kHz), attack/decay smoothing, runs only while the Spotify page is shown (	ouch()); SpotifyRenderer::render(snap, now, levels) draws bars in landscape while playing; display loop shortens its sleep to 100 ms while active; config key spotify.amp. Tests: 22 new checks in 	est_spotify (sine → band, silence, bounds, rendering). Windows build: all suites passed.

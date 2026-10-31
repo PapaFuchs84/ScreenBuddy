@@ -8,6 +8,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Fixed
 
+- Streaming relaunches: the page showed almost only Netflix because all chosen providers were queried together and sorted by date. The app now queries each provider separately (up to 8 groups) and picks the newest title per provider in turn, so every chosen provider appears with its logo.
+
+### Fixed
+
 - Spotify amplifier: activate analysis when drawing the visible playback page; analysis expires within three seconds after leaving it. Residual bars decay fully to zero.
 
 
