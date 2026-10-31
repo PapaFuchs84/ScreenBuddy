@@ -16,6 +16,7 @@ public:
         return {"rss", Group::Sources, T(L"Blogs (RSS)", L"Blogs (RSS)"),
                 T(L"Neueste Beiträge deiner Lieblingsblogs", L"Latest posts of your favourite blogs")};
     }
+    bool shows_status() const override { return true; }
     bool active(const ojson& cfg) const override { return flag(cfg, "rss", "enabled"); }
     void build(Host& host, Column& root) override {
         form_ = Form(host);

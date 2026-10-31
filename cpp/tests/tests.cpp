@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <filesystem>
+#include <set>
 #include <fstream>
 
 #include "config.h"
@@ -16,6 +17,7 @@
 #include "netguard.h"
 #include "render.h"
 #include "theme.h"
+#include "ui_pages.h"
 #include "brand.h"
 #include "rss.h"
 #include "spotify.h"
@@ -858,6 +860,12 @@ static void test_themes() {
     CHECK(th::valid_theme_key("hell") && th::valid_theme_key("windows") && th::valid_theme_key("custom:abc"));
     CHECK(!th::valid_theme_key("custom:../x") && !th::valid_theme_key("Windows") && !th::valid_theme_key("custom:") && !th::valid_theme_key("eigen"));
 
+    // Statuspunkte der Navigation: nur Datenquellen/Verbindungen, nie reine Einstellungsseiten
+    {
+        std::set<std::string> dots;
+        for (auto& page : ui::create_pages()) if (page->shows_status()) dots.insert(page->info().id);
+        CHECK(dots == std::set<std::string>({"system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify", "companion"}));
+    }
     // Mitgelieferte Beispiel-Themes (Stil-Anlehnung): gültig und gut lesbar
     for (const char* f : {"cupertino-stil", "material-stil", "fluent-stil"}) {
         std::ifstream in(fs::path(FL_THEME_EXAMPLE_DIR) / (std::string(f) + ".json"), std::ios::binary);

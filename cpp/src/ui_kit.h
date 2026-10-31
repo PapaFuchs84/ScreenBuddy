@@ -475,6 +475,8 @@ public:
     Text text;
     std::string id;
     bool active = false, dot_on = false;
+    bool has_dot = true;   // nur Datenquellen/Verbindungen zeigen einen Statuspunkt
+    Text dot_hint;         // Hinweis für Sprachausgabe: eingerichtet und an / nicht eingerichtet oder aus
     std::function<void()> on_open;
     std::function<void(int)> on_step;  // Pfeil hoch/runter
     NavItem(Text t, std::string i) : text(std::move(t)), id(std::move(i)) {}
@@ -487,6 +489,7 @@ public:
     void activate(Surface& s) override;
     Role role() const override { return Role::NavTab; }
     bool checked() const override { return active; }
+    std::wstring value(bool en) const override { return has_dot ? dot_hint.get(en) : std::wstring(); }
 };
 
 // Platzhalter in der Tab-Reihenfolge: leitet den Fokus in eine andere Surface (Inhaltsbereich).
@@ -627,6 +630,7 @@ public:
     virtual void build(Host& host, Column& root) = 0;
     virtual void collect(Host&, ojson&) {}
     virtual bool active(const ojson&) const { return false; }
+    virtual bool shows_status() const { return false; }   // Statuspunkt in der Navigation (Datenquelle/Verbindung)
     virtual void shown(Host&) {}
     virtual void hidden(Host&) {}
     virtual void tick(Host&, const Status&) {}

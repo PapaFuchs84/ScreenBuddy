@@ -476,7 +476,11 @@ struct NativeSettings::Impl : ui::Host {
         std::stable_sort(slots.begin(), slots.end(), [](const Slot& a, const Slot& b) { return int(a.info.group) < int(b.info.group); });
         for (size_t i = 0; i < slots.size(); ++i) {
             auto nav = own<ui::NavItem>(slots[i].info.title, slots[i].info.id);
-            nav->dot_on = slots[i].page->active(initial_);
+            nav->has_dot = slots[i].page->shows_status();
+            nav->dot_on = nav->has_dot && slots[i].page->active(initial_);
+            if (nav->has_dot)
+                nav->dot_hint = nav->dot_on ? ui::T(L"Eingerichtet und eingeschaltet", L"Set up and switched on")
+                                            : ui::T(L"Nicht eingerichtet oder ausgeschaltet", L"Not set up or switched off");
             nav->on_open = [this, i] { open(int(i), false); };
             nav->on_step = [this](int d) { step(d); };
             slots[i].nav = nav;
@@ -530,7 +534,7 @@ struct NativeSettings::Impl : ui::Host {
         // Passt die Navigation nicht in die Höhe, werden Einträge und Gruppenabstände enger (statt unter die Fußleiste zu laufen).
         int groups = 0, last_group = -1;
         for (auto& s : slots) if (int(s.info.group) != last_group) { last_group = int(s.info.group); ++groups; }
-        const float avail = h - FooterH - (HeaderH + 12) - 6;
+        const float avail = h - FooterH - (HeaderH + 12) - 6 - 24;   // 24: Legende der Statuspunkte
         float gap0 = 18, gapN = 26, item_h = 36;
         float need = slots.size() * item_h + gap0 + gapN * std::max(0, groups - 1);
         if (need > avail) {
@@ -580,6 +584,15 @@ struct NativeSettings::Impl : ui::Host {
         if (preview_visible) {
             c.fill({w - PreviewW, HeaderH, w, h - FooterH}, th.side);
             c.line({w - PreviewW, HeaderH}, {w - PreviewW, h - FooterH}, th.dark ? th.line : ui::from(brand::GLUT, .35f));
+        }
+        {   // Legende der Punkte in der Navigation
+            const float ly = h - FooterH - 20;
+            c.circle({26, ly}, 4, th.success);
+            c.text(kit->english ? L"set up & on" : L"eingerichtet & an", {36, ly - 9, 118, ly + 9}, ui::Font::Small, th.side_muted);
+            ui::Rgba grey = th.side_muted;
+            grey.a *= .45f;
+            c.circle({126, ly}, 4, grey);
+            c.text(kit->english ? L"not set up / off" : L"nicht eingerichtet / aus", {136, ly - 9, NavW - 6, ly + 9}, ui::Font::Small, th.side_muted);
         }
         c.fill({0, 0, w, HeaderH}, th.header);
         c.circle({35, HeaderH / 2}, 18, ui::from(brand::NAVY));

@@ -893,7 +893,7 @@ void NavItem::paint(Ctx& c) {
         c.fill(rc, c.th.nav_active, 8);
         c.fill({rc.left, rc.top + 4, rc.left + 3, rc.bottom - 4}, c.th.accent, 1.5f);
     } else if (hot) c.fill(rc, c.th.dark ? from(brand::WHITE, .05f) : from(brand::NAVY, .07f), 8);
-    c.circle({rc.left + 16, (rc.top + rc.bottom) / 2}, 4, dot_on ? c.th.success : alpha(c.th.side_muted, .45f));
+    if (has_dot) c.circle({rc.left + 16, (rc.top + rc.bottom) / 2}, 4, dot_on ? c.th.success : alpha(c.th.side_muted, .45f));
     c.text(c.s(text), {rc.left + 30, rc.top, rc.right - 8, rc.bottom}, Font::Nav, active ? c.th.text : c.th.side_text);
 }
 bool NavItem::key(UINT vk, Surface& s) {

@@ -11,6 +11,7 @@ public:
         return {"system", Group::Sources, Text(L"System"),
                 T(L"CPU, Grafikkarte, Speicher, Netzwerk und Laufwerk", L"CPU, graphics card, memory, network and disk")};
     }
+    bool shows_status() const override { return true; }
     bool active(const ojson& cfg) const override { return flag(cfg, "system", "enabled"); }
     void build(Host& host, Column& root) override {
         form_ = Form(host);
