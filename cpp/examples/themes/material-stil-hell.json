@@ -7,12 +7,12 @@
   "colors": {
     "bg": "#FEF7FF",
     "card": "#F3EDF7",
-    "line": "#CAC4D0",
+    "line": "#8B8790",
     "header": "#6750A4",
     "accent": "#6750A4",
     "text": "#1D1B20",
     "muted": "#49454F",
-    "success": "#2E7D32",
+    "success": "#2D7A31",
     "danger": "#B3261E"
   }
 }

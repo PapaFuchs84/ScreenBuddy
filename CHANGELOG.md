@@ -16,6 +16,11 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 - Designsysteme: Cupertino (gruppiert, großzügige Zeilen), Fluent (kompakte Geometrie, Auswahlindikator), Material (tonale Flächen, Pillen und Zustandsfeedback). Optionales streng validiertes `style` in Themes, Editor-Auswahl, native Einstellungen und Display-Rendering; vorhandene Start-Themes werden anhand ihrer exakten Namen zugeordnet.
 
+### Behoben
+
+- Designsysteme: Kachelbeschriftungen der Übersicht („Seiten auf dem Display“) werden umbrochen statt abgeschnitten; Slider-Spur in Material/Cupertino/Fluent hell aus der Akzentfarbe statt Beige; Systemanzeige bei Material und Cupertino mit 8 px Abstand zur Fußzeile.
+- Kontrast der hellen Designsysteme: Beispiel-Themes und eingebaute Paletten erreichen Text, Nebentext, Akzent, Kopfzeilenschrift, Erfolg/Fehler mit mindestens 4,5:1, Trennlinien, Statuspunkte und Balken mit mindestens 3:1; Warn- und Offline-Farben im hellen Display abgedunkelt.
+- Web-API: `POST /api/config` ohne `{"config": …}` meldet jetzt einen Fehler (400), statt wirkungslos `ok:true` zu liefern.
 ## [2.9.1] – 2026-10-31
 
 ### Hinzugefügt

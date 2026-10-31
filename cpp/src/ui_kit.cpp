@@ -371,6 +371,17 @@ void Note::paint(Ctx& c) {
            DWRITE_TEXT_ALIGNMENT_LEADING, true, false);
 }
 
+float Tiles::height(Ctx& c, float w) {
+    if (c.kit.design.tonal) return 176.f;
+    if (tiles.empty()) return 70.f;
+    // Lange Beschriftungen (z. B. „Seiten auf dem Display“) umbrechen statt abzuschneiden: Kachel wächst mit.
+    const float n = float(tiles.size());
+    const float tw = (w - (c.kit.design.grouped ? 0.f : 10.f) * (n - 1)) / n;
+    float lab = 20;
+    for (const auto& t : tiles) lab = std::max(lab, c.text_height(c.s(t.label), std::max(20.f, tw - 20), Font::Small));
+    return std::max(70.f, 42 + lab + 10);
+}
+
 void Tiles::paint(Ctx& c) {
     if (tiles.empty()) return;
     if (c.kit.design.tonal && tiles.size() > 1) {
@@ -400,7 +411,8 @@ void Tiles::paint(Ctx& c) {
         }
         else if (i) c.line({r.left,r.top + 14},{r.left,r.bottom - 14},c.th.line);
         c.text(c.s(tiles[i].value), {r.left + 12, r.top + 10, r.right - 8, r.top + 40}, Font::Tile, c.th.accent_text);
-        c.text(c.s(tiles[i].label), {r.left + 12, r.top + 42, r.right - 8, r.bottom - 8}, Font::Small, c.th.muted);
+        c.text(c.s(tiles[i].label), {r.left + 12, r.top + 42, r.right - 8, r.bottom - 6}, Font::Small, c.th.muted,
+               DWRITE_TEXT_ALIGNMENT_LEADING, true, false);
     }
 }
 std::wstring Tiles::value(bool en) const {
@@ -480,7 +492,9 @@ void Slider::paint(Ctx& c) {
     const float value_w = 64;
     Rect track{rc.left + 8, rc.top + rh(rc) / 2 - 3, rc.right - value_w - 8, rc.top + rh(rc) / 2 + 3};
     float t = maximum > minimum ? float(val - minimum) / float(maximum - minimum) : 0;
-    c.fill(track, c.th.dark ? c.th.line : rgb(232, 204, 170), 3);
+    // Beige Spur nur im FuchsLabs-Stil; Designsysteme tönen die Spur aus ihrer Akzentfarbe.
+    const bool fuchs = c.kit.design.style == fl::theme::Style::FuchsLabs;
+    c.fill(track, c.th.dark ? c.th.line : fuchs ? rgb(232, 204, 170) : alpha(c.th.accent, .24f), 3);
     Rect done = track; done.right = track.left + rw(track) * t;
     c.fill(done, c.th.accent, 3);
     Point knob{track.left + rw(track) * t, (track.top + track.bottom) / 2};

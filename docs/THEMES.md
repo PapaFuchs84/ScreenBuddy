@@ -34,11 +34,11 @@ Einstellungen › **Farben & Design**: Hell (FuchsLabs), Dunkel (FuchsLabs), **A
 Dateien: `%LOCALAPPDATA%\FuchsLabs\USB-Display\themes\<id>.json` (max. 8 KB, max. 64 Themes).
 ```json
 { "version": 1, "name": "Mein Design", "base": "hell", "dark": false,
-  "colors": { "bg": "#F2F2F7", "card": "#FFFFFF", "line": "#D1D1D6", "header": "#007AFF",
-              "accent": "#0056B3", "text": "#1C1C1E", "muted": "#636366",
-              "success": "#248A3D", "danger": "#D70015" } }
+  "colors": { "bg": "#F2F2F7", "card": "#FFFFFF", "line": "#8A8A8D", "header": "#0066D6",
+              "accent": "#0056B3", "text": "#1C1C1E", "muted": "#606063",
+              "success": "#207C37", "danger": "#D70015" } }
 ```
-Streng geprüft: diese Schlüssel plus optional `style`, Version 1, alle neun Farben als `#RRGGBB`, Name 1–40 Zeichen ohne `< > " \ / & ``, `base` hell/dunkel. Ungültige Dateien werden ignoriert und angezeigt. Version 2.9.1 lehnt Themes mit dem Schlüssel `style` als „unbekannter Schlüssel“ ab. Der Editor bietet Hex-Eingabe, Live-Vorschau, Kontrastwarnung, „Kontrast korrigieren“, Duplizieren, Löschen, Import und Export. Die alte Einstellung „Eigene Farben“ wird beim ersten Start in das Theme „Eigene Farben“ umgezogen. Beispiele (Stil-Anlehnung, ohne fremde Logos): `cpp/examples/themes`.
+Streng geprüft: diese Schlüssel plus optional `style`, Version 1, alle neun Farben als `#RRGGBB`, Name 1–40 Zeichen ohne `< > " \ / & ``, `base` hell/dunkel. Ungültige Dateien werden ignoriert und angezeigt. Version 2.9.1 lehnt Themes mit dem Schlüssel `style` als „unbekannter Schlüssel“ ab. Der Editor bietet Hex-Eingabe, Live-Vorschau, Kontrastwarnung, „Kontrast korrigieren“, Duplizieren, Löschen, Import und Export. Die alte Einstellung „Eigene Farben“ wird beim ersten Start in das Theme „Eigene Farben“ umgezogen. Beispiele (Stil-Anlehnung, ohne fremde Logos): `cpp/examples/themes`. Die hellen Beispiele (Cupertino, Fluent, Material hell) halten Text, Nebentext, Akzent, Kopfzeilenschrift, Erfolg und Fehler mit mindestens 4,5:1 sowie Trennlinien und Balken mit mindestens 3:1 gegen Hintergrund und Karte ein (seit 2.9.2).
 
 ## Themes aus dem Store
 Einstellungen › **Plugin-Store** › Karte „Themes“: signierte Farbdesigns suchen und mit einem Klick installieren. Das Format ist dasselbe JSON wie bei eigenen Themes (neun Farben und optionales festes Designprofil, kein Code); der Store liefert sie in einer eigenen, signierten Liste `themes.json` (ältere App-Versionen lesen sie nicht und bleiben unberührt). Vor der Installation werden Signatur, Größe, SHA-256 und das strenge Theme-Schema geprüft, gesperrte Themes (Sperrliste) erscheinen nicht. Ein Theme mit gleichem Namen wird nie überschrieben (Schutz vor Verlust eigener Änderungen); zum Aktualisieren erst unter „Farben & Design“ löschen.

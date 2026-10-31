@@ -10,6 +10,9 @@
 
 - Optional whitelisted theme style profiles, backward-compatible starter recognition, editor round-trip; native design tokens and pressed/capture feedback; display typography/cache family key, row geometry and matching hit targets. Development branch; validation described in TESTPROTOKOLL.md.
 
+## 2.9.2 (Nachtrag)
+
+- Tiles::height wraps captions and grows with them; Slider track derived from accent outside FuchsLabs style; SysRenderer::regions uses an 8 px bottom margin for Material/Cupertino; light profile palettes, example themes and light status colors (warn/idle/offline) raised to 4.5:1 text / 3:1 UI; POST /api/config rejects bodies without "config" object.
 ## 2.9.1 – 31 October 2026
 
 - Amplifier: render_core keeps visible Spotify playback live during silence, preventing the 3 s meter activity lease from expiring before the 4 s simulation delay. A scoped transfer hold covers slow serial writes; release preserves the title seed. Regression included (482 core checks).

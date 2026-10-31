@@ -134,8 +134,8 @@ void set_resolved(const theme::Resolved& r) {
     t.head_text = theme::readable_on(p.header);
     t.bar = r.bar;
     t.status = dark ? std::map<std::string, Color>{{"online", p.success}, {"idle", {240, 178, 50}}, {"dnd", p.danger}, {"offline", {128, 132, 142}}}
-                    : std::map<std::string, Color>{{"online", p.success}, {"idle", {200, 140, 0}}, {"dnd", p.danger}, {"offline", {140, 140, 140}}};
-    t.warn = dark ? Color{240, 178, 50} : Color{190, 120, 0};
+                    : std::map<std::string, Color>{{"online", p.success}, {"idle", {180, 126, 0}}, {"dnd", p.danger}, {"offline", {136, 136, 136}}};
+    t.warn = dark ? Color{240, 178, 50} : Color{150, 95, 0};
     t.hot = p.danger; t.down = p.success;
 }
 
@@ -539,7 +539,9 @@ Color SysRenderer::temp_col(std::optional<double> t) const {
 }
 
 std::array<SysRenderer::Region, 5> SysRenderer::regions(float width, float height, theme::Style style) {
-    const float top = HEADER_H + 4.f, bottom = height - FOOTER_H - 4.f;
+    // Material/Cupertino: unterer Abstand zur Fußzeile wie der seitliche Rand (8 px), nicht nur 4 px.
+    const bool airy = style == theme::Style::Material || style == theme::Style::Cupertino;
+    const float top = HEADER_H + 4.f, bottom = height - FOOTER_H - (airy ? 8.f : 4.f);
     const float body = std::max(0.f, bottom - top);
     if (style == theme::Style::Cupertino) {
         std::array<Region, 5> result{};

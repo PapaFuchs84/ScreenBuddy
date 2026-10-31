@@ -266,7 +266,7 @@ class Tiles : public Widget {
 public:
     struct Tile { Text value, label; };
     std::vector<Tile> tiles;
-    float height(Ctx& c, float) override { return c.kit.design.tonal ? 176.f : 70.f; }
+    float height(Ctx& c, float w) override;
     void paint(Ctx& c) override;
     std::wstring value(bool en) const override;
 };
