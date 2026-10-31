@@ -2,6 +2,8 @@
 
 ## Designsysteme nach 2.9.1 – 31.10.2026 (Entwicklung, nicht veröffentlicht)
 
+- Nachtrag: Nutzer genehmigte zunächst einen temporären privaten LAN-Relay auf Port 8792. Er wurde mit unverändertem TLS kurz gestartet, lieferte aber keine Geräteverbindung (TCP-Timeout am Relay-Port). Die neueste Nutzerantwort lehnt weitere Relay-Tests ab: Relay und Testserver beendet, keine Firewalländerung, keine weitere Geräteabnahme. Die bisherige Desktop-/Renderprüfung bleibt maßgeblich.
+
 - Separater Branch `feature/theme-design-systems`, Basis auf veröffentlichten 2.9.1-Stand aktualisiert. Optionales streng validiertes `style`-Profil Cupertino/Fluent/Material/FuchsLabs; alte Starter werden am exakten Namen erkannt, expliziter FuchsLabs-Override bleibt beim Export erhalten. Kein Store-Katalog geändert oder signiert.
 - Designprofile verändern Header, Zeilendichte, Typografie, Karten-/Knopfradien, Navigation, Zustandsflächen und Schalterfeedback. Sechs Referenzdateien mit getrennten Hell-/Dunkel-Paletten; native Fensterdarstellung wechselt die Profilpalette unabhängig vom Display-Theme. Der Editor erklärt das Ersetzen der neun Farben beim Laden einer Profilpalette.
 - Build im getrennten Verzeichnis `cpp/build/design-systems` erfolgreich. Alle 13 kompilierten Suiten grün: 537 Kern, 119 TMDB, 251 Plugins, 41 Beispiele, 127 Store, 140 Transport, 135 Settings, 11 Monitor, 361 Companion, 111 Signatur, 77 Catalog, 13 Amp und Key-Hilfe OK. Zwei isolierte Installerchecks bestanden.
