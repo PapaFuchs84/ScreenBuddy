@@ -4,9 +4,15 @@
 
 - Optional whitelisted theme style profiles, backward-compatible starter recognition, editor round-trip; native design tokens and pressed/capture feedback; display typography/cache family key, row geometry and matching hit targets. Development branch; validation described in TESTPROTOKOLL.md.
 
-- Plugin store type "theme": separate signed `themes.json` (Kind::themes, own signature domain; `open_themes`, `theme_problem`, `theme_matches`, `build_themes` in plugin_sign), `Catalog::list_themes/install_theme` (cache `themes.cache`, rollback protection, revocation applies), host importer = `theme::Store::import_text`; store page card "Themes"; tool commands `build-themes`, `check-themes`, `sign|verify themes`; seed themes in `store-seed/themes`. Linux: 111 + 77 checks and tool e2e passed; Windows part not yet built.
-- Tooltip on nav status dots (`Widget::tip`, `Surface::tip_update`, 500 ms timer, own-drawn). Contrast correction merged into one `push` per color (theme.cpp). Not yet built on Windows.
-- Key help (`key_help.{h,cpp}`, `add_key_help` in ui_pages): table of official https links and DE/EN steps for Discord, Steam, Xbox, TMDB, Spotify and Home Assistant; cards on the native pages; `is_official_url` allows only listed hosts (https, no userinfo/port). Test target `fl-key-help-tests` (Linux via `tests/build-linux.sh`). Windows build not run yet.
+## 2.9.1 – 31 October 2026
+
+- Amplifier: render_core keeps visible Spotify playback live during silence, preventing the 3 s meter activity lease from expiring before the 4 s simulation delay. A scoped transfer hold covers slow serial writes; release preserves the title seed. Regression included (482 core checks).
+
+- Amplifier: detect default audio device changes via IMMNotificationClient; labelled simulated remote playback after 4 s of silence; selectable bar colors. Fix brush-cache crash in gfx.cpp.
+
+- Plugin store type "theme": separate signed `themes.json` (Kind::themes, own signature domain; `open_themes`, `theme_problem`, `theme_matches`, `build_themes` in plugin_sign), `Catalog::list_themes/install_theme` (cache `themes.cache`, rollback protection, revocation applies), host importer = `theme::Store::import_text`; store page card "Themes"; tool commands `build-themes`, `check-themes`, `sign|verify themes`; seed themes in `store-seed/themes`. Linux: 111 + 77 checks and tool e2e passed; Windows validation: see TESTPROTOKOLL.md.
+- Tooltip on nav status dots (`Widget::tip`, `Surface::tip_update`, 500 ms timer, own-drawn). Contrast correction merged into one `push` per color (theme.cpp). Windows validation: see TESTPROTOKOLL.md.
+- Key help (`key_help.{h,cpp}`, `add_key_help` in ui_pages): table of official https links and DE/EN steps for Discord, Steam, Xbox, TMDB, Spotify and Home Assistant; cards on the native pages; `is_official_url` allows only listed hosts (https, no userinfo/port). Test target `fl-key-help-tests` (Linux via `tests/build-linux.sh`). Windows validation: see TESTPROTOKOLL.md.
 
 ## 2.9.0 – 31 October 2026
 

@@ -5,7 +5,7 @@
 
 </div>
 
-Stand: ScreenBuddy 2.9.0 (Entwurf bis zur Veröffentlichung von v2.9.0). Diese Seite ist der Einstieg in alle Dokumente. Sie ist nach Zielgruppe geordnet; jedes Dokument hat genau einen Zweck.
+Stand: ScreenBuddy 2.9.1 (Entwurf bis zur Veröffentlichung von v2.9.1). Diese Seite ist der Einstieg in alle Dokumente. Sie ist nach Zielgruppe geordnet; jedes Dokument hat genau einen Zweck.
 
 ## Aufbau und Prinzipien
 

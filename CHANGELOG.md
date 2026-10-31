@@ -8,14 +8,20 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 - Designsysteme in Entwicklung: Cupertino (gruppiert, großzügige Zeilen), Fluent (kompakte Geometrie, Auswahlindikator), Material (tonale Flächen, Pillen und Zustandsfeedback). Optionales streng validiertes `style` in Themes, Editor-Auswahl, native Einstellungen und Display-Rendering; vorhandene Start-Themes werden anhand ihrer exakten Namen zugeordnet. Keine Store-Veröffentlichung.
 
+## [2.9.1] – 2026-10-31
+
 ### Hinzugefügt
 
+- **Amplifier bei Remote-Wiedergabe**: Läuft Spotify auf Handy, Lautsprecher oder Connect und die Systemausgabe bleibt 4 s still, zeigt der Amplifier eine Animation aus Titel und Takt, klar mit „simuliert" gekennzeichnet (keine Messung, kein Mikrofon, keine Spotify-Analyse-API). Neue Einstellung „Balkenfarbe": Pegel (Grün/Gelb/Rot, Standard), Verlauf im Design oder einfarbig.
 - **Plugin-Store: Themes**: Farbdesigns lassen sich über den signierten Store teilen und installieren (Karte „Themes“ im Plugin-Store). Eigene signierte Liste `themes.json`, nur Farben, kein Code; Signatur, Größe, SHA-256 und Schema werden geprüft, gesperrte Themes erscheinen nicht, ein Theme gleichen Namens wird nie überschrieben. Drei Start-Themes unter `store-seed/themes`. Wartungswerkzeug: `fl-plugin-sign build-themes|check-themes`.
 - **Navigation**: Maus-Tooltip an den Statuspunkten der Seitenleiste.
 - Hilfe für API-Keys und Tokens: Unter den Zugangsfeldern von Discord, Steam, Xbox, TMDB, Spotify und Home Assistant erklärt eine Karte „So bekommst du …“ in kurzen Schritten (DE/EN), wo der Schlüssel entsteht, und öffnet per Knopf die offizielle Seite. Nur feste https-Adressen werden geöffnet; Schlüssel werden nicht gelesen oder protokolliert. Anleitung und Doku ergänzt.
 
 ### Behoben
 
+- Amplifier: Bei Stille bleibt die sichtbare Spotify-Wiedergabeseite aktiv; die simulierte Animation startet dadurch nach vier Sekunden zuverlässig.
+
+- Amplifier: Wechsel des Standard-Audiogeräts wird erkannt und die WASAPI-Verbindung neu aufgebaut.
 - Absturz-Fix im Pinsel-Cache von `gfx.cpp` (aus #37, 3d92295); betraf möglicherweise auch 2.9.0.
 - Kontrastkorrektur: Anpassungen gegen Hintergrund und Karte heben sich nicht mehr gegenseitig auf (alle Regeln einer Farbe werden gemeinsam erfüllt).
 
@@ -23,7 +29,6 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ### Hinzugefügt
 
-- **Amplifier bei Remote-Wiedergabe**: Läuft Spotify auf Handy, Lautsprecher oder Connect und die Systemausgabe bleibt 4 s still, zeigt der Amplifier eine Animation aus Titel und Takt, klar mit „simuliert" gekennzeichnet (keine Messung, kein Mikrofon, keine Spotify-Analyse-API). Neue Einstellung „Balkenfarbe": Pegel (Grün/Gelb/Rot, Standard), Verlauf im Design oder einfarbig.
 - **Farben & Design**: Neue Option „An Windows anpassen" (Hell/Dunkel und Akzentfarbe von Windows, folgt Änderungen live, Kontrastdesign nutzt die Systemfarben; Text und Balken werden automatisch kontrastkorrigiert). Eigene Themes als JSON-Dateien mit Editor, Live-Vorschau, Kontrastwarnung, Duplizieren, Löschen, Import und Export; „Eigene Farben" werden automatisch migriert. Drei Beispiel-Themes (Cupertino-, Material-, Fluent-Stil) unter `cpp/examples/themes`. Das Einstellungsfenster bietet „Windows" als Darstellung.
 - **Navigation**: Statuspunkte nur noch bei Datenquellen und Verbindungen (grün = eingerichtet und eingeschaltet, grau = nicht eingerichtet oder aus), mit Legende.
 - **Companion / Android TV:** eigener Eintrag im TV-Launcher (Leanback, mit Banner); Fernbedienung: Pfeil links/rechts wechselt die Seite (ein Druck, ein Wechsel), OK ohne Aktion, Zurück unverändert; kurzer Hinweis beim Verbinden. Ohne Kamera wird der QR-Scan nicht angeboten und keine Kameraberechtigung erfragt, manuelle Kopplung bleibt. Geprüft am BeyondTV (Android 11) per ADB-Tasteneingaben; physische Fernbedienung, Standby/CEC und Langzeit sind nicht geprüft.
