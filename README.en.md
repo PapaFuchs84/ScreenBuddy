@@ -198,7 +198,7 @@ Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (Ge
 
 ## Testing and feedback
 
-The app is in testing. Please report bugs and ideas via **Issues → New issue** using the “Bug report” or “Idea or feedback” forms. Where to find the log `usb-design.log`'s location and what must never be sent: [`TESTPHASE.en.md`](TESTPHASE.en.md).
+The app is in testing. Please report bugs and ideas via **Issues → New issue** using the “Bug report” or “Idea or feedback” forms. Where to find the log `usb-display.log` and what must never be sent: [`TESTPHASE.en.md`](TESTPHASE.en.md).
 
 **Validation of 2.7.0:** 1,493 automated checks passed in the release build; real-system observation with two Android devices and the USB display (480 × 320). Multi-device checks via adb are simulations; DPI/screen-reader, Windows sign-in, Wi-Fi and boot acceptance remain open. Complete results and all limits: [release notes 2.7](docs/RELEASE-NOTES-2.7.md). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
 
