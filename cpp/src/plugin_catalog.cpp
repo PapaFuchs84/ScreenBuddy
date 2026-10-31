@@ -78,6 +78,14 @@ void Catalog::load_cache() {
             if (opened) previews_ = std::move(opened.list);
         }
     }
+    std::string tbundle;
+    if (read_file(dir_ / "themes.cache", sign::index_limit + sig_limit, tbundle)) {
+        const auto nl = tbundle.find('\n');
+        if (nl != std::string::npos) {
+            auto opened = sign::open_themes(key_, tbundle.substr(nl + 1), trimmed(tbundle.substr(0, nl)));
+            if (opened) themes_ = std::move(opened.list);
+        }
+    }
     // An index without its verified revocation list could offer revoked packages: do not use the index.
     // A verified revocation list stays valid on its own (offline start must still switch plugins off).
     if (!revoked_) index_.reset();
@@ -114,6 +122,7 @@ RefreshResult Catalog::refresh() {
     revoked_ = std::move(opened_rev.list);
     if (!save_cache(*index, *isig + "\n", *rev, *rsig + "\n")) return {Availability::available, false, "Cache could not be written."};
     refresh_previews();
+    refresh_themes();
     return {Availability::available, false, {}};
 }
 
@@ -130,6 +139,46 @@ void Catalog::refresh_previews() {
     std::error_code ec;
     fs::create_directories(dir_, ec);
     write_atomic(dir_ / "previews.cache", *sig + "\n" + *doc);
+}
+
+// Best effort as well: a missing, invalid or older themes.json keeps whatever was accepted before.
+void Catalog::refresh_themes() {
+    auto doc = fetch_("themes.json", sign::index_limit);
+    auto sig = fetch_("themes.json.sig", sig_limit);
+    if (!doc || !sig) return;
+    *sig = trimmed(*sig);
+    auto opened = sign::open_themes(key_, *doc, *sig);
+    if (!opened) return;
+    if (themes_ && !sign::sequence_acceptable(themes_->sequence, opened.list->sequence)) return;
+    themes_ = std::move(opened.list);
+    std::error_code ec;
+    fs::create_directories(dir_, ec);
+    write_atomic(dir_ / "themes.cache", *sig + "\n" + *doc);
+}
+
+std::vector<ThemeCard> Catalog::list_themes(const std::string& text, const std::set<std::string>& installed_ids) const {
+    std::vector<ThemeCard> cards;
+    if (!themes_ || !index_ || !revoked_) return cards;
+    const auto q = lowered(text);
+    for (const auto& e : themes_->items) {
+        if (sign::is_revoked(*revoked_, e.id, e.version)) continue;
+        if (!q.empty() && !contains(e.id, q) && !contains(e.name, q) && !contains(e.description, q) && !contains(e.author, q)) continue;
+        cards.push_back({e, installed_ids.count(e.id) ? ThemeStatus::installed : ThemeStatus::not_installed});
+    }
+    std::sort(cards.begin(), cards.end(), [](const ThemeCard& a, const ThemeCard& b) { return lowered(a.entry.name) < lowered(b.entry.name); });
+    return cards;
+}
+
+StoreResult Catalog::install_theme(const std::string& id, const ThemeImporter& importer) {
+    if (!themes_ || !index_ || !revoked_) return {false, "Theme list is not available."};
+    auto it = std::find_if(themes_->items.begin(), themes_->items.end(), [&](const sign::ThemeEntry& e) { return e.id == id; });
+    if (it == themes_->items.end()) return {false, "Theme is not in the store."};
+    if (sign::is_revoked(*revoked_, it->id, it->version)) return {false, "Theme has been revoked."};
+    if (!importer) return {false, "No importer."};
+    auto bytes = fetch_(it->file, sign::theme_limit);
+    if (!bytes) return {false, "Theme download failed."};
+    if (!sign::theme_matches(*it, *bytes)) return {false, "Theme does not match the signed list."};
+    return importer(*bytes);
 }
 
 bool Catalog::has_preview(const std::string& id) const {

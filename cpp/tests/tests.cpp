@@ -786,6 +786,16 @@ static void test_themes() {
     CHECK(th::contrast(pl.accent, pl.bg) >= th::MIN_TEXT);
     CHECK(th::contrast(pl.accent, pl.card) >= th::MIN_BAR);
     CHECK(th::contrast_warnings(th::Palette{pl.bg, pl.card, pl.line, pl.header, pl.accent, pl.text, pl.muted, pl.success, pl.danger}).size() <= 1);
+    {   // 2.9.1: Korrekturen gegen bg und card dürfen sich nicht gegenseitig aufheben (Hintergrund und Karte beide hell, aber verschieden)
+        th::Palette q = th::builtin(false);
+        q.bg = {0xE8, 0xE0, 0xD0}; q.card = {0xFF, 0xFF, 0xFF};
+        for (Color c : {Color{255, 255, 0}, Color{200, 200, 200}, Color{120, 120, 120}, Color{0, 0, 0}}) {
+            q.text = q.muted = q.accent = q.success = q.danger = c;
+            auto fixed = th::correct_contrast(q);
+            CHECK(th::contrast_warnings(fixed).empty());
+            CHECK(fixed.bg == q.bg && fixed.card == q.card);
+        }
+    }
     w.light = false; w.accent = {0, 0, 128};   // Dunkelblau auf Dunkel: muss aufgehellt werden
     auto pd = th::windows_palette(w);
     CHECK(th::contrast(pd.accent, pd.bg) >= th::MIN_TEXT);

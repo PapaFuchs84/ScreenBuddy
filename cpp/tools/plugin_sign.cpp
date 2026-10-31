@@ -24,8 +24,12 @@ static void usage() {
               "                                                         reads <dir>/<id>.png (PNG, max 200 KiB), writes <out-dir>/previews.json\n"
               "  fl-plugin-sign check-previews <previews-dir> <previews.json> <public-hex>\n"
               "                                                         CI: signed previews list must match the image files exactly\n"
-              "  fl-plugin-sign sign index|revoked|previews <file> <private.pem>  writes <file>.sig\n"
-              "  fl-plugin-sign verify index|revoked|previews <file> <public-hex> checks <file> against <file>.sig");
+              "  fl-plugin-sign build-themes <themes-root> <out-dir> <sequence>\n"
+              "                                                         reads <root>/<id>/<id>.fltheme.json + <id>.fltheme.meta.json, writes <out-dir>/themes.json\n"
+              "  fl-plugin-sign check-themes <themes-root> <themes.json> <public-hex>\n"
+              "                                                         CI: signed theme list must match the theme files exactly\n"
+              "  fl-plugin-sign sign index|revoked|previews|themes <file> <private.pem>  writes <file>.sig\n"
+              "  fl-plugin-sign verify index|revoked|previews|themes <file> <public-hex> checks <file> against <file>.sig");
 }
 static bool read_file(const fs::path& p, std::string& out) {
     std::ifstream in(p, std::ios::binary);
@@ -35,7 +39,7 @@ static bool read_file(const fs::path& p, std::string& out) {
 }
 static bool kind_of(const std::string& s, sign::Kind& k) {
     if (s == "index") k = sign::Kind::index; else if (s == "revoked") k = sign::Kind::revoked;
-    else if (s == "previews") k = sign::Kind::previews; else return false;
+    else if (s == "previews") k = sign::Kind::previews; else if (s == "themes") k = sign::Kind::themes; else return false;
     return true;
 }
 
@@ -68,6 +72,29 @@ static bool gather_previews(const std::string& root, std::vector<sign::PreviewIn
         std::string data;
         if (!read_file(f, data)) { std::printf("Cannot read %s\n", f.string().c_str()); return false; }
         images.push_back({f.stem().string(), std::move(data)});
+    }
+    return true;
+}
+
+// Layout: <root>/<id>/<id>.fltheme.json (the theme, published) and <id>.fltheme.meta.json (description/version/author/license).
+static bool gather_themes(const std::string& root, std::vector<sign::ThemeInput>& themes) {
+    std::vector<fs::path> files;
+    for (const auto& e : fs::recursive_directory_iterator(root))
+        if (e.is_regular_file() && e.path().filename().string().ends_with(".fltheme.json")) files.push_back(e.path());
+    std::sort(files.begin(), files.end());
+    for (const auto& f : files) {
+        const std::string id = f.filename().string().substr(0, f.filename().string().size() - std::string(".fltheme.json").size());
+        if (f.parent_path().filename().string() != id) { std::printf("Not a valid theme layout (<id>/<id>.fltheme.json): %s\n", f.string().c_str()); return false; }
+        sign::ThemeInput in;
+        in.id = id;
+        std::string meta;
+        if (!read_file(f, in.theme_bytes) || !read_file(f.parent_path() / (id + ".fltheme.meta.json"), meta)) { std::printf("Cannot read theme or meta file for %s\n", id.c_str()); return false; }
+        auto j = Json::parse(meta, nullptr, false);
+        if (!j.is_object()) { std::printf("Invalid meta file for %s\n", id.c_str()); return false; }
+        for (auto it = j.begin(); it != j.end(); ++it)
+            if (!it.value().is_string() || (it.key() != "description" && it.key() != "version" && it.key() != "author" && it.key() != "license")) { std::printf("Unknown or invalid meta field for %s\n", id.c_str()); return false; }
+        in.description = j.value("description", ""); in.version = j.value("version", ""); in.author = j.value("author", ""); in.license = j.value("license", "");
+        themes.push_back(std::move(in));
     }
     return true;
 }
@@ -115,6 +142,31 @@ int main(int argc, char** argv) {
         out << *built.index_json;
         std::printf("previews.json with %zu images written.\n", images.size());
         return out ? 0 : 1;
+    }
+    if (a[0] == "build-themes" && a.size() == 4) {
+        std::vector<sign::ThemeInput> themes;
+        if (!gather_themes(a[1], themes)) return 1;
+        auto built = sign::build_themes(themes, std::atoi(a[3].c_str()));
+        if (!built.index_json) { std::printf("%s\n", built.error.c_str()); return 1; }
+        fs::create_directories(a[2]);
+        std::ofstream out(fs::path(a[2]) / "themes.json", std::ios::binary);
+        out << *built.index_json;
+        std::printf("themes.json with %zu themes written.\n", themes.size());
+        return out ? 0 : 1;
+    }
+    if (a[0] == "check-themes" && a.size() == 4) {
+        std::string doc, sig;
+        auto key = sign::public_key_from_hex(a[3]);
+        if (!key || !read_file(a[2], doc) || !read_file(a[2] + ".sig", sig)) { std::puts("Bad public key or missing themes/.sig file."); return 1; }
+        while (!sig.empty() && (sig.back() == '\n' || sig.back() == '\r')) sig.pop_back();
+        auto opened = sign::open_themes(*key, doc, sig);
+        if (!opened) { std::printf("Themes check failed: %s\n", opened.error.c_str()); return 1; }
+        std::vector<sign::ThemeInput> themes;
+        if (!gather_themes(a[1], themes)) return 1;
+        auto rebuilt = sign::build_themes(themes, opened.list->sequence);
+        if (!rebuilt.index_json || *rebuilt.index_json != doc) { std::puts("Themes check failed: theme files and signed list differ (rebuild, bump sequence and sign again)."); return 1; }
+        std::printf("Themes OK: signature valid, %zu themes match, sequence %d.\n", themes.size(), opened.list->sequence);
+        return 0;
     }
     if (a[0] == "check-previews" && a.size() == 4) {
         std::string doc, sig;

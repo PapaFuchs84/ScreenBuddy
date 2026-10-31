@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Plugin store type "theme": separate signed `themes.json` (Kind::themes, own signature domain; `open_themes`, `theme_problem`, `theme_matches`, `build_themes` in plugin_sign), `Catalog::list_themes/install_theme` (cache `themes.cache`, rollback protection, revocation applies), host importer = `theme::Store::import_text`; store page card "Themes"; tool commands `build-themes`, `check-themes`, `sign|verify themes`; seed themes in `store-seed/themes`. Linux: 111 + 77 checks and tool e2e passed; Windows part not yet built.
+- Tooltip on nav status dots (`Widget::tip`, `Surface::tip_update`, 500 ms timer, own-drawn). Contrast correction merged into one `push` per color (theme.cpp). Not yet built on Windows.
 - Key help (`key_help.{h,cpp}`, `add_key_help` in ui_pages): table of official https links and DE/EN steps for Discord, Steam, Xbox, TMDB, Spotify and Home Assistant; cards on the native pages; `is_official_url` allows only listed hosts (https, no userinfo/port). Test target `fl-key-help-tests` (Linux via `tests/build-linux.sh`). Windows build not run yet.
 
 ## 2.9.0 – 31 October 2026

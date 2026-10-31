@@ -186,6 +186,57 @@ int main() {
         CHECK(!open_previews(pub, tampered, *sign_document(Kind::previews, keys->private_pem, tampered)));
     }
 
+    // Themes: separate signed document, strict theme check, domain-separated signature.
+    {
+        Json th = {{"version", 1}, {"name", "Ozean"}, {"base", "dunkel"}, {"dark", true},
+            {"colors", {{"bg", "#101820"}, {"card", "#18242F"}, {"line", "#2A3B49"}, {"header", "#0B6E99"}, {"accent", "#4FB3E8"},
+                        {"text", "#EAF2F8"}, {"muted", "#9FB3C2"}, {"success", "#4CC38A"}, {"danger", "#FF6B6B"}}}};
+        const auto bytes = th.dump(2);
+        std::string name;
+        CHECK(theme_problem(bytes, &name).empty() && name == "Ozean");
+        auto bad = [&](auto edit) { Json j = th; edit(j); return !theme_problem(j.dump()).empty(); };
+        CHECK(bad([](Json& j) { j["extra"] = 1; }));
+        CHECK(bad([](Json& j) { j["version"] = 2; }));
+        CHECK(bad([](Json& j) { j.erase("dark"); }));
+        CHECK(bad([](Json& j) { j["base"] = "bunt"; }));
+        CHECK(bad([](Json& j) { j["name"] = ""; }));
+        CHECK(bad([](Json& j) { j["name"] = " Ozean"; }));
+        CHECK(bad([](Json& j) { j["name"] = "<b>Ozean</b>"; }));
+        CHECK(bad([](Json& j) { j["name"] = std::string(41, 'a'); }));
+        CHECK(bad([](Json& j) { j["name"] = "A\xE2\x80\xAE" "B"; }));          // bidi override
+        CHECK(bad([](Json& j) { j["colors"]["bg"] = "red"; }));
+        CHECK(bad([](Json& j) { j["colors"]["bg"] = "#12345"; }));
+        CHECK(bad([](Json& j) { j["colors"].erase("danger"); }));
+        CHECK(bad([](Json& j) { j["colors"]["extra"] = "#000000"; }));
+        CHECK(!theme_problem("[]").empty() && !theme_problem("").empty() && !theme_problem(std::string(9000, ' ')).empty());
+        auto built = build_themes({{"ozean", bytes, "Ruhiges Blau", "1.0.0", "FuchsLabs", "MIT"}}, 3);
+        CHECK(built.index_json.has_value());
+        CHECK(!build_themes({{"Ozean", bytes, "", "1.0.0", "FuchsLabs", "MIT"}}, 1).index_json);        // id must be a slug
+        CHECK(!build_themes({{"ozean", bytes, "", "1.0", "FuchsLabs", "MIT"}}, 1).index_json);          // version
+        CHECK(!build_themes({{"ozean", bytes, "", "1.0.0", "FuchsLabs", "GPL-3.0"}}, 1).index_json);    // license
+        CHECK(!build_themes({{"ozean", bytes, "", "1.0.0", "FuchsLabs", "MIT"}, {"ozean", bytes, "", "1.0.0", "FuchsLabs", "MIT"}}, 1).index_json);
+        CHECK(!build_themes({{"ozean", "{}", "", "1.0.0", "FuchsLabs", "MIT"}}, 1).index_json);
+        if (built.index_json) {
+            const auto sig = *sign_document(Kind::themes, keys->private_pem, *built.index_json);
+            auto opened = open_themes(pub, *built.index_json, sig);
+            CHECK(opened && opened.list->sequence == 3 && opened.list->items.size() == 1);
+            CHECK(!open_themes(pub_other, *built.index_json, sig));
+            CHECK(!open_themes(pub, *built.index_json, *sign_document(Kind::index, keys->private_pem, *built.index_json)));   // no cross-kind signatures
+            CHECK(!open_index(pub, *built.index_json, sig));                                                                    // a themes list is no plugin index
+            if (opened) {
+                const auto& e = opened.list->items[0];
+                CHECK(theme_matches(e, bytes) && !theme_matches(e, bytes + " ") && !theme_matches(e, std::string(bytes).replace(bytes.find("Ozean"), 5, "Meer_")));
+            }
+            auto j = Json::parse(*built.index_json);
+            j["themes"][0]["file"] = "themes/other/other.fltheme.json";
+            auto tampered = j.dump();
+            CHECK(!open_themes(pub, tampered, *sign_document(Kind::themes, keys->private_pem, tampered)));
+            j = Json::parse(*built.index_json); j["themes"][0]["id"] = "../x";
+            tampered = j.dump();
+            CHECK(!open_themes(pub, tampered, *sign_document(Kind::themes, keys->private_pem, tampered)));
+        }
+    }
+
     std::printf("plugin signing: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;
 }

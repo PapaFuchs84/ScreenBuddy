@@ -49,6 +49,17 @@ if "$OUT/fl-plugin-sign" check-index "$T/root" "$T/out/index.json" "$PUB" >/dev/
 rm "$T/root/offline-clock/extra.flplugin.json"
 sed -i 's/"MIT"/"CC0-1.0"/' "$T/root/offline-clock/offline-clock.flplugin.json"
 if "$OUT/fl-plugin-sign" check-index "$T/root" "$T/out/index.json" "$PUB" >/dev/null; then echo "FAIL: geaendertes Plugin ohne neue Signatur akzeptiert"; exit 1; fi
+# Themes: Seed-Themes bauen, signieren, prüfen; Manipulation muss scheitern.
+"$OUT/fl-plugin-sign" build-themes ../store-seed/themes "$T/tout" 1
+"$OUT/fl-plugin-sign" sign themes "$T/tout/themes.json" "$T/key.pem"
+"$OUT/fl-plugin-sign" verify themes "$T/tout/themes.json" "$PUB"
+"$OUT/fl-plugin-sign" check-themes ../store-seed/themes "$T/tout/themes.json" "$PUB"
+if "$OUT/fl-plugin-sign" verify index "$T/tout/themes.json" "$PUB" >/dev/null; then echo "FAIL: Themenliste als Index akzeptiert"; exit 1; fi
+rm -rf "$T/themes"; cp -r ../store-seed/themes "$T/themes"
+sed -i 's/#F3F3F3/#F3F3F4/' "$T/themes/fluent-stil/fluent-stil.fltheme.json"
+if "$OUT/fl-plugin-sign" check-themes "$T/themes" "$T/tout/themes.json" "$PUB" >/dev/null; then echo "FAIL: geaendertes Theme ohne neue Signatur akzeptiert"; exit 1; fi
+sed -i 's/#F3F3F4/rot/' "$T/themes/fluent-stil/fluent-stil.fltheme.json"
+if "$OUT/fl-plugin-sign" build-themes "$T/themes" "$T/tout2" 2 >/dev/null; then echo "FAIL: ungueltiges Theme gebaut"; exit 1; fi
 echo " " >> "$T/out/index.json"
 if "$OUT/fl-plugin-sign" verify index "$T/out/index.json" "$PUB" >/dev/null; then echo "FAIL: manipulierter Index akzeptiert"; exit 1; fi
 echo "validator: ok"

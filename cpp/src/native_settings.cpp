@@ -675,9 +675,9 @@ struct NativeSettings::Impl : ui::Host {
             shown = IsWindowVisible(frame->hwnd()) && wp != SIZE_MINIMIZED;
             return false;
         case WM_TIMER:
-            if (wp == PollTimer) poll();
-            if (wp == ToastTimer) { KillTimer(frame->hwnd(), ToastTimer); toast_text = {}; frame->invalidate(); }
-            return true;
+            if (wp == PollTimer) { poll(); return true; }
+            if (wp == ToastTimer) { KillTimer(frame->hwnd(), ToastTimer); toast_text = {}; frame->invalidate(); return true; }
+            return false;   // übrige Timer (Tooltip-Verzögerung) gehören der Surface
         case WM_SETTINGCHANGE:
         case WM_THEMECHANGED:
             if (theme && theme->index == 2) apply_theme();   // Windows-Farben live nachziehen

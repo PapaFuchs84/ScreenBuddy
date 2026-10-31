@@ -31,11 +31,16 @@ struct NativeStoreCard {
     std::vector<std::string> hosts, new_hosts;
     bool has_preview = false;      // the signed previews.json lists an image for this plugin
 };
+// Theme from the signed themes.json (colours only, no code). status: not_installed | installed (a local theme with this name exists)
+struct NativeThemeCard {
+    std::string id, name, description, version, author, license, status;
+};
 struct NativeStoreState {
     std::string state = "unavailable"; // unavailable | disabled | offline | invalid | available
     bool from_cache = false;
     std::string message;               // fixed diagnostics, German/English chosen by the UI
     std::vector<NativeStoreCard> cards;
+    std::vector<NativeThemeCard> themes;
 };
 struct NativePluginActions {
     std::function<std::vector<NativePluginEntry>()> list;
@@ -49,6 +54,7 @@ struct NativePluginActions {
     std::function<NativeStoreState(const std::string& search, const std::string& category)> store_list;
     std::function<NativeStoreState(bool force)> store_refresh; // force = user pressed "Refresh"; otherwise at most once a day
     std::function<std::string(const std::string& id)> store_preview; // verified PNG bytes or empty; job thread (may use the network)
+    std::function<void(const std::string& id)> store_theme_install; // throws std::runtime_error with a user-facing message
     std::function<void(const std::string& id)> store_install; // throws std::runtime_error with a user-facing message
 };
 

@@ -8,7 +8,14 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Added
 
+- **Plugin store: themes**: color designs can be shared and installed through the signed store ("Themes" card in the plugin store). Separate signed list `themes.json`, colors only, no code; signature, size, SHA-256 and schema are checked, revoked themes are hidden, a theme with the same name is never overwritten. Three starter themes in `store-seed/themes`. Maintenance tool: `fl-plugin-sign build-themes|check-themes`.
+- **Navigation**: mouse tooltip on the sidebar status dots.
 - Help for API keys and tokens: under the credential fields for Discord, Steam, Xbox, TMDB, Spotify and Home Assistant a card “How to get …” explains in short steps (DE/EN) where the key is created and opens the official page with a button. Only fixed https addresses are opened; keys are never read or logged. Guide and docs updated.
+
+### Fixed
+
+- Crash fix in the brush cache of `gfx.cpp` (from #37, 3d92295); possibly affected 2.9.0 as well.
+- Contrast correction: adjustments against background and card no longer cancel each other (all rules of one color are satisfied together).
 
 ## [2.9.0] – 2026-10-31
 
