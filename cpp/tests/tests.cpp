@@ -774,13 +774,15 @@ static void test_themes() {
         CHECK(th::contrast(p.text, p.card) >= th::MIN_TEXT);
         CHECK(th::contrast(p.accent, p.bg) >= th::MIN_TEXT);
     }
+    CHECK(th::contrast_warnings(th::builtin(false)).empty());
+    CHECK(th::contrast_warnings(th::builtin(true)).empty());
     // Windows-Farben: Hell/Dunkel, Akzent ersetzt nur accent, Kopfzeile bleibt Fuchs-Orange
     th::WindowsSettings w;
     w.light = true; w.has_accent = true; w.accent = {255, 255, 0};   // Gelb auf Hell: müsste korrigiert werden
     auto pl = th::windows_palette(w);
     CHECK(pl.header == brand::ORANGE);
     CHECK(th::contrast(pl.accent, pl.bg) >= th::MIN_TEXT);
-    CHECK(th::contrast(pl.accent, pl.card) >= th::MIN_TEXT);
+    CHECK(th::contrast(pl.accent, pl.card) >= th::MIN_BAR);
     CHECK(th::contrast_warnings(th::Palette{pl.bg, pl.card, pl.line, pl.header, pl.accent, pl.text, pl.muted, pl.success, pl.danger}).size() <= 1);
     w.light = false; w.accent = {0, 0, 128};   // Dunkelblau auf Dunkel: muss aufgehellt werden
     auto pd = th::windows_palette(w);

@@ -367,7 +367,8 @@ struct NativeSettings::Impl : ui::Host {
         update_device();
     }
     void apply_theme() {
-        kit->dark = theme->index == 1;
+        kit->use_windows(theme->index == 2);
+        if (theme->index != 2) kit->dark = theme->index == 1;
         BOOL dark = kit->dark;
         DwmSetWindowAttribute(frame->hwnd(), 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));
         frame->restyle();
@@ -392,7 +393,7 @@ struct NativeSettings::Impl : ui::Host {
             }
         }
         patch["ui"]["language"] = lang->index == 1 ? "en" : "de";
-        if (theme->dirty()) patch["ui"]["settings_theme"] = theme->index == 1 ? "dunkel" : "hell";
+        if (theme->dirty()) patch["ui"]["settings_theme"] = theme->index == 2 ? "windows" : theme->index == 1 ? "dunkel" : "hell";
         patch["ui"]["setup_done"] = true;
         try { config::merge(initial_, patch); }  // vor dem Speichern prüfen
         catch (const std::exception& e) { toast(ui::Text(widen(e.what())), ui::ToastKind::Error); return; }
@@ -452,14 +453,16 @@ struct NativeSettings::Impl : ui::Host {
         logo->framed = false;
         logo->name = ui::Text(L"ScreenBuddy");
         const std::string settings_theme = initial_.at("ui").value("settings_theme", "auto");
-        const bool dark = settings_theme == "dunkel" || (settings_theme != "hell" && ui::system_prefers_dark());
+        const bool windows = settings_theme == "windows";
+        kit->use_windows(windows);
+        const bool dark = windows ? kit->dark : (settings_theme == "dunkel" || (settings_theme != "hell" && ui::system_prefers_dark()));
         kit->dark = dark;
         kit->english = initial_.at("ui").value("language", "de") == "en";
         lang = own<ui::Segment>(std::vector<ui::Text>{ui::Text(L"DE"), ui::Text(L"EN")}, kit->english ? 1 : 0);
         lang->header_style = true;
         lang->name = ui::T(L"Sprache", L"Language");
         lang->on_change = [this] { apply_language(); };
-        theme = own<ui::Segment>(std::vector<ui::Text>{ui::T(L"☀ Hell", L"☀ Light"), ui::T(L"☾ Dunkel", L"☾ Dark")}, dark ? 1 : 0);
+        theme = own<ui::Segment>(std::vector<ui::Text>{ui::T(L"☀ Hell", L"☀ Light"), ui::T(L"☾ Dunkel", L"☾ Dark"), ui::Text(L"Windows")}, windows ? 2 : dark ? 1 : 0);
         theme->header_style = true;
         theme->name = ui::T(L"Darstellung des Fensters", L"Window appearance");
         theme->on_change = [this] { apply_theme(); };
@@ -662,6 +665,10 @@ struct NativeSettings::Impl : ui::Host {
             if (wp == PollTimer) poll();
             if (wp == ToastTimer) { KillTimer(frame->hwnd(), ToastTimer); toast_text = {}; frame->invalidate(); }
             return true;
+        case WM_SETTINGCHANGE:
+        case WM_THEMECHANGED:
+            if (theme && theme->index == 2) apply_theme();   // Windows-Farben live nachziehen
+            return false;
         case ResultsMsg: consume(); return true;
         case WM_DESTROY:
             KillTimer(frame->hwnd(), PollTimer); shown = false; live_window = nullptr; PostQuitMessage(0);

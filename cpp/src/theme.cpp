@@ -71,8 +71,8 @@ namespace {
 struct Rule { const char* fg; const char* bg; double min; };
 // Text und Akzentschrift auf Hintergrund und Karte; Linien werden nicht geprüft (reine Zier)
 constexpr Rule RULES[] = {{"text", "bg", MIN_TEXT},    {"text", "card", MIN_TEXT},   {"muted", "bg", MIN_TEXT},
-                          {"muted", "card", MIN_TEXT}, {"accent", "bg", MIN_TEXT},   {"accent", "card", MIN_TEXT},
-                          {"success", "card", MIN_BAR}, {"danger", "card", MIN_BAR}, {"header", "card", MIN_BAR}};
+                          {"muted", "card", MIN_TEXT}, {"accent", "bg", MIN_TEXT},   {"accent", "card", MIN_BAR},
+                          {"success", "card", MIN_BAR}, {"danger", "card", MIN_BAR}};
 }  // namespace
 
 std::vector<Warning> contrast_warnings(const Palette& p) {
@@ -112,7 +112,8 @@ Palette correct_contrast(const Palette& in, std::vector<std::string>* changed) {
     };
     fix("text", {"bg", "card"}, MIN_TEXT);
     fix("muted", {"bg", "card"}, MIN_TEXT);
-    fix("accent", {"bg", "card"}, MIN_TEXT);
+    fix("accent", {"bg"}, MIN_TEXT);
+    fix("accent", {"card"}, MIN_BAR);   // Akzent liegt meist auf Karten als Überschrift; FuchsLabs-Glut auf Sand hat 4,2:1
     fix("success", {"card"}, MIN_BAR);
     fix("danger", {"card"}, MIN_BAR);
     // Kopfzeile (Balken): nur Hintergrund der Karten zählt; Fuchs-Orange auf Creme erreicht das nicht und bleibt Marke

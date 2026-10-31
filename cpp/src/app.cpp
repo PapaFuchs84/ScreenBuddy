@@ -460,7 +460,8 @@ std::string App::display_error() {
 }
 
 void App::system_theme_changed() {
-    if (s(dp_, "theme", "hell") != "windows") return;
+    const std::string key = s(dp_, "theme", "hell");
+    if (key != "windows" && key.rfind("custom:", 0) != 0) return;
     {
         std::lock_guard rl(render::mutex());
         render::apply_theme(dp_);

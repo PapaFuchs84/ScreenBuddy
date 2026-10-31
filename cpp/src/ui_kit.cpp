@@ -15,6 +15,7 @@
 
 #include "brand.h"
 #include "native_settings.h"
+#include "theme.h"
 #include "ui_logic.h"
 #include "util.h"
 
@@ -48,6 +49,18 @@ const Theme& Theme::get(bool dark) {
         return t;
     }();
     return dark ? night : light;
+}
+
+void Kit::use_windows(bool on) {
+    windows_ = on;
+    if (!on) return;
+    const auto w = fl::theme::read_windows_settings();
+    const auto p = fl::theme::windows_palette(w);
+    dark = !w.light;
+    win_theme_ = Theme::get(dark);
+    win_theme_.accent = from(w.high_contrast ? p.accent : (w.has_accent ? w.accent : p.accent));
+    win_theme_.on_accent = from(fl::theme::readable_on(w.high_contrast ? p.accent : (w.has_accent ? w.accent : p.accent)));
+    win_theme_.accent_text = from(p.accent);   // Akzent als Schrift: kontrastkorrigiert
 }
 
 bool system_prefers_dark() {

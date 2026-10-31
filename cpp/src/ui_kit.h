@@ -98,7 +98,10 @@ public:
     IDWriteTextFormat* format(Font f);
     IDWriteInlineObject* ellipsis(Font f);
     ID2D1StrokeStyle* dashed();
-    const Theme& theme() const { return Theme::get(dark); }
+    const Theme& theme() const { return windows_ ? win_theme_ : Theme::get(dark); }
+    // "An Windows anpassen": Hell/Dunkel und Akzentfarbe des Systems (Kopfzeile und Logo bleiben Fuchs-Orange)
+    void use_windows(bool on);
+    bool windows() const { return windows_; }
     bool english = false, dark = false;
 private:
     ComPtr<ID2D1Factory> d2d_;
@@ -106,6 +109,8 @@ private:
     ComPtr<IDWriteTextFormat> formats_[10];
     ComPtr<IDWriteInlineObject> ellipsis_[10];
     ComPtr<ID2D1StrokeStyle> dashed_;
+    bool windows_ = false;
+    Theme win_theme_;
 };
 
 class Surface;
