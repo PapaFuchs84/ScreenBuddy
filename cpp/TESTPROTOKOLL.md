@@ -1,5 +1,11 @@
 # Testprotokoll – Stand 31.10.2026
 
+## Release 2.9.3 – 31.10.2026
+
+- Basis main 909e34d (PR #46, PlayStation-Freunde inkl. Punkt-Code-Fix). Release-Build per build.bat grün: 1357 Kern, 119 TMDB, 251 Plugins, 41 Beispiele, 127 Store, 140 Transport, 135 Settings, 11 Monitor, 361 Companion, zwei Installerchecks. EXE meldet 2.9.3.
+- Meanmachine von 2.9.2 ersetzt (Sicherung EXE/Config/Kopplungen vorher), Config byte-identisch, COM7 verbunden, Companion-Server und mDNS gestartet. Redmi und TV zeigen Seiten (adb-Screenshots). Pixel nicht per adb vorhanden.
+- PlayStation live: der Testcode der Testinstanz war abgelaufen (login_required); mit frischem Code in der installierten 2.9.3 lieferte die Freundesliste ein PlayStation-Konto ohne Fehler im Log. Online-Status/Spiel auf den Geräten nicht gesichtet. Store-Installation/-Update über die Oberfläche und physische Abnahme nicht durchgeführt.
+
 ## Designsysteme nach 2.9.1 – 31.10.2026 (Entwicklung, nicht veröffentlicht)
 
 - Branch `feature/theme-design-systems`, PR #45; Basis ist die veröffentlichte 2.9.1. Nach Nutzerkritik an zu ähnlichen Themes wurden eigenständige Fensteraufbauten implementiert: Cupertino mit einblendbarer Sidebar, Werkzeugleiste und optionalem Inspector; Fluent mit echter Seitensuche, Zurück-Verlauf und Breadcrumb; Material mit fünf Hauptzielen, kontextbezogenen Unterseiten, Hauptkennzahl und schwebender Speichergruppe nur bei Änderungen. Bei engem Platz wechseln Material-Unterseiten in eine Auswahl. Alle Seiten bleiben erreichbar.

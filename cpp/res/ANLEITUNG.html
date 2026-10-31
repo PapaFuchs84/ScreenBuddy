@@ -188,7 +188,7 @@ const b = t => `<span class="btnname">${t}</span>`, g = t => `<span class="btnna
 const FEAT = [
   ['system', '🖥️', 'Mein PC', 'Wie fleißig Prozessor, Grafikkarte und Speicher gerade arbeiten'],
   ['discord', '💬', 'Discord-Freunde', 'Wer von deinen Freunden gerade online ist und was er spielt'],
-  ['friends', '🎮', 'Steam- und Xbox-Freunde', 'Deine Freunde von Steam, Xbox und Discord in einer gemeinsamen Liste'],
+  ['friends', '🎮', 'Steam-, Xbox- und PlayStation-Freunde', 'Deine Freunde von Steam, Xbox, Discord und (optional, inoffiziell) PlayStation in einer gemeinsamen Liste'],
   ['bf6', '🎖️', 'Battlefield 6', 'Eine Rangliste von dir und deinen Freunden'],
   ['blogs', '📰', 'Neuigkeiten', 'Die neuesten Artikel von Webseiten, die du magst'],
   ['streaming', '🎬', 'Neu bei Streaming', 'Neue Filme und Serien bei Netflix, Disney+ und Co.'],
@@ -222,9 +222,9 @@ const STEPS = [
 <li><b>Das Display</b> mit seinem <b>USB-Kabel</b>.</li>
 <li><b>Einen Windows-PC</b> (Windows 10 oder 11, 64 Bit) mit Internet.</li>
 <li><b>Die Datei <span class="key">ScreenBuddy.exe</span></b>. Die lädst du im nächsten Schritt herunter. Es gibt kein ZIP zum Auspacken.</li>
-<li><b>Keine Zusatzlaufzeit für ScreenBuddy 2.5</b>. Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt. Die frühere Version 2.3.0 braucht noch WebView2.</li>
+<li><b>Keine Zusatzlaufzeit ab ScreenBuddy 2.5</b>. Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt. Die frühere Version 2.3.0 braucht noch WebView2.</li>
 ${sel.discord ? '<li><b>Dein Discord-Konto</b> und einen Discord-Server, auf dem du Chef (Admin) bist. Bist du das nicht, frag den Chef des Servers, ob er dir hilft.</li>' : ''}
-${sel.friends ? '<li><b>Dein Steam-Konto</b> und/oder <b>dein Xbox-Konto</b>.</li>' : ''}
+${sel.friends ? '<li><b>Dein Steam-Konto</b> und/oder <b>dein Xbox-Konto</b>. Optional und inoffiziell auch <b>dein PlayStation-Konto</b>.</li>' : ''}
 ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</li>' : ''}
 </ol>
 <div class="box tip"><p>Du brauchst <b>keine Administrator-Rechte</b>. Das Programm wird nur für dein eigenes Windows-Konto installiert.</p></div>
@@ -236,7 +236,7 @@ ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</l
 <div class="box tip"><p><b>ScreenBuddy 2.9:</b> Lade <span class="key">ScreenBuddy.exe</span> herunter. Die Bilder zeigen die native Oberfläche aus der 2.5-Entwicklung (Farben &amp; Design und Statuspunkte der 2.9 sind nur beschrieben) mit anonymen Beispieldaten. Die frühere Version 2.3.0 hat andere Menüs; nutze dafür ihre eigene eingebettete Anleitung. Tipp: Lässt du die Maus kurz auf einem Statuspunkt links in der Liste ruhen, erklärt ein Hinweis, ob die Seite eingerichtet und an (grün) oder nicht eingerichtet bzw. aus (grau) ist.</p></div>
 <ol class="do">
 <li>Öffne diese Seite: <a href="https://github.com/PapaFuchs84/ScreenBuddy/releases/latest" target="_blank" rel="noopener">Aktueller Release auf GitHub</a>. Oder nimm die Datei, die dir der geschickt hat, von dem du diese Anleitung hast.</li>
-<li>Lade <span class="key">ScreenBuddy.exe</span> aus Release 2.9.2 herunter und prüfe die SHA-256-Prüfsumme mit der beiliegenden Prüfsummendatei.</li>
+<li>Lade <span class="key">ScreenBuddy.exe</span> aus Release 2.9.3 herunter und prüfe die SHA-256-Prüfsumme mit der beiliegenden Prüfsummendatei.</li>
 <li>Sie landet normalerweise im Ordner <b>Downloads</b>.</li>
 </ol>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
@@ -309,17 +309,17 @@ ${help([['Da steht „Die Hersteller-App des Displays läuft“.', `Klicke daneb
 <p class="lead">Damit du das Programm nicht jedes Mal selbst starten musst:</p>
 <ol class="do"><li>Öffne <b>Updates &amp; Autostart</b> und schalte <b>„Mit Windows starten“</b> ein. Er wird dann orange. (Hast du das beim Installieren schon angehakt, ist er schon an.)</li></ol>
 ${shot('app', [], '„Updates &amp; Autostart“. In der isolierten Testinstanz ist der Windows-Start gesperrt; in der normalen App ist er verfügbar.')}
-<div class="box tip"><p>Auf dieser Seite gibt es auch den Knopf ${b('Anleitung öffnen ↗')}. Damit kommst du jederzeit zurück zu dieser Anleitung.</p></div>
-<div class="box tip"><p><b>Neu in 2.2.0 – neue Version:</b> Das Programm schaut höchstens einmal am Tag bei GitHub nach, ob es eine neuere Version gibt. Dann erscheint eine Sprechblase am Fuchs-Symbol, und unter <b>Updates &amp; Autostart</b> steht „Neue Version verfügbar“ mit einem Link zur Download-Seite. Es wird nie etwas von allein installiert. Mit <b>Jetzt prüfen</b> fragst du selbst nach; der Schalter <b>„Auf neue Versionen hinweisen“</b> schaltet das Nachschauen aus.</p></div>
+<div class="box tip"><p>Auf der Seite <b>Übersicht</b> gibt es die Knöpfe ${b('Anleitung (DE)')} und ${b('Anleitung (EN)')}. Damit kommst du jederzeit zurück zu dieser Anleitung.</p></div>
+<div class="box tip"><p><b>Neu in 2.2.0 – neue Version:</b> Das Programm schaut höchstens einmal am Tag bei GitHub nach, ob es eine neuere Version gibt. Dann erscheint eine Sprechblase am Fuchs-Symbol, und unter <b>Updates &amp; Autostart</b> steht „Neue Version verfügbar“ mit einem Link zur Download-Seite. Es wird nie etwas von allein installiert. Mit <b>Jetzt nach Updates suchen</b> fragst du selbst nach; der Schalter <b>„Automatisch nach Updates suchen“</b> schaltet das Nachschauen aus.</p></div>
 <div class="box tip"><p>Ab jetzt startet das Programm von selbst, wenn du dich bei Windows anmeldest. Es zeigt dann nur das kleine Fuchs-Symbol unten rechts, die Einstellungen gehen nicht von allein auf. Ausschalten kannst du es auf derselben Seite.</p></div>`},
 
 {t: 'Seiten aussuchen', html: () => `
 <p class="kicker">Aussuchen</p><h1>Welche Seiten zeigt das Display?</h1>
 <p class="lead">Klicke links auf <b>„Seiten &amp; Reihenfolge“</b>. Dort wählst du Seiten aus und sortierst sie. Die Live-Vorschau steht rechts.</p>
-<div class="box tip"><p>Ab Version 2.0.4 kannst du mit den Steuerelementen der Live-Vorschau durch die Seiten blättern. Die aktuelle Position steht darunter. Auch Unterseiten langer Listen werden berücksichtigt. Der automatische Wechsel läuft danach weiter. Dafür musst du nicht speichern.</p></div>
+<div class="box tip"><p>Die Live-Vorschau zeigt das aktuelle Bild des gewählten Geräts. Zum Weiterschalten gibt es unter <b>Companion</b> die Knöpfe <b>Vorige Seite zeigen</b> und <b>Nächste Seite zeigen</b>; sie wirken auf die Companion-Ausgabe. Dafür musst du nicht speichern.</p></div>
 ${shot('uebersicht', [], 'Die native Seite „Seiten &amp; Reihenfolge“ mit Häkchen und Pfeilen.')}
 <ol class="do">
-<li>Mit dem <b>Häkchen</b> machst du eine Seite an oder aus. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Mach die Seiten aus, die du nicht willst.' : ''}${sel.friends ? ' Für Steam und Xbox schaltest du <b>„Freunde (alle Plattformen)“</b> ein.' : ''}</li>
+<li>Mit dem <b>Häkchen</b> machst du eine Seite an oder aus. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Mach die Seiten aus, die du nicht willst.' : ''}${sel.friends ? ' Für Steam, Xbox und PlayStation schaltest du <b>„Freunde“</b> ein.' : ''}</li>
 <li>Mit den <b>Pfeilen ▲ ▼</b> änderst du die Reihenfolge auf „Seiten &amp; Reihenfolge“.</li>
 <li>Den Regler <b>Helligkeit</b> findest du unter <b>Anzeige</b>.</li>
 </ol>
@@ -330,12 +330,12 @@ ${shot('uebersicht', [], 'Die native Seite „Seiten &amp; Reihenfolge“ mit H�
 <p class="lead">Dieser Schritt gilt für einen normalen Bildschirm über HDMI oder USB-C ab Version 2.0.3. Für ein kleines USB-Display über COM-Port kannst du weitergehen.</p>
 <ol class="do">
 <li>Verbinde den Bildschirm mit dem PC. Stelle Windows auf <b>Erweitern</b>. Für Touch muss auch die <b>USB-Touchverbindung</b> bestehen.</li>
-<li>Öffne <b>Anzeige</b> in den Einstellungen. Wähle unter <b>Display-Typ</b> die Ausgabe <b>Bildschirm über HDMI oder USB-C</b> und den vorgesehenen Bildschirm. Klicke auf <b>Speichern &amp; anwenden</b>.</li>
+<li>Öffne <b>Anzeige</b> in den Einstellungen. Wähle unter <b>Display-Typ</b> die Ausgabe <b>Monitor</b> (HDMI oder USB-C) und unter <b>Bildschirm</b> den vorgesehenen Monitor. Klicke auf <b>Speichern &amp; anwenden</b>.</li>
 <li>Erscheinen Berührungen auf einem anderen Bildschirm? Klicke auf <b>Touch-Bildschirm zuordnen</b>. Die Anzeige pausiert während des Windows-Assistenten.</li>
 <li>Überspringe andere Bildschirme mit <b>Enter</b>. Sobald der Text des Assistenten auf dem gewünschten Touchscreen steht, berühre diesen Bildschirm. <b>Esc</b> bricht ab.</li>
 <li>Klicke danach auf <b>Erneut prüfen</b>. Schalte bei Bedarf <b>Touch-Steuerung</b> ein und speichere. Nach links wischen = nächste Seite, nach rechts = vorherige; Tippen links = zurück, sonst weiter. Tippen auf einen Blogbeitrag öffnet ihn im Browser auf dem PC (ab 2.0.6).</li>
 </ol>
-<div class="box tip"><p><b>Neu in 2.0.7:</b> Tippe in der Battlefield-Rangliste auf einen Spieler: Sein Profil öffnet sich im Browser. Daneben siehst du jetzt die Spielstunden. Tippe auf einen Freund: Ab 2.1.0 öffnet sich der Steam-Chat mit dieser Person (die Steam-App muss installiert sein). Hat die Person kein Steam, öffnet sich ihr Discord-Profil (dort „Nachricht“ wählen), sonst ihr Xbox-Profil im Browser. Ob ein neues Fenster oder ein Tab aufgeht, entscheidet die Plattform-App bzw. dein Browser. Es wird keine Nachricht versendet. Wischen blättert weiterhin.</p></div>
+<div class="box tip"><p><b>Neu in 2.0.7:</b> Tippe in der Battlefield-Rangliste auf einen Spieler: Sein Profil öffnet sich im Browser. Daneben siehst du jetzt die Spielstunden. Tippe auf einen Freund: Ab 2.1.0 öffnet sich der Steam-Chat mit dieser Person (die Steam-App muss installiert sein). Hat die Person kein Steam, öffnet sich ihr Discord-Profil (dort „Nachricht“ wählen), sonst ihr Xbox- oder PlayStation-Profil im Browser. Ob ein neues Fenster oder ein Tab aufgeht, entscheidet die Plattform-App bzw. dein Browser. Es wird keine Nachricht versendet. Wischen blättert weiterhin.</p></div>
 <div class="box tip"><p><b>Neu in 2.1.0 – Home Assistant:</b> Bis zu 4 Werte oder Schalter aus deinem Smart Home auf dem Display. Mit Touch lassen sich Schalter und Lampen durch Tippen umlegen. Die Einrichtung steht im Schritt „Home Assistant“.</p></div>
 <div class="box tip"><p><b>Neu in 2.2.0 – Systemseite:</b> Tippe auf der Systemseite auf <b>RAM</b>, dann öffnet sich der Task-Manager. Tippe auf <b>Datenträger</b>: „Programme und Features“ öffnet sich. Tippe auf <b>Netzwerk</b>: Im Browser startet ein Geschwindigkeitstest (speedtest.net). Die Karten für Prozessor und Grafikkarte tun nichts.</p></div>
 <div class="box tip"><p>Die Vollbildanzeige liegt über der Taskleiste, ohne deinen Tastaturfokus zu übernehmen. Die Touch-Zuordnung wird von Windows gespeichert.</p></div>
@@ -412,24 +412,25 @@ ${shot('discord', [], 'Bot-Token und Personen stehen auf der nativen Discord-Sei
 <div class="box tip"><p>Wenn du <b>niemanden</b> anhakst, zeigt das Display alle Leute vom Server. Wenn du Freunde anhakst, nur diese.</p></div>
 ${help([['Bei „Personen“ steht „Der Bot ist gerade nicht verbunden“.', 'Prüfe, ob du den ganzen Token eingefügt hast, und ob du in Teil 1 die beiden Schalter (Intents) grün gemacht und gespeichert hast. Klicke dann noch einmal auf <b>Speichern &amp; anwenden</b>.'],
   ['Meine Freunde fehlen in der Liste.', 'Der Bot sieht nur Leute auf Servern, auf denen er selbst ist. Lade ihn auch auf den Server ein, auf dem deine Freunde sind (Teil 2).'],
-  ['Auf dem Display steht niemand.', 'Es werden nur Leute gezeigt, die gerade online sind. Oder schalte <b>„Offline-Freunde anzeigen“</b> ein.']])}`},
+  ['Auf dem Display steht niemand.', 'Es werden nur Leute gezeigt, die gerade online sind. Oder schalte <b>„Offline-Personen anzeigen“</b> ein.']])}`},
 
-{need: 'friends', t: 'Steam und Xbox', html: () => `
-<p class="kicker">Steam und Xbox</p><h1>Hol deine Steam- und Xbox-Freunde dazu</h1>
-<p class="lead">Dafür braucht das Display je einen <b>Schlüssel</b>. Das ist ein langer Code, mit dem die App deine Freundesliste lesen darf. Du brauchst nur die, die du benutzt.</p>
+{need: 'friends', t: 'Steam, Xbox, PlayStation', html: () => `
+<p class="kicker">Steam, Xbox, PlayStation</p><h1>Hol deine Freunde von Steam, Xbox und PlayStation dazu</h1>
+<p class="lead">Dafür braucht das Display je einen <b>Schlüssel</b>. Das ist ein langer Code, mit dem die App deine Freundesliste lesen darf. Du brauchst nur die, die du benutzt. PlayStation ist optional und standardmäßig aus.</p>
 <ol class="do">
 <li>Klicke links auf <b>„Freunde“</b>.</li>
-<li><b>Steam:</b> Klapp <b>„So bekommst du den Steam-Schlüssel“</b> auf und klicke auf ${g('Steam-Schlüssel holen ↗')}. Bei <b>Domain Name</b> schreibst du <b>localhost</b>. Den Schlüssel kopierst du ins Feld <b>Steam-Schlüssel</b>. Dieselben Schritte mit Knopf zeigt dir auch eine eigene Karte direkt unter dem Feld.</li>
-<li>Klapp <b>„So findest du deinen Profil-Link“</b> auf. Mit ${g('Mein Steam-Profil ↗')} öffnest du dein Profil. Kopier die Adresse oben aus dem Browser ins Feld <b>Dein Steam-Profil</b>.</li>
+<li><b>Steam:</b> Klapp <b>„So bekommst du den Steam-Schlüssel“</b> auf und klicke auf ${g('Steam-Schlüssel holen ↗')}. Bei <b>Domain Name</b> schreibst du <b>localhost</b>. Den Schlüssel kopierst du ins Feld <b>Steam-API-Schlüssel</b>. Dieselben Schritte mit Knöpfen zeigt dir auch eine eigene Karte direkt unter dem Feld.</li>
+<li>Öffne dein Steam-Profil im Browser und kopier die Adresse oben aus der Adresszeile ins Feld <b>Steam-ID oder Profiladresse</b>.</li>
 <li>Ganz wichtig: Mit ${g('Datenschutz öffnen ↗')} stellst du bei Steam <b>Freundesliste</b> auf <b>Öffentlich</b>.</li>
-<li><b>Xbox:</b> Klapp <b>„So bekommst du den Xbox-Schlüssel“</b> auf und folge den Schritten dort.</li>
+<li><b>Xbox:</b> Klapp <b>„So bekommst du den Xbox-Schlüssel (OpenXBL)“</b> auf und folge den Schritten dort.</li>
 <li>Klicke jeweils auf ${g('Verbindung prüfen')}. Grün heißt: klappt. Dann ${b('Speichern &amp; anwenden')}.</li>
 </ol>
-${shot('freunde', [], 'Die native Freunde-Seite enthält Steam- und Xbox-Einstellungen. Scrolle für weitere Felder nach unten.')}
+${shot('freunde', [], 'Die native Freunde-Seite enthält Steam-, Xbox- und PlayStation-Einstellungen. Scrolle für weitere Felder nach unten.')}
 <div class="box secret"><p>Die Schlüssel sind wie <b>Passwörter</b>. Zeig sie niemandem.</p></div>
-<div class="box tip"><p><b>PlayStation:</b> Klapp <b>„So bekommst du den PlayStation-Code“</b> auf und folge den Schritten. Sony erlaubt das offiziell nicht, die Nutzung ist deshalb inoffiziell und auf eigenes Risiko. Der Code ist wie ein Passwort.</p></div>
+<div class="box warn"><p><b>PlayStation (optional, inoffiziell):</b> Sony bietet für Freunde keine offizielle Schnittstelle. ScreenBuddy nutzt deshalb den <b>NPSSO-Code</b> deiner PlayStation-Anmeldung. Das geschieht <b>auf eigenes Risiko</b>: Sony kann die Schnittstelle jederzeit ändern oder dein Konto einschränken. Die Funktion ist <b>standardmäßig aus</b>; lass das Feld <b>PlayStation-Code (NPSSO)</b> leer, wenn du sie nicht willst. Zum Einrichten klapp <b>„So bekommst du den PlayStation-Code (NPSSO)“</b> auf und folge den Schritten, füge den Code ein und klicke auf ${g('Verbindung prüfen')}. Der Code ist wie ein Passwort, liegt nur verschlüsselt auf deinem PC und geht nur an Sony. Er läuft nach etwa zwei Monaten ab; dann holst du einfach einen neuen.</p></div>
 ${help([['Da steht, die Freundesliste ist privat.', 'Bei Steam die Freundesliste auf <b>Öffentlich</b> stellen (Schritt 4) und dann noch einmal prüfen.'],
   ['Ein Freund steht doppelt in der Liste.', 'Ganz unten bei <b>„Personen zusammenführen“</b> die beiden Konten auswählen und auf <b>Verknüpfen</b> klicken.'],
+  ['PlayStation meldet „Anmeldung abgelaufen oder ungültig“.', 'Der NPSSO-Code ist abgelaufen oder falsch kopiert. Hol dir einen neuen (er hat 64 Zeichen) und klicke wieder auf <b>Verbindung prüfen</b>.'],
   ['Discord-Freunde stehen jetzt doppelt auf dem Display.', 'In der <b>Übersicht</b> die Seite <b>„Discord-Freunde“</b> ausschalten. Die gemeinsame Liste zeigt Discord schon mit.']])}`},
 
 {need: 'bf6', t: 'Battlefield 6', html: () => `
@@ -437,21 +438,21 @@ ${help([['Da steht, die Freundesliste ist privat.', 'Bei Steam die Freundesliste
 <p class="lead">EA verrät nicht, wer deine Freunde sind. Darum schreibst du die Namen selbst auf.</p>
 <ol class="do">
 <li>Klicke links auf <b>„Battlefield 6“</b>.</li>
-<li>Schreib unten deinen <b>EA-Namen</b> in das Feld. Spielst du auf PlayStation oder Xbox, wähl das daneben aus.</li>
-<li>Klicke auf ${g('Hinzufügen')}. Mach das genauso für jeden Freund.</li>
-<li>Klicke bei einem Namen auf ${g('Prüfen')}. Steht dort grün ein <b>Rang</b>, ist der Name richtig.</li>
+<li>Schreib in der Liste <b>EA-IDs</b> deinen <b>EA-Namen</b> in eine Zeile. Spielst du auf PlayStation oder Xbox, häng <b>@psn</b> oder <b>@xbox</b> an den Namen, zum Beispiel <b>Name@psn</b>.</li>
+<li>Mach das genauso für jeden Freund, eine Zeile pro Name.</li>
+<li>Tipp unter <b>Name prüfen</b> einen Namen in das Feld <b>EA-ID</b> und klicke auf ${g('Prüfen')}. Steht dort grün ein <b>Rang</b>, ist der Name richtig.</li>
 </ol>
 ${shot('bf6', [], 'Battlefield-6-Einstellungen in der nativen Oberfläche. Scrolle für die Spielerliste nach unten.')}
 ${help([['Da steht „Spieler nicht gefunden“.', 'Schau genau auf die Schreibweise. Groß- und Kleinbuchstaben und Null und O werden oft verwechselt. Frag deinen Freund nach seinem genauen EA-Namen.'],
-  ['Mein Freund spielt auf der Konsole.', 'Wähle beim Eintragen rechts neben dem Feld <b>PlayStation</b> oder <b>Xbox</b> aus.']])}`},
+  ['Mein Freund spielt auf der Konsole.', 'Häng an den Namen <b>@psn</b> (PlayStation) oder <b>@xbox</b> (Xbox) an, zum Beispiel <b>Name@psn</b>.']])}`},
 
 {need: 'blogs', t: 'Neuigkeiten', html: () => `
 <p class="kicker">Neuigkeiten</p><h1>Such dir Webseiten aus</h1>
 <p class="lead">Das Display zeigt die neuesten Artikel von Webseiten, die öfter neue Sachen schreiben (zum Beispiel News-Seiten oder Blogs).</p>
 <ol class="do">
 <li>Klicke links auf <b>„Blogs“</b>.</li>
-<li>Kopier die Adresse der Webseite aus deinem Browser und füge sie unten ins Feld ein.</li>
-<li>Klicke auf ${g('Hinzufügen')} und dann auf ${g('Prüfen')}. Grün heißt: klappt.</li>
+<li>Kopier die Adresse der Webseite aus deinem Browser und füge sie in die Liste <b>Feed-Adressen</b> ein, eine Adresse pro Zeile.</li>
+<li>Füge die Adresse unter <b>Feed prüfen</b> ins Feld <b>Adresse</b> ein und klicke auf ${g('Prüfen')}. Grün heißt: klappt.</li>
 </ol>
 ${shot('blogs', [], 'Die native RSS-Seite. Scrolle für die Adressliste und Prüffunktion nach unten.')}
 ${help([['Da steht „Kein Feed gefunden“.', 'Manche Seiten machen keine Artikel-Liste für Programme. Probier eine andere Seite oder häng an die Adresse <span class="key">/feed/</span> an.']])}`},
@@ -504,7 +505,7 @@ ${shot('ha_setup', [], 'Adresse, Zugriffstoken und Verbindungsprüfung auf der n
 <h2>2. Kacheln wählen</h2>
 <ol class="do">
 <li>Unter <b>Entitäten</b> siehst du die Liste aus Home Assistant. Tippe im Feld ${b('Entität suchen …')} einen Teil des Namens ein, zum Beispiel „Wohnzimmer“.</li>
-<li>Klicke beim gewünschten Wert auf ${b('Hinzufügen')}. Es passen höchstens <b>4</b> auf die Seite, die Kacheln stehen in der Reihenfolge der Liste. Mit ${b('Entfernen')} nimmst du eine wieder heraus.</li>
+<li>Setze beim gewünschten Wert einen Haken. Die ID erscheint dann oben in der Liste <b>Entitäts-IDs</b>. Es passen höchstens <b>4</b> auf die Seite, die Kacheln stehen in der Reihenfolge der Liste. Nimmst du den Haken weg, verschwindet sie wieder.</li>
 <li>Schalte ganz oben ${b('Seite anzeigen')} ein und klicke unten auf ${b('Speichern &amp; anwenden')}.</li>
 </ol>
 <p>Die Entitäten-Auswahl liegt auf derselben Seite weiter unten. Scrolle im mittleren Bereich nach unten.</p>
@@ -553,7 +554,7 @@ ${shot('bar', [], '„Speichern &amp; anwenden“ befindet sich rechts unten im 
 <ol class="do">
 <li>Siehst du das Zeichen nicht? Klicke auf den kleinen Pfeil <span class="key">^</span>.</li>
 <li>Mach einen <b>Doppelklick</b> auf das orange Zeichen. Die Einstellungen gehen auf.</li>
-<li>Mit einem <b>Rechtsklick</b> auf das Zeichen siehst du: <b>Einstellungen öffnen</b>, <b>Anleitung öffnen</b>, <b>Neu starten</b> und <b>Beenden</b>. <b>Anleitung öffnen</b> zeigt diese Anleitung in deinem Browser, auch ohne das Einstellungsfenster. Auch der Knopf <b>Anleitung öffnen</b> in den Einstellungen öffnet sie im Browser, so hast du beides nebeneinander.</li>
+<li>Mit einem <b>Rechtsklick</b> auf das Zeichen siehst du: <b>Einstellungen öffnen</b>, <b>Anleitung öffnen</b>, <b>Neu starten</b> und <b>Beenden</b>. <b>Anleitung öffnen</b> zeigt diese Anleitung in deinem Browser, auch ohne das Einstellungsfenster. Auch die Knöpfe <b>Anleitung (DE)</b> und <b>Anleitung (EN)</b> auf der Seite <b>Übersicht</b> öffnen sie im Browser, so hast du beides nebeneinander.</li>
 <li>Wenn du den Eintrag im Startmenü angehakt hast, findest du das Programm auch dort: <b>ScreenBuddy</b> (Version 2.3.0: <b>FuchsLabs USB-Display</b>).</li>
 </ol>
 <div class="box tip"><p>Das Fenster zu schließen blendet nur die Einstellungen aus. Das Display läuft weiter.</p></div>`},
@@ -564,11 +565,11 @@ ${shot('bar', [], '„Speichern &amp; anwenden“ befindet sich rechts unten im 
 <p class="lead" style="text-align:center">Du hast alles eingerichtet. Jetzt kannst du zuschauen, wie die Seiten wechseln.</p>
 <h2>Wenn später etwas nicht klappt</h2>
 ${help([['Das Display bleibt dunkel.', 'Schau, ob das orange Zeichen unten rechts da ist. Wenn nicht: das Programm im Startmenü öffnen (oder die EXE doppelklicken). Danach auf <b>Übersicht</b> den Displaystatus prüfen.'],
-  ['Das Bild sieht verschoben oder komisch aus.', 'Kabel kurz abziehen und wieder anstecken. Oder auf der Seite <b>Display</b> auf <b>Neu starten</b> klicken.'],
+  ['Das Bild sieht verschoben oder komisch aus.', 'Kabel kurz abziehen und wieder anstecken. Oder auf der Seite <b>Updates &amp; Autostart</b> auf <b>Neu starten</b> klicken.'],
   ['Das Display ist zu dunkel.', 'Seite <b>Anzeige</b>, Regler <b>Helligkeit</b> nach rechts schieben, dann <b>Speichern &amp; anwenden</b>.'],
   ['Ich will das Programm loswerden.', 'Öffne in Windows <b>Einstellungen → Apps</b>, wähle <b>ScreenBuddy</b> (Version 2.3.0: <b>FuchsLabs USB-Display</b>) und klicke auf <b>Deinstallieren</b>. Windows fragt, ob auch deine Einstellungen und Zugangsdaten gelöscht werden sollen.']], 'Hilfe bei Problemen')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Viel Spaß! · © 2026 FuchsLabs</p>`},
-{t: 'Companion: Handy unabhängig steuern', html: () => `<h1>USB-Display und Handy gleichzeitig</h1><p class="lead">Companion-Vorschau ab Version 2.3.0: Beide Anzeigen haben eigene Seiten und Wechselintervalle.</p><ol><li>USB/HDMI als Display-Typ beibehalten. Im Reiter Companion den Dienst einschalten, speichern und anwenden.</li><li>Companion-App als separaten Download installieren (auf Android TV erscheint sie im TV-Launcher; Pfeil links/rechts an der Fernbedienung wechselt die Seite). Eine ältere Debug-APK hat eine andere Signatur und lässt sich nicht direkt aktualisieren; vor ihrer Deinstallation Sicherung und Umstieg abstimmen. Nach Neuinstallation erneut koppeln. Dasselbe private Netz oder USB-Tethering verwenden. Mit dem lokalen Code koppeln und Zertifikat-Fingerabdruck vergleichen.</li><li>Unter Companion → Unabhängige Companion-Anzeige die Handy-Seiten und Dauer wählen. Die andere Anzeige unter Display → Seiten auf USB-Display / Bildschirm wählen.</li><li>Die zusätzlichen Einstellungen erscheinen nur bei aktivem Companion. Datenquellen in ihrem eigenen Reiter einschalten und einrichten.</li></ol><p>Wischen schaltet nur das Handy um. Die native Auflösung folgt Verbindung und Rotation. Das zuerst verbundene Handy bestimmt die gemeinsame Companion-Größe; weitere Handys teilen dessen Seiten. Größere Anfragen werden proportional auf höchstens 2560 Pixel je Kante / 4.194.304 Pixel verkleinert. Redmi-Ausgabe, injizierte Gesten und Wiederverbindung sind über USB-Tethering mit dem Vorgänger 0.2.1-preview geprüft. Der Nutzer bestätigte außerdem scharfes Bild, Wischen und Tippen mit dem Finger. WLAN und physischer USB-Betrieb in derselben neuen PC-Instanz brauchen eine gesonderte Abnahme.</p>`}
+{t: 'Companion: Handy unabhängig steuern', html: () => `<h1>USB-Display und Handy gleichzeitig</h1><p class="lead">Companion-Vorschau ab Version 2.3.0: Beide Anzeigen haben eigene Seiten und Wechselintervalle.</p><ol><li>USB/HDMI als Display-Typ beibehalten. Im Reiter Companion den Dienst einschalten, speichern und anwenden.</li><li>Companion-App als separaten Download installieren (auf Android TV erscheint sie im TV-Launcher; Pfeil links/rechts an der Fernbedienung wechselt die Seite). Eine ältere Debug-APK hat eine andere Signatur und lässt sich nicht direkt aktualisieren; vor ihrer Deinstallation Sicherung und Umstieg abstimmen. Nach Neuinstallation erneut koppeln. Dasselbe private Netz oder USB-Tethering verwenden. Mit dem lokalen Code koppeln und Zertifikat-Fingerabdruck vergleichen.</li><li>Unter Companion → Seiten für Companion die Handy-Seiten und den Seitenwechsel wählen. Die andere Anzeige unter Display → Seiten auf USB-Display / Bildschirm wählen.</li><li>Die zusätzlichen Einstellungen erscheinen nur bei aktivem Companion. Datenquellen in ihrem eigenen Reiter einschalten und einrichten.</li></ol><p>Wischen schaltet nur das Handy um. Die native Auflösung folgt Verbindung und Rotation. Das zuerst verbundene Handy bestimmt die gemeinsame Companion-Größe; weitere Handys teilen dessen Seiten. Größere Anfragen werden proportional auf höchstens 2560 Pixel je Kante / 4.194.304 Pixel verkleinert. Redmi-Ausgabe, injizierte Gesten und Wiederverbindung sind über USB-Tethering mit dem Vorgänger 0.2.1-preview geprüft. Der Nutzer bestätigte außerdem scharfes Bild, Wischen und Tippen mit dem Finger. WLAN und physischer USB-Betrieb in derselben neuen PC-Instanz brauchen eine gesonderte Abnahme.</p>`}
 ];
 
 const $ = s => document.querySelector(s);

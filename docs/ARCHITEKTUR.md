@@ -1,6 +1,6 @@
 # ScreenBuddy · Architektur (arc42 kompakt)
 
-Stand: 2.7.0. Dieses Dokument ist aus der Repository-Struktur (`cpp/src/`), dem [C++-README](../cpp/README.md) und den Release-Notizen abgeleitet. Aussagen zu einzelnen Dateien beruhen auf deren Namen und den dokumentierten Funktionen; was nicht im Quellcode nachgeprüft wurde, steht unter [Offene Punkte](#9-offene-punkte).
+Stand: 2.9.3 (Datenquellen, Companion-Version und Testverweise am 31.10.2026 gegen `cpp/src/` geprüft). Dieses Dokument ist aus der Repository-Struktur (`cpp/src/`), dem [C++-README](../cpp/README.md) und den Release-Notizen abgeleitet. Aussagen zu einzelnen Dateien beruhen auf deren Namen und den dokumentierten Funktionen; was nicht im Quellcode nachgeprüft wurde, steht unter [Offene Punkte](#9-offene-punkte).
 
 ## 1. Einführung und Ziele
 
@@ -33,6 +33,8 @@ flowchart LR
   app --> discord[Discord-Bot]
   app --> steam[Steam Web API]
   app --> xbox[OpenXBL]
+  app -.->|optional, inoffiziell, NPSSO| psn[PlayStation Network]
+  app --> spotify[Spotify Web API]
   app --> bf6[gametools.network]
   app --> rss[RSS/Atom-Feeds]
   app --> tmdb[TMDB API v3 + JustWatch-Anbieterdaten]
@@ -57,8 +59,8 @@ Gruppierung nach den Dateien in `cpp/src/`:
 |---|---|---|
 | Start und Ablauf | `main`, `app`, `tray` | Prozessstart, Hauptschleife, Infobereich-Symbol |
 | Installation | `installer`, `winsetup`, `update` | Installer in der EXE, Windows-Einrichtung/Autostart, Update-Hinweis |
-| Konfiguration | `config`, `secure`, `i18n`, `brand` | `config.toml`, DPAPI-Schlüssel, DE/EN-Texte, CI |
-| Datenquellen | `sysinfo`, `discord`, `friends`, `bf6`, `rss`, `tmdb`, `tmdb_logic`, `ha` | System, Discord, Freunde (Discord/Steam/Xbox), Battlefield 6, Blogs, Streaming-Neustarts (TMDB; `tmdb_logic` plattformneutral und unter Linux testbar), Home Assistant |
+| Konfiguration | `config`, `secure`, `i18n`, `brand`, `theme`, `key_help` | `config.toml`, DPAPI-Schlüssel, DE/EN-Texte, CI, Farbdesigns und Designsysteme, Schlüssel-Hilfen mit festen Anbieter-Adressen |
+| Datenquellen | `sysinfo`, `discord`, `friends`, `psn_logic`, `bf6`, `rss`, `tmdb`, `tmdb_logic`, `ha`, `spotify`, `amp_logic`, `audio_levels` | System, Discord, Freunde (Discord/Steam/Xbox und optional PlayStation über Sonys inoffizielle Schnittstelle; `psn_logic` liest nur die Antworten, plattformneutral und unter Linux testbar), Battlefield 6, Blogs, Streaming-Neustarts (TMDB; `tmdb_logic` plattformneutral und unter Linux testbar), Home Assistant, Spotify mit Amplifier (`amp_logic` plattformneutral; `audio_levels` liest den Pegel der Systemausgabe lokal) |
 | Netz und Schutz | `http`, `netguard`, `webui` | HTTPS-Abrufe, Prüfung auf nicht öffentliche Ziele, lokaler Loopback-Dienst |
 | Darstellung | `render`, `gfx`, `models` | Seiten rendern, Grafikhilfen, Datenmodelle |
 | Ausgabe | `output.h`, `serial_display`, `monitor_display`, `network_display`, `touch` | USB-Display, Vollbild-Monitor, Netzwerk-/Companion-Ausgabe, Touch-Eingabe |
@@ -89,14 +91,14 @@ sequenceDiagram
 
 ## 7. Verteilung
 
-Eine unsignierte `ScreenBuddy.exe` (Installer, App, Updater, Deinstaller). Standardziel `%LOCALAPPDATA%\FuchsLabs\USB-Display`. Daten: `config.toml`, `companion.json`, `usb-display.log`, `update-check.json`. Die Companion-APK 1.0.0 (signiert) ist ein separater Download. Plugins kommen aus dem Store-Repo `PapaFuchs84/ScreenBuddy-Plugins` (signierter Index, Pages).
+Eine unsignierte `ScreenBuddy.exe` (Installer, App, Updater, Deinstaller). Standardziel `%LOCALAPPDATA%\FuchsLabs\USB-Display`. Daten: `config.toml`, `companion.json`, `usb-display.log`, `update-check.json`. Die Companion-APK (Quellstand 1.0.2, versionCode 6; signiert) ist ein separater Download. Plugins kommen aus dem Store-Repo `PapaFuchs84/ScreenBuddy-Plugins` (signierter Index, Pages).
 
 ## 8. Querschnitt
 
-- **Sicherheit:** keine Admin-Rechte, keine Telemetrie; DPAPI; Dienst nur auf `127.0.0.1` mit Host-, Fetch-Metadata- und `X-FL: 1`-Prüfung; Ziele und Weiterleitungen gegen nicht öffentliche IP-Bereiche geprüft; Ed25519-signierter Store-Index mit festem öffentlichem Schlüssel und Sperrliste; Aktionen wie Schlösser oder Alarmanlagen in Home Assistant bewusst nicht schaltbar.
+- **Sicherheit:** keine Admin-Rechte, keine Telemetrie; DPAPI (auch für den optionalen PlayStation-NPSSO-Code, der nur an Sony gesendet wird); Dienst nur auf `127.0.0.1` mit Host-, Fetch-Metadata- und `X-FL: 1`-Prüfung; Ziele und Weiterleitungen gegen nicht öffentliche IP-Bereiche geprüft; Ed25519-signierter Store-Index mit festem öffentlichem Schlüssel und Sperrliste; Aktionen wie Schlösser oder Alarmanlagen in Home Assistant bewusst nicht schaltbar.
 - **Sprache:** Standard folgt Windows; Texte in `cpp/src/i18n.cpp` und `ui_page_*.cpp`.
 - **Design:** FuchsLabs-CI (Fuchs-Orange, Creme, Navy), hell/dunkel/eigene Farben mit Kontrastwarnung.
-- **Tests:** Kern-, Parser-, Plugin-, Monitor-, Companion- und Installer-Prüfungen im Build (`cpp/tests/`); Echtgeräteprüfungen im [Testprotokoll](../cpp/TESTPROTOKOLL.md) (Stand 2.6.0) und für 2.7.0 in den [Release-Notizen](RELEASE-NOTES-2.7.md).
+- **Tests:** Kern-, Parser- (u. a. TMDB, PlayStation), Plugin-, Monitor-, Companion- und Installer-Prüfungen im Build (`cpp/tests/`); Echtgeräteprüfungen und Grenzen im [Testprotokoll](../cpp/TESTPROTOKOLL.md) (aktuell mit Eintrag „Release 2.9.3“).
 
 ## 9. Offene Punkte
 

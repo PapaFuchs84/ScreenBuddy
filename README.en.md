@@ -8,7 +8,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.9.2-F77F00)
+![Version](https://img.shields.io/badge/version-2.9.3-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -23,6 +23,8 @@
 </div>
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
+
+**New in 2.9.3:** PlayStation friends in the combined friends list (badge “P”, online status and current game). Sony offers no official interface for this: the feature uses the NPSSO code of your PlayStation sign-in, is **unofficial**, **optional**, **off by default** and **at your own risk** (Sony may change it at any time or restrict the account). The code is stored DPAPI-encrypted and sent only to Sony; an authorisation code with a dot (`v3.…`) is accepted. [Release notes 2.9.3](docs/RELEASE-NOTES-2.9.3.md).
 
 **New in 2.9.2:** Cupertino: collapsible sidebar and optional inspector; Fluent: page search and Back history; Material: five destinations, subpages and floating save actions for pending changes. System displays also use distinct compositions. Cupertino, Fluent and Material design profiles control shapes, typography, spacing and native interaction feedback as well as colors. [Details and limits](docs/THEMES.md#design-systems-since-292).
 
@@ -55,7 +57,7 @@ All three design systems have paired light/dark palettes, six examples and a nat
 | Page | Content | Source | Refresh |
 |---|---|---|---|
 | **System** | CPU (load, clock, temperature, fan), GPU (load, temperature, fan, VRAM), RAM, drive, network with history | Windows APIs, `nvidia-smi`, HWiNFO shared memory | every second |
-| **Friends** | Discord, Steam and Xbox in one list; each person appears only once | your own Discord bot, Steam Web API, [OpenXBL](https://xbl.io) | instant / 1 min / 3 min |
+| **Friends** | Discord, Steam, Xbox and (new in 2.9.3, optional) PlayStation in one list; each person appears only once | your own Discord bot, Steam Web API, [OpenXBL](https://xbl.io), PlayStation only via Sony’s unofficial interface (NPSSO code, default: off) | instant / 1 min / 3 min / 2 min |
 | **Discord friends** | status, activity, avatar | your own Discord bot | instant |
 | **Battlefield 6 · Leaderboard** | the EA friends you add, ranked, with badge, K/D and win rate | [gametools.network](https://api.gametools.network) | 15 min |
 | **Blog updates** | newest post per blog; the app finds the feed itself | RSS/Atom | 30 min |
@@ -100,10 +102,10 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.9.2](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.2). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
+1. Download **ScreenBuddy.exe** from [release 2.9.3](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.3). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
-4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
+4. On first setup, settings open in their own Windows window. Choose **EN** with the **DE | EN** switch at the top right of the settings window, then **Save & apply**.
 5. Configure pages and data sources. Reopen settings by double-clicking the fox tray icon, via its **Open settings** menu entry, or by starting the installed app again. Closing the settings window leaves the display running; use **Quit** in the tray to stop it.
 
 The installer can import Version 1.x settings and retains the old folder with a `-1.x-alt` suffix. Updates keep an existing destination configuration. Back up the EXE, `config.toml` and `companion.json` before every upgrade. The illustrated guide opens in your default browser via **Open guide** in the fox icon menu and is embedded in the EXE.
@@ -117,6 +119,7 @@ For an HDMI/USB-C touchscreen, choose the intended monitor under **Display**. If
 | Discord | your own bot in the [Developer Portal](https://discord.com/developers/applications) with *Presence Intent* and *Server Members Intent*, invited to your server | free |
 | Steam | a [Steam Web API key](https://steamcommunity.com/dev/apikey) and your profile link; friends list set to “Public” | free |
 | Xbox | a key from [OpenXBL](https://xbl.io) | free tier |
+| PlayStation (optional, unofficial) | the NPSSO code of your PlayStation sign-in; expires after about two months, works like a password, use at your own risk | free |
 | Battlefield 6 | just your friends' EA IDs | free |
 | CPU temperature and fan | [HWiNFO64](https://www.hwinfo.com/), set up with `hwinfo-einrichten.bat` | free |
 
@@ -217,13 +220,13 @@ App translations are in `cpp/src/i18n.cpp`, native page text under `cpp/src/ui_p
 - The local service is **only reachable on `127.0.0.1`** and protected against DNS rebinding, CSRF and framing by other sites.
 - All connections use HTTPS with certificate checks; packages are pinned to exact versions.
 
-Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: [release notes 2.9](docs/RELEASE-NOTES-2.9.md); the [test record](cpp/TESTPROTOKOLL.md) has the entry for 2.8.0 (31 October 2026); the results of the release run-through for 2.9.0 will be in the release notes 2.9 once available. Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
+Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: the [test record](cpp/TESTPROTOKOLL.md) (German) has the entry “Release 2.9.3” (31 October 2026); the 2.9.x release notes are listed under [Documents](#documents). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
 
 ## Testing and feedback
 
 The app is in testing. Please report bugs and ideas via **Issues → New issue** using the “Bug report” or “Idea or feedback” forms. Where to find the log `usb-display.log` and what must never be sent: [`TESTPHASE.en.md`](TESTPHASE.en.md).
 
-**Validation of 2.8.0:** 1,507 automated checks passed in the release build; real-system observation with two Android devices, the USB display (480 × 320), a real TMDB key and a Spotify account. Open: TMDB logo, store update, DPI/screen-reader, Windows sign-in, Wi-Fi and boot acceptance. Complete results and all limits: [release notes 2.8](docs/RELEASE-NOTES-2.8.md). Previous state: [2.7](docs/RELEASE-NOTES-2.7.md). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
+**Validation of 2.9.3:** release build green with all built-in suites (among them 1357 core, 119 TMDB, 251 plugin, 127 store, 140 transport, 135 settings and 361 Companion checks, plus two installer checks); the EXE reports 2.9.3; on the real system COM7 was connected and the Companion server started, Redmi and Android TV showed pages (adb screenshots). PlayStation live returned one account with a fresh code. **Not verified:** PlayStation status/game on the devices, store install/update through the UI, and physical acceptance. Details and limits: [test record](cpp/TESTPROTOKOLL.md) (German). Previous state: [release notes 2.8](docs/RELEASE-NOTES-2.8.md) (1,507 checks). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
 
 ## Documents
 
@@ -235,7 +238,7 @@ All documents by audience (German): [`docs/README.md`](docs/README.md). The most
 | [`docs/FEATURES.en.md`](docs/FEATURES.en.md) | features in detail ([Deutsch](docs/FUNKTIONEN.md)) |
 | [`docs/PLUGIN-SYSTEM.en.md`](docs/PLUGIN-SYSTEM.en.md) | plugin guide ([Deutsch](docs/PLUGIN-SYSTEM.md)), [tutorial](docs/PLUGIN-TUTORIAL.en.md), [store terms](docs/PLUGIN-STORE-TERMS.md) |
 | [`docs/COMPANION.en.md`](docs/COMPANION.en.md) | Companion setup ([Deutsch](docs/COMPANION.md)) |
-| [`docs/RELEASE-NOTES-2.7.md`](docs/RELEASE-NOTES-2.7.md) | release notes of the current version (German/English) |
+| [`docs/RELEASE-NOTES-2.9.3.md`](docs/RELEASE-NOTES-2.9.3.md) | release notes of the current version (German/English; earlier: [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
 | [`CHANGELOG.en.md`](CHANGELOG.en.md) | changes per version ([Deutsch](CHANGELOG.md)) |
 | [`CONTRIBUTING.en.md`](CONTRIBUTING.en.md) | contributing ([Deutsch](CONTRIBUTING.md)) |
 | [`SECURITY.en.md`](SECURITY.en.md) | reporting vulnerabilities ([Deutsch](SECURITY.md)) |
@@ -252,4 +255,4 @@ Like the app? FuchsLabs appreciates a coffee: [☕ paypal.me/SHerbst84](https://
 
 The code is released under the [MIT License](LICENSE), © 2026 FuchsLabs. The name and fox-head logo are excluded ([TRADEMARKS.md](TRADEMARKS.md)). Third-party components retain their own licences ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
-Battlefield, Discord, Steam and Xbox are trademarks of their respective owners. FuchsLabs is not affiliated with them.
+Battlefield, Discord, Steam, Xbox and PlayStation are trademarks of their respective owners. FuchsLabs is not affiliated with them.

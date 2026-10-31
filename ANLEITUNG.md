@@ -4,11 +4,11 @@
 
 > **Bebilderte Anleitung:** Sie öffnet sich über **Anleitung öffnen** im Menü des Symbols im Infobereich im Standardbrowser und ist in der EXE enthalten. Sprache und Hell/Dunkel des Einstellungsfensters stellst du oben rechts um (DE | EN).
 
-Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastung, Temperaturen, Netzwerk), **Discord-Freunde**, **Freunde von Steam, Xbox und Discord** in einer Liste, eine **Battlefield-6-Rangliste** und **Blog-Updates**. Du brauchst keine Vorkenntnisse.
+Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastung, Temperaturen, Netzwerk), **Discord-Freunde**, **Freunde von Steam, Xbox, Discord und (optional, inoffiziell) PlayStation** in einer Liste, eine **Battlefield-6-Rangliste** und **Blog-Updates**; dazu optional Streaming-Neustarts, Home Assistant und Spotify. Du brauchst keine Vorkenntnisse.
 
 ## In 3 Minuten loslegen
 
-1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest), derzeit **2.9.2**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
+1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest), derzeit **2.9.3**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
 2. Windows 10/11 x64 verwenden. Seit 2.5.0 wird keine Microsoft Edge WebView2 Runtime mehr benötigt (die frühere Version 2.3.0 braucht sie noch).
 3. Display anschließen und `ScreenBuddy.exe` starten. Der Installer richtet die App unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` ein. Er benötigt dafür keine Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster** für die Einstellungen.
@@ -36,7 +36,7 @@ Ohne erkannten Touchscreen ist der Einrichtungsbutton deaktiviert. Dann USB-Verb
 
 ## Touch-Ziele und Spielstunden (ab 2.0.8)
 
-Entwickelt als 2.0.7; diese Version wurde nicht einzeln veröffentlicht, die Funktion steht ab 2.0.8 zur Verfügung. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
+Entwickelt als 2.0.7; diese Version wurde nicht einzeln veröffentlicht, die Funktion steht ab 2.0.8 zur Verfügung. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com oder ihr PlayStation-Profil auf my.playstation.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](docs/TOUCH-2.0.7.md). [Prüfstand](cpp/TESTPROTOKOLL.md).
 
 ## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
 
@@ -73,7 +73,7 @@ Mit der Companion-App kannst du dein Android-Smartphone oder Tablet als zusätzl
 ### 4. Eigene Seiten für das Smartphone festlegen
 1. Unter **Companion → Seiten für Companion** die gewünschten Seiten für das Handy anhaken (▲/▼ sortiert) und den **Seitenwechsel** (3–600 Sekunden) einstellen. Ist **Geräte synchron anzeigen** ausgeschaltet, kann jedes gekoppelte Gerät unter **Seiten für das ausgewählte Gerät** eine eigene Liste erhalten.
 2. Das USB-Display bzw. der HDMI-Monitor behält seine eigene Seitenliste und Anzeigedauer unter **Seiten & Reihenfolge** und **Anzeige → Anzeigedauer pro Seite**.
-3. Datenquellen (System, Discord, Freunde, Battlefield, Blogs, Home Assistant) werden auf ihren jeweiligen Seiten aktiviert und konfiguriert; beide Anzeigen greifen gemeinsam darauf zu.
+3. Datenquellen (System, Discord, Freunde, Battlefield, Blogs, Streaming-Neustarts, Home Assistant, Spotify) werden auf ihren jeweiligen Seiten aktiviert und konfiguriert; beide Anzeigen greifen gemeinsam darauf zu.
 
 ### 5. Bedienung auf dem Smartphone
 - **Wischen:** Ein Wisch nach links wechselt zur nächsten Seite, nach rechts zur vorherigen Seite. Das Blättern wirkt nicht auf das Hauptdisplay. Bei synchroner Anzeige (Standard) wechseln alle gekoppelten Handys gemeinsam, bei ausgeschalteter Synchronisation jedes Gerät einzeln.
@@ -97,7 +97,8 @@ Alles ist optional, schalte nur ein, was du magst (**Seiten & Reihenfolge**: Hak
   2. Links **Bot** → **Reset Token** → den Token kopieren. Weiter unten **Presence Intent** und **Server Members Intent** einschalten → Speichern.
   3. Links **OAuth2 → URL Generator** → Haken bei **bot** → die erzeugte Adresse öffnen und deinen Server auswählen.
   4. In der Einstellungsseite bei **Discord** den Token einfügen und mit **Speichern & anwenden** bestätigen. Danach kannst du unter **Personen auswählen** festlegen, wen du sehen willst.
-- **Freunde (Steam, Xbox, Discord):** Bei **Freunde** die Schlüssel eintragen. Unter jedem Feld klappt eine kleine Hilfe auf, mit Knöpfen, die direkt die richtige Seite öffnen.
+- **Freunde (Steam, Xbox, Discord, PlayStation):** Bei **Freunde** die Schlüssel eintragen und jeweils **Verbindung prüfen** wählen. Unter jedem Feld klappt eine kleine Hilfe auf, mit Knöpfen, die direkt die richtige Seite öffnen.
+  - **PlayStation ist optional, inoffiziell und standardmäßig aus.** Sony bietet für Freunde keine offizielle Schnittstelle; ScreenBuddy nutzt den **NPSSO-Code** deiner PlayStation-Anmeldung (Hilfe **„So bekommst du den PlayStation-Code (NPSSO)“**). Das geschieht auf eigenes Risiko: Sony kann die Schnittstelle jederzeit ändern oder das Konto einschränken. Der Code wirkt wie ein Passwort, liegt nur DPAPI-verschlüsselt auf dem PC, wird nur an Sony gesendet und läuft nach etwa zwei Monaten ab. Lass das Feld leer, wenn du PlayStation nicht nutzen willst.
 - **Battlefield 6:** Bei **Battlefield 6** die EA-Namen deiner Freunde eintragen und mit **Prüfen** testen. (EA gibt keine Freundesliste heraus, deshalb trägst du die Namen selbst ein.)
 - **Blogs:** Bei **Blogs** die Adresse deiner Lieblingsblogs eintragen. Den Feed sucht die App selbst.
 - **Streaming-Neustarts:** Bei **Streaming-Neustarts** einen kostenlosen TMDB-Key (themoviedb.org → Einstellungen → API) eintragen, **Key prüfen & Anbieter laden** wählen und deine Anbieter ankreuzen. Die Seite zeigt neue Filme und Serien der letzten 30 Tage. This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.
