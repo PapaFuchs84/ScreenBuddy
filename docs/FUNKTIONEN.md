@@ -1,6 +1,6 @@
 # ScreenBuddy · Funktionen im Detail
 
-Aus dem README ausgelagert (Stand 2.9.3). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
+Aus dem README ausgelagert (Stand 2.9.4). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
 
 ## Inhalt
 
@@ -87,3 +87,7 @@ Mehr: [Plugin-System](PLUGIN-SYSTEM.md) · [Tutorial](PLUGIN-TUTORIAL.md) · [St
 ## Ansichten durchblättern (ab 2.0.4)
 
 Seit 2.0.4 lässt sich die laufende Anzeige per Knopfdruck weiterschalten, ohne zu speichern oder neu zu starten. In der nativen Oberfläche (ab 2.5.0) stehen dafür **Vorige Seite zeigen** und **Nächste Seite zeigen** unter **Einstellungen → Companion** bereit; sie wirken auf die Companion-Ausgabe (im unabhängigen Modus auf alle verbundenen Geräte). Für die Hauptanzeige gibt es den Schritt nur über die lokale Schnittstelle (`POST /api/pages/step`). Die früheren Knöpfe „Vorherige Ansicht“/„Nächste Ansicht“ unter **Übersicht** gibt es in der nativen Oberfläche nicht. Geänderte Seitenauswahl und Reihenfolge gelten nach **Speichern & anwenden**.
+
+## Streaming- und Spotify-Touch (2.9.4)
+
+Bei aktivem Touch öffnet ein Streaming-Titel seine TMDB-Detailseite am PC im Standardbrowser. Auf Meanmachine mit Chrome als neuer Tab geprüft; Fenster-/Tab-Verhalten richtet sich nach dem Browser. Ein Tipp auf das geladene Spotify-Cover öffnet die Spotify-App am PC, auch ohne Premium. Ohne Cover ist die Aktion inaktiv; bei fehlender App bleibt ScreenBuddy stabil. Die vorhandenen Wiedergabetasten bleiben getrennt. Die TMDB-Hilfe erklärt die Beantragung mit Feldbeispielen.

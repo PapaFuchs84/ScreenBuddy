@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Planned for 2.9.4: snapshot-bound TMDB touch rows, Spotify desktop cover action, and clearer bilingual TMDB application help.
+## 2.9.4 – 31 October 2026
+
+- snapshot-bound TMDB touch rows, Spotify desktop cover action, and clearer bilingual TMDB application help.
 
 ## 2.9.3 – 31 October 2026
 

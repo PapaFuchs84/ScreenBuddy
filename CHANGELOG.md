@@ -6,7 +6,9 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
-### Geplant für 2.9.4
+## [2.9.4] – 2026-10-31
+
+### Hinzugefügt
 
 - Touch auf Streaming-Titel öffnet die passende TMDB-Infoseite am PC im Standardbrowser.
 - Touch auf das Spotify-Cover öffnet die Spotify-App am PC, auch ohne Premium.

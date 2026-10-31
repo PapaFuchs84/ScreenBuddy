@@ -6,7 +6,9 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
-### Planned for 2.9.4
+## [2.9.4] – 2026-10-31
+
+### Added
 
 - Touching a streaming title opens its TMDB details in the default browser on the PC.
 - Touching Spotify cover art opens the Spotify desktop app, without requiring Premium.
