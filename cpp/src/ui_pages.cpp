@@ -3,6 +3,10 @@
 
 #include <algorithm>
 
+#include <windows.h>
+#include <shellapi.h>
+
+#include "key_help.h"
 #include "util.h"
 
 namespace fl::ui {
@@ -80,5 +84,31 @@ bool flag(const ojson& cfg, const char* sec, const char* key) {
 }
 
 Text join(const Text& a, const std::wstring& b) { return Text(a.de + b, a.en + b); }
+
+Card* add_key_help(Column& root, Host& host, const std::string& id) {
+    const keyhelp::Help* h = keyhelp::find(id);
+    if (!h) return nullptr;
+    Card* card = root.add<Card>(Text(h->title_de, h->title_en));
+    for (size_t i = 0; i < h->steps_de.size(); ++i) {
+        const std::wstring n = std::to_wstring(i + 1) + L". ";
+        const std::wstring& en = i < h->steps_en.size() ? h->steps_en[i] : h->steps_de[i];
+        card->add<Note>(Text(n + h->steps_de[i], n + en));
+    }
+    auto buttons = card->add<ButtonRow>();
+    bool first = true;
+    for (const auto& link : h->links) {
+        const std::string url = link.url;
+        Host* hp = &host;
+        buttons->add(Text(link.de, link.en), first ? Button::Primary : Button::Secondary, [hp, url] {
+            // Nur Adressen aus der Tabelle in key_help.cpp werden geöffnet.
+            if (!keyhelp::is_official_url(url)) return;
+            const HINSTANCE r = ShellExecuteW(hp->window(), L"open", widen(url).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+            if (reinterpret_cast<INT_PTR>(r) <= 32)
+                hp->toast(T(L"Der Browser konnte nicht geöffnet werden.", L"Could not open the browser."), ToastKind::Error);
+        });
+        first = false;
+    }
+    return card;
+}
 
 }  // namespace fl::ui

@@ -6,6 +6,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Added
+
+- Help for API keys and tokens: under the credential fields for Discord, Steam, Xbox, TMDB, Spotify and Home Assistant a card “How to get …” explains in short steps (DE/EN) where the key is created and opens the official page with a button. Only fixed https addresses are opened; keys are never read or logged. Guide and docs updated.
+
 ## [2.9.0] – 2026-10-31
 
 ### Added

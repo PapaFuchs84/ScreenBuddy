@@ -46,6 +46,7 @@ public:
         result_->width = 340;
         check_ = acc->add<ButtonRow>()->add(T(L"Key prüfen & Anbieter laden", L"Check key & load providers"),
                                             Button::Secondary, [this] { load(); });
+        add_key_help(root, host, "tmdb");
 
         Card* prov = root.add<Card>(T(L"Anbieter", L"Providers"),
                                     T(L"Höchstens 30. Zeilen „ID|Name“ (TMDB-Provider-ID). Vorbelegt: Netflix, Prime Video, Disney+, Apple TV+, WOW, RTL+.",

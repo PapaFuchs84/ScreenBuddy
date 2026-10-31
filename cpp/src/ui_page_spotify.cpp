@@ -53,13 +53,10 @@ public:
                     {"level", "gradient", "theme"},
                     {T(L"Pegel (Grün/Gelb/Rot)", L"Level (green/yellow/red)"), T(L"Verlauf im Design", L"Theme gradient"), T(L"Design (einfarbig)", L"Theme (single colour)")});
 
-        Card* setup = root.add<Card>(T(L"Spotify-App anlegen", L"Create a Spotify app"),
-            T(L"Einmalig, kostenlos und nur für dich. 1) Auf developer.spotify.com › Dashboard eine App anlegen. "
-              L"2) Als Redirect URI genau die Adresse unten eintragen. 3) Die Client-ID hier einfügen und speichern. "
-              L"4) Auf „Bei Spotify anmelden“ klicken.",
-              L"One time, free and just for you. 1) Create an app at developer.spotify.com › Dashboard. "
-              L"2) Add exactly the address below as Redirect URI. 3) Paste the client ID here and save. "
-              L"4) Click “Sign in to Spotify”."));
+        add_key_help(root, host, "spotify");
+        Card* setup = root.add<Card>(T(L"Spotify-App eintragen", L"Enter your Spotify app"),
+            T(L"Einmalig, kostenlos und nur für dich. Die Redirect URI muss genau so in der Spotify-App stehen.",
+              L"One time, free and just for you. The redirect URI must be entered exactly like this in the Spotify app."));
         redirect_ = setup->row<Label>(T(L"Redirect URI", L"Redirect URI"), Text(),
                                       Text(widen(spotify::redirect_uri(host.app().cfg()["ui"].value("port", 8765)))), Font::Small, Label::Normal);
         auto copy = setup->add<ButtonRow>();
