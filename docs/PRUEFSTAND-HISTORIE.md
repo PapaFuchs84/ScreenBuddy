@@ -1,6 +1,6 @@
 # ScreenBuddy · Prüfstände früherer Versionen (historisch)
 
-Aus dem README ausgelagert. Der **aktuelle** Prüfstand steht in den [Release-Notizen 2.7](RELEASE-NOTES-2.7.md), das laufende Testprotokoll in [`cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md). Die Einträge sind unverändert und werden nicht auf neuere Versionen umgeschrieben. Fachdoku, nur Deutsch.
+Aus dem README ausgelagert. Der **aktuelle** Prüfstand steht in den [Release-Notizen 2.7](RELEASE-NOTES-2.7.md), das Testprotokoll in [`cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md) (Stand 2.6.0, 30.10.2026; ohne Eintrag für 2.7.0). Die Einträge sind unverändert und werden nicht auf neuere Versionen umgeschrieben. Fachdoku, nur Deutsch.
 
 ## Prüfstand 2.6.0
 

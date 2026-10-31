@@ -54,17 +54,17 @@ Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C
 
 Dazu kommen:
 
-- **Natives Windows-Einstellungsfenster** (Direct2D/DirectWrite, ohne WebView2) mit Live-Vorschau, Seitenreihenfolge, Verbindungsstatus je Plattform und aufklappbaren Hilfen neben jedem Schlüsselfeld. Der lokale Dienst unter `http://127.0.0.1:8765/` bedient Companion und die Anleitung unter `/anleitung`.
+- **Natives Windows-Einstellungsfenster** (Direct2D/DirectWrite, ohne WebView2) mit Live-Vorschau, Seitenreihenfolge, Verbindungsstatus je Plattform und aufklappbaren Hilfen neben jedem Schlüsselfeld. Der lokale Dienst unter `http://127.0.0.1:8765/` stellt die lokale Schnittstelle sowie die Anleitung unter `/anleitung` und die Plugin-Werkstatt unter `/plugin-werkstatt` bereit; die Companion-Verbindung läuft getrennt über Port 8777.
 - **Ersteinrichtung ohne Vorkenntnisse**: erkennt das Display, beendet und deaktiviert auf Wunsch die Hersteller-App, Autostart ohne Administratorrechte
 - **Plugin-Store** (ab 2.6.0, abschaltbar): signierter Store mit Prüfung vor der Installation; Plugins bleiben aus, bis du sie aktivierst. Mehr: [Plugin-Store und Plugins](docs/FUNKTIONEN.md#plugin-store-und-plugins-ab-260)
 - **Android-Companion** (ab 2.3.0, mehrere Geräte ab 2.7.0): Handy oder Tablet als weitere Anzeige, Kopplung per QR-Code oder PIN. Mehr: [Companion](docs/FUNKTIONEN.md#android-companion-app-ab-230-mehrere-geräte-ab-270)
 - **Design**: FuchsLabs-CI in Hell oder Dunkel, oder **eigene Farben** per Farbwähler mit Kontrastwarnung
 - **Jede Auflösung**: Seiten werden scharf auf die echte Größe gerendert; breite Leisten zeigen mehrere Seiten nebeneinander
-- **HDMI/USB-C-Bildschirme** als randloses Vollbild über der Taskleiste, optional mit **Touch** (wischen oder tippen zum Blättern, Tipp auf Beiträge, Freunde, Spieler und Systemkarten öffnet passende Ziele); Prüfung und Einrichtung der Windows-Touch-Zuordnung unter **Display**. Details: [Touch und Update-Hinweis](docs/FUNKTIONEN.md#systemseite-per-touch-und-update-hinweis-ab-220), [Touch-Ziele](docs/FUNKTIONEN.md#touch-ziele-und-spielstunden-ab-207)
+- **HDMI/USB-C-Bildschirme** als randloses Vollbild über der Taskleiste, optional mit **Touch** (wischen oder tippen zum Blättern, Tipp auf Beiträge, Freunde, Spieler und Systemkarten öffnet passende Ziele); Prüfung und Einrichtung der Windows-Touch-Zuordnung unter **Anzeige**. Details: [Touch und Update-Hinweis](docs/FUNKTIONEN.md#systemseite-per-touch-und-update-hinweis-ab-220), [Touch-Ziele](docs/FUNKTIONEN.md#touch-ziele-und-spielstunden-ab-208)
 - **Home Assistant** mit Sensoren und Schaltern: [Einrichtung und Sicherheitshinweise](docs/FUNKTIONEN.md#home-assistant-ab-210)
 - **Deutsch oder Englisch**: Einstellungsseite, Display und Infobereich lassen sich umschalten; beim ersten Start folgt die Sprache Windows
 - **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, in der EXE eingebettet auf Deutsch und Englisch
-- **Ansichten durchblättern** in den Einstellungen: [Beschreibung](docs/FUNKTIONEN.md#ansichten-durchblättern-ab-204)
+- **Seiten weiterschalten** per Knopfdruck (Companion-Seite der Einstellungen): [Beschreibung](docs/FUNKTIONEN.md#ansichten-durchblättern-ab-204)
 - **Update-Hinweis** (abschaltbar): meldet höchstens einmal am Tag eine neue GitHub-Version, installiert aber nie selbst
 - **Eine EXE** für Installation, Updates und Deinstallation
 
@@ -90,11 +90,11 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
-5. Später öffnen das Fuchs-Symbol im Infobereich oder ein erneuter Start der installierten App das Einstellungsfenster. Dessen Schließen lässt das Display weiterlaufen; **Beenden** im Infobereich stoppt die App.
+5. Später öffnen ein Doppelklick auf das Fuchs-Symbol im Infobereich, dessen Menüpunkt **Einstellungen öffnen** oder ein erneuter Start der installierten App das Einstellungsfenster. Dessen Schließen lässt das Display weiterlaufen; **Beenden** im Infobereich stoppt die App.
 
-Der Installer kann Einstellungen aus Version 1.x übernehmen und bewahrt den alten Ordner mit dem Zusatz `-1.x-alt` auf. Bei einem Update bleibt eine vorhandene Zielkonfiguration erhalten. Vor jedem Upgrade EXE, `config.toml` und `companion.json` sichern. Die bebilderte Anleitung öffnet sich über die Einstellungen oder **Anleitung öffnen** im Tray im Standardbrowser und ist in der EXE eingebettet.
+Der Installer kann Einstellungen aus Version 1.x übernehmen und bewahrt den alten Ordner mit dem Zusatz `-1.x-alt` auf. Bei einem Update bleibt eine vorhandene Zielkonfiguration erhalten. Vor jedem Upgrade EXE, `config.toml` und `companion.json` sichern. Die bebilderte Anleitung öffnet sich über **Anleitung öffnen** im Menü des Fuchs-Symbols im Standardbrowser und ist in der EXE eingebettet.
 
-Für einen HDMI-/USB-C-Touchscreen unter **Display** den vorgesehenen Monitor wählen. Erscheinen Berührungen auf einem anderen Bildschirm, **Touch-Bildschirm zuordnen** öffnen: andere Bildschirme mit Enter überspringen und den vorgesehenen Touchscreen berühren. Danach **Erneut prüfen** wählen. Die USB-Touchverbindung muss bestehen. Details im [Schnellstart](ANLEITUNG.md#hdmiusb-c-und-touch).
+Für einen HDMI-/USB-C-Touchscreen unter **Anzeige** den vorgesehenen Monitor wählen. Erscheinen Berührungen auf einem anderen Bildschirm, **Touch-Bildschirm zuordnen** öffnen: andere Bildschirme mit Enter überspringen und den vorgesehenen Touchscreen berühren. Danach **Erneut prüfen** wählen. Die USB-Touchverbindung muss bestehen. Details im [Schnellstart](ANLEITUNG.md#hdmiusb-c-und-touch).
 
 ### Zugänge für die Datenquellen
 
@@ -153,7 +153,7 @@ Tokens und Schlüssel stehen dort nur verschlüsselt (`dpapi:…`). Alle Schlüs
 | Gerät | Anschluss | Hinweis |
 |---|---|---|
 | 3,5"-USB-Display 480 × 320 („Revision A“) | USB (serielle Schnittstelle, 115200 Baud) | wird automatisch gefunden; COM-Port bei Bedarf von Hand |
-| Zusatzbildschirm beliebiger Größe, z. B. 10,25" 1920 × 720 | HDMI oder USB-C (DisplayPort) | randloses Vollbild auf dem gewählten Bildschirm, optional Touch |
+| Zusatzbildschirm beliebiger Größe (Beispiel in den Tests: 1920 × 720) | HDMI oder USB-C (DisplayPort) | randloses Vollbild auf dem gewählten Bildschirm, optional Touch |
 | Android-Handy oder -Tablet (Android 8+) | WLAN/USB-Tethering, Companion-App | mehrere Geräte möglich |
 | GPU-Werte | Nvidia mit Treiber (`nvidia-smi`) | andere GPUs zeigen „–“ |
 
@@ -191,7 +191,7 @@ Der C++-Build installiert die Abhängigkeiten aus dem festgelegten vcpkg-Manifes
 - Der lokale Dienst ist **nur auf `127.0.0.1`** erreichbar und gegen DNS-Rebinding, CSRF und Einbetten in fremde Seiten geschützt.
 - Alle Verbindungen laufen über HTTPS mit Zertifikatsprüfung; Pakete sind auf genaue Versionen festgelegt.
 
-Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md); er ist kein vollständiger Audit der C++-Version. Aktuelle Validierung: [Testprotokoll](cpp/TESTPROTOKOLL.md). Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
+Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md); er ist kein vollständiger Audit der C++-Version. Aktuelle Validierung: [Release-Notizen 2.7](docs/RELEASE-NOTES-2.7.md); das [Testprotokoll](cpp/TESTPROTOKOLL.md) ist auf dem Stand 2.6.0 (30.10.2026) und enthält keinen Eintrag für 2.7.0. Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
 
 ## Testphase und Rückmeldungen
 

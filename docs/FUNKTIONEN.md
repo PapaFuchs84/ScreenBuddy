@@ -5,7 +5,7 @@ Aus dem README ausgelagert (Stand 2.7.0). Englisch: [FEATURES.en.md](FEATURES.en
 ## Inhalt
 
 - [Systemseite per Touch und Update-Hinweis (ab 2.2.0)](#systemseite-per-touch-und-update-hinweis-ab-220)
-- [Touch-Ziele und Spielstunden (ab 2.0.7)](#touch-ziele-und-spielstunden-ab-207)
+- [Touch-Ziele und Spielstunden (ab 2.0.8)](#touch-ziele-und-spielstunden-ab-208)
 - [Home Assistant (ab 2.1.0)](#home-assistant-ab-210)
 - [Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)](#android-companion-app-ab-230-mehrere-geräte-ab-270)
 - [Plugin-Store und Plugins (ab 2.6.0)](#plugin-store-und-plugins-ab-260)
@@ -15,11 +15,11 @@ Aus dem README ausgelagert (Stand 2.7.0). Englisch: [FEATURES.en.md](FEATURES.en
 
 **Touch auf der Systemseite:** Bei aktivem Touch (nur bei Ausgabe auf einen Bildschirm) öffnet ein Tipp auf die Karte **RAM** den Task-Manager, auf **Datenträger** „Programme und Features“ (`appwiz.cpl`) und auf **Netzwerk** den Geschwindigkeitstest <https://www.speedtest.net/de> im Standardbrowser. Die CPU- und GPU-Karten reagieren nicht. Die Fenster öffnet Windows, meist auf dem Hauptbildschirm.
 
-**Update-Hinweis:** Die App fragt höchstens einmal am Tag (frühestens 45 Sekunden nach dem Start) die öffentlichen GitHub-Releases ab, ohne Zugangsschlüssel und ohne Konto. Gibt es eine neuere, veröffentlichte Version, erscheint eine Sprechblase am Fuchs-Symbol (ein Klick öffnet die Einstellungen), und **Einstellungen → Start** zeigt „Neue Version … verfügbar“ mit Link zur Download-Seite. **Jetzt prüfen** fragt außerplanmäßig nach (höchstens alle 5 Minuten). Es wird nie etwas heruntergeladen oder installiert; zum Aktualisieren lädst du die neue EXE selbst herunter und startest sie. Abschalten: **Einstellungen → Start → Auf neue Versionen hinweisen** bzw. `update_check = false` unter `[ui]`. Gesendet wird nur eine gewöhnliche Abfrage mit dem Programmnamen und der Version im User-Agent; GitHub sieht dabei wie bei jedem Abruf deine IP-Adresse. Der Zeitpunkt der letzten Abfrage steht in `update-check.json` neben der `config.toml`.
+**Update-Hinweis:** Die App fragt höchstens einmal am Tag (frühestens 45 Sekunden nach dem Start) die öffentlichen GitHub-Releases ab, ohne Zugangsschlüssel und ohne Konto. Gibt es eine neuere, veröffentlichte Version, erscheint eine Sprechblase am Fuchs-Symbol (ein Klick darauf öffnet die Einstellungen), und **Einstellungen → Updates & Autostart** zeigt „Neue Version verfügbar: …“. **Release-Seite öffnen** führt zur Download-Seite, **Jetzt nach Updates suchen** fragt außerplanmäßig nach (höchstens alle 5 Minuten). Es wird nie etwas heruntergeladen oder installiert; zum Aktualisieren lädst du die neue EXE selbst herunter und startest sie. Abschalten: **Einstellungen → Updates & Autostart → Automatisch nach Updates suchen** bzw. `update_check = false` unter `[ui]`. Gesendet wird nur eine gewöhnliche Abfrage mit dem Programmnamen und der Version im User-Agent; GitHub sieht dabei wie bei jedem Abruf deine IP-Adresse. Der Zeitpunkt der letzten Abfrage steht in `update-check.json` neben der `config.toml`.
 
-## Touch-Ziele und Spielstunden (ab 2.0.7)
+## Touch-Ziele und Spielstunden (ab 2.0.8)
 
-Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](TOUCH-2.0.7.md). [Prüfstand](../cpp/TESTPROTOKOLL.md).
+Entwickelt als 2.0.7; diese Version wurde nicht einzeln veröffentlicht, die Funktion steht ab 2.0.8 zur Verfügung. Bei aktivierter Touch-Steuerung öffnet ein Tipp auf einen BF6-Spieler sein GameTools-Profil im Browser. Die Rangliste zeigt zusätzlich Spielstunden. Ein Tipp auf einen Freund öffnet bevorzugt den Steam-Chat mit dieser Person (Steam-App nötig). Hat die Person kein Steam-Konto, öffnet sich ihr Discord-Profil (dort **Nachricht** wählen), sonst ihr Xbox-Profil auf xbox.com im Browser. Ist die App des Ziels nicht installiert, wird das nächste Ziel verwendet. Fenster und Tabs bestimmt die Plattform-App bzw. der Browser. [Bedienung, Voraussetzungen und Grenzen](TOUCH-2.0.7.md). [Prüfstand](../cpp/TESTPROTOKOLL.md).
 
 ## Home Assistant (ab 2.1.0)
 
@@ -27,15 +27,15 @@ Seite **Home Assistant** mit bis zu 4 Kacheln. **Sensoren** (auch Binärsensoren
 
 ## Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)
 
-Ein Smartphone oder Tablet dient als zusätzliche Anzeige parallel zum USB-/HDMI-Display. Die Companion-App liegt in Version 1.0.0 als separater Download vor. Seit 2.7.0 lassen sich mehrere Companions gleichzeitig betreiben, **synchron oder unabhängig**.
+Ein Smartphone oder Tablet dient als zusätzliche Anzeige parallel zum USB-/HDMI-Display. Ab 2.3.0 gibt es den Companion als Vorschau-APK; die aktuelle Companion-App 1.0.0 (versionCode 4, Android 8+) ist ein separater Download. Seit 2.7.0 lassen sich mehrere Companions gleichzeitig betreiben, **synchron oder unabhängig**.
 
-- **Eigene Seiten und Intervalle:** je Gerät eigene Seitenliste und Anzeigedauer (unter **Companion**); Datenquellen und Design bleiben gemeinsam.
-- **Kopplung per QR-Code oder PIN:** im Reiter **Companion** auf **Gerät koppeln** klicken. Die Android-App scannt den QR-Code oder verbindet sich über Adresse, Port (8777) und 6-stelligen PIN; der SHA-256-Fingerabdruck sichert die TLS-Verbindung.
-- **Touch und Gesten:** Wischen schaltet nur das jeweilige Gerät um. Interaktive Kacheln (Smart Home, Freunde, Systemaktionen) lassen sich per Fingertipp bedienen.
+- **Eigene Seiten und Intervalle:** der Companion hat gegenüber USB/HDMI eigene Seitenliste und Anzeigedauer (unter **Companion**). Im unabhängigen Betrieb (`sync = false`) hat zusätzlich jedes Gerät eigene Seitenposition, Auflösung, Bedienung und optional eine eigene Seitenliste. Datenquellen und Design bleiben gemeinsam. Voreinstellung ist synchrone Anzeige.
+- **Kopplung per QR-Code oder PIN:** unter **Einstellungen → Companion → Gerät koppeln** den Kopplungscode anzeigen. Die Android-App scannt den QR-Code oder verbindet sich über Adresse, Port (Standard 8777) und 6-stelligen PIN; der SHA-256-Fingerabdruck sichert die TLS-Verbindung.
+- **Touch und Gesten:** im unabhängigen Betrieb schaltet Wischen nur das jeweilige Gerät um, im synchronen Betrieb alle. Tippen und Wischen sind in den [Companion-Hinweisen](COMPANION.md) beschrieben.
 - **Native Auflösung und Drehung:** das Handy meldet Ausrichtung und Pixelmaße; der PC rendert passgenau.
 - [Schritt-für-Schritt-Anleitung zur Kopplung](../ANLEITUNG.md#android-companion-app-koppeln-und-nutzen-ab-230) · [Einrichtung und Grenzen](COMPANION.md) · [Protokoll](COMPANION-PROTOKOLL.md)
 
-Prüfstand: siehe [Release-Notizen 2.7](RELEASE-NOTES-2.7.md). Die automatisierten Mehrgeräteprüfungen sind Simulationen; adb-Gesten ersetzen keine physische Fingerprüfung. Der APK-Wechsel von der Vorschau 0.2.1 auf 1.0 erfordert wegen anderer Signatur eine Deinstallation.
+Prüfstand: siehe [Release-Notizen 2.7](RELEASE-NOTES-2.7.md). Die automatisierten Mehrgeräteprüfungen sind Simulationen; adb-Gesten ersetzen keine physische Fingerprüfung. Beim Wechsel von einer Debug-APK unterscheidet sich die Signatur; eine direkte Aktualisierung ist dann nicht möglich (siehe [Release-Notizen 2.6](RELEASE-NOTES-2.6.md)). Die Companion-App nie automatisch deinstallieren: lokale Daten und Kopplungen gingen verloren.
 
 ## Plugin-Store und Plugins (ab 2.6.0)
 
@@ -45,4 +45,4 @@ Weiter: [Plugin-System](PLUGIN-SYSTEM.md) · [Tutorial](PLUGIN-TUTORIAL.md) · [
 
 ## Ansichten durchblättern (ab 2.0.4)
 
-Unter **Einstellungen → Übersicht** kannst du mit **Vorherige Ansicht** und **Nächste Ansicht** direkt durch die laufenden Display-Ansichten blättern. Die Position und die sichtbaren Seiten stehen unter der Live-Vorschau. Lange Listen blättern mit ihren Unterseiten, breite Displays wechseln wie bei der Touchbedienung um eine Kachelgruppe. Nach einem manuellen Wechsel beginnt die eingestellte Anzeigedauer neu; danach läuft der automatische Wechsel weiter. Bei keiner oder nur einer vollständig sichtbaren Ansicht sind die Knöpfe deaktiviert. Dafür ist kein Speichern oder Neustart nötig. Geänderte Seitenauswahl und Reihenfolge gelten nach **Speichern & anwenden**.
+Seit 2.0.4 lässt sich die laufende Anzeige per Knopfdruck weiterschalten, ohne zu speichern oder neu zu starten. In der nativen Oberfläche (ab 2.5.0) stehen dafür **Vorige Seite zeigen** und **Nächste Seite zeigen** unter **Einstellungen → Companion** bereit; sie wirken auf die Companion-Ausgabe (im unabhängigen Betrieb auf alle verbundenen Geräte). Für die Hauptanzeige gibt es den Schritt nur über die lokale Schnittstelle (`POST /api/pages/step`). Die früheren Knöpfe „Vorherige Ansicht“/„Nächste Ansicht“ unter **Übersicht** sind in der nativen Oberfläche nicht vorhanden. Geänderte Seitenauswahl und Reihenfolge gelten nach **Speichern & anwenden**.

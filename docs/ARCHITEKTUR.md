@@ -95,7 +95,7 @@ Eine unsignierte `ScreenBuddy.exe` (Installer, App, Updater, Deinstaller). Stand
 - **Sicherheit:** keine Admin-Rechte, keine Telemetrie; DPAPI; Dienst nur auf `127.0.0.1` mit Host-, Fetch-Metadata- und `X-FL: 1`-Prüfung; Ziele und Weiterleitungen gegen nicht öffentliche IP-Bereiche geprüft; Ed25519-signierter Store-Index mit festem öffentlichem Schlüssel und Sperrliste; Aktionen wie Schlösser oder Alarmanlagen in Home Assistant bewusst nicht schaltbar.
 - **Sprache:** Standard folgt Windows; Texte in `cpp/src/i18n.cpp` und `ui_page_*.cpp`.
 - **Design:** FuchsLabs-CI (Fuchs-Orange, Creme, Navy), hell/dunkel/eigene Farben mit Kontrastwarnung.
-- **Tests:** Kern-, Parser-, Plugin-, Monitor-, Companion- und Installer-Prüfungen im Build (`cpp/tests/`); Echtgeräteprüfungen im [Testprotokoll](../cpp/TESTPROTOKOLL.md).
+- **Tests:** Kern-, Parser-, Plugin-, Monitor-, Companion- und Installer-Prüfungen im Build (`cpp/tests/`); Echtgeräteprüfungen im [Testprotokoll](../cpp/TESTPROTOKOLL.md) (Stand 2.6.0) und für 2.7.0 in den [Release-Notizen](RELEASE-NOTES-2.7.md).
 
 ## 9. Offene Punkte
 

@@ -23,11 +23,11 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 | Dokument | Zweck | Status |
 |---|---|---|
 | [`README.md`](../README.md) · [English](../README.en.md) | Überblick, Schnellstart, Konfiguration | aktuell |
-| [`ANLEITUNG.md`](../ANLEITUNG.md) | Schnellstart; die bebilderte Anleitung steckt in der EXE | aktuell (Bilder teils 2.5) |
+| [`ANLEITUNG.md`](../ANLEITUNG.md) | Schnellstart; die bebilderte Anleitung steckt in der EXE | Stand 2.3.0, Versions- und Menüangaben veraltet |
 | [`FUNKTIONEN.md`](FUNKTIONEN.md) · [English](FEATURES.en.md) | Funktionen im Detail: Touch, Update-Hinweis, Home Assistant, Companion, Ansichten | aktuell |
 | [`COMPANION.md`](COMPANION.md) · [English](COMPANION.en.md) | Android-Companion einrichten, mehrere Geräte | aktuell |
 | [`TOUCH-2.0.7.md`](TOUCH-2.0.7.md) · [English](TOUCH-2.0.7.en.md) | Touch-Ziele und Spielstunden | aktuell |
-| [`../DOKUMENTATION.md`](../DOKUMENTATION.md) | Referenz: Seiten, `config.toml`, HWiNFO, Fehlerbehebung | aktuell |
+| [`../DOKUMENTATION.md`](../DOKUMENTATION.md) | Referenz: Seiten, `config.toml`, HWiNFO, Fehlerbehebung | Stand 2.6.0 |
 | [`../TESTPHASE.md`](../TESTPHASE.md) · [English](../TESTPHASE.en.md) | Rückmeldungen in der Testphase | aktuell |
 
 ## Für Plugin-Autoren
@@ -60,7 +60,7 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 |---|---|---|
 | [`../CHANGELOG.md`](../CHANGELOG.md) · [English](../CHANGELOG.en.md) · [`../cpp/CHANGELOG.md`](../cpp/CHANGELOG.md) | Änderungen je Version | aktuell |
 | [`RELEASE-NOTES-2.7.md`](RELEASE-NOTES-2.7.md) | Release-Notizen der aktuellen Version | aktuell |
-| [`../cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md) | Testprotokoll | aktuell |
+| [`../cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md) | Testprotokoll | Stand 2.6.0, kein Eintrag für 2.7.0 |
 | [`PRUEFSTAND-HISTORIE.md`](PRUEFSTAND-HISTORIE.md) | Prüfstände 2.0.3 bis 2.6.0 (aus dem README ausgelagert) | historisch |
 | [`RELEASE-NOTES-2.6.md`](RELEASE-NOTES-2.6.md), [`RELEASE-NOTES-2.5.md`](RELEASE-NOTES-2.5.md) | frühere Release-Notizen | historisch |
 | [`RELEASE-CHECKLIST-2.5.md`](RELEASE-CHECKLIST-2.5.md), [`HARDWARE-ACCEPTANCE-2.5.md`](HARDWARE-ACCEPTANCE-2.5.md) | Checklisten (Stand 2.5; bei neuen Releases anlegen statt umschreiben) | historisch |
@@ -78,6 +78,6 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 ## Bekannte Lücken dieser Neuordnung
 
 - [`../cpp/README.md`](../cpp/README.md) enthält noch gewachsene, teils englische Abschnitte (2.0.x bis 2.7) und Altstände; eine Bereinigung steht aus.
-- `DOKUMENTATION.md` wurde nicht umgeschrieben, sondern nur eingeordnet.
+- `DOKUMENTATION.md` (Stand 2.6.0) wurde nicht umgeschrieben, sondern nur eingeordnet.
 - Die bebilderte Anleitung (`anleitung/`, `cpp/res/`) wurde nicht angefasst; ein Teil der Bilder stammt noch von 2.5.
-- Das GitHub-Wiki ist nicht angepasst.
+- Das GitHub-Wiki (`Home.md`) steht auf 2.7.0; seine Links auf diese Übersicht funktionieren erst nach dem Merge dieses Branches nach `main`.

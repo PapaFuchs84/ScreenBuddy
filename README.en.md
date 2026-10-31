@@ -54,17 +54,17 @@ A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary sc
 
 Plus:
 
-- **Native Windows settings window** (Direct2D/DirectWrite, no WebView2) with live preview, page order, connection status per platform and fold-out help next to every key field. The local service at `http://127.0.0.1:8765/` serves Companion and the guide at `/anleitung`.
+- **Native Windows settings window** (Direct2D/DirectWrite, no WebView2) with live preview, page order, connection status per platform and fold-out help next to every key field. The local service at `http://127.0.0.1:8765/` provides the local API, the guide at `/anleitung` and the Plugin Workshop at `/plugin-werkstatt`; the Companion connection runs separately on port 8777.
 - **First-run setup without prior knowledge**: detects the display, closes and disables the vendor app if you want, autostart without admin rights
 - **Plugin store** (from 2.6.0, can be switched off): signed store with checks before installation; plugins stay off until you enable them. More: [Plugin store and plugins](docs/FEATURES.en.md#plugin-store-and-plugins-from-260)
 - **Android Companion** (from 2.3.0, several devices from 2.7.0): phone or tablet as an additional display, pairing via QR code or PIN. More: [Companion](docs/FEATURES.en.md#android-companion-app-from-230-multiple-devices-from-270)
 - **Design**: FuchsLabs style in light or dark, or **custom colours** via colour pickers with a contrast warning
 - **Any resolution**: pages are rendered sharply at the real size; wide bars show several pages side by side
-- **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages; taps on posts, friends, players and system cards open matching targets); Windows touch assignment checks and setup under **Display**. Details: [touch and update notice](docs/FEATURES.en.md#system-page-touch-and-update-notice-from-220), [touch targets](docs/FEATURES.en.md#touch-targets-and-playtime-from-207)
+- **HDMI/USB-C screens** as borderless fullscreen above the taskbar, optionally with **touch** (swipe or tap to change pages; taps on posts, friends, players and system cards open matching targets); Windows touch assignment checks and setup under **Display**. Details: [touch and update notice](docs/FEATURES.en.md#system-page-touch-and-update-notice-from-220), [touch targets](docs/FEATURES.en.md#touch-targets-and-playtime-from-208)
 - **Home Assistant** with sensors and switches: [setup and security notes](docs/FEATURES.en.md#home-assistant-from-210)
 - **German or English**: the settings page, display and tray menu can be switched; on first start the language follows Windows
 - **Illustrated guide** to click through, easy enough for kids, embedded in the EXE in English and German
-- **Browse views** in the settings: [description](docs/FEATURES.en.md#browse-views-from-204)
+- **Step through pages** with a button (Companion page of the settings): [description](docs/FEATURES.en.md#browse-views-from-204)
 - **Update notice** (can be turned off): reports a new GitHub version at most once a day, but never installs by itself
 - **Single EXE** for installation, updates and uninstallation
 
@@ -90,11 +90,11 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.
-5. Configure pages and data sources. Reopen settings from the fox tray icon or by starting the installed app again. Closing the settings window leaves the display running; use **Quit** in the tray to stop it.
+5. Configure pages and data sources. Reopen settings by double-clicking the fox tray icon, via its **Open settings** menu entry, or by starting the installed app again. Closing the settings window leaves the display running; use **Quit** in the tray to stop it.
 
-The installer can import Version 1.x settings and retains the old folder with a `-1.x-alt` suffix. Updates keep an existing destination configuration. Back up the EXE, `config.toml` and `companion.json` before every upgrade. The illustrated guide opens in your default browser from the settings window or **Open guide** in the tray and is embedded in the EXE.
+The installer can import Version 1.x settings and retains the old folder with a `-1.x-alt` suffix. Updates keep an existing destination configuration. Back up the EXE, `config.toml` and `companion.json` before every upgrade. The illustrated guide opens in your default browser via **Open guide** in the fox icon menu and is embedded in the EXE.
 
-For an HDMI/USB-C touchscreen, choose the intended monitor under **Display**. If taps appear on another screen, select **Assign touch display**, press Enter to skip other screens, and touch the intended touchscreen. Then select **Check again**. A USB touch connection is required. See [HDMI/USB-C and touch](cpp/README.md#hdmiusb-c-and-touch).
+For an HDMI/USB-C touchscreen, choose the intended monitor under **Display**. If taps appear on another screen, select **Assign touchscreen**, press Enter to skip other screens, and touch the intended touchscreen. Then select **Check again**. A USB touch connection is required. See [HDMI/USB-C and touch](cpp/README.md#hdmiusb-c-and-touch).
 
 ### Logins for the data sources
 
@@ -156,7 +156,7 @@ Tokens and keys are only stored encrypted (`dpapi:…`). All keys with their def
 | Device | Connection | Note |
 |---|---|---|
 | 3.5" USB display 480 × 320 (“revision A”) | USB (serial, 115200 baud) | found automatically; COM port can be set by hand |
-| Second screen of any size, e.g. 10.25" 1920 × 720 | HDMI or USB-C (DisplayPort) | borderless full screen on the chosen screen, optional touch |
+| Second screen of any size (example in the tests: 1920 × 720) | HDMI or USB-C (DisplayPort) | borderless full screen on the chosen screen, optional touch |
 | Android phone or tablet (Android 8+) | Wi-Fi/USB tethering, Companion app | several devices possible |
 | GPU stats | Nvidia with driver (`nvidia-smi`) | other GPUs show “–” |
 
@@ -194,7 +194,7 @@ App translations are in `cpp/src/i18n.cpp`, native page text under `cpp/src/ui_p
 - The local service is **only reachable on `127.0.0.1`** and protected against DNS rebinding, CSRF and framing by other sites.
 - All connections use HTTPS with certificate checks; packages are pinned to exact versions.
 
-Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: [test record](cpp/TESTPROTOKOLL.md). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
+Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: [release notes 2.7](docs/RELEASE-NOTES-2.7.md); the [test record](cpp/TESTPROTOKOLL.md) is at the 2.6.0 state (30 October 2026) and has no entry for 2.7.0. Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
 
 ## Testing and feedback
 
