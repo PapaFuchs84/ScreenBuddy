@@ -6,14 +6,20 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.9.1] – 2026-10-31
+
 ### Added
 
+- **Amplifier for remote playback**: if Spotify plays on a phone, speaker or Connect and the system output stays silent for 4 s, the amplifier shows an animation derived from the track and a tempo, clearly labelled “simulated” (no measurement, no microphone, no Spotify analysis API). New “Bar colour” setting: level (green/yellow/red, default), theme gradient, or single colour.
 - **Plugin store: themes**: color designs can be shared and installed through the signed store ("Themes" card in the plugin store). Separate signed list `themes.json`, colors only, no code; signature, size, SHA-256 and schema are checked, revoked themes are hidden, a theme with the same name is never overwritten. Three starter themes in `store-seed/themes`. Maintenance tool: `fl-plugin-sign build-themes|check-themes`.
 - **Navigation**: mouse tooltip on the sidebar status dots.
 - Help for API keys and tokens: under the credential fields for Discord, Steam, Xbox, TMDB, Spotify and Home Assistant a card “How to get …” explains in short steps (DE/EN) where the key is created and opens the official page with a button. Only fixed https addresses are opened; keys are never read or logged. Guide and docs updated.
 
 ### Fixed
 
+- Amplifier: keep visible Spotify playback active during silence so the simulated animation can start after four seconds.
+
+- Amplifier: default audio device changes are detected and the WASAPI connection is rebuilt.
 - Crash fix in the brush cache of `gfx.cpp` (from #37, 3d92295); possibly affected 2.9.0 as well.
 - Contrast correction: adjustments against background and card no longer cancel each other (all rules of one color are satisfied together).
 
@@ -21,7 +27,6 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ### Added
 
-- **Amplifier for remote playback**: if Spotify plays on a phone, speaker or Connect and the system output stays silent for 4 s, the amplifier shows an animation derived from the track and a tempo, clearly labelled “simulated” (no measurement, no microphone, no Spotify analysis API). New “Bar colour” setting: level (green/yellow/red, default), theme gradient, or single colour.
 - **Colors & design**: new "Match Windows" option (Windows light/dark and accent color, follows changes live, high contrast uses the system colors; text and bars are contrast-corrected automatically). Custom themes as JSON files with editor, live preview, contrast warning, duplicate, delete, import and export; "Custom colors" migrate automatically. Three example themes (Cupertino, Material, Fluent style) in `cpp/examples/themes`. The settings window offers "Windows" as appearance.
 - **Navigation**: status dots only for data sources and connections (green = set up and on, grey = not set up or off), with a legend.
 - **Companion / Android TV:** own Android TV launcher entry (leanback, with banner); remote: left/right switches the page (one press, one switch), OK has no action, Back unchanged; short hint on connect. Without a camera the QR scan is not offered and no camera permission is requested; manual pairing remains. Checked on a BeyondTV (Android 11) with ADB key input; physical remote, standby/CEC and long-term runs are not tested.

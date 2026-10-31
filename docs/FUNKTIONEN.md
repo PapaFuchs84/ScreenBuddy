@@ -1,6 +1,6 @@
 # ScreenBuddy · Funktionen im Detail
 
-Aus dem README ausgelagert (Stand 2.9.0). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
+Aus dem README ausgelagert (Stand 2.9.1). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
 
 ## Inhalt
 
@@ -42,7 +42,7 @@ Seite **Streaming-Neustarts** („New on streaming“): zeigt Filme und Serien, 
 
 ## Spotify (ab 2.8.0)
 
-Zeigt den aktuell gespielten Titel mit Cover und Fortschritt; mit Touch (Monitor, Companion) steuern Tasten Zurück, Wiedergabe/Pause und Weiter (Spotify Premium nötig). Anmeldung per PKCE mit eigener Spotify-Developer-App, das Token liegt DPAPI-verschlüsselt in spotify.token. Bei laufender Wiedergabe zeigt ein Amplifier (16 Balken) den Pegel der Windows-Systemausgabe, lokal gelesen und nicht aufgezeichnet (abschaltbar). Läuft die Musik woanders (Handy, Lautsprecher, Connect) und die Systemausgabe bleibt 4 s still, zeigt er eine als „simuliert“ gekennzeichnete Animation. Die Balkenfarbe ist wählbar (Pegel Grün/Gelb/Rot, Verlauf im Design, einfarbig). Ein Wechsel des Standard-Audiogeräts wird erkannt. Einrichtung und Grenzen: [SPOTIFY.md](SPOTIFY.md). Ab 2.9.0 startet die Analyse erst beim Zeichnen der sichtbaren Wiedergabeseite und endet nach dem Seitenwechsel nach höchstens drei Sekunden. Nicht enthalten: Amplifier bei Wiedergabe auf Handy oder Lautsprecher.
+Zeigt den aktuell gespielten Titel mit Cover und Fortschritt; mit Touch (Monitor, Companion) steuern Tasten Zurück, Wiedergabe/Pause und Weiter (Spotify Premium nötig). Anmeldung per PKCE mit eigener Spotify-Developer-App, das Token liegt DPAPI-verschlüsselt in spotify.token. Bei laufender Wiedergabe zeigt ein Amplifier (16 Balken) den Pegel der Windows-Systemausgabe, lokal gelesen und nicht aufgezeichnet (abschaltbar). Läuft die Musik woanders (Handy, Lautsprecher, Connect) und die Systemausgabe bleibt 4 s still, zeigt er eine als „simuliert“ gekennzeichnete Animation. Die Balkenfarbe ist wählbar (Pegel Grün/Gelb/Rot, Verlauf im Design, einfarbig). Ein Wechsel des Standard-Audiogeräts wird erkannt. Einrichtung und Grenzen: [SPOTIFY.md](SPOTIFY.md). Ab 2.9.0 startet die Analyse erst beim Zeichnen der sichtbaren Wiedergabeseite und endet nach dem Seitenwechsel nach höchstens drei Sekunden. Ab 2.9.1 ist bei Remote-Wiedergabe die simulierte Anzeige verfügbar.
 
 ## Hilfe für API-Keys und Tokens (geplant für 2.9.1)
 

@@ -8,7 +8,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.9.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.9.1-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -23,6 +23,8 @@
 </div>
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
+
+**New in 2.9.1:** three installable store themes, status-dot tooltips, key help with official links, audio device change detection, simulated amplifier for remote playback and selectable bar colors; contrast and brush-cache fixes. [Release notes 2.9.1](docs/RELEASE-NOTES-2.9.1.md).
 
 **New in 2.9.0:** colors & design (match Windows, custom themes with editor, import/export and three example themes), uniform status dots with legend in the navigation, a fair mix of all chosen providers on the streaming page, spectrum amplifier on the Spotify page, Android TV entry for the Companion app and the official TMDB logo; see [Release notes 2.9](docs/RELEASE-NOTES-2.9.md) (German/English).
 
@@ -94,7 +96,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.9.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.0). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
+1. Download **ScreenBuddy.exe** from [release 2.9.1](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.1). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **English** under **Sprache · Language**, then **Save & apply**.

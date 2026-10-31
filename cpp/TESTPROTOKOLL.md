@@ -1,5 +1,28 @@
 # Testprotokoll – Stand 31.10.2026
 
+## Abschlussprüfung 2.9.1 – 31.10.2026
+
+- Nach ausdrücklichem Nutzerauftrag echte Meanmachine-Installation auf 2.9.1 aktualisiert; vorher EXE, Konfiguration, Kopplungen und Themes privat gesichert. Companion-Apps auf Redmi, Pixel und Android TV mit SHA-256-geprüftem vorhandenem APK 1.0.2 aktualisiert, Daten erhalten. TV neu gekoppelt; drei echte Clients gleichzeitig verbunden, COM7 erfolgreich geöffnet.
+- Fehlende Amplifier-Anzeige reproduziert: Spotify war deaktiviert, nicht sichtbar und ohne Client-ID konfiguriert. Bestehende Client-ID ergänzt, Anmeldung wiederverwendet und Seite aktiviert. Zusätzlicher Codefehler: bei stiller Ausgabe erlosch die 3-s-Aktivität vor dem 4-s-Simulationsstart; lange serielle Übertragungen verlängerten dies. Sichtbare Wiedergabe wird jetzt auch ohne Pegeländerung aktualisiert; ein RAII-Guard hält die Aktivität während einer sichtbaren seriellen Wiedergabeübertragung und erneuert danach den normalen Nachlauf, ohne den Titel-Seed zu verlieren.
+- Neue Regression: sichtbare Übertragung bleibt nach 3,1 s aktiv, Freigabe ohne Erneuerung wird inaktiv, erneutes touch aktiviert wieder. Kernsuite jetzt 482 Prüfungen. Vollständiger Release-Build mit allen eingebauten Suiten und beiden Installerchecks grün. Zusätzliche Signatur-/Catalog-/Amp-/Key-Hilfe-Suiten vorher ebenfalls grün.
+- Reale Amplifier-Abnahme: isoliert ohne LCD und anschließend mit COM7 zwei aufeinanderfolgende Spotify-Bilder mit unterschiedlichen Balkenhöhen und Kennzeichnung „simuliert“ gesehen. Keine Testtöne, keine Audioaufnahme, kein Standard-Audiogerätewechsel. Private Screenshots bleiben lokal.
+- Grenzen: keine physische Finger-/Fernbedienungsabnahme oder Sichtprüfung des seriellen Panels per Kamera; keine gemessene serielle Bildrate. Vollständige EN-Key-Hilfe- und Browserabnahme der Anleitungen bleibt offen. Vorheriger Abbruchstand unten bleibt als Historie erhalten.
+
+
+## Release-Kandidat 2.9.1 – 31.10.2026 (Abnahme unterbrochen)
+
+- Basis: Branch `release/2.9.1`, Versionscommit `307de16`, main `1c943ff`. Android unverändert gegenüber Tag `v2.9.0`; keine neue APK gebaut. Installierte Geräte melden Companion 1.0.1, Quellfassung 1.0.2.
+- MSVC-Release-Build erfolgreich; EXE-Ressourcen melden FileVersion 2.9.1.0 und ProductVersion 2.9.1. Kern 479, TMDB 119, Plugins 251, Beispiele 41, Store 127, Transport 140, Settings 135, Monitor 11, Companion 361: jeweils null Fehler. Beide isolierten Installerprüfungen bestanden. Zusätzliche Suiten: Signatur 111, Catalog 77, Amp 13, Key-Hilfe OK.
+- Companion-Integration mit simulierten Geräten: 39 Prüfungen; zwei unabhängige simulierte Geräte: 17 Prüfungen bestanden. Keine physische Geräteabnahme daraus abgeleitet.
+- Isolierte native Oberfläche (Funktionsstand vor Versionsbuild): Fluent- und Material-Stil aus signiertem Store installiert; Auswahl Fluent-Stil gespeichert, automatischer Neustart, Auswahl und Vorschau erhalten. Store-Themekarte und Status-Tooltip im dunklen Einstellungsfenster lesbar. Die 2.9.1-EXE übernimmt dieselbe Theme-Auswahl ebenfalls.
+- Isolierter echter Installer-Updatepfad mit vorhandener 2.9.0-EXE auf 2.9.1 bestanden: installierte EXE stimmt bytegenau mit Kandidat überein; Fluent-Auswahl und Theme-Dateien erhalten; Konfigurationssicherung bytegenau. Ein erster Durchlauf des lokalen Testskripts hatte die API-Hülle `config` übersehen; nach Korrektur der Prüfroutine bestanden, kein App-Befund.
+- Key-Hilfen DE: Schritte für alle sechs Dienste im nativen Fenster gelesen. Browserziele Steam, OpenXBL, TMDB und Spotify durch tatsächliche Klicks bestätigt. Discord-Knopf zusätzlich betätigt; abschließende Zielkontrolle sowie Home-Assistant-Linkkontrolle und EN-Sichtprüfung noch offen. Keine Anmeldung oder Schlüsselerstellung durchgeführt.
+- Anleitung DE/EN aus Vorlagen mit unveränderten vorhandenen eingebetteten Bildern synchronisiert; vier JavaScript-Blöcke mit `node --check` geprüft. `make_images.py` konnte mit dem vorhandenen Python mangels Pillow nicht laufen; daher bestehende geprüfte Bilddaten unverändert übernommen. Browserabnahme Hell/Dunkel und lokale Linkprüfung noch offen.
+- Reale Hardwareabnahme nach ausdrücklicher Nutzerfreigabe mit vorübergehend gestoppter echter App und isolierter Kopie ihrer Daten: Kandidat 2.9.1 öffnet COM7 erfolgreich; Companion-Server startet, zwei Clients werden gemeldet. Keine physische Sichtabnahme des seriellen Panels behauptet.
+- **Abbruchbefund:** Verbindung des Android-TV wird vom isolierten Server mit unbekanntem Geräteschlüssel abgelehnt. Nach Rückkehr zur Original-App zeigt auch der TV „unauthorized: Gerät ist nicht (mehr) gekoppelt“. Damit ebenfalls am Originalbetrieb beobachtet; Ursache ungeklärt, kein bestätigter 2.9.1-Codefehler. Gemäß Handover weitere Abnahme gestoppt, kein Release-Paket, Commit, Push oder PR erstellt. Keine Kopplungen geändert. Reale Seitenwechsel, Theme-/Amplifier-Sichtabnahme und TV-Pfeiltastenprüfung bleiben offen.
+- Kandidat beendet und ursprüngliche installierte EXE wieder gestartet; EXE und Konfiguration der echten Installation bytegenau unverändert geprüft. Private Testbilder und Daten bleiben außerhalb der Versionskontrolle. Keine Testtöne, keine Änderung des Standard-Audiogeräts.
+
+
 ## Amplifier-Korrektur nach PR #32 (31.10.2026, noch unveröffentlicht)
 
 - GitHub-Status geprüft: PR #32 wurde als `12fd87a` gemergt; sein Baum stimmt mit der lokalen Ausgangsbasis `d4a1c48` überein. Separater Worktree `screenbuddy-amplifier-fix`, Branch `fix/amplifier-visibility-decay`.

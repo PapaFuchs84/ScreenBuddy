@@ -703,6 +703,15 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
         last_full_ = now;
     }
     try {
+        // A slow serial transfer still displays this playback page. Keep the
+        // meter alive until it completes, including exception cleanup.
+        struct PlaybackTransfer {
+            audio::LevelMeter* meter;
+            explicit PlaybackTransfer(audio::LevelMeter* m) : meter(m) { if (meter) meter->visible_transfer(true); }
+            ~PlaybackTransfer() { if (meter) { meter->touch(); meter->visible_transfer(false); } }
+        } playback_transfer(meter_ && spotify_ && spotify_->snapshot().playing &&
+                            std::count(primary_view_.current.begin(), primary_view_.current.end(), "spotify")
+                            ? meter_.get() : nullptr);
         int rows = out_->show(frame);
         LOGD("app", "%d Zeilen übertragen", rows);
     } catch (const std::exception& e) {
@@ -721,6 +730,10 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     bool due = mono() - view.switched >= page_seconds;
     auto minute = clock_hhmm();
     bool live = std::count(view.current.begin(), view.current.end(), "system") > 0;
+    // Keep visible playback alive even when silent capture publishes no changes.
+    // Otherwise the 3 s activity lease expires before the 4 s simulation delay.
+    live = live || (meter_ && spotify_ && spotify_->snapshot().playing &&
+                    std::count(view.current.begin(), view.current.end(), "spotify") > 0);
     if (!dirty && !due && !live && view.step == 0 && view.size == size && view.minute == minute) return out;
     out.skipped = false;
     view.minute = minute;
