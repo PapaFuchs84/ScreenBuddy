@@ -6,13 +6,13 @@
 
 | Version | Security fixes |
 |---|---|
-| 2.9.3 | current release |
-| 2.9.2 | update to 2.9.3 |
-| 2.9.1 | update to 2.9.3 |
-| 2.9.0 | update to 2.9.3 |
-| 2.8.0 | update to 2.9.3 |
-| 2.7.0 | update to 2.9.3 |
-| 2.0.0–2.6.0 | update to 2.9.3 |
+| 2.9.4 | current release |
+| 2.9.2 | update to 2.9.4 |
+| 2.9.1 | update to 2.9.4 |
+| 2.9.0 | update to 2.9.4 |
+| 2.8.0 | update to 2.9.4 |
+| 2.7.0 | update to 2.9.4 |
+| 2.0.0–2.6.0 | update to 2.9.4 |
 | 1.2 | historical |
 | 1.1 | on request only |
 | 1.0 | ❌ |

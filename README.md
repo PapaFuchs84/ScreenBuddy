@@ -226,6 +226,8 @@ Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW
 
 Die App ist in der Testphase. Fehler und Ideen bitte über **Issues → New issue** mit den Vorlagen „Fehlerbericht“ oder „Idee oder Rückmeldung“ melden. Wo das Protokoll `usb-display.log` liegt und was nie mitgeschickt werden darf, steht in [`TESTPHASE.md`](TESTPHASE.md).
 
+**Prüfstand 2.9.4:** Release-Build und automatisierte Suiten grün (3327 Kernprüfungen), zwei Installerchecks, 39 App-Integrations- und 17 Mehrgeräteprüfungen. Nach Update auf Meanmachine: korrekte neue Chrome-Tabs für Film und Serie sowie Spotify-Cover-Absprung mit echten Redmi-ADB-Tipps bestätigt; TMDB-Hilfe DE/EN visuell geprüft. Konfiguration nach Tests bytegleich zurückgestellt. Physische Finger, Pixel/TV und weitere Browser nicht geprüft. [Details](docs/RELEASE-NOTES-2.9.4.md).
+
 **Prüfstand 2.9.3:** Release-Build mit allen eingebauten Suiten grün (u. a. 1357 Kern-, 119 TMDB-, 251 Plugin-, 127 Store-, 140 Transport-, 135 Settings-, 361 Companion-Prüfungen, zwei Installerchecks); die EXE meldet 2.9.3; auf dem Echtsystem waren COM7 verbunden und der Companion-Server gestartet, Redmi und Android-TV zeigten Seiten (adb-Screenshots). PlayStation live lieferte mit frischem Code ein Konto. **Nicht geprüft:** PlayStation-Status/Spiel auf den Geräten, Store-Installation/-Update über die Oberfläche und physische Abnahme. Einzelheiten und Grenzen: [Testprotokoll](cpp/TESTPROTOKOLL.md). Vorheriger Stand: [Release-Notizen 2.8](docs/RELEASE-NOTES-2.8.md) (1.507 Prüfungen). Ältere Prüfstände: [Historie](docs/PRUEFSTAND-HISTORIE.md).
 
 ## Dokumente
@@ -241,7 +243,7 @@ Alle Dokumente nach Zielgruppe: [`docs/README.md`](docs/README.md). Die wichtigs
 | [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) | Architektur für Entwickler |
 | [`docs/PLUGIN-SYSTEM.md`](docs/PLUGIN-SYSTEM.md) | Plugin-Anleitung ([English](docs/PLUGIN-SYSTEM.en.md)), [Tutorial](docs/PLUGIN-TUTORIAL.md), [Store-Bedingungen](docs/PLUGIN-STORE-BEDINGUNGEN.md) |
 | [`docs/COMPANION.md`](docs/COMPANION.md) | Companion einrichten ([English](docs/COMPANION.en.md)) |
-| [`docs/RELEASE-NOTES-2.9.3.md`](docs/RELEASE-NOTES-2.9.3.md) | Release-Notizen der aktuellen Version (frühere: [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
+| [`docs/RELEASE-NOTES-2.9.4.md`](docs/RELEASE-NOTES-2.9.4.md) | Release-Notizen der aktuellen Version (frühere: [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
 | [`CHANGELOG.md`](CHANGELOG.md) | Änderungen je Version ([English](CHANGELOG.en.md)) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Mitarbeiten ([English](CONTRIBUTING.en.md)) |
 | [`SECURITY.md`](SECURITY.md) | Sicherheitslücken melden ([English](SECURITY.en.md)) |
