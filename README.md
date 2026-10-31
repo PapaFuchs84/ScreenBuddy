@@ -210,7 +210,7 @@ Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW
 
 Die App ist in der Testphase. Fehler und Ideen bitte über **Issues → New issue** mit den Vorlagen „Fehlerbericht“ oder „Idee oder Rückmeldung“ melden. Wo das Protokoll `usb-display.log` liegt und was nie mitgeschickt werden darf, steht in [`TESTPHASE.md`](TESTPHASE.md).
 
-**Prüfstand 2.8.0:** 1.462 automatisierte Prüfungen im Release-Build bestanden; Echtsystem mit zwei Android-Geräten, dem USB-Display (480 × 320), echtem TMDB-Key und Spotify-Konto beobachtet. Offen: TMDB-Logo, Store-Update, DPI-/Screenreader-, Windows-Anmelde-, WLAN- und Boot-Abnahme. Vollständig und mit allen Grenzen: [Release-Notizen 2.8](docs/RELEASE-NOTES-2.8.md). Vorheriger Stand: [2.7](docs/RELEASE-NOTES-2.7.md). Ältere Prüfstände: [Historie](docs/PRUEFSTAND-HISTORIE.md).
+**Prüfstand 2.8.0:** 1.507 automatisierte Prüfungen im Release-Build bestanden; Echtsystem mit zwei Android-Geräten, dem USB-Display (480 × 320), echtem TMDB-Key und Spotify-Konto beobachtet. Offen: TMDB-Logo, Store-Update, DPI-/Screenreader-, Windows-Anmelde-, WLAN- und Boot-Abnahme. Vollständig und mit allen Grenzen: [Release-Notizen 2.8](docs/RELEASE-NOTES-2.8.md). Vorheriger Stand: [2.7](docs/RELEASE-NOTES-2.7.md). Ältere Prüfstände: [Historie](docs/PRUEFSTAND-HISTORIE.md).
 
 ## Dokumente
 

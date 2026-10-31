@@ -213,7 +213,7 @@ Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (Ge
 
 The app is in testing. Please report bugs and ideas via **Issues → New issue** using the “Bug report” or “Idea or feedback” forms. Where to find the log `usb-display.log` and what must never be sent: [`TESTPHASE.en.md`](TESTPHASE.en.md).
 
-**Validation of 2.8.0:** 1,462 automated checks passed in the release build; real-system observation with two Android devices, the USB display (480 × 320), a real TMDB key and a Spotify account. Open: TMDB logo, store update, DPI/screen-reader, Windows sign-in, Wi-Fi and boot acceptance. Complete results and all limits: [release notes 2.8](docs/RELEASE-NOTES-2.8.md). Previous state: [2.7](docs/RELEASE-NOTES-2.7.md). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
+**Validation of 2.8.0:** 1,507 automated checks passed in the release build; real-system observation with two Android devices, the USB display (480 × 320), a real TMDB key and a Spotify account. Open: TMDB logo, store update, DPI/screen-reader, Windows sign-in, Wi-Fi and boot acceptance. Complete results and all limits: [release notes 2.8](docs/RELEASE-NOTES-2.8.md). Previous state: [2.7](docs/RELEASE-NOTES-2.7.md). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
 
 ## Documents
 
