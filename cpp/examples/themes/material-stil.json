@@ -1,18 +1,18 @@
 {
   "version": 1,
   "name": "Material-Stil",
+  "style": "material",
   "base": "dunkel",
   "dark": true,
   "colors": {
-    "bg": "#121212",
-    "card": "#1E1E1E",
-    "line": "#3A3A3A",
+    "bg": "#141218",
+    "card": "#211F26",
+    "line": "#49454F",
     "header": "#D0BCFF",
     "accent": "#D0BCFF",
     "text": "#E6E1E5",
-    "muted": "#B0A9B3",
-    "success": "#81C995",
+    "muted": "#CAC4D0",
+    "success": "#81C784",
     "danger": "#F2B8B5"
-  },
-  "style": "material"
+  }
 }

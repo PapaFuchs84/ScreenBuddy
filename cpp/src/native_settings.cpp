@@ -372,8 +372,16 @@ struct NativeSettings::Impl : ui::Host {
         if (theme->index != 2) kit->dark = theme->index == 1;
         BOOL dark = kit->dark;
         DwmSetWindowAttribute(frame->hwnd(), 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));
+        apply_caption();
         frame->restyle();
         content->restyle();
+    }
+    void apply_caption() {
+        const auto& th = kit->theme();
+        auto color = [](ui::Rgba c) { return RGB(int(c.r * 255 + .5f), int(c.g * 255 + .5f), int(c.b * 255 + .5f)); };
+        COLORREF caption = color(th.header), text = color(th.header_text);
+        DwmSetWindowAttribute(frame->hwnd(), 35, &caption, sizeof(caption));
+        DwmSetWindowAttribute(frame->hwnd(), 36, &text, sizeof(text));
     }
     void save() {
         if (busy() || dirty_count == 0) return;
@@ -603,7 +611,8 @@ struct NativeSettings::Impl : ui::Host {
         // Kopfzeile
         c.text(L"ScreenBuddy", {62, 0, 220, HeaderH}, ui::Font::Brand, th.header_text);
         float bw = c.text_width(L"ScreenBuddy", ui::Font::Brand);
-        c.text(L"v" + widen(VERSION), {62 + bw + 8, 2, 62 + bw + 160, HeaderH}, ui::Font::Body, ui::from(brand::NAVY, .7f));
+        c.text(L"v" + widen(VERSION), {62 + bw + 8, 2, 62 + bw + 160, HeaderH}, ui::Font::Body,
+               kit->design.style == fl::theme::Style::FuchsLabs ? ui::from(brand::NAVY, .7f) : th.muted);
         std::wstring pill = output_name(kit->english) + L" " + (status_.display_ok ? (kit->english ? L"connected" : L"verbunden")
                                                                                  : (kit->english ? L"not connected" : L"nicht verbunden"));
         if (!status_.valid) pill = kit->english ? L"Status loading …" : L"Status wird geladen …";
@@ -612,7 +621,8 @@ struct NativeSettings::Impl : ui::Host {
         D2D1_RECT_F p{right - pw, (HeaderH - 28) / 2, right, (HeaderH + 28) / 2};
         c.fill(p, status_.display_ok ? ui::from(brand::NAVY) : ui::from(brand::NAVY, .13f), 14);
         c.circle({p.left + 14, (p.top + p.bottom) / 2}, 4, status_.display_ok ? ui::rgb(46, 204, 113) : ui::rgb(178, 34, 34));
-        c.text(pill, {p.left + 24, p.top, p.right - 8, p.bottom}, ui::Font::Label, status_.display_ok ? ui::from(brand::CREME) : ui::from(brand::NAVY));
+        c.text(pill, {p.left + 24, p.top, p.right - 8, p.bottom}, ui::Font::Label,
+               status_.display_ok ? ui::from(brand::CREME) : kit->design.style == fl::theme::Style::FuchsLabs ? ui::from(brand::NAVY) : th.text);
         // Gruppenüberschriften
         static const wchar_t* group_de[] = {L"ALLGEMEIN", L"DATENQUELLEN", L"VERBINDUNG", L"APP"};
         static const wchar_t* group_en[] = {L"GENERAL", L"DATA SOURCES", L"CONNECTION", L"APP"};
@@ -708,9 +718,7 @@ struct NativeSettings::Impl : ui::Host {
             };
             build_frame();
             if (kit->english) SetWindowTextW(frame->hwnd(), L"ScreenBuddy – Settings");
-            COLORREF caption = RGB(brand::ORANGE.r, brand::ORANGE.g, brand::ORANGE.b), text = RGB(brand::NAVY.r, brand::NAVY.g, brand::NAVY.b);
-            DwmSetWindowAttribute(frame->hwnd(), 35 /* DWMWA_CAPTION_COLOR */, &caption, sizeof(caption));
-            DwmSetWindowAttribute(frame->hwnd(), 36 /* DWMWA_TEXT_COLOR */, &text, sizeof(text));
+            apply_caption();
             BOOL dark = kit->dark;
             DwmSetWindowAttribute(frame->hwnd(), 20, &dark, sizeof(dark));
             const UINT dpi = GetDpiForWindow(frame->hwnd());

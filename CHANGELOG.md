@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+- Designsysteme bieten eigene Hell-/Dunkel-Paletten; der native Fensterschalter bleibt wirksam, sechs Beispieldateien sind enthalten.
+
 - Designsysteme in Entwicklung: Cupertino (gruppiert, großzügige Zeilen), Fluent (kompakte Geometrie, Auswahlindikator), Material (tonale Flächen, Pillen und Zustandsfeedback). Optionales streng validiertes `style` in Themes, Editor-Auswahl, native Einstellungen und Display-Rendering; vorhandene Start-Themes werden anhand ihrer exakten Namen zugeordnet. Keine Store-Veröffentlichung.
 
 ## [2.9.1] – 2026-10-31

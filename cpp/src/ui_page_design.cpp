@@ -195,7 +195,7 @@ private:
         name_->limit = 40;
         name_->track_dirty = false;
         name_->on_change = [this] { changed(); };
-        base_ = editor_->row<Segment>(T(L"Basis", L"Base"), T(L"Woher Zusatzfarben (Status, Warnungen) stammen", L"Where extra colors (status, warnings) come from"),
+        base_ = editor_->row<Segment>(T(L"Basis", L"Base"), T(L"Designprofile: lädt die Hell-/Dunkel-Palette und ersetzt die neun Farbwerte. FuchsLabs: nur Zusatzfarben.", L"Design profiles: loads the light/dark palette and replaces all nine colors. FuchsLabs: extra colors only."),
                                       std::vector<Text>{T(L"Hell", L"Light"), T(L"Dunkel", L"Dark")}, c->base == "dunkel" ? 1 : 0);
         base_->track_dirty = false;
         base_->on_change = [this] { apply_profile_palette(); changed(); };
@@ -206,7 +206,10 @@ private:
         style_->on_change = [this] { apply_profile_palette(); changed(); };
         dark_ = editor_->row<Toggle>(T(L"Dunkles Design", L"Dark design"), T(L"Kennzeichnet das Theme als dunkel", L"Marks the theme as dark"), c->dark);
         dark_->track_dirty = false;
-        dark_->on_change = [this] { base_->index = dark_->on ? 1 : 0; apply_profile_palette(); changed(); };
+        dark_->on_change = [this] {
+            if (style_ && style_->index != 0) { base_->index = dark_->on ? 1 : 0; apply_profile_palette(); }
+            changed();
+        };
         for (const char* key : th::COLOR_KEYS) {
             Color col = *c->colors.slot(key);
             ColorField* f = editor_->row<ColorField>(color_name(key), Text(), strprintf("#%02X%02X%02X", col.r, col.g, col.b));

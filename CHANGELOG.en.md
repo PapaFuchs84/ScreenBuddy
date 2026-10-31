@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+- Design systems include paired light/dark palettes, a working native appearance switch and six example files.
+
 - Design systems in development: Cupertino grouped surfaces and spacious rows, Fluent compact geometry and selection indicator, Material tonal surfaces, pill shapes and state feedback. Optional strictly validated theme `style`, editor selection, native settings and display rendering; existing starter themes are recognized by exact names. No store publication.
 
 ## [2.9.1] – 2026-10-31

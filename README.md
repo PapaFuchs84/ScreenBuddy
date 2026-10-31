@@ -26,6 +26,8 @@ Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C
 
 **In Entwicklung:** Cupertino-, Fluent- und Material-Designprofile steuern Formen, Typografie, Abstände und native Interaktionsrückmeldung zusätzlich zu Farben. [Details und Grenzen](docs/THEMES.md#designsysteme-in-entwicklung).
 
+Alle drei Designsysteme erhalten eigene Hell-/Dunkel-Paletten; sechs Beispiele und der native Hell/Dunkel-Schalter werden gemeinsam gepflegt.
+
 **Neu in 2.9.1:** drei installierbare Store-Themes, Tooltips an Statuspunkten, Key-Hilfe mit offiziellen Links, Erkennung von Audiogerätewechseln, simulierte Amplifier-Anzeige bei Remote-Wiedergabe und wählbare Balkenfarben; Korrekturen für Kontrast und Pinsel-Cache. [Release-Notizen 2.9.1](docs/RELEASE-NOTES-2.9.1.md).
 
 **Neu in 2.9.0:** Farben & Design (An Windows anpassen, eigene Themes mit Editor, Import/Export und drei Beispiel-Themes), einheitliche Statuspunkte mit Legende in der Navigation, faire Mischung aller gewählten Anbieter auf der Streaming-Seite, Spektrum-Amplifier auf der Spotify-Seite, Android-TV-Einstieg der Companion-App und das offizielle TMDB-Logo. [Release-Notizen 2.9](docs/RELEASE-NOTES-2.9.md).

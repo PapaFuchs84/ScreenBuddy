@@ -70,7 +70,7 @@ const FontInfo& font_info(const Font& f) {
     coll->FindFamilyName(family.c_str(), &idx, &exists);
     if (!exists) {
         family = L"Segoe UI";
-        weight = DWRITE_FONT_WEIGHT_BOLD;
+        weight = f.family.empty() ? DWRITE_FONT_WEIGHT_BOLD : f.bold ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
         size = f.size;
         coll->FindFamilyName(family.c_str(), &idx, &exists);
     }

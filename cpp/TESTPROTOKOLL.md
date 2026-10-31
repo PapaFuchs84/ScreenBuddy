@@ -1,5 +1,16 @@
 # Testprotokoll – Stand 31.10.2026
 
+## Designsysteme nach 2.9.1 – 31.10.2026 (Entwicklung, nicht veröffentlicht)
+
+- Separater Branch `feature/theme-design-systems`, Basis auf veröffentlichten 2.9.1-Stand aktualisiert. Optionales streng validiertes `style`-Profil Cupertino/Fluent/Material/FuchsLabs; alte Starter werden am exakten Namen erkannt, expliziter FuchsLabs-Override bleibt beim Export erhalten. Kein Store-Katalog geändert oder signiert.
+- Designprofile verändern Header, Zeilendichte, Typografie, Karten-/Knopfradien, Navigation, Zustandsflächen und Schalterfeedback. Sechs Referenzdateien mit getrennten Hell-/Dunkel-Paletten; native Fensterdarstellung wechselt die Profilpalette unabhängig vom Display-Theme. Der Editor erklärt das Ersetzen der neun Farben beim Laden einer Profilpalette.
+- Build im getrennten Verzeichnis `cpp/build/design-systems` erfolgreich. Alle 13 kompilierten Suiten grün: 537 Kern, 119 TMDB, 251 Plugins, 41 Beispiele, 127 Store, 140 Transport, 135 Settings, 11 Monitor, 361 Companion, 111 Signatur, 77 Catalog, 13 Amp und Key-Hilfe OK. Zwei isolierte Installerchecks bestanden.
+- Regressionen für Schema, Roundtrip, Starter-Erkennung/Override, Profilgeometrie und passende Touch-Zeilen sowie Kontraste in allen sechs Paletten. Zwölf DE/EN-Demo-Konfigurationen gerendert; native Oberfläche für alle drei Profile jeweils Hell und Dunkel visuell geprüft. Dabei feste Kopfzeilen-/Segmentfarben, initiale Profilanwendung, Schriftfallback und Versions-/Statusfarben korrigiert. Vier JavaScript-Blöcke der synchronen DE/EN-Anleitungen geprüft.
+- Grenzen: Windows-Interpretationen mit verfügbarem Schriftfallback, keine vollständigen OS-Frameworks, kein echtes Glass/Mica oder Plattformanimationen. Keine neue Companion-APK notwendig.
+- Redmi/TV-Geräteabnahme der neuen Profile noch offen: reguläre Testinstanz auf separaten Ports läuft, Geräte empfangen darüber bislang kein Bild. Produktionskopplung mit überprüftem Fingerprint funktioniert; Ursache des getrennten Testtransports noch nicht bestätigt. Kein Erfolg aus bloßem Antippen eines Kopplungsknopfes abgeleitet. Ein vorgeschlagener zusätzlicher LAN-Relay wurde von der automatischen Freigabeprüfung abgelehnt und nicht gestartet. Keine Firewalländerungen. Temporäre ADB-Reverse-Einträge und Loopback-Relay wieder entfernt/beendet.
+- Pixel nach der ausdrücklichen Einschränkung des Nutzers nicht bedient. Die veröffentlichte 2.9.1 und ihre Release-Assets bleiben unverändert. Testbilder, Konfigurationen und Kopplungsdaten bleiben lokal außerhalb des Commits.
+
+
 ## Abschlussprüfung 2.9.1 – 31.10.2026
 
 - Nach ausdrücklichem Nutzerauftrag echte Meanmachine-Installation auf 2.9.1 aktualisiert; vorher EXE, Konfiguration, Kopplungen und Themes privat gesichert. Companion-Apps auf Redmi, Pixel und Android TV mit SHA-256-geprüftem vorhandenem APK 1.0.2 aktualisiert, Daten erhalten. TV neu gekoppelt; drei echte Clients gleichzeitig verbunden, COM7 erfolgreich geöffnet.

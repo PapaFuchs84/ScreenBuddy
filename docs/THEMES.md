@@ -8,7 +8,7 @@ Die drei Stile verändern zusätzlich zur Palette die Gestaltung des Displays un
 
 Im Theme-Editor wählt **Designsystem** das Profil. Displayvorschau wirkt sofort; native Einstellungen folgen nach **Speichern & anwenden**. Optionaler JSON-Schlüssel `style`: `fuchslabs`, `cupertino`, `fluent` oder `material`. Andere Werte/Typen sind ungültig. Ohne Schlüssel bleibt das bisherige FuchsLabs-Layout; nur die exakten bisherigen Startnamen `Cupertino-Stil`, `Fluent-Stil`, `Material-Stil` erhalten beim Laden das passende Profil. Ein explizites `fuchslabs` verhindert diese Zuordnung. Duplizieren und Export erhalten das Profil.
 
-Dies sind eigenständige, an offiziellen Designsystemen orientierte Windows-Implementierungen, keine Original-UI-Frameworks und keine vollständigen OS-Kopien. Keine fremden Logos oder mitgelieferten Apple-/Google-Schriften; Roboto wird nur verwendet, falls lokal installiert, sonst Segoe UI. Kein echtes Mica/Glass, keine Plattformanimationen, kein Android-Companion-Umbau: dort erscheint das vom PC gerenderte Bild. Windows-Kontrastdarstellung hat Vorrang. Alte Apps können Dateien mit explizitem `style` ablehnen; die bisherigen Store-Seed-Dateien bleiben daher unverändert. Kein Katalog wurde veröffentlicht oder signiert.
+Dies sind eigenständige, an offiziellen Designsystemen orientierte Windows-Implementierungen, keine Original-UI-Frameworks und keine vollständigen OS-Kopien. Keine fremden Logos oder mitgelieferten Apple-/Google-Schriften; Roboto wird nur verwendet, falls lokal installiert, sonst Segoe UI. Kein echtes Mica/Glass, keine Plattformanimationen, kein Android-Companion-Umbau: dort erscheint das vom PC gerenderte Bild. Bei Darstellung „Windows“ werden Systemfarben weiterhin verwendet. Alte Apps können Dateien mit explizitem `style` ablehnen; die bisherigen Store-Seed-Dateien bleiben daher unverändert. Kein Katalog wurde veröffentlicht oder signiert.
 
 Quellen: [Apple HIG Foundations](https://developer.apple.com/design/human-interface-guidelines/foundations), [Fluent design tokens](https://fluent2.microsoft.design/design-tokens), [Fluent shapes](https://fluent2.microsoft.design/shapes/), [Material typography](https://m3.material.io/styles/typography/applying-type).
 
@@ -46,7 +46,7 @@ Profiles extend colors to display and native settings geometry, typography, spac
 
 Optional JSON `style` accepts only `fuchslabs`, `cupertino`, `fluent`, `material`. Existing files retain FuchsLabs geometry except the three exact starter names, recognized on load; explicit `fuchslabs` overrides recognition. Duplicate/export preserve profiles. Old clients may reject an explicit style, so published-compatible seed files remain unchanged. No store catalog was published.
 
-These are Windows interpretations of the official systems linked above, not original frameworks or full OS replicas. No third-party logos or redistributed fonts; unavailable fonts fall back to Segoe UI. No real Glass/Mica or platform motion, no Companion UI redesign. Windows contrast mode takes precedence. Validation status is recorded in TESTPROTOKOLL.md.
+These are Windows interpretations of the official systems linked above, not original frameworks or full OS replicas. No third-party logos or redistributed fonts; unavailable fonts fall back to Segoe UI. No real Glass/Mica or platform motion, no Companion UI redesign. The Windows appearance option continues to use system colors. Validation status is recorded in TESTPROTOKOLL.md.
 
 ## English
 Settings › **Colors & design**: Light (FuchsLabs), Dark (FuchsLabs), **Match Windows** or your own themes. The choice applies to the USB display, monitor and Companion (the image is rendered on the PC). The selection is kept with "Save & apply"; theme files are saved immediately.
@@ -60,3 +60,11 @@ Settings › **Colors & design**: Light (FuchsLabs), Dark (FuchsLabs), **Match W
 **Authors (store repo)**: `themes/<id>/<id>.fltheme.json` plus `<id>.fltheme.meta.json` (`description`, `version`, `author`, `license` MIT or CC0-1.0). Maintenance: `fl-plugin-sign build-themes|sign themes|check-themes`. Examples: `store-seed/themes`.
 
 **Status dots**: hover the dot in the sidebar for half a second to see "Set up and switched on" (green) or "Not set up or switched off" (grey).
+
+## Hell und Dunkel / Light and dark
+
+Alle drei Profile bieten getrennte helle und dunkle Referenzpaletten. Die sechs Beispiele unter `cpp/examples/themes` kombinieren denselben Aufbau mit passenden Flächen, Text-, Akzent- und Statusfarben. Der Hell/Dunkel-Schalter des nativen Fensters wechselt auch bei einem aktiven Designprofil die Palette; das Profil bleibt erhalten. Unter **Basis** im Theme-Editor lädt ein Profilwechsel die Referenzpalette und ersetzt die neun Farbwerte, danach sind eigene Anpassungen möglich. Theme-Dateien werden erst mit **Theme speichern** gesichert.
+
+All three profiles provide separate light and dark reference palettes. The six examples in `cpp/examples/themes` share the profile structure while adapting surfaces, text, accent and status colors. The native window's light/dark switch also switches an active profile's palette. Changing a design profile's base in the editor loads the reference palette and replaces all nine color values; you can customize them afterwards. Files are only saved with **Save theme**.
+
+Quellen / sources: [Fluent color roles and interaction states](https://fluent2.microsoft.design/color), [Apple Dark Mode](https://developer.apple.com/design/human-interface-guidelines/dark-mode), [Material color roles](https://m3.material.io/styles/color/roles).

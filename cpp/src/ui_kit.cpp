@@ -66,7 +66,7 @@ void Kit::use_design(const ojson& display) {
     t.text = t.side_text = from(p.text); t.muted = t.side_muted = from(p.muted);
     t.side = from(p.bg); t.nav_active = from(p.card);
     t.accent = t.accent_text = from(p.accent); t.on_accent = from(fl::theme::readable_on(p.accent));
-    t.header = from(p.header); t.header_text = from(fl::theme::readable_on(p.header));
+    t.header = from(p.bg); t.header_text = from(p.text);
     t.success = from(p.success); t.danger = from(p.danger); t.dark = mode != 0;
     }
 }
@@ -305,7 +305,7 @@ float Card::layout(Ctx& c, float x, float y, float w) {
 }
 void Card::paint(Ctx& c) {
     auto& g = *this;
-    c.fill(rc, c.th.card, c.kit.design.card_radius);
+    c.fill(rc, c.th.card, c.kit.design.style == fl::theme::Style::FuchsLabs ? 12.f : c.kit.design.card_radius);
     if (placeholder) {
         c.brush->SetColor(c.th.accent); c.brush->SetOpacity(c.dim);
         c.rt->DrawRoundedRectangle(D2D1::RoundedRect(inflate(rc, -1), 12, 12), c.brush, 1.5f, c.kit.dashed());
@@ -420,7 +420,7 @@ void ImageView::paint(Ctx& c) {
 void Toggle::paint(Ctx& c) {
     Rect track{rc.right - 44, rc.top + (rh(rc) - 24) / 2, rc.right - 2, 0};
     track.bottom = track.top + 24;
-    c.fill(track, on ? c.th.accent : c.th.line, 12);
+    c.fill(track, on ? c.th.accent : c.kit.design.style == fl::theme::Style::FuchsLabs && !c.th.dark ? rgb(214, 186, 152) : c.th.line, 12);
     if (c.kit.design.tonal && !on) c.frame(track, c.th.muted, 12, 2);
     float kx = on ? track.right - 12 : track.left + 12;
     c.circle({kx, track.top + 12}, c.kit.design.tonal && !on ? 6.f : 9.f, from(brand::WHITE));
@@ -492,7 +492,8 @@ void Segment::paint(Ctx& c) {
     std::vector<float> widths;
     for (auto& o : options) { widths.push_back(c.text_width(c.s(o), Font::Label) + (header_style ? 22 : 28)); total += widths.back(); }
     float scale = total > 0 ? (rw(rc) - 2) / total : 1;
-    Rgba base = header_style ? from(brand::NAVY, .13f) : c.th.input;
+    const bool profile_header = header_style && c.kit.design.style != fl::theme::Style::FuchsLabs;
+    Rgba base = profile_header ? c.th.card : header_style ? from(brand::NAVY, .13f) : c.th.input;
     c.fill(rc, base, header_style ? 14.f : 8.f);
     if (!header_style) c.frame(rc, c.th.line, 8);
     float x = rc.left + 1;
@@ -500,8 +501,8 @@ void Segment::paint(Ctx& c) {
         float w = widths[i] * scale;
         Rect r{x, rc.top + 1, x + w, rc.bottom - 1};
         bool sel = int(i) == index;
-        if (sel) c.fill(r, header_style ? from(brand::NAVY) : c.th.accent, header_style ? 13.f : 7.f);
-        Rgba fg = header_style ? (sel ? from(brand::CREME) : from(brand::NAVY)) : (sel ? c.th.on_accent : c.th.muted);
+        if (sel) c.fill(r, profile_header ? c.th.accent : header_style ? from(brand::NAVY) : c.th.accent, header_style ? 13.f : 7.f);
+        Rgba fg = profile_header ? (sel ? c.th.on_accent : c.th.text) : header_style ? (sel ? from(brand::CREME) : from(brand::NAVY)) : (sel ? c.th.on_accent : c.th.muted);
         c.text(c.s(options[i]), r, Font::Label, fg, DWRITE_TEXT_ALIGNMENT_CENTER);
         x += w;
         stops.push_back(x);
@@ -576,6 +577,7 @@ void Button::paint(Ctx& c) {
         break;
     case Secondary:
         c.fill(rc, c.th.dark ? c.th.bg : from(brand::WHITE, .55f), radius);
+        if (c.kit.design.tonal) c.fill(rc, alpha(c.th.accent, c.th.dark ? .16f : .10f), radius);
         c.frame(rc, c.th.line, radius);
         c.text(c.s(text), rc, Font::Button, c.th.text, DWRITE_TEXT_ALIGNMENT_CENTER);
         break;
