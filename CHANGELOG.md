@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+## [2.8.0] – 2026-10-31
+
 ### Hinzugefügt
 
 - **Einstellungen**: Der Schnellzugriff auf der Übersicht hat Symbole und neue Knöpfe für die Anleitung (Deutsch/Englisch) und die Plugin-Werkstatt. Die rechte Seitenleiste „Gerät“ zeigt jedes verbundene Gerät (USB-Display bzw. Monitor, jede Companion-App mit Name, IP-Adresse und Seitenposition) als eigene anwählbare Karte; die Live-Vorschau zeigt das gewählte Gerät.

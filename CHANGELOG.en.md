@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.8.0] – 2026-10-31
+
 ### Added
 
 - **Settings**: the Overview shortcuts now have icons plus new buttons for the guide (German/English) and the Plugin workshop. The right-hand “Device” panel shows every connected device (USB display or monitor, each Companion app with name, IP address and page position) as its own selectable card; the live preview shows the selected device.

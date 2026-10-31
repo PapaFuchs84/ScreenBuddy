@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.8.0 – 31 October 2026
+
 - Settings shell: navigation compacts to fit the height (min. item 26 px); device panel lists the main display and all Companion clients from NetworkDisplay::status() (clients); overview shortcuts with icon glyphs and links to /anleitung (de/en) and /plugin-werkstatt via the local server. Companion 1.0.1 (versionCode 5): FrameView draws the frame with CLAMP shader edge to edge and keeps content inside cut-out/rounded-corner insets.
 - Spotify page (`spotify.cpp`, `SpotifyRenderer`, `ui_page_spotify.cpp`, `/spotify/callback` in the local server, `touch::Tile::spotify`): PKCE login, DPAPI-protected refresh token file, polling of `/v1/me/player`, cover download (i.scdn.co only), touch buttons via `Command`. Windows build: 321 + 251 + 41 + 127 + 140 + 135 + 11 + 361 checks passed; real Spotify account flow not tested.
 - Uninstall guard: `run_uninstall` and `finish_uninstall` refuse to run in a test instance without `FUCHSLABS_INSTALL_DIR` (`test_on_real_install()`), so tests can no longer delete the real install.
