@@ -48,6 +48,7 @@ public:
         steam_result_ = steam->row<Label>(T(L"Prüfung", L"Check"), Text(), Text(L"–"), Font::Small, Label::Muted);
         steam_button_ = steam->add<ButtonRow>()->add(T(L"Verbindung prüfen", L"Check connection"), Button::Secondary,
                                                     [this] { check("steam"); });
+        add_key_help(root, host, "steam");
         Card* xbox = root.add<Card>(Text(L"Xbox"), T(L"Über den kostenlosen Dienst OpenXBL (xbl.io), nicht direkt von Microsoft.",
                                                      L"Via the free OpenXBL service (xbl.io), not directly from Microsoft."));
         xbox_state_ = xbox->row<Label>(T(L"Status", L"Status"), Text(), Text(L"…"), Font::Small, Label::Muted);
@@ -56,6 +57,7 @@ public:
         xbox_result_ = xbox->row<Label>(T(L"Prüfung", L"Check"), Text(), Text(L"–"), Font::Small, Label::Muted);
         xbox_button_ = xbox->add<ButtonRow>()->add(T(L"Verbindung prüfen", L"Check connection"), Button::Secondary,
                                                   [this] { check("xbox"); });
+        add_key_help(root, host, "xbox");
         root.add<Note>(T(L"PlayStation: Es gibt keine offizielle Schnittstelle. Der inoffizielle Weg kann zur Sperre des Kontos führen und ist deshalb nicht eingebaut.",
                          L"PlayStation: there is no official interface. The unofficial route can get the account banned and is therefore not included."));
 

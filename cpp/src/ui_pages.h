@@ -34,5 +34,7 @@ std::vector<ItemList::Item> page_items(const ojson& order, const ojson& selected
 Text connection_text(const ojson& connection, Label::Tone& tone);  // ok/bad/idle/off aus App::connections()
 bool flag(const ojson& cfg, const char* sec, const char* key);  // bool aus der öffentlichen Sicht
 Text join(const Text& a, const std::wstring& b);                // Text + gemeinsamer Zusatz
+// Karte „So bekommst du …“ mit nummerierten Schritten und Knöpfen zu den offiziellen Seiten (key_help.cpp).
+Card* add_key_help(Column& root, Host& host, const std::string& id);
 
 }  // namespace fl::ui

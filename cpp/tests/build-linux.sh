@@ -18,3 +18,6 @@ g++ -std=c++20 -O1 -g -Wall -Wextra -Isrc -I"${NLOHMANN_INCLUDE:-/usr/include}" 
 g++ -std=c++20 -O1 -g -Wall -Wextra -Isrc src/amp_logic.cpp tests/amp_tests.cpp -o "$OUT/amp-tests"
 "$OUT/amp-tests"
 "$OUT/tmdb-tests"
+# Schlüssel-Hilfen: Links nur offiziell/https, DE/EN vollständig
+g++ -std=c++20 -O1 -g -Wall -Wextra -Isrc src/key_help.cpp tests/key_help_tests.cpp -o "$OUT/key-help-tests"
+"$OUT/key-help-tests"
