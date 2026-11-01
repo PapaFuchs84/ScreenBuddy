@@ -1,5 +1,5 @@
 // © 2026 FuchsLabs
-// Allgemein: Übersicht, Anzeige, Seiten & Reihenfolge.
+// Ansicht: Übersicht, Anzeige, Seiten & Reihenfolge.
 #include "ui_pages.h"
 
 #include <algorithm>
@@ -36,7 +36,7 @@ public:
         Host* h = &host;
         row->add(T(L"🖥  Anzeige", L"🖥  Display"), Button::Secondary, [h] { h->navigate("display"); });
         row->add(T(L"🗂  Seiten & Reihenfolge", L"🗂  Pages & order"), Button::Secondary, [h] { h->navigate("pages"); });
-        row->add(T(L"📊  Datenquellen", L"📊  Data sources"), Button::Secondary, [h] { h->navigate("system"); });
+        row->add(T(L"📊  Seiten", L"📊  Pages"), Button::Secondary, [h] { h->navigate("system"); });
         row->add(Text(L"📱  Companion"), Button::Secondary, [h] { h->navigate("companion"); });
         row->add(Text(L"🧩  Plugins"), Button::Secondary, [h] { h->navigate("plugins"); });
         // Anleitung (Deutsch/Englisch) und Plugin-Werkstatt laufen im lokalen Server dieser App
@@ -53,7 +53,7 @@ public:
         auto steps = setup->add<ButtonRow>();
         steps->add(T(L"1 · Ausgabe wählen", L"1 · Choose output"), Button::Secondary,
             [h] { h->navigate("display"); });
-        steps->add(T(L"2 · Datenquellen einrichten", L"2 · Set up data sources"), Button::Secondary,
+        steps->add(T(L"2 · Seiten einrichten", L"2 · Set up pages"), Button::Secondary,
             [h] { h->navigate("system"); });
         steps->add(T(L"3 · Seiten wählen", L"3 · Choose pages"), Button::Secondary,
             [h] { h->navigate("pages"); });

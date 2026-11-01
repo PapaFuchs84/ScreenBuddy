@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Settings navigation regrouped: View, Pages, App (Companion, Plugins, Plugin store moved to App); store themes are installed on Colors & design instead of the Plugin store page (`ui_page_design.cpp`, `ui_page_store.cpp`, `ui_pages.cpp`, `ui_kit.h`).
+
 ## 2.9.4 – 31 October 2026
 
 - snapshot-bound TMDB touch rows, Spotify desktop cover action, and clearer bilingual TMDB application help.

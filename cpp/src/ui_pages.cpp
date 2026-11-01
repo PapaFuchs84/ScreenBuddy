@@ -13,11 +13,11 @@ namespace fl::ui {
 
 std::vector<std::unique_ptr<Page>> create_pages() {
     std::vector<std::unique_ptr<Page>> pages;
-    // Allgemein
+    // Ansicht
     pages.push_back(make_overview_page());
     pages.push_back(make_display_page());
     pages.push_back(make_pages_page());
-    // Datenquellen
+    // Seiten
     pages.push_back(make_system_page());
     pages.push_back(make_friends_page());
     pages.push_back(make_discord_page());
@@ -26,12 +26,11 @@ std::vector<std::unique_ptr<Page>> create_pages() {
     pages.push_back(make_streaming_page());
     pages.push_back(make_homeassistant_page());
     pages.push_back(make_spotify_page());
-    // Verbindung
+    // App
+    pages.push_back(make_design_page());
     pages.push_back(make_companion_page());
     pages.push_back(make_plugins_page());
     pages.push_back(make_store_page());
-    // App
-    pages.push_back(make_design_page());
     pages.push_back(make_app_page());
     return pages;
 }

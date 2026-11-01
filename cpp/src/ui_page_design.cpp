@@ -9,6 +9,7 @@
 #include <commdlg.h>
 
 #include "app.h"
+#include "native_settings.h"
 #include "render.h"
 #include "theme.h"
 #include "util.h"
@@ -53,6 +54,24 @@ public:
         info_ = card->add<Note>(Text(), Note::Info);
         problems_ = card->add<Note>(Text(), Note::Warn);
 
+        Card* store = root.add<Card>(T(L"Themes aus dem Store", L"Themes from the store"),
+            T(L"Themes bestehen nur aus neun Farben, ohne Programmcode, und sind wie die Plugins signiert. Nach der Installation ist das Theme oben ausgewählt; übernommen wird es mit „Speichern & anwenden“. Der Abruf lässt sich unter „Plugin-Store“ ausschalten.",
+              L"Themes are just nine colors, no program code, and signed like the plugins. After installing, the theme is selected above; it is kept with “Save & apply”. The lookup can be switched off under “Plugin store”."));
+        store_status_ = store->row<Label>(T(L"Stand", L"State"), Text(), T(L"Wird geladen …", L"Loading …"), Font::Small, Label::Muted);
+        store_list_ = store->add<ItemList>(std::vector<ItemList::Item>{});
+        store_list_->checkable = false;
+        store_list_->reorder = false;
+        store_list_->track_dirty = false;
+        store_list_->name = T(L"Verfügbare Themes", L"Available themes");
+        store_list_->empty_text = T(L"Keine Themes im Store.", L"No themes in the store.");
+        store_list_->on_select = [this](int i) {
+            store_selected_ = i >= 0 && i < int(store_.themes.size()) ? store_.themes[size_t(i)].id : "";
+            update_store_buttons();
+        };
+        auto sr = store->add<ButtonRow>();
+        store_refresh_ = sr->add(T(L"Store aktualisieren", L"Refresh store"), Button::Secondary, [this] { load_store(true); });
+        store_install_ = sr->add(T(L"Theme installieren", L"Install theme"), Button::Primary, [this] { install_store_theme(); });
+
         Card* tools = root.add<Card>(T(L"Eigene Themes", L"Your own themes"),
             T(L"Themes liegen als .json-Dateien im Ordner themes der Installation und werden sofort gespeichert. "
               L"Die Auswahl oben wird erst mit „Speichern & anwenden“ übernommen.",
@@ -67,12 +86,16 @@ public:
         export_ = r2->add(T(L"Exportieren …", L"Export …"), Button::Secondary, [this] { export_file(); });
         editor_ = root.add<Card>();
         reload(cfg_theme_);
+        if (store_loaded_) fill_store();
+        update_store_buttons();
     }
+    void tick(Host&, const Status&) override { update_store_buttons(); }
     void collect(Host&, ojson& patch) override {
         if (combo_ && combo_->index >= 0 && combo_->index < int(keys_.size())) patch["display"]["theme"] = keys_[size_t(combo_->index)];
     }
     void shown(Host&) override {
         visible_ = true;
+        load_store(false);
         if (combo_ && th::Store().list().size() != themes_.size()) reload(selected_key());   // z. B. Theme aus dem Store installiert
     }
     void hidden(Host&) override {
@@ -97,6 +120,94 @@ private:
     std::string cfg_theme_;
     bool previewing_ = false, again_ = false, visible_ = false;
     uint64_t preview_generation_ = 0;
+    // Store-Themes (signierter Index; Aufrufe laufen im Arbeits-Thread)
+    Label* store_status_ = nullptr;
+    ItemList* store_list_ = nullptr;
+    Button *store_refresh_ = nullptr, *store_install_ = nullptr;
+    NativeStoreState store_;
+    std::string store_selected_;
+    bool store_loaded_ = false;
+
+    const NativeThemeCard* store_theme() const {
+        auto it = std::find_if(store_.themes.begin(), store_.themes.end(), [this](auto& t) { return t.id == store_selected_; });
+        return it == store_.themes.end() ? nullptr : &*it;
+    }
+    Text store_state_text() const {
+        if (store_.state == "disabled")
+            return T(L"Der Plugin-Store ist ausgeschaltet. Unter „Plugin-Store“ einschalten und „Speichern & anwenden“.",
+                     L"The plugin store is switched off. Switch it on under “Plugin store” and “Save & apply”.");
+        if (store_.state == "unavailable")
+            return T(L"Der Store ist in dieser Version noch nicht verfügbar (kein Signaturschlüssel hinterlegt).", L"The store is not available in this version yet (no signing key pinned).");
+        if (store_.state == "invalid")
+            return T(L"Der Store lieferte ungültige oder veraltete Daten. Es werden die zuletzt geprüften Daten gezeigt.",
+                     L"The store returned invalid or outdated data. The last verified data is shown.");
+        if (store_.state == "offline")
+            return T(L"Der Store ist nicht erreichbar und es gibt noch keine geprüften Daten.", L"The store is not reachable and there is no verified data yet.");
+        return store_.from_cache ? T(L"Geprüfte Daten aus dem Zwischenspeicher (Store zuletzt nicht erreichbar oder noch nicht abgefragt).",
+                                     L"Verified data from the cache (store not reachable or not queried yet).")
+                                 : T(L"Verbunden. Index und Sperrliste sind geprüft.", L"Connected. Index and revocation list verified.");
+    }
+    void update_store_buttons() {
+        if (!store_install_) return;
+        auto& a = host_->plugins();
+        const bool idle = !host_->busy();
+        const bool live = store_.state == "available" || store_.state == "invalid" || store_.state == "offline";
+        const auto* t = store_theme();
+        store_refresh_->enabled = idle && bool(a.store_refresh) && store_.state != "unavailable" && store_.state != "disabled";
+        store_install_->enabled = idle && live && t && t->status == "not_installed" && bool(a.store_theme_install);
+        store_install_->text = t && t->status == "installed" ? T(L"Bereits installiert", L"Already installed") : T(L"Theme installieren", L"Install theme");
+        host_->surface().invalidate();
+    }
+    void fill_store() {
+        if (!store_list_) return;
+        store_status_->text = store_state_text();
+        std::vector<ItemList::Item> items;
+        for (const auto& t : store_.themes) {
+            const std::wstring meta = widen(t.author + " · " + t.license + (t.description.empty() ? "" : " · " + t.description));
+            const auto st = t.status == "installed" ? T(L"installiert", L"installed") : T(L"nicht installiert", L"not installed");
+            items.push_back({t.id, Text(widen(t.name + "  " + t.version)), Text(meta + L" · " + st.get(false), meta + L" · " + st.get(true)), t.status == "installed"});
+        }
+        store_list_->items = items;
+        store_list_->original = items;
+        store_list_->selected = -1;
+        for (size_t i = 0; i < store_.themes.size(); ++i) if (store_.themes[i].id == store_selected_) store_list_->selected = int(i);
+        if (store_list_->selected < 0) store_selected_.clear();
+        update_store_buttons();
+    }
+    void load_store(bool force) {
+        auto& a = host_->plugins();
+        if (host_->busy() || !a.store_list) return;
+        Host* h = host_;
+        h->run([this, h, force]() -> std::function<void()> {
+            auto& actions = h->plugins();
+            if (actions.store_refresh) actions.store_refresh(force);   // höchstens einmal am Tag, erzwungen höchstens einmal pro Minute
+            NativeStoreState result = actions.store_list("", "");
+            return [this, result = std::move(result)] { store_ = result; store_loaded_ = true; fill_store(); };
+        });
+        update_store_buttons();
+    }
+    void install_store_theme() {
+        const auto* sel = store_theme();
+        if (host_->busy() || !sel || sel->status != "not_installed" || !host_->plugins().store_theme_install) return;
+        Host* h = host_;
+        h->run([this, h, id = sel->id, name = sel->name]() -> std::function<void()> {
+            std::string error;
+            try { h->plugins().store_theme_install(id); } catch (const std::exception& e) { error = e.what(); }
+            NativeStoreState result = h->plugins().store_list("", "");
+            return [this, h, error, name, result = std::move(result)] {
+                store_ = result;
+                store_loaded_ = true;
+                fill_store();
+                if (!error.empty()) { h->toast(Text(widen(error)), ToastKind::Error); return; }
+                std::string pick = selected_key();
+                for (const auto& t : th::Store().list())
+                    if (t.name == name) pick = std::string(th::CUSTOM_PREFIX) + t.id;
+                reload(pick);
+                h->toast(T(L"Theme installiert und ausgewählt. Mit „Speichern & anwenden“ übernehmen.", L"Theme installed and selected. Keep it with “Save & apply”."), ToastKind::Success);
+            };
+        });
+        update_store_buttons();
+    }
 
     bool en() const { return host_->english(); }
     std::string selected_key() const {

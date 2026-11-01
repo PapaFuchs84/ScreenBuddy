@@ -20,7 +20,7 @@ Protokoll: [docs/COMPANION-PROTOKOLL.md](docs/COMPANION-PROTOKOLL.md). Prüfstan
 
 ## Plugin-Store (ab 2.6.0)
 
-Auf der Einstellungsseite **Plugin-Store** (neben Companion und Plugins) findest und installierst du geprüfte Datenplugins aus dem Store-Repository `PapaFuchs84/ScreenBuddy-Plugins`. Plugins enthalten keinen Programmcode.
+Auf der Einstellungsseite **Plugin-Store** (Gruppe **APP**, neben Companion und Plugins) findest und installierst du geprüfte Datenplugins aus dem Store-Repository `PapaFuchs84/ScreenBuddy-Plugins`. Plugins enthalten keinen Programmcode.
 
 - **Schalter:** „Plugin-Store verwenden“ (`[ui] plugin_store`, Standard an). Aus bedeutet: kein Abruf. Die Änderung wirkt nach **Speichern & anwenden**.
 - **Suche und Kategorien:** Alle, System, Spiele, Smart Home, Info, Sonstiges. Ein Klick auf ein Plugin zeigt Autor, Version, Lizenz, Status und die Hosts, an die es Daten sendet.
@@ -118,7 +118,7 @@ Sie erscheint in einem nativen Win32-Fenster (Direct2D/DirectWrite, ohne WebView
 | **Updates & Autostart** | installierte Version mit Update-Prüfung (**Automatisch nach Updates suchen**, **Jetzt nach Updates suchen**, **Release-Seite öffnen**), **Mit Windows starten**, Hersteller-App beenden/Autostart abschalten, **Neu starten**, **Beenden**. Sprache und Hell/Dunkel des Fensters stehen oben rechts. |
 | **Übersicht** | Kennzahlen (Display verbunden, Auflösung, aktive Quellen, Seiten), Verbindungsstatus von Discord, Steam, Xbox und Home Assistant, Schnellzugriff, „Einrichtung in 3 Schritten“ |
 | **Seiten & Reihenfolge** | Seiten (auch aktivierte Plugins) ein-/ausblenden und mit ▲/▼ sortieren |
-| **Farben & Design** | Hell, Dunkel, „An Windows anpassen“ oder eigene Themes (Editor, Import/Export), mit Vorschau; siehe [docs/THEMES.md](docs/THEMES.md) |
+| **Farben & Design** | Hell, Dunkel, „An Windows anpassen“, eigene Themes (Editor, Import/Export) oder signierte Themes direkt aus dem Store (Karte „Themes aus dem Store“), mit Vorschau; siehe [docs/THEMES.md](docs/THEMES.md) |
 | **Freunde** | gemeinsame Liste: Seite an/aus, Discord einbeziehen, Steam- und Xbox-Zugang mit „Verbindung prüfen“ und Anleitung, Personen zusammenführen |
 | **Discord** | Seite an/aus, Bot-Token, Offline-Freunde, Auswahl der Personen aus den Server-Mitgliedern, Server- und Ignorierlisten |
 | **Battlefield 6** | Spieler hinzufügen (PC/PlayStation/Xbox), sofort **Prüfen**, Abrufintervall |

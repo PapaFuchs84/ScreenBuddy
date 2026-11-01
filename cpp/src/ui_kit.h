@@ -484,7 +484,7 @@ public:
     bool active = false, dot_on = false;
     bool rail = false, search_result = false;
     int icon = 0;
-    bool has_dot = true;   // nur Datenquellen/Verbindungen zeigen einen Statuspunkt
+    bool has_dot = true;   // nur Seiten (Datenquellen) und Companion zeigen einen Statuspunkt
     Text dot_hint;         // Hinweis für Sprachausgabe: eingerichtet und an / nicht eingerichtet oder aus
     std::function<void()> on_open;
     std::function<void(int)> on_step;  // Pfeil hoch/runter
@@ -599,7 +599,7 @@ struct Invalid : std::runtime_error {
     Invalid(const std::string& message, Widget* w) : std::runtime_error(message), widget(w) {}
 };
 
-enum class Group { General, Sources, Connection, App };
+enum class Group { General, Sources, App };   // Navigation: Ansicht, Seiten, App
 
 struct PageInfo {
     std::string id;
