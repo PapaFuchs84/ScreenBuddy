@@ -19,6 +19,7 @@
 #include "sysinfo.h"
 #include "theme.h"
 #include "util.h"
+#include "distribution.h"
 #include "winsetup.h"
 
 namespace fs = std::filesystem;
@@ -62,6 +63,7 @@ Args parse(int argc, wchar_t** argv) {
 }
 
 fs::path data_dir() {
+    if (distribution::packaged()) return distribution::data_dir();
     // Liegt das Programm in einem Ordner ohne Schreibrecht, wandern Einstellungen und Protokoll ins Benutzerprofil
     fs::path here = exe_path().parent_path();
     fs::path probe = here / L".fl-write-test";
@@ -195,9 +197,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     i18n::set_lang((GetUserDefaultUILanguage() & 0x3FF) == 0x07 ? "de" : "en");
 
     // ---------- Installer / Deinstaller ----------
+    if (distribution::packaged() && (args.install || args.uninstall || args.finish_dir)) return ERROR_NOT_SUPPORTED;
     if (args.finish_dir) return installer::finish_uninstall(*args.finish_dir, args.finish_pid);
     if (args.uninstall) return installer::run_uninstall(args.silent);
-    bool from_elsewhere = !installer::running_installed() && !args.run && !args.demo && !args.config && !test_instance();
+    bool from_elsewhere = !distribution::packaged() && !installer::running_installed() && !args.run && !args.demo && !args.config && !test_instance();
     if (args.install || from_elsewhere) {
         std::error_code ec;
         fs::create_directories(install_dir(), ec);
@@ -233,7 +236,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             if (!args.autostart) open_settings(port);
             return 0;
         }
-        if (installer::running_installed() && !test_instance()) winsetup::upgrade_autostart();
+        if (!distribution::packaged() && installer::running_installed() && !test_instance()) winsetup::upgrade_autostart();
         try {
             if (config::token_is_plaintext(cfg_path)) {
                 config::save(cfg_path, cfg);  // alten Klartext-Token verschlüsseln

@@ -32,8 +32,7 @@ if errorlevel 1 set "CMAKE=C:\Program Files (x86)\Microsoft Visual Studio\2022\B
 "%BUILD_DIR%\fl-monitor-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-companion-tests.exe" || goto :fail
 python tests\installer_preserves_config.py "%BUILD_DIR%\ScreenBuddy.exe" || goto :fail
-if not exist dist mkdir dist
-copy /y "%BUILD_DIR%\ScreenBuddy.exe" dist\ >nul || goto :fail
+powershell -NoProfile -File "..\packaging\windows\Export-WindowsRelease.ps1" -BuildDirectory "%~dp0%BUILD_DIR%" -OutputDirectory "%~dp0dist" || goto :fail
 echo.
 echo Fertig: dist\ScreenBuddy.exe
 if /i not "%~1"=="nopause" pause

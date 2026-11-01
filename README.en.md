@@ -1,5 +1,7 @@
 <div align="center">
 
+Store edition in preparation: [Microsoft Store / Companion build](docs/STORE-DISTRIBUTION.en.md). No Store publication yet.
+
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 

@@ -118,7 +118,18 @@ class MainActivity : AppCompatActivity() {
         forgetBtn = secondary(getString(R.string.btn_forget)) { store.forget(); sw1.isChecked = false; refresh() }
         col.addView(gap(forgetBtn, 20))
 
-        setContentView(ScrollView(this).apply { setBackgroundColor(bg); isFillViewport = true; addView(col) })
+        val scroll = ScrollView(this).apply { setBackgroundColor(bg); isFillViewport = true; addView(col) }
+        // Android 15/16 enforce edge-to-edge. Keep setup controls clear of bars and cutouts.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(scroll) { view, insets ->
+            val safe = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars() or
+                androidx.core.view.WindowInsetsCompat.Type.displayCutout() or
+                androidx.core.view.WindowInsetsCompat.Type.ime())
+            view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
+            insets
+        }
+        setContentView(scroll)
+        androidx.core.view.ViewCompat.requestApplyInsets(scroll)
         discovery = Discovery(this) { found = it; refresh() }
     }
 

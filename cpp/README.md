@@ -1,8 +1,10 @@
-# ScreenBuddy 2.7.0
+# ScreenBuddy C++
+
+Unpublished 2.9.6 candidate: [MSIX packaging, migration and Companion APK delivery](../docs/STORE-DISTRIBUTION.en.md) · [Deutsch](../docs/STORE-DISTRIBUTION.md). Store installation and updates are package-managed.
 
 Companion: preview since 2.3.0 (independent USB/HDMI and Android views, automatic phone dimensions and rotation), Companion app 1.0.0 as a separate download since 2.6.0, several devices at once since 2.7.0. See [DE](../docs/COMPANION.md) / [EN](../docs/COMPANION.en.md). Tests include `python tests/app_companion_integration.py` on Windows (isolated processes with `--no-lcd`, no physical display).
 
-Native Windows C++20 application formerly released as FuchsLabs USB-Display. The application and installer are built as one EXE; it requires no Python runtime or Visual C++ redistributable. The current source (2.7.0) opens settings only in the self-drawn native Win32 interface and no longer links WebView2. The loopback API and embedded guide remain; `/` no longer serves the former HTML settings page. ScreenBuddy 2.5.0, 2.6.0 and 2.7.0 require no WebView2; earlier 2.3.0 still does.
+Native Windows C++20 application formerly released as FuchsLabs USB-Display. The application and installer are built as one EXE; it requires no Python runtime or Visual C++ redistributable. The current source (2.9.6 candidate) opens settings only in the self-drawn native Win32 interface and no longer links WebView2. The loopback API and embedded guide remain; `/` no longer serves the former HTML settings page. ScreenBuddy 2.5.0, 2.6.0 and 2.7.0 require no WebView2; earlier 2.3.0 still does.
 
 ## ScreenBuddy 2.7.0
 
@@ -67,7 +69,7 @@ If taps affect another display, open **Assign touchscreen** and choose **Open Wi
 
 ## Build
 
-The checked-in `build.bat` expects Visual Studio Build Tools 2022, CMake/Ninja, and a vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`. It installs pinned dependencies using the repository's vcpkg manifest and overlay port, builds x64 Release in `build\screenbuddy-release`, runs core, plugin, monitor, Companion and isolated installer tests, and copies the installer/app to `dist\ScreenBuddy.exe`.
+The checked-in `build.bat` expects Visual Studio Build Tools 2022, CMake/Ninja, and a vcpkg checkout at `%USERPROFILE%\FuchsLabs\vcpkg`. It installs pinned dependencies using the repository's vcpkg manifest and overlay port, builds x64 Release in `build\screenbuddy-release`, runs core, plugin, monitor, Companion and isolated installer tests, then signs and verifies the app and startup helper before copying to `dist/`. Set `SCREENBUDDY_CODESIGN_THUMBPRINT` to an existing trusted Code Signing certificate; without it no public EXE is exported. Development binaries remain in the build folder.
 
 ```bat
 build.bat

@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-01",
+  "windowsVersion": "2.9.6",
+  "androidVersion": "1.0.4",
+  "androidVersionCode": 8,
+  "windowsSuitesPassed": 17,
+  "coreAssertions": 3327,
+  "installerPreservationCases": 2,
+  "companionAppIntegrationChecks": 39,
+  "androidProtocolTests": 22,
+  "androidLintErrors": 0,
+  "androidLintWarnings": 31,
+  "apkSameReleaseCertificateAs103": true,
+  "packageDeveloperValidation": {
+    "dataRetained": true,
+    "overwriteRefused": true,
+    "import": true,
+    "whatIf": true,
+    "update": true,
+    "storeCertification": false,
+    "install": true,
+    "deploymentMode": "developer-registration",
+    "syntheticPackageVersion": "2.9.7.0",
+    "startupRoundtrip": true
+  },
+  "publicExeSigning": "blocked-missing-trusted-certificate",
+  "physicalAcceptance": false,
+  "signedStoreServicingTested": false,
+  "appCertificationKitRun": false,
+  "artifacts": [
+    {
+      "path": "dist/android/ScreenBuddy-Companion-1.0.4.apk",
+      "sha256": "e3ec4066b4a7aa100c7cceb5a7459542679c814f8b8793cbffa75161d844535d"
+    },
+    {
+      "path": "dist/windows-local-test/ScreenBuddy-2.9.6.0-x64.msix",
+      "sha256": "bedb9fd2ed078d3e68735370ac038b69081f00f3025e70b43d19b62632f37c8a"
+    }
+  ]
+}

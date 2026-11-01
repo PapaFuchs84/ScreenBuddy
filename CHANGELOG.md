@@ -6,6 +6,12 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### 2.9.6 – in Vorbereitung
+
+Öffentliche Windows-EXE-Auslieferungen verlangen jetzt vertrauenswürdige Authenticode-Signierung mit Zeitstempel; ohne Zertifikat wird der Export gesperrt.
+
+Microsoft-Store-Vorbereitung: MSIX-Paketierung, getrennte Benutzerdaten, Store-Updates und paketfester Autostart. Companion 1.0.4 (Code 8): Android API 36 und Insets für die Einrichtung. Keine Store-Veröffentlichung erfolgt.
+
 ## [2.9.5] – 2026-11-01
 
 ### Geändert

@@ -6,6 +6,12 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### 2.9.6 – in preparation
+
+Public Windows EXE delivery now requires trusted timestamped Authenticode signing; exporting unsigned public releases is blocked.
+
+Microsoft Store preparation: MSIX packaging, isolated user data, Store-managed updates and package-stable startup. Companion 1.0.4 (code 8): Android API 36 and setup window insets. No Store publication performed.
+
 ## [2.9.5] – 2026-11-01
 
 ### Changed

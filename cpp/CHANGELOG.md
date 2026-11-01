@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### 2.9.6 – preparation
+
+Verbindlicher Signier-/Prüfschritt vor öffentlichem EXE-Export; lokale Entwicklungsbuilds bleiben möglich.
+
+MSIX-Laufzeiterkennung, eigener Datenpfad, Microsoft-Store-Updateweg und StartupTask statt versionsgebundenem Registry-Autostart. Standalone-Installation bleibt verfügbar.
+
 ## 2.9.5 – 1 November 2026
 
 - Settings navigation regrouped: View, Pages, App (Companion, Plugins, Plugin store moved to App; Colors & design belongs to View); store themes are installed on Colors & design instead of the Plugin store page (`ui_page_design.cpp`, `ui_page_store.cpp`, `ui_pages.cpp`, `ui_kit.h`).

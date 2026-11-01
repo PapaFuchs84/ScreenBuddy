@@ -6,6 +6,7 @@
 #include <tlhelp32.h>
 
 #include "util.h"
+#include "distribution.h"
 
 namespace fl::winsetup {
 
@@ -37,6 +38,7 @@ static std::optional<std::wstring> run_value() {
 }
 
 bool autostart_enabled() {
+    if (distribution::packaged()) return distribution::startup_enabled();
     auto v = run_value();
     return v && (*v == autostart_command() || *v == launch_command());
 }
@@ -50,6 +52,7 @@ void upgrade_autostart() {
 void set_autostart(bool enabled) { set_autostart_for(exe_path().wstring(), enabled); }
 
 void set_autostart_for(const std::wstring& exe, bool enabled) {
+    if (distribution::packaged()) { if (!test_instance()) distribution::set_startup(enabled); return; }
     if (test_instance()) {  // Testinstanz: echten Autostart nie anfassen
         LOGI("winsetup", "Testinstanz: Autostart unverändert");
         return;

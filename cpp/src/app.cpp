@@ -26,6 +26,7 @@
 #include "sysinfo.h"
 #include "tray.h"
 #include "update.h"
+#include "distribution.h"
 #include "util.h"
 #include "webui.h"
 #include "winsetup.h"
@@ -122,7 +123,10 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
         });
 }
 
-ojson App::update_info() { return update_ ? ojson::parse(update_->info().dump()) : ojson(); }
+ojson App::update_info() {
+    if (distribution::packaged()) return {{"channel", "microsoft-store"}, {"current", VERSION}, {"available", false}};
+    return update_ ? ojson::parse(update_->info().dump()) : ojson();
+}
 bool App::update_check_now() { return update_ && update_->check_now(); }
 
 ojson App::plugin_catalog() {

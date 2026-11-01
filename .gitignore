@@ -32,3 +32,15 @@ anleitung/bilder/freunde.png
 .idea/
 Thumbs.db
 desktop.ini
+
+# Distribution/signing artifacts
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+*.aab
+*.jks
+*.keystore
+*.pfx
+*.p12
+**/signing.properties

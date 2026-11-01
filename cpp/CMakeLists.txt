@@ -1,6 +1,6 @@
 # © 2026 FuchsLabs – ScreenBuddy (C++)
 cmake_minimum_required(VERSION 3.24)
-project(ScreenBuddy VERSION 2.9.5 LANGUAGES CXX RC)
+project(ScreenBuddy VERSION 2.9.6 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,7 +26,7 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
-    src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp
+    src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/key_help.cpp src/psn_logic.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/amp_logic.cpp src/audio_levels.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/native_settings.cpp src/ui_shell_material.cpp src/touch.cpp src/update.cpp
@@ -42,7 +42,7 @@ target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EH
 target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL OpenSSL::Crypto Opus::opus ZLIB::ZLIB
                                     nlohmann_json::nlohmann_json tomlplusplus::tomlplusplus pugixml::pugixml httplib::httplib
                                     d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
-                                    comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 oleaut32 oleacc uuid uxtheme shell32)
+                                    windowsapp comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 oleaut32 oleacc uuid uxtheme shell32)
 
 # Eingebettete Dateien: bei Änderungen die Ressourcen neu bauen (CMake erkennt RCDATA-Abhängigkeiten nicht selbst)
 set_source_files_properties(res/app.rc PROPERTIES OBJECT_DEPENDS
@@ -127,3 +127,10 @@ target_link_libraries(fl-plugin-settings-tests PRIVATE nlohmann_json::nlohmann_j
 add_executable(fl-companion-tests tests/companion_tests.cpp)
 target_link_libraries(fl-companion-tests PRIVATE flcore)
 target_link_options(fl-companion-tests PRIVATE /MANIFEST:NO)
+
+# Stable startup entry point: Store updates move the package directory.
+add_executable(ScreenBuddyStartup WIN32 tools/store_startup.cpp)
+target_compile_definitions(ScreenBuddyStartup PRIVATE UNICODE _UNICODE)
+
+add_executable(fl-distribution-tests tests/distribution_tests.cpp)
+target_link_libraries(fl-distribution-tests PRIVATE flcore)

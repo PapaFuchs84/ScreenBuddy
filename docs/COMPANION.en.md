@@ -1,5 +1,7 @@
 ## Companion app (from 2.3.0): independent displays
 
+Unpublished candidate: Companion 1.0.4 (code 8), targetSdk 36; [build and Store preparation](STORE-DISTRIBUTION.en.md). The previously published release is unchanged.
+
 **Status 31 October 2026:** The current Companion app 1.0.3 (versionCode 7; new light and dark login design; since 1.0.1 it keeps clear of rounded corners and the camera cut-out) is a separate download and not part of the Windows EXE. The Redmi 8 acceptance over USB tethering on 27 October 2026 (landscape/portrait output, real finger gestures, automatic page rotation and reconnect without a new PIN) refers to the predecessor 0.2.1-preview (versionCode 3, signed with a new RSA-3072 release key, APK v2 signature verified). For Companion app 1.0.3 the interface was installed on a Pixel 10 Pro, Redmi 8 and BeyondTV on 31 October 2026 and checked by screenshot; a full connection test is not documented in the [test record](../cpp/TESTPROTOKOLL.md). The previous debug APK uses a different certificate and cannot be directly updated with the new APK. Do not uninstall automatically: local data and pairings would be removed. [Build, signing and migration](../android/README.md). Earlier device results below apply to 0.2.0-preview.
 
 The USB display or HDMI monitor and Android Companion can run at the same time, with separate page selections, positions, timers and touch targets. Data sources, accounts and theme stay shared. Enable and configure each data source in its tab before selecting its page for an output.
