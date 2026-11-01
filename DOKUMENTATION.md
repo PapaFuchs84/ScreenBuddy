@@ -1,5 +1,7 @@
 # ScreenBuddy – Dokumentation
 
+[Menü und Themes](docs/NAVIGATION.md)
+
 **Companion-Vorschau ab 2.3.0:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
 
 Version 2.7.0 · Stand 31.10.2026 · © 2026 FuchsLabs

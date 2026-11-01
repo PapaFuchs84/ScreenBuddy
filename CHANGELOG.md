@@ -6,10 +6,14 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+## [2.9.5] – 2026-11-01
+
 ### Geändert
 
-- **Einstellungs-Navigation:** „Allgemein“ heißt jetzt **Ansicht**, „Datenquellen“ heißt **Seiten**. Die Gruppe „Verbindung“ entfällt: Companion, Plugins und Plugin-Store stehen unter **App** (neben Farben & Design und Updates & Autostart).
+- **Einstellungs-Navigation:** „Allgemein“ heißt jetzt **Ansicht**, „Datenquellen“ heißt **Seiten**. Die Gruppe „Verbindung“ entfällt: Companion, Plugins und Plugin-Store stehen unter **App** (neben Updates & Autostart); **Farben & Design** gehört zu **Ansicht**.
 - **Store-Themes** werden direkt unter **Farben & Design** (Karte „Themes aus dem Store“) gesucht und installiert; das installierte Theme ist danach ausgewählt. Aus dem Plugin-Store ist die Theme-Karte entfernt. Signierter Index, Signaturprüfung und der Schalter „Plugin-Store verwenden“ gelten unverändert.
+
+- Nach dem asynchronen Laden der Store-Themes wird das Layout neu berechnet; Theme-Zeilen überdecken keine Installationsknöpfe mehr. Bebilderte Hilfe DE/EN mit anonymisierten Menüaufnahmen erneuert.
 
 ## [2.9.4] – 2026-10-31
 

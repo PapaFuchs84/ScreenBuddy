@@ -9,7 +9,7 @@
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.9.4-F77F00)
+![Version](https://img.shields.io/badge/version-2.9.5-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -24,6 +24,8 @@
 </div>
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
+
+**New in 2.9.5:** View, Pages and App navigation; **Colors & design under View**, including signed store-theme installation. [Menu and theme guide](docs/NAVIGATION.en.md).
 
 **New in 2.9.4:** tap a streaming movie or series to open its TMDB details in the PC browser; tap Spotify cover art to open the Spotify desktop app. TMDB key application explained with field examples. [Release notes 2.9.4](docs/RELEASE-NOTES-2.9.4.md). New tabs follow browser settings; verified with Chrome on Meanmachine.
 

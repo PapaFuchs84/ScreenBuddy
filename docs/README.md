@@ -1,5 +1,7 @@
 <div align="center">
 <img src="logo/fuchslabs-logo.png" alt="FuchsLabs" width="72">
+[Menü und Themes / Menu and themes](NAVIGATION.md) · [English](NAVIGATION.en.md)
+
 
 # ScreenBuddy · Dokumentationsübersicht
 

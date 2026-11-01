@@ -1,0 +1,114 @@
+[
+  {
+    "path": "anleitung/bilder/app.png",
+    "sha256": "e878a266f13c230648b9f4b8d76069304f135ba15e4c5e40989da5a2411068b8",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/bf6.png",
+    "sha256": "3fa15f2cee94add6fde49a6f661da85cea40c75a8164dd4e280f39036d4bbbad",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/blogs.png",
+    "sha256": "f240bc5872bf6baf2449a8d4cdc5573f08fb223c8370014dc0776db3a880ba0b",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/cupertino-dark.png",
+    "sha256": "c6b44f10ff77bda842458f8d3f94b883947dbcc0cedb73ef8f8e130f33d26e63",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/cupertino-light.png",
+    "sha256": "38a67d6fe44b705f3f235c0c2e6f19e0a6ee4e09b2aa0abab226938ccd350f42",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/design.png",
+    "sha256": "292dc7a14a8b8cf6c05adc8fb82ec4612be815ffa4f8c31f7b5340f728bdd480",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": true
+  },
+  {
+    "path": "anleitung/bilder/discord.png",
+    "sha256": "55601487fd626c3efb3d4eec8b456694d09c317ad6b46de19ae18258187f0794",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/display.png",
+    "sha256": "21c8fc46bc837d7226feeb611e71e65033b25ade5c4fb53294688d2f0957cb30",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/fluent-dark.png",
+    "sha256": "2c0726b9e1a6eed3f5e914730114e5391611fce749e2e2e430c616fe9e9ccb2e",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/fluent-light.png",
+    "sha256": "828533f2a81edf7f625506aadabb5698cfa1a7e25ac451317cf8abc010b09746",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/friends-native.png",
+    "sha256": "775fae5e28eb185c54affab88b4c57e9721551d299e38163c72d117517d5a207",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/ha.png",
+    "sha256": "de7a3159b6a1886ee6266a4940862184c21d9292562e3468ae3c446c7b822837",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/material-dark.png",
+    "sha256": "8e056ebb98623ecfe6de09df959a389c27a425fee343b5231dff081311cba19e",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/material-light.png",
+    "sha256": "dccee8d3c08bfe1bea9279c70b2ee926b202c76346c7a03b6eb872fc89888445",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/pages.png",
+    "sha256": "9b8a59151a6f3a4d687fcee4716652b4a4269cd37b67a44b6c0010263252706c",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  },
+  {
+    "path": "anleitung/bilder/start.png",
+    "sha256": "cdfe1c6eb1fed659d423fda1a9178d8f3b9227dbfe44de34578145ac85c9d869",
+    "source": "native release-test window; opaque redaction after capture; German labels",
+    "hardware_evidence": false,
+    "isolated_instance": false
+  }
+]

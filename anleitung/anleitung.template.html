@@ -172,13 +172,13 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 <div class="zoom" id="zoom"></div>
 
 <script>
-/* Anonymisierte native 2.5-Entwicklungsaufnahmen; die Statuswerte sind ein isoliertes Testbeispiel, kein Hardware-Nachweis. */
+/* Native Release-Testaufnahmen 2.9.5, nachträglich anonymisiert; Display-Demos mit Beispieldaten. */
  const IMG = {
    start: '{{img:start}}', app: '{{img:app}}', uebersicht: '{{img:uebersicht}}', discord: '{{img:discord}}', bf6: '{{img:bf6}}',
    blogs: '{{img:blogs}}', display: '{{img:display}}', bar: '{{img:bar}}', page_system: '{{img:page_system}}',
-   page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', ha_display: '{{img:ha_display}}', ha_setup: '{{img:ha_setup}}', ha_pick: '{{img:ha_pick}}', icon: '{{img:icon}}'};
+   page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', ha_display: '{{img:ha_display}}', ha_setup: '{{img:ha_setup}}', ha_pick: '{{img:ha_pick}}', icon: '{{img:icon}}', design: '{{img:design}}', cupertino_light: '{{img:cupertino_light}}', cupertino_dark: '{{img:cupertino_dark}}', fluent_light: '{{img:fluent_light}}', fluent_dark: '{{img:fluent_dark}}', material_light: '{{img:material_light}}', material_dark: '{{img:material_dark}}'};
  function shot(name, rings = [], cap = '') {
-   return `<figure><span class="real">📷 Native Oberfläche 2.5 · anonymisiertes Testbeispiel</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${cap}"></div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
+   return `<figure><span class="real">📷 Native Oberfläche 2.9.5 · nachträglich anonymisiert</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${cap}"></div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
  }
  const help = (items, title = 'Klappt nicht? Hier klicken') =>
   `<details class="help"><summary>${title}</summary><div class="in"><dl>${items.map(([q, a]) => `<dt>${q}</dt><dd>${a}</dd>`).join('')}</dl></div></details>`;
@@ -233,7 +233,7 @@ ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</l
 {t: 'Programm holen', html: () => `
 <p class="kicker">Herunterladen</p><h1>Lade das Programm herunter</h1>
 <p class="lead">ScreenBuddy ist <b>eine einzige Datei</b>. Du musst nichts auspacken.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.9:</b> Lade <span class="key">ScreenBuddy.exe</span> herunter. Die Bilder zeigen die native Oberfläche aus der 2.5-Entwicklung (Farben &amp; Design und Statuspunkte der 2.9 sind nur beschrieben) mit anonymen Beispieldaten. Die frühere Version 2.3.0 hat andere Menüs; nutze dafür ihre eigene eingebettete Anleitung. Tipp: Lässt du die Maus kurz auf einem Statuspunkt links in der Liste ruhen, erklärt ein Hinweis, ob die Seite eingerichtet und an (grün) oder nicht eingerichtet bzw. aus (grau) ist.</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.9.5:</b> Lade <span class="key">ScreenBuddy.exe</span> herunter. Die Menübilder zeigen die native Oberfläche 2.9.5 aus der Release-Prüfung, anschließend anonymisiert. Konten, Adressen und private Vorschauen sind überdeckt. Display-Demobilder enthalten Beispieldaten. Die frühere Version 2.3.0 hat andere Menüs; nutze dafür ihre eigene eingebettete Anleitung. Tipp: Lässt du die Maus kurz auf einem Statuspunkt links in der Liste ruhen, erklärt ein Hinweis, ob die Seite eingerichtet und an (grün) oder nicht eingerichtet bzw. aus (grau) ist.</p></div>
 <ol class="do">
 <li>Öffne diese Seite: <a href="https://github.com/PapaFuchs84/ScreenBuddy/releases/latest" target="_blank" rel="noopener">Aktueller Release auf GitHub</a>. Oder nimm die Datei, die dir der geschickt hat, von dem du diese Anleitung hast.</li>
 <li>Lade <span class="key">ScreenBuddy.exe</span> aus Release 2.9.3 herunter und prüfe die SHA-256-Prüfsumme mit der beiliegenden Prüfsummendatei.</li>
@@ -295,7 +295,7 @@ ${help([['Es passiert gar nichts.', 'Warte 10 Sekunden. Das Programm braucht bei
 {t: 'Die Einstellungsseite', html: () => `
 <p class="kicker">Nachschauen</p><h1>Die Einstellungen öffnen sich von selbst</h1>
 <p class="lead">Nach dem Installieren geht ein eigenes Fenster auf. Das ist die <b>Einstellungsseite</b>. Dort stellst du alles ein. Sie gehört nur dir und ist nicht im Internet.</p>
-<p>Auf <b>Übersicht</b> steht der Displaystatus in der ersten Kachel. Nach dem Anschluss soll er <b>„Verbunden“</b> anzeigen. Das Bild unten stammt aus einer isolierten Testinstanz ohne angeschlossene Hardware; sein Status ist kein Nachweis für dein Gerät.</p>
+<p>Auf <b>Übersicht</b> steht der Displaystatus in der ersten Kachel. Nach dem Anschluss soll er <b>„Verbunden“</b> anzeigen. Das Bild unten entstand bei der Release-Prüfung und wurde anschließend anonymisiert. Prüfe den Status an deinem eigenen Gerät.</p>
 ${shot('start', [[286, 196, 869, 63]], 'Die Statuskachel steht links oben. Prüfe den Wert an deinem eigenen Gerät.')}
 <p>Wenn das klappt, leuchtet jetzt auch dein kleines Display. 🎉</p>
 ${help([['Da steht „Die Hersteller-App des Displays läuft“.', `Klicke daneben auf ${g('Hersteller-App beenden')}. Wenn darunter noch <b>„Autostart der Hersteller-App“</b> steht, klicke dort auf ${g('Abschalten')}. Windows fragt dann einmal nach, ob du das erlaubst: <b>Ja</b> klicken.`],
@@ -304,11 +304,13 @@ ${help([['Da steht „Die Hersteller-App des Displays läuft“.', `Klicke daneb
   ['Das Fenster ist nicht aufgegangen.', 'Unten rechts neben der Uhr ist ein kleines oranges Zeichen (vielleicht hinter dem Pfeil <span class="key">^</span>). Mach darauf einen Doppelklick.'],
   ['Das Bild auf dem Display steht auf dem Kopf.', 'Kein Problem, das reparierst du gleich in Schritt „Bild drehen und Helligkeit“.']])}`},
 
+{t: 'Menü und Themes', html: () => `<h1>Wo finde ich welche Einstellung?</h1><p>Die Seitennamen gelten in jedem Theme. Wenn ein späterer Schritt „links“ sagt, öffne dieselbe Seite in der Navigation deines Themes.</p><ul><li><b>Ansicht:</b> Übersicht, Anzeige, Seiten &amp; Reihenfolge, <b>Farben &amp; Design</b>.</li><li><b>Seiten:</b> System, Freunde, Discord, Battlefield 6, Blogs (RSS), Streaming-Neustarts, Home Assistant, Spotify.</li><li><b>App:</b> Companion, Plugins, Plugin-Store, Updates &amp; Autostart.</li></ul><p><b>FuchsLabs:</b> vollständige Liste links. <b>Cupertino:</b> ☰ öffnet die Seitenliste; Vorschau öffnet den Inspector. <b>Fluent:</b> Seitentitel im Suchfeld suchen, mit ‹ zurückgehen; für alle Seiten die Suche leeren.</p><p><b>Material:</b> Ansicht → Farben &amp; Design. Unterseiten stehen unter der Überschrift oder in einem Auswahlmenü. Plugins liegen unter Erweiterungen; Companion und Updates unter App. ◧ schaltet die Vorschau. Speichern erscheint bei Änderungen.</p>${shot('cupertino_light', [], 'Cupertino · Hell · einblendbare Seitenliste')}${shot('cupertino_dark', [], 'Cupertino · Dunkel')}${shot('fluent_light', [], 'Fluent · Hell · Suche und Zurück')}${shot('fluent_dark', [], 'Fluent · Dunkel')}${shot('material_light', [], 'Material · Hell · Ansicht mit Farben & Design')}${shot('material_dark', [], 'Material · Dunkel')}<h2>Theme installieren</h2><ol><li>Ansicht → Farben &amp; Design öffnen.</li><li>Unter Themes aus dem Store aktualisieren, Theme auswählen und Theme installieren klicken.</li><li>Das Theme ist oben ausgewählt. Speichern &amp; anwenden übernimmt es nach dem Neustart.</li></ol>${shot('design', [], 'Theme direkt unter Farben & Design installiert und automatisch ausgewählt. Kontenfreie Testinstanz, kein Hardware-Nachweis.')}<p>Der gemeinsame Abrufschalter bleibt unter App → Plugin-Store. Store-Farbdesign und Designsystem sind getrennt: Den Aufbau wählst du im Theme-Editor unter Designsystem. Hell/Dunkel oben betrifft das Fenster; das Farbschema betrifft die Displayausgabe.</p>`},
+
 {t: 'Mit Windows starten', html: () => `
 <p class="kicker">Einschalten</p><h1>Das Display soll immer von selbst angehen</h1>
 <p class="lead">Damit du das Programm nicht jedes Mal selbst starten musst:</p>
 <ol class="do"><li>Öffne <b>Updates &amp; Autostart</b> und schalte <b>„Mit Windows starten“</b> ein. Er wird dann orange. (Hast du das beim Installieren schon angehakt, ist er schon an.)</li></ol>
-${shot('app', [], '„Updates &amp; Autostart“. In der isolierten Testinstanz ist der Windows-Start gesperrt; in der normalen App ist er verfügbar.')}
+${shot('app', [], '„Updates &amp; Autostart“. Die Anzeige entstand während der Release-Prüfung; private Vorschauen sind überdeckt.')}
 <div class="box tip"><p>Auf der Seite <b>Übersicht</b> gibt es die Knöpfe ${b('Anleitung (DE)')} und ${b('Anleitung (EN)')}. Damit kommst du jederzeit zurück zu dieser Anleitung.</p></div>
 <div class="box tip"><p><b>Neu in 2.2.0 – neue Version:</b> Das Programm schaut höchstens einmal am Tag bei GitHub nach, ob es eine neuere Version gibt. Dann erscheint eine Sprechblase am Fuchs-Symbol, und unter <b>Updates &amp; Autostart</b> steht „Neue Version verfügbar“ mit einem Link zur Download-Seite. Es wird nie etwas von allein installiert. Mit <b>Jetzt nach Updates suchen</b> fragst du selbst nach; der Schalter <b>„Automatisch nach Updates suchen“</b> schaltet das Nachschauen aus.</p></div>
 <div class="box tip"><p>Ab jetzt startet das Programm von selbst, wenn du dich bei Windows anmeldest. Es zeigt dann nur das kleine Fuchs-Symbol unten rechts, die Einstellungen gehen nicht von allein auf. Ausschalten kannst du es auf derselben Seite.</p></div>`},
@@ -551,7 +553,7 @@ ${shot('bar', [], '„Speichern &amp; anwenden“ befindet sich rechts unten im 
 {t: 'Wiederfinden', html: () => `
 <p class="kicker">Später</p><h1>So findest du die Einstellungen wieder</h1>
 <p class="lead">Das Programm läuft leise im Hintergrund. Es hat ein kleines <b>oranges Zeichen</b> unten rechts neben der Uhr.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.9:</b> Die native Oberfläche enthält bereits die Phase-2-Seiten für Discord, Freunde, Home Assistant, Companion-Kopplung mit QR-Code und Geräteverwaltung sowie Farben &amp; Design. Quellen-Editor, Seitenreihenfolge, Updates und Autostart sind ebenfalls nativ verfügbar. Alle Einstellungen öffnen sich im nativen Fenster; die bebilderte Anleitung selbst bleibt als HTML-Hilfe im Browser verfügbar. Quellen-Plugins benötigen Pflicht-Einstellungen und die Zustimmung zu jedem Host. Die frühere Version 2.3.0 nutzt die bisherige Oberfläche.</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.9.5:</b> Die native Oberfläche enthält bereits die Phase-2-Seiten für Discord, Freunde, Home Assistant, Companion-Kopplung mit QR-Code und Geräteverwaltung sowie Farben &amp; Design. Quellen-Editor, Seitenreihenfolge, Updates und Autostart sind ebenfalls nativ verfügbar. Alle Einstellungen öffnen sich im nativen Fenster; die bebilderte Anleitung selbst bleibt als HTML-Hilfe im Browser verfügbar. Quellen-Plugins benötigen Pflicht-Einstellungen und die Zustimmung zu jedem Host. Die frühere Version 2.3.0 nutzt die bisherige Oberfläche.</p></div>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
 <span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22.10.2026</div></div></div></figure>

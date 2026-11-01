@@ -328,9 +328,9 @@ struct NativeSettings::Impl : ui::Host {
     int destination(const Slot& slot) const {
         const auto& id = slot.info.id;
         if (id == "overview") return 0;
-        if (id == "display" || id == "pages") return 1;
+        if (id == "display" || id == "pages" || id == "design") return 1;
         if (id == "plugins" || id == "store") return 3;
-        if (id == "companion" || id == "design" || id == "app") return 4;
+        if (id == "companion" || id == "app") return 4;
         return 2;
     }
     bool nav_matches(const Slot& slot) const {
@@ -570,8 +570,8 @@ struct NativeSettings::Impl : ui::Host {
             slots[i].nav = nav;
             frame_root.order.push_back(nav);
         }
-        const std::array<ui::Text,5> areas = {ui::T(L"Übersicht", L"Overview"), ui::T(L"Display", L"Display"),
-            ui::T(L"Quellen", L"Sources"), ui::T(L"Erweiterungen", L"Extensions"), ui::T(L"Einstellungen", L"Settings")};
+        const std::array<ui::Text,5> areas = {ui::T(L"Übersicht", L"Overview"), ui::T(L"Ansicht", L"View"),
+            ui::T(L"Seiten", L"Pages"), ui::T(L"Erweiterungen", L"Extensions"), ui::T(L"App", L"App")};
         for (int group = 0; group < 5; ++group) {
             auto item = own<ui::NavItem>(areas[size_t(group)], "destination-" + std::to_string(group));
             item->rail = true; item->icon = group; item->has_dot = false;

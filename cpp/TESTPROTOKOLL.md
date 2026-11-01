@@ -1,5 +1,16 @@
 # Testprotokoll – Stand 31.10.2026
 
+## Release 2.9.5 – 01.11.2026
+
+- Basis main nach PR #50; Nutzerkorrektur Farben & Design nach Ansicht in Seitenliste und Material-Zuordnung eingearbeitet. Theme-Store lädt asynchron; sichtbare Überlagerung der Liste mit den Knöpfen reproduziert und durch relayout nach fill_store behoben. Codeprüfung der Änderungen durchgeführt; Signatur-/Hash-/Schema-Schutz unverändert.
+- Alle 14 Suiten bestanden: 3327 Kern, 119 TMDB, 251 Plugins, 41 Beispiele, 127 Store, 140 Transport, 135 Settings, 11 Monitor, 361 Companion, 111 Signatur, 77 Katalog, 13 Amp, 37 PSN und Key-Hilfe OK. Zwei Installerchecks; App-Integration 39 und Mehrgeräte 17 grün.
+- Meanmachine im normalen Windows-Kontext nach expliziter Freigabe installiert; EXE-Hash identisch und Konfiguration beim Upgrade erhalten. Vorherige Installation privat gesichert. Temporäre Theme-/Sprachänderungen zurückgestellt.
+- Pixel, Redmi und TV gleichzeitig verbunden. Beide Handys per injiziertem Wischen, TV per Pfeil rechts jeweils genau einen Seitenwechsel geprüft. Erste Pixel-Prüfung wartete nur 350 ms auf die Metadaten und scheiterte; nach dem auch im Integrationstest verwendeten Warten auf tatsächliche Änderung alle drei grün. Nutzer bestätigt Pixel-Wischen zusätzlich physisch. Gespeicherte Pixel-Kopplung konnte wiederverwendet werden; keine Altgeräte gelöscht.
+- Cupertino/Fluent/Material nativ Hell/Dunkel angesehen, echte Companion-Ausgaben aufgenommen; Navigation DE/EN geprüft. Kontenfreie eigene Store-Instanz: Cupertino installiert, automatische Auswahl und Vorschauwechsel, Speichern/Neustart und persistente Auswahl bestätigt. Testinstanz beendet.
+- 16 native Menü-/Profilbilder während Tests aufgenommen, danach opak anonymisiert; Rohbilder nur im ignorierten Buildordner. Erste Bildserie wegen veraltetem Screenshot-Bezug verworfen und neu aufgenommen; Kontaktübersicht danach auf richtige Seite und private Angaben geprüft. Bildmanifest unter docs/screenshots/menu-2.9.5-manifest.json. Display-Demos aus aktuellem Renderer mit Beispieldaten. Vorlagen/Ressourcen synchron, JavaScript-Syntax und 219 lokale Dokumentationslinks geprüft, neuer Abschnitt DE/EN im Browser geprüft.
+- Grenzen: keine neue Kamera-/Fingerprüfung des seriellen Panels, keine serielle Bildrate, keine physische TV-Fernbedienung oder Screenreader-Abnahme. Android unverändert, APK 1.0.3 wiederverwendet. Keine privaten Rohbilder, Configs, Schlüssel, Kopplungsdaten oder Logs im Commit.
+
+
 ## Release 2.9.4 – 31.10.2026
 
 - Release-Build erfolgreich: 3327 Kernprüfungen, 119 TMDB, Key-Hilfe OK, 37 PSN, 13 Amp, 251 Plugins, 41 Beispiele, 127 Store, 140 Transport, 135 Settings, 111 Signatur, 77 Katalog, 11 Monitor, 361 Companion; zwei isolierte Installerprüfungen, 39 App-Integrations- und 17 Mehrgeräteprüfungen bestanden.

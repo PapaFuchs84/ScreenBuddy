@@ -31,7 +31,10 @@ native = {
     'start': 'start', 'uebersicht': 'pages', 'discord': 'discord',
     'bf6': 'bf6', 'blogs': 'blogs', 'display': 'display',
     'bar': 'start', 'app': 'app', 'freunde': 'friends-native', 'ha_setup': 'ha',
-    'ha_pick': 'ha',
+    'ha_pick': 'ha', 'design': 'design',
+    'cupertino_light':'cupertino-light', 'cupertino_dark':'cupertino-dark',
+    'fluent_light':'fluent-light', 'fluent_dark':'fluent-dark',
+    'material_light':'material-light', 'material_dark':'material-dark',
 }
 imgs = {key: data(SRC / (filename + '.png')) for key, filename in native.items()}
 page_root = SRC / ('en' if EN else '')

@@ -9,7 +9,7 @@
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.9.4-F77F00)
+![Version](https://img.shields.io/badge/version-2.9.5-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -24,6 +24,8 @@
 </div>
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
+
+**Neu in 2.9.5:** Menü mit Ansicht, Seiten und App; **Farben & Design unter Ansicht**, inklusive direkter Installation signierter Store-Themes. [Menü und Theme-Anleitung](docs/NAVIGATION.md).
 
 **Neu in 2.9.4:** Streaming-Film oder -Serie antippen öffnet die passende TMDB-Infoseite am PC im Browser; Cover auf der Spotify-Seite antippen öffnet die Spotify-App am PC. TMDB-Key-Beantragung mit einfachen Feldbeispielen. [Release-Notizen 2.9.4](docs/RELEASE-NOTES-2.9.4.md). Neue Tabs folgen der Browsereinstellung; auf Meanmachine mit Chrome geprüft.
 

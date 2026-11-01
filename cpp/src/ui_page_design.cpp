@@ -34,7 +34,7 @@ Text color_name(const std::string& key) {
 class DesignPage : public Page {
 public:
     PageInfo info() const override {
-        return {"design", Group::App, T(L"Farben & Design", L"Colors & design"),
+        return {"design", Group::General, T(L"Farben & Design", L"Colors & design"),
                 T(L"Farbschema des Displays – Hell, Dunkel, an Windows angepasst oder eigene Themes. Die Vorschau rechts zeigt die Wahl sofort",
                   L"Color scheme of the display – light, dark, matched to Windows or your own themes. The preview shows your choice right away")};
     }
@@ -172,6 +172,8 @@ private:
         store_list_->selected = -1;
         for (size_t i = 0; i < store_.themes.size(); ++i) if (store_.themes[i].id == store_selected_) store_list_->selected = int(i);
         if (store_list_->selected < 0) store_selected_.clear();
+        // Async results change the list height; reserve space before painting the buttons below.
+        host_->relayout();
         update_store_buttons();
     }
     void load_store(bool force) {

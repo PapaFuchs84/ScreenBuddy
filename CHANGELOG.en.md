@@ -6,10 +6,14 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.9.5] – 2026-11-01
+
 ### Changed
 
-- **Settings navigation:** "General" is now **View**, "Data sources" is now **Pages**. The "Connection" group is gone: Companion, Plugins and Plugin store sit under **App** (next to Colors & design and Updates & startup).
+- **Settings navigation:** "General" is now **View**, "Data sources" is now **Pages**. The "Connection" group is gone: Companion, Plugins and Plugin store sit under **App** (next to Updates & startup). **Colors & design** belongs to **View**.
 - **Store themes** are browsed and installed directly under **Colors & design** (card "Themes from the store"); the installed theme is selected afterwards. The theme card was removed from the Plugin store page. Signed index, signature checks and the "Use the plugin store" switch are unchanged.
+
+- Recalculate layout after asynchronous store-theme loading so rows do not cover install buttons. Refresh the DE/EN illustrated guides with anonymized menu captures.
 
 ## [2.9.4] – 2026-10-31
 
