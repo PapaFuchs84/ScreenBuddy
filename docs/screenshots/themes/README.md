@@ -19,4 +19,3 @@ Native Aufnahmen aus der Release-Prüfung 2.9.5, anschließend anonymisiert. Deu
 ![material light](material-light.png)
 
 ![material dark](material-dark.png)
-

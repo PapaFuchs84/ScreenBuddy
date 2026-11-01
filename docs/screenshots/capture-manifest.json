@@ -1,6 +1,6 @@
 {
   "generated_utc": "2026-11-01T08:12:21.607347+00:00",
-  "app_sha256": "07bd6db3de66dec65d3d80ba268f9711294d681e882824b94a9ebe838ce08fcf",
+  "app_sha256": "51e783ebf4a66bbfda9bf8c36baf118ba6d4c9e45985bd081e50834199ce19d3",
   "renderer_sha256": "d14a466da0802dee03c690ddb09f2b12b1684958e75fc373e56934236fad872b",
   "hardware_evidence": false,
   "note": "Current renderer demo exports plus the guide-referenced native menu captures; native captures were anonymized after release testing. No physical USB-panel photograph.",
