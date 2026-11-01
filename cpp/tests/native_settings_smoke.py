@@ -41,7 +41,7 @@ OLEAUT.SysFreeString.argtypes = [ctypes.c_void_p]
 
 ROLE_SLIDER, ROLE_LIST, ROLE_PAGETAB, ROLE_PUSHBUTTON, ROLE_COMBOBOX = 0x33, 0x21, 0x25, 0x2B, 0x2E
 NAV = ["Übersicht", "Anzeige", "Seiten & Reihenfolge", "System", "Freunde", "Discord", "Battlefield 6", "Blogs (RSS)",
-       "Streaming-Neustarts", "Home Assistant", "Spotify", "Companion", "Plugins", "Plugin-Store", "Farben & Design", "Updates & Autostart"]
+       "Streaming-Neustarts", "Home Assistant", "Spotify", "Farben & Design", "Companion", "Plugins", "Plugin-Store", "Updates & Autostart"]
 
 
 class GUID(ctypes.Structure):
@@ -311,7 +311,7 @@ def main():
             # Native first-run links and touch-assignment entry. Never launch the Windows wizard in this test.
             nav.do(nav.find("Übersicht", ROLE_PAGETAB, exact=True))
             body = Acc(content)
-            for step in ("1 · Ausgabe wählen", "2 · Datenquellen einrichten", "3 · Seiten wählen"):
+            for step in ("1 · Ausgabe wählen", "2 · Seiten einrichten", "3 · Seiten wählen"):
                 body.find(step, ROLE_PUSHBUTTON)
             checks += 3
 

@@ -73,7 +73,7 @@ Mit der Companion-App kannst du dein Android-Smartphone oder Tablet als zusätzl
 ### 4. Eigene Seiten für das Smartphone festlegen
 1. Unter **Companion → Seiten für Companion** die gewünschten Seiten für das Handy anhaken (▲/▼ sortiert) und den **Seitenwechsel** (3–600 Sekunden) einstellen. Ist **Geräte synchron anzeigen** ausgeschaltet, kann jedes gekoppelte Gerät unter **Seiten für das ausgewählte Gerät** eine eigene Liste erhalten.
 2. Das USB-Display bzw. der HDMI-Monitor behält seine eigene Seitenliste und Anzeigedauer unter **Seiten & Reihenfolge** und **Anzeige → Anzeigedauer pro Seite**.
-3. Datenquellen (System, Discord, Freunde, Battlefield, Blogs, Streaming-Neustarts, Home Assistant, Spotify) werden auf ihren jeweiligen Seiten aktiviert und konfiguriert; beide Anzeigen greifen gemeinsam darauf zu.
+3. Datenquellen (Gruppe „Seiten“: System, Discord, Freunde, Battlefield, Blogs, Streaming-Neustarts, Home Assistant, Spotify) werden auf ihren jeweiligen Seiten aktiviert und konfiguriert; beide Anzeigen greifen gemeinsam darauf zu.
 
 ### 5. Bedienung auf dem Smartphone
 - **Wischen:** Ein Wisch nach links wechselt zur nächsten Seite, nach rechts zur vorherigen Seite. Das Blättern wirkt nicht auf das Hauptdisplay. Bei synchroner Anzeige (Standard) wechseln alle gekoppelten Handys gemeinsam, bei ausgeschalteter Synchronisation jedes Gerät einzeln.

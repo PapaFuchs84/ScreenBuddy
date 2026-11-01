@@ -1,5 +1,5 @@
 // © 2026 FuchsLabs
-// Verbindung: Companion-App (Android) – Grundwerte, Kopplung per QR-Code, Geräte, Status und eigene Seitenauswahl.
+// App: Companion-App (Android) – Grundwerte, Kopplung per QR-Code, Geräte, Status und eigene Seitenauswahl.
 #include "ui_pages.h"
 
 #include <algorithm>
@@ -30,7 +30,7 @@ std::wstring when(long long ts, bool english) {
 class CompanionPage : public Page {
 public:
     PageInfo info() const override {
-        return {"companion", Group::Connection, Text(L"Companion"),
+        return {"companion", Group::App, Text(L"Companion"),
                 T(L"Android-App im Heimnetz: Ausgabe, Kopplung, Geräte und eigene Seitenauswahl",
                   L"Android app on your home network: output, pairing, devices and its own page selection")};
     }

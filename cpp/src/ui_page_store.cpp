@@ -1,5 +1,5 @@
 // © 2026 FuchsLabs
-// Verbindung: Plugin-Store. Zeigt den signierten Index (plugin_catalog), installiert geprüfte Plugins und zeigt vor der
+// App: Plugin-Store. Zeigt den signierten Index (plugin_catalog), installiert geprüfte Plugins und zeigt vor der
 // Installation, an welche Hosts ein Plugin Daten senden würde. Ein Plugin bleibt nach der Installation ausgeschaltet.
 // Alle Store-Aufrufe laufen im Arbeits-Thread (Host::run), nie im UI-Thread.
 #include "ui_pages.h"
@@ -18,7 +18,7 @@ namespace {
 class StorePage : public Page {
 public:
     PageInfo info() const override {
-        return {"store", Group::Connection, Text(L"Plugin-Store"),
+        return {"store", Group::App, Text(L"Plugin-Store"),
                 T(L"Geprüfte Plugins aus dem signierten Store finden und installieren", L"Find and install reviewed plugins from the signed store")};
     }
     bool active(const ojson&) const override { return false; }
@@ -61,20 +61,6 @@ public:
 
         details_ = root.add<Card>(T(L"Details", L"Details"), T(L"Oben ein Plugin auswählen.", L"Select a plugin above first."));
 
-        Card* themes = root.add<Card>(T(L"Themes (Farbdesigns)", L"Themes (color designs)"),
-            T(L"Themes bestehen nur aus neun Farben, ohne Programmcode, und sind wie die Plugins signiert. Nach der Installation unter „Farben & Design“ auswählen.",
-              L"Themes are just nine colors, no program code, and signed like the plugins. After installing, pick one under “Colors & design”."));
-        theme_list_ = themes->add<ItemList>(std::vector<ItemList::Item>{});
-        theme_list_->checkable = false;
-        theme_list_->reorder = false;
-        theme_list_->track_dirty = false;
-        theme_list_->name = T(L"Verfügbare Themes", L"Available themes");
-        theme_list_->empty_text = T(L"Keine Themes im Store.", L"No themes in the store.");
-        theme_list_->on_select = [this](int i) {
-            selected_theme_ = i >= 0 && i < int(state_.themes.size()) ? state_.themes[size_t(i)].id : "";
-            update_buttons();
-        };
-        install_theme_ = themes->add<ButtonRow>()->add(T(L"Theme installieren", L"Install theme"), Button::Primary, [this] { install_theme(); });
         if (loaded_) fill();
         update_buttons();
     }
@@ -92,9 +78,7 @@ private:
     TextField* search_ = nullptr;
     ItemList* list_ = nullptr;
     Card* details_ = nullptr;
-    Button *search_btn_ = nullptr, *refresh_ = nullptr, *install_ = nullptr, *install_theme_ = nullptr;
-    ItemList* theme_list_ = nullptr;
-    std::string selected_theme_;
+    Button *search_btn_ = nullptr, *refresh_ = nullptr, *install_ = nullptr;
     NativeStoreState state_;
     std::map<std::string, Image> previews_;    // decoded, verified preview images by plugin id (höchstens 8)
     std::vector<std::string> preview_order_;   // Einfügereihenfolge für die Verdrängung
@@ -111,10 +95,6 @@ private:
         auto it = std::find_if(state_.cards.begin(), state_.cards.end(), [this](auto& c) { return c.id == selected_id_; });
         return it == state_.cards.end() ? nullptr : &*it;
     }
-    const NativeThemeCard* selected_theme() const {
-        auto it = std::find_if(state_.themes.begin(), state_.themes.end(), [this](auto& c) { return c.id == selected_theme_; });
-        return it == state_.themes.end() ? nullptr : &*it;
-    }
     static bool installable(const NativeStoreCard& c) { return c.status == "not_installed" || c.status == "update_available"; }
     void update_buttons() {
         if (!install_) return;
@@ -125,11 +105,6 @@ private:
         search_btn_->enabled = idle && bool(a.store_list);
         refresh_->enabled = idle && bool(a.store_refresh) && state_.state != "unavailable" && state_.state != "disabled";
         install_->enabled = idle && live && sel && installable(*sel) && bool(a.store_install);
-        if (install_theme_) {
-            const auto* th = selected_theme();
-            install_theme_->enabled = idle && live && th && th->status == "not_installed" && bool(a.store_theme_install);
-            install_theme_->text = th && th->status == "installed" ? T(L"Bereits installiert", L"Already installed") : T(L"Theme installieren", L"Install theme");
-        }
         install_->text = sel && sel->status == "update_available" ? T(L"Aktualisieren", L"Update") : T(L"Installieren", L"Install");
         host_->surface().invalidate();
     }
@@ -184,20 +159,6 @@ private:
             Text detail(widen(c.author + " · " + c.category + " · " + c.license) + L" · " + status_text(c.status).get(false),
                         widen(c.author + " · " + c.category + " · " + c.license) + L" · " + status_text(c.status).get(true));
             items.push_back({c.id, title, detail, c.status == "installed"});
-        }
-        if (theme_list_) {
-            std::vector<ItemList::Item> titems;
-            for (const auto& t : state_.themes) {
-                const std::wstring base = widen(t.name + "  " + t.version) ;
-                const std::wstring meta = widen(t.author + " · " + t.license + (t.description.empty() ? "" : " · " + t.description));
-                const auto st = t.status == "installed" ? T(L"installiert", L"installed") : T(L"nicht installiert", L"not installed");
-                titems.push_back({t.id, Text(base), Text(meta + L" · " + st.get(false), meta + L" · " + st.get(true)), t.status == "installed"});
-            }
-            theme_list_->items = titems;
-            theme_list_->original = titems;
-            theme_list_->selected = -1;
-            for (size_t i = 0; i < state_.themes.size(); ++i) if (state_.themes[i].id == selected_theme_) theme_list_->selected = int(i);
-            if (theme_list_->selected < 0) selected_theme_.clear();
         }
         list_->items = items;
         list_->original = items;
@@ -275,23 +236,6 @@ private:
                 if (selected_id_ == id) show_details();
             };
         });
-    }
-    void install_theme() {
-        const auto* sel = selected_theme();
-        if (host_->busy() || !sel || sel->status != "not_installed" || !host_->plugins().store_theme_install) return;
-        const NativeThemeCard c = *sel;
-        Host* h = host_;
-        h->run([this, h, id = c.id]() -> std::function<void()> {
-            std::string error;
-            try { h->plugins().store_theme_install(id); } catch (const std::exception& e) { error = e.what(); }
-            NativeStoreState result = h->plugins().store_list("", category_);
-            return [this, h, error, result = std::move(result)] {
-                apply(result);
-                if (error.empty()) h->toast(T(L"Theme installiert. Unter „Farben & Design“ auswählen.", L"Theme installed. Pick it under “Colors & design”."), ToastKind::Success);
-                else h->toast(Text(widen(error)), ToastKind::Error);
-            };
-        });
-        update_buttons();
     }
     void install() {
         const auto* sel = selected();

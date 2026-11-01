@@ -818,8 +818,8 @@ struct NativeSettings::Impl : ui::Host {
                status_.display_ok ? ui::from(brand::CREME) : kit->design.style == fl::theme::Style::FuchsLabs ? ui::from(brand::NAVY) : th.text);
         }
         // Gruppenüberschriften
-        static const wchar_t* group_de[] = {L"ALLGEMEIN", L"DATENQUELLEN", L"VERBINDUNG", L"APP"};
-        static const wchar_t* group_en[] = {L"GENERAL", L"DATA SOURCES", L"CONNECTION", L"APP"};
+        static const wchar_t* group_de[] = {L"ANSICHT", L"SEITEN", L"APP"};
+        static const wchar_t* group_en[] = {L"VIEW", L"PAGES", L"APP"};
         int group = -1;
         for (auto& s : slots) {
             if (!s.nav->visible || (fluent() && !nav_search->text().empty())) continue;

@@ -1,5 +1,5 @@
 // © 2026 FuchsLabs
-// Verbindung: Plugins verwalten (Import, Aktivieren mit Host-Freigabe, Entfernen) und konfigurieren.
+// App: Plugins verwalten (Import, Aktivieren mit Host-Freigabe, Entfernen) und konfigurieren.
 // Die Plugin-Logik selbst bleibt in App (NativePluginActions); alle Aufrufe laufen im Arbeits-Thread.
 #include "ui_pages.h"
 
@@ -18,7 +18,7 @@ namespace {
 class PluginsPage : public Page {
 public:
     PageInfo info() const override {
-        return {"plugins", Group::Connection, Text(L"Plugins"),
+        return {"plugins", Group::App, Text(L"Plugins"),
                 T(L"Lokale, deklarative Plugins verwalten und konfigurieren", L"Manage and configure local, declarative plugins")};
     }
     bool active(const ojson&) const override { return false; }
