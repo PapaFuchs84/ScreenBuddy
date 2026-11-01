@@ -17,6 +17,7 @@ std::vector<std::unique_ptr<Page>> create_pages() {
     pages.push_back(make_overview_page());
     pages.push_back(make_display_page());
     pages.push_back(make_pages_page());
+    pages.push_back(make_design_page());
     // Seiten
     pages.push_back(make_system_page());
     pages.push_back(make_friends_page());
@@ -27,7 +28,6 @@ std::vector<std::unique_ptr<Page>> create_pages() {
     pages.push_back(make_homeassistant_page());
     pages.push_back(make_spotify_page());
     // App
-    pages.push_back(make_design_page());
     pages.push_back(make_companion_page());
     pages.push_back(make_plugins_page());
     pages.push_back(make_store_page());

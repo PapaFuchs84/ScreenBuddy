@@ -1,5 +1,7 @@
 # Themes / Farbdesigns
 
+[Menü und Themes / Menu and themes](NAVIGATION.md) · [English](NAVIGATION.en.md)
+
 **Deutsch** · [English below](#english)
 
 ## Designsysteme (ab 2.9.2)

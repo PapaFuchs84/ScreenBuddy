@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-10-26T15:09:47.108414+00:00",
-  "app_sha256": "61dc9d0e607284667afd1646f58474b59f545f17f2cbeae97f215d7f2470815a",
-  "renderer_sha256": "ebfce72ed1bc3cfd531f79369c57d842b5512cbd8282e65b079a936d58b40a79",
+  "generated_utc": "2026-11-01T08:12:21.607347+00:00",
+  "app_sha256": "51e783ebf4a66bbfda9bf8c36baf118ba6d4c9e45985bd081e50834199ce19d3",
+  "renderer_sha256": "d14a466da0802dee03c690ddb09f2b12b1684958e75fc373e56934236fad872b",
   "hardware_evidence": false,
-  "note": "Native connection status belongs to --no-lcd. Display images are demo renderer exports, not device photographs.",
+  "note": "Current renderer demo exports plus the guide-referenced native menu captures; native captures were anonymized after release testing. No physical USB-panel photograph.",
   "images": [
     {
       "path": "docs/screenshots/display-bf6-dunkel.png",
@@ -12,7 +12,7 @@
     },
     {
       "path": "docs/screenshots/display-blogs-dunkel.png",
-      "sha256": "334d37401f662327acfd4ad139021798c3883fd43eaad7b64976b624691c5454",
+      "sha256": "2adfb507d3dde8a7f66da4ef386f308362367c8ddf7f695b120239f2be1413d9",
       "source": "current C++ renderer; fixed synthetic test fixture"
     },
     {
@@ -37,7 +37,7 @@
     },
     {
       "path": "anleitung/bilder/page_blogs.png",
-      "sha256": "334d37401f662327acfd4ad139021798c3883fd43eaad7b64976b624691c5454",
+      "sha256": "2adfb507d3dde8a7f66da4ef386f308362367c8ddf7f695b120239f2be1413d9",
       "source": "current C++ renderer; fixed synthetic test fixture"
     },
     {
@@ -57,7 +57,7 @@
     },
     {
       "path": "docs/screenshots/en/display-blogs-dark.png",
-      "sha256": "b517c32d46e747032ccb7c69ec2e7845aed29c4afce4c8bf3f71c429cbc08fc9",
+      "sha256": "e87890120324f322424c96483316267f4e2d0f6c7c2caf2dadf92dc8af46dd2c",
       "source": "current C++ renderer; fixed synthetic test fixture"
     },
     {
@@ -82,7 +82,7 @@
     },
     {
       "path": "anleitung/bilder/en/page_blogs.png",
-      "sha256": "b517c32d46e747032ccb7c69ec2e7845aed29c4afce4c8bf3f71c429cbc08fc9",
+      "sha256": "e87890120324f322424c96483316267f4e2d0f6c7c2caf2dadf92dc8af46dd2c",
       "source": "current C++ renderer; fixed synthetic test fixture"
     },
     {
@@ -96,45 +96,117 @@
       "source": "current C++ renderer; fixed synthetic test fixture"
     },
     {
+      "path": "anleitung/bilder/app.png",
+      "sha256": "e878a266f13c230648b9f4b8d76069304f135ba15e4c5e40989da5a2411068b8",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/bf6.png",
+      "sha256": "3fa15f2cee94add6fde49a6f661da85cea40c75a8164dd4e280f39036d4bbbad",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/blogs.png",
+      "sha256": "f240bc5872bf6baf2449a8d4cdc5573f08fb223c8370014dc0776db3a880ba0b",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/cupertino-dark.png",
+      "sha256": "c6b44f10ff77bda842458f8d3f94b883947dbcc0cedb73ef8f8e130f33d26e63",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/cupertino-light.png",
+      "sha256": "38a67d6fe44b705f3f235c0c2e6f19e0a6ee4e09b2aa0abab226938ccd350f42",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/design.png",
+      "sha256": "292dc7a14a8b8cf6c05adc8fb82ec4612be815ffa4f8c31f7b5340f728bdd480",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": true
+    },
+    {
+      "path": "anleitung/bilder/discord.png",
+      "sha256": "55601487fd626c3efb3d4eec8b456694d09c317ad6b46de19ae18258187f0794",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/display.png",
+      "sha256": "21c8fc46bc837d7226feeb611e71e65033b25ade5c4fb53294688d2f0957cb30",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/fluent-dark.png",
+      "sha256": "2c0726b9e1a6eed3f5e914730114e5391611fce749e2e2e430c616fe9e9ccb2e",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/fluent-light.png",
+      "sha256": "828533f2a81edf7f625506aadabb5698cfa1a7e25ac451317cf8abc010b09746",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
       "path": "anleitung/bilder/friends-native.png",
-      "sha256": "e63463fd499581d064aa0865cf1ef74a26b79b1d07628140ebdfb6275119beed",
-      "source": "Anonymous native Friends capture; copy of pre-existing local capture, not a fresh capture"
+      "sha256": "775fae5e28eb185c54affab88b4c57e9721551d299e38163c72d117517d5a207",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/ha.png",
+      "sha256": "de7a3159b6a1886ee6266a4940862184c21d9292562e3468ae3c446c7b822837",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/material-dark.png",
+      "sha256": "8e056ebb98623ecfe6de09df959a389c27a425fee343b5231dff081311cba19e",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/material-light.png",
+      "sha256": "dccee8d3c08bfe1bea9279c70b2ee926b202c76346c7a03b6eb872fc89888445",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/pages.png",
+      "sha256": "9b8a59151a6f3a4d687fcee4716652b4a4269cd37b67a44b6c0010263252706c",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
+    },
+    {
+      "path": "anleitung/bilder/start.png",
+      "sha256": "cdfe1c6eb1fed659d423fda1a9178d8f3b9227dbfe44de34578145ac85c9d869",
+      "source": "native release-test window; opaque redaction after capture; German labels",
+      "hardware_evidence": false,
+      "isolated_instance": false
     }
   ],
-  "missing_native_captures": [
-    "anleitung\\bilder\\start.png",
-    "anleitung\\bilder\\prev0.png",
-    "anleitung\\bilder\\prev4.png",
-    "anleitung\\bilder\\display.png",
-    "anleitung\\bilder\\pages.png",
-    "anleitung\\bilder\\system.png",
-    "anleitung\\bilder\\freunde.png",
-    "anleitung\\bilder\\discord.png",
-    "anleitung\\bilder\\bf6.png",
-    "anleitung\\bilder\\blogs.png",
-    "anleitung\\bilder\\ha.png",
-    "anleitung\\bilder\\speichern.png",
-    "anleitung\\bilder\\companion.png",
-    "anleitung\\bilder\\plugins.png",
-    "anleitung\\bilder\\design.png",
-    "anleitung\\bilder\\app.png",
-    "anleitung\\bilder\\en\\start.png",
-    "anleitung\\bilder\\en\\prev0.png",
-    "anleitung\\bilder\\en\\prev4.png",
-    "anleitung\\bilder\\en\\display.png",
-    "anleitung\\bilder\\en\\pages.png",
-    "anleitung\\bilder\\en\\system.png",
-    "anleitung\\bilder\\en\\freunde.png",
-    "anleitung\\bilder\\en\\discord.png",
-    "anleitung\\bilder\\en\\bf6.png",
-    "anleitung\\bilder\\en\\blogs.png",
-    "anleitung\\bilder\\en\\ha.png",
-    "anleitung\\bilder\\en\\speichern.png",
-    "anleitung\\bilder\\en\\companion.png",
-    "anleitung\\bilder\\en\\plugins.png",
-    "anleitung\\bilder\\en\\design.png",
-    "anleitung\\bilder\\en\\app.png"
-  ],
-  "verified_against_app_sha256": "17a3db7c517608068b2db2059a4e582edc6d0eedd31c580b3e01d03bfbb54b22",
-  "verification_note": "Image checksums refreshed during release preparation. Native captures retain earlier build provenance; comparison with the current candidate is not a recapture or hardware proof."
+  "missing_native_captures": []
 }

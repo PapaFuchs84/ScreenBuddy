@@ -64,7 +64,7 @@ Wherever ScreenBuddy needs credentials, the settings show a card **“How to get
 
 **Settings → Colors & design:** Light (FuchsLabs), Dark (FuchsLabs), **Match Windows** or your own themes. Windows mode: light/dark and accent from Windows, changes apply live, high contrast uses the system colours; text and bars are contrast-corrected automatically. Custom themes are JSON files (editor with live preview, contrast warning, duplicate, delete, import, export); six examples (Cupertino, Material and Fluent style, each light and dark) are in `cpp/examples/themes`. From 2.9.1 store themes can be installed (since 2.9.5 directly here in the “Themes from the store” card instead of the plugin store); from 2.9.2 there are also design systems with their own window compositions. The choice applies to the USB display, monitor and Companion. Details, format and limits: [THEMES.md](THEMES.md) (bilingual).
 
-**Status dots in the navigation:** green = set up and on, grey = not set up or off; only for the pages (data sources) and Companion, with a legend. Since 2.9.5 the navigation has the groups **View**, **Pages** and **App** (holding Colors & design, Companion, Plugins, Plugin store, Updates & startup). Since 2.9.1 a tooltip explains the state when you rest the mouse on a dot.
+**Status dots in the navigation:** green = set up and on, grey = not set up or off; only for the pages (data sources) and Companion, with a legend. Since 2.9.5 the navigation has the groups **View**, **Pages** and **App** (holding Companion, Plugins, Plugin store, Updates & startup); Colors & design is under **View**. Since 2.9.1 a tooltip explains the state when you rest the mouse on a dot.
 
 ## Android Companion app (from 2.3.0, multiple devices from 2.7.0)
 

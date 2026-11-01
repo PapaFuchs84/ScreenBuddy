@@ -45,12 +45,15 @@ port = 18957
 $configPath = Join-Path $runtime 'screenshot-demo.toml'
 [IO.File]::WriteAllText($configPath, $fixture, [Text.UTF8Encoding]::new($false))
 $previousInstance = $env:FUCHSLABS_INSTANCE
+$previousInstallDir = $env:FUCHSLABS_INSTALL_DIR
 try {
     $env:FUCHSLABS_INSTANCE = "release-screenshots-$Language-$Port"
+    $env:FUCHSLABS_INSTALL_DIR = $runtime
     $captureArguments = '--run --no-lcd --settings --config "' + $configPath + '" --log "' + (Join-Path $runtime 'capture.log') + '"'
     $captureProcess = Start-Process -FilePath $captureExe -ArgumentList $captureArguments -WindowStyle Hidden -PassThru
 } finally {
     $env:FUCHSLABS_INSTANCE = $previousInstance
+    $env:FUCHSLABS_INSTALL_DIR = $previousInstallDir
 }
 $baseUrl = "http://127.0.0.1:$Port"
 $ready = $false

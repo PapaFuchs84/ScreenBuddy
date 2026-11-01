@@ -2,7 +2,12 @@
 
 ## Unreleased
 
-- Settings navigation regrouped: View, Pages, App (Companion, Plugins, Plugin store moved to App); store themes are installed on Colors & design instead of the Plugin store page (`ui_page_design.cpp`, `ui_page_store.cpp`, `ui_pages.cpp`, `ui_kit.h`).
+## 2.9.5 – 1 November 2026
+
+- Settings navigation regrouped: View, Pages, App (Companion, Plugins, Plugin store moved to App; Colors & design belongs to View); store themes are installed on Colors & design instead of the Plugin store page (`ui_page_design.cpp`, `ui_page_store.cpp`, `ui_pages.cpp`, `ui_kit.h`).
+
+- Recalculate the theme-store list layout after asynchronous loads/installs so rows do not overlap action buttons.
+- Refresh bilingual illustrated guides with anonymized release-test captures and profile navigation.
 
 ## 2.9.4 – 31 October 2026
 

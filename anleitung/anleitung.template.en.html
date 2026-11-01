@@ -172,13 +172,13 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 <div class="zoom" id="zoom"></div>
 
 <script>
-/* Anonymous native 2.5 development captures. The screenshots currently show German labels and isolated sample status. */
+/* Native 2.9.5 release-test captures, anonymized afterwards; German UI labels. Display demos use synthetic data. */
  const IMG = {
    start: '{{img:start}}', app: '{{img:app}}', uebersicht: '{{img:uebersicht}}', discord: '{{img:discord}}', bf6: '{{img:bf6}}',
    blogs: '{{img:blogs}}', display: '{{img:display}}', bar: '{{img:bar}}', page_system: '{{img:page_system}}',
-   page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', ha_display: '{{img:ha_display}}', ha_setup: '{{img:ha_setup}}', ha_pick: '{{img:ha_pick}}', icon: '{{img:icon}}'};
+   page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', ha_display: '{{img:ha_display}}', ha_setup: '{{img:ha_setup}}', ha_pick: '{{img:ha_pick}}', icon: '{{img:icon}}', design: '{{img:design}}', cupertino_light: '{{img:cupertino_light}}', cupertino_dark: '{{img:cupertino_dark}}', fluent_light: '{{img:fluent_light}}', fluent_dark: '{{img:fluent_dark}}', material_light: '{{img:material_light}}', material_dark: '{{img:material_dark}}'};
  function shot(name, rings = [], cap = '') {
-   return `<figure><span class="real">📷 Native 2.5 interface · anonymous German sample</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${cap}"></div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
+   return `<figure><span class="real">📷 Native 2.9.5 interface · anonymized · German labels</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${cap}"></div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
  }
  const help = (items, title = 'Not working? Click here') =>
   `<details class="help"><summary>${title}</summary><div class="in"><dl>${items.map(([q, a]) => `<dt>${q}</dt><dd>${a}</dd>`).join('')}</dl></div></details>`;
@@ -234,7 +234,7 @@ ${sel.bf6 ? '<li><b>The EA names</b> of you and your Battlefield friends.</li>' 
 {t: 'Get the program', html: () => `
 <p class="kicker">Download</p><h1>Download the program</h1>
 <p class="lead">ScreenBuddy is <b>one single file</b>. There is nothing to unpack.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.9:</b> Download <span class="key">ScreenBuddy.exe</span>. This guide shows anonymous native example captures from the 2.5 development with German labels (the 2.9 colors & design page and status dots are described in text only); choose EN in the app for English controls. Earlier 2.3.0 uses different menus and its own bundled guide. Tip: rest the mouse on a status dot in the left list for a moment and a hint tells you whether the page is set up and on (green) or not set up or off (grey).</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.9.5:</b> Download <span class="key">ScreenBuddy.exe</span>. Menu images show native 2.9.5 release-test captures with German labels, anonymized afterwards. Accounts, addresses and private previews are covered. Display demos use synthetic data; choose EN in the app for English controls. Earlier 2.3.0 uses different menus and its own bundled guide. Tip: rest the mouse on a status dot in the left list for a moment and a hint tells you whether the page is set up and on (green) or not set up or off (grey).</p></div>
 <ol class="do">
 <li>Open this page: <a href="https://github.com/PapaFuchs84/ScreenBuddy/releases/latest" target="_blank" rel="noopener">Latest release on GitHub</a>. Or use the file from whoever sent you this guide.</li>
 <li>Download <span class="key">ScreenBuddy.exe</span> from release 2.9.3 and verify its SHA-256 using the supplied checksum file.</li>
@@ -296,7 +296,7 @@ ${help([['Nothing happens.', 'Wait 10 seconds. The program needs a moment the fi
 {t: 'The settings page', html: () => `
 <p class="kicker">Check</p><h1>The settings open by themselves</h1>
 <p class="lead">After installing, a window of its own opens. That's the <b>settings page</b>. You set everything up there. It belongs only to you and isn't on the internet.</p>
-<p>In the native 2.5 window, use the <b>EN</b> button at the top to switch the app to English. On <b>Overview</b>, the first card should say <b>Connected</b> for your own display. The screenshot uses German labels and an isolated sample status; it does not prove a hardware connection.</p>
+<p>In the native 2.9.5 window, use the <b>EN</b> button at the top to switch the app to English. On <b>Overview</b>, the first card should say <b>Connected</b> for your own display. The screenshot uses German labels and was anonymized after release testing. Check the connection status on your own device.</p>
 ${shot('start', [[286, 196, 869, 63]], 'The first card shows display status. Check the value on your own device.')}
 <p>If that works, your little display lights up now too. 🎉</p>
 ${help([['It says “The display\'s vendor app is running”.', `Click ${g('Stop vendor app')} next to it. If <b>“Vendor app autostart”</b> appears below it, click ${g('Disable vendor app autostart')} there. Windows then asks once whether you allow it: click <b>Yes</b>.`],
@@ -304,6 +304,8 @@ ${help([['It says “The display\'s vendor app is running”.', `Click ${g('Stop
   ['Published 2.3.0 says WebView2 is missing.', 'Install the <b>Microsoft Edge WebView2 runtime</b> and restart 2.3.0. ScreenBuddy 2.9 has a native settings window.'],
   ['The window didn\'t open.', 'At the bottom right next to the clock there is a small orange icon (maybe behind the arrow <span class="key">^</span>). Double-click it.'],
   ['The picture on the display is upside down.', 'No problem, you\'ll fix that in the step “Rotate picture and brightness”.']])}`},
+
+{t: 'Menus and themes', html: () => `<h1>Where are the settings?</h1><p>Page names apply to every theme. When a later step says “on the left”, open the same page using your theme’s navigation.</p><ul><li><b>View:</b> Overview, Display, Pages &amp; order, <b>Colors &amp; design</b>.</li><li><b>Pages:</b> System, Friends, Discord, Battlefield 6, Blogs (RSS), New on streaming, Home Assistant, Spotify.</li><li><b>App:</b> Companion, Plugins, Plugin store, Updates &amp; startup.</li></ul><p><b>FuchsLabs:</b> full list on the left. <b>Cupertino:</b> ☰ toggles the sidebar; Preview opens the inspector. <b>Fluent:</b> search by page title, use ‹ to go back; clear search to see all pages.</p><p><b>Material:</b> View → Colors &amp; design. Choose subpages below the heading, or in the dropdown when space is limited. Plugins are under Extensions, Companion and updates under App. ◧ toggles preview. Save actions appear with pending changes.</p>${shot('cupertino_light', [], 'Cupertino · Light · German UI')}${shot('cupertino_dark', [], 'Cupertino · Dark · German UI')}${shot('fluent_light', [], 'Fluent · Light · search and Back · German UI')}${shot('fluent_dark', [], 'Fluent · Dark · German UI')}${shot('material_light', [], 'Material · Light · View and Colors & design · German UI')}${shot('material_dark', [], 'Material · Dark · German UI')}<h2>Install a theme</h2><ol><li>Open View → Colors &amp; design.</li><li>In Themes from the store, refresh, select a theme and click Install theme.</li><li>The theme is selected automatically. Save &amp; apply keeps it after restart.</li></ol>${shot('design', [], 'Theme installed and selected directly on Colors & design. Account-free test instance; German UI, no hardware evidence.')}<p>The shared request switch remains under App → Plugin store. Store color themes and design systems are separate: choose the layout with Design system in the theme editor. Light/Dark at the top affects the window; the color scheme affects display output.</p>`},
 
 {t: 'Start with Windows', html: () => `
 <p class="kicker">Turn on</p><h1>The display should always come on by itself</h1>
@@ -551,7 +553,7 @@ ${shot('bar', [], 'Save &amp; apply is at the bottom right of the native window.
 {t: 'Find it again', html: () => `
 <p class="kicker">Later</p><h1>How to find the settings again</h1>
 <p class="lead">The program runs quietly in the background. It has a small <b>orange icon</b> at the bottom right next to the clock.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.9:</b> The native interface already includes the phase-2 pages for Discord, friends, Home Assistant, Companion pairing with QR code and device management, and Colors &amp; design. The source editor, page ordering, updates and autostart are also available natively. All settings open in the native window; this illustrated HTML guide remains available in the browser. Source plugins require their settings and approval for every host. Earlier 2.3.0 uses the previous interface.</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.9.5:</b> The native interface already includes the phase-2 pages for Discord, friends, Home Assistant, Companion pairing with QR code and device management, and Colors &amp; design. The source editor, page ordering, updates and autostart are also available natively. All settings open in the native window; this illustrated HTML guide remains available in the browser. Source plugins require their settings and approval for every host. Earlier 2.3.0 uses the previous interface.</p></div>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
 <span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22/10/2026</div></div></div></figure>
