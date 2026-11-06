@@ -33,6 +33,7 @@ struct Snapshot {
     double fetched_at = 0;      // mono()-Zeitpunkt der Abfrage, für die laufende Fortschrittsanzeige
     bool playing = false;
     bool controls = false;      // Tippen steuert die Wiedergabe (Touch an)
+    bool last_played = false;   // Idle, zeigt aber den zuletzt gespielten Titel (recently-played)
     std::shared_ptr<const Image> cover;
 };
 
@@ -46,6 +47,9 @@ std::string authorize_url(const std::string& client_id, const std::string& redir
 bool valid_client_id(const std::string& id);                 // 32 Hexzeichen
 Snapshot parse_player(const nlohmann::json& data, bool controls);  // /v1/me/player; kein Objekt = nichts aktiv
 std::string cover_url(const nlohmann::json& data);          // kleinstes Cover ab 200 px, nur https://i.scdn.co
+// /v1/me/player/recently-played → zuletzt gespielter Titel (State::Idle, last_played); leer = kein Eintrag
+Snapshot parse_recent(const nlohmann::json& data, bool controls);
+std::string recent_cover_url(const nlohmann::json& data);
 std::string format_time(long long ms);                       // "3:07"
 long long live_progress(const Snapshot& s, double now);      // Fortschritt mit Hochrechnung, in [0, Dauer]
 
@@ -96,6 +100,10 @@ private:
     std::string access_, refresh_, verifier_, login_state_, error_, cover_for_;
     double access_until_ = 0, login_until_ = 0, backoff_until_ = 0;
     Snapshot snap_;
+    Snapshot last_;                 // zuletzt gespielter Titel (Cache)
+    std::string last_cover_url_;
+    double last_checked_ = 0;       // mono() der letzten recently-played-Abfrage
+    bool scope_missing_ = false;    // recently-played → 403: Anmeldung ohne den neuen Scope
     bool had_reply_ = false;
     std::vector<Command> pending_;
 };

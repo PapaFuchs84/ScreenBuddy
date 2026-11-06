@@ -112,6 +112,8 @@ static const std::unordered_map<std::string, std::string>& en() {
         {"Name fehlt", "Name missing"},
         // Spotify
         {"Spotify ist nicht fertig eingerichtet", "Spotify is not fully set up"},
+        {"Zuletzt gespielt", "Last played"},
+        {"Letzter Titel: bitte in den Einstellungen neu bei Spotify anmelden", "Last track: please sign in to Spotify again in the settings"},
         {"Bei Spotify anmelden: Einstellungen › Spotify", "Sign in to Spotify: Settings › Spotify"},
         {"Verbinde mit Spotify …", "Connecting to Spotify …"},
         {"Spotify nicht erreichbar", "Spotify not reachable"},

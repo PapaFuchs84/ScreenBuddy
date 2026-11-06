@@ -11,10 +11,23 @@ namespace fl::bf6 {
 using json = nlohmann::json;
 
 static const char* API = "https://api.gametools.network/bf6";
-// Plattform-Kürzel in der Konfiguration → Parameter der Stats-API (PC-Konten laufen über "ea")
-static const std::map<std::string, std::string> STATS_PLATFORM = {
-    {"pc", "ea"}, {"ea", "ea"}, {"steam", "ea"}, {"epic", "ea"}, {"psn", "psn"}, {"ps", "psn"},
-    {"xbox", "xboxseries"}, {"xbl", "xboxseries"}};
+// Plattform-Kürzel in der Konfiguration → Werte der Stats-API, in Reihenfolge der Versuche.
+// Seit Nov. 2026 antwortet die API für PC-Konten nur noch mit "pc" ("ea" liefert 404); "ea" bleibt als Rückfall.
+static const std::map<std::string, std::vector<std::string>> STATS_PLATFORM = {
+    {"pc", {"pc", "ea"}},   {"ea", {"pc", "ea"}},   {"steam", {"pc", "ea"}},  {"epic", {"pc", "ea"}},
+    {"psn", {"psn", "ps5", "ps4"}}, {"ps", {"psn", "ps5", "ps4"}},
+    {"xbox", {"xboxseries", "xboxone", "xbox"}},    {"xbl", {"xboxseries", "xboxone", "xbox"}}};
+
+std::vector<std::string> platform_candidates(const std::string& plat) {
+    auto it = STATS_PLATFORM.find(lower_ascii(plat));
+    return it != STATS_PLATFORM.end() ? it->second : STATS_PLATFORM.at("pc");
+}
+
+std::vector<std::string> name_candidates(const std::string& name) {
+    std::vector<std::string> v{name};
+    if (std::string l = lower_ascii(name); l != name) v.push_back(l);
+    return v;
+}
 
 std::pair<std::string, std::string> parse_entry(const std::string& entry) {
     std::string e = trim(entry);
@@ -153,15 +166,28 @@ Bf6Player Bf6Stats::fetch(const std::string& entry) {
     p.query = entry;
     p.name = name;
     std::optional<json> stats;
-    for (int i = 0; i < 2; ++i) {  // die API antwortet gelegentlich sporadisch mit 404/500
-        stats = get("stats", {{"name", name}, {"platform", STATS_PLATFORM.at(plat)}, {"format_values", "false"},
-                              {"categories", "multiplayer"}});
-        if (stats && stats->is_object() && !stats->empty()) break;
-        stats.reset();
-        if (!sleep_for(2)) break;
+    std::string used_name = name, used_plat = platform_candidates(plat).front();  // für /profile
+    for (int i = 0; i < 2 && !stats; ++i) {  // die API antwortet gelegentlich sporadisch mit 404/500
+        // zweite Runde (Wiederholung bei Aussetzern) nur mit dem ersten Paar, damit die API nicht überlastet wird
+        auto pls = platform_candidates(plat);
+        auto nms = name_candidates(name);
+        if (i > 0) { pls.resize(1); nms.resize(1); }
+        for (auto& pl : pls) {
+            for (auto& nm : nms) {
+                if (stop_) return p;
+                auto r = get("stats", {{"name", nm}, {"platform", pl}, {"format_values", "false"}, {"categories", "multiplayer"}});
+                if (r && r->is_object() && !r->empty() &&
+                    !(r->contains("hasResults") && (*r)["hasResults"].is_boolean() && !(*r)["hasResults"].get<bool>())) {
+                    stats = std::move(r);
+                    used_name = nm;
+                    used_plat = pl;
+                    break;
+                }
+            }
+            if (stats) break;
+        }
+        if (!stats && i == 0 && !sleep_for(2)) break;
     }
-    if (stats && stats->contains("hasResults") && (*stats)["hasResults"].is_boolean() && !(*stats)["hasResults"].get<bool>())
-        stats.reset();
     if (stats) {
         p.kd = num(*stats, "killDeath");
         p.win_pct = num(*stats, "winPercent");
@@ -172,9 +198,9 @@ Bf6Player Bf6Stats::fetch(const std::string& entry) {
     if (stats && stats->contains("id") && !(*stats)["id"].is_null()) {
         auto& id = (*stats)["id"];
         std::string sid = id.is_string() ? id.get<std::string>() : id.dump();
-        if (!sid.empty() && sid != "0" && sid != "false") tries.push_back({{"playerid", sid}});
+        if (!sid.empty() && sid != "0" && sid != "false") tries.push_back({{"playerid", sid}, {"platform", used_plat}});
     }
-    tries.push_back({{"name", name}});
+    tries.push_back({{"name", used_name}, {"platform", used_plat}});
     std::optional<json> pp;
     for (auto& params : tries) {
         auto data = get("profile", params);

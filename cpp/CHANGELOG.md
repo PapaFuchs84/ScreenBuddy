@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- BF6: stats/profile requests use `platform=pc` (gametools dropped `ea`), with fallbacks `ea`, lower-case name and alternative PSN/Xbox values (`bf6.cpp`, `bf6.h`).
+- Spotify: idle state shows the last played track via `/me/player/recently-played` (new scope `user-read-recently-played`, `parse_recent`, 60 s cache, 403 → old message); `Snapshot::last_played`, dimmed rendering without controls (`spotify.cpp/.h`, `render.cpp`, `i18n.cpp`); tests in `tests/tests.cpp`.
+
 ## 2.9.5 – 1 November 2026
 
 - Settings navigation regrouped: View, Pages, App (Companion, Plugins, Plugin store moved to App; Colors & design belongs to View); store themes are installed on Colors & design instead of the Plugin store page (`ui_page_design.cpp`, `ui_page_store.cpp`, `ui_pages.cpp`, `ui_kit.h`).
