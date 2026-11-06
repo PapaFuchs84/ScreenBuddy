@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Phase 4a – device profiles (2026-11-06, development)
+
+- Review fixes: keepout partial patches preserve current edges, DE/EN synchronisation notice, page changes outside the touch lock, and clipping mismatched content to the usable area. Added boundary, malformed-store, shared-profile and simulated JPEG/touch checks; existing snapshot hashes unchanged.
+- P4a-1 through P4a-4: pure device-profile logic, physical keepout for USB/monitor and Companion, individual borders and touch coordinates for independent devices. Pages and previews use the usable area; border taps are discarded and navigation thirds use content width. DE/EN settings provide four numeric fields with integer validation (0–1000 pixels), geometry limits and full-frame fallback below 160 × 120 usable pixels.
+- Android TV always uses landscape and hides orientation selection while retaining the stored phone preference. Companion keeps the existing development version 1.0.4 (code 8); no signing or distribution.
+- Manifest v1, protocol v1 and existing snapshot hashes are unchanged. Validation and environment blockers: [test record](TESTPROTOKOLL.md). Hardware acceptance and native UI visual checks remain open.
+
 ### 2.10.0 – preparation, phase 1 (unreleased)
 
 - Plugin pages: card corner radius and spacing now come from the theme's frame style (`theme::Design`) instead of fixed values (FuchsLabs: radius 9 -> 8, spacing unchanged; Cupertino/Fluent/Material use their own). Colors, manifest v1 and content unchanged (`plugin_render.cpp`).

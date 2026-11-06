@@ -1,4 +1,58 @@
-# Testprotokoll – Stand 31.10.2026
+# Testprotokoll – Stand 06.11.2026
+
+## Phase-4a-Reviewkorrekturen (06.11.2026, separater Prüflauf)
+
+Alle fünf Review-Befunde bearbeitet: Teilpatch erhält aktuelle Ränder (beide Konfigurationsabschnitte); DE/EN-Gerätekarte erklärt bei Synchronisierung die unwirksamen eigenen Ränder und die gemeinsame Vorgabe; `tap_at` führt `step_page` nach Freigabe von `tap_mu_` aus; Android-KDoc und Importe bereinigt. `place`/`compose_view` begrenzen auch übergroßen Inhalt auf die Nutzfläche.
+
+Build erneut erfolgreich: `vcvars64.bat`, bereinigter PATH wie `cpp/build.bat`, CMake/Ninja Release in `cpp/build/store`, vorhandene vcpkg-Konfiguration, `VCPKG_MANIFEST_MODE=OFF`. Die `vswhere.exe`-Warnung verhindert den erfolgreichen Build nicht. Kein Export/Signieren gestartet.
+
+| Suite einzeln gestartet | Ergebnis dieses Review-Laufs |
+|---|---|
+| `fl-device-profile-tests` | **85 grün**: Teilpatch/leeres Patch, gemeinsamer Betrieb wählt `companion.keepout` trotz eigenem Gerätewert (produktiver reiner Auswahlhelfer), Orientation 4/255, physisch drehendes Hochformat, h=119 und w=159 getrennt, Kantenbegrenzung, kleinerer/größerer Inhalt mit vollständigem Pixelvergleich. |
+| `fl-companion-tests` | **377 grün**, 0 Fehler; zusätzlich echtes Laden synthetischer `companion.json` mit Keepout als String, Array, negativer Zahl und beschädigten Objekt-Rändern (ignoriert/geklammert). |
+| `fl-plugin-snapshot-tests` | **1.186 grün**, 0 Fehler; unveränderte bestehende Snapshot-Hashes, keine Aktualisierung der Baseline. |
+| Plugin Parser / Zonen / Beispiele / Store / Transport / Signatur / Katalog | **251 / 462 / 119 / 127 / 140 / 111 / 77 grün**, jeweils 0 Fehler; Zonen zusätzlich beide festen Fuzz-Läufe mit je 4.000 Manifesten. |
+| `fl-plugin-settings-tests` | **Nicht grün**, unverändert DPAPI: `initial_save`, „Plugin settings could not be encrypted or saved.“ |
+| `fl-tests` | **Nicht grün**, unverändert DPAPI: Abbruch in `config`, „Verschlüsselung fehlgeschlagen“. |
+| `app_companion_multi.py` | **Nicht abgenommen**: isolierte App startet und beendet sich sauber; Companion scheitert vor der Kopplung an DPAPI. Die neuen Kontrollen (A Inhalt bis zum Rand bei 0, B Versatz 48 ±2 JPEG-Pixel und gleichförmige Streifen ±8, separate Randtipps links/oben/rechts/unten) sind implementiert, aber nicht als App-Test durchgelaufen. |
+
+Die JPEG-Auswertung separat mit zwei synthetischen JPEGs (0/48 Pixel Rand) geprüft: beide Kontrollen grün, erkannter Inhaltsbeginn 0/47 (zulässige JPEG-Toleranz ±2); dies ist **kein** Ersatz für den blockierten App-Prozesstest. Python-Syntax und `git diff --check` erfolgreich geprüft. Kein neuer Android-Build für die rein kosmetischen Kotlin-Änderungen; frühere Android-Prüfstände unten bleiben historisch.
+
+Grenzen eingehalten: Clean-Room, keine Töne/Hardware, kein Port 8765 benutzt, `run_release_checks.py` nicht gestartet; kein Commit, Push oder Branchwechsel. Native UI-Sichtprüfung und physische Geräteabnahme bleiben offen. Die DPAPI-Blocker werden weder umgangen noch als grün ausgewiesen.
+
+## Phase 4a – Geräteprofile (06.11.2026, lokaler Entwicklungsstand)
+
+P4a-1 → P4a-2 → P4a-3 → P4a-4 nacheinander implementiert auf `feature/zonen-layout`; kein Commit, Push oder Branchwechsel. Kein Fremdcode eingesehen oder in die Implementierung übernommen. Keine Hardwareausgabe, Installation, Signierung, Veröffentlichung oder Tonerzeugung. `run_release_checks.py` wurde **nicht gestartet**, nur die neue Suite in dessen Liste registriert. Tests verwenden keine Verbindung zu Port 8765 (vorhandene reine Zahlen-/URL-Validierungen bleiben bestehen).
+
+Build: VS Build Tools 2022, `vcvars64.bat`, CMake aus `Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe`, Ninja Release in `cpp/build/store`. `ScreenBuddy` und alle unten genannten C++-Testziele erfolgreich gebaut. Vorhandener vcpkg-Cache des Build-Verzeichnisses verwendet. Die Meldung zu fehlendem `vswhere.exe` verhinderte weder Compilerinitialisierung noch Build.
+
+| Suite (einzeln gestartet) | Ergebnis dieses Laufs |
+|---|---|
+| `fl-device-profile-tests` | **69 grün**; vier asymmetrische Drehtabellen, Begrenzung/Rückfall, Innen-/Außenkanten, Inhalt-Koordinaten, Drittel-Regel, drei Geräteprofile, Zielversatz, Nullmaske und Konfigurationsvalidierung beider Abschnitte, TOML-Speichern/Laden und alte Konfigurationen ohne Sperrzone. Eine Prüfung vergleicht alle **153.600 Pixel** eines komponierten Bildes. |
+| `fl-companion-tests` | **369 grün**, 0 Fehler; eigener Sperrzonen-Store, ungültige Werte/ID, Persistenz, Rücksetzen und ältere Geräte ohne Feld eingeschlossen. TLS-Prozess-/Mehrgeräte-Simulation der vorhandenen Suite; keine echten Geräte. |
+| `fl-tests` | **Nicht grün**: Abbruch in `config` mit „Verschlüsselung fehlgeschlagen“ (Windows-DPAPI in dieser eingeschränkten Umgebung). Keine vollständige Prüfzahl behauptet. |
+| `fl-plugin-tests` | **251 grün**, 0 Fehler |
+| `fl-plugin-zones-tests` | **462 grün**, 0 Fehler; zusätzlich Ausgabe der beiden festen Fuzz-Läufe mit je 4.000 Manifesten |
+| `fl-plugin-example-tests` | **119 grün**, 0 Fehler |
+| `fl-plugin-store-tests` | **127 grün**, 0 Fehler |
+| `fl-plugin-transport-tests` | **140 grün**, 0 Fehler |
+| `fl-plugin-settings-tests` | **Nicht grün**: `initial_save`, „Plugin settings could not be encrypted or saved.“; gleicher DPAPI-Blocker. |
+| `fl-plugin-sign-tests` | **111 grün**, 0 Fehler; nur kryptografische Testdaten, keine Auslieferung signiert |
+| `fl-plugin-catalog-tests` | **77 grün**, 0 Fehler |
+| `fl-plugin-snapshot-tests` | **1.186 grün**, 0 Fehler; bestehende Hashdatei bytegleich zu `HEAD`, keine Baseline neu geschrieben |
+| Android `:protocol:test` / `ProtocolTest` | **23 grün**, 0 Fehler/übersprungen; TV ignoriert alle gespeicherten Ausrichtungen, Handy reicht sie unverändert weiter. Gradle 8.11.1 offline, lokaler beschreibbarer Cache, `--configure-on-demand`; Kotlin-Daemon fiel auf Kompilierung ohne Daemon zurück. |
+
+**Mehrgeräte-App-Prozesstest nicht abgenommen:** `python cpp/tests/app_companion_multi.py cpp/build/store/ScreenBuddy.exe` wurde mit zufälligen, explizit ausgeschlossenen Standardports, `FUCHSLABS_INSTANCE` und `--no-lcd` gestartet. Die isolierte App beendet sich sauber, der Companion-Start scheitert aber vor der ersten Kopplung an DPAPI („Verschlüsselung fehlgeschlagen“). Daher sind die neu ergänzten 2400 × 1080 / 1920 × 1080-, JPEG-Rand- (±8) und Randtipp-Prüfungen **noch nicht erfolgreich durchlaufen**. Das Skript nutzt frische Testverzeichnisse und Windows-Bilddekodierung ohne zusätzliche Python-Pakete. Keine App-Test-Hooks oder Änderungen an der Verschlüsselung eingebaut.
+
+**Android-Build nicht abgenommen:** Companion bleibt bei der bereits vorhandenen Entwicklungsversion **1.0.4 / Code 8**. `Build-Companion.ps1 -SigningProperties ''` verweigert bestimmungsgemäß ohne private Signierdaten den Start; dieser Auslieferungsweg lässt sich mit der Paketvorgabe „keine Signierung“ nicht erfolgreich verwenden. Als unsignierter Entwicklungscheck wurden `:app:lintRelease :app:assembleRelease` direkt offline versucht. Der vollständige Build scheitert am nicht zugänglichen Android-SDK (`C:/Users/admin/AppData/Local/Android`: Zugriff verweigert; Gradle meldet SDK location not found). Kein neues APK als gebaut, signiert oder installiert ausgegeben. JVM-Protokolltests konnten separat erfolgreich laufen.
+
+**Noch offen:** vollständige grüne Läufe von `fl-tests`, `fl-plugin-settings-tests` und dem App-Mehrgerätetest in einer Umgebung mit funktionsfähigem DPAPI; Android-Lint/APK-Build mit zugänglichem SDK; native UI-Sicht-/Tastaturprüfung einschließlich aktualisierter Vorschau. Physische Abnahme durch Basti: 4a-H1 (Gehäuserand in allen vier Ausrichtungen, Landscape/Gegenrichtung bestätigen) und 4a-H2 (TV bleibt quer, Overscan passt). Automatisierte Geometrie-/Pixelprüfungen ersetzen diese Abnahme nicht.
+
+DE/EN-Dokumentation: Navigation und Companion-Anleitung, Android-Buildhinweise, beide Haupt-Changelogs und C++-Changelog ergänzt; Clean-Room-Tabelle enthält eine Zeile je Paket (Agent `Codex CLI 0.166.0`). Lokale Dateilinks, Python-Syntax und `git diff --check` geprüft. Manifest v1/Plugin-Parser, Protokollschema, Versions-/Downloadlinks und historische Release-/Testeinträge wurden nicht umgeschrieben. Keine Änderung an bebilderten HTML-Anleitungen in diesem Paket.
+
+### English validation status
+
+P4a-1 through P4a-4 are implemented in order, with no commit, push, branch switch, device output, audible sound, signing or distribution. C++ Release builds pass in `cpp/build/store`; the table above records each separately invoked suite. Device profile: **69 checks** (including a full 153,600-pixel comparison), Companion: **369**, Android ProtocolTest: **23**. Eight of the ten requested existing suites pass. Core and plugin settings tests are blocked by Windows-DPAPI encryption failures, as is the application-level multi-device test before pairing. Existing snapshot hashes remain byte-identical. The APK/lint build is blocked by Android SDK access; the delivery script requires signing credentials and was not used to sign anything. Native UI visual/keyboard acceptance and physical orientation/TV overscan checks remain open. This is not a fully accepted release.
 
 ## Render-Snapshots (2.10.0)
 

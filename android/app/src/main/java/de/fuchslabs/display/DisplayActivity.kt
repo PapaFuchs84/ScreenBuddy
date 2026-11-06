@@ -4,20 +4,21 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
-import android.util.DisplayMetrics
 import android.os.Build
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.view.View
 import android.view.WindowManager
-import android.widget.TextView
 import android.widget.FrameLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.activity.OnBackPressedCallback
+import de.fuchslabs.display.protocol.orientationFor
 
 /** Vollbild-Anzeige: immersiv, Bildschirm bleibt an, Auto-Reconnect. Extras: pairing (Kopplung) optional. */
 class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
@@ -54,7 +55,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
             bottomMargin = (24 * resources.displayMetrics.density).toInt()
         })
         setContentView(root)
-        requestedOrientation = when (store.orientation) {
+        requestedOrientation = when (orientationFor(isTv, store.orientation)) {
             "auto" -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
             "portrait" -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
             else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE

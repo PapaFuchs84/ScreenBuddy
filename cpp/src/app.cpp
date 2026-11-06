@@ -637,7 +637,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
     return out;
 }
 
-App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start, std::pair<int, int> size) {
+App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start, std::pair<int, int> size, device::Area area) {
     // Seiten ab start auf die Kacheln verteilen (eine Kachel = normales Display)
     int total = 0;
     for (auto& p : pages) total += p.n;
@@ -662,7 +662,9 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
             idx -= p.n;
         }
     }
-    return {render::compose(size.first, size.second, boxes, frames), keys, taps};
+    auto image = render::compose(area.w, area.h, boxes, frames);
+    device::shift_tiles(taps, area);
+    return {device::compose_view(image, size, area, render::theme().bg), keys, taps};
 }
 
 Image App::welcome(std::pair<int, int> size) {
@@ -737,11 +739,35 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
     }
 }
 
+device::Profile App::profile_for(bool phone, const std::string& id) {
+    device::Profile p;
+    auto& settings = phone ? cfg_["companion"] : dp_;
+    p.keepout_physical = device::parse_insets(settings.value("keepout", ojson()));
+    if (phone) p.keepout_physical = device::select_keepout(p.keepout_physical,
+        id.empty() ? std::nullopt : companion_->device_keepout(id), cfg_["companion"].value("sync", true));
+    if (!phone) {
+        auto o = s(dp_, "orientation", "landscape");
+        p.orientation = o == "portrait" ? Orientation::Portrait : o == "reverse_portrait" ? Orientation::ReversePortrait :
+                        o == "reverse_landscape" ? Orientation::ReverseLandscape : Orientation::Landscape;
+        p.physical_rotates = s(dp_, "output", "serial") == "serial";
+    }
+    return p;
+}
+
 bool App::independent() const { return companion_ && !b(cfg_["companion"], "sync", true); }
 
 App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, double page_seconds, bool phone,
-                                const std::vector<std::string>* pages_override, bool dirty, bool register_redraw) {
+                                const std::vector<std::string>* pages_override, bool dirty, bool register_redraw, const std::string& id) {
     RenderOut out;
+    auto profile = profile_for(phone, id);
+    auto area = device::usable(size, profile);
+    auto inset = profile.physical_rotates ? device::to_frame(profile.keepout_physical, profile.orientation) : profile.keepout_physical;
+    if (area == device::Area{0,0,size.first,size.second} &&
+        (inset.top > 0 || inset.right > 0 || inset.bottom > 0 || inset.left > 0) && mono()-view.keepout_warning >= 60) {
+        LOGW("app", "Sperrzone ignoriert: nutzbare Fläche zu klein");
+        view.keepout_warning = mono();
+    }
+    out.area = area;
     bool due = mono() - view.switched >= page_seconds;
     auto minute = clock_hhmm();
     bool live = std::count(view.current.begin(), view.current.end(), "system") > 0;
@@ -749,10 +775,11 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     // Otherwise the 3 s activity lease expires before the 4 s simulation delay.
     live = live || (meter_ && spotify_ && spotify_->snapshot().playing &&
                     std::count(view.current.begin(), view.current.end(), "spotify") > 0);
-    if (!dirty && !due && !live && view.step == 0 && view.size == size && view.minute == minute) return out;
+    if (!dirty && !due && !live && view.step == 0 && view.size == size && view.area == area && view.minute == minute) return out;
     out.skipped = false;
     view.minute = minute;
     view.size = size;
+    view.area = area;
     auto active = active_pages(phone, pages_override);
     std::vector<Friend> friends, people;
     if (discord_ && std::count(active.begin(), active.end(), "discord")) friends = discord_->friends();
@@ -762,19 +789,19 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         std::lock_guard rl(render::mutex());
         // Bound cached renderer sets when a resizable window reports many intermediate sizes.
         if (sets_.size() > 16) sets_.clear();
-        auto boxes = render::tile_layout(size.first, size.second);
+        auto boxes = render::tile_layout(area.w, area.h);
         auto pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override);
         int total = 0;
         for (auto& p : pages) total += p.n;
         if (0 < total && total < (int)boxes.size()) {
-            boxes = render::tile_layout(size.first, size.second, total);
+            boxes = render::tile_layout(area.w, area.h, total);
             pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override);
             total = 0; for (auto& p : pages) total += p.n;
         }
         int step = view.step.exchange(0);
         if (!total) {
-            out.frame = welcome(size); view.current.clear();
-            if (register_redraw) { std::lock_guard lk(mu_); redraw_ = [this, size] { return welcome(size); }; }
+            out.frame = device::compose_view(welcome({area.w, area.h}), size, area, render::theme().bg); view.current.clear();
+            if (register_redraw) { std::lock_guard lk(mu_); redraw_ = [this, size, area] { return device::compose_view(welcome({area.w, area.h}), size, area, render::theme().bg); }; }
         } else {
             int cols = std::min((int)boxes.size(), total);
             if (due || step) {
@@ -788,9 +815,9 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             int start = view.page;
             if (register_redraw) {
                 std::lock_guard lk(mu_);
-                redraw_ = [this, pages, boxes, start, size] { return draw(pages, boxes, start, size).frame; };
+                redraw_ = [this, pages, boxes, start, size, area] { return draw(pages, boxes, start, size, area).frame; };
             }
-            auto [f, keys, targets] = draw(pages, boxes, start, size);
+            auto [f, keys, targets] = draw(pages, boxes, start, size, area);
             out.frame = std::move(f); view.current = keys; out.taps = std::move(targets);
             out.navigation = {{"index", start}, {"total", total}, {"visible", cols}, {"current", keys}, {"can_step", total > cols}};
         }
@@ -810,11 +837,11 @@ void App::render_view(bool secondary, bool dirty) {
     if (secondary) {
         // Snapshot and its touch targets are published together.
         companion_output_->show(r.frame);
-        companion_taps_ = std::move(r.taps);
+        companion_taps_ = std::move(r.taps); companion_tap_area_ = r.area;
         std::lock_guard state(mu_);
         companion_frame_ = r.frame; companion_navigation_ = r.navigation;
     } else {
-        output(r.frame, r.switched, r.navigation); tap_tiles_ = std::move(r.taps);
+        output(r.frame, r.switched, r.navigation); tap_tiles_ = std::move(r.taps); tap_area_ = r.area;
     }
 }
 
@@ -836,11 +863,11 @@ void App::render_devices(bool dirty) {
         auto own = companion_->device_pages(id);
         std::pair<int, int> size;
         { std::lock_guard lk(dev_mu_); size = d->size.first > 0 ? d->size : companion_->size(); }
-        RenderOut r = render_core(d->view, size, seconds, true, own ? &*own : nullptr, dirty, false);
+        RenderOut r = render_core(d->view, size, seconds, true, own ? &*own : nullptr, dirty, false, id);
         if (r.skipped) { first = false; continue; }
         {
             std::lock_guard lk(dev_mu_);
-            d->frame = r.frame; d->taps = std::move(r.taps); d->navigation = r.navigation;
+            d->frame = r.frame; d->area = r.area; d->taps = std::move(r.taps); d->navigation = r.navigation;
         }
         companion_->show_for(id, r.frame, r.navigation);
         if (first) {   // Vorschau und Seitennavigation der Einstellungen folgen dem ersten Gerät
@@ -870,9 +897,11 @@ void App::device_tap(const std::string& id, int x, int y, int w, int h) {
         if (it == devices_.end()) return;
         DeviceState& d = *it->second;
         if (d.frame.empty() || d.frame.w != w || d.frame.h != h) return;   // veraltete Koordinaten verwerfen
+        auto tap = device::resolve_tap(d.area, x, y);
+        if (tap.blocked) return;
         if (auto* a = touch::action_at(d.taps, x, y)) action = *a;
         else if (auto selected = touch::at(d.taps, x, y)) { targets = *selected; have_target = true; }
-        else { d.view.step += x < d.frame.w / 3 ? -1 : 1; }   // wie sonst: links = zurück, sonst weiter
+        else { d.view.step += tap.step; }   // wie sonst: links = zurück, sonst weiter
     }
     if (action) { action(); return; }
     if (have_target) { if (!touch::open(targets)) LOGW("app", "Touch-Ziel nicht geöffnet: keine passende App oder Start fehlgeschlagen"); return; }
@@ -927,29 +956,29 @@ bool App::open_item_at(int x, int y) {
 }
 
 void App::companion_tap(int x, int y, int w, int h) {
-    // Wie Tippen auf dem Bildschirm-Ausgang: erst Ziel/Schalter, sonst links (Drittel) = zurück, sonst weiter
-    bool secondary = companion_output_ != nullptr;
-    if (tap_at(x, y, secondary, w, h)) return;
-    auto frame = last_frame(secondary);
-    if (frame) step_page(x < frame->w / 3 ? -1 : 1, secondary);
+    tap_at(x, y, companion_output_ != nullptr, w, h);
 }
 
 bool App::tap_at(int x, int y, bool secondary, int w, int h) {
     touch::Targets targets;
     std::function<void()> action;
+    int step = 0;
     {
         std::lock_guard lk(tap_mu_);
         if (w > 0) {
             auto image = last_frame(secondary);
             if (!image || image->w != w || image->h != h) return true;
         }
+        const auto tap = device::resolve_tap(secondary ? companion_tap_area_ : tap_area_, x, y);
+        if (tap.blocked) return true;
         if (auto* a = touch::action_at(secondary ? companion_taps_ : tap_tiles_, x, y)) action = *a;
         if (!action) {
             auto selected = touch::at(secondary ? companion_taps_ : tap_tiles_, x, y);
-            if (!selected) return false;
-            targets = *selected;
+            if (!selected) step = tap.step;
+            else targets = *selected;
         }
     }
+    if (step) { step_page(step, secondary); return true; }
     if (action) {
         action();
         return true;   // Schalter angetippt: nicht zusätzlich die Seite wechseln

@@ -6,6 +6,13 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Phase 4a – Geräteprofile (2026-11-06, Entwicklung)
+
+- Review-Korrekturen: Keepout-Teilpatches erhalten nicht genannte Ränder; DE/EN-Hinweis erklärt die gemeinsame Vorgabe bei Synchronisierung. Seitenwechsel erfolgen außerhalb der Touch-Sperre. Bildplatzierung begrenzt auch abweichend große Inhalte auf die Nutzfläche; zusätzliche Randfall-, Store- und simulierte Mehrgerätetests. Android-KDoc und Importreihenfolge bereinigt.
+- P4a-1 bis P4a-4: reine Geräteprofil-Logik, physische Sperrzonen für USB/Monitor und Companion, eigene Ränder und Touch-Umrechnung pro unabhängigem Gerät. Seiten und Vorschauen nutzen die freie Fläche; Randtipps werden verworfen, Navigationsdrittel beziehen sich auf den Inhalt. DE/EN-Einstellungen mit vier Zahlenfeldern und Prüfung ganzer Pixel 0–1000; Größenbegrenzung und Rückfall auf Vollbild bei weniger als 160 × 120 nutzbaren Pixeln.
+- Android-TV verwendet immer Querformat und blendet die Ausrichtungswahl aus; die gespeicherte Handy-Auswahl bleibt erhalten. Companion bleibt bei der bereits vorhandenen Entwicklungsversion 1.0.4 (Code 8); keine Signierung oder Auslieferung.
+- Manifest v1, Protokoll v1 und bestehende Snapshot-Hashes unverändert. Prüfstand und Umgebungsblocker: [Testprotokoll](cpp/TESTPROTOKOLL.md). Hardware-Abnahme und native UI-Sichtprüfung offen.
+
 ### 2.10.0 – in Vorbereitung (nicht veröffentlicht)
 
 - Plugin-Seiten: Die Plugin-Karte übernimmt Eckenradius und Abstandsmaß aus dem Rahmenstil des Themes (`theme::Design`) statt fester Werte. FuchsLabs-Themes: Radius 9 → 8, Abstände unverändert; Cupertino, Fluent und Material erhalten ihre eigenen Radien und Abstände. Farben, Manifest v1 und Inhalte bleiben unverändert.

@@ -36,7 +36,7 @@ const ojson& defaults() {
         ojson j;
         j["discord"] = {{"enabled", true}, {"token", ""}, {"guild_ids", ojson::array()}, {"friend_ids", ojson::array()},
                         {"ignore_ids", ojson::array()}, {"show_offline", false}};
-        j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"brightness", 50}, {"reset_on_start", true},
+        j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}, {"brightness", 50}, {"reset_on_start", true},
                         {"page_seconds", 15}, {"pages", PAGES}, {"visible_pages", PAGES}, {"title", "Discord-Freunde"},
                         {"screen_off_on_exit", true}, {"theme", "hell"},
                         // Ausgabe: serial = USB-Display (3,5"), monitor = HDMI/USB-C-Bildschirm als Vollbildfenster
@@ -61,7 +61,7 @@ const ojson& defaults() {
                               {"entities", ojson::array()}};
         j["spotify"] = {{"enabled", false}, {"title", "Spotify"}, {"client_id", ""}, {"amp", true}, {"amp_color", "level"}};
         // Companion-App (Android) im Heimnetz: standardmäßig aus; Port nie der der Einstellungsseite
-        j["companion"] = {{"enabled", false}, {"port", 8777}, {"page_seconds", 15}, {"pages", PAGES}, {"sync", true}};
+        j["companion"] = {{"enabled", false}, {"port", 8777}, {"page_seconds", 15}, {"pages", PAGES}, {"sync", true}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}};
         j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true}, {"plugin_store", true},
                    // Darstellung des nativen Einstellungsfensters: auto = wie Windows
                    {"settings_theme", "auto"}};
@@ -194,8 +194,18 @@ static double to_number(const ojson& v) {
     throw std::invalid_argument("Zahl erwartet");
 }
 
-static ojson coerce(const std::string& sec, const std::string& key, const ojson& value, const ojson& def) {
+static ojson coerce(const std::string& sec, const std::string& key, const ojson& value, const ojson& def, const ojson& current) {
     Key k{sec, key};
+    if ((sec == "display" || sec == "companion") && key == "keepout") {
+        if (!value.is_object()) throw std::invalid_argument("Sperrzone / keepout: Objekt erwartet / object required");
+        ojson out = current.is_object() ? current : def;
+        for (auto& [edge, v] : value.items()) {
+            if (!def.contains(edge) || !v.is_number_integer() || v < 0 || v > 1000)
+                throw std::invalid_argument("Sperrzone / keepout: ganze Pixel 0–1000 erwartet / integer pixels 0–1000 required");
+            out[edge] = v;
+        }
+        return out;
+    }
     if (def.is_boolean()) {
         if (value.is_boolean()) return value;
         throw std::invalid_argument("Ja/Nein erwartet");
@@ -297,7 +307,7 @@ ojson merge(const ojson& cfg, const ojson& incoming) {
             if (!d[sec].contains(key)) continue;
             if (is_secret(sec, key) && trim(py_str(value)).empty()) continue;
             try {
-                out[sec][key] = coerce(sec, key, value, d[sec][key]);
+                out[sec][key] = coerce(sec, key, value, d[sec][key], out.value(sec, ojson::object()).value(key, d[sec][key]));
             } catch (const std::exception& e) {
                 throw std::invalid_argument(sec + "." + key + ": " + e.what());
             }
@@ -340,6 +350,17 @@ static std::string toml_value(const ojson& v) {
         std::string s = "[";
         for (size_t i = 0; i < v.size(); ++i) s += (i ? ", " : "") + toml_value(v[i]);
         return s + "]";
+    }
+    if (v.is_object()) {
+        // Verschachtelte Werte als TOML-Inline-Tabelle erhalten (z. B. Sperrzone).
+        std::string out = "{ ";
+        bool first = true;
+        for (const auto& [key, value] : v.items()) {
+            if (!first) out += ", ";
+            first = false;
+            out += toml_value(ojson(key)) + " = " + toml_value(value);
+        }
+        return out + " }";
     }
     std::string s = py_str(v), out = "\"";
     for (unsigned char c : s) {

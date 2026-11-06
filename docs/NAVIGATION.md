@@ -27,3 +27,11 @@ Der Plugin-Store enthält die Plugin-Verwaltung; Themes stehen unter Farben & De
 ## Bilder
 
 Die neuen Menübilder wurden während der Release-Prüfung aufgenommen und anschließend anonymisiert. Überdeckte Konten, Kennungen, Adressen und Vorschauinhalte sind ausdrücklich keine echten Beispielkonten. Rohbilder bleiben privat. Display-Demobilder sind Renderer-Ausgaben mit Beispieldaten und keine Fotos des USB-Panels. Die Galerie zeigt den Menüaufbau in Hell und Dunkel: [Theme-Vergleich](screenshots/themes/README.md).
+
+## Geräteprofil und Sperrzone (Phase 4a, Entwicklung)
+
+Unter **Anzeige → Sperrzone** stehen vier per Tab erreichbare Zahlenfelder oben/rechts/unten/links (Pixel, physischer Rand). USB bezieht sich auf das native Hochformat 320 × 480; der Rand dreht mit der Ausrichtung. Monitore folgen Windows, ohne Software-Drehung. **Speichern & anwenden** (Strg+S) übernimmt die Werte; die danach aktualisierte Vorschau enthält den Rand in der Theme-Hintergrundfarbe.
+
+Unter **Companion → Sperrzone: gemeinsame Vorgabe** gelten die Ränder für den gemeinsamen Betrieb und als Standard. Für das ausgewählte gekoppelte Gerät lässt sich daneben eine eigene Sperrzone sofort speichern oder auf die gemeinsame Vorgabe zurücksetzen; sie wirkt nur bei ausgeschalteter Synchronisation. Das eignet sich für TV-Overscan. Die Gerätevorschau enthält den Rand.
+
+Erlaubt sind ganze Pixel 0–1000; ungültige Eingaben werden mit Meldung abgelehnt. Beim Zeichnen wird jeder Rand auf ein Drittel der kleineren Bildkante begrenzt. Bleiben weniger als 160 × 120 Pixel nutzbar, wird die gesamte Sperrzone ignoriert (ratenbegrenzte Warnung). Ein Tipp im Rand bewirkt nichts; die Drittel-Navigation bezieht sich auf den nutzbaren Inhalt. Veraltete Companion-Bildgrößen werden verworfen.

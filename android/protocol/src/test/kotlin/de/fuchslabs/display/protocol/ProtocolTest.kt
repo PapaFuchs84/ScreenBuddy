@@ -5,6 +5,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ProtocolTest {
+    @Test fun tvAlwaysLandscape() {
+        for (stored in listOf("portrait", "auto", "landscape", "unknown")) {
+            assertEquals("landscape", orientationFor(true, stored))
+            assertEquals(stored, orientationFor(false, stored))
+        }
+    }
+
     private val fp = "ab".repeat(32)
 
     @Test fun pairingUriValid() {

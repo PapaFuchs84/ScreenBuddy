@@ -27,3 +27,11 @@ Themes are on Colors & design; plugins remain in Plugin store. **App → Plugin 
 ## Images
 
 New menu images were captured during release testing and anonymized afterwards. Covered accounts, identifiers, addresses and preview content are not real sample accounts. Raw images remain private. Display demos are renderer exports with synthetic data, not USB-panel photographs. [Light/dark theme gallery](screenshots/themes/README.md). The captured UI uses German labels; this guide provides the English page names.
+
+## Device profile and keepout (Phase 4a, development)
+
+**Display → Keepout** provides four numeric fields reachable with Tab: top/right/bottom/left (pixels, physical edge). USB uses native portrait 320 × 480 as its basis; the border follows orientation. Monitors follow Windows without software rotation. **Save & apply** (Ctrl+S) applies the values; the refreshed preview includes the border in the theme background colour.
+
+**Companion → Keepout: shared default** applies in shared mode and supplies the default. For the selected paired device, save an individual keepout immediately or reset it to the shared default; this only applies with synchronisation off. Use it for TV overscan. Device previews include the border.
+
+Only integer pixels 0–1000 are accepted; invalid input produces a message. Rendering limits each edge to one third of the smaller frame dimension. If less than 160 × 120 usable pixels remain, the entire keepout is ignored (rate-limited warning). Border taps do nothing; navigation thirds use the usable content width. Stale Companion frame sizes are rejected.

@@ -614,6 +614,7 @@ void Store::load() {
                 for (auto& p : d["pages"]) if (p.is_string()) raw_pages.push_back(p.get<std::string>());
                 dev.pages = clean_pages(raw_pages);
             }
+            if (d.contains("keepout") && d["keepout"].is_object()) dev.keepout = device::parse_insets(ojson(d["keepout"]));
             if (devices_.size() < MAX_DEVICES) devices_.push_back(std::move(dev));
         }
 }
@@ -629,6 +630,7 @@ void Store::save_locked() {
     for (auto& d : devices_) {
         json e = {{"id", d.id}, {"name", d.name}, {"key", protect_(base64(d.key))}, {"added", d.added}, {"last_seen", d.last_seen}};
         if (d.pages) e["pages"] = *d.pages;
+        if (d.keepout) e["keepout"] = device::insets_json(*d.keepout);
         arr.push_back(std::move(e));
     }
     j["devices"] = arr;
@@ -735,12 +737,24 @@ bool Store::set_device_pages(const std::string& id, const std::optional<std::vec
     return true;
 }
 
+std::optional<device::Insets> Store::device_keepout(const std::string& id) {
+    std::lock_guard lk(mu_);
+    for (auto& d : devices_) if (d.id == id) return d.keepout;
+    return std::nullopt;
+}
+bool Store::set_device_keepout(const std::string& id, const std::optional<device::Insets>& insets) {
+    if (insets && device::parse_insets(device::insets_json(*insets)) != *insets) return false;
+    std::lock_guard lk(mu_);
+    for (auto& d : devices_) if (d.id == id) { d.keepout = insets; save_locked(); return true; }
+    return false;
+}
 json Store::list() {
     std::lock_guard lk(mu_);
     json arr = json::array();
     for (auto& d : devices_) {
         json e = {{"id", d.id}, {"name", d.name}, {"added", d.added}, {"last_seen", d.last_seen}, {"pages", nullptr}};
         if (d.pages) e["pages"] = *d.pages;
+        if (d.keepout) e["keepout"] = device::insets_json(*d.keepout);
         arr.push_back(std::move(e));
     }
     return arr;

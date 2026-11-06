@@ -116,6 +116,21 @@ public:
             T(L"Falls das Bild auf dem Kopf steht", L"If the picture is upside down"),
             {"landscape", "reverse_landscape", "portrait", "reverse_portrait"},
             {T(L"Quer", L"Landscape"), T(L"Quer 180°", L"Landscape 180°"), T(L"Hoch", L"Portrait"), T(L"Hoch 180°", L"Portrait 180°")});
+        Card* keepout = root.add<Card>(T(L"Sperrzone", L"Keepout"),
+            T(L"Pixel am physischen Rand (USB: natives Hochformat). Monitor folgt Windows; keine Software-Drehung. Nach Speichern zeigt die Vorschau den Rand.",
+              L"Pixels at the physical edge (USB: native portrait). Monitor follows Windows; no software rotation. After saving, the preview shows the border."));
+        const char* edges[] = {"top","right","bottom","left"};
+        const Text labels[] = {T(L"Sperrzone oben",L"Keepout top"), T(L"Sperrzone rechts",L"Keepout right"),
+                               T(L"Sperrzone unten",L"Keepout bottom"), T(L"Sperrzone links",L"Keepout left")};
+        auto insets = device::parse_insets(host.config().at("display").value("keepout",ojson()));
+        auto values = device::insets_json(insets);
+        for (int i=0;i<4;++i) {
+            keepout_[i] = keepout->row<TextField>(labels[i], T(L"Pixel, physischer Rand (0–1000)", L"Pixels, physical edge (0–1000)"),
+                                                TextField::Number, std::to_wstring(values[edges[i]].get<int>()));
+            keepout_[i]->name = labels[i];
+        }
+        keepout->add<Note>(T(L"Je Rand höchstens ein Drittel der kleineren Bildkante. Unter 160 × 120 nutzbaren Pixeln wird die Sperrzone ignoriert. Tipps im Rand werden verworfen.",
+                            L"Each edge is limited to one third of the smaller frame dimension. Below 160 × 120 usable pixels, keepout is ignored. Taps in the border are discarded."));
         Card* conn = root.add<Card>(T(L"Anschluss", L"Connection"));
         form_.text(*conn, "display", "port", T(L"COM-Port", L"COM port"),
             T(L"AUTO oder z. B. COM3 (nur USB-Display)", L"AUTO or e.g. COM3 (USB display only)"), Text(L"AUTO"));
@@ -155,6 +170,19 @@ public:
     }
     void collect(Host&, ojson& patch) override {
         form_.collect(patch);
+        const char* edges[] = {"top","right","bottom","left"};
+        for(int i=0;i<4;++i) {
+            const auto text = trim(narrow(keepout_[i]->text()));
+            ojson value;
+            try {
+                size_t end = 0;
+                value = std::stoll(text, &end);
+                if (end != text.size()) throw std::invalid_argument("integer");
+                config::merge(host_->config(), {{"display",{{"keepout",{{edges[i],value}}}}}});
+            }
+            catch(const std::exception&) { throw Invalid(host_->english() ? "Keepout: integer pixels 0–1000 required." : "Sperrzone: ganze Pixel 0–1000 erwartet.", keepout_[i]); }
+            patch["display"]["keepout"][edges[i]] = value;
+        }
         patch["display"]["monitor"] = monitor_values_.at(size_t(monitor_->index));
     }
 private:
@@ -164,6 +192,7 @@ private:
     Segment* output_ = nullptr;
     Slider* seconds_ = nullptr;
     Slider* brightness_ = nullptr;
+    TextField* keepout_[4]{};
     Combo* monitor_ = nullptr;
     std::vector<std::string> monitor_values_;
     std::string saved_monitor_;

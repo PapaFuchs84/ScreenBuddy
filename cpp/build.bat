@@ -22,6 +22,7 @@ if errorlevel 1 set "CMAKE=C:\Program Files (x86)\Microsoft Visual Studio\2022\B
   -DVCPKG_TARGET_TRIPLET=x64-windows-static -DVCPKG_INSTALLED_DIR="%~dp0vcpkg_installed" ^
   -DVCPKG_MANIFEST_MODE=OFF -DCMAKE_TRY_COMPILE_CONFIGURATION=Release || goto :fail
 "%CMAKE%" --build "%BUILD_DIR%" || goto :fail
+"%BUILD_DIR%\fl-device-profile-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-tmdb-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-tests.exe" || goto :fail

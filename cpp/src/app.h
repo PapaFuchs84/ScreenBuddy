@@ -20,6 +20,7 @@
 #include "gfx.h"
 #include "models.h"
 #include "output.h"
+#include "device_profile.h"
 #include "plugin_store.h"
 #include "plugin_settings.h"
 #include "render.h"
@@ -91,6 +92,8 @@ public:
 private:
     struct RendererSet;
     struct ViewState {
+        device::Area area;
+        double keepout_warning = -60;
         int page = 0;
         double switched = 0;
         std::atomic<int> step{0};
@@ -103,6 +106,7 @@ private:
         ViewState view;
         std::pair<int, int> size{0, 0};
         Image frame;
+        device::Area area;
         std::vector<touch::Tile> taps;
         ojson navigation = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
         double last_seen = 0;
@@ -110,6 +114,7 @@ private:
     struct RenderOut {
         bool skipped = true;
         Image frame;
+        device::Area area;
         std::vector<touch::Tile> taps;
         ojson navigation;
         bool switched = false;
@@ -129,11 +134,12 @@ private:
     RendererSet& renderers_for(int w, int h);
     std::vector<PageEntry> page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion = false,
                                     const std::vector<std::string>* pages_override = nullptr);
-    DrawResult draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start, std::pair<int, int> size);
+    DrawResult draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start, std::pair<int, int> size, device::Area area);
     Image welcome(std::pair<int, int> size);
     void render_view(bool secondary, bool dirty);
     RenderOut render_core(ViewState& view, std::pair<int, int> size, double page_seconds, bool phone,
-                          const std::vector<std::string>* pages_override, bool dirty, bool register_redraw);
+                          const std::vector<std::string>* pages_override, bool dirty, bool register_redraw, const std::string& id = {});
+    device::Profile profile_for(bool phone, const std::string& id = {});
     bool independent() const;
     void render_devices(bool dirty);
     void device_tap(const std::string& id, int x, int y, int w, int h);
@@ -159,6 +165,7 @@ private:
     std::map<std::string, std::unique_ptr<DeviceState>> devices_;
     bool was_independent_ = false;
     std::mutex tap_mu_;
+    device::Area tap_area_, companion_tap_area_;  // zusammen mit Bild und Zielen veröffentlicht
     std::vector<touch::Tile> companion_taps_;
     std::vector<touch::Tile> tap_tiles_;     // Zeilenziele aus demselben Snapshot wie das letzte Bild
     std::function<void()> show_settings_callback_;

@@ -387,6 +387,27 @@ static void test_store() {
     fs::remove(path);
 }
 
+static void test_corrupt_keepout() {
+    auto path = tmpfile("fl-companion-corrupt-keepout.json");
+    Store initial(path, enc, dec, [] { return 1.0; });
+    std::string id;
+    initial.add_device("Synthetic", &id);
+    nlohmann::json original;
+    { std::ifstream f(path); f >> original; }
+    for (auto bad : {nlohmann::json("broken"), nlohmann::json::array({1,2}), nlohmann::json(-5),
+                    nlohmann::json{{"top",-5},{"right",1200},{"bottom","bad"},{"left",nlohmann::json::array()}}}) {
+        auto data = original;
+        data["devices"][0]["keepout"] = bad;
+        { std::ofstream f(path); f << data; }
+        Store loaded(path, enc, dec, [] { return 1.0; });
+        loaded.load();
+        CHECK(loaded.list().size() == 1);
+        if (bad.is_object()) CHECK(loaded.device_keepout(id) == std::optional(fl::device::Insets{0,1000,0,0}));
+        else CHECK(!loaded.device_keepout(id).has_value());
+    }
+    fs::remove(path);
+}
+
 static void test_identity() {
     Identity id = generate_identity("FuchsLabs USB-Display");
     CHECK(id.cert_pem.find("BEGIN CERTIFICATE") != std::string::npos);
@@ -1107,6 +1128,10 @@ static void test_independent() {
     std::string a_id, b_id;
     store.add_device("A", &a_id);
     store.add_device("B", &b_id);
+    CHECK(!store.device_keepout(a_id).has_value());
+    CHECK(!store.set_device_keepout("unknown", fl::device::Insets{}));
+    CHECK(!store.set_device_keepout(a_id, fl::device::Insets{-1,0,0,0}));
+    CHECK(store.set_device_keepout(a_id, fl::device::Insets{10,20,30,40}));
     CHECK(!store.device_pages(a_id).has_value());
     CHECK(store.set_device_pages(a_id, std::vector<std::string>{"system", "plugin:wetter", "system", "", "bad\nkey"}));
     CHECK(store.device_pages(a_id) == std::optional(std::vector<std::string>{"system", "plugin:wetter"}));
@@ -1118,6 +1143,10 @@ static void test_independent() {
         again.load();
         CHECK(again.device_pages(a_id) == std::optional(std::vector<std::string>{"system", "plugin:wetter"}));
         CHECK(again.device_pages(b_id).has_value());
+        CHECK(again.device_keepout(a_id) == std::optional(fl::device::Insets{10,20,30,40}));
+        CHECK(!again.device_keepout(b_id).has_value());
+        CHECK(again.set_device_keepout(a_id, std::nullopt));
+        CHECK(!again.device_keepout(a_id).has_value());
         bool listed = false;
         for (auto& dev : again.list()) if (dev["id"] == a_id) listed = dev["pages"].is_array() && dev["pages"].size() == 2;
         CHECK(listed);
@@ -1221,6 +1250,7 @@ int main() {
     test_pairing();
     test_gate();
     test_store();
+    test_corrupt_keepout();
     test_identity();
     test_server();
     test_server_hardening();

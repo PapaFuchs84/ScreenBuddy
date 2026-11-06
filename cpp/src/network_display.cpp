@@ -338,6 +338,12 @@ bool NetworkDisplay::set_device_pages(const std::string& id, const std::optional
     return true;
 }
 
+std::optional<device::Insets> NetworkDisplay::device_keepout(const std::string& id) { return store_->device_keepout(id); }
+bool NetworkDisplay::set_device_keepout(const std::string& id, const std::optional<device::Insets>& insets) {
+    if (!store_->set_device_keepout(id, insets)) return false;
+    if (on_device_pages) on_device_pages(id);
+    return true;
+}
 void NetworkDisplay::invalidate() {}  // TCP verliert keine Bilder; nach dem Verbinden schickt der Server ohnehin ein Vollbild
 
 void NetworkDisplay::screen_off() {

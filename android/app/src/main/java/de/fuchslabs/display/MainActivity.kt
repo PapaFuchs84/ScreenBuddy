@@ -30,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var host: EditText
     private lateinit var port: EditText
     private lateinit var pin: EditText
+    private val isTv: Boolean by lazy { packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) }
     /** Geraete ohne jede Kamera (z. B. viele Android-TV-Boxen) sollen den QR-Scan weder anbieten noch danach fragen. */
     private val hasCamera: Boolean by lazy { packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
 
@@ -92,17 +93,19 @@ class MainActivity : AppCompatActivity() {
         col.addView(gap(host, 8, 52)); col.addView(gap(port, 8, 52)); col.addView(gap(pin, 8, 52))
         col.addView(gap(button(R.string.btn_manual_pair) { manualPair() }, 12))
 
-        col.addView(label(R.string.section_orientation))
-        val modes = listOf("landscape" to R.string.orient_landscape, "auto" to R.string.orient_auto, "portrait" to R.string.orient_portrait)
-        col.addView(RadioGroup(this).apply {
-            orientation = RadioGroup.VERTICAL
-            val ids = modes.map { (key, res) ->
-                RadioButton(this@MainActivity).apply { id = View.generateViewId(); setText(res); tag = key; setTextColor(text); textSize = 16f; minHeight = (48 * dp).toInt() }
-                    .also { addView(it) }
-            }
-            ids.firstOrNull { it.tag == store.orientation }?.isChecked = true
-            setOnCheckedChangeListener { g, id -> store.orientation = g.findViewById<View>(id).tag as String }
-        })
+        if (!isTv) {
+            col.addView(label(R.string.section_orientation))
+            val modes = listOf("landscape" to R.string.orient_landscape, "auto" to R.string.orient_auto, "portrait" to R.string.orient_portrait)
+            col.addView(RadioGroup(this).apply {
+                orientation = RadioGroup.VERTICAL
+                val ids = modes.map { (key, res) ->
+                    RadioButton(this@MainActivity).apply { id = View.generateViewId(); setText(res); tag = key; setTextColor(text); textSize = 16f; minHeight = (48 * dp).toInt() }
+                        .also { addView(it) }
+                }
+                ids.firstOrNull { it.tag == store.orientation }?.isChecked = true
+                setOnCheckedChangeListener { g, id -> store.orientation = g.findViewById<View>(id).tag as String }
+            })
+        }
 
         col.addView(label(R.string.section_launcher))
         val sw1 = Switch(this).apply {

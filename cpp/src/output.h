@@ -18,6 +18,7 @@
 #include "gfx.h"
 
 namespace fl {
+namespace device { struct Insets; }
 
 class Output {
 public:
@@ -166,6 +167,8 @@ public:
     void forget_device(const std::string& device);                  // Bild verwerfen (Gerät getrennt)
     std::vector<std::string> client_ids();                          // IDs der gerade verbundenen Geräte
     std::optional<std::vector<std::string>> device_pages(const std::string& id);
+    std::optional<device::Insets> device_keepout(const std::string& id);
+    bool set_device_keepout(const std::string& id, const std::optional<device::Insets>& insets);
     bool set_device_pages(const std::string& id, const std::optional<std::vector<std::string>>& pages);
 
     bool running();

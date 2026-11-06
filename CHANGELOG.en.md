@@ -6,6 +6,13 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Phase 4a – device profiles (2026-11-06, development)
+
+- Review fixes: partial keepout patches preserve unspecified edges; a DE/EN notice explains the shared default during synchronisation. Page changes run outside the touch lock. Image placement clips differently sized content to the usable area; additional boundary, store and simulated multi-device checks. Android KDoc placement and import ordering cleaned up.
+- P4a-1 through P4a-4: pure device-profile logic, physical keepout for USB/monitor and Companion, individual borders and touch coordinates for independent devices. Pages and previews use the usable area; border taps are discarded and navigation thirds use content width. DE/EN settings provide four numeric fields with integer validation (0–1000 pixels), geometry limits and full-frame fallback below 160 × 120 usable pixels.
+- Android TV always uses landscape and hides orientation selection while retaining the stored phone preference. Companion keeps the existing development version 1.0.4 (code 8); no signing or distribution.
+- Manifest v1, protocol v1 and existing snapshot hashes are unchanged. Validation and environment blockers: [test record](cpp/TESTPROTOKOLL.md). Hardware acceptance and native UI visual checks remain open.
+
 ### 2.10.0 – in preparation (unreleased)
 
 - Plugin pages: the plugin card now takes its corner radius and spacing from the theme's frame style (`theme::Design`) instead of fixed values. FuchsLabs themes: radius 9 → 8, spacing unchanged; Cupertino, Fluent and Material use their own radii and spacing. Colors, manifest v1 and content are unchanged.
