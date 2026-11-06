@@ -91,8 +91,10 @@ public:
     Image render(std::vector<Bf6Player> players, int page, std::optional<std::time_t> updated, std::time_t now = 0);
 
 private:
+    class RowBlock;
+    class HintBlock;
+    std::vector<plugins::zones::PlacedBlock> layout() const;
     Font f_stat, f_pos;
-    void bf_row(Canvas& d, const Bf6Player& p, int pos, float y);
 };
 
 class SysRenderer : public Renderer {

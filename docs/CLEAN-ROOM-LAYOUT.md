@@ -58,6 +58,7 @@ Die Umsetzung erfolgt ohne Einsicht in Fremdcode implementiert.
 | 5 Eingebaute Seiten und gemeinsamer Renderer | | | | |
 | P5-1 Seitenrahmen + RSS | 2026-11-06 | Codex CLI 0.166.0 | Vollständigen PHASE5-MIGRATIONSPLAN.md und ScreenBuddy-Code gelesen; RSS mechanisch auf eigenen Seitenrahmen und Block-Schnittstelle umgestellt, ohne Einsicht in libre-panel-Code oder andere Fremdimplementierungen. | ausstehend |
 | P5-2 Streaming | 2026-11-06 | Codex | Nur P5-Migrationsplan, RSS-Commit b1d9c59 und eigenen ScreenBuddy-Code gelesen; Streaming mechanisch nach RSS-Muster migriert, ohne Einsicht in libre-panel-Code oder andere Fremdimplementierungen. | ausstehend |
+| P5-3 BF6 | 2026-11-06 | Codex | Nur PHASE5-MIGRATIONSPLAN.md, RSS-Commit b1d9c59 und ScreenBuddy-Code gelesen; BF6 mechanisch auf eigenen Seitenrahmen und Block-Schnittstelle umgestellt, ohne Einsicht in libre-panel-Code oder andere Fremdimplementierungen. | ausstehend |
 | 6 Editor und Erststart | | | | |
 
 Phase-4c-Sicherheitsreview M1/M2/N1–N4 (06.11.2026, Codex): ausschließlich eigenen Repo-Code und lokale Arbeitsanweisungen gelesen; URL-, Freigabe-, Geometrie- und Busy-Schalter-Korrekturen ohne Einsicht in Fremdcode. Automatischer Prüfstand und offene physische/UI-Abnahme: [Testprotokoll](../cpp/TESTPROTOKOLL.md).
