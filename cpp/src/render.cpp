@@ -1,12 +1,14 @@
 // © 2026 FuchsLabs
 #include "render.h"
 #include "page_samples.h"
+#include "page_frame.h"
 #include "theme.h"
 
 #include <windows.h>
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <regex>
 
 #include "amp_logic.h"
@@ -818,43 +820,105 @@ std::vector<std::string> RssRenderer::wrap(Canvas& d, const std::string& text, c
     return out;
 }
 
+std::array<plugins::zones::PlacedBlock, RssRenderer::MAX_ROWS> RssRenderer::layout(float w, float h) {
+    float top = HEADER_H + 2, bot = h - FOOTER_H;
+    float rh = (float)floordiv(bot - top, MAX_ROWS);
+    std::array<plugins::zones::PlacedBlock, MAX_ROWS> rows;
+    for (size_t i = 0; i < rows.size(); ++i)
+        rows[i] = {"rss.zeile." + std::to_string(i), "rss", {0, top + i * rh, w, rh},
+                   plugins::zones::Density::regular};
+    return rows;
+}
+
 int RssRenderer::row_at(int w_px, int h_px, int y_px) {
-    // gleiche Aufteilung wie render(): logische Höhe, Zeilen zwischen Kopf- und Fußzeile
+    // Dieselbe feste Anordnung wie beim Zeichnen; Division und Randprüfung bleiben erhalten.
     float sc = scale_for(w_px, h_px);
     float lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
-    float top = HEADER_H + 2, bot = lh - FOOTER_H, ly = y_px / sc;
-    float rh = (float)floordiv(bot - top, MAX_ROWS);
+    float lw = sc == 1 ? (float)w_px : (float)pyround_i(w_px / sc);
+    const auto rows = layout(lw, lh);
+    float top = rows[0].area.y, bot = lh - FOOTER_H, ly = y_px / sc;
+    float rh = rows[0].area.height;
     if (ly < top || ly >= bot || rh <= 0) return -1;
     int row = (int)((ly - top) / rh);
     return row < MAX_ROWS ? row : -1;
 }
 
+class RssRenderer::RowBlock : public plugins::zones::Block {
+public:
+    RowBlock(RssRenderer& renderer, const Post& post, size_t index, size_t count, std::time_t now)
+        : renderer_(renderer), post_(post), index_(index), count_(count), now_(now),
+          id_("rss.zeile." + std::to_string(index)) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 106.f : 66.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        auto& r = renderer_;
+        const Theme& t = g_theme;
+        const Post& p = post_;
+        float w = area.width, y = area.y, rh = area.height;
+        std::string age = ago(p.published, now_);
+        d.text(w - 10, y + 12, age, r.f_act, t.muted, "rm");
+        float src_w = w - 30 - d.textlength(age, r.f_act);
+        d.text(10, y + 12, r.fit(d, p.source, r.f_src, src_w), r.f_src, t.accent, "lm");
+        auto ls = r.wrap(d, short_title(p.title), r.f_post, w - 20);
+        for (size_t j = 0; j < ls.size(); ++j) d.text(10, y + 32 + j * 20.f, ls[j], r.f_post, t.text, "lm");
+        if (index_ < count_ - 1) d.line({{10, y + rh - 1}, {w - 10, y + rh - 1}}, t.line, 1);
+    }
+private:
+    RssRenderer& renderer_;
+    const Post& post_;
+    size_t index_, count_;
+    std::time_t now_;
+    std::string id_;
+};
+
+class RssRenderer::HintBlock : public plugins::zones::Block {
+public:
+    HintBlock(RssRenderer& renderer, const char* text) : renderer_(renderer), text_(text) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        d.text(area.width / 2, area.height / 2, text_, renderer_.f_big, g_theme.muted, "mm");
+    }
+private:
+    RssRenderer& renderer_;
+    const char* text_;
+    std::string id_ = "rss.hinweis";
+};
+
 Image RssRenderer::render(const std::vector<Post>& posts, std::optional<std::time_t> updated, std::time_t now) {
     const Theme& t = g_theme;
-    Canvas d(W, H, s, t.bg);
-    header(d, now, "");
-    float top = HEADER_H + 2, bot = h - FOOTER_H;
-    if (!updated) {
-        d.text(w / 2, h / 2, "Lade Feeds …", f_big, t.muted, "mm");
-    } else if (posts.empty()) {
-        d.text(w / 2, h / 2, "Keine Beiträge gefunden", f_big, t.muted, "mm");
+    std::vector<RowBlock> rows;
+    std::vector<Platzierung> blocks;
+    HintBlock hint(*this, !updated ? "Lade Feeds …" : "Keine Beiträge gefunden");
+    if (!updated || posts.empty()) {
+        // Vollfläche erhält die bisherige Mitte w/2, h/2 ohne neue Rechenausdrücke.
+        blocks.push_back({&hint, {hint.id(), "rss", {0, 0, w, h}, plugins::zones::Density::regular}});
     } else {
         size_t n = std::min(posts.size(), (size_t)MAX_ROWS);
-        float rh = (float)floordiv(bot - top, MAX_ROWS);
+        const auto areas = layout(w, h);
+        rows.reserve(n);
         for (size_t i = 0; i < n; ++i) {
-            const Post& p = posts[i];
-            float y = top + i * rh;
-            std::string age = ago(p.published, now);
-            d.text(w - 10, y + 12, age, f_act, t.muted, "rm");
-            float src_w = w - 30 - d.textlength(age, f_act);
-            d.text(10, y + 12, fit(d, p.source, f_src, src_w), f_src, t.accent, "lm");
-            auto ls = wrap(d, short_title(p.title), f_post, w - 20);
-            for (size_t j = 0; j < ls.size(); ++j) d.text(10, y + 32 + j * 20.f, ls[j], f_post, t.text, "lm");
-            if (i < n - 1) d.line({{10, y + rh - 1}, {w - 10, y + rh - 1}}, t.line, 1);
+            rows.emplace_back(*this, posts[i], i, n, now);
+            blocks.push_back({&rows.back(), areas[i]});
         }
     }
-    footer(d, updated ? "Stand " + clock_hhmm(*updated) : "");
-    return d.finish();
+    const std::string foot = updated ? "Stand " + clock_hhmm(*updated) : "";
+    return draw_framed({W, H, s, t.bg, [this, now](Canvas& d) { header(d, now, ""); },
+                        [this, &foot](Canvas& d) { footer(d, foot); }}, blocks);
 }
 
 // ---------- Streaming-Neustarts ----------

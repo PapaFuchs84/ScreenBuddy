@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+- P5-1 (2026-11-06): Migrated only RSS to `draw_framed`, row/message blocks and a shared fixed drawing/hit layout; retained drawing order and arithmetic. Full clean build and five individual suites pass; built-in bit equality remains unverified because Roboto is invisible in the sandbox, pending external acceptance. Baselines unchanged.
+
 ### P5-0 – Built-in baseline (2026-11-06, development)
 
 - Offline snapshot target for built-in pages: seven designs, nine sizes, DE/selected EN, fixed clock/timezone, bit-exact image and touch geometry hashes. HA and welcome remain control images only. Reference PNGs only for dark DE; export provides all images.

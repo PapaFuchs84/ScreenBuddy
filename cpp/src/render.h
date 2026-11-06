@@ -17,6 +17,7 @@
 #include "gfx.h"
 #include "models.h"
 #include "spotify.h"
+#include "plugin_zones.h"
 
 namespace fl::render {
 
@@ -135,6 +136,9 @@ public:
     static int row_at(int w, int h, int y);
 
 private:
+    class RowBlock;
+    class HintBlock;
+    static std::array<plugins::zones::PlacedBlock, MAX_ROWS> layout(float w, float h);
     Font f_post, f_src;
     std::vector<std::string> wrap(Canvas& d, const std::string& text, const Font& f, float max_w, int lines = 2);
 };
