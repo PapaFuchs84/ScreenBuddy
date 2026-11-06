@@ -336,6 +336,10 @@ public:
                          L"Enabled plugins are listed too. Network-only output uses the list under Companion."));
         host_ = &host;
         plugins_loaded_ = false;   // die Liste wurde neu gebaut (auch nach „Verwerfen“): aus der Konfiguration neu aufbauen
+        root.add<Note>(T(L"Blöcke installierter v2-Plugins lassen sich unter „Plugin-Seite anordnen“ anordnen.",
+                         L"Arrange blocks of installed v2 plugins under “Arrange plugin page”."));
+        root.add<ButtonRow>()->add(T(L"Plugin-Seite anordnen …", L"Arrange plugin page …"), Button::Secondary,
+                                  [this] { host_->navigate("layout"); })->track_dirty = false;
         load_plugins();
     }
     void shown(Host&) override { load_plugins(); }

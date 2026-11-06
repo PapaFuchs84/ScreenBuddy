@@ -1260,6 +1260,32 @@ static void test_plugin_taps() {
     CHECK(plugin_decide(shown,0,0,12,1,access).kind==PluginDecision::none);
     shown[0].plugin.clear();CHECK(decide(12).kind==PluginDecision::none);
 }
+static void test_editor_contrast() {
+    auto color=[](ui::Rgba c) { return Color{uint8_t(c.r*255+.5f),uint8_t(c.g*255+.5f),uint8_t(c.b*255+.5f)}; };
+    auto check=[&](const ui::Theme& t) {
+        for(auto bg:{t.bg,t.card,t.input}) {
+            CHECK(theme::contrast(color(t.text),color(bg))>=4.5);
+            CHECK(theme::contrast(color(t.muted),color(bg))>=4.5);
+            CHECK(theme::contrast(color(ui::focus_color(t)),color(bg))>=3);
+            CHECK(theme::contrast(color(t.text),color(bg))>=3); // Rasterrahmen/Auswahl
+        }
+        CHECK(theme::contrast(color(t.on_accent),color(t.accent))>=4.5);
+        CHECK(theme::contrast(color(t.danger),color(t.card))>=4.5);
+        auto blend=[](ui::Rgba fg,ui::Rgba bg,float alpha) { return ui::Rgba{fg.r*alpha+bg.r*(1-alpha),fg.g*alpha+bg.g*(1-alpha),fg.b*alpha+bg.b*(1-alpha),1}; };
+        // Editor-Liste: Titel und Detail nutzen Textfarbe, die ausgewählte Fläche 20 % davon auf input.
+        CHECK(theme::contrast(color(t.text),color(blend(t.text,t.input,.2f)))>=4.5);
+        CHECK(theme::contrast(color(t.text),color(blend(t.accent,t.bg,.12f)))>=4.5); // Hilfetext
+    };
+    check(ui::Theme::get(false));
+    ui::Kit kit; kit.dark=false;
+    for(auto style:{theme::Style::Cupertino,theme::Style::Fluent,theme::Style::Material}) {
+        theme::Custom t; t.name="Editor"; t.base="hell"; t.style=style; t.colors=theme::profile_palette(style,false);
+        kit.use_design({{"theme_inline",theme::to_json(t)}}); check(kit.theme());
+    }
+    kit.use_design({{"theme","hell"}});
+    theme::WindowsSettings fixed; fixed.light=true; fixed.has_accent=true;
+    kit.use_windows(true,&fixed); check(kit.theme());
+}
 int main(int argc, char** argv) {
     if (argc == 2 && std::string(argv[1]) == "plugin-touch") {
         gfx_init();
@@ -1274,6 +1300,7 @@ int main(int argc, char** argv) {
     if (argc >= 6 && std::string(argv[1]) == "touch")
         return touch_probe(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
     gfx_init();
+    test_editor_contrast();
     test_transfer_simulated();
     test_plugin_taps();
     test_material_shell();

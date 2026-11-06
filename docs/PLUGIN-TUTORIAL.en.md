@@ -175,3 +175,15 @@ Select the plugin in Settings → Plugins and explicitly enable **Open links fro
 Tap URL validation (parser and again immediately before browser launch): the literal host must be lowercase. Fixed path/query text permits only RFC 3986 characters (unreserved, sub-delimiters, `:`, `@`, `/`, `?`); `%` requires exactly two hexadecimal digits. Raw non-ASCII, spaces, quotes, angle brackets, backslashes, square brackets, carets, backticks, braces and vertical bars are rejected. Braces are allowed only as validated `{{reference}}` placeholders. Values `.` and `..` produce no target; fixed dot path segments (including percent-encoded dots) are rejected. Unicode values remain supported through percent-encoding.
 
 Only an actual link-list change with **every other manifest field identical** retains source consent and activation; link consent is reset. Other updates, including widgets, settings or tap templates changed alongside links, and identical reimports reset all grants (source plugins become disabled). Corrupt link-consent files fail closed; failed consent writes never grant permission. While busy, the link toggle restores its previous state. List rows and targets stay within their block even on shallow surfaces; targets also work in the automatic grid without a layout.
+
+## Editor: arrange a plugin page
+
+1. Install and enable a manifest-v2 plugin locally. Open **Settings → Plugins → Arrange …** and select it. v1 only shows a notice.
+2. Set grid columns/rows and weights 1–12. Arrows choose a cell; Enter creates a free zone. Shift+arrow resizes, Alt+arrow moves and Delete removes a zone if its blocks fit the first remaining zone.
+3. In the block list, Space shows/hides blocks and Alt+Up/Down reorders. Choose the zone, duration for `rotate`, and an optional condition. New zones need at least one shown block. Conditions offer sample/existing source paths and non-secret settings. Use **Confirm condition** after operator/type changes; commit text with Enter or focus change.
+4. Check landscape/portrait preview using plugin samples, the same output renderer and fixed sample time/date. Invalid drafts keep the last valid image and disable **Apply**. Use Undo/Redo buttons or Ctrl+Z/Y in the grid/list.
+5. **Apply** saves only the validated arrangement, atomically with a predecessor backup and no restart. The manifest, content, sources, links, tap actions and secrets remain unchanged. **Reset to manifest** confirms before deleting overlay and backup. Built-in pages and native HA are excluded.
+
+You can keep editing during preview. Invalid input is marked without pulling focus back; the same invalid input reports an error only once. Switching plugins asks before discarding unsaved changes (default **No**). Apply/Reset keep the existing fields; focus stays in place or moves from the disabled action button to the grid. Edits made during a save remain in the draft.
+
+Limits, MSAA/keyboard details and stale overlays: [Page editor](PLUGIN-SYSTEM.en.md#page-editor-p6-3-to-p6-5-development-for-2100). Automated evidence and open physical acceptance: [test record](../cpp/TESTPROTOKOLL.md).

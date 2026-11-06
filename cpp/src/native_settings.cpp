@@ -2,6 +2,7 @@
 // Natives Einstellungsfenster (Shell): Kopfzeile, Navigation, Inhaltsbereich, Live-Vorschau und Fußleiste.
 // Die Seiten selbst liegen in ui_page_*.cpp (Schnittstelle: ui_kit.h), das UI-Kit in ui_kit.cpp.
 #include "native_settings.h"
+#include "layout_edit.h"
 #include "ui_shell_material.h"
 
 #include <windows.h>
@@ -163,7 +164,10 @@ struct NativeSettings::Impl : ui::Host {
             catch (...) { error = L"?"; }
             deliver([this, next = std::move(next), error] {
                 --busy_count;
-                if (!error.empty()) toast(ui::Text(error == L"?" ? std::wstring(english() ? L"The action failed." : L"Die Aktion ist fehlgeschlagen.") : error),
+                auto message=narrow(error);
+                auto localized=message.starts_with("layout:")
+                    ? widen(plugins::edit::diagnostic(message.substr(7),english())) : error;
+                if (!error.empty()) toast(ui::Text(error == L"?" ? std::wstring(english() ? L"The action failed." : L"Die Aktion ist fehlgeschlagen.") : localized),
                                           ui::ToastKind::Error);
                 else if (next) next();
                 recount();

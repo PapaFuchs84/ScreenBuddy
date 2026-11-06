@@ -1,5 +1,71 @@
 # Testprotokoll – Stand 06.11.2026
 
+## P6-Reviewkorrekturen (06.11.2026)
+
+Im Hauptcheckout `feature/zonen-layout`, auf den uncommitteten P6-3/4/5-Änderungen. Alle sieben Befunde bearbeitet: Body/Undo/Redo/Fehlerwahl bleiben bei busy bedienbar; verzögerte Vorschaujobs und verworfene ältere Bilder geprüft. Zone/Sekunden/Vergleichswert werden bei Fehlern markiert, ohne Fokusentzug aus `on_commit`/WM_KILLFOCUS und ohne wiederholten Toast derselben Eingabe. Pluginwechsel fragt vor dem Verwerfen mit Standard Nein (DE/EN); Nein und Ja automatisiert geprüft. Übernehmen/Reset synchronisieren vorhandene Widgets, setzen den Fokus vom gesperrten Aktionsknopf ins Raster und überschreiben keine während des Jobs entstandenen Änderungen. Null Blöcke sind abgesichert. App-Anordnungsfehler laufen markiert über die vorhandene DE/EN-Meldungstabelle im UI-Thread; bekannte Store-/Verfügbarkeitsmeldungen getestet. Beide Test-Tempordner werden nach App-Abbau entfernt, auch über RAII bei frühem Ende; erfolgreiche Entfernung geprüft.
+
+Build: zusätzlich zu den beiden Editorzielen die unveränderte Vorlage `cpp/build/store/p5-0-validation/build.cmd` ausgeführt, Exit 0. Bekannte `vswhere.exe`-Meldung ohne Abbruch; erster Neuaufbau mit vorhandener `getenv`-Warnung. Endstand der erneut ausgeführten geforderten Suiten:
+
+| Suite | Bestanden / Fehler |
+|---|---|
+| `fl-tests` | 3.470 / 0 |
+| `fl-layout-edit-tests` | 82 / 0 |
+| `fl-layout-ui-tests` (inkl. 11 Editor-Snapshots) | 310 / 0 |
+| `fl-plugin-tests` | 380 / 0 |
+| `fl-plugin-store-tests` | 422 / 0 |
+| `fl-plugin-zones-tests` | 462 / 0 |
+| `fl-plugin-example-tests` | 124 / 0 |
+| `fl-plugin-settings-tests` | 135 / 0 |
+| `fl-plugin-snapshot-tests` (inkl. 21 Temp-Cleanup-Prüfungen) | 2.093 / 0 |
+| `fl-builtin-snapshot-tests` | 4.221 Bilder + 4.221 Trefferkarten / 0 Fehler |
+
+Ohne Sandbox, Roboto über den Schrift-Preflight sichtbar. Built-in-/Plugin-Baselines unverändert; **kein `update`, keine neuen Editor-Hashes** (Editor-Hashdatei SHA-256 weiterhin `B900DCB300DCE3019632AA02C1E8E3D4894DF15E1A38F15A2E353EFC93AED594`). Phase-5-Dateien `render.cpp/.h`, `page_frame.*`, `page_samples.*` unverändert. Kein Netzwerk/Port 8765, keine Töne, kein Fremdcode, Commit, Push, Branchwechsel, Installations- oder Release-Schritt. DE/EN-Referenz/Tutorial und alle drei Changelogs ergänzt; lokale Links und Diff geprüft. Rückfragen über den überschriebenen Host-Dialogweg automatisiert geprüft; sichtbare Dialog-/physische Geräteabnahme bleibt offen.
+
+## P6-3 / P6-4 / P6-5 – nativer Seiten-Editor (06.11.2026)
+
+Hauptcheckout `feature/zonen-layout`, Basis/HEAD weiterhin `f49d559`. Pakete nacheinander umgesetzt; keine Commits, Pushes oder Branchwechsel. Clean-Room: nur Phase-6-Entwurf und ScreenBuddy-Code. Kein Netz (auch kein Loopback-Server), keine Töne, keine Hardware-/Installations-/Release-Aktion und kein Zugriff auf Port 8765. `tests/run_release_checks.py` nur um Suiten ergänzt und syntaktisch geparst, **nicht gestartet**.
+
+- **P6-3 fertig:** `layout_edit.*` mit transaktionalen Rasteroperationen, Teilung/Löschung/Blockzuordnung, DE/EN-Diagnosen und 100-Schritt-Historie. Ganze Modelle, serialisierungsgetreue Gleichheit auch bei `1` gegenüber `1.0`, Undo/Redo und 600-ms-Pfeilgruppen. `ui_layout_grid.*` mit allen Tasten aus §7, getrennter Zell-/Zonenauswahl, MSAA-Liste/Werteänderungen, ID und 2-DIP-Auswahlrahmen. Zellen ≥32 DIP, horizontaler Ausschnitt folgt dem Zellfokus und clippt, vertikaler Bildlauf über Surface.
+- **P6-4 fertig:** `ui_page_layout.cpp`, Registrierung und Einstiege aus Plugins/PagesPage. Aktivierte Plugins, v1 nur Hinweis, keine Built-ins/HA. Rasteranteile, Zonen-ID/Modus/Übergang, Blockliste/Sichtbarkeit/Reihenfolge/Zuordnung, Sekunden und typisierte Bedingungen ohne Secret-Settings. Validierung mit Zone/Block, Taste zur Fehlerstelle, ungültige/unbestätigte Entwürfe sperren Übernehmen. Alle Widgets `track_dirty=false`; Historie überlebt vollständig neu gebaute Widgets. Anwendung/Reset ausschließlich über die P6-2-Job-/Store-Schnittstellen, atomar mit Backup, ohne Konfigurationsspeichern oder Neustart. Reset-Rückfrage im Code, sichtbare Dialogabnahme offen.
+- **P6-5 fertig (automatischer Umfang):** Vorschau ausschließlich `App::plugin_preview` mit demselben Parser, Plugin-Samples und Renderer; 480×320 / 320×480, maximal ein laufender Auftrag, Generation und nachgeholte letzte Änderung. Ungültige Entwürfe behalten das letzte Bild; Verlassen setzt den Override zurück. Nur der neue Editoraufruf wählt feste Beispielzeit/-datum (12:34 / 2026-01-01), bisherige Vorschauaufrufe bleiben unverändert. Freigegebener globaler heller Fokusring samt Textfeldrahmen auf `accent_text` (Glut) abgedunkelt. Kontrastreiche Blockauswahl bleibt lokal im Editor. Native Tastatur-/MSAA-/Storetests, 11 eigene Editor-Raster-Snapshots und Vergleich echter App-Vorschauen mit allen v2-Plugin-Snapshots ergänzt.
+
+Build: VS Build Tools 2022, `vcvars64.bat`, dortiges CMake/Ninja Release, vorhandene lokale vcpkg-Abhängigkeiten mit Manifestmodus aus; Ordner `cpp/build/store`, Vorlage `p5-0-validation/build.cmd`. ScreenBuddy und alle nachstehenden Ziele erfolgreich gebaut. Bekannte `vswhere.exe`-Meldung und vorhandene `getenv`-Warnung verhindern den Build nicht. Kein öffentlicher EXE-Export.
+
+| Suite | Endgültiger automatischer Stand |
+|---|---|
+| `fl-tests` | **3.470 / 0**, davon 80 neue Editor-Kontrastprüfungen |
+| `fl-layout-edit-tests` | **62 / 0** |
+| `fl-layout-ui-tests` | **246 / 0**, einschließlich 11 neuer Raster-Snapshotvergleiche |
+| `native_settings_smoke.py <build> --editor-offline` | **246 / 0**, ruft die isolierte native Editor-Suite auf |
+| `fl-plugin-tests` | **380 / 0** |
+| `fl-plugin-zones-tests` | **462 / 0** |
+| `fl-plugin-example-tests` | **124 / 0** |
+| `fl-plugin-store-tests` | **422 / 0** |
+| `fl-plugin-transport-tests` | **140 / 0**, Testtransport/numerische lokale DNS-Vertragsprüfung ohne Socketverkehr |
+| `fl-plugin-settings-tests` | **135 / 0** |
+| `fl-plugin-sign-tests` | **111 / 0** |
+| `fl-plugin-catalog-tests` | **77 / 0** |
+| `fl-plugin-schedule-tests` | **845 / 0** |
+| `fl-device-profile-tests` | **85 / 0** |
+| `fl-companion-tests --offline` | **250 / 0**, reine Protokoll-/Speicherfälle; Serverfälle ausdrücklich nicht gelaufen |
+| `fl-plugin-snapshot-tests` | **2.072 / 0**, davon 171 zusätzliche Prüfungen für unveränderte v2-Overlays/echte App-Vorschau, sieben Themes, vier Größen |
+| `fl-builtin-snapshot-tests` | **4.221 Bilder + 4.221 Trefferkarten / 0 Fehler** |
+
+Kontrastprüfung am tatsächlichen `ui::Theme` für FuchsLabs hell, Cupertino/Fluent/Material hell (über Inline-Profil) und Windows hell mit festen Einstellungen: Text/Nebentext auf Karte/Hintergrund/Eingabe ≥4,5:1, Fokusring auf diesen Flächen ≥3:1, Rasterrahmen/Auswahl ≥3:1, Primary-/Danger-Texte und ausgewählte Blocklisten-/Hinweisflächen ≥4,5:1. Keine bekannten Kontrastausnahmen. Neue synthetische Rasterbilder (FuchsLabs quer und Material hoch) zusätzlich angesehen; keine echte Geräte-/vollständige sichtbare App-Abnahme daraus abgeleitet.
+
+Native Suite: echte Surface-/MSAA-Abfrage (`ROLE_SYSTEM_LIST`, Name und Wert), WM_KEYDOWN/WM_SYSKEYDOWN mit rein threadlokalen Modifikatoren, Alt+Links/Rechts, Strg+Z und Strg+Shift+Z, Größenänderung, Anlegen/Löschen, Blockreihenfolge/Sichtbarkeit, Validierung/Fehlerfokus, ID-Umbenennung, Tabfolge bei 200 % DPI, zerstörte/neue Widgets mit erhaltener Historie, echte Store-Anwendung und Vorgänger-Backup, unveränderte Manifestdatei, Dirty-Zähler 0, fehlende Secret-Auswahl, v1-Hinweis und verspätete Vorschau nach hidden(). App wird nur mit synthetischer Konfiguration und abgeschalteten Quellen/Updates/Companion konstruiert; keine App-/Server-Schleife.
+
+**Abweichungen / Grenzen des kleinsten Umfangs:**
+
+- Rasteranteile sind begrenzte Zahlen-Schieberegler (Pfeiltasten/Home/End) statt freier Zahlenfelder. Spalten/Zeilen haben +/−. Schmale Raster scrollen automatisch mit dem Zellfokus, ohne eigene horizontale Scrollleiste.
+- Quellenpfade für `show_if` kommen aus Sample-Daten und bestehenden Bedingungen (begrenzte Auswahl), dazu nicht geheime Settings. Kein freies Pfadfeld für sonstige Quellfelder. Operator/Werttyp werden mit „Bedingung bestätigen“ abgeschlossen; Text mit Enter/Fokuswechsel. Kein rohes JSON.
+- Passt der Inhalt einer gelöschten Zone nicht in die erste verbleibende Zone, wird die Löschung mit Meldung abgewiesen statt einen ungültigen Transfer nach einer Rückfrage zu erzwingen. Blöcke zuerst manuell umhängen.
+- Der bestehende allgemeine Python-Smoke-Test startet eine App mit lokalem HTTP-Port. Wegen „kein Netzwerk“ wurde stattdessen dessen neuer `--editor-offline`-Weg mit echter nativer Surface und MSAA verwendet. Kein kompletter sichtbarer Einstellungsfenster-Smoke-Test.
+- Die vollständige Companion-Suite benötigt Loopback-TLS-Server. Der neue `--offline`-Modus meldet die ausgelassenen Server-, Härtungs-, Resize/Swipe- und unabhängigen Serverfälle ausdrücklich. Daher **keine Behauptung, die komplette Companion-Netzwerksuite sei gelaufen**.
+- Physische Handabnahme auf USB 480×320/hochkant, Monitor und Companion sowie der sichtbare Reset-Rückfragedialog bleiben offen. Keine Erststart-Erweiterung (P6-6).
+
+`render.cpp/.h`, `page_frame.*`, `page_samples.*`, `plugin_render.cpp`, `main.cpp` und alle vorhandenen Plugin-/Built-in-Baselines einschließlich beider `hashes.txt` laut Git-Diff unverändert. Nur die neue Datei `tests/layout-snapshots/hashes.txt` wurde als eigene Editor-Baseline angelegt. Neue Suiten in `build.bat` und `tests/run_release_checks.py` eingetragen. DE/EN-Systemreferenz, Tutorial und beide Haupt-Changelogs sowie C++-Changelog/Clean-Room-Nachweis aktualisiert; keine Versions-/Download-/Laufzeitvoraussetzungen geändert. Lokale neue Dokumentationslinks, Python-Syntax und `git diff --check` geprüft.
+
 ## P6-1/P6-2 – Overlay, Store und App (06.11.2026)
 
 Basis `ba22173`, Hauptcheckout `feature/zonen-layout`; nur die Paketdateien und die ausdrücklich angeforderten fünf Dokumentationsdateien geändert. Clean-Room: ausschließlich Entwurf und ScreenBuddy-Code, kein libre-panel-Code. Kein Commit/Push/Branchwechsel, Netz, Portzugriff auf 8765, Audio oder `run_release_checks.py`.

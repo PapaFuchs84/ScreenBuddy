@@ -53,6 +53,10 @@ const Theme& Theme::get(bool dark) {
 
 void Kit::use_design(const ojson& display) {
     auto resolved = fl::theme::resolve(display.value("theme", std::string("hell")), fl::theme::Store());
+    if(display.contains("theme_inline")) {
+        std::string error;
+        if(auto t=fl::theme::parse(display["theme_inline"],error)) resolved=fl::theme::resolve_custom(*t);
+    }
     design = fl::theme::design(resolved.style);
     designed_ = resolved.style != fl::theme::Style::FuchsLabs;
     for (auto& f : formats_) f.Reset();
@@ -71,16 +75,20 @@ void Kit::use_design(const ojson& display) {
     }
 }
 
-void Kit::use_windows(bool on) {
+void Kit::use_windows(bool on, const fl::theme::WindowsSettings* fixed) {
     windows_ = on;
     if (!on) return;
-    const auto w = fl::theme::read_windows_settings();
+    const auto w = fixed ? *fixed : fl::theme::read_windows_settings();
     const auto p = fl::theme::windows_palette(w);
     dark = !w.light;
     win_theme_ = designed_ ? design_theme_[dark ? 1 : 0] : Theme::get(dark);   // Profil: Profilpalette statt FuchsLabs-Orange
     win_theme_.accent = from(w.high_contrast ? p.accent : (w.has_accent ? w.accent : p.accent));
     win_theme_.on_accent = from(fl::theme::readable_on(w.high_contrast ? p.accent : (w.has_accent ? w.accent : p.accent)));
     win_theme_.accent_text = from(p.accent);   // Akzent als Schrift: kontrastkorrigiert
+}
+
+Rgba focus_color(const Theme& t, bool navigation) {
+    return navigation && !t.dark ? t.on_accent : t.dark ? t.accent : t.accent_text;
 }
 
 bool system_prefers_dark() {
@@ -678,6 +686,10 @@ static LRESULT CALLBACK edit_proc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR
     switch (m) {
     case WM_KEYDOWN:
         if (wp == VK_TAB) { s->keyboard_cues = true; s->tab(GetKeyState(VK_SHIFT) >= 0); return 0; }
+        if (wp == VK_RETURN && !multi) {
+            if (auto* field = dynamic_cast<TextField*>(w); field && field->on_commit) field->on_commit();
+            return 0;
+        }
         break;
     case WM_CHAR:
         if (wp == VK_TAB || (wp == VK_RETURN && !multi)) return 0;
@@ -687,6 +699,7 @@ static LRESULT CALLBACK edit_proc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR
         if (w) s->native_focus(w);
         break;
     case WM_KILLFOCUS:
+        if (auto* field = dynamic_cast<TextField*>(w); field && field->on_commit) field->on_commit();
         InvalidateRect(s->hwnd(), nullptr, FALSE);
         break;
     case WM_MOUSEWHEEL:
@@ -735,7 +748,7 @@ bool TextField::dirty() const {
 void TextField::paint(Ctx& c) {
     c.fill(rc, c.th.input, 8);
     bool focused = edit_ && GetFocus() == edit_;
-    c.frame(rc, focused ? c.th.accent : c.th.line, 8, focused ? 2.f : 1.f);
+    c.frame(rc, invalid ? c.th.danger : focused ? focus_color(c.th) : c.th.line, 8, (focused || invalid) ? 2.f : 1.f);
 }
 void TextField::focus_native() { if (edit_) SetFocus(edit_); }
 void TextField::apply_hint(Surface& s) {
@@ -1530,7 +1543,7 @@ void Surface::paint() {
     HWND focused_window = GetFocus();
     bool has_focus = focused_window == hwnd_ || (focused_window && GetParent(focused_window) == hwnd_);
     if (focus_ && keyboard_cues && has_focus && focus_->wants_focus_ring() && focus_->visible && !dynamic_cast<TextField*>(focus_))
-        c.frame(inflate(focus_->rc, 3), dynamic_cast<NavItem*>(focus_) && !th.dark ? th.on_accent : th.accent, 10, 2);
+        c.frame(inflate(focus_->rc, 3), focus_color(th,dynamic_cast<NavItem*>(focus_)!=nullptr), 10, 2);
     rt_->SetTransform(D2D1::Matrix3x2F::Identity());
     Rect t = thumb();
     if (rw(t) > 0) c.fill(t, alpha(th.muted, thumb_drag_ ? .8f : .45f), 3);
@@ -1679,7 +1692,8 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         break;
     case WM_KEYDOWN: case WM_SYSKEYDOWN: {
         const UINT vk = UINT(wp);
-        if (msg == WM_SYSKEYDOWN && vk != VK_UP && vk != VK_DOWN) break;
+        if (msg == WM_SYSKEYDOWN && vk != VK_UP && vk != VK_DOWN &&
+            !(focus_ && focus_->system_arrows() && (vk == VK_LEFT || vk == VK_RIGHT))) break;
         keyboard_cues = true;
         if (vk == VK_TAB) { tab(GetKeyState(VK_SHIFT) >= 0); return 0; }
         if (focus_ && focus_->live() && focus_->key(vk, *this)) { invalidate(); return 0; }

@@ -1116,7 +1116,7 @@ static void test_resize_swipe() {
 }
 
 // ---------- Unabhängiger Betrieb: eigene Bilder, Größen, Gesten und Seitenlisten je Gerät ----------
-static void test_independent() {
+static void test_independent(bool offline = false) {
 #ifdef _WIN32
     WSADATA d;
     WSAStartup(MAKEWORD(2, 2), &d);
@@ -1159,6 +1159,7 @@ static void test_independent() {
     store.remove(a_id);
     store.remove(b_id);
 
+    if (offline) return;
     // Server: zwei Geräte, jedes mit eigenem Bild, eigener Größe und eigenen Gesten
     std::mutex mu;
     std::map<std::string, std::string> swipes, resizes;
@@ -1240,7 +1241,8 @@ static void test_independent() {
     for (int i = 0; i < 4 && last != "SHARED"; ++i) last = frame_of(b);
     CHECK_EQ(last, "SHARED");
 }
-int main() {
+int main(int argc, char** argv) {
+    const bool offline = argc == 2 && std::string(argv[1]) == "--offline";
     test_crypto();
     test_net();
     test_handshake();
@@ -1252,10 +1254,9 @@ int main() {
     test_store();
     test_corrupt_keepout();
     test_identity();
-    test_server();
-    test_server_hardening();
-    test_independent();
-    test_resize_swipe();
+    if (!offline) { test_server(); test_server_hardening(); test_resize_swipe(); }
+    test_independent(offline);
+    if (offline) std::printf("OFFLINE: TLS server, server hardening, resize/swipe and independent server integration NOT RUN (network forbidden).\n");
     std::printf("%d Prüfungen ok, %d Fehler\n", g_ok, g_fail);
     return g_fail ? 1 : 0;
 }

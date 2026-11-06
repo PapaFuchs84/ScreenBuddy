@@ -22,6 +22,7 @@ std::unique_ptr<Page> make_homeassistant_page();
 std::unique_ptr<Page> make_spotify_page();
 std::unique_ptr<Page> make_companion_page();
 std::unique_ptr<Page> make_plugins_page();
+std::unique_ptr<Page> make_layout_page();
 std::unique_ptr<Page> make_store_page();
 std::unique_ptr<Page> make_design_page();
 std::unique_ptr<Page> make_app_page();

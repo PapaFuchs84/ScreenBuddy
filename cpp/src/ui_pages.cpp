@@ -30,6 +30,7 @@ std::vector<std::unique_ptr<Page>> create_pages() {
     // App
     pages.push_back(make_companion_page());
     pages.push_back(make_plugins_page());
+    pages.push_back(make_layout_page());
     pages.push_back(make_store_page());
     pages.push_back(make_app_page());
     return pages;

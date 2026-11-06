@@ -16,7 +16,7 @@ out.mkdir(parents=True, exist_ok=True)
 cpp = Path(__file__).resolve().parents[1]
 env = dict(os.environ, FUCHSLABS_INSTANCE='release-validation', SCREENBUDDY_TEST_BUILD_DIR=str(build))
 results = []
-suites = ['fl-device-profile-tests','fl-tests','fl-tmdb-tests','fl-psn-tests','fl-key-help-tests','fl-amp-tests','fl-plugin-tests','fl-plugin-zones-tests','fl-plugin-schedule-tests',
+suites = ['fl-layout-edit-tests','fl-layout-ui-tests','fl-device-profile-tests','fl-tests','fl-tmdb-tests','fl-psn-tests','fl-key-help-tests','fl-amp-tests','fl-plugin-tests','fl-plugin-zones-tests','fl-plugin-schedule-tests',
           'fl-plugin-example-tests','fl-plugin-sign-tests','fl-plugin-catalog-tests','fl-plugin-store-tests',
           'fl-plugin-transport-tests','fl-plugin-settings-tests','fl-plugin-snapshot-tests','fl-builtin-snapshot-tests','fl-monitor-tests','fl-companion-tests']
 commands = [(name, [str(build / (name + '.exe'))]) for name in suites]

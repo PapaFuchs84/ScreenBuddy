@@ -5,6 +5,7 @@
 //   default: compare against the baseline in snapshot-dir (hashes.txt, PNGs are for human review)
 //   update : rewrite the baseline (hashes.txt + PNGs)
 #include <algorithm>
+#include <process.h>
 #include <chrono>
 #include "output.h"
 #include <cmath>
@@ -29,6 +30,7 @@
 #include "theme.h"
 #include "util.h"
 #include "snapshot_support.h"
+#include "app.h"
 using namespace fl::snapshot;
 
 namespace fs = std::filesystem;
@@ -156,6 +158,30 @@ int main(int argc, char** argv) {
         CHECK(parsed);
         if (!parsed) { std::printf("Invalid example: %s (%s)\n", file.filename().string().c_str(), parsed.error.c_str()); continue; }
         const auto& manifest = *parsed.manifest;
+        // P6-5: Editor -> Overlay-Prüfung -> echte App-Vorschau, alle Beispiel-v2-Plugins.
+        // Keine zweite Zeichenimplementierung, keine Änderung der veröffentlichten Hashdatei.
+        if(manifest.schema_version==2) {
+            auto arranged=plugins::merge_arrangement(manifest,plugins::arrangement_from(manifest));
+            CHECK(arranged);
+            if(arranged) for(const auto& tc:themes) {
+                auto cfg=config::defaults();
+                for(auto section:{"companion","system","discord","friends","bf6","rss","streaming","homeassistant","spotify"}) cfg[section]["enabled"]=false;
+                cfg["ui"]["update_check"]=false; cfg["ui"]["port"]=18865;
+                cfg["display"]["theme"]=tc.name;
+                if(!tc.inline_theme.is_null()) cfg["display"]["theme_inline"]=tc.inline_theme;
+                const auto temp=fs::temp_directory_path()/("fl-editor-preview-"+std::to_string(_getpid()));
+                struct Cleanup { fs::path path; ~Cleanup() { std::error_code ec; fs::remove_all(path,ec); CHECK(!ec); } } cleanup{temp};
+                App app(cfg,temp/"test.toml",nullptr,temp/"preview");
+                plugins::RenderContext c; c.time="12:34"; c.date="2026-01-01"; c.sources=plugins::sample_data(manifest);
+                auto page=plugins::render_page(manifest,c);
+                for(const auto& size:kSizes) {
+                    std::string error;
+                    auto image=app.plugin_preview(arranged.manifest->definition.dump(),error,{size.w,size.h},true);
+                    CHECK(image && error.empty());
+                    if(image) CHECK(hash_image(*image)==hash_image(draw(page,tc,size,true)));
+                }
+            }
+        }
         plugins::RenderContext context;
         context.time = "12:34";
         context.date = "2026-01-01";

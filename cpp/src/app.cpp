@@ -242,7 +242,7 @@ bool App::plugin_remove(const std::string& id, std::string& error) {
 std::optional<Image> App::plugin_preview(std::string_view manifest, std::string& error) {
     return plugin_preview(manifest, error, size());
 }
-std::optional<Image> App::plugin_preview(std::string_view manifest, std::string& error, std::pair<int,int> dimensions) {
+std::optional<Image> App::plugin_preview(std::string_view manifest, std::string& error, std::pair<int,int> dimensions, bool fixed_sample_clock) {
     error.clear();
     if (dimensions.first <= 0 || dimensions.second <= 0 || dimensions.first > 4096 || dimensions.second > 4096) {
         error = "Invalid preview size."; return std::nullopt;
@@ -258,6 +258,8 @@ std::optional<Image> App::plugin_preview(std::string_view manifest, std::string&
     char date[32] = {};
     std::strftime(date, sizeof date, "%Y-%m-%d", &local);
     context.date = date;
+    // Nur der Editor wählt reproduzierbare Beispiele; bestehende Vorschauaufrufe bleiben unverändert.
+    if(fixed_sample_clock) { context.time="12:34"; context.date="2026-01-01"; }
     auto page = plugins::render_page(*result.manifest, context);
     std::lock_guard draw_lock(render::mutex());
     render::apply_theme(dp_);
@@ -1274,19 +1276,19 @@ void App::run() {
         };
         actions.arrangement_get = [this](const std::string& id) {
             auto result = plugins_ ? plugins_->arrangement_get(id) : plugins::Json();
-            if (result.is_null()) throw std::runtime_error("Plugin nicht verfügbar");
+            if (result.is_null()) throw std::runtime_error("layout:Plugin is not available.");
             return result;
         };
         actions.arrangement_apply = [this](const std::string& id, const nlohmann::json& overlay) {
-            if (!plugins_) throw std::runtime_error("Plugin-Bibliothek nicht verfügbar");
+            if (!plugins_) throw std::runtime_error("layout:Plugin library is not available.");
             auto result = plugins_->set_arrangement(id, overlay.dump());
-            if (!result) throw std::runtime_error(result.error);
+            if (!result) throw std::runtime_error("layout:"+result.error);
             mark_dirty();
         };
         actions.arrangement_reset = [this](const std::string& id) {
-            if (!plugins_) throw std::runtime_error("Plugin-Bibliothek nicht verfügbar");
+            if (!plugins_) throw std::runtime_error("layout:Plugin library is not available.");
             auto result = plugins_->clear_arrangement(id);
-            if (!result) throw std::runtime_error(result.error);
+            if (!result) throw std::runtime_error("layout:"+result.error);
             mark_dirty();
         };
         actions.save_settings = [this](const std::string& id, const nlohmann::json& patch) {

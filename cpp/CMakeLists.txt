@@ -26,6 +26,8 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
+    src/layout_edit.cpp src/ui_layout_grid.cpp
+    src/ui_page_layout.cpp
     src/plugin_schedule.cpp src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp src/page_samples.cpp src/page_frame.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/key_help.cpp src/psn_logic.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/amp_logic.cpp src/audio_levels.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
@@ -86,6 +88,16 @@ target_link_libraries(fl-plugin-tests PRIVATE nlohmann_json::nlohmann_json)
 add_executable(fl-plugin-zones-tests tests/plugin_zones_tests.cpp src/plugins.cpp src/plugin_zones.cpp)
 target_include_directories(fl-plugin-zones-tests PRIVATE src)
 target_link_libraries(fl-plugin-zones-tests PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(fl-layout-edit-tests tests/layout_edit_tests.cpp src/plugins.cpp src/plugin_zones.cpp src/layout_edit.cpp)
+target_include_directories(fl-layout-edit-tests PRIVATE src)
+target_compile_options(fl-layout-edit-tests PRIVATE /utf-8)
+target_link_libraries(fl-layout-edit-tests PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(fl-layout-ui-tests tests/layout_ui_tests.cpp)
+target_link_libraries(fl-layout-ui-tests PRIVATE flcore)
+target_link_options(fl-layout-ui-tests PRIVATE /MANIFEST:NO)
+target_compile_definitions(fl-layout-ui-tests PRIVATE FL_LAYOUT_SNAPSHOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/layout-snapshots")
 
 add_executable(fl-plugin-example-tests tests/plugin_examples_tests.cpp src/plugins.cpp src/plugin_zones.cpp)
 target_include_directories(fl-plugin-example-tests PRIVATE src)

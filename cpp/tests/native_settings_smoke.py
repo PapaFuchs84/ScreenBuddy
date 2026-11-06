@@ -394,4 +394,8 @@ def main():
 
 
 if __name__ == "__main__":
+    if "--editor-offline" in sys.argv:
+        # Native Surface + echtes MSAA, Tastatur, Undo/Redo und Store-Anwendung;
+        # kein App-Server, Socket, Port, Netz oder Hardwarezugriff.
+        raise SystemExit(subprocess.run([str(BUILD / "fl-layout-ui-tests.exe")], cwd=ROOT).returncode)
     main()

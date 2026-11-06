@@ -88,7 +88,7 @@ public:
     bool plugin_save_settings(const std::string& id, const ojson& patch, std::string& error);
     bool plugin_remove(const std::string& id, std::string& error);
     std::optional<Image> plugin_preview(std::string_view manifest, std::string& error);
-    std::optional<Image> plugin_preview(std::string_view manifest, std::string& error, std::pair<int,int> dimensions);
+    std::optional<Image> plugin_preview(std::string_view manifest, std::string& error, std::pair<int,int> dimensions, bool fixed_sample_clock = false);
     spotify::SpotifyClient* spotify() { return spotify_.get(); }   // nullptr = Seite aus oder keine Client-ID
     NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 
