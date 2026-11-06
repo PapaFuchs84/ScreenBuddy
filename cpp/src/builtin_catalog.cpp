@@ -30,8 +30,20 @@ Catalog make(std::string key, Label label, std::vector<BlockSpec> blocks) {
             c.standard.layout["zones"][i]["row"]=i/2;
         }
     }
+    if(c.key=="system") {
+        // Die Schwellen decken die vollständigen Karten aller vier Stile ab.
+        const std::array<zones::Size,5> regular={{{320,110},{220,165},{160,66},{160,66},{180,110}}};
+        for(size_t i=0;i<c.blocks.size();++i)
+            c.blocks[i].thresholds={{{{100,64},regular[i],{zones::max_area,zones::max_area}}}};
+    }
+    if(c.key=="spotify") {
+        const std::array<zones::Size,6> compact={{{44,44},{80,28},{80,28},{100,32},{144,48},{48,24}}};
+        const std::array<zones::Size,6> regular={{{100,100},{160,80},{160,44},{160,40},{180,56},{96,32}}};
+        for(size_t i=0;i<c.blocks.size();++i)
+            c.blocks[i].thresholds={{{compact[i],regular[i],{zones::max_area,zones::max_area}}}};
+    }
     c.portrait=c.standard;
-    c.enabled=(c.key=="rss" || c.key=="streaming" || c.key=="bf6" || c.key=="friends" || c.key=="discord");
+    c.enabled=(c.key=="rss" || c.key=="streaming" || c.key=="bf6" || c.key=="friends" || c.key=="discord" || c.key=="system" || c.key=="spotify");
     return c;
 }
 BlockSpec spec(std::string id, Label label, bool required=false, std::string action={}) {
@@ -75,7 +87,7 @@ const std::vector<Catalog>& catalogs() {
         make("friends",{"Freunde","Friends"},{spec("freunde.liste",{"Freunde","Friends"},false,"profile"),spec("freunde.hinweis",{"Zustand","Status"},true)}),
         make("discord",{"Discord","Discord"},{spec("freunde.liste",{"Freunde","Friends"},false,"profile"),spec("freunde.hinweis",{"Zustand","Status"},true)}),
         make("system",{"System","System"},{spec("system.cpu",{"CPU","CPU"}),spec("system.gpu",{"GPU","GPU"}),spec("system.ram",{"RAM","RAM"},false,"ram"),spec("system.datentraeger",{"Datenträger","Disk"},false,"disk"),spec("system.netz",{"Netzwerk","Network"},false,"network")}),
-        make("spotify",{"Spotify","Spotify"},{spec("spotify.cover",{"Cover","Cover"},false,"app"),spec("spotify.text",{"Titel","Title"}),spec("spotify.pegel",{"Pegel","Levels"}),spec("spotify.fortschritt",{"Fortschritt","Progress"}),spec("spotify.tasten",{"Tasten","Controls"},false,"command"),spec("spotify.hinweis",{"Zustand","Status"},true)})
+        make("spotify",{"Spotify","Spotify"},{spec("spotify.cover",{"Cover","Cover"},false,"app"),spec("spotify.text",{"Titel und Interpret","Title and artist"}),spec("spotify.pegel",{"Pegel","Levels"}),spec("spotify.fortschritt",{"Fortschritt","Progress"}),spec("spotify.tasten",{"Tasten","Controls"},false,"command"),spec("spotify.hinweis",{"Zustand","Status"},true)})
     };
     return all;
 }

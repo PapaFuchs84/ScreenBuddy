@@ -124,6 +124,8 @@ class SysRenderer : public Renderer {
 public:
     SysRenderer(int w, int h, std::string title, std::string net_unit);
     Image render(const SysSnapshot& snap, std::time_t now = 0);
+    BuiltinDrawOut render_arranged(const SysSnapshot& snap, const builtin::Overlay& overlay, std::time_t now = 0);
+    bool uses_arrangement(const builtin::Overlay& overlay) const;
     enum Zone { ZONE_RAM = 0, ZONE_DISK = 1, ZONE_NET = 2 };
     // Shared logical rectangles for drawing and hit testing, ordered CPU/GPU/RAM/Disk/Net.
     // CPU/GPU are informational (zone -1); the other regions open their Windows tool.
@@ -134,6 +136,8 @@ public:
 
 private:
     class CardBlock;
+    class ArrangedCardBlock;
+    plugins::zones::Plan arrangement(const builtin::Overlay& overlay) const;
     void system_card(Canvas& d, const Region& area, const SysSnapshot& snap, size_t index);
     void grouped_row(Canvas& d, const Region& area, const SysSnapshot& snap, size_t index);
     void expressive_card(Canvas& d, const Region& area, const SysSnapshot& snap, size_t index);
@@ -233,12 +237,17 @@ public:
     // clock: feste Wanduhr für Snapshots; 0 nutzt wie bisher die Systemuhr. now bleibt monoton.
     Image render(const spotify::Snapshot& snap, double now = 0, const std::vector<float>* levels = nullptr,
                  int color = 1, bool simulated = false, std::time_t clock = 0);
+    BuiltinDrawOut render_arranged(const spotify::Snapshot& snap, const builtin::Overlay& overlay,
+                                  double now = 0, const std::vector<float>* levels = nullptr,
+                                  int color = 1, bool simulated = false, std::time_t clock = 0);
+    bool uses_arrangement(const builtin::Overlay& overlay) const;
     enum Button { PREVIOUS = 0, PLAY_PAUSE = 1, NEXT = 2, COVER = 3 };
     // Welche Taste liegt bei Pixel (x, y) einer Kachelfläche w × h? -1 = keine. Für „Tippen steuert Spotify“.
     static int button_at(int w_px, int h_px, int x_px, int y_px);
 
 private:
     class ContentBlock;
+    plugins::zones::Plan arrangement(const builtin::Overlay& overlay) const;
     struct Layout {
         float cover_x, cover_y, cover_size;
         float text_x, text_w, title_y, bar_y, times_y;

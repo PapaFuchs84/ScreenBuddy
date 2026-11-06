@@ -18,6 +18,10 @@ P7-9 (2026-11-06, Agent Codex CLI 0.166.0): BF6 in the page selector; Ranking/re
 
 P7-10 (2026-11-06, Agent Codex CLI 0.166.0): Friends and Discord in the page selector; shared Friends/required Status catalog and sorted snapshots, separate `builtin.friends.layout.json` / `builtin.discord.layout.json` overlays, backups and revisions. Grid rows, paging and profile targets share one plan; narrow compact rows omit avatars/badges. Standard/reset stay pixel-identical (E2 accepted). 14 suites passed (Companion offline); existing baselines bit-identical, 1,024 grid images/hit maps added per page, 8,622 checks/0 combined; hardware pending.
 
+P7-11 (2026-11-06, Agent Codex CLI 0.166.0): System editor blocks use the existing CPU/GPU/RAM/disk/network snapshot; temperatures retain threshold colours, regular network includes history, compact shows values/bars or rates. Per-page landscape/portrait overlay, Cupertino groups per zone and tool targets from the drawing plan. Standard/reset remain pixel-identical; E2 confirmed. 14 suites passed (Companion offline); existing baselines unchanged, 1,536 additive system images/hit maps. Physical acceptance pending.
+
+P7-12 (2026-11-06, Agent Codex CLI 0.166.0): Spotify editor blocks use the existing snapshot/meter for cover, title/artist/album, progress, controls, levels and required status; last played keeps progress/controls hidden. Per-page landscape/portrait overlay, compact single-line text, three level colour modes and separate 48-point button targets from the drawing arrangement. Standard/reset remain pixel-identical; 14 suites passed (Companion offline); existing baselines unchanged, 4,096 additive Spotify images/hit maps. Physical acceptance pending.
+
 
 ### 2.10.0 – in preparation (unreleased)
 

@@ -465,8 +465,12 @@ std::optional<Image> App::page_preview(const std::string& key,const nlohmann::js
     if(key=="bf6") return rs.bf6.render_arranged(players(),CLOCK,*parsed.overlay,0,CLOCK).image;
     if(key=="friends") return rs.friends.render_friends_arranged(render::samples::friends(),true,"",*parsed.overlay,0,CLOCK).image;
     if(key=="discord") return rs.discord.render_friends_arranged(render::samples::friends(),true,"",*parsed.overlay,0,CLOCK).image;
-    if(key=="system") return rs.system.render(system(),CLOCK);
-    if(key=="spotify") return rs.spotify.render(render::samples::spotify(),1000,nullptr,0,false,CLOCK);
+    if(key=="system") return rs.system.render_arranged(system(),*parsed.overlay,CLOCK).image;
+    if(key=="spotify") {
+        // Eingefrorene Beispielpegel statt Zugriff auf Audiohardware in der Editorvorschau.
+        const std::vector<float> levels={.05f,.35f,.55f,.8f,.65f,.9f,1.f,.7f,.5f,.75f,.85f,.6f,.45f,.25f,.15f};
+        return rs.spotify.render_arranged(render::samples::spotify(),*parsed.overlay,1000,&levels,1,true,CLOCK).image;
+    }
     error="Unknown built-in page.";return {};
 }
 
@@ -836,6 +840,17 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                     if (touch::open_system(zone)) LOGI("app", "Touch: Systemwerkzeug %d geöffnet", zone);
                     else LOGW("app", "Touch: Systemwerkzeug %d ließ sich nicht öffnen", zone);
                 });
+            auto arrangement=builtin_layouts_->get(key).overlay;
+            if(arrangement && r.system.uses_arrangement(*arrangement)) {
+                const auto snap=sys_->snapshot();const auto actions=pe.actions;
+                pe.fn=[snap,arrangement](int,RendererSet& rs){return rs.system.render_arranged(snap,*arrangement).image;};
+                pe.builtin_draw=[snap,arrangement,actions](int,RendererSet& rs) {
+                    auto drawn=rs.system.render_arranged(snap,*arrangement);
+                    std::vector<touch::ArrangedTarget> targets;
+                    for(const auto& target:drawn.targets) targets.push_back({target.rect_px,{},actions.at(target.item)});
+                    return std::pair{std::move(drawn.image),std::move(targets)};
+                };
+            }
             out.push_back(std::move(pe));
         } else if (key == "discord") {
             std::string st = discord_->status();
@@ -947,6 +962,23 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                 pe.actions[render::SpotifyRenderer::COVER] = [] {
                     if (!touch::open({{"spotify:", "spotify"}}))
                         LOGW("app", "Spotify-App konnte nicht geöffnet werden");
+                };
+            }
+            auto arrangement=builtin_layouts_->get(key).overlay;
+            if(arrangement && r.spotify.uses_arrangement(*arrangement)) {
+                auto draw=[this,snap,amp_color,arrangement](RendererSet& rs) {
+                    std::vector<float> levels;bool simulated=false;
+                    if(meter_ && snap.playing) {meter_->touch(audio::amp_seed(snap.title,snap.artist));levels=meter_->levels();simulated=meter_->simulated();}
+                    const auto mode=audio::parse_amp_color(amp_color);
+                    return rs.spotify.render_arranged(snap,*arrangement,0,levels.empty()?nullptr:&levels,
+                        mode==audio::AmpColor::Theme?0:mode==audio::AmpColor::Level?1:2,simulated);
+                };
+                const auto actions=pe.actions;
+                pe.fn=[draw](int,RendererSet& rs){return draw(rs).image;};
+                pe.builtin_draw=[draw,actions](int,RendererSet& rs) {
+                    auto drawn=draw(rs);std::vector<touch::ArrangedTarget> targets;
+                    for(const auto& target:drawn.targets) if(actions.at(target.item)) targets.push_back({target.rect_px,{},actions.at(target.item)});
+                    return std::pair{std::move(drawn.image),std::move(targets)};
                 };
             }
             out.push_back(std::move(pe));

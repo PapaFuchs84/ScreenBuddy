@@ -336,8 +336,8 @@ public:
                          L"Enabled plugins are listed too. Network-only output uses the list under Companion."));
         host_ = &host;
         plugins_loaded_ = false;   // die Liste wurde neu gebaut (auch nach „Verwerfen“): aus der Konfiguration neu aufbauen
-        root.add<Note>(T(L"RSS, Streaming, BF6, Freunde, Discord und Blöcke installierter v2-Plugins lassen sich unter „Seite anordnen“ anordnen.",
-                         L"Arrange RSS, Streaming, BF6, Friends, Discord and blocks of installed v2 plugins under “Arrange page”."));
+        root.add<Note>(T(L"RSS, Streaming, BF6, Freunde, Discord, System, Spotify und Blöcke installierter v2-Plugins lassen sich unter „Seite anordnen“ anordnen.",
+                         L"Arrange RSS, Streaming, BF6, Friends, Discord, System, Spotify and blocks of installed v2 plugins under “Arrange page”."));
         root.add<ButtonRow>()->add(T(L"Seite anordnen …", L"Arrange page …"), Button::Secondary,
                                   [this] { host_->navigate("layout"); })->track_dirty = false;
         load_plugins();

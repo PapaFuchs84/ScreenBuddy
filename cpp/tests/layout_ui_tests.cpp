@@ -419,6 +419,30 @@ static void builtin_editor_tests(const fs::path& root, const builtin::Catalog& c
     const auto file=h.dir/"layouts"/("builtin."+key+".layout.json");
     CHECK(!fs::exists(file));auto apply=h.find<Button>(L"Übernehmen");CHECK(apply && apply->enabled);
     apply->on_click();h.drain();CHECK(!fs::exists(file));CHECK(h.application.builtin_layout_get(key)["layout_revision"]==0);
+    if(key=="system" || key=="spotify") {
+        if(key=="spotify") {
+            auto invalid=grid->model;invalid.blocks[5]["shown"]=false;grid->on_edit(invalid,{});
+            CHECK(plugins::edit::equal(grid->model,original));CHECK(h.toast_text==L"Pflichtblock kann nicht entfernt werden.");
+            invalid=grid->model;invalid.layout["rows"]={12,1,1};grid->on_edit(invalid,{});CHECK(!apply->enabled);
+            h.find<Button>(L"Rückgängig")->on_click();CHECK(apply->enabled);
+        }
+        auto n=grid->model;CHECK(plugins::edit::weight(n,false,0,2));grid->on_edit(n,{});
+        page->tick(h,h.state);h.drain();CHECK(h.image);CHECK(!fs::exists(file));
+        apply->on_click();h.drain();CHECK(fs::exists(file));CHECK(h.application.builtin_layout_get(key)["layout_revision"]==1);
+        auto saved=builtin::parse(catalog,h.application.builtin_layout_get(key)["overlay"].dump());CHECK(saved);
+        CHECK(saved.overlay->model.layout["rows"][0]==2);CHECK(saved.overlay->portrait->layout["rows"][0]==1);
+        CHECK(h.application.builtin_layout_get(key=="system"?"spotify":"system")["layout_revision"]==0);
+        auto orientation=h.find<Segment>(L"Ausrichtung");CHECK(orientation);orientation->index=1;orientation->on_change();
+        CHECK(grid->model.layout["rows"][0]==1);
+        n=grid->model;CHECK(plugins::edit::weight(n,false,0,3));grid->on_edit(n,{});apply->on_click();h.drain();
+        CHECK(fs::exists(fs::path(file.wstring()+L".bak")));
+        saved=builtin::parse(catalog,h.application.builtin_layout_get(key)["overlay"].dump());CHECK(saved.overlay->portrait->layout["rows"][0]==3);
+        auto reset=h.find<Button>(L"Auf Standard zurücksetzen");CHECK(reset);h.confirm_answer=true;reset->on_click();h.drain();
+        CHECK(!fs::exists(file));CHECK(!fs::exists(fs::path(file.wstring()+L".bak")));
+        orientation->index=0;orientation->on_change();CHECK(plugins::edit::equal(grid->model,original));
+        CHECK(choice->options[selected].en==L"Built-in · "+widen(catalog.label.en));
+        h.view.set_root(nullptr);return;
+    }
     auto n=grid->model;n.blocks[1]["shown"]=false;grid->on_edit(n,{});
     CHECK(plugins::edit::equal(grid->model,original));CHECK(h.toast_text==L"Pflichtblock kann nicht entfernt werden.");
     n=grid->model;CHECK(plugins::edit::weight(n,false,0,3));grid->on_edit(n,{});

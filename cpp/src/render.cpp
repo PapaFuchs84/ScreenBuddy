@@ -1060,6 +1060,79 @@ Image SysRenderer::render(const SysSnapshot& sn, std::time_t now) {
         [this](Canvas& d) { footer(d, ""); }}, blocks);
 }
 
+// Nur geänderte Anordnungen verwenden Raster, Clip und Fehlerisolierung.
+bool SysRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("system"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+plugins::zones::Plan SysRenderer::arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    auto layout=plugins::edit::geometry(model);
+    if(!layout) return {};
+    return plugins::zones::plan({8,HEADER_H+2.f,w-16,h-HEADER_H-FOOTER_H-2.f},*layout,
+                               builtin::inputs(*builtin::find("system"),model),6);
+}
+class SysRenderer::ArrangedCardBlock : public plugins::zones::Block {
+public:
+    ArrangedCardBlock(SysRenderer& r,const SysSnapshot& snap,size_t index):r_(r),snap_(snap),index_(index) {}
+    const std::string& id() const override {return builtin::find("system")->blocks[index_].id;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("system")->blocks[index_].thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& a,plugins::zones::Density density) const override {
+        const auto& t=g_theme;const auto& sn=snap_;
+        Region region{a.x,a.y,a.width,a.height,-1};
+        if(density==plugins::zones::Density::regular) {
+            if(index_==4) r_.net_card(d,a.x,a.y,a.width,a.height,sn);
+            else if(t.style==theme::Style::Cupertino) r_.grouped_row(d,region,sn,index_);
+            else if(t.style==theme::Style::Material) r_.expressive_card(d,region,sn,index_);
+            else r_.system_card(d,region,sn,index_);
+            return;
+        }
+        if(t.style!=theme::Style::Cupertino)
+            d.rounded_rectangle(a.x,a.y,a.x+a.width,a.y+a.height,theme::design(t.style).card_radius,t.card);
+        const std::array<std::string,5> labels={"CPU","GPU","RAM",tr("Datenträger"),tr("Netzwerk")};
+        const std::array<std::optional<double>,5> values={sn.cpu_pct,sn.gpu_pct,sn.ram_pct,sn.disk_pct,{}};
+        d.text(a.x+8,a.y+12,r_.fit(d,labels[index_],r_.f_lbl,a.width-16),r_.f_lbl,t.accent,"lm");
+        if(index_==4) {
+            d.text(a.x+8,a.y+32,r_.fit(d,fmt_rate(sn.net_down,r_.net_unit),r_.f_lbl,a.width-16),r_.f_lbl,t.down,"lm");
+            d.text(a.x+8,a.y+50,r_.fit(d,fmt_rate(sn.net_up,r_.net_unit),r_.f_lbl,a.width-16),r_.f_lbl,t.bar,"lm");
+        } else {
+            const auto temp=index_==0?sn.cpu_temp:index_==1?sn.gpu_temp:index_==3?sn.disk_temp:std::optional<double>{};
+            d.text(a.x+8,a.y+32,num(values[index_],0,"%"),r_.f_val,t.text,"lm");
+            if(temp) d.text(a.x+a.width-8,a.y+49,r_.fit(d,num(temp,0,"°C"),r_.f_lbl,a.width-16),r_.f_lbl,r_.temp_col(temp),"rm");
+            r_.bar(d,a.x+8,a.y+a.height-7,a.width-16,values[index_],3);
+        }
+    }
+private:
+    SysRenderer& r_;const SysSnapshot& snap_;size_t index_;
+};
+BuiltinDrawOut SysRenderer::render_arranged(const SysSnapshot& snap,const builtin::Overlay& overlay,std::time_t now) {
+    const auto& catalog=*builtin::find("system");
+    if(!builtin::validate(catalog,overlay).empty() || !uses_arrangement(overlay)) return {render(snap,now),{}};
+    const auto plan=arrangement(overlay);
+    std::vector<ArrangedCardBlock> cards;cards.reserve(catalog.blocks.size());
+    for(size_t i=0;i<catalog.blocks.size();++i) cards.emplace_back(*this,snap,i);
+    std::vector<CardBlock> groups;groups.reserve(plan.zones.size());
+    std::vector<Platzierung> blocks;
+    if(g_theme.style==theme::Style::Cupertino) for(const auto& zone:plan.zones) {
+        if(std::none_of(plan.blocks.begin(),plan.blocks.end(),[&](const auto& b){return b.zone==zone.id && b.visible();})) continue;
+        const auto& a=zone.area;groups.emplace_back(*this,snap,0,true,a.y+a.height);
+        blocks.push_back({&groups.back(),{"system.gruppe",zone.id,a,plugins::zones::Density::regular}});
+    }
+    for(const auto& b:plan.blocks) for(const auto& card:cards) if(b.id==card.id()) blocks.push_back({&card,b});
+    std::vector<std::string> failed;BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,now,&snap](Canvas& d){header(d,now,snap.hwinfo?"":"ohne HWiNFO");},
+                            [this](Canvas& d){footer(d,"");}},blocks,&failed);
+    for(const auto& b:plan.blocks) if(b.visible() && std::find(failed.begin(),failed.end(),b.id)==failed.end()) {
+        for(size_t i=2;i<catalog.blocks.size();++i) if(b.id==catalog.blocks[i].id) {
+            const int left=pyround_i(b.area.x*s),right=pyround_i((b.area.x+b.area.width)*s);
+            const int top=pyround_i(b.area.y*s),bottom=pyround_i((b.area.y+b.area.height)*s);
+            out.targets.push_back({{left,top,right-left,bottom-top},i-2});
+        }
+    }
+    return out;
+}
+
 void SysRenderer::system_card(Canvas& d, const Region& area, const SysSnapshot& sn, size_t index) {
     const Theme& t = g_theme;
     if (index == 0) {
@@ -1918,15 +1991,23 @@ static std::string spotify_footer(const spotify::Snapshot& snap) {
     }
 }
 
+// Rechtecke für Zeichnen und Fingerziele: drei getrennte Flächen von je 48 Punkten.
+static std::array<plugins::zones::Rect,3> spotify_controls(const plugins::zones::Rect& area) {
+    std::array<plugins::zones::Rect,3> out;
+    for(size_t i=0;i<out.size();++i) out[i]={area.x+(float(i)+.5f)*area.width/3-24,area.y+area.height/2-24,48,48};
+    return out;
+}
+
 class SpotifyRenderer::ContentBlock : public plugins::zones::Block {
 public:
     enum Kind { Cover, Text, Levels, Progress, Buttons, Hint };
     ContentBlock(SpotifyRenderer& renderer, Kind kind, const spotify::Snapshot& snap, double now,
-                 const std::vector<float>* levels, int color, bool simulated)
+                 const std::vector<float>* levels, int color, bool simulated, bool arranged = false)
         : renderer_(renderer), kind_(kind), snap_(snap), now_(now), levels_(levels), color_(color), simulated_(simulated),
-          id_(std::string("spotify.") + names_[kind]) {}
+          id_(std::string("spotify.") + names_[kind]), arranged_(arranged) {}
     const std::string& id() const override { return id_; }
     plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if(arranged_) return builtin::find("spotify")->blocks[size_t(kind_)].thresholds.min[size_t(density)];
         if (density != plugins::zones::Density::regular) {
             float inf = std::numeric_limits<float>::infinity();
             return {inf, inf};
@@ -1934,7 +2015,7 @@ public:
         bool portrait = renderer_.h > renderer_.w;
         return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
     }
-    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density density) const override {
         using spotify::State;
         auto& r = renderer_;
         const auto& snap = snap_;
@@ -1949,6 +2030,31 @@ public:
         Layout l = layout(w, h);
         bool wide = w >= h;
         float ty = l.title_y;
+        if(arranged_) {
+            l.text_x=area.x+6;l.text_w=area.width-12;l.title_y=area.y+18;ty=l.title_y;wide=true;
+            l.cover_size=std::min(area.width,area.height);
+            l.cover_x=area.x+(area.width-l.cover_size)/2;l.cover_y=area.y+(area.height-l.cover_size)/2;
+            l.bar_y=area.y+7;l.times_y=area.y+24;
+            const auto controls=spotify_controls(area);
+            for(size_t i=0;i<controls.size();++i) {l.btn_x[i]=controls[i].x+24;l.btn_r[i]=i==PLAY_PAUSE?24.f:18.f;}
+            l.btn_y=area.y+area.height/2;
+            if(kind_==Text && density==plugins::zones::Density::compact) {
+                d.text(l.text_x,area.y+area.height/2,r.fit(d,snap.title+" · "+snap.artist,r.f_artist,l.text_w),r.f_artist,snap.last_played?t.muted:t.text,"lm");
+                return;
+            }
+            if(kind_==Levels) {ty=area.y-66;l.bar_y=area.y+area.height+14;}
+            if(kind_==Hint) {
+                std::string text;
+                switch(snap.state) {
+                case State::NotSetUp:text="Spotify ist nicht fertig eingerichtet";break;
+                case State::LoggedOut:text="Bei Spotify anmelden: Einstellungen › Spotify";break;
+                case State::Connecting:text=snap.error.empty()?"Verbinde mit Spotify …":snap.error;break;
+                case State::Error:text=snap.error.empty()?"Spotify nicht erreichbar":snap.error;break;
+                default:text="Es läuft gerade nichts – Wiedergabe in Spotify starten";break;
+                }
+                d.text(area.x+6,area.y+area.height/2,r.fit(d,text,r.f_time,area.width-12),r.f_time,t.muted,"lm");return;
+            }
+        }
         switch (kind_) {
         case Cover: {
             // Cover (oder dezenter Platzhalter)
@@ -2055,6 +2161,7 @@ private:
     int color_;
     bool simulated_;
     std::string id_;
+    bool arranged_;
 };
 
 Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const std::vector<float>* levels, int color, bool simulated, std::time_t clock) {
@@ -2094,6 +2201,55 @@ Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const s
     const std::string foot = spotify_footer(snap);
     return draw_framed({W, H, s, t.bg, [this, clock](Canvas& d) { header(d, clock, ""); },
                         [this, &foot](Canvas& d) { footer(d, fit(d, foot, f_small, w - 110)); }}, blocks);
+}
+
+bool SpotifyRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("spotify"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+plugins::zones::Plan SpotifyRenderer::arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    auto layout=plugins::edit::geometry(model);if(!layout) return {};
+    return plugins::zones::plan({8,HEADER_H+2.f,w-16,h-HEADER_H-FOOTER_H-2.f},*layout,builtin::inputs(*builtin::find("spotify"),model),6);
+}
+BuiltinDrawOut SpotifyRenderer::render_arranged(const spotify::Snapshot& snap,const builtin::Overlay& overlay,
+                                               double now,const std::vector<float>* levels,int color,bool simulated,std::time_t clock) {
+    const auto& c=*builtin::find("spotify");
+    if(!builtin::validate(c,overlay).empty() || !uses_arrangement(overlay)) return {render(snap,now,levels,color,simulated,clock),{}};
+    const auto plan=arrangement(overlay);
+    const bool live=snap.state==spotify::State::Playing || snap.state==spotify::State::Paused;
+    const bool ready=live || (snap.state==spotify::State::Idle && snap.last_played);
+    std::vector<ContentBlock> content;content.reserve(c.blocks.size());std::vector<Platzierung> blocks;
+    // Zu viele Eingangsbalken werden nur im Raster auf die verfügbare Breite begrenzt.
+    std::vector<float> bounded;
+    for(const auto& b:plan.blocks) if(b.id=="spotify.pegel" && b.visible() && levels) {
+        const auto n=std::min(levels->size(),size_t(std::max(1.f,std::floor((b.area.width-12+3)/5))));
+        bounded.assign(levels->begin(),levels->begin()+n);
+    }
+    for(const auto& b:plan.blocks) for(size_t i=0;i<c.blocks.size();++i) if(b.id==c.blocks[i].id) {
+        const auto kind=ContentBlock::Kind(i);
+        if((!ready && kind!=ContentBlock::Hint) || (ready && kind==ContentBlock::Hint) ||
+           (snap.last_played && (kind==ContentBlock::Progress || kind==ContentBlock::Buttons))) continue;
+        content.emplace_back(*this,kind,snap,now,bounded.empty()?nullptr:&bounded,color,simulated,true);
+        blocks.push_back({&content.back(),b});
+    }
+    const auto foot=spotify_footer(snap);std::vector<std::string> failed;BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,clock](Canvas& d){header(d,clock,"");},
+                            [this,&foot](Canvas& d){footer(d,fit(d,foot,f_small,w-110));}},blocks,&failed);
+    auto add=[&](const plugins::zones::Rect& a,size_t item) {
+        const int left=pyround_i(a.x*s),right=pyround_i((a.x+a.width)*s);
+        const int top=pyround_i(a.y*s),bottom=pyround_i((a.y+a.height)*s);
+        out.targets.push_back({{left,top,right-left,bottom-top},item});
+    };
+    for(const auto& b:plan.blocks) if(b.visible() && live && !snap.last_played && std::find(failed.begin(),failed.end(),b.id)==failed.end()) {
+        if(b.id=="spotify.cover" && snap.cover && !snap.cover->empty()) {
+            const float side=std::min(b.area.width,b.area.height);
+            add({b.area.x+(b.area.width-side)/2,b.area.y+(b.area.height-side)/2,side,side},COVER);
+        }
+        if(b.id=="spotify.tasten" && snap.controls) {
+            const auto controls=spotify_controls(b.area);for(size_t i=0;i<controls.size();++i) add(controls[i],i);
+        }
+    }
+    return out;
 }
 
 spotify::Snapshot demo_spotify() { return samples::spotify(); }

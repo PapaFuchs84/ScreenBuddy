@@ -594,11 +594,208 @@ static int friends_layout_snapshots(bool record,const fs::path& output,const std
 }
 
 
+// P7-11: ausschließlich additive Rasterbasis; bestehende Hashdateien bleiben gesperrt.
+static int system_layout_snapshots(bool record,const fs::path& output) {
+    const fs::path file=fs::path(FL_BUILTIN_SNAPSHOT_DIR).parent_path()/"layout-snapshots"/"p7-system-hashes.txt";
+    if(record && fs::exists(file)) throw std::runtime_error("System-Rasterbasis existiert; Überschreiben verboten.");
+    std::map<std::string,std::string> expected,actual;
+    if(!record) {std::ifstream in(file);if(!in) throw std::runtime_error("System-Rasterbasis fehlt.");for(std::string k,v;in>>k>>v;) if(!expected.emplace(k,v).second) throw std::runtime_error("Doppelte System-Rasterbasis.");}
+    int failures=0,checked=0;
+    auto require=[&](bool ok,const std::string& what){++checked;if(!ok){++failures;std::cerr<<"System-Raster: "<<what<<'\n';}};
+    const auto& c=*builtin::find("system");const auto defaults=builtin::standard(c);
+    for(const auto& lang:{std::string("de"),std::string("en")}) {
+        i18n::set_lang(lang);
+        for(const auto& tc:theme_cases()) for(const auto& size:sizes()) {
+            if(lang=="en" && (tc.name!="dunkel" || std::string(size.name)!="landscape")) continue;
+            if(tc.inline_theme.is_null()) apply_theme({{"theme",tc.name}});else apply_theme({{"theme_inline",tc.inline_theme}});
+            SysRenderer r(size.w,size.h,"System","MB/s");auto snap=samples::system();
+            const std::string prefix=lang+"."+tc.name+"."+size.name;
+            require(hash_image(r.render(snap,clock_value))==hash_image(r.render_arranged(snap,defaults,clock_value).image),prefix+" standard");
+            auto one=defaults;one.portrait->layout["rows"]={2,1,1};
+            require(r.uses_arrangement(one)==(size.h>size.w),prefix+" orientation switch");
+            if(size.h<=size.w) require(hash_image(r.render(snap,clock_value))==hash_image(r.render_arranged(snap,one,clock_value).image),prefix+" unchanged fixed");
+            auto invalid=defaults;invalid.catalog_version++;
+            require(hash_image(r.render(snap,clock_value))==hash_image(r.render_arranged(snap,invalid,clock_value).image),prefix+" invalid fallback");
+            for(int variant=0;variant<6;++variant) {
+                auto overlay=defaults;
+                for(auto* m:{&overlay.model,&*overlay.portrait}) {
+                    m->layout["rows"]={2,1,1};
+                    if(variant==1) { // Jede Karte erhält Platz für ihre vollständige Variante.
+                        m->layout["columns"]={1};m->layout["rows"]={1};
+                        m->layout["zones"]=builtin::Json::array({{{"id","all"},{"column",0},{"row",0}}});
+                        for(auto& b:m->blocks) {b["shown"]=b["id"]=="system.netz";b["zone"]="all";}
+                    }
+                    if(variant==2) { // Cupertino: zwei Karten in einer Gruppe, andere zurück in die Leiste.
+                        m->layout["columns"]={1};m->layout["rows"]={1};
+                        m->layout["zones"]=builtin::Json::array({{{"id","all"},{"column",0},{"row",0}}});
+                        for(auto& b:m->blocks) {b["shown"]=b["id"]=="system.cpu" || b["id"]=="system.ram";b["zone"]="all";}
+                    }
+                    if(variant==3) m->layout["rows"]={12,1,1}; // Zu kleine Werkzeugkarten haben keine Ziele.
+                    if(variant==4 || variant==5) {
+                        m->layout["columns"]={1};m->layout["rows"]={1};
+                        m->layout["zones"]=builtin::Json::array({{{"id","all"},{"column",0},{"row",0}}});
+                        for(auto& b:m->blocks) {b["shown"]=b["id"]==(variant==4?"system.cpu":"system.gpu");b["zone"]="all";}
+                    }
+                }
+                require(builtin::validate(c,overlay).empty(),prefix+" valid variant");
+                const auto& model=size.h>size.w?*overlay.portrait:overlay.model;
+                const float scale=scale_for(size.w,size.h);
+                const float lw=scale==1?float(size.w):float(std::nearbyint(size.w/scale));
+                const float lh=scale==1?float(size.h):float(std::nearbyint(size.h/scale));
+                const auto plan=plugins::zones::plan({8,36,lw-16,lh-54},*plugins::edit::geometry(model),builtin::inputs(c,model),6);
+                for(int state=0;state<4;++state) {
+                    snap=samples::system();
+                    if(state<3) {snap.cpu_temp=state==0?74:state==1?75:85;snap.gpu_temp=snap.cpu_temp;snap.disk_temp=snap.cpu_temp;snap.cpu_pct=state==2?90:89;}
+                    else snap=SysSnapshot{};
+                    const auto key=prefix+".v"+std::to_string(variant)+".s"+std::to_string(state);
+                    auto drawn=r.render_arranged(snap,overlay,clock_value);
+                    require(drawn.image.w==size.w && drawn.image.h==size.h,key+" dimensions");actual[key]=hash_image(drawn.image);
+                    int selected=-1;touch::Tile tile{{17,23,size.w,size.h},false,{}};tile.arranged=true;
+                    for(const auto& target:drawn.targets) {const int item=int(target.item);require(item>=0 && item<3,key+" action index");tile.arranged_targets.push_back({target.rect_px,{},[&,item]{selected=item;}});}
+                    const std::vector<touch::Tile> tiles={tile};bool same=true;uint64_t hash=1469598103934665603ull;
+                    for(int y=0;y<size.h;y+=4) for(int x=0;x<size.w;x+=4) {
+                        int hit=-1;
+                        for(const auto& b:plan.blocks) if(b.visible()) for(size_t i=2;i<c.blocks.size();++i) if(b.id==c.blocks[i].id) {
+                            const int left=int(std::nearbyint(b.area.x*scale)),right=int(std::nearbyint((b.area.x+b.area.width)*scale));
+                            const int top=int(std::nearbyint(b.area.y*scale)),bottom=int(std::nearbyint((b.area.y+b.area.height)*scale));
+                            if(x>=left && x<right && y>=top && y<bottom) hit=int(i)-2;
+                        }
+                        const auto* action=touch::action_at(tiles,x+17,y+23);selected=-1;if(action) (*action)();same=same && selected==hit;
+                        hash^=uint64_t(hit+1);hash*=1099511628211ull;
+                    }
+                    require(same,key+" 4px hit map");actual[key+".touch"]=std::to_string(hash);
+                }
+            }
+        }
+    }
+    if(record && failures) throw std::runtime_error("System-Rasterprüfung fehlgeschlagen; keine Basis geschrieben.");
+    if(record) {std::ofstream out(file,std::ios::binary);for(const auto& [k,v]:actual) out<<k<<' '<<v<<'\n';if(!out) throw std::runtime_error("System-Rasterbasis nicht geschrieben.");}
+    else {for(const auto& [k,v]:actual) require(expected.contains(k) && expected[k]==v,k+" hash");require(actual.size()==expected.size(),"complete matrix");}
+    i18n::set_lang("de");
+    for(const auto& tc:theme_cases()) {
+        if(tc.inline_theme.is_null()) apply_theme({{"theme",tc.name}});else apply_theme({{"theme_inline",tc.inline_theme}});
+        auto preview=defaults;preview.model.layout["rows"]={3,2,2};preview.portrait->layout["rows"]={3,2,2};
+        write_png(output/("p7-system-"+tc.name+"-preview.png"),SysRenderer(480,320,"System","MB/s").render_arranged(samples::system(),preview,clock_value).image);
+    }
+    std::cout<<"System layout: "<<actual.size()/2<<" images/hit maps, "<<checked<<" checks, "<<failures<<" errors\n";
+    return failures;
+}
+
+
+// P7-12: eingefrorene Spotify-Zustände und synthetische Pegel, ohne Audiogerät.
+static int spotify_layout_snapshots(bool record,const fs::path& output) {
+    const fs::path file=fs::path(FL_BUILTIN_SNAPSHOT_DIR).parent_path()/"layout-snapshots"/"p7-spotify-hashes.txt";
+    if(record && fs::exists(file)) throw std::runtime_error("Spotify-Rasterbasis existiert; Überschreiben verboten.");
+    std::map<std::string,std::string> expected,actual;
+    if(!record) {std::ifstream in(file);if(!in) throw std::runtime_error("Spotify-Rasterbasis fehlt.");for(std::string k,v;in>>k>>v;) if(!expected.emplace(k,v).second) throw std::runtime_error("Doppelte Spotify-Rasterbasis.");}
+    int failures=0,checked=0;
+    auto require=[&](bool ok,const std::string& what){++checked;if(!ok){++failures;std::cerr<<"Spotify-Raster: "<<what<<'\n';}};
+    const auto& c=*builtin::find("spotify");const auto defaults=builtin::standard(c);
+    for(const auto& lang:{std::string("de"),std::string("en")}) {
+        i18n::set_lang(lang);
+        for(const auto& tc:theme_cases()) for(const auto& size:sizes()) {
+            if(lang=="en" && (tc.name!="dunkel" || std::string(size.name)!="landscape")) continue;
+            if(tc.inline_theme.is_null()) apply_theme({{"theme",tc.name}});else apply_theme({{"theme_inline",tc.inline_theme}});
+            SpotifyRenderer r(size.w,size.h,"Spotify");
+            const std::string prefix=lang+"."+tc.name+"."+size.name;
+            auto one=defaults;one.portrait->layout["rows"]={2,1,1};
+            require(r.uses_arrangement(one)==(size.h>size.w),prefix+" orientation switch");
+            auto snap=samples::spotify();
+            if(size.h<=size.w) require(hash_image(r.render(snap,progress_time,nullptr,1,false,clock_value))==hash_image(r.render_arranged(snap,one,progress_time,nullptr,1,false,clock_value).image),prefix+" unchanged fixed");
+            auto invalid=defaults;invalid.catalog_version++;
+            require(hash_image(r.render(snap,progress_time,nullptr,1,false,clock_value))==hash_image(r.render_arranged(snap,invalid,progress_time,nullptr,1,false,clock_value).image),prefix+" invalid fallback");
+            const auto cover=std::make_shared<const Image>(Canvas(64,64,1.f,{30,120,90}).finish());
+            for(int variant=0;variant<4;++variant) {
+                auto overlay=defaults;
+                for(auto* m:{&overlay.model,&*overlay.portrait}) {
+                    m->layout["rows"]={2,1,1};
+                    if(variant==1) {
+                        const auto zone=m->blocks[0]["zone"];m->blocks[0]["zone"]=m->blocks[1]["zone"];m->blocks[1]["zone"]=zone;
+                        m->layout["rows"]={1,2,1};
+                    }
+                    if(variant==2) {
+                        m->layout["columns"]={1};m->layout["rows"]={3,1};
+                        m->layout["zones"]=builtin::Json::array({{{"id","main"},{"column",0},{"row",0}},{{"id","hint"},{"column",0},{"row",1}}});
+                        for(auto& b:m->blocks) {const bool hint=b["id"]=="spotify.hinweis";b["shown"]=hint || b["id"]=="spotify.text" || b["id"]=="spotify.fortschritt" || b["id"]=="spotify.tasten";b["zone"]=hint?"hint":"main";}
+                    }
+                    if(variant==3) {
+                        m->layout["columns"]={1};m->layout["rows"]={1};
+                        m->layout["zones"]=builtin::Json::array({{{"id","all"},{"column",0},{"row",0}}});
+                        for(auto& b:m->blocks) {b["shown"]=b["id"]=="spotify.hinweis";b["zone"]="all";}
+                    }
+                }
+                require(builtin::validate(c,overlay).empty(),prefix+" valid variant");
+                const auto& model=size.h>size.w?*overlay.portrait:overlay.model;
+                const float scale=scale_for(size.w,size.h);
+                const float lw=scale==1?float(size.w):float(std::nearbyint(size.w/scale));
+                const float lh=scale==1?float(size.h):float(std::nearbyint(size.h/scale));
+                const auto plan=plugins::zones::plan({8,36,lw-16,lh-54},*plugins::edit::geometry(model),builtin::inputs(c,model),6);
+                for(int state=0;state<16;++state) {
+                    snap=samples::spotify();snap.fetched_at=progress_time;
+                    const int color=state<3?state:1;const bool simulated=state==3;
+                    std::vector<float> levels={.05f,.35f,.55f,.8f,.65f,.9f,1.f,.7f,.5f,.75f,.85f,.6f,.45f,.25f,.15f};
+                    if(state==4) {snap.state=spotify::State::Paused;snap.playing=false;}
+                    if(state==5) snap.controls=false;
+                    if(state==6 || state==7) {snap.state=spotify::State::Idle;snap.playing=false;snap.controls=false;snap.last_played=state==6;}
+                    if(state==8) snap.state=spotify::State::NotSetUp;
+                    if(state==9) snap.state=spotify::State::LoggedOut;
+                    if(state==10) snap.state=spotify::State::Connecting;
+                    if(state==11 || state==12) snap.state=spotify::State::Error;
+                    if(state==12) snap.error="Beispiel: keine Verbindung";
+                    if(state==13 || state==0) snap.cover=cover;
+                    if(state==14) snap.error="Beispiel: vorübergehend verzögert";
+                    if(state==15) levels.assign(256,.9f);
+                    const auto key=prefix+".v"+std::to_string(variant)+".s"+std::to_string(state);
+                    if(variant==0) require(hash_image(r.render(snap,progress_time,&levels,color,simulated,clock_value))==hash_image(r.render_arranged(snap,defaults,progress_time,&levels,color,simulated,clock_value).image),key+" standard");
+                    auto drawn=r.render_arranged(snap,overlay,progress_time,&levels,color,simulated,clock_value);
+                    require(drawn.image.w==size.w && drawn.image.h==size.h,key+" dimensions");actual[key]=hash_image(drawn.image);
+                    const bool live=(snap.state==spotify::State::Playing || snap.state==spotify::State::Paused) && !snap.last_played;
+                    std::vector<BuiltinTarget> expected_targets;
+                    auto add=[&](float x,float y,float width,float height,size_t item) {
+                        const int left=int(std::nearbyint(x*scale)),right=int(std::nearbyint((x+width)*scale));
+                        const int top=int(std::nearbyint(y*scale)),bottom=int(std::nearbyint((y+height)*scale));
+                        expected_targets.push_back({{left,top,right-left,bottom-top},item});
+                    };
+                    for(const auto& b:plan.blocks) if(b.visible() && live) {
+                        const auto& a=b.area;
+                        if(b.id=="spotify.cover" && snap.cover && !snap.cover->empty()) {
+                            const float side=std::min(a.width,a.height);add(a.x+(a.width-side)/2,a.y+(a.height-side)/2,side,side,3);
+                        }
+                        if(b.id=="spotify.tasten" && snap.controls)
+                            for(size_t i=0;i<3;++i) add(a.x+(float(i)+.5f)*a.width/3-24,a.y+a.height/2-24,48,48,i);
+                    }
+                    require(drawn.targets.size()==expected_targets.size(),key+" visible actions");
+                    int selected=-1;touch::Tile tile{{17,23,size.w,size.h},false,{}};tile.arranged=true;
+                    for(const auto& target:drawn.targets) {const int item=int(target.item);require(item>=0 && item<4,key+" action index");if(item<3) require(target.rect_px.w/scale>=44 && target.rect_px.h/scale>=44,key+" minimum target");tile.arranged_targets.push_back({target.rect_px,{},[&,item]{selected=item;}});}
+                    const std::vector<touch::Tile> tiles={tile};bool same=true;uint64_t hash=1469598103934665603ull;
+                    for(int y=0;y<size.h;y+=4) for(int x=0;x<size.w;x+=4) {
+                        int hit=-1;
+                        for(const auto& target:expected_targets) {const auto& a=target.rect_px;if(x>=a.x && x<a.x+a.w && y>=a.y && y<a.y+a.h) {hit=int(target.item);break;}}
+                        const auto* action=touch::action_at(tiles,x+17,y+23);selected=-1;if(action) (*action)();same=same && selected==hit;
+                        hash^=uint64_t(hit+1);hash*=1099511628211ull;
+                    }
+                    require(same,key+" 4px hit map");actual[key+".touch"]=std::to_string(hash);
+                }
+            }
+        }
+    }
+    if(record && failures) throw std::runtime_error("Spotify-Rasterprüfung fehlgeschlagen; keine Basis geschrieben.");
+    if(record) {std::ofstream out(file,std::ios::binary);for(const auto& [k,v]:actual) out<<k<<' '<<v<<'\n';if(!out) throw std::runtime_error("Spotify-Rasterbasis nicht geschrieben.");}
+    else {for(const auto& [k,v]:actual) require(expected.contains(k) && expected[k]==v,k+" hash");require(actual.size()==expected.size(),"complete matrix");}
+    i18n::set_lang("de");apply_theme({{"theme","hell"}});
+    auto preview=defaults;preview.model.layout["rows"]={2,1,1};
+    std::vector<float> levels={.05f,.35f,.55f,.8f,.65f,.9f,1.f,.7f,.5f,.75f,.85f,.6f,.45f,.25f,.15f};
+    write_png(output/"p7-spotify-layout-preview.png",SpotifyRenderer(480,320,"Spotify").render_arranged(samples::spotify(),preview,progress_time,&levels,1,true,clock_value).image);
+    std::cout<<"Spotify layout: "<<actual.size()/2<<" images/hit maps, "<<checked<<" checks, "<<failures<<" errors\n";
+    return failures;
+}
+
+
 int main(int argc,char** argv) {
     try {
         _putenv_s("TZ","UTC0"); _tzset();
         const std::string mode=argc>1 ? argv[1] : "pruefen";
-        if(argc>3 || (mode!="export" && argc>2) || (mode!="pruefen" && mode!="prüfen" && mode!="update" && mode!="export" && mode!="record-rss-layout" && mode!="record-streaming-layout" && mode!="record-bf6-layout" && mode!="record-friends-layout") ||
+        if(argc>3 || (mode!="export" && argc>2) || (mode!="pruefen" && mode!="prüfen" && mode!="update" && mode!="export" && mode!="record-rss-layout" && mode!="record-streaming-layout" && mode!="record-bf6-layout" && mode!="record-friends-layout" && mode!="record-system-layout" && mode!="record-spotify-layout") ||
            (mode=="export" && argc!=3)) throw std::runtime_error("Aufruf: fl-builtin-snapshot-tests [pruefen|update|export <Ordner>]");
         require_fonts(); gfx_init();
         const fs::path root=mode=="export" ? fs::path(argv[2]) : fs::path(FL_BUILTIN_SNAPSHOT_DIR);
@@ -667,7 +864,7 @@ int main(int argc,char** argv) {
             for(const auto& [k,v]:actual) file<<k<<' '<<v<<'\n';
             if(!file) throw std::runtime_error("Hashes konnten nicht geschrieben werden.");
         } else for(const auto& [k,v]:expected) if(!actual.contains(k)) { ++failures; std::cerr<<"Veralteter Eintrag: "<<k<<'\n'; }
-        if((mode=="record-rss-layout" || mode=="record-streaming-layout" || mode=="record-bf6-layout" || mode=="record-friends-layout") && failures) throw std::runtime_error("Bestehende Baseline abweichend; keine neue Basis geschrieben.");
+        if((mode=="record-rss-layout" || mode=="record-streaming-layout" || mode=="record-bf6-layout" || mode=="record-friends-layout" || mode=="record-system-layout" || mode=="record-spotify-layout") && failures) throw std::runtime_error("Bestehende Baseline abweichend; keine neue Basis geschrieben.");
         if(mode!="update" && mode!="export") failures+=rss_layout_snapshots(mode=="record-rss-layout",fs::path(argv[0]).parent_path());
         if(failures && mode.starts_with("record-")) throw std::runtime_error("Vorhandene Rasterbasis abweichend; keine neue Basis geschrieben.");
         if(mode!="update" && mode!="export") failures+=stream_layout_snapshots(mode=="record-streaming-layout",fs::path(argv[0]).parent_path());
@@ -676,6 +873,10 @@ int main(int argc,char** argv) {
         if(failures && mode.starts_with("record-")) throw std::runtime_error("Vorhandene Rasterbasis abweichend; keine neue Basis geschrieben.");
         if(mode!="update" && mode!="export") for(const std::string key:{"friends","discord"})
             failures+=friends_layout_snapshots(mode=="record-friends-layout",fs::path(argv[0]).parent_path(),key);
+        if(failures && mode.starts_with("record-")) throw std::runtime_error("Vorhandene Rasterbasis abweichend; keine neue Basis geschrieben.");
+        if(mode!="update" && mode!="export") failures+=system_layout_snapshots(mode=="record-system-layout",fs::path(argv[0]).parent_path());
+        if(failures && mode.starts_with("record-")) throw std::runtime_error("Vorhandene Rasterbasis abweichend; keine neue Basis geschrieben.");
+        if(mode!="update" && mode!="export") failures+=spotify_layout_snapshots(mode=="record-spotify-layout",fs::path(argv[0]).parent_path());
         std::cout<<"Built-in snapshots: "<<images<<" Bilder, "<<actual.size()/2<<" Trefferkarten, "<<failures<<" Fehler\n";
         return failures ? 1 : 0;
     } catch(const std::exception& e) { std::cerr<<"Built-in snapshots ABBRUCH: "<<e.what()<<'\n'; return 2; }
