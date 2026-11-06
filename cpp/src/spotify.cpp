@@ -23,7 +23,9 @@ namespace {
 constexpr const char* TOKEN_URL = "https://accounts.spotify.com/api/token";
 constexpr const char* AUTH_URL = "https://accounts.spotify.com/authorize";
 constexpr const char* API = "https://api.spotify.com/v1";
-constexpr const char* SCOPES = "user-read-playback-state user-modify-playback-state user-read-currently-playing";
+constexpr const char* SCOPES =
+    "user-read-playback-state user-modify-playback-state user-read-currently-playing user-read-recently-played";
+constexpr double RECENT_REFRESH_S = 60;
 constexpr const char* ENTROPY = "screenbuddy-spotify-v1";
 constexpr const char* COVER_HOST = "https://i.scdn.co/";
 constexpr int TIMEOUT_MS = 8000;
@@ -134,6 +136,32 @@ Snapshot parse_player(const nlohmann::json& data, bool controls) {
         s.title = "Werbung";   // z. B. Anzeige: kein Titel im Antwortobjekt
     }
     return s;
+}
+
+namespace {
+// recently-played → Objekt im Format von /me/player, damit parse_player und cover_url wiederverwendet werden
+nlohmann::json recent_as_player(const nlohmann::json& data) {
+    if (!data.is_object() || !data.contains("items") || !data["items"].is_array() || data["items"].empty()) return nullptr;
+    const auto& first = data["items"][0];
+    if (!first.is_object() || !first.contains("track") || !first["track"].is_object()) return nullptr;
+    return {{"is_playing", false}, {"item", first["track"]}};
+}
+}  // namespace
+
+Snapshot parse_recent(const nlohmann::json& data, bool controls) {
+    auto p = recent_as_player(data);
+    if (p.is_null()) { Snapshot s; s.controls = controls; s.state = State::Idle; return s; }
+    Snapshot s = parse_player(p, controls);
+    s.state = State::Idle;
+    s.playing = false;
+    s.progress_ms = 0;
+    s.last_played = !s.title.empty();
+    return s;
+}
+
+std::string recent_cover_url(const nlohmann::json& data) {
+    auto p = recent_as_player(data);
+    return p.is_null() ? "" : cover_url(p);
 }
 
 std::string format_time(long long ms) {
@@ -363,6 +391,9 @@ void SpotifyClient::fetch_cover(const std::string& url) {
 void SpotifyClient::poll() {
     if (!ensure_token()) {
         std::lock_guard lk(mu_);
+        last_ = Snapshot{};   // Konto abgemeldet: zuletzt gespielten Titel nicht ins nächste Konto mitnehmen
+        last_cover_url_.clear();
+        last_checked_ = 0;
         if (refresh_.empty()) { snap_.state = State::LoggedOut; snap_.cover.reset(); cover_for_.clear(); }
         else snap_.state = State::Error;
         return;
@@ -401,6 +432,33 @@ void SpotifyClient::poll() {
         s = parse_player(j, touch_);
         cover = cover_url(j);
     }
+    if (s.state == State::Idle) {   // nichts aktiv: zuletzt gespielten Titel zeigen (höchstens einmal pro Minute abfragen)
+        if (last_checked_ == 0 || mono() - last_checked_ >= RECENT_REFRESH_S) {
+            last_checked_ = mono();
+            auto rr = http::fetch({"GET", std::string(API) + "/me/player/recently-played?limit=1", bearer(token), "",
+                                   TIMEOUT_MS, 1'000'000});
+            if (rr.status == 200) {
+                auto j = nlohmann::json::parse(rr.body, nullptr, false);
+                last_ = parse_recent(j, touch_);
+                last_cover_url_ = recent_cover_url(j);
+            } else if (rr.status == 403) {   // Konto wurde vor dem neuen Scope angemeldet: altes Verhalten plus Hinweis
+                LOGI("spotify", "recently-played: Scope fehlt – neu anmelden, um den letzten Titel zu sehen");
+                last_ = Snapshot{};
+                last_cover_url_.clear();
+                scope_missing_ = true;
+            } else if (rr.status == 429) {
+                std::lock_guard lk(mu_);
+                backoff_until_ = mono() + 30;
+            }   // sonst (Netzwerk, 5xx): letzten Stand behalten
+            if (rr.status == 200) scope_missing_ = false;
+        }
+        if (last_.last_played) { s = last_; cover = last_cover_url_; }
+        else if (scope_missing_) s.error = "Letzter Titel: bitte in den Einstellungen neu bei Spotify anmelden";
+    } else {
+        last_checked_ = 0;   // läuft etwas, ist der Cache veraltet
+        last_ = Snapshot{};
+        last_cover_url_.clear();
+    }
     s.fetched_at = mono();
     bool changed;
     {
@@ -411,7 +469,7 @@ void SpotifyClient::poll() {
         error_.clear();
         had_reply_ = true;
     }
-    if (s.state == State::Idle || cover.empty()) fetch_cover("");
+    if (cover.empty()) fetch_cover("");
     else fetch_cover(cover);
     if (changed && on_change_) on_change_();
 }

@@ -19,6 +19,10 @@
 namespace fl::bf6 {
 
 std::pair<std::string, std::string> parse_entry(const std::string& entry);  // "Name@psn" → (Name, psn)
+// Plattform-Werte der Stats-API in Reihenfolge der Versuche (die API hat "ea" durch "pc" ersetzt, alte Werte als Fallback)
+std::vector<std::string> platform_candidates(const std::string& plat);
+// Namensvarianten: Original, danach klein geschrieben (die API findet manche Konten nur so)
+std::vector<std::string> name_candidates(const std::string& name);
 
 class Bf6Stats {
 public:

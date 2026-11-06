@@ -1091,8 +1091,12 @@ Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const s
         message(d, snap.error.empty() ? "Spotify nicht erreichbar" : snap.error);
         break;
     case State::Idle:
-        message(d, "Es läuft gerade nichts – Wiedergabe in Spotify starten");
-        break;
+        if (!snap.last_played) {
+            message(d, "Es läuft gerade nichts – Wiedergabe in Spotify starten");
+            if (!snap.error.empty()) footer_left = snap.error;
+            break;
+        }
+        [[fallthrough]];   // zuletzt gespielter Titel: gleiche Ansicht, gedimmt und ohne Steuerung
     default: {
         Layout l = layout(w, h);
         // Cover (oder dezenter Platzhalter)
@@ -1105,7 +1109,7 @@ Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const s
         }
         bool wide = w >= h;
         float ty = l.title_y;
-        d.text(l.text_x, ty, fit(d, snap.title, f_track, l.text_w), f_track, t.text, "lm");
+        d.text(l.text_x, ty, fit(d, snap.title, f_track, l.text_w), f_track, snap.last_played ? t.muted : t.text, "lm");
         d.text(l.text_x, ty + 28, fit(d, snap.artist, f_artist, l.text_w), f_artist, t.accent, "lm");
         if (!snap.album.empty() && (wide || ty + 52 < l.bar_y - 10))
             d.text(l.text_x, ty + 50, fit(d, snap.album, f_time, l.text_w), f_time, t.muted, "lm");
@@ -1135,6 +1139,10 @@ Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const s
                 }
                 if (simulated) d.text(ax + aw, ay0 + 6, tr("simuliert"), font(11), t.muted, "rm");
             }
+        }
+        if (snap.last_played) {   // keine Fortschrittsanzeige, keine Tasten
+            footer_left = tr("Zuletzt gespielt");
+            break;
         }
         // Fortschritt
         long long pos = spotify::live_progress(snap, now ? now : mono());

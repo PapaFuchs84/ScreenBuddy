@@ -20,6 +20,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 Öffentliche Windows-EXE-Auslieferungen verlangen jetzt vertrauenswürdige Authenticode-Signierung mit Zeitstempel; ohne Zertifikat wird der Export gesperrt.
 
 Microsoft-Store-Vorbereitung: MSIX-Paketierung, getrennte Benutzerdaten, Store-Updates und paketfester Autostart. Companion 1.0.4 (Code 8): Android API 36 und Insets für die Einrichtung. Keine Store-Veröffentlichung erfolgt.
+### Behoben
+
+- **BF6-Rangliste:** Die Community-API (gametools) lehnt `platform=ea` ab und liefert Spieler nur noch mit `pc`. ScreenBuddy fragt PC-Konten jetzt mit `pc` ab und fällt bei Bedarf auf `ea` und den kleingeschriebenen Namen zurück; PSN und Xbox probieren mehrere Plattformwerte. Das Rang-Profil nutzt dieselbe Plattform.
+- **Spotify:** Läuft nichts, zeigt die Seite jetzt den **zuletzt gespielten Titel** samt Cover („Zuletzt gespielt“, gedimmt, ohne Tasten) statt „Es läuft gerade nichts“. Dafür braucht die Anmeldung den zusätzlichen Spotify-Zugriff „zuletzt gespielt“: einmal unter Einstellungen › Spotify neu anmelden. Ohne diesen Zugriff bleibt es bei der bisherigen Meldung.
 
 ## [2.9.5] – 2026-11-01
 

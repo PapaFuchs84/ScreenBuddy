@@ -16,6 +16,8 @@
 Verbindlicher Signier-/Prüfschritt vor öffentlichem EXE-Export; lokale Entwicklungsbuilds bleiben möglich.
 
 MSIX-Laufzeiterkennung, eigener Datenpfad, Microsoft-Store-Updateweg und StartupTask statt versionsgebundenem Registry-Autostart. Standalone-Installation bleibt verfügbar.
+- BF6: stats/profile requests use `platform=pc` (gametools dropped `ea`), with fallbacks `ea`, lower-case name and alternative PSN/Xbox values (`bf6.cpp`, `bf6.h`).
+- Spotify: idle state shows the last played track via `/me/player/recently-played` (new scope `user-read-recently-played`, `parse_recent`, 60 s cache, 403 → old message); `Snapshot::last_played`, dimmed rendering without controls (`spotify.cpp/.h`, `render.cpp`, `i18n.cpp`); tests in `tests/tests.cpp`.
 
 ## 2.9.5 – 1 November 2026
 

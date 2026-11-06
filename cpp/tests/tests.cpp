@@ -21,6 +21,7 @@
 #include "brand.h"
 #include "rss.h"
 #include "spotify.h"
+#include "bf6.h"
 #include "secure.h"
 #include "util.h"
 #include "touch.h"
@@ -349,6 +350,18 @@ static void test_ui_logic() {
     CHECK(qr.w == qr.h && qr.w > 40 && qr.px.front() == 0xFFFFFFFFu);
     CHECK(std::count(qr.px.begin(), qr.px.end(), 0xFF000000u) > 100);
 }
+static void test_bf6_platforms() {
+    // gametools akzeptiert für PC nur noch "pc"; "ea" bleibt als Rückfall, PSN/Xbox mit Alternativen
+    auto pc = bf6::platform_candidates("pc");
+    CHECK(pc.size() == 2 && pc[0] == "pc" && pc[1] == "ea");
+    CHECK(bf6::platform_candidates("steam")[0] == "pc");
+    CHECK(bf6::platform_candidates("psn")[0] == "psn" && bf6::platform_candidates("xbox")[0] == "xboxseries");
+    CHECK(bf6::platform_candidates("unbekannt")[0] == "pc");
+    auto n = bf6::name_candidates("P4p4F0x");
+    CHECK(n.size() == 2 && n[0] == "P4p4F0x" && n[1] == "p4p4f0x");
+    CHECK(bf6::name_candidates("abc").size() == 1);
+}
+
 static void test_spotify() {
     // Slow serial writes must not expire the visible playback lease.
     {
@@ -400,6 +413,17 @@ static void test_spotify() {
     nlohmann::json episode = {{"is_playing", true}, {"item", {{"name", "Folge 1"}, {"duration_ms", 1000}, {"show", {{"name", "Podcast"}}}}}};
     CHECK_EQ(spotify::parse_player(episode, false).artist, std::string("Podcast"));
 
+    CHECK(url.find("user-read-recently-played") != std::string::npos);
+    auto recent = nlohmann::json::parse(R"({"items":[{"track":{"name":"Song","artists":[{"name":"A"},{"name":"B"}],
+        "album":{"name":"Alb","images":[{"url":"https://i.scdn.co/image/big","width":640},{"url":"https://evil.example/x","width":300}]}}}]})");
+    auto rs = spotify::parse_recent(recent, true);
+    CHECK(rs.state == spotify::State::Idle && rs.last_played && !rs.playing);
+    CHECK_EQ(rs.title, std::string("Song"));
+    CHECK_EQ(rs.artist, std::string("A, B"));
+    CHECK_EQ(spotify::recent_cover_url(recent), std::string("https://i.scdn.co/image/big"));
+    CHECK(!spotify::parse_recent(nlohmann::json::parse(R"({"items":[]})"), true).last_played);
+    CHECK(!spotify::parse_recent(nlohmann::json(), true).last_played);
+    CHECK_EQ(spotify::recent_cover_url(nlohmann::json()), std::string(""));
     CHECK_EQ(spotify::format_time(187000), std::string("3:07"));
     CHECK_EQ(spotify::format_time(-5), std::string("0:00"));
     CHECK_EQ(spotify::format_time(3725000), std::string("1:02:05"));
@@ -1206,7 +1230,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}, {"themes", test_themes}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"bf6-platforms", test_bf6_platforms},{"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}, {"themes", test_themes}}) {
         std::printf("· %s\n", name);
         fn();
     }

@@ -20,6 +20,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 Public Windows EXE delivery now requires trusted timestamped Authenticode signing; exporting unsigned public releases is blocked.
 
 Microsoft Store preparation: MSIX packaging, isolated user data, Store-managed updates and package-stable startup. Companion 1.0.4 (code 8): Android API 36 and setup window insets. No Store publication performed.
+### Fixed
+
+- **BF6 leaderboard:** The community API (gametools) now rejects `platform=ea` and only finds players with `pc`. ScreenBuddy queries PC accounts with `pc` and falls back to `ea` and the lower-case name; PSN and Xbox try several platform values. The rank profile uses the same platform.
+- **Spotify:** When nothing is playing, the page now shows the **last played track** with cover ("Last played", dimmed, no buttons) instead of "Nothing is playing". This needs the extra Spotify permission "recently played": sign in once more under Settings › Spotify. Without it the previous message stays.
 
 ## [2.9.5] – 2026-11-01
 
