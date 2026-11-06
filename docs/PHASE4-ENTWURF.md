@@ -459,3 +459,11 @@ Allgemein für **jedes** Paket:
 - 4a-H2: TV im Querformat fest, Overscan-Rand passt.
 - 4b-H1: Serielle Rate R messen (P4b-0-Log) und in `TESTPROTOKOLL.md` eintragen. Wechselfeld seriell (Vorhang oder Schnitt), Monitor und Handy (Überblendung) ruhig, ohne Flackern oder Streifen.
 - 4c-H1: Link-Tipp auf Monitor und Handy öffnet am PC nur nach Freigabe. Tipp direkt nach einem Wechsel bewirkt nichts.
+
+## Phase-4b-Review: bekannte offene Punkte (06.11.2026)
+
+Diese Punkte sind dokumentiert und in diesem Korrekturlauf bewusst unverändert:
+- Zonengeometrie wird dreifach berechnet (`app.cpp`: `zone_rows`, sowie Geometrie-/Zeichenpfade in `plugin_render.cpp`). Eine gemeinsame Berechnung bleibt offen.
+- Die Seitenwarnung „Plugin-Daten fehlen“ erscheint auch bei einem absichtlich leeren Eintrag.
+- Ein `next`-Wunsch kann in einer wartenden Zone verloren gehen; in Phase 4c behandeln.
+- Lock-Verschachtelung: `render::mutex` → `SerialDisplay::mu_`; separater Seriell-Thread bleibt außerhalb von Phase 4.

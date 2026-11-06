@@ -22,6 +22,7 @@
 #include "output.h"
 #include "device_profile.h"
 #include "plugin_store.h"
+#include "plugin_render.h"
 #include "plugin_settings.h"
 #include "render.h"
 #include "touch.h"
@@ -92,6 +93,14 @@ public:
 private:
     struct RendererSet;
     struct ViewState {
+        std::map<std::string,std::map<std::string,plugins::schedule::ZoneState>> cycles;
+        std::map<std::string,std::shared_ptr<plugins::FadeCache>> fade_caches;
+        std::map<std::string,uint64_t> cycle_generations;
+        double next_deadline = plugins::schedule::never;
+        bool animating = false;
+        std::optional<double> render_ms;
+        std::vector<std::string> next_requests;
+        std::mutex next_mu;
         device::Area area;
         double keepout_warning = -60;
         int page = 0;
@@ -125,6 +134,7 @@ private:
         std::function<Image(int, RendererSet&)> fn;
         std::function<touch::Rows(int, RendererSet&)> targets;
         std::vector<std::function<void()>> actions;   // Home Assistant: Schalt-Aktion je Kachel
+        std::function<void(PageEntry&)> prepare;
     };
     struct DrawResult {
         Image frame;
@@ -133,7 +143,7 @@ private:
     };
     RendererSet& renderers_for(int w, int h);
     std::vector<PageEntry> page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion = false,
-                                    const std::vector<std::string>* pages_override = nullptr);
+                                    const std::vector<std::string>* pages_override = nullptr, ViewState* view = nullptr, double now = 0, bool phone = false);
     DrawResult draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start, std::pair<int, int> size, device::Area area);
     Image welcome(std::pair<int, int> size);
     void render_view(bool secondary, bool dirty);

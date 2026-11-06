@@ -6,6 +6,14 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Phase 4b – Wechselfeld (2026-11-06, Entwicklung)
+
+- Phase-4b-Review: verspätete Schritte nur beim Companion verwerfen; serieller Vorhang mit realem Zyklusbudget und aufeinanderfolgenden globalen 8-Zeilen-Bändern. Rotation bei Datenverlust bleibt in Reihenfolge. Zusätzliche reine Regressionstests und strengere JPEG-Prozessprüfung mit statischer Negativkontrolle; Prüfstand und bekannte offene Punkte im Testprotokoll.
+
+- P4b-0–4: simulierte serielle Bandmessung, Schema-2-Schlüssel `cycle`/`seconds`, reine Zeitplanung mit injizierter Uhr, Auswahl und ruhige Übergänge mit Bildcache je Ansicht. Ohne Wechselfeld bleibt der bestehende Zeichen-/Navigationspfad erhalten; bestehende Snapshot-Hashes bleiben unverändert.
+- DE/EN-Vertrag, Paketformat, Tutorial und Offline-Beispiel ergänzt. Reale serielle Messung und Geräteabnahme durch Basti offen; keine Veröffentlichung. Einzelprüfungen und Sandbox-Grenzen im Testprotokoll.
+
+
 ### Phase 4a – Geräteprofile (2026-11-06, Entwicklung)
 
 - Review-Korrekturen: Keepout-Teilpatches erhalten nicht genannte Ränder; DE/EN-Hinweis erklärt die gemeinsame Vorgabe bei Synchronisierung. Seitenwechsel erfolgen außerhalb der Touch-Sperre. Bildplatzierung begrenzt auch abweichend große Inhalte auf die Nutzfläche; zusätzliche Randfall-, Store- und simulierte Mehrgerätetests. Android-KDoc und Importreihenfolge bereinigt.

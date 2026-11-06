@@ -294,8 +294,18 @@ zones::Layout layout(const Json& j) {
     std::set<std::string> ids;
     std::vector<char> used(static_cast<size_t>(columns * rows), 0);
     for (const auto& v : j["zones"]) {
-        fields(v, {"id", "column", "row", "column_span", "row_span"});
+        fields(v, {"id", "column", "row", "column_span", "row_span", "cycle"});
         zones::Zone z;
+        if (v.contains("cycle")) {
+            const auto& c = v["cycle"];
+            fields(c, {"mode", "transition"});
+            zones::Cycle cycle;
+            cycle.mode = str(c, "mode");
+            if (c.contains("transition")) cycle.transition = str(c, "transition");
+            require(cycle.mode == "rotate" || cycle.mode == "first_available", "Unsupported cycle mode.");
+            require(cycle.transition == "fade" || cycle.transition == "none", "Unsupported cycle transition.");
+            z.cycle = cycle;
+        }
         z.id = str(v, "id");
         require(identifier(z.id) && ids.insert(z.id).second, "Invalid or duplicate zone ID.");
         z.column = integer(v, "column", 0, columns - 1);
@@ -433,7 +443,7 @@ ParseResult parse_manifest(std::string_view utf8) {
             // v2 widgets carry a stable block ID and, with a layout, their zone.
             auto allowed = [&](std::initializer_list<const char*> base) {
                 auto list = with(base, v2, {"id", "show_if"});
-                if (zoned) list.push_back("zone");
+                if (zoned) { list.push_back("zone"); list.push_back("seconds"); }
                 return list;
             };
             if (w.type == "text") { fields(v, allowed({"type", "label", "text"})); w.text = checked_text(v, "text"); }
@@ -466,6 +476,11 @@ ParseResult parse_manifest(std::string_view utf8) {
                 w.zone = str(v, "zone");
                 require(std::any_of(m.layout->zones.begin(), m.layout->zones.end(), [&](const auto& z) { return z.id == w.zone; }),
                         "Block references an unknown zone.");
+                if (v.contains("seconds")) {
+                    auto z = std::find_if(m.layout->zones.begin(), m.layout->zones.end(), [&](const auto& z) { return z.id == w.zone; });
+                    require(z->cycle && z->cycle->mode == "rotate", "Seconds requires a rotate zone.");
+                    w.seconds = integer(v, "seconds", 3, 600);
+                }
                 require(++per_zone[w.zone] <= zones::max_blocks_per_zone, "At most 4 blocks per zone allowed.");
             }
             m.widgets.push_back(std::move(w));
@@ -535,14 +550,16 @@ Page render_page_unguarded(const Manifest& m, const RenderContext& context, cons
         auto it = context.sources.find(path[0]);
         return it == context.sources.end() ? nullptr : walk(&it->second, path, 1);
     };
+    bool block_missing = false;
     auto text = [&](const std::string& source, const Json* item = nullptr) {
         return expand(source, [&](const std::string& ref) {
             if (ref == "time") return bounded(context.time);
             if (ref == "date") return bounded(context.date);
-            return scalar(data(ref, item), page.missing_data);
+            return scalar(data(ref, item), block_missing);
         }, true);
     };
     auto render_block = [&](const Widget& w) {
+        block_missing = false;
         RenderedWidget rendered;
         rendered.type = w.type; rendered.label = text(w.label); rendered.unit = text(w.unit);
         rendered.id = w.id; rendered.zone = w.zone;
@@ -551,7 +568,7 @@ Page render_page_unguarded(const Manifest& m, const RenderContext& context, cons
             w.format == "date" ? context.date : context.date + " " + context.time);
         else if (w.type == "list") {
             const Json* array = data(w.items, nullptr);
-            if (!array || !array->is_array()) { rendered.items.push_back("—"); page.missing_data = true; }
+            if (!array || !array->is_array()) { rendered.items.push_back("—"); block_missing = true; }
             else for (size_t i = 0; i < array->size() && i < static_cast<size_t>(w.max_items); ++i)
                 rendered.items.push_back(text(w.item_template, &(*array)[i]));
         } else {
@@ -565,9 +582,11 @@ Page render_page_unguarded(const Manifest& m, const RenderContext& context, cons
                     double scale = std::max({std::abs(w.min), std::abs(w.max), 1.0});
                     rendered.bar_fraction = std::clamp((std::clamp(n, w.min, w.max) / scale - w.min / scale) /
                         (w.max / scale - w.min / scale), 0.0, 1.0);
-                } else page.missing_data = true;
+                } else block_missing = true;
             }
         }
+        rendered.missing = block_missing;
+        page.missing_data = page.missing_data || block_missing;
         return rendered;
     };
     // false = block hidden by show_if. A source that delivered nothing at all (live mode before or without a

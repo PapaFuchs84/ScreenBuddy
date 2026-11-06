@@ -48,6 +48,7 @@ struct Widget {
     std::string type, label, text, value, unit, items, item_template, format;
     double min = 0, max = 100;
     int max_items = 1;
+    int seconds = 8;
     // Manifest v2 only (empty in v1): stable block ID and, with a layout, the zone the block sits in.
     std::string id, zone;
     std::optional<Condition> show_if; // v2 only; absent = always shown
@@ -103,6 +104,7 @@ struct RenderContext {
     std::string time, date; // local formatted clock supplied by caller
 };
 struct RenderedWidget {
+    bool missing = false;
     std::string type, label, text, unit;
     std::string id, zone; // v2 block ID / zone ID; empty for v1
     size_t index = 0;     // position in manifest.widgets (v1 block key "#<index>")

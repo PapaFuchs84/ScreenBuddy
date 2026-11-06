@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "plugin_render.h"
+#include <set>
 
 #include <algorithm>
 #include <cmath>
@@ -425,7 +426,78 @@ Image draw_page_with(const Page& page, int width, int height, bool sample, const
 }
 }
 
-Image draw_page(const Page& page, int width, int height, bool sample) { return draw_page_with(page, width, height, sample, nullptr); }
+// Pixelrechtecke bleiben auf die Bildgrenzen beschränkt; außerhalb bleibt B.
+void blend_rect(Image& dst, const Image& from, const Image& to, zones::Rect r, float mix) {
+    if (from.w != to.w || from.h != to.h || dst.w != to.w || dst.h != to.h) return;
+    int weight = int(std::clamp(mix,0.f,1.f)*256);
+    for (int y=std::max(0,int(std::floor(r.y))); y<std::min(dst.h,int(std::ceil(r.y+r.height))); ++y)
+        for (int x=std::max(0,int(std::floor(r.x))); x<std::min(dst.w,int(std::ceil(r.x+r.width))); ++x) {
+            size_t i=size_t(y)*dst.w+x; uint32_t pixel=0;
+            for (int shift=0;shift<32;shift+=8) pixel |= (((from.px[i]>>shift & 255)*(256-weight)+(to.px[i]>>shift & 255)*weight)/256)<<shift;
+            dst.px[i]=pixel;
+        }
+}
+void reveal_rect(Image& dst, const Image& from, const Image& to, zones::Rect r, float mix) {
+    if (from.w != to.w || from.h != to.h || dst.w != to.w || dst.h != to.h) return;
+    int top=std::max(0,int(std::floor(r.y))), bottom=std::min(dst.h,int(std::ceil(r.y+r.height)));
+    // Schritte teilen globale Übertragungsbänder, auch bei versetzter Kachel.
+    int first_band=top/8, bands=(bottom+7)/8-first_band;
+    int edge = mix <= 0 ? top : mix >= 1 ? bottom
+        : std::min(bottom,(first_band+int(std::ceil(bands*std::clamp(mix,0.f,1.f))))*8);
+    for (int y=top;y<bottom;++y) for (int x=std::max(0,int(std::floor(r.x)));x<std::min(dst.w,int(std::ceil(r.x+r.width)));++x) {
+        size_t i=size_t(y)*dst.w+x; dst.px[i]=y<edge ? to.px[i] : from.px[i];
+    }
+}
+Image draw_choices(const Page& page, int w, int h, const std::vector<schedule::ZoneChoice>& choices,
+                   std::map<std::string,std::shared_ptr<FadeCache>>& caches) {
+    if (choices.empty() || !page.layout) return draw_page(page,w,h);
+    auto selected = [&](bool from) {
+        Page p=page;
+        std::erase_if(p.widgets,[&](const auto& widget) {
+            auto c=std::find_if(choices.begin(),choices.end(),[&](const auto& c){return c.zone==widget.zone;});
+            if (c==choices.end()) return false;
+            auto block=from && c->from_block ? c->from_block : c->block;
+            return !block || widget.id != *block;
+        });
+        return p;
+    };
+    Image result;
+    bool fading = std::any_of(choices.begin(),choices.end(),[](const auto& c){return c.from_block.has_value();});
+    if (!fading) { caches.clear(); return draw_page(selected(false),w,h); }
+    const float scale=render::scale_for(w,h);
+    const auto design=theme::design(render::theme().style);
+    const float spacing=design.spacing/12.f, margin=10*spacing;
+    auto plan=zones::plan({margin,39,w/scale-2*margin,h/scale-39-19-margin},*page.layout,{},7*spacing);
+    // Gemeinsamer Stand A/B je Kachel, nur bei Beginn/Größe/Theme neu zeichnen.
+    std::string signature;
+    for (const auto& c:choices) signature+=c.zone+":"+c.from_block.value_or("")+">"+c.block.value_or("")+";";
+    auto& cache=caches[page.id]; if (!cache) cache=std::make_shared<FadeCache>();
+    if (cache->width!=w || cache->height!=h || cache->revision!=render::theme_revision() || cache->signature!=signature) {
+        cache->from=draw_page(selected(true),w,h); cache->to=draw_page(selected(false),w,h);
+        cache->width=w; cache->height=h; cache->revision=render::theme_revision(); cache->signature=signature;
+    }
+    result=cache->to;
+    for (const auto& c:choices) if (c.from_block) {
+        auto zone=std::find_if(plan.zones.begin(),plan.zones.end(),[&](const auto& z){return z.id==c.zone;});
+        if (zone==plan.zones.end()) continue;
+        auto r=zone->area; r.x*=scale; r.y*=scale; r.width*=scale; r.height*=scale;
+        if (c.shape==schedule::Shape::reveal) reveal_rect(result,cache->from,cache->to,r,c.mix);
+        else blend_rect(result,cache->from,cache->to,r,c.mix);
+    }
+    return result;
+}
+
+Image draw_page(const Page& page, int width, int height, bool sample) {
+    if (!page.layout || std::none_of(page.layout->zones.begin(),page.layout->zones.end(),[](const auto& z){return z.cycle.has_value();}))
+        return draw_page_with(page,width,height,sample,nullptr);
+    Page selected=page;
+    std::set<std::string> seen;
+    std::erase_if(selected.widgets,[&](const auto& w){
+        auto z=std::find_if(page.layout->zones.begin(),page.layout->zones.end(),[&](const auto& z){return z.id==w.zone;});
+        return z!=page.layout->zones.end() && z->cycle && (w.missing || !seen.insert(w.zone).second);
+    });
+    return draw_page_with(selected,width,height,sample,nullptr);
+ }
 namespace testing {
 Image draw_page(const Page& page, int width, int height, bool sample, const DrawHooks& hooks) {
     return draw_page_with(page, width, height, sample, &hooks);

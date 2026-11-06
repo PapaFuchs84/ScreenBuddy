@@ -52,3 +52,15 @@ It uses the app's `plugins.cpp` (same parser), only reads files and makes no net
 ## Open (later phases)
 
 Signing is implemented as a library and tool, see [Plugin signing](PLUGIN-SIGNING.md); production key, index build via Actions and download are open. In-app store UI (phase 3), moderation and terms of use (phase 4). See the plan in PR [#21](https://github.com/PapaFuchs84/ScreenBuddy/pull/21).
+
+## Cycling zone (Phase 4b, development)
+
+Only `schema_version: 2` with `layout` permits a zone to carry `"cycle": {"mode": "rotate", "transition": "fade"}`. `mode` is `rotate` or `first_available`; `transition` is `fade` (default) or `none`. Blocks in `rotate` zones may specify integer `seconds` from 3 to 600 (default 8). Without `cycle`, existing stacking is unchanged; schema 1 rejects these keys. Schema 2 Store packages require `min_app_version` of at least `2.10.0`.
+
+`rotate` shows available blocks in manifest order; `first_available` shows the first available block and reacts to data changes. Available means visible under `show_if` and without missing references in that block. If none are available, the zone stays empty. Leaving the visible tiles or updating the manifest resets its schedule. Views and independent devices keep separate schedules.
+
+The output determines the quiet transition: monitor 4 fade steps over 400 ms (2 steps or a cut at high rendering cost), Companion 2 steps over 400 ms with connected clients, serial a band reveal only with a sufficiently fast measured rate, otherwise a cut. Data is frozen during transitions. Resizing ends the transition; theme changes rebuild its image cache. Slow outputs stretch the entry duration to at least four times the last transfer duration. Simultaneous changes within a tile wait at most 600 ms. No sounds or intrusive effects.
+
+Example: [offline-wechselfeld.flplugin.json](../cpp/examples/plugins/offline-wechselfeld.flplugin.json). Import locally to try two texts with durations of 3 and 5 seconds. Physical acceptance and actual serial rate measurement by Basti remain pending; only simulated transfers have been checked. Tap actions belong to the later Phase 4c.
+
+Serial reveal timing includes transfer, rendering and a 50 ms rest. Global eight-row bands are revealed in order; an insufficient cycle budget uses a cut. Only Companion discards late steps; monitors show the intermediate state reached.

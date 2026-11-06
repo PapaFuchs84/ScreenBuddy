@@ -6,6 +6,14 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Phase 4b – cycling zones (2026-11-06, development)
+
+- Phase 4b review: discard late steps only on Companion; serial reveal uses the full cycle budget and consecutive global eight-row bands. Rotation preserves order when data disappears. Added pure regression checks and stricter JPEG process checks with a static negative control; see the test report for validation and known open points.
+
+- P4b-0–4: simulated serial band measurement, schema-2 `cycle`/`seconds`, pure scheduling with injected time, selection and quiet output-specific transitions with per-view image caches. Existing rendering/navigation without cycles and existing snapshot hashes are preserved.
+- Updated DE/EN contract, package format, tutorial and offline example. Actual serial measurement and physical acceptance by Basti remain pending; no release. Individual checks and sandbox limits are recorded in the test protocol.
+
+
 ### Phase 4a – device profiles (2026-11-06, development)
 
 - Review fixes: partial keepout patches preserve unspecified edges; a DE/EN notice explains the shared default during synchronisation. Page changes run outside the touch lock. Image placement clips differently sized content to the usable area; additional boundary, store and simulated multi-device checks. Android KDoc placement and import ordering cleaned up.

@@ -20,6 +20,15 @@
 namespace fl {
 namespace device { struct Insets; }
 
+struct TransferStats { std::optional<double> bytes_per_second; double last_seconds = 0; };
+inline double ewma(std::optional<double> old, double sample, double alpha = 0.3) { return old ? *old + alpha * (sample - *old) : sample; }
+inline void record_transfer(TransferStats& stats, int rows, int width, double seconds, bool partial) {
+    if (rows <= 0 || width <= 0 || seconds <= 0) return;
+    stats.last_seconds = seconds;
+    if (partial && rows >= 8) stats.bytes_per_second = ewma(stats.bytes_per_second,double(rows)*width*2/seconds);
+}
+std::vector<std::pair<int,int>> changed_bands(const Image& old, const Image& next, int band = 8);
+
 class Output {
 public:
     virtual ~Output() = default;
@@ -29,6 +38,7 @@ public:
     virtual void invalidate() = 0;            // nächstes Bild komplett senden
     virtual void screen_off() = 0;
     virtual void close() = 0;
+    virtual TransferStats transfer() const { return {}; }
     virtual bool is_monitor() const { return false; }
 };
 
@@ -46,6 +56,7 @@ public:
     void screen_off() override;
     void close() override;
 
+    TransferStats transfer() const override { std::lock_guard lk(mu_); return stats_; }
     static std::optional<std::string> find_port();
     static std::string rgb565le(const Image& img, int y0, int y1);
 
@@ -66,7 +77,8 @@ private:
     int band_height_ = 8;
     void* handle_ = nullptr;
     std::optional<Image> last_frame_;
-    std::mutex mu_;
+    mutable std::mutex mu_;
+    TransferStats stats_;
 };
 
 struct MonitorInfo {

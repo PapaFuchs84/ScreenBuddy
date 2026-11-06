@@ -26,7 +26,7 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
-    src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp
+    src/plugin_schedule.cpp src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/key_help.cpp src/psn_logic.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/amp_logic.cpp src/audio_levels.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/native_settings.cpp src/ui_shell_material.cpp src/touch.cpp src/update.cpp
@@ -151,3 +151,6 @@ target_link_libraries(fl-distribution-tests PRIVATE flcore)
 add_executable(fl-device-profile-tests tests/device_profile_tests.cpp)
 target_link_libraries(fl-device-profile-tests PRIVATE flcore)
 target_link_options(fl-device-profile-tests PRIVATE /MANIFEST:NO)
+
+add_executable(fl-plugin-schedule-tests tests/plugin_schedule_tests.cpp src/plugin_schedule.cpp)
+target_include_directories(fl-plugin-schedule-tests PRIVATE src)

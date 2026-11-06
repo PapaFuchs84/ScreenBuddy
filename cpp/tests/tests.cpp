@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include "config.h"
+#include "output.h"
 #include "friends.h"
 #include "audio_levels.h"
 #include "ha.h"
@@ -1201,11 +1202,32 @@ static void test_material_shell() {
         }
 }
 
+static void test_transfer_simulated() {
+    CHECK(std::abs(ewma(ewma(ewma({},100),200),300)-181)<.0001);
+    CHECK(!TransferStats{}.bytes_per_second);
+    TransferStats simulated;
+    // Simulierte Strecke mit 1 MB/s: keine Uhr, kein Port, kein Output::connect().
+    record_transfer(simulated,320,480,.3072,false);CHECK(!simulated.bytes_per_second);
+    record_transfer(simulated,8,480,.00768,true);CHECK(std::abs(*simulated.bytes_per_second-1000000)<.001);
+    record_transfer(simulated,0,480,.00001,true);CHECK(simulated.last_seconds==.00768);
+    record_transfer(simulated,3,480,.003,true);CHECK(std::abs(*simulated.bytes_per_second-1000000)<.001);
+    std::printf("Simulierte Strecke: %.0f Byte/s, reale Messung durch Basti offen\n",*simulated.bytes_per_second);
+    Image a(4,19), b=a;
+    CHECK(changed_bands(a,b).empty());
+    b.px[4]=1; CHECK((changed_bands(a,b)==std::vector<std::pair<int,int>>{{0,8}}));
+    b.px[8*4]=1; CHECK((changed_bands(a,b)==std::vector<std::pair<int,int>>{{0,16}}));
+    b=a;b.px[18*4]=1;CHECK((changed_bands(a,b)==std::vector<std::pair<int,int>>{{16,19}}));
+}
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "transfer-sim") {
+        test_transfer_simulated();
+        std::printf("transfer-sim: %d passed, %d failed\n",g_ok,g_fail); return g_fail ? 1 : 0;
+    }
     SetConsoleOutputCP(CP_UTF8);
     if (argc >= 6 && std::string(argv[1]) == "touch")
         return touch_probe(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
     gfx_init();
+    test_transfer_simulated();
     test_material_shell();
     if (argc >= 2 && std::string(argv[1]) == "dpp") {
         argc_probe_winstore = argc >= 3;

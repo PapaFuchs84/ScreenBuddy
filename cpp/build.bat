@@ -27,6 +27,7 @@ if errorlevel 1 set "CMAKE=C:\Program Files (x86)\Microsoft Visual Studio\2022\B
 "%BUILD_DIR%\fl-tmdb-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-zones-tests.exe" || goto :fail
+"%BUILD_DIR%\fl-plugin-schedule-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-example-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-store-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-transport-tests.exe" || goto :fail

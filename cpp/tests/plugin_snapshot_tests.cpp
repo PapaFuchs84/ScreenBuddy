@@ -5,6 +5,8 @@
 //   default: compare against the baseline in snapshot-dir (hashes.txt, PNGs are for human review)
 //   update : rewrite the baseline (hashes.txt + PNGs)
 #include <algorithm>
+#include <chrono>
+#include "output.h"
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -212,6 +214,83 @@ int main(int argc, char** argv) {
                 actual[prefix + manifest.id + "." + variant.name + "." + size.name] = {hash, first};
             }
         }
+    }
+
+    // P4b: Einträge, leer, Überblendung und Band-Vorhang; alle Themes und Orientierungen.
+    {
+        std::ifstream f(examples / "offline-wechselfeld.flplugin.json");
+        auto parsed=plugins::parse_manifest(std::string((std::istreambuf_iterator<char>(f)),{})); CHECK(parsed);
+        if (parsed) for (const auto& tc:themes) for (const auto& size:kSizes) {
+            plugins::RenderContext ctx;auto page=plugins::render_page(*parsed.manifest,ctx);
+            std::lock_guard lk(render::mutex());
+            ojson dp={{"theme",tc.name}};if(!tc.inline_theme.is_null())dp["theme_inline"]=tc.inline_theme;
+            render::apply_theme(dp);
+            using namespace plugins::schedule;
+            std::vector<ZoneChoice> choices{{"main","eins",{},Shape::cut,1}};
+            std::map<std::string,std::shared_ptr<plugins::FadeCache>> caches;
+            auto a=plugins::draw_choices(page,size.w,size.h,choices,caches);
+            choices[0].block="zwei";auto b=plugins::draw_choices(page,size.w,size.h,choices,caches);
+            CHECK(hash_image(a)!=hash_image(b));
+            actual[tc.name+".wechsel.eins."+size.name]={hash_image(a),a};
+            actual[tc.name+".wechsel.zwei."+size.name]={hash_image(b),b};
+            choices[0].from_block="eins";choices[0].shape=Shape::fade;choices[0].mix=.5;
+            auto mixed=plugins::draw_choices(page,size.w,size.h,choices,caches);
+            CHECK(hash_image(mixed)!=hash_image(a) && hash_image(mixed)!=hash_image(b));
+            actual[tc.name+".wechsel.fade."+size.name]={hash_image(mixed),mixed};
+            auto start=std::chrono::steady_clock::now();
+            for(int i=0;i<10;++i) plugins::draw_choices(page,size.w,size.h,choices,caches);
+            double ms=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-start).count()/10;
+            std::printf("cache %dx%d %.3f ms\n",size.w,size.h,ms);
+            choices[0].shape=Shape::reveal;
+            auto reveal=plugins::draw_choices(page,size.w,size.h,choices,caches);
+            actual[tc.name+".wechsel.reveal."+size.name]={hash_image(reveal),reveal};
+            choices[0].from_block.reset();choices[0].block.reset();
+            auto empty=plugins::draw_choices(page,size.w,size.h,choices,caches);
+            actual[tc.name+".wechsel.empty."+size.name]={hash_image(empty),empty};
+        }
+        if (parsed) for (auto size : {Size{"pc",480,320},Size{"wide",1920,720},Size{"large",2400,1080}}) {
+            auto page=plugins::render_page(*parsed.manifest,{});
+            std::lock_guard lk(render::mutex());render::apply_theme({{"theme","dunkel"}});
+            using namespace plugins::schedule;
+            std::vector<ZoneChoice> choices{{"main","zwei","eins",Shape::fade,.5}};
+            std::map<std::string,std::shared_ptr<plugins::FadeCache>> cache;
+            auto begin=std::chrono::steady_clock::now();
+            plugins::draw_page(page,size.w,size.h);
+            double full=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count();
+            plugins::draw_choices(page,size.w,size.h,choices,cache);
+            begin=std::chrono::steady_clock::now();
+            for(int i=0;i<10;++i)plugins::draw_choices(page,size.w,size.h,choices,cache);
+            double step=std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now()-begin).count()/10;
+            std::printf("budget %dx%d full %.3f ms cache %.3f ms\n",size.w,size.h,full,step);
+        }
+        Image a(16,32),b(16,32,{255,255,255}),prev=a;
+        size_t bytes=0;
+        for(int k=1;k<=4;++k) {
+            Image next=b;plugins::reveal_rect(next,a,b,{0,0,16,32},k/4.f);
+            for(auto [y,end]:changed_bands(prev,next))bytes+=size_t(end-y)*16*2;
+            prev=next;
+        }
+        CHECK(bytes==32*16*2);
+        CHECK(bytes==plugins::schedule::serial_bytes(a,b));
+        // Teilbänder oben/unten dürfen bei versetzter Kachel nur einmal kosten.
+        for(int offset : {1,5,9}) {
+            Image old(16,48), target=old;
+            for(int y=offset;y<offset+31;++y) for(int x=0;x<16;++x) target.px[size_t(y)*16+x]=0xffffffff;
+            auto previous=old;size_t cost=0;
+            for(int k=1;k<=4;++k) {
+                auto next=old;plugins::reveal_rect(next,old,target,{0,float(offset),16,31},k/4.f);
+                cost+=plugins::schedule::serial_bytes(previous,next);previous=next;
+            }
+            CHECK(cost==plugins::schedule::serial_bytes(old,target));
+        }
+        size_t fade_bytes=0;prev=a;
+        for(int k=1;k<=4;++k) {
+            Image next=b;plugins::blend_rect(next,a,b,{0,0,16,32},k/4.f);
+            fade_bytes+=plugins::schedule::serial_bytes(prev,next);prev=next;
+        }
+        CHECK(fade_bytes==4*bytes);
+        Image dst=b;plugins::blend_rect(dst,a,b,{4,4,8,8},.5);
+        CHECK(dst.at(0,0)==b.at(0,0) && dst.at(4,4)==0xff7f7f7f);
     }
 
     // Phase 2b: v2 ohne layout zeichnet pixelidentisch wie v1 (derselbe Inhalt, nur schema_version 2 und Block-IDs).

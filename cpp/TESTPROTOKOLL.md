@@ -1,5 +1,51 @@
 # Testprotokoll – Stand 06.11.2026
 
+## Phase-4b-Reviewkorrekturen (06.11.2026)
+
+Serieller Vorhang: Budget umfasst Bandübertragung, 50 ms Ruhe und gemessene Renderzeit; maximal ein Band-Schritt je Aufruf, bei Verspätung wird die Zeitbasis verschoben. Nur Companion darf verspätete Zwischenschritte verwerfen. Monitor bleibt beim erreichten Zwischenbild. Rotation überspringt einen datenlos gewordenen Eintrag vorwärts. Globale Bandaufteilung auch bei Kachelversatz. Reine Tests für first_available-Überblendung, Generations-/Größenreset, Parsergrenzen und altes Skip-Prädikat ergänzt. Der Prozessprüfer verwirft Start-/Größenbilder über eine neue bestätigte Auflösung, nutzt das erste Plugin-JPEG nur als Basis, prüft Navigation während der gesamten Beobachtung und führt zusätzlich ein statisches Plugin ohne cycle als Negativkontrolle aus.
+
+Prüfergebnisse dieses Korrekturlaufs (jeweils eigene Suite, 0 Fehler): Zeitplan **836**, Parser **271**, Snapshots **1.811**, Zonen **462** (plus zwei feste Fuzz-Läufe à 4.000), Beispiele **124**, Speicher **127**, Transport **140**. Release-Build mit `vcvars64.bat`/CMake in `cpp/build/store` erfolgreich; bekannte `vswhere.exe`-Warnung ohne Abbruch nach Bereinigung der PATH-Anführungszeichen wie in `build.bat`. Python-Syntax und `git diff --check` grün.
+
+Prozessprüfung `app_companion_multi.py … --cycle-only`: **blockiert vor Kopplung**, isolierter Companion startet nicht; synthetisches Testlog meldet „Verschlüsselung fehlgeschlagen“ (bestehende DPAPI-Sandbox-Grenze), danach Status-Timeout. Prozess beendet sich sauber. Weder positive JPEG-Prüfung noch Negativkontrolle sind damit hier abgenommen. Reine Suiten ersetzen diesen Prozessnachweis und die physische Abnahme nicht.
+
+`hashes.txt` in diesem Korrekturlauf nicht geändert (SHA-256 `3039AF0D01635BC21F06FE458523014B8929ABC814A9338AD53E67915963ACA2`); alle vorhandenen Snapshot-Vergleiche grün. Keine Töne, keine Hardware, kein Port 8765, kein `run_release_checks.py`, kein Export/Release und kein Commit/Push/Branchwechsel.
+
+## Phase-4b-Review: bekannte offene Punkte (06.11.2026)
+
+Diese Punkte sind dokumentiert und in diesem Korrekturlauf bewusst unverändert:
+- Zonengeometrie wird dreifach berechnet (`app.cpp`: `zone_rows`, sowie Geometrie-/Zeichenpfade in `plugin_render.cpp`). Eine gemeinsame Berechnung bleibt offen.
+- Die Seitenwarnung „Plugin-Daten fehlen“ erscheint auch bei einem absichtlich leeren Eintrag.
+- Ein `next`-Wunsch kann in einer wartenden Zone verloren gehen; in Phase 4c behandeln.
+- Lock-Verschachtelung: `render::mutex` → `SerialDisplay::mu_`; separater Seriell-Thread bleibt außerhalb von Phase 4.
+
+## Phase 4b – P4b-0 bis P4b-4 (06.11.2026)
+
+Implementiert: Bandstatistik und rein simulierte Messstrecke, Schema-2-Parser `cycle`/`seconds` und Fehlend-Kennzeichen je Block, reines `plugin_schedule` mit injizierter Uhr, Auswahl/Überblendung/Band-Vorhang mit Bildcache, Fristen und Zustände je sichtbarer Ansicht. Clean-Room-Zeilen für alle fünf Pakete ergänzt. Ohne Wechselfeld prüft eine feste Referenzliste über 60 simulierte Sekunden die bisherige Frame-/Wartefolge; keine Änderung an Manifest v1 oder den **180 bestehenden Snapshot-Hashes**, **168 neue Snapshots**.
+
+Build: VS Build Tools 2022 + `vcvars64.bat`, CMake/Ninja Release in `cpp/build/store` mit vorhandener vcpkg-Konfiguration. `vswhere.exe`-Warnung ohne Buildabbruch. `build.bat` und `run_release_checks.py` nur um das neue Ziel ergänzt, **nicht gestartet**; kein Export, Signieren, Commit, Push oder Branchwechsel.
+
+| Einzeln ausgeführte Suite | Ergebnis |
+|---|---|
+| `fl-tests transfer-sim` (nur dieser Teilmodus) | **10 grün**, simulierte Strecke 1.000.000 Byte/s; EWMA, unbekannte Rate, keine Änderung, benachbarte Bänder und verkürztes Schlussband. Kein `Output::connect`, kein COM-Port. |
+| `fl-plugin-schedule-tests` | **566 grün**: Rotation, Datenlage, Quantisierung, Verspätung, Idempotenz einschließlich wartender Zone, getrennte Geräte, 600-ms-Wartegrenze, Mindestdauer, Budgets und Frame-/Wartefolge. |
+| Parser / Zonen / Beispiele / Speicher / Transport / Signatur / Katalog | **269 / 462 / 124 / 127 / 140 / 111 / 77 grün**, jeweils 0 Fehler. Zonen zusätzlich zwei feste Fuzz-Läufe à 4.000 Manifesten. Schema 2 verlangt im Store weiterhin mindestens 2.10.0. |
+| `fl-plugin-snapshot-tests` | **1.808 grün**, 0 Fehler; alle vorhandenen Hashes vor Anhängen der neuen Einträge verglichen. Alle Themes, Quer/Hoch, normale/kleine Größen, beide Einträge, leer, fade 1/2, reveal 2/4; reine Pixel-/Bandkostenprüfung. Warnungen stammen aus absichtlich injizierten Zeichenfehlern der bestehenden Isolationstests. |
+| Geräteprofil / Companion / TMDB / PSN / Amplifier / Monitor | **85 / 377 / 119 / 37 / 13 / 11 grün**; Amplifier ausschließlich reine Logik, Monitor ohne Fenstermodus. |
+| Schlüsselhilfe / Distribution (unpackaged) | **OK / Exit 0**, kein Store-Pakettest. |
+| Installer / Navigation-API | **2 / 51 grün**, isolierte temporäre Instanzen mit `--no-lcd`. |
+| `fl-tests` vollständig / `fl-plugin-settings-tests` | **Nicht gelaufen**, bekannte DPAPI-Grenze dieser Sandbox. Teilmodus `transfer-sim` ist kein vollständiger Kernprüflauf. |
+| Neuer Zweigeräte-Prozesstest / bestehende Companion-Integration | **Nicht abgenommen**: isolierte App startet und beendet sich, Companion scheitert vor Kopplung mit „Verschlüsselung fehlgeschlagen“ (DPAPI). Der neue Test prüft zwei geänderte JPEGs binnen `seconds + 2 s` und unveränderte Navigation; diese Kriterien sind hier nicht durchgelaufen. Aufruf: `python cpp/tests/app_companion_multi.py cpp/build/store/ScreenBuddy.exe` (optional `--cycle-only`). |
+| Native Settings Smoke | **Nicht grün**: vorhandene Navigationsliste enthält zusätzliche Einträge gegenüber der Testkonstante `NAV`; Abbruch vor weiteren UI-Prüfungen. Native Mouse-/Pairing-Smokes nicht ausgeführt; keine native Sichtabnahme. |
+
+Release-Messung, ausschließlich reine Zeichnung (nicht der vollständige `render_core`): 480×320 0,47 ms, 1920×720 2,33 ms, 2400×1080 4,24 ms. Übergangsschritt aus Cache (Mittel aus 10): **0,51 / 5,24 / 9,73 ms**. Das erfüllt die Cache-Budgets auf diesem PC; die App-Gesamtzeit und physische Darstellung bleiben wegen der blockierten Prozessabnahme offen. Timing wird berichtet, nicht als harter Debug-Test gewertet.
+
+### Messung serielle Rate (offen, Basti)
+
+**Keine reale serielle Rate gemessen. Kein echtes Display angesprochen, kein COM-Port geöffnet.** Nur simulierte Bandstrecke und Kostenfunktionen geprüft. Die laufende serielle Ausgabe erfasst künftig Payload-Byte/s als EWMA für Teilupdates ab acht Zeilen und die letzte tatsächliche Übertragungsdauer. Leere Diffs überschreiben diese Dauer nicht. Diagnoseformat: „Zeilen, ms, kB/s“ ohne Nutzdaten. Ohne gemessene Rate bleibt der Übergang ein Schnitt.
+
+Basti misst vor Release am echten Gerät die Rate R und trägt sie hier ein; außerdem Monitor, Companion und seriellen Vorhang/Schnitt auf ruhige Darstellung, Flackern und Streifen prüfen. Die Simulation ersetzt diese Abnahme nicht. Keine Töne, keine Hardwarekontakte, keine Tests gegen Port 8765. Physische Tests bleiben offen.
+
+
 ## Phase-4a-Reviewkorrekturen (06.11.2026, separater Prüflauf)
 
 Alle fünf Review-Befunde bearbeitet: Teilpatch erhält aktuelle Ränder (beide Konfigurationsabschnitte); DE/EN-Gerätekarte erklärt bei Synchronisierung die unwirksamen eigenen Ränder und die gemeinsame Vorgabe; `tap_at` führt `step_page` nach Freigabe von `tap_mu_` aus; Android-KDoc und Importe bereinigt. `place`/`compose_view` begrenzen auch übergroßen Inhalt auf die Nutzfläche.

@@ -310,8 +310,38 @@ static void test_store_metadata() {
     auto nosample = parse_manifest(weather.dump());
     CHECK(nosample && store_problems(*nosample.manifest).size() == 1);
 }
+static void test_cycle() {
+    Json j={{"schema_version",2},{"id","cycle-test"},{"name","Cycle"},{"version","1.0.0"}};
+    j["layout"]={{"columns",{1}},{"rows",{1}},{"zones",Json::array({{{"id","a"},{"column",0},{"row",0},{"cycle",{{"mode","rotate"}}}}})}};
+    j["widgets"]=Json::array({{{"id","one"},{"zone","a"},{"type","text"},{"text","{{time}}"},{"seconds",3}}});
+    auto parse=[&]{return parse_manifest(j.dump());}; CHECK(parse());
+    j["description"]="Cycling zone example";j["license"]="MIT";j["author"]="Example";j["category"]="info";j["min_app_version"]="2.10.0";
+    CHECK(store_problems(*parse().manifest).empty());
+    j["min_app_version"]="2.9.9";CHECK(!store_problems(*parse().manifest).empty());
+    j["min_app_version"]="2.10.0";
+    for (auto invalid : {Json(2),Json(601),Json(3.5),Json("8")}) { j["widgets"][0]["seconds"]=invalid;CHECK(!parse()); }
+    j["widgets"][0]["seconds"]=600;CHECK(parse());
+    auto& c=j["layout"]["zones"][0]["cycle"];
+    c["unknown"]=true;CHECK(!parse());c.erase("unknown");
+    c["mode"]="first_available"; CHECK(!parse());
+    j["widgets"][0].erase("seconds");CHECK(parse());
+    c["transition"]="blink";CHECK(!parse());c["transition"]="none";CHECK(parse());
+    c["mode"]="random";CHECK(!parse());c["mode"]="rotate";
+    j["schema_version"]=1;CHECK(!parse());j["schema_version"]=2;
+    auto m=parse();CHECK(m && m.manifest->widgets[0].seconds==8);
+    auto saved_cycle=c; j["layout"]["zones"][0].erase("cycle");
+    j["widgets"][0]["seconds"]=8;CHECK(!parse());
+    j["widgets"][0].erase("seconds");j["layout"]["zones"][0]["cycle"]=saved_cycle;
+    j.erase("layout");j["widgets"][0].erase("zone");j["widgets"][0]["seconds"]=8;CHECK(!parse());
+    j["widgets"][0].erase("seconds");
+    j["sources"]=Json::array({{{"id","feed"},{"url","https://api.example.com/test"},{"sample",{{"value",1}}}}});
+    j["widgets"][0]["text"]="{{feed.value}}";
+    j["widgets"].push_back({{"id","two"},{"type","text"},{"text","Available"}});
+    m=parse();CHECK(m);
+    if(m) { auto page=render_page(*m.manifest,{});CHECK(page.missing_data && page.widgets[0].missing && !page.widgets[1].missing); }
+}
 int main() {
-    test_validation(); test_render(); test_requests(); test_security_hardening(); test_store_metadata();
+    test_cycle(); test_validation(); test_render(); test_requests(); test_security_hardening(); test_store_metadata();
     std::printf("plugins: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;
 }

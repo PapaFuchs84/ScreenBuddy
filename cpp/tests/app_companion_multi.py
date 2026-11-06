@@ -13,6 +13,7 @@ import struct
 import subprocess
 import time
 import tempfile
+import select
 import urllib.request
 
 import app_companion_integration as base
@@ -209,9 +210,107 @@ enabled = true
         check(p.returncode == 0, 'Isolated app exits cleanly')
 
 
+def run_cycles(enabled=True):
+    # Synthetische Kopplungen und Offline-Plugin, ausschließlich im isolierten Buildordner.
+    import hashlib
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1',0)); ui=probe.getsockname()[1]
+    with socket.socket() as probe:
+        probe.bind(('127.0.0.1',0)); phone=probe.getsockname()[1]
+    check(not {ui,phone} & {8765,8777,8799}, 'Cycle: isolated ports')
+    work=Path(tempfile.mkdtemp(prefix='cycle-multi-',dir=BUILD))
+    (work/'plugins').mkdir()
+    source=Path(__file__).resolve().parents[1]/'examples/plugins/offline-wechselfeld.flplugin.json'
+    manifest=json.loads(source.read_text(encoding='utf-8'))
+    if not enabled:
+        for zone in manifest['layout']['zones']: zone.pop('cycle',None)
+        for widget in manifest['widgets']: widget.pop('seconds',None)
+    (work/'plugins'/source.name).write_text(json.dumps(manifest),encoding='utf-8')
+    config=work/'config.toml'
+    config.write_text(f'''[display]
+visible_pages = ["plugin:offline-wechselfeld"]
+page_seconds = 600
+[companion]
+enabled = true
+port = {phone}
+pages = ["plugin:offline-wechselfeld"]
+page_seconds = 600
+sync = false
+[ui]
+port = {ui}
+setup_done = true
+update_check = false
+[discord]
+enabled = false
+''',encoding='utf-8')
+    root=f'http://127.0.0.1:{ui}'
+    def api(path,body=None):
+        req=urllib.request.Request(root+path,data=None if body is None else json.dumps(body).encode(),headers={'X-FL':'1','Content-Type':'application/json'})
+        with urllib.request.urlopen(req,timeout=4) as response:return json.load(response)
+    env=dict(os.environ,FUCHSLABS_INSTANCE=f'-cycle-{ui}')
+    proc=subprocess.Popen([str(BUILD/'ScreenBuddy.exe'),'--run','--config',str(config),'--log',str(work/'test.log'),'--no-lcd'],env=env,creationflags=subprocess.CREATE_NO_WINDOW)
+    clients=[]
+    try:
+        status=wait_for(lambda: (x if (x:=api('/api/companion/status')).get('running') else None))
+        for name,w,h in [('Cycle A',480,320),('Cycle B',320,480)]:
+            ws=ProfileWS(status['addresses'][0],phone,status['fingerprint']);clients.append(ws)
+            ws.send(dict(t='hello',v=1,pin=api('/api/companion/pair',{})['pin'],w=w,h=h,name=name));ws.ready(w,h)
+        def navigation():
+            return {c['name']:c.get('navigation') for c in api('/api/companion/status').get('clients',[]) if c.get('name','').startswith('Cycle ')}
+        initial=wait_for(lambda: (n if len(n:=navigation())==2 and all(n.values()) else None))
+        check(all(n['current']==['plugin:offline-wechselfeld'] for n in initial.values()),'Cycle: both clients show plugin')
+        # Erst nach bestätigter Plugin-Navigation auf neue, eindeutige Größen wechseln.
+        # ready verwirft ältere Start-/Größenbilder; erstes JPEG ist nur die Basis.
+        sizes=[(488,328),(328,488)]
+        for ws,(w,h) in zip(clients,sizes):
+            ws.send(dict(t='resize',w=w,h=h));ws.ready(w,h)
+        first=[None,None];changed=[False,False];end=time.monotonic()+15
+        observing=False
+        for ws in clients:ws.s.settimeout(4)
+        while time.monotonic()<end:
+            for i,ws in enumerate(clients):
+                if not (ws.buf or ws.s.pending() or select.select([ws.s],[],[],.1)[0]):continue
+                try:
+                    msg=ws.recv()
+                    if msg.get('t')=='binary':
+                        # SOF-Abmessungen im JPEG prüfen, keine alten Größen mitzählen.
+                        data=msg['data'][1:];pos=2;size=None
+                        while pos+4<=len(data) and data[pos]==255:
+                            marker=data[pos+1];length=int.from_bytes(data[pos+2:pos+4],'big')
+                            if marker in (0xc0,0xc1,0xc2):
+                                size=(int.from_bytes(data[pos+7:pos+9],'big'),int.from_bytes(data[pos+5:pos+7],'big'));break
+                            pos+=2+length
+                        if size!=sizes[i]:continue
+                        digest=hashlib.sha256(data).digest()
+                        if first[i] is None:first[i]=digest
+                        elif first[i]!=digest:changed[i]=True
+                except (TimeoutError,socket.timeout):pass
+            if all(first) and not observing:
+                observing=True;end=time.monotonic()+5
+            current=navigation()
+            check(current==initial,'Cycle: no navigation change during observation')
+        check(all(first),'Cycle: both plugin baseline JPEGs received')
+        detected=all(changed)
+        check(detected if enabled else not any(changed),
+              'Cycle: changed JPEGs after plugin baseline' if enabled else
+              'Cycle negative control: static plugin fails change criterion')
+        final=navigation()
+        check(all(final[k]['index']==v['index'] and final[k]['current']==v['current'] for k,v in initial.items()),'Cycle: navigation unchanged')
+    finally:
+        for ws in clients:ws.close()
+        try:api('/api/quit',{})
+        except OSError:pass
+        try:proc.wait(timeout=12)
+        except subprocess.TimeoutExpired:proc.terminate();proc.wait(timeout=5)
+        check(proc.returncode==0,'Cycle: isolated app exits cleanly')
+
+
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         BUILD = Path(sys.argv[1]).resolve().parent
-    run(True)
-    run(False)
+    run_cycles(False)
+    run_cycles()
+    if "--cycle-only" not in sys.argv:
+        run(True)
+        run(False)
     print(f'{len(base.checks)} multi-device checks passed')

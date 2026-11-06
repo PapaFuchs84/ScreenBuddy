@@ -21,6 +21,7 @@ namespace {
 constexpr int HEADER_H = 34, FOOTER_H = 18, AVATAR = 32, LOGO_SIZE = 20;   // LOGO_SIZE: Anbieter-Logo (Streaming)
 constexpr float SYS_GAP = 6, SYS_SMALL = 62;   // Systemansicht: Abstand und Höhe der Karten RAM / Datenträger
 
+static size_t revision = 0;
 Theme g_theme;
 std::mutex g_mutex;
 int row_height() { return g_theme.style == theme::Style::Cupertino ? 48 : g_theme.style == theme::Style::Material ? 52 : 44; }
@@ -96,6 +97,7 @@ double contrast(Color a, Color b) {
 }
 
 void set_theme(const std::string& name, const std::map<std::string, std::string>& custom) {
+    ++revision;
     struct BarSync { Theme& t; ~BarSync() { t.bar = t.orange; } } bar_sync{g_theme};
     Theme& t = g_theme;
     t.style = theme::Style::FuchsLabs;
@@ -125,7 +127,9 @@ void set_theme(const std::string& name, const std::map<std::string, std::string>
         t.head_text = contrast(brand::NAVY, t.orange) >= contrast(brand::WHITE, t.orange) ? brand::NAVY : brand::WHITE;
 }
 
+size_t theme_revision() { return revision; }
 void set_resolved(const theme::Resolved& r) {
+    ++revision;
     Theme& t = g_theme;
     t.style = r.style;
     const theme::Palette& p = r.colors;

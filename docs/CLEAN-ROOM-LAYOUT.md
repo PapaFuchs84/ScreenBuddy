@@ -43,6 +43,12 @@ Die Umsetzung erfolgt ohne Einsicht in Fremdcode implementiert.
 | P4a-2 | 2026-11-06 | Codex CLI 0.166.0 | Gerätemaske und gerätegebundene Touch-Koordinaten ohne Einsicht in Fremdcode implementiert. | ausstehend |
 | P4a-3 | 2026-11-06 | Codex CLI 0.166.0 | Einstellungen Sperrzone DE/EN ohne Einsicht in Fremdcode implementiert. | ausstehend |
 | P4a-4 | 2026-11-06 | Codex CLI 0.166.0 | Android-TV nur Querformat ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4b-0 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
+| P4b-1 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
+| P4b-2 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
+| P4b-3 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
+| P4b-4 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
+| Phase-4b-Reviewkorrekturen | 2026-11-06 | Codex | ohne Einsicht in Fremdcode implementiert; nur ScreenBuddy-Code und Phase-4-Entwurf gelesen. | ausstehend |
 | 4 Geräteprofile, Wechselfeld, Tap-Ziele | | | | |
 | 5 Eingebaute Seiten und gemeinsamer Renderer | | | | |
 | 6 Editor und Erststart | | | | |

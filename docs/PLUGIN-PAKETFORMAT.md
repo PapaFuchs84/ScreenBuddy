@@ -52,3 +52,13 @@ Er nutzt `plugins.cpp` der App (gleicher Parser), liest nur Dateien und macht ke
 ## Offen (spätere Phasen)
 
 Signierung ist als Bibliothek und Werkzeug umgesetzt, siehe [Plugin-Signierung](PLUGIN-SIGNIERUNG.md); offen sind Produktionsschlüssel, Index-Build per Actions und Download. Store-Oberfläche in der App (Phase 3), Moderation und Nutzungsbedingungen (Phase 4). Siehe Plan in PR [#21](https://github.com/PapaFuchs84/ScreenBuddy/pull/21).
+
+## Wechselfeld pro Zone (Phase 4b, Entwicklung)
+
+Nur `schema_version: 2` mit `layout` erlaubt an einer Zone `"cycle": {"mode": "rotate", "transition": "fade"}`. `mode` ist `rotate` oder `first_available`; `transition` ist `fade` (Standard) oder `none`. In `rotate`-Zonen darf jeder Block `seconds` als ganze Zahl von 3 bis 600 tragen (Standard 8). Ohne `cycle` bleibt die bisherige Stapelung unverändert; Schema 1 akzeptiert diese Schlüssel nicht. Store-Pakete mit Schema 2 brauchen `min_app_version` mindestens `2.10.0`.
+
+`rotate` zeigt die verfügbaren Blöcke in Manifestreihenfolge; `first_available` zeigt den ersten verfügbaren Block und reagiert auf Datenänderungen. Verfügbar bedeutet sichtbar nach `show_if` und ohne fehlende Referenz im jeweiligen Block. Ohne verfügbare Blöcke bleibt die Zone leer. Beim Verlassen der sichtbaren Kacheln oder Manifestwechsel startet sie neu; Ansichten und unabhängige Geräte haben eigene Zeitpläne.
+
+Das Manifest wählt keinen Effekt je Gerät: Monitor 4 ruhige Überblendungsschritte in 400 ms (bei hoher Renderzeit 2 oder Schnitt), Companion 2 Schritte in 400 ms bei verbundenen Clients, seriell ein Band-Vorhang nur bei ausreichend gemessener Rate (sonst Schnitt). Der serielle Takt berücksichtigt Übertragung, Renderzeit und 50 ms Ruhe; globale 8-Zeilen-Bänder werden der Reihe nach aufgedeckt. Reicht das Zyklusbudget nicht, wird geschnitten. Nur Companion verwirft verspätete Schritte; Monitor zeigt den erreichten Zwischenstand. Daten bleiben während des Übergangs eingefroren. Größenwechsel beendet den Übergang, Themewechsel erneuert den Bildcache. Die Mindestdauer steigt bei langsamer Übertragung auf das Vierfache der letzten Übertragungsdauer. Gleichzeitige Wechsel derselben Kachel warten höchstens 600 ms. Keine Töne oder aufdringlichen Effekte.
+
+Beispiel: [offline-wechselfeld.flplugin.json](../cpp/examples/plugins/offline-wechselfeld.flplugin.json). Zum Ausprobieren lokal importieren; die zwei Texte wechseln nach 3 bzw. 5 Sekunden. Hardware-Abnahme und reale serielle Ratenmessung durch Basti stehen aus; bisher wurden ausschließlich simulierte Übertragungen geprüft. Tap-Aktionen gehören zur späteren Phase 4c.

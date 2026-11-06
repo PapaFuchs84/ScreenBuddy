@@ -28,10 +28,12 @@ inline constexpr int max_blocks_per_zone = 4; // Blöcke pro Zone
 inline constexpr int max_blocks = 12;         // Blöcke pro v2-Seite mit layout; ohne layout (v1 und v2) höchstens 6
 inline constexpr float max_area = 16384.f;    // größere/ungültige Flächen ergeben einen leeren Plan
 
+struct Cycle { std::string mode = "rotate", transition = "fade"; };
 struct Zone {
     std::string id;
     int column = 0, row = 0;          // 0-basiert
     int column_span = 1, row_span = 1;
+    std::optional<Cycle> cycle;
 };
 // Raster in Bruchteilen: Spalte i erhält columns[i] / Summe(columns) der freien Breite (Zeilen analog).
 struct Layout {

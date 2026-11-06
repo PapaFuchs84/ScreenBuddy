@@ -1,5 +1,7 @@
 // © 2026 FuchsLabs
 #include "app.h"
+#include <set>
+#include <cmath>
 
 #include <windows.h>
 #include <shellapi.h>
@@ -513,7 +515,7 @@ std::string App::friends_message() {
 }
 
 std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion,
-                                           const std::vector<std::string>* pages_override) {
+                                           const std::vector<std::string>* pages_override, ViewState* view, double tick, bool phone) {
     // [(Name, Seitenanzahl, Zeichenfunktion(seite, zeichner))] in der eingestellten Reihenfolge
     std::vector<PageEntry> out;
     for (auto& key : active_pages(companion, pages_override)) {
@@ -547,10 +549,48 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             std::strftime(date, sizeof date, "%Y-%m-%d", &local);
             context.date = date;
             const auto page = plugins::render_page(manifest, context);
-            out.push_back({key, 1, [page](int, RendererSet& rs) {
-                // RendererSet owns the tile size through its standard renderer.
-                return plugins::draw_page(page, rs.width, rs.height);
-            }});
+            PageEntry entry{key, 1, [page](int, RendererSet& rs) { return plugins::draw_page(page,rs.width,rs.height); }};
+            if (view && manifest.layout && std::any_of(manifest.layout->zones.begin(),manifest.layout->zones.end(),[](const auto& z){return z.cycle.has_value();})) {
+                entry.prepare = [this,view,tick,phone,page,manifest,generation=installed->generation,tile_width=r.width,tile_height=r.height](PageEntry& entry) {
+                    using namespace plugins::schedule;
+                    auto& state=view->cycles[manifest.id];
+                    if (view->cycle_generations[manifest.id]!=generation) { plugins::schedule::reset(state,true,false); view->fade_caches.erase(manifest.id); }
+                    view->cycle_generations[manifest.id]=generation;
+                    std::vector<ZoneInput> inputs;
+                    for (const auto& z:manifest.layout->zones) if (z.cycle) {
+                        ZoneInput input{z.id,z.cycle->mode=="rotate" ? Mode::rotate : Mode::first_available,z.cycle->transition=="fade",{}};
+                        for (const auto& w:manifest.widgets) if (w.zone==z.id) {
+                            auto found=std::find_if(page.widgets.begin(),page.widgets.end(),[&](const auto& r){return r.id==w.id;});
+                            input.entries.push_back({w.id,w.seconds,found!=page.widgets.end() && !found->missing});
+                        }
+                        inputs.push_back(std::move(input));
+                    }
+                    auto kind=phone ? OutputKind::companion : !out_ ? OutputKind::none : out_->is_monitor() ? OutputKind::monitor :
+                        out_.get()==companion_ ? OutputKind::companion : OutputKind::serial;
+                    auto transfer=phone || !out_ ? TransferStats{} : out_->transfer();
+                    const float scale=render::scale_for(tile_width,tile_height);
+                    const float spacing=theme::design(render::theme().style).spacing/12.f;
+                    const float margin=10*spacing;
+                    auto geometry=plugins::zones::plan({margin,39,tile_width/scale-2*margin,tile_height/scale-58-margin},*manifest.layout,{},7*spacing);
+                    int zone_rows=0;
+                    for(const auto& zone:geometry.zones)
+                        if(std::any_of(inputs.begin(),inputs.end(),[&](const auto& input){return input.zone==zone.id;}))
+                            zone_rows=std::max(zone_rows,int(std::ceil(zone.area.height*scale)));
+                    auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,view->render_ms.value_or(0),zone_rows,view->size.first,
+                        companion_ ? companion_->client_ids().size() : 0);
+                    std::vector<std::string> requests;
+                    { std::lock_guard lk(view->next_mu); requests.swap(view->next_requests); }
+                    auto result=advance(inputs,state,tick,budget,requests);
+                    if (std::any_of(state.begin(),state.end(),[&](const auto& pair){return pair.second.fade && pair.second.fade->start==tick;}))
+                        view->fade_caches.erase(manifest.id);
+                    view->next_deadline=std::min(view->next_deadline,result.next_deadline);
+                    view->animating=view->animating || result.animating;
+                    auto& cache=view->fade_caches[manifest.id]; if (!cache) cache=std::make_shared<plugins::FadeCache>();
+                    std::map<std::string,std::shared_ptr<plugins::FadeCache>> caches{{manifest.id,cache}};
+                    entry.fn=[page,choices=result.zones,caches](int,RendererSet& rs) mutable { return plugins::draw_choices(page,rs.width,rs.height,choices,caches); };
+                };
+            }
+            out.push_back(std::move(entry));
         } else if (key == "system") {
             PageEntry pe{key, 1, [this](int, RendererSet& rs) { return rs.system.render(sys_->snapshot()); }};
             // Tippen auf RAM / Datenträger / Netzwerk öffnet das passende Windows-Werkzeug bzw. den Geschwindigkeitstest
@@ -730,7 +770,8 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
                             std::count(primary_view_.current.begin(), primary_view_.current.end(), "spotify")
                             ? meter_.get() : nullptr);
         int rows = out_->show(frame);
-        LOGD("app", "%d Zeilen übertragen", rows);
+        auto transfer = out_->transfer();
+        LOGD("app", "%d Zeilen, %.0f ms, %.0f kB/s", rows, transfer.last_seconds*1000, transfer.bytes_per_second.value_or(0)/1000);
     } catch (const std::exception& e) {
         std::lock_guard lk(mu_);
         display_ok_ = false;
@@ -759,6 +800,7 @@ bool App::independent() const { return companion_ && !b(cfg_["companion"], "sync
 App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, double page_seconds, bool phone,
                                 const std::vector<std::string>* pages_override, bool dirty, bool register_redraw, const std::string& id) {
     RenderOut out;
+    const double now = mono();
     auto profile = profile_for(phone, id);
     auto area = device::usable(size, profile);
     auto inset = profile.physical_rotates ? device::to_frame(profile.keepout_physical, profile.orientation) : profile.keepout_physical;
@@ -768,14 +810,16 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         view.keepout_warning = mono();
     }
     out.area = area;
-    bool due = mono() - view.switched >= page_seconds;
+    bool due = now - view.switched >= page_seconds;
     auto minute = clock_hhmm();
     bool live = std::count(view.current.begin(), view.current.end(), "system") > 0;
     // Keep visible playback alive even when silent capture publishes no changes.
     // Otherwise the 3 s activity lease expires before the 4 s simulation delay.
     live = live || (meter_ && spotify_ && spotify_->snapshot().playing &&
                     std::count(view.current.begin(), view.current.end(), "spotify") > 0);
-    if (!dirty && !due && !live && view.step == 0 && view.size == size && view.area == area && view.minute == minute) return out;
+    if (!plugins::schedule::should_render(dirty,due,live,view.step,view.size!=size || view.area!=area,view.minute!=minute,now,view.next_deadline)) return out;
+    if (view.size!=size || view.area!=area) { for (auto& [plugin,zones]:view.cycles) plugins::schedule::reset(zones,false,true); view.fade_caches.clear(); }
+    view.next_deadline=plugins::schedule::never; view.animating=false;
     out.skipped = false;
     view.minute = minute;
     view.size = size;
@@ -790,17 +834,17 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         // Bound cached renderer sets when a resizable window reports many intermediate sizes.
         if (sets_.size() > 16) sets_.clear();
         auto boxes = render::tile_layout(area.w, area.h);
-        auto pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override);
+        auto pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone);
         int total = 0;
         for (auto& p : pages) total += p.n;
         if (0 < total && total < (int)boxes.size()) {
             boxes = render::tile_layout(area.w, area.h, total);
-            pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override);
+            pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone);
             total = 0; for (auto& p : pages) total += p.n;
         }
         int step = view.step.exchange(0);
         if (!total) {
-            out.frame = device::compose_view(welcome({area.w, area.h}), size, area, render::theme().bg); view.current.clear();
+            out.frame = device::compose_view(welcome({area.w, area.h}), size, area, render::theme().bg); view.current.clear(); view.cycles.clear(); view.fade_caches.clear();
             if (register_redraw) { std::lock_guard lk(mu_); redraw_ = [this, size, area] { return device::compose_view(welcome({area.w, area.h}), size, area, render::theme().bg); }; }
         } else {
             int cols = std::min((int)boxes.size(), total);
@@ -813,6 +857,18 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             }
             view.page = total > cols ? view.page % total : 0;
             int start = view.page;
+            std::set<std::string> visible_plugins;
+            int offset=0;
+            for (auto& entry:pages) {
+                bool visible=false;
+                for (int i=0;i<cols;++i) { int index=(start+i)%total; if (index>=offset && index<offset+entry.n) visible=true; }
+                if (visible && entry.prepare) { entry.prepare(entry); visible_plugins.insert(entry.key.substr(7)); }
+                offset+=entry.n;
+            }
+            std::erase_if(view.cycles,[&](const auto& pair){return !visible_plugins.contains(pair.first);});
+            std::erase_if(view.fade_caches,[&](const auto& pair){return !visible_plugins.contains(pair.first);});
+            // Wechselfeld-Frames setzen nie out.switched; nur die bestehende Seitennavigation tut das.
+
             if (register_redraw) {
                 std::lock_guard lk(mu_);
                 redraw_ = [this, pages, boxes, start, size, area] { return draw(pages, boxes, start, size, area).frame; };
@@ -823,6 +879,8 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         }
     }
     if (out.switched) view.switched = mono();
+    view.render_ms = ewma(view.render_ms,(mono()-now)*1000);
+    LOGD("app", "Renderzeit %.1f ms",view.render_ms.value_or(0));
     return out;
 }
 
@@ -880,8 +938,13 @@ void App::render_devices(bool dirty) {
     std::vector<std::string> gone;
     {
         std::lock_guard lk(dev_mu_);
-        for (auto& [id, d] : devices_)
+        for (auto& [id, d] : devices_) {
+            if (std::find(ids.begin(),ids.end(),id)==ids.end()) {
+                d->view.cycles.clear();d->view.fade_caches.clear();
+                d->view.next_deadline=plugins::schedule::never;d->view.animating=false;
+            }
             if (now - d->last_seen > 60) gone.push_back(id);
+        }
         for (const auto& id : gone) devices_.erase(id);
     }
     for (const auto& id : gone) companion_->forget_device(id);
@@ -910,11 +973,14 @@ void App::device_tap(const std::string& id, int x, int y, int w, int h) {
 void App::display_loop() {
     double next_try = 0, companion_try = 0;
     if (out_) connect_display();
+    double wait_deadline = plugins::schedule::never;
     while (!stop_) {
         bool dirty;
         {
             std::unique_lock lk(mu_);
-            cv_.wait_for(lk, std::chrono::seconds(1), [&] { return dirty_ || stop_; });
+            if (wait_deadline == plugins::schedule::never)
+                cv_.wait_for(lk, std::chrono::seconds(1), [&] { return dirty_ || stop_; });
+            else cv_.wait_for(lk, std::chrono::duration<double>(std::max(0.0,std::min(1.0,wait_deadline-mono()))), [&] { return dirty_ || stop_; });
             dirty = dirty_;
             dirty_ = false;
         }
@@ -943,8 +1009,16 @@ void App::display_loop() {
             render_view(false, dirty);
             if (companion_output_) render_view(true, dirty);
         }
-        const int steps = (meter_ && meter_->active() && (meter_->available() || meter_->simulated())) ? 2 : 10;   // mit Amplifier ≈ 8 Bilder/s
-        for (int i = 0; i < steps && !stop_; ++i) Sleep(50);
+        std::vector<double> deadlines;
+        bool animating=false;
+        if (!indep || (out_ && out_.get()!=companion_)) { deadlines.push_back(primary_view_.next_deadline); animating=primary_view_.animating; }
+        if (!indep && companion_output_) { deadlines.push_back(companion_view_.next_deadline); animating=animating || companion_view_.animating; }
+        { std::lock_guard lk(dev_mu_); for (const auto& [id,d]:devices_) if (indep) { deadlines.push_back(d->view.next_deadline); animating=animating || d->view.animating; } }
+        bool metering=meter_ && meter_->active() && (meter_->available() || meter_->simulated());
+        auto wake=plugins::schedule::wake_at(mono(),deadlines,animating,metering);
+        for (int i=0;i<int(std::lround(wake.min_gap/.05)) && !stop_;++i) Sleep(50);
+        wait_deadline=std::all_of(deadlines.begin(),deadlines.end(),[](double d){return d==plugins::schedule::never;})
+            ? plugins::schedule::never : plugins::schedule::wake_at(mono(),deadlines,animating,metering).wait_until;
     }
 }
 
