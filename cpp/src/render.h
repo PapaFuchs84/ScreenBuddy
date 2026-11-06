@@ -177,8 +177,9 @@ public:
     // levels: optional 0..1 je Balken (Amplifier); nur im Querformat und bei laufender Wiedergabe gezeichnet
     // color: 0 Design (Balken, oben Akzent), 1 Pegel (Grün/Gelb/Rot), 2 Verlauf im Design (Balken → Akzent → Heiß)
     // simulated: Balken sind keine Messung (Remote-Wiedergabe) → kleiner Hinweis "simuliert"
+    // clock: feste Wanduhr für Snapshots; 0 nutzt wie bisher die Systemuhr. now bleibt monoton.
     Image render(const spotify::Snapshot& snap, double now = 0, const std::vector<float>* levels = nullptr,
-                 int color = 1, bool simulated = false);
+                 int color = 1, bool simulated = false, std::time_t clock = 0);
     enum Button { PREVIOUS = 0, PLAY_PAUSE = 1, NEXT = 2, COVER = 3 };
     // Welche Taste liegt bei Pixel (x, y) einer Kachelfläche w × h? -1 = keine. Für „Tippen steuert Spotify“.
     static int button_at(int w_px, int h_px, int x_px, int y_px);

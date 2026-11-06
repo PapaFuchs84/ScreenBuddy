@@ -16,6 +16,7 @@
 #include "installer.h"
 #include "output.h"
 #include "render.h"
+#include "page_samples.h"
 #include "sysinfo.h"
 #include "theme.h"
 #include "util.h"
@@ -159,17 +160,17 @@ void run_demo(Output* lcd, const ojson& cfg, const std::optional<fs::path>& prev
     std::vector<Post> posts = {{tr("Beispiel-Blog"), tr("Ein kurzer Titel für die Vorschau"), now, ""},
                                {tr("Noch ein Blog"), tr("Zweiter Beitrag mit etwas längerem Titel, der umbricht"), now, ""}};
     std::vector<Image> frames = {sr.render(mon.raw())};
-    auto friends = render::demo_friends();
-    auto players = render::demo_players();
+    auto friends = render::samples::friends();
+    auto players = render::samples::players();
     for (int p = 0; p < r.pages(friends.size()); ++p) frames.push_back(r.render_friends(friends, p));
     for (int p = 0; p < br.pages(players.size()); ++p) frames.push_back(br.render(players, p, now));
     frames.push_back(rr.render(posts, now));
     render::SpotifyRenderer spr(w, h, cfg["spotify"].value("title", "Spotify"));
     std::vector<float> demo_levels = {.35f, .55f, .8f, .65f, .9f, .7f, .5f, .75f, .85f, .6f, .45f, .7f, .55f, .35f, .25f, .15f};
-    frames.push_back(spr.render(render::demo_spotify(), 0, &demo_levels));
-    const StreamLogos stream_logos = render::demo_stream_logos();
+    frames.push_back(spr.render(render::samples::spotify(), 0, &demo_levels));
+    const StreamLogos stream_logos = render::samples::stream_logos();
     render::StreamRenderer str(w, h, cfg["streaming"].value("title", "Neu bei Streaming"));
-    frames.push_back(str.render(StreamState::Ok, render::demo_stream(), now, now, &stream_logos));
+    frames.push_back(str.render(StreamState::Ok, render::samples::stream(), now, now, &stream_logos));
     if (lcd) lcd->connect();
     double secs = cfg["display"].value("page_seconds", 15);
     for (size_t i = 0; i < frames.size(); ++i) {

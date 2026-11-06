@@ -26,7 +26,7 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
-    src/plugin_schedule.cpp src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp
+    src/plugin_schedule.cpp src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp src/page_samples.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/key_help.cpp src/psn_logic.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/amp_logic.cpp src/audio_levels.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/native_settings.cpp src/ui_shell_material.cpp src/touch.cpp src/update.cpp
@@ -116,6 +116,13 @@ target_link_options(fl-plugin-snapshot-tests PRIVATE /MANIFEST:NO)
 target_compile_definitions(fl-plugin-snapshot-tests PRIVATE
     FL_PLUGIN_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/plugins"
     FL_PLUGIN_SNAPSHOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/plugin-snapshots")
+
+# Bitgleiche Baseline eingebauter Seiten; update und export sind ausdrücklich gewählte Modi.
+add_executable(fl-builtin-snapshot-tests tests/builtin_snapshot_tests.cpp)
+target_link_libraries(fl-builtin-snapshot-tests PRIVATE flcore)
+target_link_options(fl-builtin-snapshot-tests PRIVATE /MANIFEST:NO)
+target_compile_definitions(fl-builtin-snapshot-tests PRIVATE
+    FL_BUILTIN_SNAPSHOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/builtin-snapshots")
 
 add_executable(fl-plugin-sign tools/plugin_sign.cpp src/plugins.cpp src/plugin_sign.cpp)
 target_include_directories(fl-plugin-sign PRIVATE src)

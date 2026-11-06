@@ -6,6 +6,12 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### P5-0 – Built-in baseline (2026-11-06, development)
+
+- Offline snapshot target for built-in pages: seven designs, nine sizes, DE/selected EN, fixed clock/timezone, bit-exact image and touch geometry hashes. HA and welcome remain control images only. Reference PNGs only for dark DE; export provides all images.
+- Moved sample inputs to `render::samples` with compatibility forwarding; added the planned RSS age and Spotify header clock inputs, retaining default behavior. Shared snapshot helpers, unchanged plugin baseline; no page migration.
+- Build and offline suites checked. New baseline not yet generated/accepted because Roboto is missing; DPAPI sandbox limits and outstanding evidence are recorded in the test protocol. No release.
+
 ### Phase 4c – Tap targets (2026-11-06, development)
 
 - Security review M1/M2/N1–N4: strict tap URL characters/percent escapes, lowercase tap hosts, no dot segments/values, rechecked before browser launch. Source grants survive only exclusive link-list changes; other updates revoke grants. Shallow lists stay inside blocks; busy link toggles revert. Added grid, corrupt consent, write-failure and 1.9/2.0-second boundary regressions.

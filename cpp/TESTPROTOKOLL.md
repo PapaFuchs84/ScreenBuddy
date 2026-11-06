@@ -1,5 +1,39 @@
 # Testprotokoll – Stand 06.11.2026
 
+## P5-0 – Built-in-Snapshots (06.11.2026)
+
+**Gerüst implementiert, Baseline/Abnahme noch offen.** Branch `feature/zonen-layout`; keine Migration, kein Commit/Push/Branchwechsel. `fl-builtin-snapshot-tests` verwendet ausschließlich die bestehenden Renderer, feste `render::samples`, Wanduhr 1792606500, Spotify-Monotonzeit/Fetched-at 1000 und setzt selbst `TZ=UTC0`/`_tzset()`. 63 Zustände, 7 Designs und 9 Größen DE sowie dunkel/custom-material bei 480×320/320×480 EN ergeben **4.221 Bilder + 4.221 Trefferkarten**. Die Karte hasht die statischen Trefferfunktionen auf 4-px-Raster einschließlich `rows_per_page()`/`pages(n)`; sie belegt keine ausgeführte App-Aktion. HA/Willkommen ausschließlich Kontrollbilder. Details/Modi: [Baseline-Verzeichnis](tests/builtin-snapshots/README.md).
+
+Release-Build lokal über `vcvars64.bat` und CMake/Ninja in `cpp/build/store` erfolgreich, einschließlich App, neuem Testziel und `fl-tests`. Bekannte `vswhere.exe`-Warnung ohne Buildabbruch und bestehende `getenv`-Compilerwarnung in `tests.cpp`. Die vorhandenen Prüfzahlen sind gegenüber dem älteren Plan gestiegen; unten stehen die tatsächlich ausgeführten aktuellen Suiten, keine übernommenen historischen Zahlen.
+
+| Einzeln gestartete Suite | Ergebnis |
+|---|---|
+| `fl-device-profile-tests` | 85 bestanden |
+| `fl-plugin-tests` (Parser) | 316 bestanden |
+| `fl-plugin-zones-tests` | 462 bestanden; Ausgabe zusätzlich 2 × 4.000 feste Fuzz-Fälle |
+| `fl-plugin-schedule-tests` | 845 bestanden |
+| `fl-plugin-example-tests` | 124 bestanden |
+| `fl-plugin-sign-tests` | 111 bestanden |
+| `fl-plugin-catalog-tests` | 77 bestanden |
+| `fl-plugin-store-tests` (Speicher) | 193 bestanden |
+| `fl-plugin-transport-tests` | 140 bestanden; Ablehnungs-/Mockpfade, numerische Loopback-Adressauflösung ohne Netzverkehr |
+| `fl-plugin-snapshot-tests` | 1.901 bestanden; Baseline nicht aktualisiert |
+| `fl-tmdb-tests` | 119 bestanden |
+| `fl-psn-tests` | 37 bestanden |
+| `fl-key-help-tests` | OK |
+| `fl-amp-tests` | 13 bestanden; reine Logik, keine Töne |
+| `fl-monitor-tests` (ohne `window`) | 11 bestanden |
+| `fl-tests plugin-touch` | 2.093 bestanden (Teilmodus, kein vollständiger Kernlauf) |
+| `fl-plugin-settings-tests` | **Nicht bestanden/DPAPI blockiert**, Exit 2 beim initialen Speichern: `Plugin settings could not be encrypted or saved.` |
+| `fl-builtin-snapshot-tests update` | **Nicht gelaufen bis zum Bildvergleich**, Exit 2 beim vorgeschalteten Schriftcheck: `Schrift fehlt: Roboto.` |
+| `fl-builtin-snapshot-tests` mit äußerem `TZ=NZST-12NZDT` | Ebenfalls vorgeschalteter Schriftabbruch; **kein** Nachweis gleicher Bild-/Trefferkarten-Hashes |
+
+Plugin-`hashes.txt` bleibt byteweise unverändert: SHA-256 `3039AF0D01635BC21F06FE458523014B8929ABC814A9338AD53E67915963ACA2` vor/nach. Mechanischer Quellvergleich bestätigt identische verschobene `demo_*`-Funktionskörper und Snapshot-Hilfen sowie unveränderte `tile_layout`, `compose`, Willkommen, Streaming, HA und Spotify-Treffergeometrie. Das ist Quellnachweis, kein Ersatz für die neue Bildbaseline.
+
+**Offen:** Roboto (und die zweite Pflichtfamilie Segoe UI Variable) auf dem Referenzrechner verfügbar machen; dann `update`, sofortiger Prüflauf, weiterer Prüflauf mit anderer äußerer TZ und Export-/Hashvergleich. Keine Ersatzschrift-Baseline erzeugt; noch keine neue `hashes.txt` oder Referenz-PNGs. Der vollständige `fl-tests`-Lauf wurde wegen bekannter DPAPI-Sandboxgrenze **nicht ausgeführt**. Companion-/App-/Hardwaretests wurden wegen „kein Netzwerk“ nicht gestartet. `--demo --preview` vor/nach wurde nicht ausgeführt: Der vorhandene Modus verwendet Live-Systemmessungen und aktuelle Uhrzeit; zwei reguläre Läufe sind keine deterministische Bitgleichheitsprüfung. `run_demo` behält Live-Systemmessungen, Uhrzeit und die bisherigen zwei Blogbeiträge bei; nur die bestehenden `demo_*`-Aufrufe wechseln auf `samples`, damit das Demo-Verhalten nicht verändert wird. Die neuen eingefrorenen `system()`/`posts(lang)` werden vom Baseline-Test genutzt. Die Umstellung der unveränderten Demo-Daten ist mechanisch belegt, die verlangte Demo-Bildabnahme bleibt offen. Keine Bildgleichheit behauptet, solange dieser Nachweis fehlt.
+
+Keine Töne, Geräteausgabe, Netzwerkverbindungen, Port 8765, Registry-Leseoperationen des neuen Tests, `run_release_checks.py`, Signierung oder Auslieferung. Das Release-Prüfskript und `build.bat` wurden nur um das neue Ziel ergänzt, nicht ausgeführt. Physische/UI-Abnahme bleibt offen. **P5-0 darf noch nicht als vollständig grün oder als Basis für P5-1 abgenommen werden.**
+
 ## Phase-4c-Sicherheitsreview M1/M2/N1–N4 (06.11.2026)
 
 Neuer Korrekturlauf auf `feature/zonen-layout`, bestehende uncommittete Phase-4c-Arbeit fortgeführt. Tap-URLs prüfen feste RFC-3986-Zeichen, vollständige Prozentsequenzen und kleine feste Hosts; Prüfung beim Parsen und über dieselbe Funktion bei Touch-Entscheidung und unmittelbar vor dem Browserstart. Punktwerte sowie feste (auch prozentkodierte) Punktpfadsegmente ergeben kein Ziel. Quellen-URLs behalten ihre bisherige Hostnormalisierung. Quellenfreigabe/Aktivzustand bleiben ausschließlich bei geänderter Linkliste und vollständig gleichem übrigen Manifest erhalten; identische Re-Imports und zusätzliche Widget-/Settings-/Tap-Änderungen widerrufen Freigaben. Listen ohne Platz erhalten keine Zeilen; gesammelte Ziele werden auf die Blockfläche begrenzt. Busy-Linkschalter setzt seinen lokalen Zustand zurück.

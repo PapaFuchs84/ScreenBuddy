@@ -54,6 +54,7 @@ Die Umsetzung erfolgt ohne Einsicht in Fremdcode implementiert.
 | P4c-3 | 2026-11-06 | Codex CLI 0.166.0 | Separate persistente Linkfreigabe und DE/EN-Schalter ohne Einsicht in Fremdcode implementiert. | ausstehend |
 | P4c-4 | 2026-11-06 | Codex CLI 0.166.0 | Snapshot-Entscheidung, Ruhezeit, Rate und gesicherte Next-Liste ohne Einsicht in Fremdcode implementiert. | ausstehend |
 | 4 Geräteprofile, Wechselfeld, Tap-Ziele | | | | |
+| P5-0 Baseline-Gerüst | 2026-11-06 | Codex CLI 0.166.0 | Vollständigen PHASE5-MIGRATIONSPLAN.md und ScreenBuddy-Code gelesen; keine Einsicht in libre-panel-Code oder andere Fremdimplementierungen. Snapshot-Matrix, Zeitnahtstellen und Beispieldatenmodul aus eigener Repo-Geometrie abgeleitet. Noch keine Migration. | ausstehend |
 | 5 Eingebaute Seiten und gemeinsamer Renderer | | | | |
 | 6 Editor und Erststart | | | | |
 

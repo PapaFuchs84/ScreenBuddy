@@ -33,6 +33,7 @@ if errorlevel 1 set "CMAKE=C:\Program Files (x86)\Microsoft Visual Studio\2022\B
 "%BUILD_DIR%\fl-plugin-transport-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-settings-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-snapshot-tests.exe" || goto :fail
+"%BUILD_DIR%\fl-builtin-snapshot-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-monitor-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-companion-tests.exe" || goto :fail
 python tests\installer_preserves_config.py "%BUILD_DIR%\ScreenBuddy.exe" || goto :fail

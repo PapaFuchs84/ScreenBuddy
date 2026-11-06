@@ -6,6 +6,12 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### P5-0 – Built-in-Baseline (2026-11-06, Entwicklung)
+
+- Offline-Snapshot-Testziel für eingebaute Seiten: sieben Designs, neun Größen, DE/teilweise EN, feste Zeit/Zeitzone, bitgleiche Bild- und Touch-Geometrie-Hashes; HA und Willkommen ausschließlich als Kontrollbilder. PNGs nur für die dunkle DE-Referenz, alle Bilder über Export verfügbar.
+- Beispieldaten nach `render::samples` verschoben (alte Namen bleiben Weiterleitungen); RSS-Altersanzeige und Spotify-Kopfuhr erhalten die geplanten Zeitübergaben mit unverändertem Standardverhalten. Gemeinsame Snapshot-Hilfen, Plugin-Baseline unverändert; keine Seitenmigration.
+- Build und Offline-Suiten geprüft. Neue Baseline wegen fehlender Roboto-Schrift noch nicht erzeugt/abgenommen; DPAPI-Sandboxgrenzen und offene Nachweise im Testprotokoll. Keine Veröffentlichung.
+
 ### Phase 4c – Tap-Ziele (2026-11-06, Entwicklung)
 
 - Sicherheitsreview M1/M2/N1–N4: strenge Tap-URL-Zeichen und Prozentsequenzen, kleingeschriebene Tap-Hosts, keine Punktsegmente/-werte; erneute Prüfung vor Browserstart. Freigaben nur bei ausschließlicher Linklistenänderung teilweise erhalten, sonst widerrufen. Flache Listen bleiben im Block; beschäftigter Linkschalter wird zurückgesetzt. Regressionen für Raster, defekte Linkfreigaben, Schreibfehler und 1,9/2,0-s-Grenze ergänzt.
