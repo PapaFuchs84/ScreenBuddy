@@ -88,6 +88,7 @@ public:
     bool plugin_save_settings(const std::string& id, const ojson& patch, std::string& error);
     bool plugin_remove(const std::string& id, std::string& error);
     std::optional<Image> plugin_preview(std::string_view manifest, std::string& error);
+    std::optional<Image> plugin_preview(std::string_view manifest, std::string& error, std::pair<int,int> dimensions);
     spotify::SpotifyClient* spotify() { return spotify_.get(); }   // nullptr = Seite aus oder keine Client-ID
     NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 
@@ -96,7 +97,7 @@ private:
     struct ViewState {
         std::map<std::string,std::map<std::string,plugins::schedule::ZoneState>> cycles;
         std::map<std::string,std::shared_ptr<plugins::FadeCache>> fade_caches;
-        std::map<std::string,uint64_t> cycle_generations;
+        std::map<std::string,std::pair<uint64_t,uint64_t>> cycle_generations;
         double next_deadline = plugins::schedule::never;
         bool animating = false;
         std::optional<double> render_ms;

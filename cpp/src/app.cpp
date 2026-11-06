@@ -240,6 +240,13 @@ bool App::plugin_remove(const std::string& id, std::string& error) {
 }
 
 std::optional<Image> App::plugin_preview(std::string_view manifest, std::string& error) {
+    return plugin_preview(manifest, error, size());
+}
+std::optional<Image> App::plugin_preview(std::string_view manifest, std::string& error, std::pair<int,int> dimensions) {
+    error.clear();
+    if (dimensions.first <= 0 || dimensions.second <= 0 || dimensions.first > 4096 || dimensions.second > 4096) {
+        error = "Invalid preview size."; return std::nullopt;
+    }
     auto result = plugins::parse_manifest(manifest);
     if (!result) { error = result.error; return std::nullopt; }
     plugins::RenderContext context;
@@ -254,7 +261,7 @@ std::optional<Image> App::plugin_preview(std::string_view manifest, std::string&
     auto page = plugins::render_page(*result.manifest, context);
     std::lock_guard draw_lock(render::mutex());
     render::apply_theme(dp_);
-    auto [width, height] = size();
+    auto [width, height] = dimensions;
     return plugins::draw_page(page, width, height, true);
 }
 
@@ -528,7 +535,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
         if (key.rfind("plugin:", 0) == 0) {
             auto installed = plugins_ ? plugins_->find(key.substr(7)) : std::nullopt;
             if (!installed || !installed->enabled) continue;
-            auto manifest = std::move(installed->manifest);
+            auto manifest = installed->effective();
             plugins::RenderContext context;
             if (plugin_settings_) {
                 auto public_settings = plugin_settings_->public_view(manifest);
@@ -562,11 +569,11 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                 return out;
             };
             if (view && manifest.layout && std::any_of(manifest.layout->zones.begin(),manifest.layout->zones.end(),[](const auto& z){return z.cycle.has_value();})) {
-                entry.prepare = [this,view,tick,phone,page,manifest,generation=installed->generation,tile_width=r.width,tile_height=r.height](PageEntry& entry) {
+                entry.prepare = [this,view,tick,phone,page,manifest,generation=installed->generation,layout_revision=installed->layout_revision,tile_width=r.width,tile_height=r.height](PageEntry& entry) {
                     using namespace plugins::schedule;
                     auto& state=view->cycles[manifest.id];
-                    if (view->cycle_generations[manifest.id]!=generation) { plugins::schedule::reset(state,true,false); view->fade_caches.erase(manifest.id); }
-                    view->cycle_generations[manifest.id]=generation;
+                    if (view->cycle_generations[manifest.id]!=std::pair{generation,layout_revision}) { plugins::schedule::reset(state,true,false); view->fade_caches.erase(manifest.id); }
+                    view->cycle_generations[manifest.id]={generation,layout_revision};
                     std::vector<ZoneInput> inputs;
                     for (const auto& z:manifest.layout->zones) if (z.cycle) {
                         ZoneInput input{z.id,z.cycle->mode=="rotate" ? Mode::rotate : Mode::first_available,z.cycle->transition=="fade",{}};
@@ -1264,6 +1271,23 @@ void App::run() {
         };
         actions.set_link_consent = [this](const std::string& id,bool allowed) {
             std::string error; if(!plugin_set_link_consent(id,allowed,error)) throw std::runtime_error(error);
+        };
+        actions.arrangement_get = [this](const std::string& id) {
+            auto result = plugins_ ? plugins_->arrangement_get(id) : plugins::Json();
+            if (result.is_null()) throw std::runtime_error("Plugin nicht verfügbar");
+            return result;
+        };
+        actions.arrangement_apply = [this](const std::string& id, const nlohmann::json& overlay) {
+            if (!plugins_) throw std::runtime_error("Plugin-Bibliothek nicht verfügbar");
+            auto result = plugins_->set_arrangement(id, overlay.dump());
+            if (!result) throw std::runtime_error(result.error);
+            mark_dirty();
+        };
+        actions.arrangement_reset = [this](const std::string& id) {
+            if (!plugins_) throw std::runtime_error("Plugin-Bibliothek nicht verfügbar");
+            auto result = plugins_->clear_arrangement(id);
+            if (!result) throw std::runtime_error(result.error);
+            mark_dirty();
         };
         actions.save_settings = [this](const std::string& id, const nlohmann::json& patch) {
             std::string error;

@@ -374,8 +374,123 @@ static void test_tap() {
     j["links"]={"a.example.org","b.example.org","c.example.org","d.example.org","e.example.org"};CHECK(!parse());
     auto v1=minimal();v1["links"]=Json::array();CHECK(!parse_manifest(v1.dump()));v1.erase("links");v1["widgets"][0]["tap"]={{"action","next"}};CHECK(!parse_manifest(v1.dump()));
 }
+static void test_arrangements() {
+    auto j = fixture(); j["schema_version"] = 2;
+    j["widgets"].erase(j["widgets"].begin()+4, j["widgets"].end());
+    j["layout"] = {{"columns", {1,1}}, {"rows", {1,1}}, {"zones", Json::array()}};
+    for (int i=0; i<4; ++i) {
+        auto id = "zone_" + std::to_string(i);
+        j["layout"]["zones"].push_back({{"id",id},{"column",i%2},{"row",i/2}});
+        j["widgets"][i]["id"] = "block_" + std::to_string(i);
+        j["widgets"][i]["zone"] = id;
+    }
+    auto base = parse_manifest(j.dump()); CHECK(base);
+    if (!base) return;
+    auto a = arrangement_from(*base.manifest);
+    auto merged = merge_arrangement(*base.manifest,a);
+    CHECK(merged && merged.manifest->definition == base.manifest->definition);
+    CHECK(to_json(a) == Json(a));
+    struct Case { const char* name; std::function<void(Json&)> edit; bool valid = false; };
+    const std::vector<Case> cases = {
+        {"unchanged", [](auto&){}, true},
+        {"missing block", [](auto& o){o["blocks"].erase(0);}},
+        {"duplicate block", [](auto& o){o["blocks"][1]=o["blocks"][0];}},
+        {"unknown block", [](auto& o){o["blocks"][0]["id"]="unknown";}},
+        {"unknown zone", [](auto& o){o["blocks"][0]["zone"]="unknown";}},
+        {"all hidden", [](auto& o){for(auto& b:o["blocks"]) b["shown"]=false;}},
+        {"empty zone", [](auto& o){o["blocks"][0]["shown"]=false;}},
+        {"seconds without rotate", [](auto& o){o["blocks"][0]["seconds"]=8;}},
+        {"rotate seconds", [](auto& o){o["layout"]["zones"][0]["cycle"]={{"mode","rotate"}};o["blocks"][0]["seconds"]=3;},true},
+        {"seconds max", [](auto& o){o["layout"]["zones"][0]["cycle"]={{"mode","rotate"}};o["blocks"][0]["seconds"]=600;},true},
+        {"seconds low", [](auto& o){o["blocks"][0]["seconds"]=2;}},
+        {"seconds high", [](auto& o){o["blocks"][0]["seconds"]=601;}},
+        {"seconds float", [](auto& o){o["blocks"][0]["seconds"]=8.0;}},
+        {"overlap", [](auto& o){o["layout"]["zones"][1]["column"]=0;}},
+        {"6x6", [](auto& o){o["layout"]["columns"]={1,1,1,1,1,12};o["layout"]["rows"]={12,1,1,1,1,1};},true},
+        {"7 columns", [](auto& o){o["layout"]["columns"]={1,1,1,1,1,1,1};}},
+        {"7 rows", [](auto& o){o["layout"]["rows"]={1,1,1,1,1,1,1};}},
+        {"zero weight", [](auto& o){o["layout"]["columns"][0]=0;}},
+        {"weight 13", [](auto& o){o["layout"]["rows"][0]=13;}},
+        {"bad span", [](auto& o){o["layout"]["zones"][0]["column_span"]=3;}},
+        {"bad row", [](auto& o){o["layout"]["zones"][0]["row"]=-1;}},
+        {"zone duplicate", [](auto& o){o["layout"]["zones"][1]["id"]="zone_0";}},
+        {"secret condition", [](auto& o){o["blocks"][0]["show_if"]={{"path","settings.token"}};}},
+        {"public condition", [](auto& o){o["blocks"][0]["show_if"]={{"path","settings.city"}};},true},
+        {"source condition", [](auto& o){o["blocks"][0]["show_if"]={{"path","feed.temperature"},{"op",">"},{"value",0}};},true},
+        {"unknown condition", [](auto& o){o["blocks"][0]["show_if"]={{"path","unknown.field"}};}},
+        {"text injection", [](auto& o){o["blocks"][0]["text"]="changed";}},
+        {"type injection", [](auto& o){o["blocks"][0]["type"]="clock";}},
+        {"tap injection", [](auto& o){o["blocks"][0]["tap"]={{"action","next"}};}},
+        {"source injection", [](auto& o){o["sources"]=Json::array();}},
+        {"links injection", [](auto& o){o["links"]={"example.org"};}},
+        {"settings injection", [](auto& o){o["settings"]=Json::array();}},
+        {"shown missing", [](auto& o){o["blocks"][0].erase("shown");}},
+        {"shown number", [](auto& o){o["blocks"][0]["shown"]=1;}},
+        {"bad schema", [](auto& o){o["schema_version"]=2;}},
+        {"float schema", [](auto& o){o["schema_version"]=1.0;}},
+        {"bad fingerprint", [](auto& o){o["manifest_sha256"]="bad";}},
+        {"cycle invalid", [](auto& o){o["layout"]["zones"][0]["cycle"]={{"mode","unknown"}};}},
+        {"four per zone", [](auto& o){o["layout"]["zones"].erase(o["layout"]["zones"].begin()+1,o["layout"]["zones"].end());for(auto& b:o["blocks"])b["zone"]="zone_0";},true},
+        {"reorder", [](auto& o){std::swap(o["blocks"][0],o["blocks"][3]);},true}
+    };
+    for (const auto& c:cases) {
+        auto o=to_json(a); c.edit(o);
+        auto parsed=parse_arrangement(o.dump());
+        const bool ok=parsed && bool(merge_arrangement(*base.manifest,*parsed.arrangement));
+        if(ok!=c.valid) std::printf("Arrangement case: %s\n",c.name);
+        CHECK(ok==c.valid);
+    }
+    CHECK(!parse_arrangement(std::string(arrangement_limit+1,' ')));
+    CHECK(!parse_arrangement("{\"schema_version\":1,\"schema_version\":1}"));
+    auto serialized=to_json(a).dump();
+    serialized.insert(1,"\"schema_version\":1,"); CHECK(!parse_arrangement(serialized));
+    auto v1=parse_manifest(minimal().dump()); CHECK(!merge_arrangement(*v1.manifest,a));
+    auto automatic=j; automatic.erase("layout");
+    for(auto& w:automatic["widgets"])w.erase("zone");
+    auto auto_base=parse_manifest(automatic.dump()); CHECK(auto_base);
+    CHECK(merge_arrangement(*auto_base.manifest,arrangement_from(*auto_base.manifest)));
+    // Gültige Höchstgrenzen: zwölf Blöcke, acht Zonen; fünfter Block in einer Zone scheitert.
+    auto many=j; many["widgets"]=Json::array(); many["layout"]={{"columns",{1,1,1,1}},{"rows",{1,1}},{"zones",Json::array()}};
+    for(int i=0;i<8;++i)many["layout"]["zones"].push_back({{"id","z_"+std::to_string(i)},{"column",i%4},{"row",i/4}});
+    for(int i=0;i<12;++i)many["widgets"].push_back({{"id","b_"+std::to_string(i)},{"zone","z_"+std::to_string(i<8?i:0)},{"type","text"},{"text","Same"}});
+    many["widgets"][11]["zone"]="z_1";
+    auto maximum=parse_manifest(many.dump()); CHECK(maximum);
+    if(maximum) {
+        auto model=arrangement_from(*maximum.manifest); CHECK(merge_arrangement(*maximum.manifest,model));
+        model.blocks[11]["zone"]="z_0"; CHECK(!merge_arrangement(*maximum.manifest,model));
+        model.layout["zones"].push_back({{"id","ninth"},{"column",0},{"row",0}});CHECK(!merge_arrangement(*maximum.manifest,model));
+    }
+    // Ausblenden und Bedingungen werden auch dann geprüft, wenn die Zone belegt bleibt.
+    auto shared=a;
+    shared.layout["zones"].erase(shared.layout["zones"].begin()+1,shared.layout["zones"].end());
+    for(auto& b:shared.blocks)b["zone"]="zone_0";
+    shared.blocks[0]["shown"]=false;
+    auto hidden=merge_arrangement(*base.manifest,shared);
+    CHECK(hidden && hidden.manifest->widgets.size()==3);
+    shared.blocks[0]["show_if"]={{"path","settings.token"}};CHECK(!merge_arrangement(*base.manifest,shared));
+    shared.blocks[0].erase("show_if");shared.blocks[0]["seconds"]=8;CHECK(!merge_arrangement(*base.manifest,shared));
+    j["links"]={"news.example.org"};
+    j["widgets"][1]["tap"]={{"action","open_link"},{"url","https://news.example.org/a"}};
+    j["widgets"][0]["show_if"]={{"path","settings.city"}};
+    j["layout"]["zones"][0]["cycle"]={{"mode","rotate"},{"transition","none"}};
+    j["widgets"][0]["seconds"]=17;
+    auto protected_base=parse_manifest(j.dump());CHECK(protected_base);
+    if(protected_base) {
+        auto model=arrangement_from(*protected_base.manifest);
+        auto unchanged=merge_arrangement(*protected_base.manifest,model);
+        CHECK(unchanged && unchanged.manifest->definition==protected_base.manifest->definition);
+        std::swap(model.blocks[0],model.blocks[1]);auto reordered=merge_arrangement(*protected_base.manifest,model);
+        CHECK(reordered && reordered.manifest->widgets[0].tap && reordered.manifest->widgets[0].tap->url=="https://news.example.org/a");
+        CHECK(reordered && source_fingerprint(*reordered.manifest)==source_fingerprint(*protected_base.manifest));
+        CHECK(reordered && link_fingerprint(*reordered.manifest)==link_fingerprint(*protected_base.manifest));
+    }
+    j["layout"]["zones"][0]["cycle"]={{"mode","rotate"}};
+    j["widgets"][0]["tap"]={{"action","next"}};
+    auto next=parse_manifest(j.dump()); CHECK(next);
+    if(next) {auto model=arrangement_from(*next.manifest);CHECK(merge_arrangement(*next.manifest,model));model.layout["zones"][0].erase("cycle");CHECK(!merge_arrangement(*next.manifest,model));}
+}
 int main() {
-    test_tap(); test_cycle(); test_validation(); test_render(); test_requests(); test_security_hardening(); test_store_metadata();
+    test_arrangements(); test_tap(); test_cycle(); test_validation(); test_render(); test_requests(); test_security_hardening(); test_store_metadata();
     std::printf("plugins: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;
 }

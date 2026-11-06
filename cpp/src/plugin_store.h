@@ -11,8 +11,13 @@ struct Installed {
     Manifest manifest;
     bool enabled = true;
     std::set<std::string> consented_hosts;
-    uint64_t generation = 0; // changes on every mutation; never persisted
+    uint64_t generation = 0; // changes on data/consent mutations; layout uses layout_revision; never persisted
     bool links_allowed = false;
+    std::optional<Manifest> arranged;
+    uint64_t layout_revision = 0; // eigene Revision; Daten und Freigaben bleiben gültig
+    std::optional<Arrangement> arrangement;
+    std::string arrangement_state = "none"; // none | ok | stale | invalid
+    const Manifest& effective() const { return arranged ? *arranged : manifest; }
 };
 struct StoreResult {
     bool ok = false;
@@ -31,6 +36,10 @@ public:
     StoreResult set_host_consent(const std::string& id, const std::string& host, bool allowed);
     StoreResult set_link_consent(const std::string& id, bool allowed);
     bool source_authorized(const std::string& id, const std::string& source_id, uint64_t generation) const;
+    StoreResult set_arrangement(const std::string& id, std::string_view utf8);
+    StoreResult clear_arrangement(const std::string& id);
+    // Konsistenter Schnappschuss einschließlich an die Basis gebundenem Startmodell.
+    Json arrangement_get(const std::string& id) const;
     StoreResult remove(const std::string& id);
     std::vector<Installed> entries() const;
     std::optional<Installed> find(const std::string& id) const;
@@ -41,5 +50,6 @@ private:
     std::map<std::string, Installed> installed_;
     bool loaded_ = false;
     uint64_t generation_ = 0;
+    uint64_t layout_revision_ = 0;
 };
 } // namespace fl::plugins

@@ -52,6 +52,10 @@ struct NativePluginActions {
     std::function<void(const std::string&, const std::string&, bool)> set_host_consent;
     std::function<void(const std::string&, bool)> set_link_consent;
     std::function<void(const std::string&, const nlohmann::json&)> save_settings;
+    // Offline-Anordnung: dieselbe serielle Job-Thread-Regel wie für andere Plugin-Aktionen.
+    std::function<nlohmann::json(const std::string&)> arrangement_get;
+    std::function<void(const std::string&, const nlohmann::json&)> arrangement_apply;
+    std::function<void(const std::string&)> arrangement_reset;
     std::function<void()> open_advanced;
     // Store: all three run on the settings job thread (they may block on the network).
     std::function<NativeStoreState(const std::string& search, const std::string& category)> store_list;

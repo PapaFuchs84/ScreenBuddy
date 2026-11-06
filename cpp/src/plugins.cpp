@@ -574,6 +574,108 @@ ParseResult parse_manifest(std::string_view utf8) {
       catch (const Json::exception&) { return {std::nullopt, "Invalid JSON or JSON value."}; }
 }
 
+Json to_json(const Arrangement& a) {
+    return {{"schema_version", 1}, {"manifest_sha256", a.manifest_sha256},
+        {"layout", a.layout}, {"blocks", a.blocks}};
+}
+void to_json(Json& json, const Arrangement& a) { json = to_json(a); }
+ArrangementResult parse_arrangement(std::string_view utf8) {
+    try {
+        auto parsed = parse_strict_json(utf8, arrangement_limit);
+        require(parsed.has_value(), "Invalid arrangement JSON.");
+        const auto& j = *parsed;
+        fields(j, {"schema_version", "manifest_sha256", "layout", "blocks"});
+        integer(j, "schema_version", 1, 1);
+        auto sha = str(j, "manifest_sha256", 64, 64);
+        require(std::all_of(sha.begin(), sha.end(), [](char c) { return digit(c) || (c >= 'a' && c <= 'f'); }),
+            "Invalid manifest fingerprint.");
+        require(j.contains("layout"), "Missing arrangement layout.");
+        layout(j["layout"]);
+        require(j.contains("blocks") && j["blocks"].is_array() && !j["blocks"].empty() &&
+            j["blocks"].size() <= zones::max_blocks, "Arrangement needs 1 to 12 blocks.");
+        std::set<std::string> ids;
+        for (const auto& b : j["blocks"]) {
+            fields(b, {"id", "zone", "shown", "seconds", "show_if"});
+            auto id = str(b, "id");
+            require(identifier(id) && ids.insert(id).second, "Invalid or duplicate block ID.");
+            require(identifier(str(b, "zone")), "Invalid block zone.");
+            require(b.contains("shown") && b["shown"].is_boolean(), "Missing or invalid shown flag.");
+            if (b.contains("seconds")) integer(b, "seconds", 3, 600);
+            if (b.contains("show_if")) fields(b["show_if"], {"path", "op", "value"});
+        }
+        return {Arrangement{sha, j["layout"], j["blocks"]}, {}};
+    } catch (const Invalid& e) { return {std::nullopt, e.what()}; }
+      catch (const Json::exception&) { return {std::nullopt, "Invalid arrangement value."}; }
+}
+Arrangement arrangement_from(const Manifest& base, std::string sha) {
+    // Ohne Store-Bindung nur ein Entwurfsmodell; der Store liefert den echten Fingerabdruck.
+    if (sha.empty()) sha.assign(64, '0');
+    Arrangement a{std::move(sha), Json(), Json::array()};
+    if (base.schema_version != 2) return a;
+    if (base.layout) a.layout = base.definition.at("layout");
+    else {
+        a.layout = {{"columns", {1}}, {"rows", Json::array()}, {"zones", Json::array()}};
+        for (size_t i = 0; i < base.widgets.size(); ++i) {
+            a.layout["rows"].push_back(1);
+            a.layout["zones"].push_back({{"id", "zone_" + std::to_string(i)}, {"column", 0}, {"row", i}});
+        }
+    }
+    for (size_t i = 0; i < base.widgets.size(); ++i) {
+        const auto& w = base.definition.at("widgets").at(i);
+        Json b = {{"id", w.at("id")}, {"zone", base.layout ? w.at("zone") : Json("zone_" + std::to_string(i))}, {"shown", true}};
+        for (auto key : {"seconds", "show_if"}) if (w.contains(key)) b[key] = w[key];
+        a.blocks.push_back(std::move(b));
+    }
+    return a;
+}
+ParseResult merge_arrangement(const Manifest& base, const Arrangement& input) {
+    try {
+        require(base.schema_version == 2, "Arrangement requires manifest v2.");
+        // Auch programmatisch erstellte Modelle passieren die strikte Feld- und Größenprüfung.
+        auto checked = parse_arrangement(to_json(input).dump());
+        require(bool(checked), "Invalid arrangement.");
+        const auto& a = *checked.arrangement;
+        auto l = layout(a.layout);
+        require(a.blocks.size() == base.widgets.size(), "Arrangement must contain every block exactly once.");
+        Json merged = base.definition;
+        merged["layout"] = a.layout;
+        merged["widgets"] = Json::array();
+        for (const auto& b : a.blocks) {
+            auto original = std::find_if(base.definition.at("widgets").begin(), base.definition.at("widgets").end(),
+                [&](const Json& w) { return w.at("id") == b.at("id"); });
+            require(original != base.definition.at("widgets").end(), "Unknown arrangement block.");
+            auto z = std::find_if(l.zones.begin(), l.zones.end(), [&](const auto& z) { return z.id == b.at("zone").get_ref<const std::string&>(); });
+            require(z != l.zones.end(), "Block references an unknown zone.");
+            if (b.contains("show_if")) condition(base, b["show_if"]);
+            if (b.contains("seconds")) require(z->cycle && z->cycle->mode == "rotate", "Seconds requires a rotate zone.");
+            if (!b.at("shown").get<bool>()) continue;
+            auto w = *original;
+            for (auto key : {"zone", "seconds", "show_if"}) {
+                w.erase(key);
+                if (b.contains(key)) w[key] = b[key];
+            }
+            merged["widgets"].push_back(std::move(w));
+        }
+        auto result = parse_manifest(merged.dump());
+        if (!result) return result;
+        const auto& effective = *result.manifest;
+        require(source_fingerprint(effective) == source_fingerprint(base) &&
+            link_fingerprint(effective) == link_fingerprint(base), "Arrangement changed permissions.");
+        auto before = base.definition, after = effective.definition;
+        for (auto key : {"layout", "widgets"}) { before.erase(key); after.erase(key); }
+        require(before == after, "Arrangement changed manifest contents.");
+        for (const auto& w : effective.definition.at("widgets")) {
+            auto original = std::find_if(base.definition.at("widgets").begin(), base.definition.at("widgets").end(),
+                [&](const Json& b) { return b.at("id") == w.at("id"); });
+            auto b = *original, e = w;
+            for (auto key : {"zone", "seconds", "show_if"}) { b.erase(key); e.erase(key); }
+            require(b == e, "Arrangement changed block contents.");
+        }
+        return result;
+    } catch (const Invalid& e) { return {std::nullopt, e.what()}; }
+      catch (const Json::exception&) { return {std::nullopt, "Invalid arrangement value."}; }
+}
+
 DataResult parse_source_data(std::string_view utf8) {
     try {
         auto j = parse_bounded(utf8, response_limit);

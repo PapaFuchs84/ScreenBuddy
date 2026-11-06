@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- P6-1/P6-2 (2026-11-06): Strikt geprüftes v2-Anordnungs-Overlay, atomare Speicherung mit Vorgänger-Backup und Fingerabdruckbindung; Anwendung ohne Manifeständerung, Neustart oder Verlust von Freigaben/Live-Daten. Separate Layoutrevision, veraltete/beschädigte Overlays nutzen die Basis; App-Rückrufe und Vorschaugröße vorbereitet. Editoroberfläche und physische Abnahme folgen separat. Prüfstand: `TESTPROTOKOLL.md`.
+
 - P5-2 (2026-11-06): Streaming wie RSS auf `draw_framed`, Zeilen-/Hinweisblöcke und gemeinsame feste Zeichen-/Trefferanordnung umgestellt; Fußzeile rein aus Zustand/Zeitstempel. Built-in: 4.221 Bilder + 4.221 Trefferkarten bitgleich (0 Fehler); Plugin-Snapshots 1.901/0, plugin-touch 2.093/0. Baselines und andere Seiten unverändert.
 - P5-3 (2026-11-06): BF6 mechanisch wie RSS auf `draw_framed` mit festen Zeilen-/Hinweisblöcken umgestellt; Sortierung, Seitenindex, Fußtext und bestehende gemeinsame Zeilen-/Treffergeometrie beibehalten. Bitgleich bestätigt: 4.221 Bilder und 4.221 Trefferkarten, 0 Fehler; Plugin-Snapshots 1.901/0, Plugin-Touch 2.093/0. Alle vier angeforderten Release-Ziele gebaut; Baselines unverändert, physische Abnahme offen.
 

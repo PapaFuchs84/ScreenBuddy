@@ -75,6 +75,23 @@ struct ParseResult {
     std::string error; // fixed diagnostics; never includes manifest values or secrets
     explicit operator bool() const { return manifest.has_value(); }
 };
+// Getrenntes Layout-Overlay; JSON erhält auch explizit ausgelassene optionale Felder.
+inline constexpr size_t arrangement_limit = 16 * 1024;
+struct Arrangement {
+    std::string manifest_sha256;
+    Json layout, blocks;
+};
+struct ArrangementResult {
+    std::optional<Arrangement> arrangement;
+    std::string error;
+    explicit operator bool() const { return arrangement.has_value(); }
+};
+ArrangementResult parse_arrangement(std::string_view utf8);
+ParseResult merge_arrangement(const Manifest& base, const Arrangement& arrangement);
+// Ohne SHA entsteht ein reines Entwurfsmodell (Null-Fingerabdruck); Store::arrangement_get bindet die Basis.
+Arrangement arrangement_from(const Manifest& base, std::string manifest_sha256 = {});
+Json to_json(const Arrangement& arrangement);
+void to_json(Json& json, const Arrangement& arrangement);
 struct DataResult {
     std::optional<Json> data;
     std::string error;

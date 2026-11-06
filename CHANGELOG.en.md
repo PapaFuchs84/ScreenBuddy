@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+- P6-1/P6-2 (2026-11-06): Strictly validated v2 arrangement overlay, atomic persistence with predecessor backup and manifest fingerprint binding; applied without changing the manifest, restarting, or losing consent/live data. Separate layout revision; stale/corrupt overlays fall back to the base. App callbacks and sized preview prepared; editor UI and physical acceptance follow separately. Validation: `cpp/TESTPROTOKOLL.md`.
+
 - P5-2 (2026-11-06): Migrated Streaming using the RSS pattern: `draw_framed`, row/message blocks and a shared fixed drawing/hit layout; pure footer from state/timestamp. Built-in: 4,221 images + 4,221 hit maps bit-exact (0 failures); plugin snapshots 1,901/0, plugin-touch 2,093/0. Baselines and other pages unchanged.
 - P5-3 (2026-11-06): Mechanically migrated BF6 to `draw_framed` with fixed row/message blocks following RSS; preserved sorting, bound page index, footer text and existing shared row/hit geometry. Bit equality confirmed: 4,221 images and 4,221 hit maps, 0 errors; plugin snapshots 1,901/0, plugin touch 2,093/0. All four requested Release targets built; baselines unchanged, physical acceptance pending.
 

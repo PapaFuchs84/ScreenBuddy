@@ -1,5 +1,30 @@
 # Testprotokoll – Stand 06.11.2026
 
+## P6-1/P6-2 – Overlay, Store und App (06.11.2026)
+
+Basis `ba22173`, Hauptcheckout `feature/zonen-layout`; nur die Paketdateien und die ausdrücklich angeforderten fünf Dokumentationsdateien geändert. Clean-Room: ausschließlich Entwurf und ScreenBuddy-Code, kein libre-panel-Code. Kein Commit/Push/Branchwechsel, Netz, Portzugriff auf 8765, Audio oder `run_release_checks.py`.
+
+Build: vorhandene Vorlage `build/store/p5-0-validation/build.cmd`, VS Build Tools/vcvars64 und CMake/Ninja unter `build/store`; alle Ziele der Vorlage einschließlich ScreenBuddy erfolgreich (Exit 0; bekannte `vswhere.exe`-Meldung ohne Abbruch). Kein Installations-/Release-Artefakt exportiert.
+
+| Einzeln gestartete Suite | Bestanden / Fehler |
+|---|---|
+| Parser `fl-plugin-tests` | 380 / 0; neue Tabelle mit 40 Overlay-Fällen plus ergänzende Prüfungen |
+| Speicher `fl-plugin-store-tests` | 422 / 0 |
+| Transport `fl-plugin-transport-tests` | 140 / 0; Abbruch-/Validierungsfälle und Testtransport, kein Netz |
+| Settings `fl-plugin-settings-tests` | 135 / 0 |
+| Zonen `fl-plugin-zones-tests` | 462 / 0; zusätzlich 2 × 4.000 feste Fuzz-Fälle |
+| Beispiele `fl-plugin-example-tests` | 124 / 0 |
+| Wechselfeld `fl-plugin-schedule-tests` | 845 / 0 |
+| `fl-tests plugin-touch` | 2.093 / 0 |
+| Plugin-Snapshots | 1.901 / 0 |
+| Built-in-Snapshots | 4.221 Bilder + 4.221 Trefferkarten / 0 Fehler |
+
+Prüfungen ohne Sandbox, Roboto sichtbar. Snapshot-Dateien und beide `hashes.txt` unverändert. Neue Fälle belegen unter anderem unveränderte Manifest-/Freigabedateien und `generation`, gültige Host-/Linkfreigaben, eigene Layoutrevision, Laden ohne/mit/veraltetem/beschädigtem Overlay, Basiswechsel nach Plugin-Update, Vorgänger-Backup, Reset/Remove, 32 Plugins mit je sechs Dateien sowie die 256-Einträge-Grenze. Ein offener Windows-Dateihandle erlaubt das Backup-Lesen, verhindert aber den atomaren Austausch: alte Datei, wirksame Anordnung und Revision bleiben erhalten. Zusätzlich Backupfehler, Hard-/Symlinks an aktiver Datei und Backup sowie vier gleichzeitige Store-Aufrufe geprüft; keine übersprungenen Linkfälle.
+
+Entscheidungen: `layout_revision` statt Erhöhen von `generation`; auch ausgeblendete Blöcke müssen gültige Zonen/Bedingungen/Wechselzeiten haben. Beschädigte Overlays erhalten zusätzlich den Zustand `invalid` und führen zu einer Teil-Lademeldung, während die Basis nutzbar bleibt; `stale` bleibt separat und die Datei erhalten. Reset entfernt zuerst das Backup und dann die aktive Datei; ein fehlgeschlagenes Schreiben ändert den Speicherstand nicht. Reine `arrangement_from`-Entwürfe ohne übergebenen SHA tragen einen Null-Fingerabdruck; `Store::arrangement_get` liefert das an die aktuelle Basis gebundene Startmodell. Vorschaugrößen werden vor dem Rendern auf 1..4096 je Achse begrenzt.
+
+App-Anbindung und Vorschauüberladung erfolgreich gebaut; Editoroberfläche (P6-3 ff.), tatsächliche Job-/UI-Bedienung und physische Abnahme auf USB/Monitor/Companion bleiben offen. Kein vollständiger `fl-tests`-Lauf und keine Hardwaretests.
+
 - P5-2 (06.11.2026, Branch `p5/streaming`, Basis `b1d9c59`): Nur Streaming mechanisch nach RSS-Muster migriert; gemeinsame feste Anordnung für Zeichnen und `row_at`, Zeilen-/Hinweisblöcke, reine Fußzeilenfunktion, unveränderter Logo-/Kürzel-Zeichenkörper. Release mit VS Build Tools/vcvars64, CMake/Ninja, lokaler vcpkg-Installation und `x64-windows-static` in diesem Worktree unter `build/store` konfiguriert; nur ScreenBuddy, fl-builtin-snapshot-tests, fl-plugin-snapshot-tests und fl-tests gebaut (Exit 0; bekannte vswhere-/getenv-Warnungen). Aus dem `cpp`-Ordner ohne Sandbox, Roboto sichtbar: Built-in **4.221 Bilder + 4.221 Trefferkarten, 0 Fehler**, Plugin-Snapshots **1.901 bestanden, 0 Fehler**, `fl-tests plugin-touch` **2.093 bestanden, 0 Fehler** (einschließlich Streaming-`row_at`). Beide Baselines unverändert; Quellvergleich bestätigt unveränderten Code vor/nach Streaming einschließlich HA. Kein vollständiger fl-tests-Lauf, keine physischen Tests, kein Netz, Port 8765, Audio, Release-Prüfskript, Veröffentlichung oder Push.
 
 - P5-1 (06.11.2026): Alle Ziele mit `vcvars64.bat`/CMake in `build/store` vollständig neu gebaut (`--clean-first`, 149 Schritte, Exit 0; bekannte vswhere-/getenv-Warnungen). Einzeln grün: Plugin-Snapshots 1.901/0, Parser 316/0, `fl-tests plugin-touch` 2.093/0, Zonen 462/0 + 2 × 4.000 Fuzz-Fälle, Beispiele 124/0. Quellvergleich: außerhalb RSS unveränderter Zeichencode; RSS-Kopf → Alter/Quelle/Titel/Trennlinie je Zeile → Fuß → finish, unveränderte Schriften, `floordiv`, `top + i * rh`, Versätze und Trefferdivision; kein `zones::plan`, Clip oder Catch. Beide Snapshot-Baselines unverändert. Built-in-Test wegen in der Sandbox unsichtbarem Roboto ausdrücklich nicht gestartet: sämtliche Built-in-Bild-/Trefferkarten-Hashes und physische Abnahme extern offen. Kein Netzwerk, Port 8765, Audio, Release-Prüfskript, Commit, Push oder Branchwechsel.
