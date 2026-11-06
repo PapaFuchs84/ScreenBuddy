@@ -31,7 +31,7 @@ Catalog make(std::string key, Label label, std::vector<BlockSpec> blocks) {
         }
     }
     c.portrait=c.standard;
-    c.enabled=c.key=="rss";
+    c.enabled=(c.key=="rss" || c.key=="streaming" || c.key=="bf6" || c.key=="friends" || c.key=="discord");
     return c;
 }
 BlockSpec spec(std::string id, Label label, bool required=false, std::string action={}) {

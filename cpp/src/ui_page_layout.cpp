@@ -228,7 +228,7 @@ private:
         op_->on_change=type_->on_change=[this] { text_pending(); };
         bc->add<ButtonRow>()->add(T(L"Bedingung bestätigen",L"Confirm condition"),Button::Secondary,[this] { commit_block(); });
         if(catalog_) for(size_t i=2;i<bc->items.size();++i) bc->items[i]->visible=false;
-        auto pv=body_->add<Card>(T(L"Live-Vorschau",L"Live preview"),catalog_?T(L"RSS-Beispieldaten, derselbe Renderer wie auf dem Display. Kopf und Fuß sind fest.",L"RSS sample data, the same renderer as on the display. Header and footer are fixed."):T(L"Beispieldaten aus dem Plugin, derselbe Seitenrenderer wie auf dem Display.",L"Plugin sample data, the same page renderer as on the display."));
+        auto pv=body_->add<Card>(T(L"Live-Vorschau",L"Live preview"),catalog_?T(L"Beispieldaten der Seite, derselbe Renderer wie auf dem Display. Kopf und Fuß sind fest.",L"Page sample data, the same renderer as on the display. Header and footer are fixed."):T(L"Beispieldaten aus dem Plugin, derselbe Seitenrenderer wie auf dem Display.",L"Plugin sample data, the same page renderer as on the display."));
         auto orientation=pv->row<Segment>(T(L"Ausrichtung",L"Orientation"),Text(),std::vector<Text>{T(L"Quer",L"Landscape"),T(L"Hoch",L"Portrait")},portrait_?1:0);
         orientation->on_change=[this,orientation] {
             if(grid_ && grid_->carrying()) grid_->cancel(host_->surface());

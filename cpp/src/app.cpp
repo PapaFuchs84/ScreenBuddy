@@ -454,17 +454,17 @@ std::optional<Image> App::page_preview(const std::string& key,const nlohmann::js
     error.clear(); const auto c=builtin::find(key);
     if(!c) { error="Unknown built-in page."; return {}; }
     auto parsed=builtin::parse(*c,overlay.dump()); if(!parsed) {error=parsed.error;return {};}
-    if(key!="rss" && !builtin::is_standard(*c,*parsed.overlay)) {error="Built-in arranged renderer is not enabled yet.";return {};}
+    if(!c->enabled && !builtin::is_standard(*c,*parsed.overlay)) {error="Built-in arranged renderer is not enabled yet.";return {};}
     const auto [width,height]=dimensions;
     if(width<1 || height<1 || width>4096 || height>4096) {error="Invalid preview size.";return {};}
     std::lock_guard lock(render::mutex()); render::apply_theme(dp_);
     // Dieselben Renderer und fest eingefrorenen Daten wie im Built-in-Baseline-Test.
     RendererSet rs(width,height,cfg_); using namespace render::samples;
     if(key=="rss") return rs.rss.render_arranged(posts(i18n::lang()),CLOCK,*parsed.overlay,0,CLOCK).image;
-    if(key=="streaming") {auto logos=stream_logos();return rs.stream.render(tmdb::State::Ok,stream(),CLOCK,CLOCK,&logos);}
-    if(key=="bf6") return rs.bf6.render(players(),0,CLOCK,CLOCK);
-    if(key=="friends") return rs.friends.render_friends(render::samples::friends(),0,true,"",CLOCK);
-    if(key=="discord") return rs.discord.render_friends(render::samples::friends(),0,true,"",CLOCK);
+    if(key=="streaming") {auto logos=stream_logos();return rs.stream.render_arranged(tmdb::State::Ok,stream(),CLOCK,*parsed.overlay,0,CLOCK,&logos).image;}
+    if(key=="bf6") return rs.bf6.render_arranged(players(),CLOCK,*parsed.overlay,0,CLOCK).image;
+    if(key=="friends") return rs.friends.render_friends_arranged(render::samples::friends(),true,"",*parsed.overlay,0,CLOCK).image;
+    if(key=="discord") return rs.discord.render_friends_arranged(render::samples::friends(),true,"",*parsed.overlay,0,CLOCK).image;
     if(key=="system") return rs.system.render(system(),CLOCK);
     if(key=="spotify") return rs.spotify.render(render::samples::spotify(),1000,nullptr,0,false,CLOCK);
     error="Unknown built-in page.";return {};
@@ -839,27 +839,77 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             out.push_back(std::move(pe));
         } else if (key == "discord") {
             std::string st = discord_->status();
+            auto arrangement=builtin_layouts_->get(key).overlay;
+            if(!arrangement || !r.discord.uses_friends_arrangement(*arrangement)) {
             out.push_back({key, r.discord.pages(friends.size()), [friends, st](int i, RendererSet& rs) {
                                return rs.discord.render_friends(friends, i, st.empty(), st);
                            }, [friends, st](int i, RendererSet& rs) {
                                return st.empty() ? touch::friend_rows(friends, i, rs.discord.rows_per_page()) : touch::Rows{};
                            }});
+            } else {
+                const auto sorted=render::sort_friends(friends);
+                const bool connected=st.empty();
+                PageEntry entry{key,connected?r.discord.friend_pages(sorted.size(),*arrangement):1,{}};
+                entry.builtin_draw=[sorted,connected,st,arrangement](int page,RendererSet& rs) {
+                    auto drawn=rs.discord.render_friends_arranged(sorted,connected,st,*arrangement,page);
+                    std::vector<touch::ArrangedTarget> targets;
+                    // Profilziele stammen ausschließlich vom gezeichneten sortierten Schnappschuss.
+                    for(const auto& target:drawn.targets)
+                        targets.push_back({target.rect_px,touch::friend_targets(sorted.at(target.item)),{}});
+                    return std::pair{std::move(drawn.image),std::move(targets)};
+                };
+                entry.fn=[sorted,connected,st,arrangement](int page,RendererSet& rs){return rs.discord.render_friends_arranged(sorted,connected,st,*arrangement,page).image;};
+                out.push_back(std::move(entry));
+            }
         } else if (key == "friends") {
             std::string msg = friends_message();
             bool bad = !msg.empty() && people.empty();
+            auto arrangement=builtin_layouts_->get(key).overlay;
+            if(!arrangement || !r.friends.uses_friends_arrangement(*arrangement)) {
             out.push_back({key, r.friends.pages(people.size()), [people, msg, bad](int i, RendererSet& rs) {
                                return rs.friends.render_friends(people, i, !bad, msg);
                            }, [people, bad](int i, RendererSet& rs) {
                                return bad ? touch::Rows{} : touch::friend_rows(people, i, rs.friends.rows_per_page());
                            }});
+            } else {
+                const auto sorted=render::sort_friends(people);
+                const bool connected=!bad;
+                PageEntry entry{key,connected?r.friends.friend_pages(sorted.size(),*arrangement):1,{}};
+                entry.builtin_draw=[sorted,connected,msg,arrangement](int page,RendererSet& rs) {
+                    auto drawn=rs.friends.render_friends_arranged(sorted,connected,msg,*arrangement,page);
+                    std::vector<touch::ArrangedTarget> targets;
+                    // Profilziele stammen ausschließlich vom gezeichneten sortierten Schnappschuss.
+                    for(const auto& target:drawn.targets)
+                        targets.push_back({target.rect_px,touch::friend_targets(sorted.at(target.item)),{}});
+                    return std::pair{std::move(drawn.image),std::move(targets)};
+                };
+                entry.fn=[sorted,connected,msg,arrangement](int page,RendererSet& rs){return rs.friends.render_friends_arranged(sorted,connected,msg,*arrangement,page).image;};
+                out.push_back(std::move(entry));
+            }
         } else if (key == "bf6") {
             auto players = bf6_->players();
             auto updated = bf6_->updated();
+            auto arrangement=builtin_layouts_->get(key).overlay;
+            if(!arrangement || !r.bf6.uses_arrangement(*arrangement)) {
             out.push_back({key, r.bf6.pages(players.size()), [players, updated](int i, RendererSet& rs) {
                                return rs.bf6.render(players, i, updated);
                            }, [players, updated](int i, RendererSet& rs) {
                                return updated ? touch::player_rows(players, i, rs.bf6.rows_per_page()) : touch::Rows{};
                            }});
+            } else {
+                // Derselbe sortierte Schnappschuss für Rangfolge, Zeichnen und Spielerlinks.
+                players=render::sort_players(std::move(players));
+                PageEntry entry{key,updated?r.bf6.pages(players.size(),*arrangement):1,{}};
+                entry.builtin_draw=[players,updated,arrangement](int page,RendererSet& rs) {
+                    auto drawn=rs.bf6.render_arranged(players,updated,*arrangement,page);
+                    std::vector<touch::ArrangedTarget> targets;
+                    for(const auto& target:drawn.targets)
+                        targets.push_back({target.rect_px,touch::player_targets(players.at(target.item)),{}});
+                    return std::pair{std::move(drawn.image),std::move(targets)};
+                };
+                entry.fn=[players,updated,arrangement](int page,RendererSet& rs){return rs.bf6.render_arranged(players,updated,*arrangement,page).image;};
+                out.push_back(std::move(entry));
+            }
         } else if (key == "homeassistant") {
             auto entities = ha_->entities();
             std::string err = ha_->status();
@@ -902,8 +952,25 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             out.push_back(std::move(pe));
         } else if (key == "streaming") {
             auto snap = streaming_->snapshot();
+            auto arrangement=builtin_layouts_->get(key).overlay;
+            if(!arrangement || !r.stream.uses_arrangement(*arrangement)) {
             out.push_back({key, 1, [snap](int, RendererSet& rs) { return rs.stream.render(snap.state, snap.items, snap.updated, 0, &snap.logos); },
                 [snap](int, RendererSet&) { return snap.state == tmdb::State::Ok ? touch::stream_rows(snap.items) : touch::Rows{}; }});
+            } else {
+                PageEntry entry{key,snap.state==tmdb::State::Ok?r.stream.pages(snap.items.size(),*arrangement):1,{}};
+                entry.builtin_draw=[snap,arrangement](int page,RendererSet& rs) {
+                    auto drawn=rs.stream.render_arranged(snap.state,snap.items,snap.updated,*arrangement,page,0,&snap.logos);
+                    std::vector<touch::ArrangedTarget> targets;
+                    // Ziele bleiben an den gezeichneten Titel-Schnappschuss gebunden (Film/Serie).
+                    for(const auto& target:drawn.targets) {
+                        auto links=touch::stream_rows({snap.items.at(target.item)});
+                        targets.push_back({target.rect_px,links.empty()?touch::Targets{}:std::move(links.front()),{}});
+                    }
+                    return std::pair{std::move(drawn.image),std::move(targets)};
+                };
+                entry.fn=[snap,arrangement](int page,RendererSet& rs){return rs.stream.render_arranged(snap.state,snap.items,snap.updated,*arrangement,page,0,&snap.logos).image;};
+                out.push_back(std::move(entry));
+            }
         } else if (key == "rss") {
             auto posts = rss_->posts();
             auto updated = rss_->updated();

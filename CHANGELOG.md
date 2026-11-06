@@ -12,6 +12,13 @@ P7-6 (2026-11-06, Agent Codex CLI 0.166.0): Atomare Seitenlayouts mit Backup/Rev
 
 P7-7 (2026-11-06, Agent Codex CLI 0.166.0): RSS-Editor mit Beiträge/Pflicht-Zustand, getrennten Quer-/Hochlayouts in `layouts/builtin.rss.layout.json`; Öffnen/Übernehmen von Standard behält den pixelgleichen festen Weg, echte Änderungen nutzen das Raster (Abstände können sich ändern, E2). Zurücksetzen stellt Standard her; Zeilen, Blättern und Touch teilen einen Plan. Kopf/Fuß fest; Built-in-Wechselfelder und HA später. 14 Suiten grün (Katalog 217, Editor 874, Kern 3.470; Companion offline 250); bestehende Baselines bitgleich, zusätzlich 1.024 RSS-Bilder/Trefferkarten und 5.952 Prüfungen ohne Fehler; Hardware offen.
 
+P7-8 (2026-11-06, Agent Codex CLI 0.166.0): Streaming in der Seitenauswahl; Titel/Pflicht-Zustand aus dem vorhandenen Schnappschuss, seitenbezogenes Quer-/Hoch-Overlay, Blättern und Touch aus einem Rasterplan. Standard/Zurücksetzen behalten den festen Weg; TMDB / JustWatch bleibt im Fuß; kompakte Zeilen ohne Datum. 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, 1.792 neue Rasterbilder/Trefferkarten additiv, 6.267 Prüfungen/0; Hardware offen.
+
+P7-9 (2026-11-06, Agent Codex CLI 0.166.0): BF6 in der Seitenauswahl; Rangliste/Pflicht-Zustand, sortierter Schnappschuss, seitenbezogenes Quer-/Hoch-Overlay. Rasterkapazität steuert Blättern und Spielerlinks; kompakte Zeilen zeigen Name, K/D, Rang oder Fehler. Standard/Zurücksetzen bleiben pixelgleich. 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, 1.024 neue Rasterbilder/Trefferkarten additiv, 4.390 Prüfungen/0; Hardware offen.
+
+P7-10 (2026-11-06, Agent Codex CLI 0.166.0): Freunde und Discord in der Seitenauswahl; gemeinsamer Freunde/Pflicht-Zustand-Katalog und sortierte Schnappschüsse, getrennte Overlays `builtin.friends.layout.json` / `builtin.discord.layout.json`, Backups und Revisionen. Rasterzeilen, Blättern und Profilziele aus einem Plan; schmale kompakte Zeilen ohne Avatar/Marken. Standard/Zurücksetzen bleiben pixelgleich (E2 akzeptiert). 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, je 1.024 Rasterbilder/Trefferkarten additiv, zusammen 8.622 Prüfungen/0; Hardware offen.
+
+
 ### 2.10.0 – in Vorbereitung (nicht veröffentlicht)
 
 Noch kein Release, kein Tag, keine EXE-Auslieferung. Hardware-, Oberflächen- und Companion-Abnahmen sowie der APK-Build stehen aus; siehe „Entwicklungsstand“ unten.

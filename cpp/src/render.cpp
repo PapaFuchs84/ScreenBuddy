@@ -385,6 +385,7 @@ public:
         return {renderer_.h > renderer_.w ? 320.f : 480.f, (float)row_height()};
     }
     void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override;
+    void draw_arranged(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density density) const;
 private:
     float badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) const;
     void avatar(Canvas& d, const Friend& f, float x, float y, bool faded) const;
@@ -514,6 +515,139 @@ void Renderer::FriendRowBlock::draw(Canvas& d, const plugins::zones::Rect& area,
     d.line({{tx, y + row_height() - 1}, {renderer_.w - 10, y + row_height() - 1}}, t.line, 1);
 }
 
+void Renderer::FriendRowBlock::draw_arranged(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density density) const {
+    const auto& f = friend_;
+    float x=area.x, y=area.y;
+    const Theme& t = g_theme;
+    float ax=x+10, ay=y+(area.height-AVATAR)/2;
+    const float l1 = y + area.height / 2.f - 9, l2 = l1 + 18;   // zwei Zeilen vertikal zentriert (44: 13/31)
+    // Kompakt in schmalen Zonen: Statusfarbe, Name und Aktivität ohne Avatar.
+    if(density==plugins::zones::Density::compact && area.width<240) {
+        const Color status=g_theme.status.count(f.status)?g_theme.status.at(f.status):g_theme.status.at("offline");
+        d.ellipse(x+8,y+8,x+16,y+16,status);
+        d.text(x+22,y+13,renderer_.fit(d,f.name,renderer_.f_name,area.width-30),renderer_.f_name,t.text,"lm");
+        const auto detail=f.activity.empty()?(STATUS_LABEL.count(f.status)?STATUS_LABEL.at(f.status):f.status):f.activity;
+        d.text(x+8,y+31,renderer_.fit(d,detail,renderer_.f_act,area.width-16),renderer_.f_act,t.muted,"lm");
+        d.line({{x+8,y+area.height-1},{x+area.width-8,y+area.height-1}},t.line,1);
+        return;
+    }
+    avatar(d, f, ax, ay, f.status == "offline");
+    // Statuspunkt unten rechts am Avatar, wie in Discord
+    float r = 6, cx = ax + AVATAR - 4, cy = ay + AVATAR - 4;
+    d.ellipse(cx - r - 2, cy - r - 2, cx + r + 2, cy + r + 2, t.bg);
+    Color col = t.status.count(f.status) ? t.status.at(f.status) : t.status.at("offline");
+    if (f.mobile && f.status != "offline") {  // Handy-Symbol statt Punkt
+        d.rounded_rectangle(cx - 4, cy - r, cx + 4, cy + r, 2, col);
+        d.rectangle(cx - 2, cy - r + 2, cx + 2, cy + r - 4, t.bg);
+    } else {
+        d.ellipse(cx - r, cy - r, cx + r, cy + r, col);
+        if (f.status == "idle") d.ellipse(cx - r - 1, cy - r - 1, cx + 1, cy + 1, t.bg);
+        else if (f.status == "dnd") d.rectangle(cx - 4, cy - 1, cx + 4, cy + 1, t.bg);
+        else if (f.status == "offline") d.ellipse(cx - 3, cy - 3, cx + 3, cy + 3, t.bg);
+    }
+    float tx = ax + AVATAR + 12;
+    float max_w = x+area.width-tx-10;
+    if (f.platforms.size() > 1 || (f.platforms.size() == 1 && f.platforms[0] != "discord"))
+        max_w -= badges(d, f.platforms, x+area.width-10, l1);
+    Color name_col = f.status != "offline" ? t.text : t.muted;
+    std::string line2 = !f.activity.empty() ? f.activity : (STATUS_LABEL.count(f.status) ? STATUS_LABEL.at(f.status) : "");
+    if (!line2.empty()) {
+        d.text(tx, l1, renderer_.fit(d, f.name, renderer_.f_name, max_w), renderer_.f_name, name_col, "lm");
+        Color act_col = starts_with_any(f.activity, {"Spielt", "Streamt"}) ? t.accent : t.muted;
+        d.text(tx, l2, renderer_.fit(d, line2, renderer_.f_act, max_w), renderer_.f_act, act_col, "lm");
+    } else {
+        d.text(tx, y + area.height / 2, renderer_.fit(d, f.name, renderer_.f_name, max_w), renderer_.f_name, name_col, "lm");
+    }
+    d.line({{tx, y + area.height - 1}, {x+area.width-10, y + area.height - 1}}, t.line, 1);
+}
+
+// Rasterweg ausschließlich nach einer echten Änderung; Standard bleibt oben unverändert.
+plugins::zones::Plan Renderer::friend_arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    const auto layout=plugins::edit::geometry(model);
+    if(!layout) return {};
+    return plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("friends"),model),6);
+}
+bool Renderer::uses_friends_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("friends"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+int Renderer::friend_arranged_rows(const builtin::Overlay& overlay) const {
+    if(!uses_friends_arrangement(overlay)) return rows_per_page();
+    for(const auto& b:friend_arrangement(overlay).blocks) if(b.id=="freunde.liste" && b.visible())
+        return std::clamp(int(b.area.height/(*b.density==plugins::zones::Density::compact?44.f:66.f)),1,rows_per_page());
+    return 0;
+}
+int Renderer::friend_pages(size_t items,const builtin::Overlay& overlay) const {
+    const int per=friend_arranged_rows(overlay);
+    return per?std::max(1,int((items+per-1)/per)):1;
+}
+class Renderer::FriendListBlock : public plugins::zones::Block {
+public:
+    FriendListBlock(Renderer& r,const std::vector<Friend>& friends,int page,int per,std::time_t now)
+        :r_(r),friends_(friends),page_(page),per_(per),now_(now) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("friends")->blocks.front().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density density) const override {
+        const size_t start=size_t(page_)*per_,count=start<friends_.size()?std::min(size_t(per_),friends_.size()-start):0;
+        for(size_t i=0;i<count;++i) {
+            const float top=area.y+std::floor(area.height*i/per_);
+            const float bottom=area.y+std::floor(area.height*(i+1)/per_);
+            FriendRowBlock row(r_,friends_[start+i],int(i));
+            row.draw_arranged(d,{area.x,top,area.width,bottom-top},density);
+        }
+    }
+private:
+    Renderer& r_;const std::vector<Friend>& friends_;int page_,per_;std::time_t now_;
+    std::string id_="freunde.liste";
+};
+class Renderer::FriendArrangedHintBlock : public plugins::zones::Block {
+public:
+    FriendArrangedHintBlock(Renderer& r,const char* text):r_(r),text_(text) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("friends")->blocks.back().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density) const override {
+        d.text(area.x+area.width/2,area.y+area.height/2,r_.fit(d,text_,r_.f_act,area.width-8),r_.f_act,g_theme.muted,"mm");
+    }
+private:
+    Renderer& r_;const char* text_;std::string id_="freunde.hinweis";
+};
+BuiltinDrawOut Renderer::render_friends_arranged(std::vector<Friend> friends,bool connected,const std::string& message,
+                                           const builtin::Overlay& overlay,int page,std::time_t now) {
+    const auto& c=*builtin::find("friends");
+    if(!builtin::validate(c,overlay).empty() || !uses_friends_arrangement(overlay)) return {render_friends(friends,page,connected,message,now),{}};
+    friends=sort_friends(std::move(friends));
+    const auto plan=friend_arrangement(overlay);
+    const int per=friend_arranged_rows(overlay),count=friend_pages(friends.size(),overlay);
+    page=std::clamp(page,0,count-1);
+    FriendListBlock list(*this,friends,page,per,now);
+    FriendArrangedHintBlock hint(*this,!connected?(message.empty()?"Keine Verbindung zu Discord …":message.c_str()):"Gerade ist niemand online");
+    const bool ready=connected && !friends.empty();
+    std::vector<Platzierung> blocks;
+    for(const auto& b:plan.blocks) if((ready && b.id==list.id()) || (!ready && b.id==hint.id())) blocks.push_back({ready?static_cast<const plugins::zones::Block*>(&list):&hint,b});
+    const auto foot=count>1 && ready?"Seite "+std::to_string(page+1)+"/"+std::to_string(count):"";
+    std::vector<std::string> failed;
+    BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,now,&friends](Canvas& d){header(d,now,std::to_string(std::count_if(friends.begin(),friends.end(),[](const auto& p){return p.status!="offline";}))+" online");},
+                            [this,&foot](Canvas& d){footer(d,foot);}},blocks,&failed);
+    if(ready && per && failed.empty()) for(const auto& b:plan.blocks) if(b.id==list.id() && b.visible()) {
+        const size_t start=size_t(page)*per,n=start<friends.size()?std::min(size_t(per),friends.size()-start):0;
+        for(size_t i=0;i<n;++i) {
+            const int left=pyround_i(b.area.x*s),right=pyround_i((b.area.x+b.area.width)*s);
+            const int top=pyround_i((b.area.y+std::floor(b.area.height*i/per))*s);
+            const int bottom=pyround_i((b.area.y+std::floor(b.area.height*(i+1)/per))*s);
+            out.targets.push_back({{left,top,right-left,bottom-top},start+i});
+        }
+    }
+    return out;
+}
+
+
+
 // ---------- Battlefield 6 ----------
 std::vector<Bf6Player> sort_players(std::vector<Bf6Player> p) {
     std::stable_sort(p.begin(), p.end(), [](const Bf6Player& a, const Bf6Player& b) {
@@ -554,6 +688,59 @@ public:
             return {inf, inf};
         }
         return {renderer_.h > renderer_.w ? 320.f : 480.f, (float)row_height()};
+    }
+    void draw_arranged(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density density) const {
+        auto& r = renderer_;
+        const auto& p = player_;
+        int pos = pos_;
+        float x=area.x, y=area.y;
+        const Theme& t = g_theme;
+        float cy = y + area.height / 2;
+        const float l1 = cy - 9, l2 = cy + 9;   // zwei Zeilen vertikal zentriert (44: 13/31)
+        // Kompakt: Name und wichtigste Werte auch in schmalen Zonen lesbar halten.
+        if(density==plugins::zones::Density::compact) {
+            d.text(x+8,y+13,r.fit(d,std::to_string(pos)+". "+p.name,r.f_name,area.width-16),r.f_name,t.text,"lm");
+            std::string detail=p.error.empty()?(p.kd?strprintf("K/D %.2f",*p.kd):"K/D –"):p.error;
+            if(p.error.empty() && p.rank) detail+=" · Rang "+std::to_string(*p.rank);
+            d.text(x+8,y+31,r.fit(d,detail,r.f_act,area.width-16),r.f_act,p.error.empty()?t.accent:t.status.at("dnd"),"lm");
+            d.line({{x+8,y+area.height-1},{x+area.width-8,y+area.height-1}},t.line,1);
+            return;
+        }
+        Color pos_col = pos <= 3 && p.error.empty() ? t.accent : t.muted;
+        d.text(x + 24, cy, std::to_string(pos) + ".", r.f_pos, pos_col, "rm");
+        float ix = x + 30;
+        if (p.rank_icon && !p.rank_icon->empty()) {
+            int n = pyround_i((AVATAR + 4) * r.s);
+            Image icon = thumbnail(*p.rank_icon, n, n);
+            float iw = icon.w / r.s, ih = icon.h / r.s;  // logische Größe
+            d.image(icon, ix + (float)floordiv(AVATAR + 4 - iw, 2), cy - (float)floordiv(ih, 2));
+        } else if (p.rank) {
+            d.ellipse_outline(ix + 2, cy - 16, ix + 34, cy + 16, t.orange, 2);
+            d.text(ix + 18, cy, std::to_string(*p.rank), r.f_small, t.text, "mm");
+        }
+        float tx = ix + AVATAR + 12;
+        // Rechte Spalte: K/D groß, Siegquote und Spielstunden klein.
+        std::string detail;
+        if (p.win_pct) detail = tr(strprintf("%.0f %% Siege", *p.win_pct));
+        if (p.hours && std::isfinite(*p.hours) && *p.hours >= 0)
+            detail += (detail.empty() ? "" : " · ") + strprintf("%.0f h", *p.hours);
+        float stat_w = std::max(92.f, d.textlength(tr(detail), r.f_act) + 8), sx = x + area.width - 10;
+        if (p.kd) d.text(sx, l1, strprintf("K/D %.2f", *p.kd), r.f_stat, t.text, "rm");
+        if (!detail.empty()) d.text(sx, l2, detail, r.f_act, t.muted, "rm");
+        float max_w = sx - stat_w - tx;
+        d.text(tx, l1, r.fit(d, p.name, r.f_name, max_w), r.f_name, p.error.empty() ? t.text : t.muted, "lm");
+        std::string line2;
+        Color col;
+        if (!p.error.empty()) {
+            line2 = p.error;
+            col = t.status.at("dnd");
+        } else {
+            line2 = p.rank ? "Rang " + std::to_string(*p.rank) : "Rang unbekannt";
+            if (!p.rank_name.empty()) line2 += " · " + p.rank_name;
+            col = t.accent;
+        }
+        d.text(tx, l2, r.fit(d, line2, r.f_act, max_w), r.f_act, col, "lm");
+        d.line({{tx, y + area.height - 1}, {x + area.width - 10, y + area.height - 1}}, t.line, 1);
     }
     void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
         auto& r = renderer_;
@@ -654,6 +841,92 @@ Image Bf6Renderer::render(std::vector<Bf6Player> players, int page, std::optiona
     return draw_framed({W, H, s, t.bg, [this, now, &info](Canvas& d) { header(d, now, info); },
                         [this, &left](Canvas& d) { footer(d, left); }}, blocks);
 }
+
+// Rasterweg ausschließlich nach einer echten Änderung; Standard bleibt oben unverändert.
+plugins::zones::Plan Bf6Renderer::arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    const auto layout=plugins::edit::geometry(model);
+    if(!layout) return {};
+    return plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("bf6"),model),6);
+}
+bool Bf6Renderer::uses_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("bf6"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+int Bf6Renderer::arranged_rows(const builtin::Overlay& overlay) const {
+    if(!uses_arrangement(overlay)) return rows_per_page();
+    for(const auto& b:arrangement(overlay).blocks) if(b.id=="bf6.rangliste" && b.visible())
+        return std::clamp(int(b.area.height/(*b.density==plugins::zones::Density::compact?44.f:66.f)),1,rows_per_page());
+    return 0;
+}
+int Bf6Renderer::pages(size_t items,const builtin::Overlay& overlay) const {
+    const int per=arranged_rows(overlay);
+    return per?std::max(1,int((items+per-1)/per)):1;
+}
+class Bf6Renderer::ListBlock : public plugins::zones::Block {
+public:
+    ListBlock(Bf6Renderer& r,const std::vector<Bf6Player>& players,int page,int per,std::time_t now)
+        :r_(r),players_(players),page_(page),per_(per),now_(now) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("bf6")->blocks.front().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density density) const override {
+        const size_t start=size_t(page_)*per_,count=start<players_.size()?std::min(size_t(per_),players_.size()-start):0;
+        for(size_t i=0;i<count;++i) {
+            const float top=area.y+std::floor(area.height*i/per_);
+            const float bottom=area.y+std::floor(area.height*(i+1)/per_);
+            RowBlock row(r_,players_[start+i],int(i),int(start+i+1));
+            row.draw_arranged(d,{area.x,top,area.width,bottom-top},density);
+        }
+    }
+private:
+    Bf6Renderer& r_;const std::vector<Bf6Player>& players_;int page_,per_;std::time_t now_;
+    std::string id_="bf6.rangliste";
+};
+class Bf6Renderer::ArrangedHintBlock : public plugins::zones::Block {
+public:
+    ArrangedHintBlock(Bf6Renderer& r,const char* text):r_(r),text_(text) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("bf6")->blocks.back().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density) const override {
+        d.text(area.x+area.width/2,area.y+area.height/2,r_.fit(d,text_,r_.f_act,area.width-8),r_.f_act,g_theme.muted,"mm");
+    }
+private:
+    Bf6Renderer& r_;const char* text_;std::string id_="bf6.hinweis";
+};
+BuiltinDrawOut Bf6Renderer::render_arranged(std::vector<Bf6Player> players,std::optional<std::time_t> updated,
+                                           const builtin::Overlay& overlay,int page,std::time_t now) {
+    const auto& c=*builtin::find("bf6");
+    if(!builtin::validate(c,overlay).empty() || !uses_arrangement(overlay)) return {render(players,page,updated,now),{}};
+    players=sort_players(std::move(players));
+    const auto plan=arrangement(overlay);
+    const int per=arranged_rows(overlay),count=pages(players.size(),overlay);
+    page=std::clamp(page,0,count-1);
+    ListBlock list(*this,players,page,per,now);
+    ArrangedHintBlock hint(*this,players.empty()?"Keine Spieler in config.toml":"Lade Battlefield-Profile …");
+    const bool ready=updated && !players.empty();
+    std::vector<Platzierung> blocks;
+    for(const auto& b:plan.blocks) if((ready && b.id==list.id()) || (!ready && b.id==hint.id())) blocks.push_back({ready?static_cast<const plugins::zones::Block*>(&list):&hint,b});
+    const auto foot=(count>1 && ready?"Seite "+std::to_string(page+1)+"/"+std::to_string(count)+" · ":"")+(updated?"Stand "+clock_hhmm(*updated):"");
+    std::vector<std::string> failed;
+    BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,now,&players](Canvas& d){header(d,now,std::to_string(std::count_if(players.begin(),players.end(),[](const auto& p){return p.error.empty();}))+" Spieler");},
+                            [this,&foot](Canvas& d){footer(d,foot);}},blocks,&failed);
+    if(ready && per && failed.empty()) for(const auto& b:plan.blocks) if(b.id==list.id() && b.visible()) {
+        const size_t start=size_t(page)*per,n=start<players.size()?std::min(size_t(per),players.size()-start):0;
+        for(size_t i=0;i<n;++i) {
+            const int left=pyround_i(b.area.x*s),right=pyround_i((b.area.x+b.area.width)*s);
+            const int top=pyround_i((b.area.y+std::floor(b.area.height*i/per))*s);
+            const int bottom=pyround_i((b.area.y+std::floor(b.area.height*(i+1)/per))*s);
+            out.targets.push_back({{left,top,right-left,bottom-top},start+i});
+        }
+    }
+    return out;
+}
+
 
 // ---------- System ----------
 SysRenderer::SysRenderer(int w_, int h_, std::string t, std::string unit)
@@ -1247,6 +1520,45 @@ public:
         bool portrait = renderer_.h > renderer_.w;
         return {portrait ? 320.f : 480.f, portrait ? 71.f : 44.f};
     }
+    void draw_arranged(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density density) const {
+        auto& r = renderer_;
+        const Theme& t = g_theme;
+        const StreamItem& it = item_;
+        const StreamLogos* logos = logos_;
+        const std::string& lang = lang_;
+        const Font& f_act = r.f_act;
+        const Font& f_item = r.f_item;
+        const Font& f_kind = r.f_kind;
+        const float x = area.x, w = area.width, y = area.y, rh = area.height, s = r.s;
+        const std::string date = tmdb::format_date(it.date, lang);
+        const bool compact=density==plugins::zones::Density::compact;
+        if(!compact) d.text(x + w - 10, y + 14, date, f_act, t.muted, "rm");
+        const float title_w = compact?w-20:w-30-d.textlength(date,f_act);
+        d.text(x + 10, y + 14, r.fit(d, it.title, f_item, title_w), f_item, t.text, "lm");
+        const std::string kind = tr(it.series ? "Serie" : "Film");
+        d.text(x + 10, y + 32, kind, f_kind, t.accent, "lm");
+        const float kx = x + 10 + d.textlength(kind, f_kind) + 10;
+        // Anbieter: Logos (höchstens MAX_LOGOS, Rest „+n“); fehlt ein Logo, steht an seiner Stelle das Kürzel
+        const int shown = tmdb::logos_shown(it.providers.size());
+        float lx = kx;
+        for (int k = 0; k < shown; ++k) {
+            const StreamLogos::const_iterator none = logos ? logos->end() : StreamLogos::const_iterator();
+            StreamLogos::const_iterator li = none;
+            if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
+            if (logos && li != none && li->second && !li->second->empty()) {
+                const int px = pyround_i(LOGO_SIZE * s);
+                d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
+                lx += LOGO_SIZE + 4;
+            } else {
+                const std::string& ab = it.providers[k];
+                d.text(lx, y + 32, ab, f_act, t.muted, "lm");
+                lx += d.textlength(ab, f_act) + 8;
+            }
+        }
+        const std::string more = tmdb::logos_overflow(it.providers.size());
+        if (!more.empty()) d.text(lx, y + 32, more, f_act, t.muted, "lm");
+        if (index_ < count_ - 1) d.line({{x + 10, y + rh - 1}, {x + w - 10, y + rh - 1}}, t.line, 1);
+    }
     void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
         auto& r = renderer_;
         const Theme& t = g_theme;
@@ -1355,6 +1667,91 @@ Image StreamRenderer::render(StreamState state, const std::vector<StreamItem>& i
     return draw_framed({W, H, s, t.bg, [this, now](Canvas& d) { header(d, now, ""); },
                         [this, &foot](Canvas& d) { footer(d, foot); }}, blocks);
 }
+
+// Rasterweg ausschließlich nach einer echten Änderung; Standard bleibt oben unverändert.
+plugins::zones::Plan StreamRenderer::arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    const auto layout=plugins::edit::geometry(model);
+    if(!layout) return {};
+    return plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("streaming"),model),6);
+}
+bool StreamRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("streaming"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+int StreamRenderer::arranged_rows(const builtin::Overlay& overlay) const {
+    if(!uses_arrangement(overlay)) return MAX_ROWS;
+    for(const auto& b:arrangement(overlay).blocks) if(b.id=="streaming.liste" && b.visible())
+        return std::clamp(int(b.area.height/(*b.density==plugins::zones::Density::compact?44.f:66.f)),1,MAX_ROWS);
+    return 0;
+}
+int StreamRenderer::pages(size_t items,const builtin::Overlay& overlay) const {
+    const int per=arranged_rows(overlay);
+    return per?std::max(1,int((items+per-1)/per)):1;
+}
+class StreamRenderer::ListBlock : public plugins::zones::Block {
+public:
+    ListBlock(StreamRenderer& r,const std::vector<StreamItem>& items,int page,int per,const StreamLogos* logos)
+        :r_(r),items_(items),page_(page),per_(per),logos_(logos) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("streaming")->blocks.front().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density density) const override {
+        const size_t start=size_t(page_)*per_,count=start<items_.size()?std::min(size_t(per_),items_.size()-start):0;
+        for(size_t i=0;i<count;++i) {
+            const float top=area.y+std::floor(area.height*i/per_);
+            const float bottom=area.y+std::floor(area.height*(i+1)/per_);
+            RowBlock row(r_,items_[start+i],i,count,logos_,i18n::lang());
+            row.draw_arranged(d,{area.x,top,area.width,bottom-top},density);
+        }
+    }
+private:
+    StreamRenderer& r_;const std::vector<StreamItem>& items_;int page_,per_;const StreamLogos* logos_;
+    std::string id_="streaming.liste";
+};
+class StreamRenderer::ArrangedHintBlock : public plugins::zones::Block {
+public:
+    ArrangedHintBlock(StreamRenderer& r,const char* text):r_(r),text_(text) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("streaming")->blocks.back().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density) const override {
+        d.text(area.x+area.width/2,area.y+area.height/2,r_.fit(d,text_,r_.f_act,area.width-8),r_.f_act,g_theme.muted,"mm");
+    }
+private:
+    StreamRenderer& r_;const char* text_;std::string id_="streaming.hinweis";
+};
+BuiltinDrawOut StreamRenderer::render_arranged(StreamState state,const std::vector<StreamItem>& items,std::optional<std::time_t> updated,
+                                           const builtin::Overlay& overlay,int page,std::time_t now,const StreamLogos* logos) {
+    const auto& c=*builtin::find("streaming");
+    if(!builtin::validate(c,overlay).empty() || !uses_arrangement(overlay)) return {render(state,items,updated,now,logos),{}};
+    const auto plan=arrangement(overlay);
+    const int per=arranged_rows(overlay),count=pages(items.size(),overlay);
+    page=std::clamp(page,0,count-1);
+    ListBlock list(*this,items,page,per,logos);
+    ArrangedHintBlock hint(*this,state==StreamState::NoKey?"Kein Key":state==StreamState::Loading?"Lade Daten …":state==StreamState::Error?"Keine Daten":"Keine Neustarts gefunden");
+    const bool ready=state==StreamState::Ok && !items.empty();
+    std::vector<Platzierung> blocks;
+    for(const auto& b:plan.blocks) if((ready && b.id==list.id()) || (!ready && b.id==hint.id())) blocks.push_back({ready?static_cast<const plugins::zones::Block*>(&list):&hint,b});
+    const auto foot=(count>1 && ready?"Seite "+std::to_string(page+1)+"/"+std::to_string(count)+" · ":"")+footer_text(state,updated);
+    std::vector<std::string> failed;
+    BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,now](Canvas& d){header(d,now,"");},
+                            [this,&foot](Canvas& d){footer(d,foot);}},blocks,&failed);
+    if(ready && per && failed.empty()) for(const auto& b:plan.blocks) if(b.id==list.id() && b.visible()) {
+        const size_t start=size_t(page)*per,n=start<items.size()?std::min(size_t(per),items.size()-start):0;
+        for(size_t i=0;i<n;++i) {
+            const int left=pyround_i(b.area.x*s),right=pyround_i((b.area.x+b.area.width)*s);
+            const int top=pyround_i((b.area.y+std::floor(b.area.height*i/per))*s);
+            const int bottom=pyround_i((b.area.y+std::floor(b.area.height*(i+1)/per))*s);
+            out.targets.push_back({{left,top,right-left,bottom-top},start+i});
+        }
+    }
+    return out;
+}
+
 
 // ---------- Home Assistant ----------
 static bool toggle_domain_name(const std::string& id) { return ha::toggle_domain(id); }

@@ -1,5 +1,20 @@
 # Testprotokoll – Stand 06.11.2026
 
+## P7-8 bis P7-10 – Streaming, BF6, Freunde und Discord (06.11.2026)
+
+Hauptcheckout `feature/zonen-layout`, Basis `c05af6a`; uncommittierte Entwicklung. CMake aus VS Build Tools mit `vcvars64`, bereinigtem PATH und `cpp/build/store`. Kein Netzwerk, kein Audio, kein Port 8765, keine App-/Hardware-Schleife; Companion nur `--offline` (TLS-/Serverintegration ausgelassen).
+
+P7-8 (2026-11-06, Agent Codex CLI 0.166.0): Streaming in der Seitenauswahl; Titel/Pflicht-Zustand aus dem vorhandenen Schnappschuss, seitenbezogenes Quer-/Hoch-Overlay, Blättern und Touch aus einem Rasterplan. Standard/Zurücksetzen behalten den festen Weg; TMDB / JustWatch bleibt im Fuß; kompakte Zeilen ohne Datum. 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, 1.792 neue Rasterbilder/Trefferkarten additiv, 6.267 Prüfungen/0; Hardware offen.
+
+P7-9 (2026-11-06, Agent Codex CLI 0.166.0): BF6 in der Seitenauswahl; Rangliste/Pflicht-Zustand, sortierter Schnappschuss, seitenbezogenes Quer-/Hoch-Overlay. Rasterkapazität steuert Blättern und Spielerlinks; kompakte Zeilen zeigen Name, K/D, Rang oder Fehler. Standard/Zurücksetzen bleiben pixelgleich. 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, 1.024 neue Rasterbilder/Trefferkarten additiv, 4.390 Prüfungen/0; Hardware offen.
+
+P7-10 (2026-11-06, Agent Codex CLI 0.166.0): Freunde und Discord in der Seitenauswahl; gemeinsamer Freunde/Pflicht-Zustand-Katalog und sortierte Schnappschüsse, getrennte Overlays `builtin.friends.layout.json` / `builtin.discord.layout.json`, Backups und Revisionen. Rasterzeilen, Blättern und Profilziele aus einem Plan; schmale kompakte Zeilen ohne Avatar/Marken. Standard/Zurücksetzen bleiben pixelgleich (E2 akzeptiert). 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, je 1.024 Rasterbilder/Trefferkarten additiv, zusammen 8.622 Prüfungen/0; Hardware offen.
+
+
+Abschluss P7-10: `fl-tests` 3470/0; layout-edit 163/0; layout-ui 1056/0 (P7-8: 916/0, P7-9: 956/0); builtin-catalog 217/0; plugins 380/0; store 422/0; zones 462/0; example 124/0; settings 135/0; snapshots 2093/0; builtin 4221 Bilder + 4221 Trefferkarten/0; companion `--offline` 250/0; device-profile 85/0; schedule 845/0. Nach jedem Paket alle 14 Suiten grün. Vier neue Hashdateien: Streaming 1792, BF6 1024, Freunde 1024, Discord 1024 Rasterbilder samt Trefferkarten. Bestehende Hashdateien nicht geschrieben; `core.autocrlf=true` erklärt LF/CRLF zwischen Git und Checkout. Beispieldaten-Vorschauen für alle vier Seiten visuell geprüft; keine physische oder interaktive Maus-/Touch-Abnahme. Erweiterte Dateien gegenüber dem Entwurfsplan: App-Einstiege/Vorschau, Editor-Auswahltests und Hilfetexte. Keine Release-Prüfung, kein Commit/Push/Branchwechsel.
+
+Zusätzlicher normaler Wiederholungsvergleich (`fl-builtin-snapshot-tests`, keine Record-/Update-Option): 4221 Bestandsbilder + Trefferkarten/0; RSS 1024 Fälle, 5952 Prüfungen/0; Streaming 1792 Fälle, 9852 Prüfungen/0; BF6 1024 Fälle, 6439 Prüfungen/0; Freunde und Discord jeweils 1024 Fälle, 6360 Prüfungen/0. Alle vier additiven Dateien damit auch lesend gegen ihre gespeicherten Hashes bestätigt.
+
 ## P7-5 bis P7-7 – Katalog, Store und RSS-Editor (06.11.2026)
 
 Branch `feature/zonen-layout`, Hauptcheckout auf `12ca4ed`, uncommittiert. Kein Netzwerk/Port, kein Audio, keine laufende App oder Hardware. Companion ausschließlich `--offline`; TLS-/Serverintegration ausgelassen.
@@ -9,6 +24,10 @@ P7-5 (2026-11-06, Agent Codex CLI 0.166.0): Reiner Built-in-Katalog und strikt v
 P7-6 (2026-11-06, Agent Codex CLI 0.166.0): Atomare Seitenlayouts mit Backup/Revision, Beispieldatenvorschau, Raster-Touch-Zielen und isoliertem Clip; fester Renderweg unverändert. 14 Suiten grün (Editor 835; Companion offline 250); Built-in 4.221 Bilder/Trefferkarten und Plugin-Baselines unverändert; Hardware offen.
 
 P7-7 (2026-11-06, Agent Codex CLI 0.166.0): RSS-Editor mit Beiträge/Pflicht-Zustand, getrennten Quer-/Hochlayouts in `layouts/builtin.rss.layout.json`; Öffnen/Übernehmen von Standard behält den pixelgleichen festen Weg, echte Änderungen nutzen das Raster (Abstände können sich ändern, E2). Zurücksetzen stellt Standard her; Zeilen, Blättern und Touch teilen einen Plan. Kopf/Fuß fest; Built-in-Wechselfelder und HA später. 14 Suiten grün (Katalog 217, Editor 874, Kern 3.470; Companion offline 250); bestehende Baselines bitgleich, zusätzlich 1.024 RSS-Bilder/Trefferkarten und 5.952 Prüfungen ohne Fehler; Hardware offen.
+
+
+
+
 
 Abschluss P7-7: `fl-tests` 3470/0; layout-edit 163/0; layout-ui 874/0; plugins 380/0; store 422/0; zones 462/0; example 124/0; settings 135/0; snapshots 2093/0; builtin 4221 Bilder + 4221 Trefferkarten/0; companion `--offline` 250/0; device-profile 85/0; schedule 845/0; neuer Katalog 217/0. Neue Datei `tests/layout-snapshots/p7-rss-hashes.txt`: 1024 Rasterbilder/Trefferkarten, 5952 Prüfungen/0. Keine bestehenden Baselines aktualisiert. Abweichungen vom Dateiplan: punktierte Built-in-IDs nur im Overlay-Parser zugelassen (`plugins.cpp`); Editor und Einstiege für RSS ergänzt. Built-in-Wechselfelder bleiben deaktiviert (E6 offen). Keine Release-Prüfung, kein Commit/Push/Branchwechsel; öffentliche Auslieferung nicht erstellt.
 

@@ -374,35 +374,64 @@ static void builtin_infrastructure_tests(const fs::path& root) {
     CHECK(!app.page_preview("homeassistant",builtin::to_json(standard),{480,320},error));
     CHECK(app.page_preview("rss",builtin::to_json(changed),{480,320},error));
 }
+// P7-10: Freunde und Discord teilen den Katalog, niemals Datei, Backup oder Revision.
+static void friends_store_tests(const fs::path& root) {
+    const auto directory=root/"separate-friends";
+    builtin::LayoutStore store(directory);
+    const auto& c=*builtin::find("friends");
+    auto friends=builtin::standard(c),discord=builtin::standard(*builtin::find("discord"));
+    friends.model.layout["rows"]={3,1};discord.model.layout["rows"]={2,1};
+    CHECK(store.apply("friends",builtin::to_json(friends).dump()).empty());
+    CHECK(store.get("friends").revision==1);CHECK(store.get("discord").revision==0);CHECK(!store.get("discord").overlay);
+    CHECK(store.apply("discord",builtin::to_json(discord).dump()).empty());
+    CHECK(store.get("discord").revision==1);CHECK(store.get("friends").revision==1);
+    CHECK(builtin::to_json(*store.get("friends").overlay)==builtin::to_json(friends));
+    CHECK(builtin::to_json(*store.get("discord").overlay)==builtin::to_json(discord));
+    friends.model.layout["rows"]={1,2};CHECK(store.apply("friends",builtin::to_json(friends).dump()).empty());
+    CHECK(fs::exists(directory/"builtin.friends.layout.json.bak"));CHECK(!fs::exists(directory/"builtin.discord.layout.json.bak"));
+    builtin::LayoutStore reloaded(directory);
+    CHECK(builtin::to_json(*reloaded.get("friends").overlay)==builtin::to_json(friends));
+    CHECK(builtin::to_json(*reloaded.get("discord").overlay)==builtin::to_json(discord));
+    CHECK(store.reset("friends").empty());CHECK(!store.get("friends").overlay);CHECK(store.get("friends").revision==3);
+    CHECK(store.get("discord").revision==1);CHECK(fs::exists(directory/"builtin.discord.layout.json"));
+    CHECK(builtin::to_json(*store.get("discord").overlay)==builtin::to_json(discord));
+}
 // P7-7: Editor öffnet und übernimmt Standard ohne Dateianlage; Hochformat separat.
-static void rss_editor_tests(const fs::path& root) {
-    TestHost h(root/"rss-editor");
+static void builtin_editor_tests(const fs::path& root, const builtin::Catalog& catalog) {
+    const auto& key=catalog.key;
+    TestHost h(root/(key+"-editor"));
     h.actions.builtin_layout_get=[&](const std::string& key){return h.application.builtin_layout_get(key);};
     h.actions.builtin_layout_apply=[&](const std::string& key,const Json& overlay){h.application.builtin_layout_apply(key,overlay);};
     h.actions.builtin_layout_reset=[&](const std::string& key){h.application.builtin_layout_reset(key);};
     auto page=make_layout_page();page->build(h,h.root);page->shown(h);h.drain();page->tick(h,h.state);h.drain();page->tick(h,h.state);
     auto grid=h.find<GridEditor>();CHECK(grid);if(!grid) return;
-    auto choice=h.find<Combo>(L"Seite");CHECK(choice && choice->options.size()==1);
-    CHECK(choice && choice->options[0].de==L"Eingebaut · RSS");
-    CHECK(grid->model.blocks[0]["id"]=="rss.liste");CHECK(grid->model.blocks[1]["id"]=="rss.hinweis");
+    auto choice=h.find<Combo>(L"Seite");CHECK(choice && choice->options.size()==size_t(std::count_if(builtin::catalogs().begin(),builtin::catalogs().end(),[](const auto& c){return c.enabled;})));
+    size_t selected=0;
+    while(selected<choice->options.size() && choice->options[selected].de!=L"Eingebaut · "+widen(catalog.label.de)) ++selected;
+    CHECK(selected<choice->options.size());if(selected==choice->options.size()) return;
+    if(choice->index!=int(selected)) {choice->index=int(selected);choice->on_change();}
+    h.drain();page->tick(h,h.state);h.drain();page->tick(h,h.state);
+    grid=h.find<GridEditor>();CHECK(grid);if(!grid) return;
+    CHECK(choice->options[selected].de==L"Eingebaut · "+widen(catalog.label.de));
+    CHECK(grid->model.blocks[0]["id"]==catalog.blocks[0].id);CHECK(grid->model.blocks[1]["id"]==catalog.blocks[1].id);
     const auto original=grid->model;
     CHECK(count_dirty(&h.root)==0);CHECK(h.image);
-    const auto file=h.dir/"layouts"/"builtin.rss.layout.json";
+    const auto file=h.dir/"layouts"/("builtin."+key+".layout.json");
     CHECK(!fs::exists(file));auto apply=h.find<Button>(L"Übernehmen");CHECK(apply && apply->enabled);
-    apply->on_click();h.drain();CHECK(!fs::exists(file));CHECK(h.application.builtin_layout_get("rss")["layout_revision"]==0);
+    apply->on_click();h.drain();CHECK(!fs::exists(file));CHECK(h.application.builtin_layout_get(key)["layout_revision"]==0);
     auto n=grid->model;n.blocks[1]["shown"]=false;grid->on_edit(n,{});
     CHECK(plugins::edit::equal(grid->model,original));CHECK(h.toast_text==L"Pflichtblock kann nicht entfernt werden.");
     n=grid->model;CHECK(plugins::edit::weight(n,false,0,3));grid->on_edit(n,{});
     page->tick(h,h.state);h.drain();CHECK(h.image);CHECK(!fs::exists(file));
-    apply->on_click();h.drain();CHECK(fs::exists(file));CHECK(h.application.builtin_layout_get("rss")["layout_revision"]==1);
-    auto saved=builtin::parse(*builtin::find("rss"),h.application.builtin_layout_get("rss")["overlay"].dump());CHECK(saved);
+    apply->on_click();h.drain();CHECK(fs::exists(file));CHECK(h.application.builtin_layout_get(key)["layout_revision"]==1);
+    auto saved=builtin::parse(*builtin::find(key),h.application.builtin_layout_get(key)["overlay"].dump());CHECK(saved);
     CHECK(saved.overlay->model.layout["rows"][0]==3);CHECK(saved.overlay->portrait->layout["rows"][0]==4);
     auto orientation=h.find<Segment>(L"Ausrichtung");CHECK(orientation);orientation->index=1;orientation->on_change();
     CHECK(grid->model.layout["rows"][0]==4);CHECK(!h.find<Button>(L"Rückgängig")->enabled);
     n=grid->model;CHECK(plugins::edit::weight(n,false,0,2));grid->on_edit(n,{});
     orientation->index=0;orientation->on_change();CHECK(grid->model.layout["rows"][0]==3);
     apply->on_click();h.drain();
-    saved=builtin::parse(*builtin::find("rss"),h.application.builtin_layout_get("rss")["overlay"].dump());CHECK(saved);
+    saved=builtin::parse(*builtin::find(key),h.application.builtin_layout_get(key)["overlay"].dump());CHECK(saved);
     CHECK(saved.overlay->model.layout["rows"][0]==3);CHECK(saved.overlay->portrait->layout["rows"][0]==2);
     // Übermäßig verkleinerter Pflichtblock sperrt die Anwendung in beiden Ausrichtungen.
     n=grid->model;n.layout["rows"]={12,1};grid->on_edit(n,{});CHECK(!apply->enabled);
@@ -412,7 +441,7 @@ static void rss_editor_tests(const fs::path& root) {
     CHECK(plugins::edit::equal(grid->model,original));
     page->tick(h,h.state);h.drain();CHECK(h.image);
     // Englische Katalogbeschriftungen und kein Eintrag für spätere Seiten (insbesondere HA).
-    CHECK(choice->options[0].en==L"Built-in · RSS");CHECK(choice->options.size()==1);
+    CHECK(choice->options[selected].en==L"Built-in · "+widen(catalog.label.en));CHECK(choice->options.size()==size_t(std::count_if(builtin::catalogs().begin(),builtin::catalogs().end(),[](const auto& c){return c.enabled;})));
     h.view.set_root(nullptr);
 }
 int main(int argc,char** argv) {
@@ -421,7 +450,8 @@ int main(int argc,char** argv) {
     gesture_tests();
     const auto dir=fs::temp_directory_path()/("fl-layout-ui-"+std::to_string(GetCurrentProcessId()));
     builtin_infrastructure_tests(dir);
-    rss_editor_tests(dir);
+    friends_store_tests(dir);
+    for(const auto& catalog:builtin::catalogs()) if(catalog.enabled) builtin_editor_tests(dir,catalog);
     struct Cleanup { fs::path path; ~Cleanup() { std::error_code ec; fs::remove_all(path,ec); } } cleanup{dir};
     fs::create_directories(dir);
     {

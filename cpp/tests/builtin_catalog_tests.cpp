@@ -11,7 +11,7 @@ int main() {
     for(const auto& c:catalogs()) {
         for(const auto& b:c.blocks) CHECK(zones::valid(b.thresholds));
         auto a=standard(c); CHECK(validate(c,a).empty()); CHECK(is_standard(c,a));
-        CHECK(parse(c,to_json(a).dump())); CHECK(c.enabled==(c.key=="rss"));
+        CHECK(parse(c,to_json(a).dump())); CHECK(c.enabled==((c.key=="rss" || c.key=="streaming" || c.key=="bf6" || c.key=="friends" || c.key=="discord")));
         for(auto& z:a.model.layout["zones"]) {z["column_span"]=1;z["row_span"]=1;}
         CHECK(is_standard(c,a));
         a.catalog_version++; CHECK(!validate(c,a).empty()); CHECK(!parse(c,to_json(a).dump()));

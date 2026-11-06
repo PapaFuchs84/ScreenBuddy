@@ -12,6 +12,13 @@ P7-6 (2026-11-06, Agent Codex CLI 0.166.0): Atomic per-page layouts with backup/
 
 P7-7 (2026-11-06, Agent Codex CLI 0.166.0): RSS editor with Posts/required Status, separate landscape/portrait layouts in `layouts/builtin.rss.layout.json`; opening or applying Standard keeps the pixel-identical fixed path, real changes use the grid (spacing may shift, E2). Reset restores Standard; rows, paging and touch share one plan. Header/footer fixed; built-in cycles and HA deferred. 14 suites passed (catalog 217, editor 874, core 3,470; Companion offline 250); existing baselines unchanged, plus 1,024 RSS images/hit maps and 5,952 checks without errors; hardware pending.
 
+P7-8 (2026-11-06, Agent Codex CLI 0.166.0): Streaming in the page selector; Titles/required Status from the existing snapshot, per-page landscape/portrait overlay, paging and touch from one grid plan. Standard/reset keep the fixed path; TMDB / JustWatch stays in the footer; compact rows omit the date. 14 suites passed (Companion offline); existing baselines bit-identical, 1,792 new grid images/hit maps added, 6,267 checks/0; hardware pending.
+
+P7-9 (2026-11-06, Agent Codex CLI 0.166.0): BF6 in the page selector; Ranking/required Status, sorted snapshot, per-page landscape/portrait overlay. Grid capacity controls paging and player links; compact rows show name, K/D, rank or error. Standard/reset remain pixel-identical. 14 suites passed (Companion offline); existing baselines bit-identical, 1,024 new grid images/hit maps added, 4,390 checks/0; hardware pending.
+
+P7-10 (2026-11-06, Agent Codex CLI 0.166.0): Friends and Discord in the page selector; shared Friends/required Status catalog and sorted snapshots, separate `builtin.friends.layout.json` / `builtin.discord.layout.json` overlays, backups and revisions. Grid rows, paging and profile targets share one plan; narrow compact rows omit avatars/badges. Standard/reset stay pixel-identical (E2 accepted). 14 suites passed (Companion offline); existing baselines bit-identical, 1,024 grid images/hit maps added per page, 8,622 checks/0 combined; hardware pending.
+
+
 ### 2.10.0 – in preparation (unreleased)
 
 No release yet, no tag, no EXE distribution. Hardware, native UI and Companion acceptance and the APK build are still pending; see "Development status" below.

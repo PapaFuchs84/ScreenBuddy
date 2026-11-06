@@ -46,6 +46,8 @@ std::string fmt_rate(std::optional<double> bytes_per_s, const std::string& unit)
 struct Box {
     int x, y, w, h;
 };
+struct BuiltinTarget { Box rect_px; size_t item = 0; };
+struct BuiltinDrawOut { Image image; std::vector<BuiltinTarget> targets; };
 // Breite Leisten (z. B. 1920 × 720) zeigen mehrere Seiten nebeneinander. Rückgabe: je Kachel x, y, Breite, Höhe.
 std::vector<Box> tile_layout(int w, int h, int pages = 99);
 Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Image>& frames);
@@ -66,6 +68,12 @@ public:
     Image welcome(const std::string& title, const std::string& text);
     Image render_friends(std::vector<Friend> friends, int page = 0, bool connected = true, const std::string& message = "",
                          std::time_t now = 0);
+    BuiltinDrawOut render_friends_arranged(std::vector<Friend> friends, bool connected, const std::string& message,
+                                          const builtin::Overlay& overlay, int page = 0, std::time_t now = 0);
+    bool uses_friends_arrangement(const builtin::Overlay& overlay) const;
+    int friend_arranged_rows(const builtin::Overlay& overlay) const;
+    int friend_pages(size_t items, const builtin::Overlay& overlay) const;
+
 
 protected:
     struct Ctx;
@@ -84,6 +92,9 @@ protected:
 private:
     class FriendRowBlock;
     class FriendHintBlock;
+    class FriendListBlock;
+    class FriendArrangedHintBlock;
+    plugins::zones::Plan friend_arrangement(const builtin::Overlay& overlay) const;
     std::vector<plugins::zones::PlacedBlock> friend_layout() const;
 };
 
@@ -91,10 +102,20 @@ class Bf6Renderer : public Renderer {
 public:
     Bf6Renderer(int w, int h, std::string title);
     Image render(std::vector<Bf6Player> players, int page, std::optional<std::time_t> updated, std::time_t now = 0);
+    BuiltinDrawOut render_arranged(std::vector<Bf6Player> players, std::optional<std::time_t> updated,
+                                  const builtin::Overlay& overlay, int page = 0, std::time_t now = 0);
+    bool uses_arrangement(const builtin::Overlay& overlay) const;
+    int arranged_rows(const builtin::Overlay& overlay) const;
+    using Renderer::pages;
+    int pages(size_t items, const builtin::Overlay& overlay) const;
+
 
 private:
     class RowBlock;
     class HintBlock;
+    class ListBlock;
+    class ArrangedHintBlock;
+    plugins::zones::Plan arrangement(const builtin::Overlay& overlay) const;
     std::vector<plugins::zones::PlacedBlock> layout() const;
     Font f_stat, f_pos;
 };
@@ -133,8 +154,6 @@ private:
     void net_card(Canvas& d, float x, float y, float w, float h, const SysSnapshot& s);
 };
 
-struct BuiltinTarget { Box rect_px; size_t item = 0; };
-struct BuiltinDrawOut { Image image; std::vector<BuiltinTarget> targets; };
 class RssRenderer : public Renderer {
 public:
     RssRenderer(int w, int h, std::string title);
@@ -166,6 +185,12 @@ public:
     StreamRenderer(int w, int h, std::string title);
     Image render(StreamState state, const std::vector<StreamItem>& items, std::optional<std::time_t> updated,
                  std::time_t now = 0, const StreamLogos* logos = nullptr);
+    BuiltinDrawOut render_arranged(StreamState state, const std::vector<StreamItem>& items,
+                                  std::optional<std::time_t> updated, const builtin::Overlay& overlay,
+                                  int page = 0, std::time_t now = 0, const StreamLogos* logos = nullptr);
+    bool uses_arrangement(const builtin::Overlay& overlay) const;
+    int arranged_rows(const builtin::Overlay& overlay) const;
+    int pages(size_t items, const builtin::Overlay& overlay) const;
     static constexpr int MAX_ROWS = tmdb::MAX_ITEMS;
     static int row_at(int w_px, int h_px, int y_px);
 
@@ -173,6 +198,9 @@ private:
     class RowBlock;
     class HintBlock;
     static std::array<plugins::zones::PlacedBlock, MAX_ROWS> layout(float w, float h);
+    class ListBlock;
+    class ArrangedHintBlock;
+    plugins::zones::Plan arrangement(const builtin::Overlay& overlay) const;
     static std::string footer_text(StreamState state, std::optional<std::time_t> updated);
     Font f_item, f_kind;
 };
