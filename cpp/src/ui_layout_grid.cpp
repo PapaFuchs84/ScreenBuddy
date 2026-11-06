@@ -9,6 +9,7 @@ namespace fl::ui {
 using namespace plugins::edit;
 namespace {
 bool inside(Rect r, Point p) { return p.x>=r.left && p.x<r.right && p.y>=r.top && p.y<r.bottom; }
+Rect inflate(Rect r,float d) { return {r.left-d,r.top-d,r.right+d,r.bottom+d}; }
 }
 GridEditor::GridEditor() { track_dirty = false; name = T(L"Anordnungsraster", L"Arrangement grid"); }
 void GridEditor::children(std::vector<Widget*>& out) {
@@ -26,18 +27,36 @@ std::wstring GridEditor::PaletteInfo::value(bool en) const {
     return result;
 }
 int GridEditor::palette_columns() const { return std::max(1,int((rc.right-rc.left)/144)); }
-float GridEditor::palette_height() const { return 26.f+32.f*float((model.blocks.size()+palette_columns()-1)/palette_columns()); }
+float GridEditor::palette_height() const { return canvas?0.f:26.f+32.f*float((model.blocks.size()+palette_columns()-1)/palette_columns()); }
+namespace {
+constexpr float kCanvasMargin=12, kBezel=8, kTrashH=36, kTrashGap=12;
+}
 float GridEditor::height(Ctx&, float w) {
+    if(canvas) {
+        const float sw=std::max(64.f,(w-2*kCanvasMargin-2*kBezel)*zoom), aspect=display_aspect>0?display_aspect:1.5f;
+        return kCanvasMargin+kBezel+sw/aspect+kBezel+kTrashGap+kTrashH+kCanvasMargin;
+    }
     auto l=geometry(model); int cols=std::max(1,int(w/144));
     return l ? 26.f+32.f*float((model.blocks.size()+cols-1)/cols)+
         (display_aspect>0?w/display_aspect:std::max(120.f,w/float(l->columns.size()))*float(l->rows.size()))+44.f : 64.f;
 }
-Rect GridEditor::grid_rect() const { return {rc.left,rc.top+palette_height(),rc.right,std::max(rc.top+palette_height()+32,rc.bottom-44)}; }
+Rect GridEditor::grid_rect() const {
+    if(canvas) {
+        const float w=rc.right-rc.left, sw=std::max(64.f,(w-2*kCanvasMargin-2*kBezel)*zoom), aspect=display_aspect>0?display_aspect:1.5f;
+        const float left=rc.left+(w-sw)/2, top=rc.top+kCanvasMargin+kBezel;
+        return {left,top,left+sw,top+sw/aspect};
+    }
+    return {rc.left,rc.top+palette_height(),rc.right,std::max(rc.top+palette_height()+32,rc.bottom-44)};
+}
 Rect GridEditor::palette_rect(size_t b) const {
+    if(canvas) return {};
     int cols=palette_columns(); float w=(rc.right-rc.left)/cols;
     return {rc.left+float(b%cols)*w+2,rc.top+26+float(b/cols)*32,rc.left+float(b%cols+1)*w-2,rc.top+54+float(b/cols)*32};
 }
-Rect GridEditor::trash_rect() const { return {rc.left,std::max(grid_rect().bottom+4,rc.bottom-36),rc.right,rc.bottom}; }
+Rect GridEditor::trash_rect() const {
+    if(canvas) { const float top=grid_rect().bottom+kBezel+kTrashGap; return {rc.left+kCanvasMargin,top,rc.right-kCanvasMargin,top+kTrashH}; }
+    return {rc.left,std::max(grid_rect().bottom+4,rc.bottom-36),rc.right,rc.bottom};
+}
 Rect GridEditor::zone_rect(size_t i) const {
     auto l=geometry(model); if(!l || i>=l->zones.size()) return {};
     auto g=grid_rect(); const auto& z=l->zones[i];
@@ -210,6 +229,7 @@ LPCWSTR GridEditor::cursor(Point p) const {
     return inside(grid_rect(),p) ? IDC_SIZEALL : IDC_HAND;
 }
 void GridEditor::paint(Ctx& c) {
+    if(canvas) { paint_canvas(c); return; }
     auto l=geometry(model); if(!l) return; auto g=grid_rect();
     const float cw=std::max(32.f,(g.right-g.left)/float(l->columns.size()));
     const float ch=(g.bottom-g.top)/float(l->rows.size());
@@ -256,7 +276,92 @@ void GridEditor::paint(Ctx& c) {
     c.text(c.kit.english?L"Trash · Delete: return blocks to palette":L"Ablage · Entf: Bausteine zurück in die Leiste",{trash.left+6,trash.top,trash.right-6,trash.bottom},Font::Body,c.th.text);
     c.rt->PopAxisAlignedClip();
 }
-std::wstring GridEditor::value(bool en) const {
+std::wstring GridEditor::label_of(const std::string& id,bool en) const {
+    if(block_label) { auto s=block_label(id,en); if(!s.empty()) return s; }
+    return widen(id);
+}
+// P7b-3: Fläche im Seitenverhältnis des gewählten Displays. Rahmen = Gerät, dezentes Zellraster, gestrichelte freie Plätze,
+// Geist mit Einrasten, Griffe an der gewählten Zone, Papierkorb. Farben nur aus dem aktiven Theme; Aussagen immer auch als Text.
+void GridEditor::paint_canvas(Ctx& c) {
+    auto l=geometry(model); if(!l) return; auto g=grid_rect(); const auto& th=c.th; const bool en=c.kit.english;
+    const float cw=std::max(32.f,(g.right-g.left)/float(l->columns.size()));
+    const float ch=(g.bottom-g.top)/float(l->rows.size());
+    const int visible=std::max(1,int((g.right-g.left)/cw));
+    if(column>=0) { if(column<first_column) first_column=column; if(column>=first_column+visible) first_column=column-visible+1; }
+    first_column=std::clamp(first_column,0,std::max(0,int(l->columns.size())-visible));
+    const float left=g.left-first_column*cw;
+    auto soft=[&](float a) { auto k=th.text; k.a=a; return k; };
+    auto dashed=[&](const Rect& r,Rgba color,float width) {
+        c.brush->SetColor(color); c.brush->SetOpacity(c.dim);
+        c.rt->DrawRoundedRectangle(D2D1::RoundedRect({r.left+width/2,r.top+width/2,r.right-width/2,r.bottom-width/2},6,6),c.brush,width,c.kit.dashed());
+    };
+    auto cell_rect=[&](int x,int y) { return Rect{left+x*cw,g.top+y*ch,left+(x+1)*cw,g.top+(y+1)*ch}; };
+    auto covered=[&](int x,int y) {
+        for(const auto& z:l->zones) if(x>=z.column && x<z.column+z.column_span && y>=z.row && y<z.row+z.row_span) return true;
+        return false;
+    };
+    c.rt->PushAxisAlignedClip(rc,D2D1_ANTIALIAS_MODE_ALIASED);
+    const Rect body{g.left-8,g.top-8,g.right+8,g.bottom+8};
+    c.fill(body,soft(th.dark?.16f:.10f),14); c.frame(body,th.line,14);
+    c.fill(g,th.bg,6);
+    c.rt->PushAxisAlignedClip(g,D2D1_ANTIALIAS_MODE_ALIASED);
+    for(size_t x=0;x<=l->columns.size();++x) c.line({left+x*cw,g.top},{left+x*cw,g.bottom},soft(.16f));
+    for(size_t y=0;y<=l->rows.size();++y) c.line({g.left,g.top+y*ch},{g.right,g.top+y*ch},soft(.16f));
+    for(size_t y=0;y<l->rows.size();++y) for(size_t x=0;x<l->columns.size();++x) {
+        if(covered(int(x),int(y))) continue;
+        auto r=cell_rect(int(x),int(y)); r={r.left+4,r.top+4,r.right-4,r.bottom-4};
+        dashed(r,soft(.6f),1.5f);
+        if(r.right-r.left>=76 && r.bottom-r.top>=26) c.text(en?L"drop here":L"hier ablegen",r,Font::Small,th.text,DWRITE_TEXT_ALIGNMENT_CENTER);
+    }
+    for(size_t i=0;i<l->zones.size();++i) {
+        auto r=zone_rect(i); const bool sel=int(i)==selected;
+        c.fill(r,th.card,6); c.frame(r,sel?focus_color(th):soft(.55f),6,sel?2.5f:1.2f);
+        c.text(widen(l->zones[i].id),{r.left+8,r.top+2,r.right-8,r.top+24},Font::Small,th.text);
+    }
+    for(size_t b=0;b<model.blocks.size();++b) {
+        auto r=block_rect(b); if(r.right<=r.left) continue;
+        auto fill=th.accent; fill.a=th.dark?.30f:.20f;
+        c.fill(r,fill,5); c.frame(r,int(b)==focused_block?focus_color(th):soft(.5f),5,int(b)==focused_block?2.5f:1.f);
+        c.text(label_of(model.blocks[b]["id"].get<std::string>(),en),{r.left+6,r.top,r.right-6,r.bottom},Font::Small,th.text);
+    }
+    if(area==1 && column>=0 && row>=0 && column<int(l->columns.size()) && row<int(l->rows.size())) {
+        auto r=cell_rect(column,row); c.frame({r.left+5,r.top+5,r.right-5,r.bottom-5},focus_color(th),4,2.f);
+    }
+    if(active_ && !trash_) {
+        auto copy=model; const bool valid=candidate(copy);
+        const int x=std::clamp(column,0,int(l->columns.size())-1),y=std::clamp(row,0,int(l->rows.size())-1);
+        Rect r=cell_rect(x,y); r={r.left+3,r.top+3,r.right-3,r.bottom-3};
+        const int z=zone_at();
+        if(action_==Action::Block && z>=0) r=zone_rect(size_t(z));
+        if(valid && action_!=Action::Block && source_<copy.layout["zones"].size()) {
+            auto zr=geometry(copy)->zones[source_];
+            r={left+(zr.column-first_column)*cw+3,g.top+zr.row*ch+3,left+(zr.column+zr.column_span-first_column)*cw-3,g.top+(zr.row+zr.row_span)*ch-3};
+        }
+        c.fill(r,th.card,6);  // deckender Grund: Hinweise freier Plätze scheinen nicht durch
+        std::wstring who; if(action_==Action::Block && source_<model.blocks.size()) who=label_of(model.blocks[source_]["id"].get<std::string>(),en)+L"\n";
+        if(valid) {
+            auto fill=th.accent; fill.a=.30f; c.fill(r,fill,6); c.frame(r,focus_color(th),6,2.f);
+            c.text(who+(en?L"Drop":L"Ablegen"),r,Font::Small,th.text,DWRITE_TEXT_ALIGNMENT_CENTER,true);
+        } else {
+            auto fill=th.danger; fill.a=.14f; c.fill(r,fill,6); dashed(r,th.danger,2.f);
+            c.text(who+(en?L"does not fit":L"passt nicht"),r,Font::Small,th.text,DWRITE_TEXT_ALIGNMENT_CENTER,true);
+        }
+    }
+    c.rt->PopAxisAlignedClip();
+    if(selected>=0 && selected<int(l->zones.size())) {  // Griffe dürfen über den Rand des Rahmens ragen
+        auto r=zone_rect(size_t(selected));
+        for(float x:{r.left,(r.left+r.right)/2,r.right}) for(float y:{r.top,(r.top+r.bottom)/2,r.bottom}) {
+            if(x==(r.left+r.right)/2 && y==(r.top+r.bottom)/2) continue;
+            const Rect h{x-5,y-5,x+5,y+5}; c.fill(h,th.card,2); c.frame(h,focus_color(th),2,2.f);
+        }
+    }
+    auto t=trash_rect(); const bool hot_trash=active_ && trash_;
+    if(hot_trash) { auto fill=th.danger; fill.a=.2f; c.fill(t,fill,8); c.frame(t,th.danger,8,2.f); }
+    else { c.fill(t,soft(.05f),8); dashed(t,soft(.6f),1.5f); }
+    if(area==2) c.frame(inflate(t,2),focus_color(th),9,2.f);
+    c.text(en?L"Trash · drop a tile here or press Delete":L"Papierkorb · Kachel hier ablegen oder Entf drücken",{t.left+10,t.top,t.right-10,t.bottom},Font::Small,th.text,DWRITE_TEXT_ALIGNMENT_CENTER);
+    c.rt->PopAxisAlignedClip();
+}std::wstring GridEditor::value(bool en) const {
     auto l=geometry(model); if(!l) return en?L"Invalid grid":L"Ungültiges Raster";
     if(active_) {
         std::wstring source=action_==Action::Block ? (en?L"Block ":L"Block ")+widen(model.blocks.at(source_)["id"].get<std::string>()) : L"Zone "+widen(l->zones.at(source_).id);
@@ -345,6 +450,56 @@ bool GridEditor::input(UINT vk,bool shift,bool alt,bool control) {
     if(ok) { model=next; dirty_=true; if(on_edit) on_edit(std::move(next),group); } else if(on_reject) on_reject();
     return true;
 }
+bool GridEditor::shown_block(size_t b) const { return b<model.blocks.size() && model.blocks[b].value("shown",true); }
+void GridEditor::start_external(size_t block,Point p,Surface& s) {
+    threshold_x_=GetSystemMetrics(SM_CXDRAG)*96.f/s.dpi(); threshold_y_=GetSystemMetrics(SM_CYDRAG)*96.f/s.dpi();
+    bool was=active_; auto before=snap();
+    reset_drag(); origin_=p; down_=true; stack_=0; prev_selected_=selected; moved_=false;
+    if(block<model.blocks.size()) { area=0; palette_block=int(block); source_=block; action_=Action::Block; }
+    announce(s,before,was);
+}
+bool GridEditor::pickup(size_t block,Surface& s) {
+    if(block>=model.blocks.size() || active_) return false;
+    auto l=geometry(model); if(!l) return false;
+    bool was=active_; auto before=snap();
+    column=std::clamp(column,0,int(l->columns.size())-1); row=std::clamp(row,0,int(l->rows.size())-1);
+    palette_block=int(block); source_=block; action_=Action::Block; active_=keyboard_=true; down_=false; area=1; stack_=0;
+    announce(s,before,was); return true;
+}
+void GridEditor::select_block(size_t block,Surface& s) {
+    auto l=geometry(model); if(!l || !shown_block(block)) return;
+    auto before=snap();
+    for(size_t z=0;z<l->zones.size();++z) if(model.blocks[block]["zone"]==l->zones[z].id) {
+        selected=int(z); column=l->zones[z].column; row=l->zones[z].row; focused_block=int(block); area=1; break;
+    }
+    if(on_select) on_select();
+    announce(s,before,active_);
+}
+bool GridEditor::insert_first_free(size_t block,Surface& s) {
+    auto l=geometry(model); if(!l || block>=model.blocks.size() || active_) return false;
+    auto covered=[&](int c,int r) {
+        for(const auto& z:l->zones) if(c>=z.column && c<z.column+z.column_span && r>=z.row && r<z.row+z.row_span) return true;
+        return false;
+    };
+    auto next=model; bool ok=false;
+    for(int r=0;r<int(l->rows.size()) && !ok;++r) for(int c=0;c<int(l->columns.size()) && !ok;++c) {
+        if(covered(c,r)) continue;
+        next=model; ok=place_block(next,block,c,r) && !leaves_empty_zone(model,next);
+    }
+    for(size_t z=0;z<l->zones.size() && !ok;++z) {
+        size_t count=0; for(size_t b=0;b<model.blocks.size();++b) if(b!=block && model.blocks[b]["zone"]==l->zones[z].id && model.blocks[b].value("shown",true)) ++count;
+        if(count>=4) continue;
+        next=model; ok=move_block(next,block,z,count) && !leaves_empty_zone(model,next);
+    }
+    if(!ok || equal(model,next)) { if(on_reject) on_reject(); return false; }
+    auto g=geometry(next); const auto id=model.blocks[block].value("id","");
+    auto before=snap();
+    for(size_t b=0;b<next.blocks.size() && g;++b) if(next.blocks[b].value("id","")==id)
+        for(size_t z=0;z<g->zones.size();++z) if(next.blocks[b]["zone"]==g->zones[z].id) { selected=int(z); focused_block=int(b); column=g->zones[z].column; row=g->zones[z].row; }
+    model=next; dirty_=true;
+    if(on_edit) on_edit(std::move(next),{});
+    announce(s,before,active_); return true;
+}
 // MSAA: Zielwechsel, Auswahl- oder Modelländerung melden, nicht jede Mausbewegung innerhalb derselben Zelle.
 void GridEditor::announce(Surface& s,const Snap& before,bool was_active) {
     if(was_active!=active_) s.notify(this,active_?EVENT_SYSTEM_DRAGDROPSTART:EVENT_SYSTEM_DRAGDROPEND);
@@ -352,8 +507,11 @@ void GridEditor::announce(Surface& s,const Snap& before,bool was_active) {
     dirty_=false; s.invalidate();
 }
 bool GridEditor::key(UINT vk,Surface& s) {
-    bool was=active_; auto before=snap(); if(!input(vk,GetKeyState(VK_SHIFT)<0,GetKeyState(VK_MENU)<0,GetKeyState(VK_CONTROL)<0)) return false;
-    announce(s,before,was); return true;
+    bool was=active_; auto before=snap(); const int area_before=area;
+    if(!input(vk,GetKeyState(VK_SHIFT)<0,GetKeyState(VK_MENU)<0,GetKeyState(VK_CONTROL)<0)) return false;
+    announce(s,before,was);
+    if(on_area && area!=area_before && (vk==VK_F6 || vk==VK_TAB)) on_area(area);
+    return true;
 }
 void GridEditor::activate(Surface& s) { key(VK_RETURN,s); }
 void GridEditor::press(Point p,Surface& s) {

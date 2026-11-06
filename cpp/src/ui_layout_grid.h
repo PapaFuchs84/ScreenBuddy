@@ -9,10 +9,15 @@ class GridEditor : public Widget {
 public:
     plugins::Arrangement model;
     float display_aspect = 0; // 0: bisheriges schematisches Raster; sonst Gerätefläche.
+    // P7b-3 „Fläche“: Gerätegrößen-Rahmen, dezentes Raster, gestrichelte Ablageplätze, Geist, Griffe, Papierkorb.
+    // Aus (Standard) bleibt Zeichnung und Trefferfläche des bisherigen Rasters bitgleich.
+    bool canvas = false;
+    float zoom = 1.f;         // 1 = Passend (Rahmen füllt die Breite), kleiner = herausgezoomt
     int column = 0, row = 0, selected = 0;
     int first_column = 0; // horizontaler Ausschnitt bei weniger als 32 DIP je Zelle
     std::function<void(plugins::Arrangement, std::string)> on_edit;
     std::function<void()> on_select, on_undo, on_redo, on_reject;
+    std::function<void(int)> on_area;   // Bereichswechsel per F6/Strg+Tab (0 Palette, 1 Fläche, 2 Papierkorb)
     GridEditor();
     float height(Ctx&, float) override;
     void paint(Ctx&) override;
@@ -42,6 +47,14 @@ public:
     void activate(Surface&) override;
     // Derselbe Tastenweg für UI und fensterlose Tests (keine simulierten Tastenzustände).
     bool input(UINT key, bool shift = false, bool alt = false, bool control = false);
+    // Kachelpalette (P7b-2): Aufnehmen, Einfügen und Auswählen aus einem anderen Widget. Weitere Mausereignisse
+    // der begonnenen Geste laufen über drag()/release()/cancel() dieses Widgets.
+    void start_external(size_t block, Point, Surface&);
+    bool pickup(size_t block, Surface&);          // Tastatur: Ziel ist der Zellfokus
+    bool insert_first_free(size_t block, Surface&); // freie Zelle, sonst Zone mit Platz; true = Bearbeitung gemeldet
+    void select_block(size_t block, Surface&);    // Zone und Chip eines gezeigten Blocks wählen
+    bool shown_block(size_t block) const;
+    std::function<std::wstring(const std::string&, bool)> block_label; // lesbarer Name (P7b-3); leer: Block-ID
 private:
     class PaletteInfo : public Widget {
     public:
@@ -49,6 +62,8 @@ private:
         Role role() const override { return Role::List; }
         std::wstring value(bool english) const override;
     } palette_;
+    void paint_canvas(Ctx&);
+    std::wstring label_of(const std::string& id, bool english) const;
     int zone_at() const;
     enum class Action { None, Block, Zone, Resize };
     Action action_ = Action::None;

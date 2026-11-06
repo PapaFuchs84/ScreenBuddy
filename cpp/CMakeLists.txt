@@ -26,7 +26,7 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
-    src/builtin_catalog.cpp src/layout_edit.cpp src/ui_layout_grid.cpp
+    src/builtin_catalog.cpp src/layout_edit.cpp src/ui_layout_grid.cpp src/ui_editor.cpp src/ui_tile_palette.cpp
     src/ui_page_layout.cpp
     src/plugin_schedule.cpp src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp src/page_samples.cpp src/page_frame.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/key_help.cpp src/psn_logic.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/amp_logic.cpp src/audio_levels.cpp src/discord.cpp

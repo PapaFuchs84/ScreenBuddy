@@ -1700,6 +1700,11 @@ void App::run() {
         actions.set_link_consent = [this](const std::string& id,bool allowed) {
             std::string error; if(!plugin_set_link_consent(id,allowed,error)) throw std::runtime_error(error);
         };
+        actions.editor_intro_seen=[this]{std::error_code ec;return std::filesystem::exists(cfg_path_.parent_path()/L"layouts"/L"editor-intro.done",ec);};
+        actions.editor_intro_done=[this]{
+            std::error_code ec;std::filesystem::create_directories(cfg_path_.parent_path()/L"layouts",ec);
+            std::ofstream(cfg_path_.parent_path()/L"layouts"/L"editor-intro.done")<<"1\n";
+        };
         actions.layout_displays=[this]{return layout_displays();};
         actions.layout_device_tv=[this](const std::string& id,bool tv) {
             if(!companion_ || !companion_->set_device_tv(id,tv)) throw std::runtime_error("Device is not available.");

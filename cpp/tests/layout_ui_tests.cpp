@@ -1,6 +1,8 @@
 // © 2026 FuchsLabs – isolierte native Editorprüfung, keine App-/Netzwerk-Schleife.
 #include "ui_pages.h"
 #include "ui_layout_grid.h"
+#include "ui_editor.h"
+#include "ui_tile_palette.h"
 #include "native_settings.h"
 #include "app.h"
 #include "util.h"
@@ -536,6 +538,330 @@ static void builtin_editor_tests(const fs::path& root, const builtin::Catalog& c
     CHECK(choice->options[selected].en==L"Built-in · "+widen(catalog.label.en));CHECK(choice->options.size()==size_t(std::count_if(builtin::catalogs().begin(),builtin::catalogs().end(),[](const auto& c){return c.enabled;})));
     h.view.set_root(nullptr);
 }
+// Hilfen für die Editor-Oberfläche (Phase 7b): echte Surface-Nachrichten in Dokumentkoordinaten.
+static void mouse(Surface& s,UINT message,Point p) {
+    SendMessageW(s.hwnd(),message,message==WM_LBUTTONUP?0:MK_LBUTTON,MAKELPARAM(s.px(p.x),s.px(p.y-s.scroll())));
+}
+static void builtin_actions(TestHost& h) {
+    h.actions.builtin_layout_get=[&](const std::string& key){return h.application.builtin_layout_get(key);};
+    h.actions.builtin_layout_apply=[&](const std::string& key,const Json& overlay){h.application.builtin_layout_apply(key,overlay);};
+    h.actions.builtin_layout_reset=[&](const std::string& key){h.application.builtin_layout_reset(key);};
+}
+static void settle(TestHost& h,Page& page) { for(int i=0;i<4;++i) {page.tick(h,h.state);h.drain();} }
+static bool choose_page(TestHost& h,Page& page,const std::string& key) {
+    auto choice=h.find<Combo>(L"Seite"); if(!choice) return false;
+    const auto label=L"Eingebaut · "+widen(builtin::find(key)->label.de);
+    for(size_t i=0;i<choice->options.size();++i) if(choice->options[i].de==label) { choice->index=int(i); choice->on_change(); settle(h,page); return true; }
+    return false;
+}
+// P7b-1: Fensteraufbau (Kopfleiste, Schiene, Bereiche, Breitenstufen).
+static void pin_window(TestHost& h) { h.view.set_dpi(96); SetWindowPos(h.view.hwnd(),nullptr,0,0,1180,760,SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE); h.relayout(); }
+static void editor_shell_tests(const fs::path& root) {
+    CHECK(EditorShell::mode_for(1164)==EditorShell::Wide); CHECK(EditorShell::mode_for(700)==EditorShell::Medium); CHECK(EditorShell::mode_for(400)==EditorShell::Narrow);
+    TestHost h(root/"shell"); pin_window(h); builtin_actions(h);
+    auto page=make_layout_page(); page->build(h,h.root); page->shown(h); settle(h,*page);
+    CHECK(choose_page(h,*page,"rss"));
+    auto shell=h.find<EditorShell>(); CHECK(shell); if(!shell) return;
+    CHECK(shell->mode==EditorShell::Wide);
+    CHECK(shell->is_open(EditorShell::Palette)); CHECK(shell->is_open(EditorShell::Layers)); CHECK(!shell->is_open(EditorShell::PageList));
+    // Drei Spalten: Palette links, Fläche in der Mitte, Eigenschaften rechts; alles im Fenster, nichts überlappt.
+    auto palette=h.find<TilePalette>(); auto grid=h.find<GridEditor>(); auto zone_id=h.find<TextField>(L"Zonen-ID");
+    CHECK(palette && grid && zone_id); if(!palette || !grid || !zone_id) return;
+    CHECK(palette->rc.right<=grid->rc.left); CHECK(grid->rc.right<=zone_id->rc.left);
+    CHECK(shell->rc.right<=h.view.size().width+.5f);
+    // Kopfleiste: Seitenauswahl, Gerätegröße, Rückgängig/Wiederholen/Übernehmen/Zurücksetzen.
+    auto chip=h.find<Chip>(); CHECK(chip && chip->text.de==L"480 × 320 · Querformat" && chip->text.en==L"480 × 320 · Landscape");
+    auto choice=h.find<Combo>(L"Seite"); auto undo=h.find<Button>(L"Rückgängig"); auto redo=h.find<Button>(L"Wiederholen");
+    auto apply=h.find<Button>(L"Übernehmen"); auto reset=h.find<Button>(L"Auf Standard zurücksetzen");
+    CHECK(choice && undo && redo && apply && reset);
+    if(choice && undo && apply) CHECK(choice->rc.top<=undo->rc.bottom && undo->rc.top<shell->rc.top && apply->rc.top<shell->rc.top);
+    // Schiene: Rollen, Zustand und Umschalten per Tastatur; Ebenenliste verschwindet und kommt wieder.
+    RailItem* layers=nullptr; for(auto w:h.view.flatten(false)) if(auto r=dynamic_cast<RailItem*>(w)) if(r->text.de==L"Ebenen") layers=r;
+    CHECK(layers && layers->role()==Role::NavTab && layers->checked() && layers->value(false)==L"geöffnet"); if(!layers) return;
+    CHECK(h.find<LayoutBlockList>());
+    h.view.focus(layers,true); key(h.view,VK_SPACE); CHECK(!layers->checked()); CHECK(!h.find<LayoutBlockList>()); CHECK(layers->value(true)==L"closed");
+    key(h.view,VK_SPACE); CHECK(layers->checked()); CHECK(h.find<LayoutBlockList>());
+    // Seitenliste: Auswahl wechselt die Seite (ohne ungesicherte Änderungen keine Rückfrage).
+    for(auto w:h.view.flatten(false)) if(auto r=dynamic_cast<RailItem*>(w)) if(r->text.de==L"Seiten") r->activate(h.view);
+    auto pages=h.find<ItemList>(L"Seitenliste"); CHECK(pages && pages->selected==choice->index && pages->items.size()==choice->options.size());
+    if(pages) { const int other=pages->selected==0?1:0; pages->select(other,h.view); settle(h,*page); CHECK(h.find<Combo>(L"Seite")->index==other); CHECK(h.find<ItemList>(L"Seitenliste")->selected==other); }
+    // Mittel: Palette offen -> Eigenschaften unter der Fläche; schmal: Palette anfangs eingeklappt, Ebenen sichtbar.
+    SetWindowPos(h.view.hwnd(),nullptr,0,0,760,900,SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE); h.relayout();
+    shell=h.find<EditorShell>(); CHECK(shell->mode==EditorShell::Medium);
+    CHECK(h.find<TextField>(L"Zonen-ID")->rc.top>=h.find<GridEditor>()->rc.bottom-1);
+    SetWindowPos(h.view.hwnd(),nullptr,0,0,420,900,SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE); h.relayout();
+    CHECK(shell->mode==EditorShell::Narrow); CHECK(h.find<LayoutBlockList>());
+    CHECK(!shell->is_open(EditorShell::Palette)); CHECK(!h.find<TilePalette>()); // schmal: Kachelpalette anfangs eingeklappt
+    shell->rail[EditorShell::Palette]->activate(h.view); CHECK(shell->is_open(EditorShell::Palette)); CHECK(h.find<TilePalette>()); CHECK(h.find<TilePalette>()->rc.right-h.find<TilePalette>()->rc.left>=96);
+    for(auto w:h.view.flatten(true)) CHECK(w->rc.bottom>w->rc.top && w->rc.right>w->rc.left);
+    h.view.set_root(nullptr);
+}
+// P7b-2: Kachelpalette (Suche, Filter, Mini-Vorschau, Ziehen, Klick-Einfügen, Tastatur).
+static void tile_palette_tests(const fs::path& root) {
+    TestHost h(root/"palette"); pin_window(h); builtin_actions(h);
+    auto page=make_layout_page(); page->build(h,h.root); page->shown(h); settle(h,*page);
+    // Mini-Vorschauen aus dem echten Seitenrenderer: jede Kachel jeder Seite hat ein Bild oder ist als „keine Daten“ markiert.
+    for(const auto& catalog:builtin::catalogs()) if(catalog.enabled) {
+        CHECK(choose_page(h,*page,catalog.key));
+        auto palette=h.find<TilePalette>(); CHECK(palette && palette->tiles.size()==catalog.blocks.size()); if(!palette) continue;
+        for(const auto& tile:palette->tiles) {
+            auto thumb=palette->thumb_of(tile.id);
+            CHECK(thumb && ((thumb->image && !thumb->image->empty()) || thumb->no_data));
+            if(thumb && thumb->image) CHECK(thumb->image->w<=192 && thumb->image->h<=108);
+        }
+        if(catalog.key=="rss") {
+            CHECK(palette->thumb_of("rss.liste")->image && !palette->thumb_of("rss.liste")->no_data);
+            CHECK(palette->thumb_of("rss.hinweis")->no_data); // Hinweis erscheint nur ohne Daten
+        }
+    }
+    CHECK(choose_page(h,*page,"system"));
+    auto palette=h.find<TilePalette>(); auto grid=h.find<GridEditor>(); CHECK(palette && grid); if(!palette || !grid) return;
+    CHECK(palette->role()==Role::List && palette->name.de==L"Kachelpalette");
+    CHECK(palette->value(false)==L"Kachel 1 von 5: CPU, platziert. Leertaste: aufnehmen, Enter: wählen oder hinzufügen. Liste: CPU gezeigt, GPU gezeigt, RAM gezeigt, Datenträger gezeigt, Netzwerk gezeigt");
+    CHECK(palette->value(true).starts_with(L"Tile 1 of 5: CPU, placed. Space: pick up, Enter: select or add. List: CPU shown"));
+    palette->current=2; CHECK(palette->value(false).starts_with(L"Kachel 3 von 5: RAM, platziert.")); palette->current=0;
+    // Bild- und Beschriftungsgrößen: Palette ist breit genug, Kacheln liegen im Raster der Palette.
+    CHECK(palette->visible().size()==5 && palette->columns()>=2);
+    for(size_t i=0;i<5;++i) { auto r=palette->tile_rect(i); CHECK(r.left>=palette->rc.left-.5f && r.right<=palette->rc.right+.5f && r.bottom>r.top); }
+    // Suche und Filter.
+    auto search=h.find<TextField>(L"Kacheln suchen"); CHECK(search); if(!search) return;
+    search->set_text(L"cpu"); search->on_change(); CHECK(palette->visible().size()==1 && palette->tiles[palette->visible()[0]].id=="system.cpu");
+    CHECK(palette->value(false).starts_with(L"Kachel 1 von 1: CPU, platziert.") && palette->value(false).find(L"Gefiltert: 1 von 5.")!=std::wstring::npos);
+    search->set_text(L"GRAFIK"); search->on_change(); CHECK(palette->visible().empty()); CHECK(palette->value(false).starts_with(L"Keine Kachel passt."));
+    search->set_text(L"net"); search->on_change(); CHECK(palette->visible().size()==1);
+    search->set_text(L""); search->on_change(); CHECK(palette->visible().size()==5);
+    Button* media=nullptr; Button* sys=nullptr; for(auto w:h.view.flatten(false)) if(auto b=dynamic_cast<Button*>(w)) { if(b->text.de==L"Medien") media=b; if(b->text.de==L"System") sys=b; }
+    CHECK(media && sys && media->role()==Role::NavTab); if(!media || !sys) return;
+    media->activate(h.view); CHECK(palette->visible().empty() && media->checked() && !sys->checked());
+    sys->activate(h.view); CHECK(palette->visible().size()==5 && sys->checked());
+    h.find<Button>(L"Alle")->activate(h.view); CHECK(palette->category.empty());
+    // Vorbereitung: letzten Block samt Zone entfernen, damit eine freie Zelle zum Ablegen entsteht.
+    const auto original=grid->model;
+    auto free_model=original; CHECK(plugins::edit::remove_block(free_model,4)); CHECK(plugins::edit::delete_zone(free_model,4));
+    grid->on_edit(free_model,{}); settle(h,*page); grid=h.find<GridEditor>(); palette=h.find<TilePalette>();
+    CHECK(!grid->shown_block(4)); CHECK(palette->value(false).find(L"Netzwerk verborgen")!=std::wstring::npos);
+    auto cell=[&](int c,int r) { auto g=grid->grid_rect(); const float cw=std::max(32.f,(g.right-g.left)/2),ch=(g.bottom-g.top)/3; return Point{g.left+(c+.5f)*cw,g.top+(r+.5f)*ch}; };
+    // Ziehen aus der Palette per Maus auf die freie Zelle: eine Geste = ein Rückgängig-Schritt, Vorschau erst danach.
+    int edits=0; const auto page_on_edit=grid->on_edit; grid->on_edit=[&,page_on_edit](auto m,auto g) { ++edits; page_on_edit(std::move(m),std::move(g)); };
+    const auto tile=palette->tile_rect(4); Point from{(tile.left+tile.right)/2,(tile.top+tile.bottom)/2};
+    h.view.focus(palette,true); const auto previews=h.previews;
+    mouse(h.view,WM_LBUTTONDOWN,from); mouse(h.view,WM_MOUSEMOVE,{from.x+30,from.y}); mouse(h.view,WM_MOUSEMOVE,cell(0,2));
+    CHECK(grid->carrying()); CHECK(grid->target_valid()); CHECK(edits==0); CHECK(!grid->shown_block(4)); page->tick(h,h.state); CHECK(h.jobs.empty()); CHECK(h.previews==previews);
+    mouse(h.view,WM_LBUTTONUP,cell(0,2)); CHECK(!grid->carrying()); CHECK(edits==1); CHECK(grid->shown_block(4)); CHECK(grid->model.layout["zones"].size()==5);
+    CHECK(grid->model.blocks[4]["zone"]==grid->model.layout["zones"][4]["id"]);
+    settle(h,*page); CHECK(h.previews>previews);
+    CHECK(h.find<Button>(L"Rückgängig")->enabled); h.find<Button>(L"Rückgängig")->activate(h.view); settle(h,*page);
+    CHECK(!h.find<GridEditor>()->shown_block(4)); CHECK(plugins::edit::equal(h.find<GridEditor>()->model,free_model));
+    // Abbruch mit Esc und außerhalb der Fläche ändert nichts.
+    grid=h.find<GridEditor>(); palette=h.find<TilePalette>(); edits=0;
+    mouse(h.view,WM_LBUTTONDOWN,from); mouse(h.view,WM_MOUSEMOVE,cell(0,2)); CHECK(grid->carrying()); key(h.view,VK_ESCAPE); mouse(h.view,WM_LBUTTONUP,cell(0,2));
+    CHECK(!grid->carrying()); CHECK(edits==0); CHECK(!grid->shown_block(4));
+    mouse(h.view,WM_LBUTTONDOWN,from); mouse(h.view,WM_MOUSEMOVE,{palette->rc.left+5,palette->rc.top-40}); mouse(h.view,WM_LBUTTONUP,{palette->rc.left+5,palette->rc.top-40});
+    CHECK(edits==0); CHECK(!grid->shown_block(4));
+    // Klick fügt an der ersten freien Stelle ein (ein Schritt).
+    mouse(h.view,WM_LBUTTONDOWN,from); mouse(h.view,WM_LBUTTONUP,from);
+    CHECK(edits==1); CHECK(grid->shown_block(4)); CHECK(grid->model.layout["zones"].size()==5);
+    { auto l=plugins::edit::geometry(grid->model); bool ok=false; if(l) for(const auto& z:l->zones) if(grid->model.blocks[4]["zone"]==z.id) ok=z.column==0 && z.row==2; CHECK(ok); }
+    // Klick auf eine platzierte Kachel wählt sie im Raster.
+    const auto cpu=palette->tile_rect(0); Point on_cpu{(cpu.left+cpu.right)/2,(cpu.top+cpu.bottom)/2};
+    grid->selected=3; mouse(h.view,WM_LBUTTONDOWN,on_cpu); mouse(h.view,WM_LBUTTONUP,on_cpu); CHECK(grid->selected==0); CHECK(grid->focused_block==0); CHECK(edits==1);
+    // Strg+Tab wie F6: Bereichswechsel zwischen Palette und Fläche in beide Richtungen.
+    grid->area=0; h.view.focus(palette,true); key(h.view,VK_TAB,false,false,true); CHECK(h.view.focused()==grid && grid->area==1);
+    key(h.view,VK_TAB,true,false,true); CHECK(h.view.focused()==h.find<TilePalette>() && grid->area==0); key(h.view,VK_TAB,false,false,true); CHECK(h.view.focused()==grid);
+    // Tastatur: Pfeile bewegen den Cursor, Leertaste nimmt auf und gibt den Fokus an die Fläche, Esc bricht ab, Entf entfernt.
+    h.view.focus(palette,true); key(h.view,VK_END); CHECK(palette->current==4); CHECK(grid->palette_block==4);
+    key(h.view,VK_HOME); key(h.view,VK_RIGHT); CHECK(palette->current==1);
+    key(h.view,VK_SPACE); CHECK(grid->carrying()); CHECK(h.view.focused()==grid); CHECK(grid->value(false).find(L"aufgenommen")!=std::wstring::npos);
+    key(h.view,VK_ESCAPE); CHECK(!grid->carrying());
+    // Entf entfernt nur, was die Zone nicht leer lässt: der einzige Block seiner Zone bleibt, die Ablehnung wird gemeldet.
+    h.view.focus(palette,true); key(h.view,VK_END); CHECK(grid->shown_block(4)); const int toasts=h.toasts; key(h.view,VK_DELETE); CHECK(grid->shown_block(4)); CHECK(edits==1); CHECK(h.toasts==toasts+1);
+    grid->selected=3; key(h.view,VK_RETURN); CHECK(grid->selected==4); CHECK(edits==1); // Enter auf eine platzierte Kachel wählt sie
+    // MSAA: eigener Name, Rolle und Wert.
+    ComPtr<IAccessible> acc; AccessibleObjectFromWindow(h.view.hwnd(),OBJID_CLIENT,IID_PPV_ARGS(acc.GetAddressOf())); bool found=false;
+    long count=0; if(acc) acc->get_accChildCount(&count);
+    for(long i=1;i<=count;++i) {
+        VARIANT child{}; child.vt=VT_I4; child.lVal=i; BSTR name=nullptr; acc->get_accName(child,&name);
+        if(name && std::wstring(name)==L"Kachelpalette") {
+            found=true; VARIANT role{}; acc->get_accRole(child,&role); CHECK(role.lVal==ROLE_SYSTEM_LIST);
+            BSTR value=nullptr; acc->get_accValue(child,&value); CHECK(value && std::wstring(value)==palette->value(false)); SysFreeString(value);
+        }
+        SysFreeString(name);
+    }
+    CHECK(found); h.view.set_root(nullptr);
+}
+// Ganzer Widgetbaum (wie Surface::paint ohne Bildlauf/Fokusring) in ein 96-DPI-Bild, für Editor-Snapshots.
+struct TreeCanvas {
+    ComPtr<IWICBitmap> bitmap; ComPtr<ID2D1RenderTarget> rt; ComPtr<ID2D1SolidColorBrush> brush; int width=0,height=0;
+    TreeCanvas(Kit& kit,int w,int h):width(w),height(h) {
+        ComPtr<IWICImagingFactory> wic; CoCreateInstance(CLSID_WICImagingFactory,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(wic.GetAddressOf()));
+        wic->CreateBitmap(w,h,GUID_WICPixelFormat32bppPBGRA,WICBitmapCacheOnLoad,bitmap.GetAddressOf());
+        kit.d2d()->CreateWicBitmapRenderTarget(bitmap.Get(),D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_DEFAULT,D2D1::PixelFormat(),96,96),rt.GetAddressOf());
+        rt->CreateSolidColorBrush(kit.theme().text,brush.GetAddressOf());
+    }
+    Ctx ctx(Kit& kit) { return Ctx{rt.Get(),kit,kit.theme(),brush.Get()}; }
+};
+static void layout_tree(Kit& kit,TreeCanvas& canvas,Widget& root) { auto ctx=canvas.ctx(kit); root.layout(ctx,16,12,float(canvas.width-32)); }
+static Image paint_tree(Kit& kit,TreeCanvas& canvas,Widget& root) {
+    auto ctx=canvas.ctx(kit);
+    struct Walk { static void go(Ctx& c,Widget* w) {
+        if(!w || !w->visible) return; const float saved=c.dim; if(!w->enabled) c.dim*=.45f;
+        w->paint(c); std::vector<Widget*> kids; w->children(kids); for(auto k:kids) go(c,k); c.dim=saved; } };
+    canvas.rt->BeginDraw(); canvas.rt->Clear(kit.theme().bg); Walk::go(ctx,&root); CHECK(SUCCEEDED(canvas.rt->EndDraw()));
+    Image image(canvas.width,canvas.height); canvas.bitmap->CopyPixels(nullptr,canvas.width*4,UINT(image.px.size()*4),reinterpret_cast<BYTE*>(image.px.data())); return image;
+}
+static double contrast_of(Rgba a,Rgba b) {
+    auto color=[](Rgba c) { return Color(uint8_t(std::lround(c.r*255)),uint8_t(std::lround(c.g*255)),uint8_t(std::lround(c.b*255))); };
+    return theme::contrast(color(a),color(b));
+}
+// P7b-3: Fläche (Rahmen, Zoom, Ablageplätze, Geist, Papierkorb).
+static void canvas_tests(const fs::path& root) {
+    TestHost h(root/"canvas"); builtin_actions(h);
+    auto page=make_layout_page(); page->build(h,h.root); page->shown(h); settle(h,*page);
+    CHECK(choose_page(h,*page,"system"));
+    auto grid=h.find<GridEditor>(); CHECK(grid && grid->canvas); if(!grid) return;
+    auto ratio=[&] { auto g=h.find<GridEditor>()->grid_rect(); return (g.right-g.left)/(g.bottom-g.top); };
+    CHECK(std::abs(ratio()-480.f/320.f)<.01f);
+    auto orientation=h.find<Segment>(L"Ausrichtung"); orientation->index=1; orientation->on_change(); settle(h,*page);
+    CHECK(std::abs(ratio()-320.f/480.f)<.01f); CHECK(h.find<Chip>()->text.de==L"320 × 480 · Hochformat");
+    orientation->index=0; orientation->on_change(); settle(h,*page); CHECK(std::abs(ratio()-1.5f)<.01f);
+    grid=h.find<GridEditor>();
+    // Rahmen im Widget, Papierkorb darunter; Zoom verkleinert um Stufen, Passend stellt wieder her.
+    auto g=grid->grid_rect(); const float full=g.right-g.left;
+    CHECK(g.left>=grid->rc.left && g.right<=grid->rc.right && g.top>=grid->rc.top && grid->trash_rect().top>=g.bottom && grid->trash_rect().bottom<=grid->rc.bottom+.5f);
+    h.find<Button>(L"Zoom −")->activate(h.view); g=grid->grid_rect(); CHECK(std::abs((g.right-g.left)/full-.85f)<.01f); CHECK(std::abs(ratio()-1.5f)<.01f);
+    for(int i=0;i<6;++i) h.find<Button>(L"Zoom −")->activate(h.view);
+    g=grid->grid_rect(); CHECK(std::abs((g.right-g.left)/full-.5f)<.01f); h.find<Button>(L"Zoom +")->activate(h.view); CHECK(grid->zoom>.6f);
+    h.find<Button>(L"Passend")->activate(h.view); g=grid->grid_rect(); CHECK(std::abs((g.right-g.left)-full)<.5f);
+    for(int i=0;i<3;++i) h.find<Button>(L"Zoom +")->activate(h.view); CHECK(grid->zoom<=1.f);
+    // Ungültiges Ziel: Papierkorb würde die Zone leeren -> „passt nicht“ als Text, nicht nur Farbe.
+    auto zr=grid->zone_rect(0); auto chip=grid->block_rect(0); Point from{(chip.left+chip.right)/2,(chip.top+chip.bottom)/2};
+    auto tr=grid->trash_rect();
+    grid->start_external(0,from,h.view); grid->drag({from.x+20,from.y},h.view); grid->drag({(tr.left+tr.right)/2,(tr.top+tr.bottom)/2},h.view);
+    CHECK(grid->carrying()); CHECK(!grid->target_valid()); CHECK(grid->value(false).find(L"passt nicht")!=std::wstring::npos); CHECK(grid->value(true).find(L"does not fit")!=std::wstring::npos);
+    grid->cancel(h.view); CHECK(!grid->carrying()); (void)zr;
+    h.view.set_root(nullptr);
+}
+// Plugin-Seite mit sechs Widgets in drei Zonen: jede Kachel bekommt ihre Einzelzonen-Vorschau (verborgene Blöcke zählen nicht gegen das Zonenlimit).
+static void plugin_palette_tests(const fs::path& root) {
+    Json widgets=Json::array(); for(int i=0;i<6;++i) widgets.push_back({{"id","w"+std::to_string(i)},{"type","text"},{"text","Sample "+std::to_string(i)},{"zone","z"+std::to_string(i/2)}});
+    const Json manifest={{"schema_version",2},{"id","many-test"},{"name","Many Test"},{"version","1.0.0"},
+        {"layout",{{"columns",{1,1,1}},{"rows",{1}},{"zones",{{{"id","z0"},{"column",0},{"row",0}},{{"id","z1"},{"column",1},{"row",0}},{{"id","z2"},{"column",2},{"row",0}}}}}},{"widgets",widgets}};
+    TestHost h(root/"many"); pin_window(h); CHECK(h.store.load()); CHECK(h.store.import_manifest(manifest.dump()));
+    auto page=make_layout_page(); page->build(h,h.root); page->shown(h); settle(h,*page);
+    auto palette=h.find<TilePalette>(); CHECK(palette && palette->tiles.size()==6); if(!palette) return;
+    for(const auto& tile:palette->tiles) { auto thumb=palette->thumb_of(tile.id); CHECK(thumb && thumb->image && thumb->image->w>0); }
+    CHECK(palette->tiles[0].category=="other");
+    auto info=h.find<Label>(L"Auswahl"); CHECK(info && info->text.de.find(L"Zone z0 · Größe 1 × 1 Zellen")!=std::wstring::npos && info->text.en.find(L"size 1 × 1 cells")!=std::wstring::npos);
+    h.view.set_root(nullptr);
+}
+// P7b-4: Ebenenliste, Seitenliste, Einsteigerkarte.
+static void layers_pages_intro_tests(const fs::path& root) {
+    TestHost h(root/"layers"); pin_window(h); builtin_actions(h);
+    int seen_reads=0,done_calls=0; bool seen=false;
+    h.actions.editor_intro_seen=[&] { ++seen_reads; return seen; };
+    h.actions.editor_intro_done=[&] { ++done_calls; seen=true; };
+    auto page=make_layout_page(); page->build(h,h.root); page->shown(h); settle(h,*page);
+    // Einsteigerkarte beim ersten Öffnen: drei Schritte, wegklickbar, gemerkt (Datei), danach nie wieder.
+    Card* intro=nullptr; for(auto w:h.view.flatten(false)) if(auto c=dynamic_cast<Card*>(w)) if(c->title.de==L"In drei Schritten") intro=c;
+    CHECK(intro && intro->title.en==L"In three steps"); CHECK(seen_reads>=1); if(!intro) return;
+    CHECK(intro->rc.bottom>intro->rc.top);
+    int labels=0; for(auto& item:intro->items) if(auto l=dynamic_cast<Label*>(item.get())) { ++labels; CHECK(!l->text.de.empty() && !l->text.en.empty() && l->text.de!=l->text.en); }
+    CHECK(labels==3);
+    auto got_it=h.find<Button>(L"Verstanden"); CHECK(got_it); got_it->activate(h.view); settle(h,*page);
+    CHECK(done_calls==1); CHECK(seen); intro=nullptr; for(auto w:h.view.flatten(false)) if(auto c=dynamic_cast<Card*>(w)) if(c->title.de==L"In drei Schritten") intro=c;
+    CHECK(!intro);
+    page->hidden(h); page->shown(h); settle(h,*page); CHECK(!h.find<Button>(L"Verstanden"));
+    // Ebenenliste: Auswahl, Sichtbarkeit und Reihenfolge wirken auf Modell und Fläche.
+    CHECK(choose_page(h,*page,"system"));
+    auto grid=h.find<GridEditor>(); auto blocks=h.find<LayoutBlockList>(); CHECK(grid && blocks); if(!grid || !blocks) return;
+    CHECK(blocks->items.size()==5 && blocks->items[0].title.de==L"CPU" && blocks->items[0].title.en==L"CPU" && blocks->items[3].title.de==L"Datenträger" && blocks->items[3].title.en==L"Disk");
+    blocks->selected=2; blocks->on_select(2); CHECK(grid->selected==2 && grid->focused_block==2);
+    grid->select_block(4,h.view); CHECK(blocks->selected==4);
+    h.view.focus(blocks,true); key(h.view,VK_UP); CHECK(blocks->selected==3 && grid->selected==3);
+    blocks->toggle(1,h.view); settle(h,*page); CHECK(!h.find<GridEditor>()->shown_block(1)); CHECK(h.find<TilePalette>()->value(false).find(L"GPU verborgen")!=std::wstring::npos);
+    CHECK(!h.find<Button>(L"Übernehmen")->enabled); // Zone ohne Block ist ungültig
+    h.find<Button>(L"Rückgängig")->activate(h.view); settle(h,*page); CHECK(h.find<GridEditor>()->shown_block(1)); CHECK(h.find<Button>(L"Übernehmen")->enabled);
+    h.view.focus(blocks,true); blocks->selected=0; key(h.view,VK_DOWN,false,true); CHECK(h.find<GridEditor>()->model.blocks[0]["id"]=="system.gpu");
+    CHECK(h.find<TilePalette>()->tiles[0].id=="system.gpu"); // Palette folgt der Reihenfolge
+    h.find<Button>(L"Rückgängig")->activate(h.view); settle(h,*page);
+    // Seitenliste: zeigt alle Seiten mit Art, folgt der Seitenauswahl; Wechsel mit ungesicherten Änderungen fragt nach.
+    for(auto w:h.view.flatten(false)) if(auto r=dynamic_cast<RailItem*>(w)) if(r->text.de==L"Seiten") r->activate(h.view);
+    auto pages=h.find<ItemList>(L"Seitenliste"); auto choice=h.find<Combo>(L"Seite"); CHECK(pages && choice && !pages->checkable && !pages->reorder); if(!pages || !choice) return;
+    CHECK(pages->items.size()==choice->options.size()); CHECK(pages->items[size_t(pages->selected)].detail.de==L"Eingebaut" && pages->items[0].detail.en==L"Built-in");
+    CHECK(pages->selected==choice->index);
+    auto edited=h.find<GridEditor>()->model; CHECK(plugins::edit::resize_axis(edited,false,1)); h.find<GridEditor>()->on_edit(edited,{});
+    const int before=pages->selected, other=before==0?1:0; const int asks=h.confirmations; h.confirm_answer=false;
+    pages->select(other,h.view); CHECK(h.confirmations==asks+1); CHECK(h.question.de.find(L"verwerfen")!=std::wstring::npos);
+    pages=h.find<ItemList>(L"Seitenliste"); CHECK(pages->selected==before); CHECK(h.find<Combo>(L"Seite")->index==before);
+    h.confirm_answer=true; pages->select(other,h.view); settle(h,*page);
+    CHECK(h.find<ItemList>(L"Seitenliste")->selected==other); CHECK(h.find<Combo>(L"Seite")->index==other); CHECK(!h.find<Button>(L"Rückgängig")->enabled);
+    // Bereichszustand überlebt den Seitenwechsel (Seiten bleibt offen).
+    CHECK(h.find<EditorShell>()->is_open(EditorShell::PageList));
+    h.view.set_root(nullptr);
+}
+// P7b-5 vorgezogen: Editor-Snapshots (additiv; eigene Hashdatei, nie per update überschrieben) und Vorschau-PNGs.
+static void editor_snapshot_tests(const fs::path& root,const fs::path& baseline,const fs::path& images,bool record) {
+    const auto file=baseline/"p7b-editor-hashes.txt";
+    std::map<std::string,std::string> expected,actual;
+    if(!record) { std::ifstream in(file); CHECK(bool(in)); for(std::string name,hash;in>>name>>hash;) expected[name]=hash; }
+    else if(fs::exists(file)) { std::printf("Editor-Hashdatei existiert; Überschreiben verboten.\n"); CHECK(false); return; }
+    Kit kit; kit.use_design({{"theme",theme::DEFAULT_ID}}); kit.use_windows(false); kit.dark=true; kit.english=false;
+    const auto& th=kit.theme();
+    // Kontraste im Standard-Theme (dunkles Material mit Orange): Text >= 4,5:1, Fokusring und Grenzen >= 3:1.
+    CHECK(contrast_of(th.text,th.card)>=4.5); CHECK(contrast_of(th.text,th.bg)>=4.5); CHECK(contrast_of(th.muted,th.card)>=4.5);
+    CHECK(contrast_of(focus_color(th),th.card)>=3.0); CHECK(contrast_of(focus_color(th),th.bg)>=3.0); CHECK(contrast_of(th.danger,th.bg)>=3.0);
+    CHECK(contrast_of(th.on_accent,th.accent)>=4.5);
+    // Alle Themes (auch dunkel und eigene): Kachelzustand (muted auf Karte), Vorschautext auf Vorschaufläche, Rahmen/Fokus/Ungültig.
+    for(auto& tc:snapshot::theme_cases()) {
+        Kit other; other.dark=tc.name=="dunkel"; ojson dp={{"theme",tc.name}}; if(!tc.inline_theme.is_null()) dp["theme_inline"]=tc.inline_theme;
+        other.use_design(dp);
+        if(tc.name=="windows") { theme::WindowsSettings w; w.has_accent=true; other.use_windows(true,&w); } else other.use_windows(false);
+        const auto& o=other.theme();
+        CHECK(contrast_of(o.text,o.card)>=4.5); CHECK(contrast_of(o.text,o.bg)>=4.5); CHECK(contrast_of(o.muted,o.card)>=4.5);
+        CHECK(contrast_of(rgb(235,235,235),o.preview_bg)>=4.5);
+        CHECK(contrast_of(focus_color(o),o.card)>=3.0); CHECK(contrast_of(focus_color(o),o.bg)>=3.0); CHECK(contrast_of(o.danger,o.bg)>=3.0);
+    }
+    auto save=[&](const std::string& key,const Image& image) {
+        actual[key]=snapshot::hash_image(image); if(!record) CHECK(expected[key]==actual[key]);
+        fs::create_directories(images); snapshot::write_png(images/(key+".png"),image);
+    };
+    auto setup=[&](TestHost& h,const std::string& key) {
+        builtin_actions(h); h.actions.editor_intro_seen=[] { return true; };  // Einsteigerkarte ist für die Bilder bereits weggeklickt
+        auto page=make_layout_page(); page->build(h,h.root); page->shown(h); settle(h,*page); CHECK(choose_page(h,*page,key)); return page;
+    };
+    const int W=960,H=640;
+    {   // 1: System, Standardanordnung, Zone 1 gewählt.
+        TestHost h(root/"snap-system"); auto page=setup(h,"system"); TreeCanvas canvas(kit,W,H);
+        auto grid=h.find<GridEditor>(); grid->selected=1; grid->column=1; grid->row=0; grid->focused_block=1; grid->on_select();  // GPU gewählt, Eigenschaften folgen
+        layout_tree(kit,canvas,h.root); save("material-orange.editor-system",paint_tree(kit,canvas,h.root));
+        h.view.set_root(nullptr);
+    }
+    {   // 2: freie Zelle und Kachel im Zug mit gültigem Ziel (Geist „Ablegen“).
+        TestHost h(root/"snap-drag"); auto page=setup(h,"system"); TreeCanvas canvas(kit,W,H);
+        auto grid=h.find<GridEditor>(); auto model=grid->model; CHECK(plugins::edit::remove_block(model,4)); CHECK(plugins::edit::delete_zone(model,4));
+        grid->on_edit(model,{}); settle(h,*page); grid=h.find<GridEditor>(); auto palette=h.find<TilePalette>();
+        layout_tree(kit,canvas,h.root);
+        auto tile=palette->tile_rect(4); Point from{(tile.left+tile.right)/2,(tile.top+tile.bottom)/2};
+        auto g=grid->grid_rect(); const float cw=(g.right-g.left)/2,ch=(g.bottom-g.top)/3; Point to{g.left+.5f*cw,g.top+2.5f*ch};
+        grid->start_external(4,from,h.view); grid->drag({from.x+30,from.y},h.view); grid->drag(to,h.view);
+        CHECK(grid->carrying()); CHECK(grid->target_valid());
+        auto valid=paint_tree(kit,canvas,h.root); save("material-orange.editor-drag",valid);
+        // Ungültiger Geist darf sich vom gültigen unterscheiden; Papierkorb hervorgehoben ebenfalls.
+        auto trash=grid->trash_rect(); grid->drag({(trash.left+trash.right)/2,(trash.top+trash.bottom)/2},h.view);
+        auto over_trash=paint_tree(kit,canvas,h.root); CHECK(snapshot::hash_image(over_trash)!=snapshot::hash_image(valid));
+        actual["material-orange.editor-drag-trash"]=snapshot::hash_image(over_trash); if(!record) CHECK(expected["material-orange.editor-drag-trash"]==actual["material-orange.editor-drag-trash"]);
+        grid->cancel(h.view); h.view.set_root(nullptr);
+    }
+    {   // 3: Spotify mit geöffneter Seitenliste, Suche und Filter.
+        TestHost h(root/"snap-spotify"); auto page=setup(h,"spotify"); TreeCanvas canvas(kit,W,H);
+        auto shell=h.find<EditorShell>(); shell->rail[EditorShell::PageList]->activate(h.view); shell->rail[EditorShell::Layers]->activate(h.view);
+        h.find<Button>(L"Medien")->activate(h.view);
+        layout_tree(kit,canvas,h.root); save("material-orange.editor-spotify",paint_tree(kit,canvas,h.root));
+        h.view.set_root(nullptr);
+    }
+    if(record) { fs::create_directories(baseline); std::ofstream out(file); for(auto& [key,hash]:actual) out<<key<<' '<<hash<<'\n'; CHECK(bool(out)); }
+    else CHECK(expected.size()==actual.size());
+}
 int main(int argc,char** argv) {
     setvbuf(stdout,nullptr,_IONBF,0);
     gfx_init(); SetConsoleOutputCP(CP_UTF8); capture_tests();
@@ -545,6 +871,7 @@ int main(int argc,char** argv) {
     builtin_infrastructure_tests(dir);
     device_render_tests(dir);device_editor_tests(dir);
     friends_store_tests(dir);
+    editor_shell_tests(dir); tile_palette_tests(dir); canvas_tests(dir); layers_pages_intro_tests(dir); plugin_palette_tests(dir);
     for(const auto& catalog:builtin::catalogs()) if(catalog.enabled) builtin_editor_tests(dir,catalog);
     struct Cleanup { fs::path path; ~Cleanup() { std::error_code ec; fs::remove_all(path,ec); } } cleanup{dir};
     fs::create_directories(dir);
@@ -554,6 +881,8 @@ int main(int argc,char** argv) {
         auto grid=h.find<GridEditor>(); CHECK(grid); auto blocks=h.find<LayoutBlockList>(); CHECK(blocks);
         if(!grid || !blocks) return 1;
         CHECK(count_dirty(&h.root)==0);
+        { auto palette=h.find<TilePalette>(); CHECK(palette && palette->tiles.size()==2 && palette->tiles[0].id=="a" && palette->tiles[1].id=="b");  // Plugin-Seite: Einzelzonen-Vorschau
+          if(palette) for(const char* id:{"a","b"}) { auto thumb=palette->thumb_of(id); CHECK(thumb && thumb->image && thumb->image->w>0); } }
         for(auto w:h.view.flatten(false)) { CHECK(!w->track_dirty); CHECK(w->value(false).find(L"private_key")==std::wstring::npos); }
         CHECK(grid->role()==Role::List); CHECK(grid->value(false)==L"Zone one, Spalte 1, Zeile 1, kein Wechsel, 1 Blöcke");
         msaa(h,grid);
@@ -730,6 +1059,8 @@ int main(int argc,char** argv) {
         auto color=[](Rgba c) { return Color(uint8_t(std::lround(c.r*255)),uint8_t(std::lround(c.g*255)),uint8_t(std::lround(c.b*255))); };
         CHECK(theme::contrast(color(th.text),color(th.card))>=4.5); // Chips, Geist, Ablage, Griffe
         CHECK(theme::contrast(color(th.text),color(th.bg))>=4.5);   // Leistenüberschrift, Zellraster
+        CHECK(theme::contrast(color(focus_color(th)),color(th.card))>=3.0); CHECK(theme::contrast(color(focus_color(th)),color(th.bg))>=3.0); // Fokusring, Auswahl, Griffe
+        CHECK(theme::contrast(color(th.danger),color(th.bg))>=3.0);          // gestrichelter ungültiger Geist (zusätzlich Text)
         for(bool portrait:{false,true}) {
             auto image=grid_image(kit,portrait?320:640,portrait?760:600);
             auto key=tc.name+(portrait?".portrait":".landscape"); actual[key]=snapshot::hash_image(image);
@@ -758,6 +1089,7 @@ int main(int argc,char** argv) {
     if(!update) CHECK(expected["hell.narrow"]==actual["hell.narrow"]);
     if(update) { fs::create_directories(baseline); std::ofstream out(baseline/"p7-hashes.txt"); for(auto& [key,hash]:actual) out<<key<<' '<<hash<<'\n'; CHECK(bool(out)); }
     else CHECK(expected.size()==actual.size());
+    editor_snapshot_tests(dir,baseline,fs::path(argv[0]).parent_path()/"p7b-ui-snapshots",argc==2 && std::string(argv[1])=="record-editor");
     std::error_code ec; fs::remove_all(dir,ec); CHECK(!ec && !fs::exists(dir));
     std::printf("Layout UI: %d passed, %d failed\n",passed,failed); return failed?1:0;
 }

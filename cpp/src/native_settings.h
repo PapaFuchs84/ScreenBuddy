@@ -65,6 +65,9 @@ struct NativePluginActions {
     std::function<void(const std::string&, const nlohmann::json&)> builtin_layout_apply;
     std::function<void(const std::string&)> builtin_layout_reset;
     std::function<void()> open_advanced;
+    // Einsteigerkarte des Editors ("In drei Schritten"): einmal wegklicken, gemerkt auf der Festplatte. Job-Thread.
+    std::function<bool()> editor_intro_seen;
+    std::function<void()> editor_intro_done;
     // Store: all three run on the settings job thread (they may block on the network).
     std::function<NativeStoreState(const std::string& search, const std::string& category)> store_list;
     std::function<NativeStoreState(bool force)> store_refresh; // force = user pressed "Refresh"; otherwise at most once a day

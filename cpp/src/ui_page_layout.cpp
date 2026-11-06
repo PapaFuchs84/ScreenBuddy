@@ -1,7 +1,10 @@
 // © 2026 FuchsLabs – Anordnung installierter v2-Plugins. Keine Manifest-/Konfigurationsschreibwege.
 #include "ui_pages.h"
 #include "ui_layout_grid.h"
+#include "ui_editor.h"
+#include "ui_tile_palette.h"
 #include "native_settings.h"
+#include <cwctype>
 #include "app.h"
 #include "util.h"
 #include <algorithm>
@@ -18,6 +21,25 @@ public:
     Role role() const override {return Role::NavTab;}
     bool checked() const override {return selected;}
 };
+// Filter-Chip der Kachelpalette: flache Plakette, Auswahl wie ein Reiter.
+class FilterChip : public Button {
+public:
+    bool selected;
+    FilterChip(Text text,bool active,std::function<void()> action):Button(std::move(text),Secondary,std::move(action)),selected(active) {}
+    Role role() const override {return Role::NavTab;}
+    bool checked() const override {return selected;}
+    float pref_width(Ctx& c) override {return c.text_width(c.s(text),Font::Small)+26;}
+    float height(Ctx&,float) override {return 28;}
+    void paint(Ctx& c) override {
+        if(selected) { c.fill(rc,c.th.accent,rc.bottom-rc.top); c.text(c.s(text),rc,Font::Small,c.th.on_accent,DWRITE_TEXT_ALIGNMENT_CENTER); }
+        else {
+            c.frame(rc,c.th.line,rc.bottom-rc.top);
+            c.text(c.s(text),rc,Font::Small,c.th.text,DWRITE_TEXT_ALIGNMENT_CENTER);
+            if(hot&&enabled) { auto f=c.th.text; f.a=.08f; c.fill(rc,f,rc.bottom-rc.top); }
+        }
+    }
+};
+std::wstring lowered(std::wstring s) { for(auto& c:s) c=wchar_t(std::towlower(c)); return s; }
 class LayoutPage : public Page {
 public:
     PageInfo info() const override {
@@ -28,11 +50,21 @@ public:
         host_=&host;
         // Nach „Verwerfen“ können alle bisherigen Widgets bereits zerstört sein.
         grid_=nullptr; blocks_=nullptr; zone_id_=seconds_=literal_=nullptr;
-        apply_=undo_=redo_=reset_=error_=nullptr; validation_=nullptr;
+        apply_=undo_=redo_=reset_=error_=nullptr; validation_=nullptr; shell_=nullptr; pages_list_=nullptr; size_chip_=nullptr; intro_=nullptr; selection_=nullptr;
+        intro_=root.add<Card>(T(L"In drei Schritten",L"In three steps"),T(L"So ordnest du eine Seite an.",L"How to arrange a page."));
+        intro_->add<Label>(T(L"1   Kachel hinzufügen: aus der Palette auf die Fläche ziehen oder anklicken.",L"1   Add a tile: drag it from the palette onto the canvas, or click it."));
+        intro_->add<Label>(T(L"2   Kachel anklicken und rechts einstellen.",L"2   Click a tile and adjust it on the right."));
+        intro_->add<Label>(T(L"3   Übernehmen: speichert die Anordnung und zeigt sie auf dem Display.",L"3   Apply: saves the arrangement and shows it on the display."));
+        intro_->add<ButtonRow>()->add(T(L"Verstanden",L"Got it"),Button::Secondary,[this] { dismiss_intro(); });
+        intro_->visible=false;  // erst nach dem Laden (gemerkt?) sichtbar
         tabs_=root.add<ButtonRow>();
         rebuild_tabs();
-        auto card=root.add<Card>(T(L"Seite auswählen",L"Select page"));
-        choice_=card->row<Combo>(host.plugins().builtin_layout_get?T(L"Seite",L"Page"):T(L"Aktiviertes Plugin",L"Enabled plugin"),Text(),std::vector<Text>{},-1);
+        // Kopfleiste: Seitenauswahl, Gerätegröße, Rückgängig/Wiederholen/Übernehmen/Zurücksetzen (Letztere je Seite neu, siehe editor()).
+        header_=root.add<Flow>();
+        choice_=header_->add<Combo>(std::vector<Text>{},-1);
+        choice_->name=host.plugins().builtin_layout_get?T(L"Seite",L"Page"):T(L"Aktiviertes Plugin",L"Enabled plugin");
+        choice_->width=240;
+        size_chip_=header_->add<Chip>(T(L"480 × 320",L"480 × 320"));
         choice_->on_change=[this] { choose(choice_->index); };
         status_=root.add<Label>(T(L"Wird geladen …",L"Loading …"));
         body_=root.add<Column>();
@@ -53,6 +85,24 @@ private:
     Host* host_=nullptr;
     Column* body_=nullptr;
     ButtonRow* tabs_=nullptr;
+    Flow* header_=nullptr;
+    Chip* size_chip_=nullptr;
+    Card* intro_=nullptr;
+    Label* selection_=nullptr;
+    bool intro_seen_=false;
+    EditorShell* shell_=nullptr;
+    ItemList* pages_list_=nullptr;
+    TextField* search_=nullptr;
+    Flow* chips_=nullptr;
+    TilePalette* palette_=nullptr;
+    std::vector<FilterChip*> chip_tabs_;
+    std::vector<std::string> chip_ids_;
+    std::map<std::string,TilePalette::Thumb> thumbs_;  // Mini-Vorschauen je Seite, Kachel und Anzeige-Theme
+    std::string category_;
+    bool tiles_loading_=false;
+    bool section_open_[3]{}, section_touched_[3]{};
+    float chrome_aspect_=1.5f;
+    uint64_t thumb_version_=0;
     Note* inheritance_note_=nullptr;
     Json displays_=Json::array();
     std::string device_;
@@ -131,7 +181,9 @@ private:
         if ((!h->plugins().list || !h->plugins().arrangement_get) && !h->plugins().builtin_layout_get) {
             status_->text=T(L"Anordnung ist in diesem Build nicht angebunden.",L"Arrangement is not connected in this build."); return;
         }
-        h->run([this,h]() -> std::function<void()> {
+        const bool seen_before=intro_seen_;
+        h->run([this,h,seen_before]() -> std::function<void()> {
+            const bool seen=seen_before || (h->plugins().editor_intro_seen && h->plugins().editor_intro_seen());
             std::vector<Entry> entries;
             auto displays=h->plugins().layout_displays?h->plugins().layout_displays():Json::array();
             if(h->plugins().list && h->plugins().arrangement_get)
@@ -142,7 +194,8 @@ private:
                 auto id=d.value("id",std::string());
                 entry.inherited[id]=h->plugins().device_layout_get(entry.builtin,entry.id,id).value("inherited",true);
             }
-            return [this,entries=std::move(entries),displays=std::move(displays)] {
+            return [this,seen,entries=std::move(entries),displays=std::move(displays)] {
+                intro_seen_=seen; if(intro_) intro_->visible=!seen;
                 displays_=displays;if(display().value("tv",false)) portrait_=false;rebuild_tabs();
                 std::string selected=chosen_>=0 && chosen_<int(entries_.size()) ? (entries_[chosen_].builtin?"builtin:":"plugin:")+entries_[chosen_].id : "";
                 entries_=entries; chosen_=0;
@@ -156,9 +209,11 @@ private:
     void choose(int i, bool preserve=false) {
         if(!preserve && i!=chosen_ && (history_.can_undo() || (catalog_ && other_history_.can_undo()) || uncommitted_) &&
             !host_->confirm(T(L"Ungesicherte Änderungen verwerfen und die Seite wechseln?",L"Discard unsaved changes and switch page?"))) {
-            choice_->index=chosen_; host_->surface().invalidate(); return;
+            choice_->index=chosen_; if(pages_list_) pages_list_->selected=chosen_; host_->surface().invalidate(); return;
         }
         reported_.clear();
+        for(Widget* w:{static_cast<Widget*>(undo_),static_cast<Widget*>(redo_),static_cast<Widget*>(apply_),static_cast<Widget*>(reset_)}) if(w&&header_) header_->remove(w);
+        shell_=nullptr; pages_list_=nullptr; search_=nullptr; chips_=nullptr; palette_=nullptr; chip_tabs_.clear(); chip_ids_.clear(); selection_=nullptr;
         ++generation_; pending_=false; chosen_=i; choice_->index=i;rebuild_tabs();
         // Alte Eingabefelder nicht während ihres Abbaus erneut abschließen.
         if(zone_id_) zone_id_->on_commit={}; if(seconds_) seconds_->on_commit={}; if(literal_) literal_->on_commit={};
@@ -182,7 +237,7 @@ private:
                             L"Schematic grid. Standard stays pixel-identical; custom arrangement – spacing follows the grid.");
             if(data.value("state",std::string())=="stale") status_->text=T(L"Anordnung passt nicht mehr zum Katalog. Auf Standard zurücksetzen.",L"Arrangement no longer matches the catalog. Reset to standard.");
             if(data.value("state",std::string())=="invalid") status_->text=T(L"Gespeicherte Anordnung ungültig. Standard aktiv; Zurücksetzen entfernt die fehlerhafte Datei.",L"Saved arrangement is invalid. Standard active; reset removes the invalid file.");
-            editor();sync();clean(*body_);host_->relayout();return;
+            editor();sync();clean(*body_);clean(*header_);host_->relayout();request_tiles();return;
         }
         auto p=plugins::parse_manifest(data.value("definition",Json()).dump());
         if(!p || p.manifest->schema_version!=2) {
@@ -199,7 +254,7 @@ private:
             ? T(L"Anordnung passt nicht mehr zur Plugin-Version. Auf Manifest zurücksetzen.",L"Arrangement no longer matches the plugin version. Reset to manifest.")
             : T(L"Nur die Anordnung wird gespeichert. Inhalte und Freigaben bleiben erhalten.",L"Only arrangement is saved. Content and consent are preserved.");
         if(data.value("state",std::string())=="invalid") status_->text=T(L"Gespeicherte Anordnung ungültig. Manifest-Vorschlag prüfen oder zurücksetzen.",L"Saved arrangement is invalid. Review the manifest proposal or reset it.");
-        editor(); sync(); clean(*body_); host_->relayout();
+        editor(); sync(); clean(*body_);clean(*header_); host_->relayout(); request_tiles();
     }
     builtin::Overlay builtin_overlay() const {
         return {catalog_->version,portrait_?other_history_.current():model(),
@@ -231,12 +286,57 @@ private:
     void redo() { if(history_.redo()) { ++generation_; pending_=true; uncommitted_=false; sync(); } }
     void text_pending() { if(!syncing_) { uncommitted_=true; ++generation_; pending_=false; update_buttons(); } }
     void editor() {
+        shell_=body_->add<EditorShell>();
+        for(int i=0;i<3;++i) if(section_touched_[i]) shell_->set_open(EditorShell::Section(i),section_open_[i]);
+        shell_->on_toggle=[this] {  // Auf-/Zuklappen überlebt den Neuaufbau beim Seitenwechsel
+            for(int i=0;i<3;++i) if(shell_->touched(EditorShell::Section(i))) { section_touched_[i]=true; section_open_[i]=shell_->is_open(EditorShell::Section(i)); }
+            host_->relayout();
+        };
+        // Kopfleiste: Rückgängig, Wiederholen, Übernehmen, Zurücksetzen (Seitenauswahl und Größe leben in build()).
+        undo_=header_->add<Button>(T(L"Rückgängig",L"Undo"),Button::Secondary,[this] { undo(); });
+        redo_=header_->add<Button>(T(L"Wiederholen",L"Redo"),Button::Secondary,[this] { redo(); });
+        apply_=header_->add<Button>(T(L"Übernehmen",L"Apply"),Button::Primary,[this] { apply(false); });
+        reset_=header_->add<Button>(!device_.empty()?T(L"Von Standard erben",L"Inherit from standard"):catalog_?T(L"Auf Standard zurücksetzen",L"Reset to standard"):T(L"Auf Manifest zurücksetzen",L"Reset to manifest"),Button::Danger,[this] { apply(true); });
+        // Linke Bereiche: Kacheln, Ebenen, Seiten.
+        auto& palette=*shell_->section[EditorShell::Palette];
+        search_=palette.add<TextField>(TextField::Single,L""); search_->limit=64;
+        search_->hint=T(L"Kacheln suchen",L"Search tiles"); search_->name=T(L"Kacheln suchen",L"Search tiles");
+        search_->on_change=[this] { if(palette_) { palette_->query=lowered(search_->text()); palette_->current=0; host_->relayout(); } };
+        chips_=palette.add<Flow>(); chips_->gap_x=6; chips_->gap_y=6; chip_tabs_.clear(); chip_ids_.clear();
+        const std::pair<const char*,Text> categories[]={{"",T(L"Alle",L"All")},{"system",T(L"System",L"System")},{"time",T(L"Zeit",L"Time")},{"media",T(L"Medien",L"Media")},{"games",T(L"Spiele",L"Games")},{"other",T(L"Sonstiges",L"Other")}};
+        for(const auto& [id,label]:categories) {
+            const std::string key=id; auto chip=chips_->add<FilterChip>(label,key==category_,[this,key] { select_category(key); });
+            chip->name=label; chip_tabs_.push_back(chip); chip_ids_.push_back(key);
+        }
+        palette_=palette.add<TilePalette>(); palette_->surface=&host_->surface(); palette_->category=category_;
+        palette_->thumb_of=[this](const std::string& id) -> const TilePalette::Thumb* { auto it=thumbs_.find(thumb_key(id)); return it==thumbs_.end()?nullptr:&it->second; };
+        auto& layers=*shell_->section[EditorShell::Layers];
+        blocks_=layers.add<LayoutBlockList>(std::vector<ItemList::Item>{}); blocks_->name=T(L"Ebenenliste",L"Layer list");
+        blocks_->on_undo=[this] { undo(); }; blocks_->on_redo=[this] { redo(); };
+        blocks_->on_select=[this](int b) {  // Auswahl in der Ebenenliste wählt die Kachel auch in der Fläche
+            block_=b; sync_block();
+            if(grid_ && b>=0 && grid_->shown_block(size_t(b))) grid_->select_block(size_t(b),host_->surface());
+            host_->relayout();
+        };
+        blocks_->on_change=[this] {
+            auto n=model(); auto reordered=Json::array();
+            for(auto& item:blocks_->items) for(auto b:n.blocks) if(b["id"]==item.key) { b["shown"]=item.enabled; reordered.push_back(b); break; }
+            n.blocks=std::move(reordered); block_=blocks_->selected; accept(std::move(n),blocks_->history_group);
+        };
+        layers.add<Note>(T(L"Haken = gezeigt. Reihenfolge mit Alt+Pfeil oder ▲/▼.",L"Check = shown. Reorder with Alt+arrow or ▲/▼."));
+        auto& pages=*shell_->section[EditorShell::PageList];
+        pages_list_=pages.add<ItemList>(std::vector<ItemList::Item>{}); pages_list_->name=T(L"Seitenliste",L"Page list");
+        pages_list_->checkable=false; pages_list_->reorder=false; pages_list_->track_dirty=false;
+        pages_list_->on_select=[this](int i) { if(i!=chosen_) choose(i); };
+        // Mitte: Fläche.
+        auto& center=shell_->center;
+        center.title=T(L"Fläche",L"Canvas");
         if(!device_.empty()) {
             const bool inherited=entries_[chosen_].data.value("inherited",true);
-            inheritance_note_=body_->add<Note>(inherited?T(L"Erbt von Standard. Übernehmen legt eine eigene Anordnung an.",L"Inherits from standard. Apply creates an own arrangement."):T(L"Eigene Anordnung. Zurücksetzen aktiviert die Vererbung vom Standard.",L"Own arrangement. Reset restores inheritance from standard."));
+            inheritance_note_=center.add<Note>(inherited?T(L"Erbt von Standard. Übernehmen legt eine eigene Anordnung an.",L"Inherits from standard. Apply creates an own arrangement."):T(L"Eigene Anordnung. Zurücksetzen aktiviert die Vererbung vom Standard.",L"Own arrangement. Reset restores inheritance from standard."));
             auto d=display();
             if(device_!="network" && !device_.starts_with("serial:") && !device_.starts_with("monitor:") && host_->plugins().layout_device_tv) {
-                auto tv=body_->add<ButtonRow>();
+                auto tv=center.add<ButtonRow>();
                 tv->add(d.value("tv",false)?T(L"Android-TV: nur Querformat (ändern)",L"Android TV: landscape only (change)"):T(L"Als Android-TV markieren",L"Mark as Android TV"),Button::Secondary,[this] {
                     if(unsaved() && !host_->confirm(T(L"Ungesicherte Änderungen verwerfen?",L"Discard unsaved changes?"))) return;
                     const auto id=device_;const bool tv=!display().value("tv",false);auto h=host_;
@@ -244,26 +344,33 @@ private:
                 });
             }
         }
-        body_->add<Note>(T(L"Bausteine ziehen, Zone am Titel verschieben, Griffe zum Vergrößern ziehen; Ablage entfernt. F6/Strg+Tab: Leiste, Raster, Ablage. Pfeile: Ziel; Leertaste: aufnehmen; Enter: ablegen/wählen/anlegen; Esc: abbrechen. Aufgenommen: Strg+Auf/Ab = Stapelposition. Umschalt+Pfeil: Größe; Alt+Pfeil: verschieben; Entf: entfernen; Strg+Z/Y: Rückgängig/Wiederholen. Vorschau nach dem Ablegen. Texte mit Enter oder Fokuswechsel abschließen.",
-            L"Drag blocks, move zones by their title, drag handles to resize; drop on trash to remove. F6/Ctrl+Tab: palette, grid, trash. Arrows: target; Space: pick up; Enter: drop/select/create; Esc: cancel. While carrying: Ctrl+Up/Down = stack position. Shift+arrow: resize; Alt+arrow: move; Delete: remove; Ctrl+Z/Y: undo/redo. Preview after dropping. Commit text with Enter or by leaving the field."));
-        auto raster=body_->add<Card>(T(L"Raster",L"Grid"));
-        grid_=raster->add<GridEditor>(); grid_->model=model();
+        grid_=center.add<GridEditor>(); grid_->canvas=true; grid_->model=model(); palette_->grid=grid_;
+        grid_->block_label=[this](const std::string& id,bool en) { auto t=block_label(id); return t.get(en); };
         grid_->on_edit=[this](auto n,auto group) { accept(std::move(n),std::move(group)); };
-        grid_->on_select=[this] { sync_zone(); host_->surface().invalidate(); };
+        grid_->on_select=[this] {
+            sync_zone();
+            if(grid_->focused_block>=0 && blocks_ && grid_->focused_block<int(model().blocks.size()) && block_!=grid_->focused_block) { block_=grid_->focused_block; blocks_->selected=block_; sync_block(); }
+            host_->surface().invalidate();
+        };
+        grid_->on_area=[this](int a) {  // F6 erreicht die Kachelpalette, wenn sie offen ist
+            if(a!=0 || !palette_ || !shell_ || !shell_->is_open(EditorShell::Palette)) return;
+            const auto v=palette_->visible(); palette_->current=0;
+            for(size_t i=0;i<v.size();++i) if(int(v[i])==grid_->palette_block) palette_->current=int(i);
+            host_->surface().focus(palette_,true);
+        };
         grid_->on_reject=[this] { reject(); };
         grid_->on_undo=[this] { undo(); }; grid_->on_redo=[this] { redo(); };
-        for(int axis=0;axis<2;++axis) {
-            auto buttons=raster->add<ButtonRow>();
-            buttons->add(axis==0?T(L"Spalte +",L"Column +"):T(L"Zeile +",L"Row +"),Button::Secondary,[this,axis] { operation([=](auto& n) { return pe::resize_axis(n,axis==0,1); }); });
-            buttons->add(axis==0?T(L"Spalte −",L"Column −"):T(L"Zeile −",L"Row −"),Button::Secondary,[this,axis] { operation([=](auto& n) { return pe::resize_axis(n,axis==0,-1); }); });
-            for(int j=0;j<6;++j) {
-                auto w=std::make_unique<Slider>(1,12,1); weights_[axis][j]=w.get(); w->page=1;
-                weight_rows_[axis][j]=raster->add<Row>(Text((axis==0?L"Spaltenanteil ":L"Zeilenanteil ")+std::to_wstring(j+1),
-                    (axis==0?L"Column weight ":L"Row weight ")+std::to_wstring(j+1)),Text(),std::move(w));
-                weights_[axis][j]->on_change=[this,axis,j] { if(!syncing_) operation([=](auto& n) { return pe::weight(n,axis==0,j,weights_[axis][j]->val); },"weight:"+std::to_string(axis)+":"+std::to_string(j)); };
-            }
-        }
-        auto zone=body_->add<Card>(T(L"Gewählte Zone",L"Selected zone"));
+        auto zoom=center.add<ButtonRow>();
+        zoom->add(T(L"Zoom −",L"Zoom −"),Button::Secondary,[this] { grid_->zoom=std::max(.5f,grid_->zoom-.15f); host_->relayout(); });
+        zoom->add(T(L"Zoom +",L"Zoom +"),Button::Secondary,[this] { grid_->zoom=std::min(1.f,grid_->zoom+.15f); host_->relayout(); });
+        zoom->add(T(L"Passend",L"Fit"),Button::Secondary,[this] { grid_->zoom=1.f; host_->relayout(); });
+        center.add<Note>(T(L"Bausteine ziehen, Zone am Titel verschieben, Griffe zum Vergrößern ziehen; Ablage entfernt. F6/Strg+Tab: Leiste, Raster, Ablage. Pfeile: Ziel; Leertaste: aufnehmen; Enter: ablegen/wählen/anlegen; Esc: abbrechen. Aufgenommen: Strg+Auf/Ab = Stapelposition. Umschalt+Pfeil: Größe; Alt+Pfeil: verschieben; Entf: entfernen; Strg+Z/Y: Rückgängig/Wiederholen. Vorschau nach dem Ablegen. Texte mit Enter oder Fokuswechsel abschließen.",
+            L"Drag blocks, move zones by their title, drag handles to resize; drop on trash to remove. F6/Ctrl+Tab: palette, grid, trash. Arrows: target; Space: pick up; Enter: drop/select/create; Esc: cancel. While carrying: Ctrl+Up/Down = stack position. Shift+arrow: resize; Alt+arrow: move; Delete: remove; Ctrl+Z/Y: undo/redo. Preview after dropping. Commit text with Enter or by leaving the field."));
+        // Rechts: Eigenschaften der gewählten Kachel, dann der Seite.
+        auto& props=shell_->props;
+        auto info=props.add<Card>(T(L"Auswahl",L"Selection"));
+        selection_=info->add<Label>(Text()); selection_->name=T(L"Auswahl",L"Selection");
+        auto zone=props.add<Card>(T(L"Gewählte Zone",L"Selected zone"));
         zone_id_=zone->row<TextField>(T(L"Zonen-ID",L"Zone ID"),Text(),TextField::Single,L""); zone_id_->limit=64;
         zone_id_->on_change=[this] { text_pending(); }; zone_id_->on_commit=[this] { commit_zone(); };
         cycle_=zone->row<Segment>(T(L"Wechsel",L"Cycle"),Text(),std::vector<Text>{T(L"Aus",L"Off"),Text(L"rotate"),Text(L"first_available")},0);
@@ -273,15 +380,7 @@ private:
         auto split=zone->add<ButtonRow>();
         split->add(T(L"Horizontal teilen",L"Split horizontally"),Button::Secondary,[this] { operation([this](auto& n) { return pe::split_zone(n,grid_->selected,true); }); });
         split->add(T(L"Vertikal teilen",L"Split vertically"),Button::Secondary,[this] { operation([this](auto& n) { return pe::split_zone(n,grid_->selected,false); }); });
-        auto bc=body_->add<Card>(T(L"Blöcke",L"Blocks"),T(L"Haken = gezeigt. Reihenfolge mit Alt+Pfeil oder ▲/▼.",L"Check = shown. Reorder with Alt+arrow or ▲/▼."));
-        blocks_=bc->add<LayoutBlockList>(std::vector<ItemList::Item>{}); blocks_->name=T(L"Blockliste",L"Block list");
-        blocks_->on_undo=[this] { undo(); }; blocks_->on_redo=[this] { redo(); };
-        blocks_->on_select=[this](int b) { block_=b; sync_block(); host_->relayout(); };
-        blocks_->on_change=[this] {
-            auto n=model(); auto reordered=Json::array();
-            for(auto& item:blocks_->items) for(auto b:n.blocks) if(b["id"]==item.key) { b["shown"]=item.enabled; reordered.push_back(b); break; }
-            n.blocks=std::move(reordered); block_=blocks_->selected; accept(std::move(n),blocks_->history_group);
-        };
+        auto bc=props.add<Card>(T(L"Gewählte Kachel",L"Selected tile"),T(L"Zone, Wechselzeit und „Anzeigen, wenn“ des gewählten Eintrags der Ebenenliste.",L"Zone, cycle time and “Show if” of the entry selected in the layer list."));
         block_zone_=bc->row<Combo>(T(L"Zone des Blocks",L"Block zone"),Text(),std::vector<Text>{},0);
         block_zone_->on_change=[this] { commit_block(); };
         seconds_=bc->row<TextField>(T(L"Sekunden (rotate, 3–600)",L"Seconds (rotate, 3–600)"),Text(),TextField::Number,L"");
@@ -296,8 +395,20 @@ private:
         // Werttyp/Operator ändern nur den Entwurf, damit ein neuer Wert zuerst eingegeben werden kann.
         op_->on_change=type_->on_change=[this] { text_pending(); };
         bc->add<ButtonRow>()->add(T(L"Bedingung bestätigen",L"Confirm condition"),Button::Secondary,[this] { commit_block(); });
-        if(catalog_) for(size_t i=2;i<bc->items.size();++i) bc->items[i]->visible=false;
-        auto pv=body_->add<Card>(T(L"Live-Vorschau",L"Live preview"),catalog_?T(L"Beispieldaten der Seite, derselbe Renderer wie auf dem Display. Kopf und Fuß sind fest.",L"Page sample data, the same renderer as on the display. Header and footer are fixed."):T(L"Beispieldaten aus dem Plugin, derselbe Seitenrenderer wie auf dem Display.",L"Plugin sample data, the same page renderer as on the display."));
+        if(catalog_) for(size_t i=1;i<bc->items.size();++i) bc->items[i]->visible=false;
+        auto raster=props.add<Card>(T(L"Seite: Raster",L"Page: grid"));
+        for(int axis=0;axis<2;++axis) {
+            auto buttons=raster->add<ButtonRow>();
+            buttons->add(axis==0?T(L"Spalte +",L"Column +"):T(L"Zeile +",L"Row +"),Button::Secondary,[this,axis] { operation([=](auto& n) { return pe::resize_axis(n,axis==0,1); }); });
+            buttons->add(axis==0?T(L"Spalte −",L"Column −"):T(L"Zeile −",L"Row −"),Button::Secondary,[this,axis] { operation([=](auto& n) { return pe::resize_axis(n,axis==0,-1); }); });
+            for(int j=0;j<6;++j) {
+                auto w=std::make_unique<Slider>(1,12,1); weights_[axis][j]=w.get(); w->page=1;
+                weight_rows_[axis][j]=raster->add<Row>(Text((axis==0?L"Spaltenanteil ":L"Zeilenanteil ")+std::to_wstring(j+1),
+                    (axis==0?L"Column weight ":L"Row weight ")+std::to_wstring(j+1)),Text(),std::move(w));
+                weights_[axis][j]->on_change=[this,axis,j] { if(!syncing_) operation([=](auto& n) { return pe::weight(n,axis==0,j,weights_[axis][j]->val); },"weight:"+std::to_string(axis)+":"+std::to_string(j)); };
+            }
+        }
+        auto pv=props.add<Card>(T(L"Live-Vorschau",L"Live preview"),catalog_?T(L"Beispieldaten der Seite, derselbe Renderer wie auf dem Display. Kopf und Fuß sind fest.",L"Page sample data, the same renderer as on the display. Header and footer are fixed."):T(L"Beispieldaten aus dem Plugin, derselbe Seitenrenderer wie auf dem Display.",L"Plugin sample data, the same page renderer as on the display."));
         auto orientation=pv->row<Segment>(T(L"Ausrichtung",L"Orientation"),Text(),std::vector<Text>{T(L"Quer",L"Landscape"),T(L"Hoch",L"Portrait")},portrait_?1:0);
         orientation->enabled=!display().value("tv",false);
         orientation->on_change=[this,orientation] {
@@ -307,17 +418,102 @@ private:
             if(catalog_ && next!=portrait_) std::swap(history_,other_history_);
             portrait_=next;++generation_;pending_=true;sync();
         };
-        validation_=body_->add<Label>(Text());
-        error_=body_->add<ButtonRow>()->add(T(L"Fehlerstelle auswählen",L"Select invalid field"),Button::Secondary,[this] {
+        validation_=props.add<Label>(Text());
+        error_=props.add<ButtonRow>()->add(T(L"Fehlerstelle auswählen",L"Select invalid field"),Button::Secondary,[this] {
             if(issue_block_>=0) { block_=issue_block_; blocks_->selected=block_; sync_block(); host_->relayout(); host_->surface().focus(block_zone_,true); }
             else { if(issue_zone_>=0) grid_->selected=issue_zone_; sync_zone(); host_->surface().focus(grid_,true); }
         });
-        auto buttons=body_->add<ButtonRow>();
-        undo_=buttons->add(T(L"Rückgängig",L"Undo"),Button::Secondary,[this] { undo(); });
-        redo_=buttons->add(T(L"Wiederholen",L"Redo"),Button::Secondary,[this] { redo(); });
-        apply_=buttons->add(T(L"Übernehmen",L"Apply"),Button::Primary,[this] { apply(false); });
-        reset_=buttons->add(!device_.empty()?T(L"Von Standard erben",L"Inherit from standard"):catalog_?T(L"Auf Standard zurücksetzen",L"Reset to standard"):T(L"Auf Manifest zurücksetzen",L"Reset to manifest"),Button::Danger,[this] { apply(true); });
         pending_=true;
+    }
+    // ---- Kachelpalette: Namen, Kategorien, Mini-Vorschauen -------------------------------------------------------------
+    Text block_label(const std::string& id) const {
+        if(catalog_) for(const auto& spec:catalog_->blocks) if(spec.id==id) return Text(widen(spec.label.de),widen(spec.label.en));
+        return Text(widen(id));
+    }
+    std::string block_category(const std::string& id) const {
+        if(catalog_) {
+            const auto& key=catalog_->key;
+            return key=="system"?"system":(key=="spotify"||key=="streaming")?"media":(key=="bf6"||key=="friends")?"games":"other";
+        }
+        for(const auto& w:base_.widgets) if(w.id==id) return w.type=="clock"?"time":(w.type=="metric"||w.type=="bar")?"system":"other";
+        return "other";
+    }
+    bool required_block(const std::string& id) const {
+        if(catalog_) for(const auto& spec:catalog_->blocks) if(spec.id==id) return spec.required;
+        return false;
+    }
+    std::string theme_identity() const {
+        const auto& cfg=host_->config();
+        if(!cfg.is_object() || !cfg.contains("display") || !cfg["display"].is_object()) return "default";
+        const auto& d=cfg["display"];
+        return d.value("theme",std::string())+"|"+std::to_string(std::hash<std::string>{}(d.contains("theme_inline")?d["theme_inline"].dump():std::string()));
+    }
+    std::string page_key() const { return catalog_?"b:"+catalog_->key:"p:"+base_.id; }
+    std::string thumb_key(const std::string& id) const { return page_key()+"|"+id+"|192x108|"+theme_identity(); }
+    void select_category(const std::string& id) {
+        category_=id;
+        for(size_t i=0;i<chip_tabs_.size();++i) { chip_tabs_[i]->selected=chip_ids_[i]==id; chip_tabs_[i]->kind=chip_tabs_[i]->selected?Button::Primary:Button::Secondary; }
+        if(palette_) { palette_->category=id; palette_->current=0; }
+        host_->relayout();
+    }
+    void sync_palette() {
+        if(!palette_) return;
+        palette_->tiles.clear();
+        for(const auto& b:model().blocks) {
+            const auto id=b["id"].get<std::string>();
+            palette_->tiles.push_back({id,block_label(id),block_category(id),b.value("shown",false),required_block(id)});
+        }
+        palette_->grid=grid_;
+        if(palette_->current>=int(palette_->tiles.size())) palette_->current=0;
+    }
+    // Mini-Vorschauen im Arbeits-Thread: eine Seite mit Standardanordnung bzw. je Plugin-Widget eine Einzelzone,
+    // derselbe Seitenrenderer und dieselben Beispieldaten wie die Live-Vorschau. Treffer bleiben je Anzeige-Theme im Cache.
+    void request_tiles() {
+        std::vector<std::string> need;
+        for(const auto& b:model().blocks) { const auto id=b["id"].get<std::string>(); if(!thumbs_.count(thumb_key(id))) need.push_back(id); }
+        if(need.empty()) return;
+        tiles_loading_=true;
+        auto h=host_; const auto* catalog=catalog_; const auto base=base_; const auto current=model();
+        std::vector<std::string> keys; for(const auto& id:need) keys.push_back(thumb_key(id));
+        h->run([this,h,catalog,base,current,need,keys]() -> std::function<void()> {
+            std::vector<TilePalette::Thumb> out(need.size());
+            try {
+                std::string error;
+                if(catalog) {
+                    const auto standard=builtin::standard(*catalog);
+                    auto page=h->app().page_preview(catalog->key,builtin::to_json(standard),{480,320},error);
+                    auto layout=pe::geometry(standard.model);
+                    plugins::zones::Plan plan;
+                    if(layout) plan=plugins::zones::plan({8,36,464,266},*layout,builtin::inputs(*catalog,standard.model),6);
+                    for(size_t n=0;n<need.size() && page;++n) {
+                        plugins::zones::Rect area{8,36,464,266};
+                        for(const auto& pb:plan.blocks) if(pb.id==need[n] && pb.visible()) area=pb.area;
+                        const int x0=std::clamp(int(std::floor(area.x)),0,page->w-1),y0=std::clamp(int(std::floor(area.y)),0,page->h-1);
+                        const int w=std::clamp(int(std::ceil(area.width)),1,page->w-x0),hgt=std::clamp(int(std::ceil(area.height)),1,page->h-y0);
+                        Image crop(w,hgt); bool uniform=true;
+                        for(int y=0;y<hgt;++y) for(int x=0;x<w;++x) {
+                            const auto px=page->at(x0+x,y0+y); crop.px[size_t(y)*w+x]=px;
+                            if(px!=page->at(x0,y0)) uniform=false;
+                        }
+                        out[n].image=std::make_shared<Image>(thumbnail(crop,192,108)); out[n].no_data=uniform;
+                    }
+                } else {
+                    for(size_t n=0;n<need.size();++n) {
+                        pe::Model m=current;
+                        m.layout={{"columns",Json::array({1})},{"rows",Json::array({1})},{"zones",Json::array({{{"id","tile"},{"column",0},{"row",0}}})}};
+                        for(auto& b:m.blocks) { b["zone"]="tile"; b["shown"]=b["id"]==need[n]; b.erase("seconds"); }
+                        auto merged=plugins::merge_arrangement(base,m); if(!merged) continue;
+                        auto image=h->app().plugin_preview(merged.manifest->definition.dump(),error,{480,320},true);
+                        if(image) out[n].image=std::make_shared<Image>(thumbnail(*image,192,128));
+                    }
+                }
+            } catch(const std::exception&) {}
+            return [this,keys,out=std::move(out)] {
+                tiles_loading_=false;
+                for(size_t n=0;n<keys.size();++n) { auto t=out[n]; t.version=++thumb_version_; thumbs_[keys[n]]=std::move(t); }
+                if(visible_) host_->surface().invalidate();
+            };
+        });
     }
     void build_paths() {
         paths_={""};
@@ -330,8 +526,47 @@ private:
         for(auto& s:base_.settings) if(s.type!="secret") add("settings."+s.key);
         for(auto& w:base_.widgets) if(w.show_if) add(w.show_if->path);
     }
+    // Gerätegröße der Vorschau und Seitenliste (reine Darstellung).
+    void sync_chrome() {
+        auto d=display();
+        float w=480,h=320;
+        if(!device_.empty()) { w=float(d.value("usable_width",480)); h=float(d.value("usable_height",320)); }
+        if(!d.value("tv",false) && (h>w)!=portrait_) std::swap(w,h);
+        if(device_.empty()) { w=portrait_?320.f:480.f; h=portrait_?480.f:320.f; }
+        chrome_aspect_=w/std::max(1.f,h);
+        if(size_chip_) {
+            const auto size=std::to_wstring(int(w))+L" × "+std::to_wstring(int(h));
+            size_chip_->text=Text(size+(portrait_?L" · Hochformat":L" · Querformat"),size+(portrait_?L" · Portrait":L" · Landscape"));
+        }
+        if(pages_list_) {
+            pages_list_->items.clear();
+            for(const auto& e:entries_) pages_list_->items.push_back({e.id,e.name,e.builtin?T(L"Eingebaut",L"Built-in"):T(L"Plugin",L"Plugin"),false});
+            pages_list_->selected=chosen_;
+        }
+    }
+    void dismiss_intro() {
+        intro_seen_=true; if(intro_) intro_->visible=false;
+        auto h=host_; if(h->plugins().editor_intro_done) h->run([h]() -> std::function<void()> { h->plugins().editor_intro_done(); return {}; });
+        h->relayout();
+    }
+    // Name, Zone und Größe (Spalten × Zeilen) der Auswahl, nur lesend.
+    void sync_selection() {
+        if(!selection_ || !grid_) return;
+        std::wstring de,en; const auto& m=model();
+        if(block_>=0 && block_<int(m.blocks.size())) {
+            const auto label=block_label(m.blocks[block_]["id"].get<std::string>()); const bool shown=m.blocks[block_].value("shown",false);
+            de=L"Kachel: "+label.de+(shown?L"":L" (verborgen)"); en=L"Tile: "+label.en+(shown?L"":L" (hidden)");
+        }
+        const int z=grid_->selected; auto g=pe::geometry(m);
+        if(g && z>=0 && z<int(g->zones.size())) {
+            const auto& zone=g->zones[z]; const auto size=std::to_wstring(zone.column_span)+L" × "+std::to_wstring(zone.row_span);
+            de+=std::wstring(de.empty()?L"":L"\n")+L"Zone "+widen(zone.id)+L" · Größe "+size+L" Zellen"; en+=std::wstring(en.empty()?L"":L"\n")+L"Zone "+widen(zone.id)+L" · size "+size+L" cells";
+        }
+        if(de.empty()) { de=L"Nichts gewählt. Eigenschaften der Seite: Raster und Vorschau unten."; en=L"Nothing selected. Page properties: grid and preview below."; }
+        selection_->text=Text(de,en);
+    }
     void sync_zone() {
-        if(!grid_) return; syncing_=true;
+        if(!grid_) return; syncing_=true; sync_selection();
         int z=grid_->selected;
         bool selected=z>=0 && z<int(model().layout["zones"].size());
         zone_id_->enabled=selected; cycle_->enabled=transition_->enabled=selected && !catalog_;
@@ -343,7 +578,7 @@ private:
         syncing_=false;
     }
     void sync_block() {
-        if(!blocks_) return;
+        if(!blocks_) return; sync_selection();
         const bool selected=block_>=0 && block_<int(model().blocks.size());
         block_zone_->enabled=selected;path_->enabled=op_->enabled=type_->enabled=literal_->enabled=selected && !catalog_;
         if(!selected) { seconds_->enabled=false; return; }
@@ -364,13 +599,8 @@ private:
     }
     void sync() {
         if(!grid_) return; syncing_=true;
-        auto d=display();
-        if(!device_.empty()) {
-            float w=float(d.value("usable_width",480)),h=float(d.value("usable_height",320));
-            if(!d.value("tv",false) && (h>w)!=portrait_) std::swap(w,h);
-            grid_->display_aspect=w/std::max(1.f,h);
-        }
-        grid_->model=model(); grid_->selected=std::clamp(grid_->selected,-1,int(model().layout["zones"].size())-1);
+        sync_chrome(); grid_->display_aspect=chrome_aspect_;
+        grid_->model=model(); sync_palette(); grid_->selected=std::clamp(grid_->selected,-1,int(model().layout["zones"].size())-1);
         auto l=pe::geometry(model());
         if(l) { grid_->column=std::clamp(grid_->column,0,int(l->columns.size())-1); grid_->row=std::clamp(grid_->row,0,int(l->rows.size())-1); }
         for(int a=0;a<2;++a) for(int i=0;i<6;++i) {
