@@ -2,17 +2,37 @@
 
 Rechnergebundene, bitgleiche DirectWrite-Baseline der eingebauten Seiten. HA und Willkommen sind nur Kontrollbilder; es findet noch keine Seitenmigration statt.
 
-Das Ziel `fl-builtin-snapshot-tests` prüft zuerst die installierten DirectWrite-Familien **Roboto** und **Segoe UI Variable**. Ohne diese Schriften wird vor dem Zeichnen, Schreiben oder Vergleichen abgebrochen. **Auf diesem Sandbox-Rechner fehlt Roboto: `hashes.txt` und Referenz-PNGs konnten deshalb noch nicht erzeugt werden. P5-0 ist noch nicht abgenommen.** Keine Ersatzschrift-Baseline verwenden.
+Das Ziel `fl-builtin-snapshot-tests` prüft zuerst die installierten DirectWrite-Familien **Roboto** und **Segoe UI Variable**. Ohne diese Schriften wird vor dem Zeichnen, Schreiben oder Vergleichen abgebrochen. Die Baseline wurde nach Benutzerinstallation von Roboto auf dem Referenzrechner erzeugt: `hashes.txt` enthält 8.442 Hashzeilen, dazu liegen 567 DE/dunkel-PNGs vor. **Rechnergebunden, noch nicht abgenommen:** Ein anschließender Vergleich mit äußerem `TZ=NZST-12NZDT` meldete 33 abweichende Bilder. In der aktuellen Sandbox ist die Benutzerschrift für DirectWrite unsichtbar; der Fontordner ist nicht lesbar. Reguläre Wiederholungen brechen deshalb vor dem Rendern ab. Keine Ersatzschrift-Baseline verwenden. Windows-/Schriftversionen und Schriftzugriff müssen für Update, Vergleich und Export übereinstimmen. Der Hinweis zum Segoe-UI-Variable-Fallback bleibt bestehen.
 
-Nach Installation der Schriften auf dem vorgesehenen Referenzrechner, aus `cpp/`:
+Nach Sichtbarkeit der Schriften im ausführenden Prozess auf dem vorgesehenen Referenzrechner, aus `cpp/` (CMake in einer mit `vcvars64.bat` vorbereiteten Shell; dieser Ablauf ist wegen der noch offenen Ursache erneut erforderlich):
 
 ```powershell
 cmake --build build/store --target fl-builtin-snapshot-tests
-& build/store/fl-builtin-snapshot-tests.exe update
-& build/store/fl-builtin-snapshot-tests.exe
-$env:TZ = 'NZST-12NZDT'
-& build/store/fl-builtin-snapshot-tests.exe
-& build/store/fl-builtin-snapshot-tests.exe export build/builtin-export
+$savedTZ = $env:TZ
+try {
+    $env:TZ = 'UTC0'
+    & build/store/fl-builtin-snapshot-tests.exe update
+    if ($LASTEXITCODE -ne 0) { throw 'Update fehlgeschlagen' }
+    foreach ($tz in @('UTC0', 'NZST-12NZDT', $null)) {
+        if ($null -eq $tz) { Remove-Item Env:TZ -ErrorAction SilentlyContinue }
+        else { $env:TZ = $tz }
+        & build/store/fl-builtin-snapshot-tests.exe
+        if ($LASTEXITCODE -ne 0) { throw "Vergleich fehlgeschlagen: TZ=$tz" }
+    }
+    $baselineHash = (Get-FileHash tests/builtin-snapshots/hashes.txt).Hash
+    foreach ($tz in @('UTC0', 'NZST-12NZDT')) {
+        $env:TZ = $tz
+        $dest = "build/store/builtin-export-$tz"
+        & build/store/fl-builtin-snapshot-tests.exe export $dest
+        if ($LASTEXITCODE -ne 0) { throw "Export fehlgeschlagen: TZ=$tz" }
+        if ((Get-FileHash "$dest/hashes.txt").Hash -ne $baselineHash) {
+            throw "Export-Hashkarte abweichend: TZ=$tz"
+        }
+    }
+} finally {
+    if ($null -eq $savedTZ) { Remove-Item Env:TZ -ErrorAction SilentlyContinue }
+    else { $env:TZ = $savedTZ }
+}
 ```
 
 `pruefen` (auch `prüfen`) ist der Standard. `update` schreibt `hashes.txt` und nur die DE/dunkel-Referenz-PNGs; `export <Ordner>` schreibt alle Bilder und dieselbe Hashkarte, ohne die Baseline zu verändern. Vor/nach einer Migration auf demselben Rechner exportieren und die Hashdateien byteweise vergleichen. Baseline-Updates getrennt von Migrationen reviewen/committen.
@@ -26,3 +46,5 @@ Zeit: Test setzt selbst `TZ=UTC0` mit `_tzset()`, Wanduhr 1792606500, Spotify `n
 Hashformat wie Plugin-Test: FNV-1a 64 über little-endian 32-Bit-Werte (Breite, Höhe, ARGB-Pixel). Schlüssel `<Sprache>.<Design>.<Größe>.<Seite>.<Zustand>`, Trefferkarten zusätzlich `.touch`. Für die Karte werden die unveränderten statischen `row_at`, `zone_at`, `button_at`, `cell_at` auf dem 4-px-Raster aufgerufen (Geometrie, keine App-Aktionsfreigabe). Ihr Bild hat `ceil(w/4)` Spalten und `ceil(h/4)+1` Zeilen; Metadatenzeile zunächst null, Pixel 0/1 enthalten `rows_per_page()`/`pages(n)`, danach Rasterwerte als uint32_t (−1 = 0xffffffff). Willkommen hat nur −1. Auch HA/Willkommen bekommen diese Metadaten.
 
 Abweichungen: tatsächliche PNGs und Bild-/Trefferkarten-Hashes unter `%TEMP%/fl-builtin-snapshot-actual`; fehlende und veraltete Hashschlüssel sind Fehler. Keine Toleranz. Plugin-Baseline bleibt unverändert. Aktueller Prüfstand: [Testprotokoll](../../TESTPROTOKOLL.md).
+
+**Hinweis (2026-11-06):** Das Schreiben von PNGs (WIC) zwischen Zeichnungen veraendert die spaetere Textdarstellung einzelner Seiten (System, Streaming). Der Test hasht/vergleicht deshalb in einem ersten Durchlauf ohne PNG-Ausgabe und schreibt PNGs (update/export) erst in einem zweiten Durchlauf. Mit Roboto (Benutzerschrift) auf dem Referenzrechner: update, dann pruefen mit TZ=UTC0, NZST-12NZDT und ohne TZ jeweils 0 Fehler. Fehlendes 'Segoe UI Variable' wird per Rechner-Fallback der App aufgeloest (Baseline rechnergebunden).

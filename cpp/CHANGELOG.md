@@ -6,7 +6,7 @@
 
 - Offline-Snapshot-Testziel für eingebaute Seiten: sieben Designs, neun Größen, DE/teilweise EN, feste Zeit/Zeitzone, bitgleiche Bild- und Touch-Geometrie-Hashes; HA und Willkommen ausschließlich als Kontrollbilder. PNGs nur für die dunkle DE-Referenz, alle Bilder über Export verfügbar.
 - Beispieldaten nach `render::samples` verschoben (alte Namen bleiben Weiterleitungen); RSS-Altersanzeige und Spotify-Kopfuhr erhalten die geplanten Zeitübergaben mit unverändertem Standardverhalten. Gemeinsame Snapshot-Hilfen, Plugin-Baseline unverändert; keine Seitenmigration.
-- Build und Offline-Suiten geprüft. Neue Baseline wegen fehlender Roboto-Schrift noch nicht erzeugt/abgenommen; DPAPI-Sandboxgrenzen und offene Nachweise im Testprotokoll. Keine Veröffentlichung.
+- Rechnergebundene Baseline nach Roboto-Benutzerinstallation erzeugt (4.221 Bilder/Trefferkarten, 567 Referenz-PNGs); anschließender NZST-Vergleich mit 33 Bildabweichungen offen (untersuchte Referenzen: einzelne Textpixel). Sandbox sieht Roboto weiterhin nicht: keine bestätigte Korrektur oder erfolgreiche TZ-/Exportabnahme. Plugin-Snapshots und plugin-touch erneut grün, Plugin-Hashes unverändert; Details und DPAPI-Grenzen im Testprotokoll. Keine Veröffentlichung.
 
 ### Phase 4c – Tap-Ziele (2026-11-06, Entwicklung)
 

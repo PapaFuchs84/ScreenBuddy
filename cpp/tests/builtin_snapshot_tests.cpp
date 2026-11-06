@@ -192,7 +192,11 @@ int main(int argc,char** argv) {
             }
         } else fs::create_directories(root);
         int failures=0; size_t images=0;
+        std::vector<std::pair<fs::path,decltype(cases("de").front().draw(1,1))>> deferred;
         const auto matrix=sizes();
+        // Zwei Durchlaeufe: PNG-Schreiben (WIC) veraendert sonst die spaetere Textdarstellung (Hash-Lauf vs. Vergleich).
+        // Durchlauf 1 hasht/vergleicht ohne jede PNG-Ausgabe; Durchlauf 2 (nur update/export) rendert erneut und schreibt PNGs.
+        auto sweep=[&](bool png_pass) {
         for(const auto& lang : {std::string("de"),std::string("en")}) {
             i18n::set_lang(lang);
             for(const auto& tc : theme_cases()) {
@@ -204,10 +208,14 @@ int main(int argc,char** argv) {
                     if(tc.inline_theme.is_null()) apply_theme({{"theme",tc.name}});
                     else apply_theme({{"theme_inline",tc.inline_theme}});
                     for(const auto& c : cases(lang)) {
+                        std::string key=lang+"."+tc.name+"."+size.name+"."+c.name;
+                        if(png_pass) {
+                            if(mode=="export" || (lang=="de" && tc.name=="dunkel")) write_png(root/(key+".png"),c.draw(size.w,size.h));
+                            continue;
+                        }
                         // Jeder Aufruf baut einen neuen Zeichner nach apply_theme.
                         auto image=c.draw(size.w,size.h);
                         if(image.w!=size.w || image.h!=size.h) throw std::runtime_error("Falsche Bildgröße: "+c.name);
-                        std::string key=lang+"."+tc.name+"."+size.name+"."+c.name;
                         if(!actual.emplace(key,hash_image(image)).second ||
                            !actual.emplace(key+".touch",hit_hash(c,size.w,size.h)).second)
                             throw std::runtime_error("Doppelter Snapshot-Schlüssel: "+key);
@@ -217,17 +225,20 @@ int main(int argc,char** argv) {
                             (!expected.contains(k) || expected.at(k)!=actual.at(k))) {
                             ++failures; differs=true; std::cerr<<"Abweichung: "<<k<<" erwartet "<<(expected.contains(k) ? expected.at(k) : "FEHLT")<<" aktuell "<<actual.at(k)<<'\n';
                         }
-                        if(mode=="export" || (mode=="update" && lang=="de" && tc.name=="dunkel")) write_png(root/(key+".png"),image);
                         if(differs) {
                             auto dir=fs::temp_directory_path()/"fl-builtin-snapshot-actual"; fs::create_directories(dir);
-                            write_png(dir/(key+".png"),image);
+                            deferred.emplace_back(dir/(key+".png"),image);
                             std::ofstream(dir/(key+".txt"))<<actual[key]<<"\n"<<actual[key+".touch"]<<"\n";
                         }
                     }
-                    std::cout<<lang<<' '<<tc.name<<' '<<size.name<<" fertig\n"<<std::flush;
+                    if(!png_pass) std::cout<<lang<<' '<<tc.name<<' '<<size.name<<" fertig\n"<<std::flush;
                 }
             }
         }
+        };
+        sweep(false);
+        for(const auto& [path,image] : deferred) write_png(path,image);
+        if(mode=="update" || mode=="export") sweep(true);
         if(images!=4221 || actual.size()!=8442) throw std::runtime_error("Unvollständige P5-0-Matrix (erwartet 4221 Bilder + Trefferkarten).");
         if(mode=="update" || mode=="export") {
             std::ofstream file(root/"hashes.txt",std::ios::binary);

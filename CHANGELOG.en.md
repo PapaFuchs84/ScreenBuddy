@@ -10,7 +10,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 - Offline snapshot target for built-in pages: seven designs, nine sizes, DE/selected EN, fixed clock/timezone, bit-exact image and touch geometry hashes. HA and welcome remain control images only. Reference PNGs only for dark DE; export provides all images.
 - Moved sample inputs to `render::samples` with compatibility forwarding; added the planned RSS age and Spotify header clock inputs, retaining default behavior. Shared snapshot helpers, unchanged plugin baseline; no page migration.
-- Build and offline suites checked. New baseline not yet generated/accepted because Roboto is missing; DPAPI sandbox limits and outstanding evidence are recorded in the test protocol. No release.
+- Machine-bound baseline generated after installing Roboto for the user (4,221 images/hit maps, 567 reference PNGs); subsequent NZST comparison has 33 unresolved image differences, with text-pixel differences in inspected references. The sandbox still cannot see Roboto: no confirmed fix or successful TZ/export acceptance. Plugin snapshots and plugin-touch pass again; plugin hashes unchanged. Details and DPAPI limits are recorded in the test protocol. No release.
 
 ### Phase 4c – Tap targets (2026-11-06, development)
 
