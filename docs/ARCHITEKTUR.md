@@ -1,6 +1,6 @@
 # ScreenBuddy · Architektur (arc42 kompakt)
 
-Stand: 2.9.3 (Datenquellen, Companion-Version und Testverweise am 31.10.2026 gegen `cpp/src/` geprüft). Dieses Dokument ist aus der Repository-Struktur (`cpp/src/`), dem [C++-README](../cpp/README.md) und den Release-Notizen abgeleitet. Aussagen zu einzelnen Dateien beruhen auf deren Namen und den dokumentierten Funktionen; was nicht im Quellcode nachgeprüft wurde, steht unter [Offene Punkte](#9-offene-punkte).
+Stand: Entwicklungsstand 2.10.0 (zuletzt veröffentlicht: 2.9.5; Branch `feature/zonen-layout`). Bausteine und Modulnamen am 06.11.2026 stichprobenartig gegen `cpp/src/` geprüft. Dieses Dokument ist aus der Repository-Struktur (`cpp/src/`), dem [C++-README](../cpp/README.md) und den Release-Notizen abgeleitet. Aussagen zu einzelnen Dateien beruhen auf deren Namen und den dokumentierten Funktionen; was nicht im Quellcode nachgeprüft wurde, steht unter [Offene Punkte](#9-offene-punkte).
 
 ## 1. Einführung und Ziele
 
@@ -62,11 +62,11 @@ Gruppierung nach den Dateien in `cpp/src/`:
 | Konfiguration | `config`, `secure`, `i18n`, `brand`, `theme`, `key_help` | `config.toml`, DPAPI-Schlüssel, DE/EN-Texte, CI, Farbdesigns und Designsysteme, Schlüssel-Hilfen mit festen Anbieter-Adressen |
 | Datenquellen | `sysinfo`, `discord`, `friends`, `psn_logic`, `bf6`, `rss`, `tmdb`, `tmdb_logic`, `ha`, `spotify`, `amp_logic`, `audio_levels` | System, Discord, Freunde (Discord/Steam/Xbox und optional PlayStation über Sonys inoffizielle Schnittstelle; `psn_logic` liest nur die Antworten, plattformneutral und unter Linux testbar), Battlefield 6, Blogs, Streaming-Neustarts (TMDB; `tmdb_logic` plattformneutral und unter Linux testbar), Home Assistant, Spotify mit Amplifier (`amp_logic` plattformneutral; `audio_levels` liest den Pegel der Systemausgabe lokal) |
 | Netz und Schutz | `http`, `netguard`, `webui` | HTTPS-Abrufe, Prüfung auf nicht öffentliche Ziele, lokaler Loopback-Dienst |
-| Darstellung | `render`, `gfx`, `models` | Seiten rendern, Grafikhilfen, Datenmodelle |
-| Ausgabe | `output.h`, `serial_display`, `monitor_display`, `network_display`, `touch` | USB-Display, Vollbild-Monitor, Netzwerk-/Companion-Ausgabe, Touch-Eingabe |
+| Darstellung | `render`, `page_frame` (gemeinsamer Kartenrahmen `draw_framed`), `gfx`, `models` | Seiten rendern, Kartenrahmen für eingebaute Seiten (Entwicklungsstand 2.10.0), Grafikhilfen (inkl. Clip-Stapel), Datenmodelle; Beispieldaten im Namensraum `render::samples` |
+| Ausgabe | `output.h`, `serial_display`, `monitor_display`, `network_display`, `touch`, `device_profile` | USB-Display, Vollbild-Monitor, Netzwerk-/Companion-Ausgabe, Touch-Eingabe, Geräteprofil mit Sperrzone (ganze Pixel je Rand, Touch-Umrechnung je Gerät) |
 | Companion | `companion`, `companion_server` | Kopplung, TLS-WebSocket, Gerätesitzungen (plattformneutral, unter Linux testbar) |
-| Plugins | `plugins`, `plugin_render`, `plugin_settings`, `plugin_transport`, `plugin_catalog`, `plugin_catalog_net`, `plugin_store`, `plugin_sign` | Manifest, Rendern, Einstellungen, Abruf (nur GET auf öffentliche HTTPS-Hosts), Katalog/Index, Store, Signaturprüfung |
-| Einstellungsoberfläche | `native_settings`, `ui_kit`, `ui_logic`, `ui_pages`, `ui_page_*` | Fenster, Steuerelemente, Logik, eine Datei je Einstellungsseite |
+| Plugins | `plugins`, `plugin_zones`, `plugin_isolation`, `plugin_render`, `plugin_settings`, `plugin_transport`, `plugin_catalog`, `plugin_catalog_net`, `plugin_store`, `plugin_sign` | Manifest (v1/v2, `show_if`), Zonen-Geometrie und Dichtestufen (`plugin_zones`, rein), Fehlerisolierung pro Block mit ratenbegrenztem Log (`plugin_isolation.h`), Rendern nach Zonen oder Raster, Einstellungen, Abruf (nur GET auf öffentliche HTTPS-Hosts), Katalog/Index, Store, Signaturprüfung |
+| Einstellungsoberfläche | `native_settings`, `ui_kit`, `ui_logic`, `ui_pages`, `ui_page_*`, `layout_edit`, `ui_page_layout` | Fenster, Steuerelemente, Logik, eine Datei je Einstellungsseite; Anordnungs-Overlay mit Sicherungskopie (`layout_edit`) und Seiten-Editor unter **App → Plugin-Seite anordnen** (`ui_page_layout`) |
 | Ressourcen | `resources` | eingebettete Anleitung, Symbole, Versionsdaten |
 
 Nicht Teil der aktuellen App: der historische Python-Stand 1.x im Hauptordner (`*.py`, `build.bat`), `cpp/src/settings_window.cpp` (alte WebView2-Einstellungsseite, nicht in `CMakeLists.txt` eingebunden) und `cpp/third_party/webview2` (Altbestand mit Headern und Bibliotheken, wird nicht gelinkt).
@@ -88,17 +88,19 @@ sequenceDiagram
 - Mehrere Companions laufen seit 2.7 gleichzeitig, synchron oder unabhängig, mit eigener Auflösung und optional eigener Seitenliste.
 - Kopplung: QR-Code oder PIN (6-stellig, 2 Minuten gültig, Sperre nach Fehlversuchen), Standardport 8777 (muss sich vom Port 8765 unterscheiden), nur private IPv4-Adressen, mDNS `_fuchslabs-display._tcp`, SHA-256-Fingerabdruck sichert TLS, Schlüssel DPAPI-geschützt in `companion.json` ([Protokoll](COMPANION-PROTOKOLL.md)).
 - Update-Hinweis: höchstens einmal am Tag, nie automatische Installation.
+- Wechselfeld (Entwicklungsstand 2.10.0): Die Zeitplanung ist rein und bekommt ihre Uhr injiziert (`zones::Cycle`); Übergänge nutzen einen Bildcache je Ansicht. Eine reale serielle Bildrate ist noch nicht gemessen.
+- Tap-Ziele (Entwicklungsstand 2.10.0): Die Ziele werden beim Tipp gegen Generation und Freigabe geprüft; Links öffnen nur nach Prüfung von HTTPS und Host, höchstens ein Versuch je Plugin alle zwei Sekunden.
 
 ## 7. Verteilung
 
-Eine unsignierte `ScreenBuddy.exe` (Installer, App, Updater, Deinstaller). Standardziel `%LOCALAPPDATA%\FuchsLabs\USB-Display`. Daten: `config.toml`, `companion.json`, `usb-display.log`, `update-check.json`. Die Companion-APK (Quellstand 1.0.2, versionCode 6; signiert) ist ein separater Download. Plugins kommen aus dem Store-Repo `PapaFuchs84/ScreenBuddy-Plugins` (signierter Index, Pages).
+Eine unsignierte `ScreenBuddy.exe` (Installer, App, Updater, Deinstaller). Standardziel `%LOCALAPPDATA%\FuchsLabs\USB-Display`. Daten: `config.toml`, `companion.json`, `usb-display.log`, `update-check.json`. Die Companion-App 1.0.3 (versionCode 7) ist ein separater Download; 1.0.4 (versionCode 8) ist nur Entwicklungsstand. Öffentliche EXE-Auslieferungen verlangen Authenticode-Signierung mit Zeitstempel (Vorbereitung 2.9.6). Für den Store ist ein MSIX-Pfad mit eigenem Datenpfad vorbereitet; eine Store-Veröffentlichung hat nicht stattgefunden. Plugins kommen aus dem Store-Repo `PapaFuchs84/ScreenBuddy-Plugins` (signierter Index, Pages).
 
 ## 8. Querschnitt
 
 - **Sicherheit:** keine Admin-Rechte, keine Telemetrie; DPAPI (auch für den optionalen PlayStation-NPSSO-Code, der nur an Sony gesendet wird); Dienst nur auf `127.0.0.1` mit Host-, Fetch-Metadata- und `X-FL: 1`-Prüfung; Ziele und Weiterleitungen gegen nicht öffentliche IP-Bereiche geprüft; Ed25519-signierter Store-Index mit festem öffentlichem Schlüssel und Sperrliste; Aktionen wie Schlösser oder Alarmanlagen in Home Assistant bewusst nicht schaltbar.
 - **Sprache:** Standard folgt Windows; Texte in `cpp/src/i18n.cpp` und `ui_page_*.cpp`.
 - **Design:** FuchsLabs-CI (Fuchs-Orange, Creme, Navy), hell/dunkel/eigene Farben mit Kontrastwarnung.
-- **Tests:** Kern-, Parser- (u. a. TMDB, PlayStation), Plugin-, Monitor-, Companion- und Installer-Prüfungen im Build (`cpp/tests/`); Echtgeräteprüfungen und Grenzen im [Testprotokoll](../cpp/TESTPROTOKOLL.md) (aktuell mit Eintrag „Release 2.9.3“).
+- **Tests:** Kern-, Parser- (u. a. TMDB, PlayStation), Plugin-, Monitor-, Companion- und Installer-Prüfungen im Build (`cpp/tests/`); Echtgeräteprüfungen und Grenzen im [Testprotokoll](../cpp/TESTPROTOKOLL.md) (neuester veröffentlichter Eintrag: „Release 2.9.5“; Entwicklungsstand 2.10.0 mit Phasenabschnitten im selben Dokument).
 
 ## 9. Offene Punkte
 
@@ -106,3 +108,5 @@ Eine unsignierte `ScreenBuddy.exe` (Installer, App, Updater, Deinstaller). Stand
 - Online-Plugins und CRL/OCSP-Prüfungen gelten weiter als experimentell.
 - Packaging-Umleitung unter Windows kann einen anderen Einstellungsstand sichtbar machen (siehe [Release-Notizen 2.7](RELEASE-NOTES-2.7.md)).
 - Juristische Prüfung der Store-Bedingungen steht aus.
+- Entwicklungsstand 2.10.0 nicht physisch abgenommen: Zonen-Layout, Wechselfeld, Tap-Ziele, Geräteprofil und Seiten-Editor auf USB-Display, Monitor, Companion und Android-TV; eingebaute Seiten ohne belegte Bitgleichheit mit den Basislinien (siehe [Release-Notizen 2.10.0](RELEASE-NOTES-2.10.0.md)).
+- Nicht im Abschnitt Bausteine einzeln erfasst: Änderungen 2.9.4 bis 2.9.6 (BF6-Plattform `pc`, Spotify „zuletzt gespielt“, MSIX-/Store-Vorbereitung). Stichworte stehen im [CHANGELOG](../CHANGELOG.md).

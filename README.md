@@ -27,6 +27,8 @@ Store-Ausgabe in Vorbereitung: [Microsoft Store / Companion-Build](docs/STORE-DI
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
 
+**In Vorbereitung 2.10.0 (nicht veröffentlicht):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor unter **App → Plugin-Seite anordnen**. Es gibt noch keine Veröffentlichung; Hardware-, Companion- und Oberflächenabnahme stehen aus. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
+
 **Neu in 2.9.5:** Menü mit Ansicht, Seiten und App; **Farben & Design unter Ansicht**, inklusive direkter Installation signierter Store-Themes. [Menü und Theme-Anleitung](docs/NAVIGATION.md).
 
 **Neu in 2.9.4:** Streaming-Film oder -Serie antippen öffnet die passende TMDB-Infoseite am PC im Browser; Cover auf der Spotify-Seite antippen öffnet die Spotify-App am PC. TMDB-Key-Beantragung mit einfachen Feldbeispielen. [Release-Notizen 2.9.4](docs/RELEASE-NOTES-2.9.4.md). Neue Tabs folgen der Browsereinstellung; auf Meanmachine mit Chrome geprüft.
@@ -109,7 +111,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus [release 2.9.4](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.4) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
+1. **ScreenBuddy.exe** aus [release 2.9.5](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.5) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
 2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
@@ -247,7 +249,8 @@ Alle Dokumente nach Zielgruppe: [`docs/README.md`](docs/README.md). Die wichtigs
 | [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) | Architektur für Entwickler |
 | [`docs/PLUGIN-SYSTEM.md`](docs/PLUGIN-SYSTEM.md) | Plugin-Anleitung ([English](docs/PLUGIN-SYSTEM.en.md)), [Tutorial](docs/PLUGIN-TUTORIAL.md), [Store-Bedingungen](docs/PLUGIN-STORE-BEDINGUNGEN.md) |
 | [`docs/COMPANION.md`](docs/COMPANION.md) | Companion einrichten ([English](docs/COMPANION.en.md)) |
-| [`docs/RELEASE-NOTES-2.9.4.md`](docs/RELEASE-NOTES-2.9.4.md) | Release-Notizen der aktuellen Version (frühere: [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
+| [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | Release-Notizen 2.10.0 (in Vorbereitung, nicht veröffentlicht) |
+| [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | Release-Notizen der aktuellen Version (frühere: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
 | [`CHANGELOG.md`](CHANGELOG.md) | Änderungen je Version ([English](CHANGELOG.en.md)) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Mitarbeiten ([English](CONTRIBUTING.en.md)) |
 | [`SECURITY.md`](SECURITY.md) | Sicherheitslücken melden ([English](SECURITY.en.md)) |

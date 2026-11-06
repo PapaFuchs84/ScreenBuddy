@@ -6,7 +6,7 @@ Page names remain the same across themes; the design determines how you reach th
 | --- | --- |
 | View | Overview, Display, Pages & order, Colors & design |
 | Pages | System, Friends, Discord, Battlefield 6, Blogs (RSS), New on streaming, Home Assistant, Spotify |
-| App | Companion, Plugins, Plugin store, Updates & startup |
+| App | Companion, Plugins, Plugin store, Arrange plugin page (from 2.10.0, in preparation), Updates & startup |
 
 ## Navigation by theme
 
@@ -35,6 +35,10 @@ New menu images were captured during release testing and anonymized afterwards. 
 **Companion → Keepout: shared default** applies in shared mode and supplies the default. For the selected paired device, save an individual keepout immediately or reset it to the shared default; this only applies with synchronisation off. Use it for TV overscan. Device previews include the border.
 
 Only integer pixels 0–1000 are accepted; invalid input produces a message. Rendering limits each edge to one third of the smaller frame dimension. If less than 160 × 120 usable pixels remain, the entire keepout is ignored (rate-limited warning). Border taps do nothing; navigation thirds use the usable content width. Stale Companion frame sizes are rejected.
+
+## Arrange plugin page (development for 2.10.0)
+
+Under **App → Arrange plugin page** you arrange the blocks of an enabled plugin with manifest v2 on a grid: define zones, assign blocks, set conditions (`show_if`) and check the preview in landscape and portrait. Undo and redo (100 steps) and keyboard operation are available. **Apply** saves only the arrangement, with a backup copy; plugin content, link consents and the manifest stay unchanged. Manifest v1 plugins only show "Arrangement needs manifest v2" there. Built-in pages and Home Assistant are not part of it. Other entry points: **Pages & order** and **Plugins → Arrange …**. Details: [Plugin system](PLUGIN-SYSTEM.en.md#page-editor-p6-3-to-p6-5-development-for-2100). Physical operation is not yet accepted.
 
 ## Plugin taps (Phase 4c, development)
 

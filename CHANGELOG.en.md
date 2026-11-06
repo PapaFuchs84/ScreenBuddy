@@ -6,67 +6,64 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
-- P6 review (2026-11-06): Preview keeps the editor usable; input errors no longer trap focus or repeat toasts. Switching plugins confirms discarding changes (default No); Apply/Reset retain widgets and useful focus, preserving edits made during a job. Guard empty block lists, localize arrangement errors in DE/EN and clean test temporary directories. Regression evidence: `cpp/TESTPROTOKOLL.md`.
-
-- P6-3/P6-4/P6-5 (2026-11-06): Native v2 page editor with grid, block list, conditions, 100-step history, complete keyboard paths and MSAA. Atomic arrangement with backup through existing store callbacks; manifest file and consent are preserved. Landscape/portrait preview uses only the existing renderer with reproducible plugin samples. Approved global light FuchsLabs focus ring, including text-field frames, darkened to `accent_text` (Glut, ≥3:1 on cream/sand); high-contrast selection is local to the editor. New model/UI/snapshot/contrast tests; physical acceptance remains open. See cpp/TESTPROTOKOLL.md.
-
-- P6-1/P6-2 (2026-11-06): Strictly validated v2 arrangement overlay, atomic persistence with predecessor backup and manifest fingerprint binding; applied without changing the manifest, restarting, or losing consent/live data. Separate layout revision; stale/corrupt overlays fall back to the base. App callbacks and sized preview prepared; editor UI and physical acceptance follow separately. Validation: `cpp/TESTPROTOKOLL.md`.
-- P5-4 (2026-11-06): Mechanically migrated Friends and Discord to `draw_framed` with fixed row/message blocks following BF6; avatars, status and platform badges preserved. Bit-exact: 4,221 images + 4,221 hit maps, 0 errors; plugin snapshots 1,901/0, full fl-tests 3,390/0. Baselines, HA and other pages unchanged; physical acceptance pending.
-- P5-5 (2026-11-06): Mechanically migrated Spotify through `draw_framed` and six fixed blocks; unchanged `layout()`/hit testing and drawing order, pure footer from snapshot. Built-in: 4,221 images + 4,221 hit maps bit-exact (0 errors); plugin snapshots 1,901/0, complete `fl-tests` 3,390/0. Baselines/other pages unchanged; physical acceptance pending.
-- P5-6 (2026-11-06): Mechanically migrated System to `draw_framed` and five card blocks plus the Cupertino group background; unchanged `regions()`/hit geometry and drawing order. 4,221 images + 4,221 hit maps bit-exact (0 errors), plugin snapshots 1,901/0, full fl-tests 3,390/0; baselines and other pages unchanged, physical acceptance pending.
-
-- P5-2 (2026-11-06): Migrated Streaming using the RSS pattern: `draw_framed`, row/message blocks and a shared fixed drawing/hit layout; pure footer from state/timestamp. Built-in: 4,221 images + 4,221 hit maps bit-exact (0 failures); plugin snapshots 1,901/0, plugin-touch 2,093/0. Baselines and other pages unchanged.
-- P5-3 (2026-11-06): Mechanically migrated BF6 to `draw_framed` with fixed row/message blocks following RSS; preserved sorting, bound page index, footer text and existing shared row/hit geometry. Bit equality confirmed: 4,221 images and 4,221 hit maps, 0 errors; plugin snapshots 1,901/0, plugin touch 2,093/0. All four requested Release targets built; baselines unchanged, physical acceptance pending.
-
-- P5-1 (2026-11-06): Migrated only RSS to `draw_framed`, row/message blocks and a shared fixed drawing/hit layout; retained drawing order and arithmetic. Full clean build and five individual suites pass; built-in bit equality remains unverified because Roboto is invisible in the sandbox, pending external acceptance. Baselines unchanged.
-
-### P5-0 – Built-in baseline (2026-11-06, development)
-
-- Offline snapshot target for built-in pages: seven designs, nine sizes, DE/selected EN, fixed clock/timezone, bit-exact image and touch geometry hashes. HA and welcome remain control images only. Reference PNGs only for dark DE; export provides all images.
-- Moved sample inputs to `render::samples` with compatibility forwarding; added the planned RSS age and Spotify header clock inputs, retaining default behavior. Shared snapshot helpers, unchanged plugin baseline; no page migration.
-- Machine-bound baseline generated after installing Roboto for the user (4,221 images/hit maps, 567 reference PNGs); subsequent NZST comparison has 33 unresolved image differences, with text-pixel differences in inspected references. The sandbox still cannot see Roboto: no confirmed fix or successful TZ/export acceptance. Plugin snapshots and plugin-touch pass again; plugin hashes unchanged. Details and DPAPI limits are recorded in the test protocol. No release.
-
-### Phase 4c – Tap targets (2026-11-06, development)
-
-- Security review M1/M2/N1–N4: strict tap URL characters/percent escapes, lowercase tap hosts, no dot segments/values, rechecked before browser launch. Source grants survive only exclusive link-list changes; other updates revoke grants. Shallow lists stay inside blocks; busy link toggles revert. Added grid, corrupt consent, write-failure and 1.9/2.0-second boundary regressions.
-
-- P4c-1–4: schema 2 `tap`/`links`, percent-encoded non-secret values, targets created with their pixels, shared list-row geometry, separate link consent (off by default), tap-time HTTPS/host/generation checks and one launch attempt per plugin every two seconds. Stability: 1.0 s Companion / 0.3 s monitor; transitions and denied targets consume taps. `next` uses the protected request queue; waiting zones retain requests.
-- Updated DE/EN contract, package format, tutorial and clean-room record. Manifest v1 and existing snapshot hashes remain unchanged. Development build only, no release; test counts and sandbox limits in `cpp/TESTPROTOKOLL.md`.
-
-
-### Phase 4b – cycling zones (2026-11-06, development)
-
-- Phase 4b review: discard late steps only on Companion; serial reveal uses the full cycle budget and consecutive global eight-row bands. Rotation preserves order when data disappears. Added pure regression checks and stricter JPEG process checks with a static negative control; see the test report for validation and known open points.
-
-- P4b-0–4: simulated serial band measurement, schema-2 `cycle`/`seconds`, pure scheduling with injected time, selection and quiet output-specific transitions with per-view image caches. Existing rendering/navigation without cycles and existing snapshot hashes are preserved.
-- Updated DE/EN contract, package format, tutorial and offline example. Actual serial measurement and physical acceptance by Basti remain pending; no release. Individual checks and sandbox limits are recorded in the test protocol.
-
-
-### Phase 4a – device profiles (2026-11-06, development)
-
-- Review fixes: partial keepout patches preserve unspecified edges; a DE/EN notice explains the shared default during synchronisation. Page changes run outside the touch lock. Image placement clips differently sized content to the usable area; additional boundary, store and simulated multi-device checks. Android KDoc placement and import ordering cleaned up.
-- P4a-1 through P4a-4: pure device-profile logic, physical keepout for USB/monitor and Companion, individual borders and touch coordinates for independent devices. Pages and previews use the usable area; border taps are discarded and navigation thirds use content width. DE/EN settings provide four numeric fields with integer validation (0–1000 pixels), geometry limits and full-frame fallback below 160 × 120 usable pixels.
-- Android TV always uses landscape and hides orientation selection while retaining the stored phone preference. Companion keeps the existing development version 1.0.4 (code 8); no signing or distribution.
-- Manifest v1, protocol v1 and existing snapshot hashes are unchanged. Validation and environment blockers: [test record](cpp/TESTPROTOKOLL.md). Hardware acceptance and native UI visual checks remain open.
-
 ### 2.10.0 – in preparation (unreleased)
 
-- Plugin pages: the plugin card now takes its corner radius and spacing from the theme's frame style (`theme::Design`) instead of fixed values. FuchsLabs themes: radius 9 → 8, spacing unchanged; Cupertino, Fluent and Material use their own radii and spacing. Colors, manifest v1 and content are unchanged.
-- Tests: the snapshot test (`fl-plugin-snapshot-tests`) now renders a theme matrix (dark, light, Windows with fixed settings, a custom theme, and one theme each in Cupertino, Fluent and Material style) in four sizes (480x320, 320x480, 240x160, 160x240) and checks text contrast ≥ 4.5:1, including built-in themes and header/footer text; baseline regenerated (112 instead of 8 snapshots).
-- Plugins, phase 2a: manifest `schema_version: 2` with stable block IDs, an optional zone layout (flat grid of integer shares, zones with column/row/span, no overlap, no nesting) and up to 12 widgets with a layout (still at most 6 without one). Limits: 6×6 grid, 8 zones, 4 blocks per zone. New pure zone geometry (`plugin_zones.h/.cpp`) hides blocks when space is too small instead of letting them overlap; three density levels (compact, regular, detailed) with centrally adjustable thresholds per block type. Store rule: schema 2 needs `min_app_version` ≥ 2.10.0. Drawing by zones follows in phase 2b; manifest v1 is unchanged. New test suite `fl-plugin-zones-tests`.
-- Plugins, phase 2b: plugin pages with manifest v2 and a `layout` are now drawn by zones (zone plan, one card per block in the theme frame style, clipping per block, a block without a fitting area is hidden). Each block type (text, metric/clock, bar, list) has compact, regular and detailed drawing; the density thresholds were re-derived from the drawing geometry (table in `docs/PLUGIN-SYSTEM.en.md`). v1 and v2 without `layout` draw pixel-identically to before (snapshot baseline unchanged, additionally checked in the test). New offline example `offline-zonen` (eight blocks) with 28 new snapshots; text contrast >= 4.5:1 verified in all themes. Fixed (2a review): `TableBlock` rejects temporary density tables; the reset test compares against the defaults.
-- Contrast: three palette findings fixed (≥ 4.5:1). Light theme: warning color (190,120,0) → (146,92,0); Windows high contrast (black background): warning color is now the light amber (240,178,50); Cupertino dark profile: header (10,132,255) → (17,136,255) so the header text is readable.
-- Plugins, phase 3: conditional display and fault isolation. Widgets in manifest v2 may carry `show_if`: `{"path": …}` (block only if a value is present) or additionally `"op"` (`==`, `!=`, `<`, `<=`, `>`, `>=`) with one fixed `"value"` (text, number, boolean); no expression language, no type conversion. Missing, `null`, empty and non-finite values hide the block, `false` and `0` count as present; comparisons with missing or differently typed values are always false (also `!=`). Secret settings are forbidden in conditions; an invalid `show_if` rejects the whole manifest, schema 1 is unchanged. If evaluating or drawing a block throws, only that block is hidden (area back to background, clip stack restored) and a rate-limited log entry without data is written. The preview evaluates conditions against the sample data. New example `offline-bedingt`; existing snapshots unchanged, 40 new.
+No release yet, no tag, no EXE distribution. Hardware, native UI and Companion acceptance and the APK build are still pending; see "Development status" below.
+
+#### Highlights
+
+- **Zone layout for plugin pages (manifest v2):** `schema_version: 2` describes a flat grid with zones and blocks that have stable block IDs. Manifest v1 is unchanged. Limits: 6 × 6 grid, 8 zones, at most 4 blocks per zone, up to 12 widgets with a layout.
+- **Density levels:** Each block type (text, metric, clock, bar, list) has compact, regular and detailed drawing. If a block does not fit its area, it is hidden instead of overlapping.
+- **Conditional display (`show_if`):** A block appears only when a value is present or a simple comparison holds. No expression language, no type conversion.
+- **Fault isolation:** If evaluating or drawing one block fails, only that block is hidden; a rate-limited log entry without data is written.
+- **Device profile and keepout per device:** Whole-pixel edges for the USB display and monitor (under **Display**), plus a shared default and an individual keepout per paired Companion device (in independent mode). Android TV always runs in landscape.
+- **Cycling zones with a calm transition:** A zone can alternate between blocks (`rotate` mode with a 3–600 s interval, or `first_available`). Scheduling avoids needless redraws. The real serial frame rate has not been measured yet.
+- **Tap targets with link consent:** Blocks can open HTTPS links (on the PC, including taps from a phone). Consent per plugin is **off** by default and shows the hosts.
+- **Frame style from the theme:** Plugin cards take corner radius and spacing from the theme (FuchsLabs radius 9 → 8).
+- **Contrast fixes:** Warning colour in the light theme, Windows high-contrast design and the Cupertino dark-profile header adjusted; the focus ring in the light FuchsLabs theme is darkened to Glut. Snapshot tests check text contrast ≥ 4.5:1 across a theme matrix.
+- **Built-in pages on the shared frame:** System, Friends, Discord, Battlefield 6, Blogs (RSS), Streaming and Spotify draw their cards through the same frame (`draw_framed`). Home Assistant stays native. Bit-exact against the baselines (4221 images and hit maps, 0 differences on the reference machine).
+- **Page editor:** Under **App → Arrange plugin page**, arrange blocks on a grid, set conditions, preview in landscape and portrait, undo/redo (100 steps), keyboard operation. Only the arrangement is saved, with a backup copy; the manifest stays unchanged.
+
+#### Fixed
+
+- **BF6 leaderboard:** The community API (gametools) now rejects `platform=ea` and only finds players with `pc`. ScreenBuddy queries PC accounts with `pc` and falls back to `ea` and the lower-case name; PSN and Xbox try several platform values. The rank profile uses the same platform.
+- **Spotify:** When nothing is playing, the page shows the **last played track** with cover ("Last played", dimmed, no buttons) instead of "Nothing is playing". This needs the extra Spotify permission "recently played": sign in once more under Settings › Spotify. Without it the previous message stays.
+
+#### Security
+
+- **Tap URLs:** HTTPS only, strict characters and percent escapes, lowercase hosts, no dot segments. The address is checked again at tap time before the browser starts.
+- **Link consent:** Off by default; any other change to a plugin revokes its consent; only a pure change of the link list keeps it. At most one link attempt per plugin every two seconds. Denied taps do not change the page.
+- **`show_if`:** Secret settings are forbidden in conditions; an invalid condition rejects the whole manifest.
+- **Logging:** Warnings name only the plugin ID, block ID and stage, never data, setting values or exception text.
+
+#### Compatibility
+
+- Manifest v1, protocol v1 and the existing snapshot hashes are unchanged. Without `layout`, v1 and v2 draw as before in the automatic grid.
+- Schema 2 requires `min_app_version` 2.10.0 or newer in the store; older apps reject it.
+- Keepout: whole pixels 0–1000; each edge at most one third of the smaller frame edge. If fewer than 160 × 120 usable pixels remain, the keepout is ignored.
+- Android TV always runs in landscape. A stored portrait choice is kept but ignored.
+- Home Assistant stays native and is not part of the zone system.
+- The published Companion app remains 1.0.3. Version 1.0.4 (versionCode 8) is a development state without signing or distribution.
+
+#### Development status (open)
+
+- Not released: no tag, no EXE, no Companion APK distribution.
+- Open: physical acceptance on the USB display (including the portrait enclosure), monitor, Companion and Android TV; native visual check of the UI; measured serial frame rate for cycling zones; Companion process tests; APK build.
+- Built-in pages: the baseline is machine-bound (Roboto as a user font is required). On the reference machine all migrated pages are bit-exact (0 differences); hardware acceptance is still pending.
+- Phases in brief (details, test figures and limits: `cpp/TESTPROTOKOLL.md`):
+  - Phase 2a/2b: manifest v2, zone geometry, zone drawing, density levels.
+  - Phase 3: conditional display and fault isolation.
+  - Phase 4a: device profiles, keepout, Android TV landscape.
+  - Phase 4b: cycling zones.
+  - Phase 4c: tap targets with link consent.
+  - P5-0 to P5-6: baseline and migration of built-in pages to the shared frame.
+  - P6-1 to P6-5 and review: arrangement overlay, page editor, focus ring.
 
 ### 2.9.6 – in preparation
 
-Public Windows EXE delivery now requires trusted timestamped Authenticode signing; exporting unsigned public releases is blocked.
+Public Windows EXE releases now require trusted, timestamped Authenticode signing; without a certificate the export is blocked.
 
-Microsoft Store preparation: MSIX packaging, isolated user data, Store-managed updates and package-stable startup. Companion 1.0.4 (code 8): Android API 36 and setup window insets. No Store publication performed.
-### Fixed
-
-- **BF6 leaderboard:** The community API (gametools) now rejects `platform=ea` and only finds players with `pc`. ScreenBuddy queries PC accounts with `pc` and falls back to `ea` and the lower-case name; PSN and Xbox try several platform values. The rank profile uses the same platform.
-- **Spotify:** When nothing is playing, the page now shows the **last played track** with cover ("Last played", dimmed, no buttons) instead of "Nothing is playing". This needs the extra Spotify permission "recently played": sign in once more under Settings › Spotify. Without it the previous message stays.
+Microsoft Store preparation: MSIX packaging, separate user data, Store updates and package-stable autostart. Companion 1.0.4 (code 8): Android API 36 and setup-window insets. No Store publication has taken place.
 
 ## [2.9.5] – 2026-11-01
 

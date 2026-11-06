@@ -27,6 +27,8 @@ Store edition in preparation: [Microsoft Store / Companion build](docs/STORE-DIS
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
 
+**In preparation 2.10.0 (unreleased):** plugin pages with a zone layout (manifest v2), density levels, conditional display, cycling zones, tap targets with link consent (off by default), keepout per device, built-in pages on the shared frame and a page editor under **App → Arrange plugin page**. Nothing has been released yet; hardware, Companion and UI acceptance are pending. [Release notes 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.en.md)
+
 **New in 2.9.5:** View, Pages and App navigation; **Colors & design under View**, including signed store-theme installation. [Menu and theme guide](docs/NAVIGATION.en.md).
 
 **New in 2.9.4:** tap a streaming movie or series to open its TMDB details in the PC browser; tap Spotify cover art to open the Spotify desktop app. TMDB key application explained with field examples. [Release notes 2.9.4](docs/RELEASE-NOTES-2.9.4.md). New tabs follow browser settings; verified with Chrome on Meanmachine.
@@ -109,7 +111,7 @@ All pictures show sample data; some screenshots are from the previous 1.x UI.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.9.4](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.4). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
+1. Download **ScreenBuddy.exe** from [release 2.9.5](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.5). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **EN** with the **DE | EN** switch at the top right of the settings window, then **Save & apply**.
@@ -247,7 +249,8 @@ All documents by audience (German): [`docs/README.md`](docs/README.md). The most
 | [`docs/FEATURES.en.md`](docs/FEATURES.en.md) | features in detail ([Deutsch](docs/FUNKTIONEN.md)) |
 | [`docs/PLUGIN-SYSTEM.en.md`](docs/PLUGIN-SYSTEM.en.md) | plugin guide ([Deutsch](docs/PLUGIN-SYSTEM.md)), [tutorial](docs/PLUGIN-TUTORIAL.en.md), [store terms](docs/PLUGIN-STORE-TERMS.md) |
 | [`docs/COMPANION.en.md`](docs/COMPANION.en.md) | Companion setup ([Deutsch](docs/COMPANION.md)) |
-| [`docs/RELEASE-NOTES-2.9.4.md`](docs/RELEASE-NOTES-2.9.4.md) | release notes of the current version (German/English; earlier: [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
+| [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | release notes 2.10.0 (in preparation, not released; German/English) |
+| [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | release notes of the current version (German/English; earlier: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
 | [`CHANGELOG.en.md`](CHANGELOG.en.md) | changes per version ([Deutsch](CHANGELOG.md)) |
 | [`CONTRIBUTING.en.md`](CONTRIBUTING.en.md) | contributing ([Deutsch](CONTRIBUTING.md)) |
 | [`SECURITY.en.md`](SECURITY.en.md) | reporting vulnerabilities ([Deutsch](SECURITY.md)) |

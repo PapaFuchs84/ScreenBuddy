@@ -6,7 +6,7 @@ Die Seiten heißen in allen Themes gleich. Das Design bestimmt, wie du sie errei
 | --- | --- |
 | Ansicht | Übersicht, Anzeige, Seiten & Reihenfolge, Farben & Design |
 | Seiten | System, Freunde, Discord, Battlefield 6, Blogs (RSS), Streaming-Neustarts, Home Assistant, Spotify |
-| App | Companion, Plugins, Plugin-Store, Updates & Autostart |
+| App | Companion, Plugins, Plugin-Store, Plugin-Seite anordnen (ab 2.10.0, in Vorbereitung), Updates & Autostart |
 
 ## Je nach Theme navigieren
 
@@ -35,6 +35,10 @@ Unter **Anzeige → Sperrzone** stehen vier per Tab erreichbare Zahlenfelder obe
 Unter **Companion → Sperrzone: gemeinsame Vorgabe** gelten die Ränder für den gemeinsamen Betrieb und als Standard. Für das ausgewählte gekoppelte Gerät lässt sich daneben eine eigene Sperrzone sofort speichern oder auf die gemeinsame Vorgabe zurücksetzen; sie wirkt nur bei ausgeschalteter Synchronisation. Das eignet sich für TV-Overscan. Die Gerätevorschau enthält den Rand.
 
 Erlaubt sind ganze Pixel 0–1000; ungültige Eingaben werden mit Meldung abgelehnt. Beim Zeichnen wird jeder Rand auf ein Drittel der kleineren Bildkante begrenzt. Bleiben weniger als 160 × 120 Pixel nutzbar, wird die gesamte Sperrzone ignoriert (ratenbegrenzte Warnung). Ein Tipp im Rand bewirkt nichts; die Drittel-Navigation bezieht sich auf den nutzbaren Inhalt. Veraltete Companion-Bildgrößen werden verworfen.
+
+## Plugin-Seite anordnen (Entwicklung für 2.10.0)
+
+Unter **App → Plugin-Seite anordnen** ordnest du die Blöcke eines aktivierten Plugins mit Manifest v2 im Raster an: Zonen festlegen, Blöcke zuweisen, Bedingungen (`show_if`) setzen und die Vorschau in Quer- und Hochformat prüfen. Rückgängig und Wiederholen (100 Schritte) sowie die Tastaturbedienung sind verfügbar. **Übernehmen** speichert nur die Anordnung, mit Sicherungskopie. Inhalte, Linkfreigaben und das Manifest bleiben unverändert. Manifest-v1-Plugins zeigen dort nur den Hinweis „Anordnung braucht Manifest v2“. Eingebaute Seiten und Home Assistant gehören nicht dazu. Weitere Einstiege: **Seiten & Reihenfolge** und **Plugins → Anordnen …**. Details: [Plugin-System](PLUGIN-SYSTEM.md#seiten-editor-p6-3-bis-p6-5-entwicklung-für-2100). Physische Bedienung ist noch nicht abgenommen.
 
 ## Plugin-Tipps (Phase 4c, Entwicklung)
 

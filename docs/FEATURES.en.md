@@ -14,6 +14,7 @@ Moved out of the README (status 2.9.4). German: [FUNKTIONEN.md](FUNKTIONEN.md). 
 - [Colors & design (from 2.9.0)](#colors--design-from-290)
 - [Android Companion app (from 2.3.0, multiple devices from 2.7.0)](#android-companion-app-from-230-multiple-devices-from-270)
 - [Plugin store and plugins (from 2.6.0)](#plugin-store-and-plugins-from-260)
+- [Plugin pages with zone layout and page editor (from 2.10.0, in preparation)](#plugin-pages-with-zone-layout-and-page-editor-from-2100-in-preparation)
 - [Browse views (from 2.0.4)](#browse-views-from-204)
 
 ## System page touch and update notice (from 2.2.0)
@@ -83,6 +84,20 @@ Validation: see the [2.7 release notes](RELEASE-NOTES-2.7.md). The automated mul
 Settings page **Plugin store** (group **App**, next to Companion and Plugins, can be switched off with `[ui] plugin_store`): search, check and install reviewed data plugins from the signed store `PapaFuchs84/ScreenBuddy-Plugins`. Signed index and signed revocation list (Ed25519, pinned public key), packages checked by SHA-256 and host declarations, daily background sync. Before installation the card shows which hosts a plugin would send data to. Installed plugins stay off until you enable them under **Plugins**; every host needs your consent. Since 2.7.0 store installations and updates stay disabled even without network sources; direct local manifest import behaves as before. Enabled plugins can be sorted and shown/hidden under **Pages & order**. The store shows signed preview images.
 
 More: [Plugin system](PLUGIN-SYSTEM.en.md) · [Tutorial](PLUGIN-TUTORIAL.en.md) · [Store terms](PLUGIN-STORE-TERMS.md) · [Examples](../cpp/examples/plugins/README.md). Online plugins and CRL/OCSP checks remain experimental.
+
+## Plugin pages with zone layout and page editor (from 2.10.0, in preparation)
+
+**Not released.** This is the development state; device acceptance is still missing.
+
+- **Zones:** A plugin with `schema_version: 2` divides its page into a grid; blocks sit in zones and are hidden when space runs out. Limits: 6 × 6 grid, 8 zones, 4 blocks per zone. Without `layout` the previous arrangement stays.
+- **Density levels:** Each building block is compact, regular or detailed, chosen by the available area.
+- **Conditions (`show_if`):** A block appears only when a value is present or a simple comparison holds. A fault in one block affects only that block.
+- **Cycling zone:** A zone alternates between blocks (`rotate` every 3–600 s, or `first_available`).
+- **Tap targets:** A block can open an HTTPS link on the PC. Consent per plugin is under **Settings → Plugins**, off by default, and shows the hosts.
+- **Page editor:** **App → Arrange plugin page**. Saves only the arrangement, with a backup copy; the manifest stays unchanged.
+- **Keepout per device:** See [Navigation](NAVIGATION.en.md#device-profile-and-keepout-phase-4a-development).
+
+Details: [Plugin system](PLUGIN-SYSTEM.en.md) · [Tutorial](PLUGIN-TUTORIAL.en.md) · [Navigation](NAVIGATION.en.md#arrange-plugin-page-development-for-2100).
 
 ## Browse views (from 2.0.4)
 

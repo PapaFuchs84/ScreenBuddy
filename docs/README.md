@@ -61,12 +61,14 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 | Dokument | Zweck | Status |
 |---|---|---|
 | [`../CHANGELOG.md`](../CHANGELOG.md) · [English](../CHANGELOG.en.md) · [`../cpp/CHANGELOG.md`](../cpp/CHANGELOG.md) | Änderungen je Version | aktuell |
-| [`RELEASE-NOTES-2.9.4.md`](RELEASE-NOTES-2.9.4.md) | Release-Notizen der aktuellen Version | aktuell |
+| [`RELEASE-NOTES-2.10.0.md`](RELEASE-NOTES-2.10.0.md) | Release-Notizen 2.10.0 (in Vorbereitung, nicht veröffentlicht) | in Vorbereitung |
+| [`RELEASE-NOTES-2.9.5.md`](RELEASE-NOTES-2.9.5.md) | Release-Notizen der aktuellen Version | aktuell |
+| [`RELEASE-NOTES-2.9.4.md`](RELEASE-NOTES-2.9.4.md) | Release-Notizen 2.9.4 | historisch |
 | [`RELEASE-NOTES-2.9.2.md`](RELEASE-NOTES-2.9.2.md), [`RELEASE-NOTES-2.9.1.md`](RELEASE-NOTES-2.9.1.md), [`RELEASE-NOTES-2.9.md`](RELEASE-NOTES-2.9.md) | Release-Notizen 2.9.x | historisch |
 | [`THEMES.md`](THEMES.md) | Farbdesigns: Windows-Farben, Designsysteme, eigene Themes (DE/EN) | aktuell |
 | [`RELEASE-NOTES-2.8.md`](RELEASE-NOTES-2.8.md) | Release-Notizen 2.8 | historisch |
 | [`RELEASE-NOTES-2.7.md`](RELEASE-NOTES-2.7.md) | Release-Notizen 2.7 | historisch |
-| [`../cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md) | Testprotokoll | aktuell, jüngster Eintrag „Release 2.9.4“ (31.10.2026) |
+| [`../cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md) | Testprotokoll | aktuell; jüngster Release-Eintrag „Release 2.9.5“ (01.11.2026), Entwicklungseinträge 2.10.0 darin |
 | [`PRUEFSTAND-HISTORIE.md`](PRUEFSTAND-HISTORIE.md) | Prüfstände 2.0.3 bis 2.6.0 (aus dem README ausgelagert) | historisch |
 | [`RELEASE-NOTES-2.6.md`](RELEASE-NOTES-2.6.md), [`RELEASE-NOTES-2.5.md`](RELEASE-NOTES-2.5.md) | frühere Release-Notizen | historisch |
 | [`RELEASE-CHECKLIST-2.5.md`](RELEASE-CHECKLIST-2.5.md), [`HARDWARE-ACCEPTANCE-2.5.md`](HARDWARE-ACCEPTANCE-2.5.md) | Checklisten (Stand 2.5; bei neuen Releases anlegen statt umschreiben) | historisch |

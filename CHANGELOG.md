@@ -6,67 +6,64 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
-- P6-Review (2026-11-06): Vorschau sperrt den Editor nicht mehr; Eingabefehler ohne Fokusfalle und Toast-Wiederholungen. Pluginwechsel fragt vor dem Verwerfen (Standard Nein); Übernehmen/Reset erhalten Widgets und sinnvollen Fokus, spätere Änderungen bleiben erhalten. Leere Blocklisten abgesichert, Anordnungsfehler DE/EN vereinheitlicht und Test-Tempordner aufgeräumt. Regressionstests und Prüfstand: `cpp/TESTPROTOKOLL.md`.
-
-- P6-3/P6-4/P6-5 (2026-11-06): Nativer v2-Seiten-Editor mit Raster, Blockliste, Bedingungen, 100-Schritt-Historie, vollständigen Tastaturwegen und MSAA. Atomare Anordnung mit Backup über bestehende Store-Schnittstellen; getrennte Manifestdatei und Freigaben bleiben erhalten. Quer-/Hochvorschau ausschließlich über den bestehenden Renderer mit reproduzierbaren Plugin-Beispieldaten. Freigegebenen globalen Fokusring im hellen FuchsLabs-Theme einschließlich Textfeldrahmen auf `accent_text` (Glut, ≥3:1 auf Creme/Sand) abgedunkelt; kontrastreiche Auswahl nur im Editor. Neue Modell-/UI-/Snapshot-/Kontrasttests; physische Abnahme offen. Siehe Testprotokoll.
-
-- P6-1/P6-2 (2026-11-06): Strikt geprüftes v2-Anordnungs-Overlay, atomare Speicherung mit Vorgänger-Backup und Fingerabdruckbindung; Anwendung ohne Manifeständerung, Neustart oder Verlust von Freigaben/Live-Daten. Separate Layoutrevision, veraltete/beschädigte Overlays nutzen die Basis; App-Rückrufe und Vorschaugröße vorbereitet. Editoroberfläche und physische Abnahme folgen separat. Prüfstand: `cpp/TESTPROTOKOLL.md`.
-- P5-4 (2026-11-06): Freunde und Discord mechanisch wie BF6 auf `draw_framed` mit festen Zeilen-/Hinweisblöcken umgestellt; Avatar, Status und Plattformmarken unverändert. Bitgleich: 4.221 Bilder + 4.221 Trefferkarten, 0 Fehler; Plugin-Snapshots 1.901/0, fl-tests vollständig 3.390/0. Baselines, HA und andere Seiten unverändert; physische Abnahme offen.
-- P5-5 (2026-11-06): Spotify mechanisch über `draw_framed` und sechs feste Blöcke migriert; `layout()`/Treffer und Zeichenfolge unverändert, Fußtext rein aus Snapshot. Built-in: 4.221 Bilder + 4.221 Trefferkarten bitgleich (0 Fehler); Plugin-Snapshots 1.901/0, vollständige `fl-tests` 3.390/0. Baselines/andere Seiten unverändert; physische Abnahme offen.
-- P5-6 (2026-11-06): System mechanisch auf `draw_framed` und fünf Kartenblöcke plus Cupertino-Gruppenhintergrund umgestellt; `regions()`/Treffer und Zeichenfolge unverändert. 4.221 Bilder + 4.221 Trefferkarten bitgleich (0 Fehler), Plugin-Snapshots 1.901/0, fl-tests vollständig 3.390/0; Baselines und andere Seiten unverändert, physische Abnahme offen.
-
-- P5-2 (2026-11-06): Streaming wie RSS auf `draw_framed`, Zeilen-/Hinweisblöcke und gemeinsame feste Zeichen-/Trefferanordnung umgestellt; Fußzeile rein aus Zustand/Zeitstempel. Built-in: 4.221 Bilder + 4.221 Trefferkarten bitgleich (0 Fehler); Plugin-Snapshots 1.901/0, plugin-touch 2.093/0. Baselines und andere Seiten unverändert.
-- P5-3 (2026-11-06): BF6 mechanisch wie RSS auf `draw_framed` mit festen Zeilen-/Hinweisblöcken umgestellt; Sortierung, Seitenindex, Fußtext und bestehende gemeinsame Zeilen-/Treffergeometrie beibehalten. Bitgleich bestätigt: 4.221 Bilder und 4.221 Trefferkarten, 0 Fehler; Plugin-Snapshots 1.901/0, Plugin-Touch 2.093/0. Alle vier angeforderten Release-Ziele gebaut; Baselines unverändert, physische Abnahme offen.
-
-- P5-1 (2026-11-06): Nur RSS auf `draw_framed`, Zeilen-/Hinweisblöcke und feste gemeinsame Zeichen-/Trefferanordnung umgestellt; Zeichenfolge und Rechenausdrücke beibehalten. Vollständiger Neuaufbau und fünf Einzelsuiten grün; Built-in-Bitgleichheit wegen unsichtbarem Roboto nicht geprüft, externe Abnahme offen. Baselines unverändert.
-
-### P5-0 – Built-in-Baseline (2026-11-06, Entwicklung)
-
-- Offline-Snapshot-Testziel für eingebaute Seiten: sieben Designs, neun Größen, DE/teilweise EN, feste Zeit/Zeitzone, bitgleiche Bild- und Touch-Geometrie-Hashes; HA und Willkommen ausschließlich als Kontrollbilder. PNGs nur für die dunkle DE-Referenz, alle Bilder über Export verfügbar.
-- Beispieldaten nach `render::samples` verschoben (alte Namen bleiben Weiterleitungen); RSS-Altersanzeige und Spotify-Kopfuhr erhalten die geplanten Zeitübergaben mit unverändertem Standardverhalten. Gemeinsame Snapshot-Hilfen, Plugin-Baseline unverändert; keine Seitenmigration.
-- Rechnergebundene Baseline nach Roboto-Benutzerinstallation erzeugt (4.221 Bilder/Trefferkarten, 567 Referenz-PNGs); anschließender NZST-Vergleich mit 33 Bildabweichungen offen (untersuchte Referenzen: einzelne Textpixel). Sandbox sieht Roboto weiterhin nicht: keine bestätigte Korrektur oder erfolgreiche TZ-/Exportabnahme. Plugin-Snapshots und plugin-touch erneut grün, Plugin-Hashes unverändert; Details und DPAPI-Grenzen im Testprotokoll. Keine Veröffentlichung.
-
-### Phase 4c – Tap-Ziele (2026-11-06, Entwicklung)
-
-- Sicherheitsreview M1/M2/N1–N4: strenge Tap-URL-Zeichen und Prozentsequenzen, kleingeschriebene Tap-Hosts, keine Punktsegmente/-werte; erneute Prüfung vor Browserstart. Freigaben nur bei ausschließlicher Linklistenänderung teilweise erhalten, sonst widerrufen. Flache Listen bleiben im Block; beschäftigter Linkschalter wird zurückgesetzt. Regressionen für Raster, defekte Linkfreigaben, Schreibfehler und 1,9/2,0-s-Grenze ergänzt.
-
-- P4c-1–4: Schema-2-Parser `tap`/`links`, prozentkodierte nicht geheime Werte, Ziele im selben Zeichenaufruf und gemeinsame Listenzeilen, getrennte Linkfreigabe (Standard aus), HTTPS-/Host-/Generationsprüfung beim Tipp und ein Linkversuch je Plugin alle zwei Sekunden. Ruhezeit 1,0 s Companion / 0,3 s Monitor; Übergänge und verweigerte Ziele verschlucken Tipps. `next` läuft über die geschützte Anfrageliste; wartende Zonen verlieren den Wunsch nicht mehr.
-- DE/EN-Vertrag, Paketformat, Tutorial und Clean-Room-Nachweis ergänzt. Manifest v1 und bestehende Snapshot-Hashes bleiben unverändert. Entwicklungsbuild, keine Veröffentlichung; Prüfzahlen und Sandbox-Grenzen in `cpp/TESTPROTOKOLL.md` (im C++-Ordner `TESTPROTOKOLL.md`).
-
-
-### Phase 4b – Wechselfeld (2026-11-06, Entwicklung)
-
-- Phase-4b-Review: verspätete Schritte nur beim Companion verwerfen; serieller Vorhang mit realem Zyklusbudget und aufeinanderfolgenden globalen 8-Zeilen-Bändern. Rotation bei Datenverlust bleibt in Reihenfolge. Zusätzliche reine Regressionstests und strengere JPEG-Prozessprüfung mit statischer Negativkontrolle; Prüfstand und bekannte offene Punkte im Testprotokoll.
-
-- P4b-0–4: simulierte serielle Bandmessung, Schema-2-Schlüssel `cycle`/`seconds`, reine Zeitplanung mit injizierter Uhr, Auswahl und ruhige Übergänge mit Bildcache je Ansicht. Ohne Wechselfeld bleibt der bestehende Zeichen-/Navigationspfad erhalten; bestehende Snapshot-Hashes bleiben unverändert.
-- DE/EN-Vertrag, Paketformat, Tutorial und Offline-Beispiel ergänzt. Reale serielle Messung und Geräteabnahme durch Basti offen; keine Veröffentlichung. Einzelprüfungen und Sandbox-Grenzen im Testprotokoll.
-
-
-### Phase 4a – Geräteprofile (2026-11-06, Entwicklung)
-
-- Review-Korrekturen: Keepout-Teilpatches erhalten nicht genannte Ränder; DE/EN-Hinweis erklärt die gemeinsame Vorgabe bei Synchronisierung. Seitenwechsel erfolgen außerhalb der Touch-Sperre. Bildplatzierung begrenzt auch abweichend große Inhalte auf die Nutzfläche; zusätzliche Randfall-, Store- und simulierte Mehrgerätetests. Android-KDoc und Importreihenfolge bereinigt.
-- P4a-1 bis P4a-4: reine Geräteprofil-Logik, physische Sperrzonen für USB/Monitor und Companion, eigene Ränder und Touch-Umrechnung pro unabhängigem Gerät. Seiten und Vorschauen nutzen die freie Fläche; Randtipps werden verworfen, Navigationsdrittel beziehen sich auf den Inhalt. DE/EN-Einstellungen mit vier Zahlenfeldern und Prüfung ganzer Pixel 0–1000; Größenbegrenzung und Rückfall auf Vollbild bei weniger als 160 × 120 nutzbaren Pixeln.
-- Android-TV verwendet immer Querformat und blendet die Ausrichtungswahl aus; die gespeicherte Handy-Auswahl bleibt erhalten. Companion bleibt bei der bereits vorhandenen Entwicklungsversion 1.0.4 (Code 8); keine Signierung oder Auslieferung.
-- Manifest v1, Protokoll v1 und bestehende Snapshot-Hashes unverändert. Prüfstand und Umgebungsblocker: [Testprotokoll](cpp/TESTPROTOKOLL.md). Hardware-Abnahme und native UI-Sichtprüfung offen.
-
 ### 2.10.0 – in Vorbereitung (nicht veröffentlicht)
 
-- Plugin-Seiten: Die Plugin-Karte übernimmt Eckenradius und Abstandsmaß aus dem Rahmenstil des Themes (`theme::Design`) statt fester Werte. FuchsLabs-Themes: Radius 9 → 8, Abstände unverändert; Cupertino, Fluent und Material erhalten ihre eigenen Radien und Abstände. Farben, Manifest v1 und Inhalte bleiben unverändert.
-- Tests: Der Snapshot-Test (`fl-plugin-snapshot-tests`) rendert jetzt eine Theme-Matrix (dunkel, hell, Windows mit festen Einstellungen, eigenes Theme sowie je ein Theme im Cupertino-, Fluent- und Material-Stil) in vier Größen (480x320, 320x480, 240x160, 160x240) und prüft die Textkontraste ≥ 4,5:1 auch für eingebaute Themes sowie Kopf- und Fußzeilentext; Basis neu erzeugt (112 statt 8 Snapshots).
-- Plugins, Phase 2a: Manifest `schema_version: 2` mit stabilen Block-IDs, optionalem Zonen-Layout (flaches Raster aus ganzen Anteilen, Zonen mit Spalte/Zeile/Spannweite, keine Überlappung, keine Verschachtelung) und mit Layout bis zu 12 Widgets (ohne Layout weiter höchstens 6). Grenzen: 6×6 Raster, 8 Zonen, 4 Blöcke pro Zone. Neue reine Zonen-Geometrie (`plugin_zones.h/.cpp`) blendet Blöcke bei zu wenig Fläche aus, statt sie überlappen zu lassen; drei Dichtestufen (kompakt, normal, ausführlich) mit zentral einstellbaren Schwellen je Bausteintyp. Store-Regel: Schema 2 braucht `min_app_version` ≥ 2.10.0. Das Zeichnen nach Zonen folgt in Phase 2b; Manifest v1 bleibt unverändert. Neue Testsuite `fl-plugin-zones-tests`.
-- Plugins, Phase 2b: Plugin-Seiten mit Manifest v2 und `layout` werden jetzt nach Zonen gezeichnet (Zonenplan, Karte je Block im Rahmenstil des Themes, Clipping pro Block, Block ohne passende Fläche wird ausgeblendet). Je Bausteintyp (Text, Kennzahl/Uhr, Balken, Liste) gibt es kompakt, normal und ausführlich; die Schwellen der Dichtestufen wurden aus der Zeichengeometrie neu abgeleitet (Tabelle in `docs/PLUGIN-SYSTEM.md`). v1 und v2 ohne `layout` zeichnen pixelidentisch wie bisher (Snapshot-Basis unverändert, zusätzlich im Test geprüft). Neues Beispiel `offline-zonen` (acht Blöcke, offline) mit 28 neuen Snapshots; Textkontrast ≥ 4,5:1 in allen Themes geprüft. Behoben (Review 2a): `TableBlock` verbietet temporäre Dichtetabellen, Reset-Test vergleicht mit Standardwerten.
-- Kontrast: drei Paletten-Befunde behoben (≥ 4,5:1). Helles Theme: Warnfarbe (190,120,0) → (146,92,0); Windows-Kontrastdesign (schwarzer Hintergrund): Warnfarbe jetzt helles Bernstein (240,178,50); Cupertino-dunkel-Profil: Kopfzeile (10,132,255) → (17,136,255), damit die Kopfzeilenschrift lesbar ist.
-- Plugins, Phase 3: Bedingte Anzeige und Fehlerisolierung. Widgets in Manifest v2 können `show_if` tragen: `{"path": …}` (Block nur, wenn ein Wert vorhanden ist) oder zusätzlich `"op"` (`==`, `!=`, `<`, `<=`, `>`, `>=`) mit einem festen `"value"` (Text, Zahl, Wahrheitswert); keine Ausdruckssprache, keine Typumwandlung. Fehlend, `null`, leer und nicht endliche Zahlen blenden aus, `false` und `0` gelten als vorhanden; Vergleiche mit fehlenden oder anders typisierten Werten sind immer falsch (auch `!=`). Geheime Einstellungen sind in Bedingungen verboten; ein ungültiges `show_if` lehnt das ganze Manifest ab, Schema 1 bleibt unverändert. Wirft die Auswertung oder das Zeichnen eines Blocks einen Fehler, wird nur dieser Block ausgeblendet (Fläche wieder Hintergrund, Clip-Stapel wiederhergestellt) und ein ratenbegrenzter Log-Eintrag ohne Daten geschrieben. Die Vorschau wertet Bedingungen gegen die Beispieldaten aus. Neues Beispiel `offline-bedingt`; bestehende Snapshots unverändert, 40 neue.
+Noch kein Release, kein Tag, keine EXE-Auslieferung. Hardware-, Oberflächen- und Companion-Abnahmen sowie der APK-Build stehen aus; siehe „Entwicklungsstand“ unten.
+
+#### Highlights
+
+- **Zonen-Layout für Plugin-Seiten (Manifest v2):** `schema_version: 2` beschreibt ein flaches Raster mit Zonen und Blöcken mit stabilen Block-IDs. Manifest v1 bleibt unverändert. Grenzen: 6 × 6 Raster, 8 Zonen, höchstens 4 Blöcke je Zone, bis zu 12 Widgets mit Layout.
+- **Dichtestufen:** Jeder Bausteintyp (Text, Kennzahl, Uhr, Balken, Liste) hat kompakt, normal und ausführlich. Passt ein Block nicht in seine Fläche, wird er ausgeblendet statt überlappt.
+- **Bedingte Anzeige (`show_if`):** Ein Block erscheint nur, wenn ein Wert vorhanden ist oder ein einfacher Vergleich zutrifft. Keine Ausdruckssprache, keine Typumwandlung.
+- **Fehlerisolierung:** Schlägt Auswertung oder Zeichnen eines Blocks fehl, fehlt nur dieser Block; ein ratenbegrenzter Protokolleintrag ohne Daten wird geschrieben.
+- **Geräteprofil und Sperrzone pro Gerät:** Ränder in ganzen Pixeln für USB-Display und Monitor (unter **Anzeige**) sowie gemeinsame Vorgabe und eigene Sperrzone je gekoppeltem Companion-Gerät (im unabhängigen Betrieb). Android-TV läuft immer im Querformat.
+- **Wechselfeld mit ruhigem Übergang:** Eine Zone kann zwischen Blöcken wechseln (Modus `rotate` mit Takt 3–600 s oder `first_available`). Zeitplanung ohne unnötige Neuzeichnung. Die reale serielle Bildrate ist noch nicht gemessen.
+- **Tap-Ziele mit Link-Freigabe:** Blöcke können HTTPS-Links öffnen (am PC, auch bei einem Tipp vom Handy). Die Freigabe je Plugin ist standardmäßig **aus** und zeigt die Hosts.
+- **Rahmenstil aus dem Theme:** Plugin-Karten übernehmen Eckenradius und Abstände aus dem Theme (FuchsLabs-Radius 9 → 8).
+- **Kontrastfixes:** Warnfarbe im hellen Theme, Windows-Kontrastdesign und Kopfzeile des Cupertino-Dunkelprofils angehoben; der Fokusring im hellen FuchsLabs-Theme ist auf Glut abgedunkelt. Snapshot-Tests prüfen Textkontraste ≥ 4,5:1 in einer Themenmatrix.
+- **Eingebaute Seiten über gemeinsamen Rahmen:** System, Freunde, Discord, Battlefield 6, Blogs (RSS), Streaming und Spotify zeichnen ihre Karten über denselben Rahmen (`draw_framed`). Home Assistant bleibt nativ. Bitgleich zu den Basislinien (4221 Bilder und Trefferkarten, 0 Abweichungen auf dem Referenzrechner).
+- **Seiten-Editor:** Unter **App → Plugin-Seite anordnen** Blöcke im Raster anordnen, Bedingungen setzen, Vorschau in Quer- und Hochformat, Rückgängig/Wiederholen (100 Schritte), Tastaturbedienung. Gespeichert wird nur die Anordnung, mit Sicherungskopie; das Manifest bleibt unverändert.
+
+#### Behoben
+
+- **BF6-Rangliste:** Die Community-API (gametools) lehnt `platform=ea` ab und liefert Spieler nur noch mit `pc`. ScreenBuddy fragt PC-Konten jetzt mit `pc` ab und fällt bei Bedarf auf `ea` und den kleingeschriebenen Namen zurück; PSN und Xbox probieren mehrere Plattformwerte. Das Rang-Profil nutzt dieselbe Plattform.
+- **Spotify:** Läuft nichts, zeigt die Seite den **zuletzt gespielten Titel** samt Cover („Zuletzt gespielt“, gedimmt, ohne Tasten) statt „Es läuft gerade nichts“. Dafür braucht die Anmeldung den zusätzlichen Spotify-Zugriff „zuletzt gespielt“: einmal unter Einstellungen › Spotify neu anmelden. Ohne diesen Zugriff bleibt es bei der bisherigen Meldung.
+
+#### Sicherheit
+
+- **Tap-URLs:** nur HTTPS, strenge Zeichen und Prozentsequenzen, Hosts kleingeschrieben, keine Punktsegmente. Die Adresse wird beim Tipp erneut geprüft, bevor der Browser startet.
+- **Link-Freigabe:** standardmäßig aus; wird die Freigabe bei jeder Plugin-Änderung widerrufen, außer bei einer reinen Änderung der Linkliste. Je Plugin höchstens ein Linkversuch alle zwei Sekunden. Verweigerte Tipps wechseln die Seite nicht.
+- **`show_if`:** Geheime Einstellungen sind in Bedingungen verboten; eine ungültige Bedingung lehnt das ganze Manifest ab.
+- **Protokoll:** Warnungen nennen nur Plugin-ID, Block-ID und Stufe, nie Daten, Einstellungswerte oder Ausnahmetexte.
+
+#### Kompatibilität
+
+- Manifest v1, Protokoll v1 und die bestehenden Snapshot-Hashes bleiben unverändert. Ohne `layout` zeichnen v1 und v2 wie bisher im automatischen Raster.
+- Schema 2 braucht im Store `min_app_version` 2.10.0 oder neuer; ältere Apps lehnen es ab.
+- Sperrzone: ganze Pixel 0–1000; je Rand höchstens ein Drittel der kleineren Bildkante. Bleiben weniger als 160 × 120 nutzbare Pixel, wird die Sperrzone ignoriert.
+- Android-TV läuft immer im Querformat. Eine gespeicherte Hochformat-Auswahl bleibt erhalten, wird aber ignoriert.
+- Home Assistant bleibt nativ und gehört nicht zum Zonen-System.
+- Die veröffentlichte Companion-App bleibt 1.0.3. Version 1.0.4 (versionCode 8) ist ein Entwicklungsstand ohne Signierung und Auslieferung.
+
+#### Entwicklungsstand (offen)
+
+- Keine Veröffentlichung: kein Tag, keine EXE, keine Companion-APK-Auslieferung.
+- Offen: physische Abnahme an USB-Display (auch Hochformat-Gehäuse), Monitor, Companion und Android-TV; native Sichtprüfung der Oberfläche; gemessene serielle Bildrate für das Wechselfeld; Companion-Prozesstests; APK-Build.
+- Eingebaute Seiten: Die Basislinie ist rechnergebunden (Roboto als Benutzerschrift nötig). Auf dem Referenzrechner sind alle migrierten Seiten bitgleich (0 Abweichungen); die Hardware-Abnahme steht aus.
+- Phasen in Kurzform (Details, Prüfzahlen und Grenzen: `cpp/TESTPROTOKOLL.md`):
+  - Phase 2a/2b: Manifest v2, Zonen-Geometrie, Zonen-Zeichnen, Dichtestufen.
+  - Phase 3: bedingte Anzeige und Fehlerisolierung.
+  - Phase 4a: Geräteprofile, Sperrzone, Android-TV-Querformat.
+  - Phase 4b: Wechselfeld.
+  - Phase 4c: Tap-Ziele mit Link-Freigabe.
+  - P5-0 bis P5-6: Basislinie und Umstellung der eingebauten Seiten auf den gemeinsamen Rahmen.
+  - P6-1 bis P6-5 und Review: Anordnungs-Overlay, Seiten-Editor, Fokusring.
 
 ### 2.9.6 – in Vorbereitung
 
 Öffentliche Windows-EXE-Auslieferungen verlangen jetzt vertrauenswürdige Authenticode-Signierung mit Zeitstempel; ohne Zertifikat wird der Export gesperrt.
 
 Microsoft-Store-Vorbereitung: MSIX-Paketierung, getrennte Benutzerdaten, Store-Updates und paketfester Autostart. Companion 1.0.4 (Code 8): Android API 36 und Insets für die Einrichtung. Keine Store-Veröffentlichung erfolgt.
-### Behoben
-
-- **BF6-Rangliste:** Die Community-API (gametools) lehnt `platform=ea` ab und liefert Spieler nur noch mit `pc`. ScreenBuddy fragt PC-Konten jetzt mit `pc` ab und fällt bei Bedarf auf `ea` und den kleingeschriebenen Namen zurück; PSN und Xbox probieren mehrere Plattformwerte. Das Rang-Profil nutzt dieselbe Plattform.
-- **Spotify:** Läuft nichts, zeigt die Seite jetzt den **zuletzt gespielten Titel** samt Cover („Zuletzt gespielt“, gedimmt, ohne Tasten) statt „Es läuft gerade nichts“. Dafür braucht die Anmeldung den zusätzlichen Spotify-Zugriff „zuletzt gespielt“: einmal unter Einstellungen › Spotify neu anmelden. Ohne diesen Zugriff bleibt es bei der bisherigen Meldung.
 
 ## [2.9.5] – 2026-11-01
 
