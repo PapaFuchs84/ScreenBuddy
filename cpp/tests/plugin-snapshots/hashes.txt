@@ -1,0 +1,9 @@
+# Render snapshot baseline (FNV-1a 64 of size+ARGB pixels), theme dunkel, clock 12:34, date 2026-01-01. Rewrite: fl-plugin-snapshot-tests update
+offline-clock.sample.landscape 066aa01c3e5c49c8
+offline-clock.sample.portrait 2984cfd39a48ac48
+offline-focus.sample.landscape 38c921c983e84f32
+offline-focus.sample.portrait a84ae96abb884a57
+public-weather.missing.landscape a1bc571216fc49a4
+public-weather.missing.portrait 352c6918c3b11b5b
+public-weather.sample.landscape fc56ad1824e710ca
+public-weather.sample.portrait 5d778e05dd06590d

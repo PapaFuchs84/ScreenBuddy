@@ -18,7 +18,7 @@ env = dict(os.environ, FUCHSLABS_INSTANCE='release-validation', SCREENBUDDY_TEST
 results = []
 suites = ['fl-tests','fl-tmdb-tests','fl-psn-tests','fl-key-help-tests','fl-amp-tests','fl-plugin-tests',
           'fl-plugin-example-tests','fl-plugin-sign-tests','fl-plugin-catalog-tests','fl-plugin-store-tests',
-          'fl-plugin-transport-tests','fl-plugin-settings-tests','fl-monitor-tests','fl-companion-tests']
+          'fl-plugin-transport-tests','fl-plugin-settings-tests','fl-plugin-snapshot-tests','fl-monitor-tests','fl-companion-tests']
 commands = [(name, [str(build / (name + '.exe'))]) for name in suites]
 commands += [('installer-preservation', [sys.executable, str(cpp / 'tests/installer_preserves_config.py'), str(build / 'ScreenBuddy.exe')]),
              ('companion-integration', [sys.executable, str(cpp / 'tests/app_companion_integration.py')]),

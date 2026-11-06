@@ -1,5 +1,14 @@
 # Testprotokoll – Stand 31.10.2026
 
+## Render-Snapshots (2.10.0)
+
+Testgerüst für das Zonen-Layout (Phase 0): `fl-plugin-snapshot-tests` rendert alle Beispiel-Plugins aus `cpp/examples/plugins` mit `plugins::draw_page` (feste Beispieldaten, Uhr 12:34, Datum 2026-01-01, Theme `dunkel`, Querformat 480x320 und Hochformat 320x480; bei Plugins mit Quellen zusätzlich die Variante „Daten fehlen“). Offline, ohne Netzwerk, ohne Port 8765, ohne Ton. Basis: `cpp/tests/plugin-snapshots/` (`hashes.txt` = FNV-1a-64 über Größe und Pixel, PNGs zur Sichtprüfung).
+
+- Vergleichen (Standard): `build/store/fl-plugin-snapshot-tests.exe` (Exit 1 bei Abweichung; Ist-Bilder landen in `%TEMP%\fl-plugin-snapshot-actual`).
+- Basis neu schreiben: `build/store/fl-plugin-snapshot-tests.exe update` (danach Diff der PNGs prüfen und bewusst committen).
+- Bauen: `cmake --build build/store --target fl-plugin-snapshot-tests`; ist in `build.bat` und `tests/run_release_checks.py` eingebunden.
+- Stand: 8 Snapshots, 45 Prüfungen bestanden, 0 fehlgeschlagen. Die Hashes beruhen auf Direct2D/DirectWrite; andere Schriftarten, Treiber oder Skalierung können sie ändern, dann bewusst mit `update` neu erzeugen.
+
 ## Release 2.9.5 – 01.11.2026
 
 - Basis main nach PR #50; Nutzerkorrektur Farben & Design nach Ansicht in Seitenliste und Material-Zuordnung eingearbeitet. Theme-Store lädt asynchron; sichtbare Überlagerung der Liste mit den Knöpfen reproduziert und durch relayout nach fill_store behoben. Codeprüfung der Änderungen durchgeführt; Signatur-/Hash-/Schema-Schutz unverändert.

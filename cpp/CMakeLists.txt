@@ -104,6 +104,14 @@ add_executable(fl-plugin-preview tools/plugin_preview.cpp)
 target_link_libraries(fl-plugin-preview PRIVATE flcore)
 target_link_options(fl-plugin-preview PRIVATE /MANIFEST:NO)
 
+# Render snapshots der Beispiel-Plugins: Standard vergleicht mit tests/plugin-snapshots, "update" schreibt die Basis neu
+add_executable(fl-plugin-snapshot-tests tests/plugin_snapshot_tests.cpp)
+target_link_libraries(fl-plugin-snapshot-tests PRIVATE flcore)
+target_link_options(fl-plugin-snapshot-tests PRIVATE /MANIFEST:NO)
+target_compile_definitions(fl-plugin-snapshot-tests PRIVATE
+    FL_PLUGIN_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/plugins"
+    FL_PLUGIN_SNAPSHOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/plugin-snapshots")
+
 add_executable(fl-plugin-sign tools/plugin_sign.cpp src/plugins.cpp src/plugin_sign.cpp)
 target_include_directories(fl-plugin-sign PRIVATE src)
 target_link_libraries(fl-plugin-sign PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
