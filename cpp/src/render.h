@@ -80,9 +80,10 @@ protected:
     void footer(Canvas& d, const std::string& left);
     void message(Canvas& d, const std::string& text);
     std::string fit(Canvas& d, const std::string& text, const Font& f, float max_w);
-    float badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy);
-    void row(Canvas& d, const Friend& f, float y);
-    void avatar(Canvas& d, const Friend& f, float x, float y, bool faded);
+private:
+    class FriendRowBlock;
+    class FriendHintBlock;
+    std::vector<plugins::zones::PlacedBlock> friend_layout() const;
 };
 
 class Bf6Renderer : public Renderer {
@@ -110,8 +111,10 @@ public:
     static int zone_at(int w_px, int h_px, int x_px, int y_px);
 
 private:
-    void grouped_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& snap);
-    void expressive_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& snap);
+    class CardBlock;
+    void system_card(Canvas& d, const Region& area, const SysSnapshot& snap, size_t index);
+    void grouped_row(Canvas& d, const Region& area, const SysSnapshot& snap, size_t index);
+    void expressive_card(Canvas& d, const Region& area, const SysSnapshot& snap, size_t index);
     std::string net_unit;
     Font f_card, f_huge, f_val, f_lbl;
     struct RowVal {
@@ -195,6 +198,7 @@ public:
     static int button_at(int w_px, int h_px, int x_px, int y_px);
 
 private:
+    class ContentBlock;
     struct Layout {
         float cover_x, cover_y, cover_size;
         float text_x, text_w, title_y, bar_y, times_y;

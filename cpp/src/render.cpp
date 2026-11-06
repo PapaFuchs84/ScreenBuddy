@@ -360,29 +360,89 @@ std::vector<Friend> sort_friends(std::vector<Friend> friends) {
     return friends;
 }
 
+std::vector<plugins::zones::PlacedBlock> Renderer::friend_layout() const {
+    // Wie Renderer::row_at: dieselbe Kopfkante, Zeilenhöhe und Zeilenzahl.
+    float body_top = HEADER_H + 2;
+    std::vector<plugins::zones::PlacedBlock> rows;
+    for (int i = 0; i < rows_per_page(); ++i)
+        rows.push_back({"freunde.zeile." + std::to_string(i), "freunde",
+                        {0, body_top + i * row_height(), w, (float)row_height()},
+                        plugins::zones::Density::regular});
+    return rows;
+}
+
+class Renderer::FriendRowBlock : public plugins::zones::Block {
+public:
+    FriendRowBlock(Renderer& renderer, const Friend& f, int index)
+        : renderer_(renderer), friend_(f), id_("freunde.zeile." + std::to_string(index)) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        return {renderer_.h > renderer_.w ? 320.f : 480.f, (float)row_height()};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override;
+private:
+    float badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) const;
+    void avatar(Canvas& d, const Friend& f, float x, float y, bool faded) const;
+    Renderer& renderer_;
+    const Friend& friend_;
+    std::string id_;
+};
+
+class Renderer::FriendHintBlock : public plugins::zones::Block {
+public:
+    FriendHintBlock(Renderer& renderer, const std::string& text) : renderer_(renderer), text_(text) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect&, plugins::zones::Density) const override {
+        renderer_.message(d, text_);
+    }
+private:
+    Renderer& renderer_;
+    std::string text_;
+    std::string id_ = "freunde.hinweis";
+};
+
 Image Renderer::render_friends(std::vector<Friend> friends, int page, bool connected, const std::string& msg,
                                std::time_t now) {
     const Theme& t = g_theme;
     friends = sort_friends(std::move(friends));
-    Canvas d(W, H, s, t.bg);
     int online = (int)std::count_if(friends.begin(), friends.end(), [](auto& f) { return f.status != "offline"; });
-    header(d, now, std::to_string(online) + " online");
-    float body_top = HEADER_H + 2;
     int n = pages(friends.size());
-    if (!connected) {
-        message(d, msg.empty() ? "Keine Verbindung zu Discord …" : msg);
-    } else if (friends.empty()) {
-        message(d, "Gerade ist niemand online");
+    page = ((page % n) + n) % n;
+    std::vector<FriendRowBlock> rows;
+    std::vector<Platzierung> blocks;
+    FriendHintBlock hint(*this, !connected ? (msg.empty() ? "Keine Verbindung zu Discord …" : msg)
+                                         : "Gerade ist niemand online");
+    if (!connected || friends.empty()) {
+        // message behält seine bisherige mehrzeilige Zentrierung auf der Vollfläche.
+        blocks.push_back({&hint, {hint.id(), "freunde", {0, 0, w, h}, plugins::zones::Density::regular}});
     } else {
         int per = rows_per_page();
-        page = ((page % n) + n) % n;
-        for (int i = 0; i < per && page * per + i < (int)friends.size(); ++i) row(d, friends[page * per + i], body_top + i * row_height());
+        const auto areas = friend_layout();
+        rows.reserve(per);
+        for (int i = 0; i < per && page * per + i < (int)friends.size(); ++i) {
+            rows.emplace_back(*this, friends[page * per + i], i);
+            blocks.push_back({&rows.back(), areas[i]});
+        }
     }
-    footer(d, n > 1 ? strprintf("Seite %d/%d", ((page % n) + n) % n + 1, n) : "");
-    return d.finish();
+    const std::string left = n > 1 ? strprintf("Seite %d/%d", page + 1, n) : "";
+    const std::string info = std::to_string(online) + " online";
+    return draw_framed({W, H, s, t.bg, [this, now, &info](Canvas& d) { header(d, now, info); },
+                        [this, &left](Canvas& d) { footer(d, left); }}, blocks);
 }
 
-float Renderer::badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) {
+float Renderer::FriendRowBlock::badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) const {
     // Kleine Plattform-Marken (D/S/X/P) rechts oben in der Zeile; Rückgabe: belegte Breite
     static const std::map<std::string, std::pair<std::string, Color>> BADGE = {
         {"discord", {"D", {88, 101, 242}}}, {"steam", {"S", {35, 98, 148}}}, {"xbox", {"X", {16, 124, 16}}},
@@ -391,33 +451,35 @@ float Renderer::badges(Canvas& d, const std::vector<std::string>& platforms, flo
     for (auto it = platforms.rbegin(); it != platforms.rend(); ++it) {
         auto b = BADGE.count(*it) ? BADGE.at(*it) : std::make_pair(std::string("?"), g_theme.muted);
         d.rounded_rectangle(x - 16, cy - 8, x, cy + 8, 4, b.second);
-        d.text(x - 8, cy, b.first, f_small, brand::WHITE, "mm");
+        d.text(x - 8, cy, b.first, renderer_.f_small, brand::WHITE, "mm");
         x -= 20;
     }
     return right - x + 8;
 }
 
-void Renderer::avatar(Canvas& d, const Friend& f, float x, float y, bool faded) {
+void Renderer::FriendRowBlock::avatar(Canvas& d, const Friend& f, float x, float y, bool faded) const {
     // offline: wie Version 1.x stark ausgeblendet (45 % Deckkraft zweimal überlagert ≈ 20 %)
     const Theme& t = g_theme;
     float op = faded ? 0.45f * 0.45f : 1.f;
-    int size = pyround_i(AVATAR * s);
+    int size = pyround_i(AVATAR * renderer_.s);
     if (f.avatar && !f.avatar->empty()) {
         d.round_image(*f.avatar, x, y, size, op);
         return;
     }
     // Platzhalter: Initiale auf Orange
-    float px = std::nearbyint(x * s), py = std::nearbyint(y * s);
-    d.ellipse(px / s, py / s, (px + size - 1) / s, (py + size - 1) / s, faded ? mix(t.bg, t.orange, op) : t.orange);
+    float px = std::nearbyint(x * renderer_.s), py = std::nearbyint(y * renderer_.s);
+    d.ellipse(px / renderer_.s, py / renderer_.s, (px + size - 1) / renderer_.s, (py + size - 1) / renderer_.s, faded ? mix(t.bg, t.orange, op) : t.orange);
     std::wstring wn = widen(f.name.empty() ? "?" : f.name);
     std::wstring ch = wn.substr(0, (wn.size() > 1 && IS_HIGH_SURROGATE(wn[0])) ? 2 : 1);
     CharUpperBuffW(ch.data(), (DWORD)ch.size());
     Font fi{(float)(int)(size * 0.55), true};
-    d.text((px + size / 2.f) / s, (py + size / 2.f) / s, narrow(ch), fi, faded ? mix(t.bg, t.head_text, op) : t.head_text,
+    d.text((px + size / 2.f) / renderer_.s, (py + size / 2.f) / renderer_.s, narrow(ch), fi, faded ? mix(t.bg, t.head_text, op) : t.head_text,
            "mm");
 }
 
-void Renderer::row(Canvas& d, const Friend& f, float y) {
+void Renderer::FriendRowBlock::draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const {
+    const auto& f = friend_;
+    float y = area.y;
     const Theme& t = g_theme;
     float ax = 10, ay = y + (row_height() - AVATAR) / 2;
     const float l1 = y + row_height() / 2.f - 9, l2 = l1 + 18;   // zwei Zeilen vertikal zentriert (44: 13/31)
@@ -436,19 +498,19 @@ void Renderer::row(Canvas& d, const Friend& f, float y) {
         else if (f.status == "offline") d.ellipse(cx - 3, cy - 3, cx + 3, cy + 3, t.bg);
     }
     float tx = ax + AVATAR + 12;
-    float max_w = w - tx - 10;
+    float max_w = renderer_.w - tx - 10;
     if (f.platforms.size() > 1 || (f.platforms.size() == 1 && f.platforms[0] != "discord"))
-        max_w -= badges(d, f.platforms, w - 10, l1);
+        max_w -= badges(d, f.platforms, renderer_.w - 10, l1);
     Color name_col = f.status != "offline" ? t.text : t.muted;
     std::string line2 = !f.activity.empty() ? f.activity : (STATUS_LABEL.count(f.status) ? STATUS_LABEL.at(f.status) : "");
     if (!line2.empty()) {
-        d.text(tx, l1, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
+        d.text(tx, l1, renderer_.fit(d, f.name, renderer_.f_name, max_w), renderer_.f_name, name_col, "lm");
         Color act_col = starts_with_any(f.activity, {"Spielt", "Streamt"}) ? t.accent : t.muted;
-        d.text(tx, l2, fit(d, line2, f_act, max_w), f_act, act_col, "lm");
+        d.text(tx, l2, renderer_.fit(d, line2, renderer_.f_act, max_w), renderer_.f_act, act_col, "lm");
     } else {
-        d.text(tx, y + row_height() / 2, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
+        d.text(tx, y + row_height() / 2, renderer_.fit(d, f.name, renderer_.f_name, max_w), renderer_.f_name, name_col, "lm");
     }
-    d.line({{tx, y + row_height() - 1}, {w - 10, y + row_height() - 1}}, t.line, 1);
+    d.line({{tx, y + row_height() - 1}, {renderer_.w - 10, y + row_height() - 1}}, t.line, 1);
 }
 
 // ---------- Battlefield 6 ----------
@@ -661,41 +723,100 @@ int SysRenderer::zone_at(int w_px, int h_px, int x_px, int y_px) {
     return -1;
 }
 
+class SysRenderer::CardBlock : public plugins::zones::Block {
+public:
+    CardBlock(SysRenderer& renderer, const SysSnapshot& snap, size_t index, bool group = false, float group_bottom = 0)
+        : renderer_(renderer), snap_(snap), index_(index), group_(group), group_bottom_(group_bottom),
+          id_(group ? "system.gruppe" : ids_[index]) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        const auto areas = regions(portrait ? 320.f : 480.f, portrait ? 480.f : 320.f, g_theme.style);
+        return {areas[index_].w, group_ ? areas.back().y + areas.back().h - areas.front().y : areas[index_].h};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        auto& r = renderer_;
+        const Region a{area.x, area.y, area.width, area.height, -1};
+        if (group_) {
+            d.rounded_rectangle(a.x, a.y, a.x + a.w, group_bottom_, 14, g_theme.card);
+        } else if (g_theme.style == theme::Style::Cupertino) {
+            r.grouped_row(d, a, snap_, index_);
+        } else if (g_theme.style == theme::Style::Material) {
+            r.expressive_card(d, a, snap_, index_);
+        } else {
+            r.system_card(d, a, snap_, index_);
+        }
+    }
+private:
+    inline static const std::array<std::string, 5> ids_ = {
+        "system.cpu", "system.gpu", "system.ram", "system.datentraeger", "system.netz"};
+    SysRenderer& renderer_;
+    const SysSnapshot& snap_;
+    size_t index_;
+    bool group_;
+    float group_bottom_;
+    std::string id_;
+};
+
 Image SysRenderer::render(const SysSnapshot& sn, std::time_t now) {
     const Theme& t = g_theme;
-    Canvas d(W, H, s, t.bg);
-    header(d, now, sn.hwinfo ? "" : "ohne HWiNFO");
     const auto areas = regions(w, h, t.style);
+    std::vector<CardBlock> cards;
+    std::vector<Platzierung> blocks;
+    cards.reserve(6);
     if (t.style == theme::Style::Cupertino) {
-        grouped_system(d, areas, sn);
-    } else if (t.style == theme::Style::Material) {
-        expressive_system(d, areas, sn);
-    } else {
-        const auto& cpu = areas[0]; const auto& gpu = areas[1];
-        const auto& ram_area = areas[2]; const auto& disk_area = areas[3]; const auto& net = areas[4];
+        const auto& first = areas.front(); const auto& last = areas.back();
+        cards.emplace_back(*this, sn, 0, true, last.y + last.h);
+        // Endkante unverändert: keine zusätzliche Subtraktion/Addition für die Gruppenhöhe.
+        blocks.push_back({&cards.back(), {cards.back().id(), "system",
+            {first.x, first.y, first.w, last.y + last.h - first.y}, plugins::zones::Density::regular}});
+    }
+    for (size_t i = 0; i < areas.size(); ++i) {
+        cards.emplace_back(*this, sn, i);
+        const auto& a = areas[i];
+        blocks.push_back({&cards.back(), {cards.back().id(), "system",
+            {a.x, a.y, a.w, a.h}, plugins::zones::Density::regular}});
+    }
+    return draw_framed({W, H, s, t.bg,
+        [this, now, &sn](Canvas& d) { header(d, now, sn.hwinfo ? "" : "ohne HWiNFO"); },
+        [this](Canvas& d) { footer(d, ""); }}, blocks);
+}
+
+void SysRenderer::system_card(Canvas& d, const Region& area, const SysSnapshot& sn, size_t index) {
+    const Theme& t = g_theme;
+    if (index == 0) {
+        const auto& cpu = area;
         usage_card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name, sn.cpu_pct,
                    {{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
                     {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text},
                     {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}});
+    } else if (index == 1) {
+        const auto& gpu = area;
         std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
                                ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
         usage_card(d, gpu.x, gpu.y, gpu.w, gpu.h, "GPU", sn.gpu_name, sn.gpu_pct,
                    {{"Temp", num(sn.gpu_temp, 0, "°C"), temp_col(sn.gpu_temp)},
                     {"Lüfter", num(sn.gpu_fan, 0, "%"), t.text}, {"VRAM", vram, t.text}});
+    } else if (index == 2) {
+        const auto& ram_area = area;
         std::string ram = sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–";
         bar_card(d, ram_area.x, ram_area.y, ram_area.w, ram_area.h, "RAM", ram, sn.ram_pct);
+    } else if (index == 3) {
+        const auto& disk_area = area;
         std::string disk = sn.disk_label + " " + (sn.disk_temp ? num(sn.disk_temp, 0, "°C") : tr("belegt"));
         bar_card(d, disk_area.x, disk_area.y, disk_area.w, disk_area.h, "Datenträger", disk, sn.disk_pct);
+    } else {
+        const auto& net = area;
         net_card(d, net.x, net.y, net.w, net.h, sn);
     }
-    footer(d, "");
-    return d.finish();
 }
 
-void SysRenderer::grouped_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& sn) {
+void SysRenderer::grouped_row(Canvas& d, const Region& a, const SysSnapshot& sn, size_t i) {
     const Theme& t = g_theme;
-    const auto& first = areas.front(); const auto& last = areas.back();
-    d.rounded_rectangle(first.x, first.y, first.x + first.w, last.y + last.h, 14, t.card);
     const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
         ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
     const std::array<std::string, 5> labels = {"CPU", "GPU", "RAM", "Datenträger", "Netzwerk"};
@@ -710,65 +831,69 @@ void SysRenderer::grouped_system(Canvas& d, const std::array<Region, 5>& areas, 
         "Download " + fmt_rate(sn.net_down, net_unit) + " · Upload " + fmt_rate(sn.net_up, net_unit)};
     const std::array<std::optional<double>, 5> values = {sn.cpu_pct, sn.gpu_pct, sn.ram_pct, sn.disk_pct, std::nullopt};
     const Font label = font(13, true), detail = font(11), value = font(18, true);
-    for (size_t i = 0; i < areas.size(); ++i) {
-        const auto& a = areas[i];
-        const float right = a.x + a.w - 12;
-        const float label_y = a.y + 14, detail_y = a.y + 33;
-        const std::string reading = i == 4 ? fmt_rate(sn.net_down, net_unit) : num(values[i], 0, "%");
-        const float reading_left = right - d.textlength(reading, value);
-        const float name_x = a.x + 112;
-        d.text(a.x + 12, label_y, labels[i], label, t.text, "lm");
-        d.text(name_x, label_y, fit(d, names[i], detail, std::max(0.f, reading_left - name_x - 12)), detail, t.muted, "lm");
-        d.text(right, label_y, reading, value, i == 0 ? temp_col(sn.cpu_temp) : i == 1 ? temp_col(sn.gpu_temp) : t.text, "rm");
-        d.text(a.x + 12, detail_y, fit(d, details[i], detail, a.w - 24), detail, t.muted, "lm");
-        if (values[i]) bar(d, a.x + 12, a.y + a.h - 7, a.w - 24, values[i], 3);
-        if (i + 1 < areas.size()) d.line({{a.x + 12, a.y + a.h}, {right, a.y + a.h}}, t.line, 1);
-    }
+    const float right = a.x + a.w - 12;
+    const float label_y = a.y + 14, detail_y = a.y + 33;
+    const std::string reading = i == 4 ? fmt_rate(sn.net_down, net_unit) : num(values[i], 0, "%");
+    const float reading_left = right - d.textlength(reading, value);
+    const float name_x = a.x + 112;
+    d.text(a.x + 12, label_y, labels[i], label, t.text, "lm");
+    d.text(name_x, label_y, fit(d, names[i], detail, std::max(0.f, reading_left - name_x - 12)), detail, t.muted, "lm");
+    d.text(right, label_y, reading, value, i == 0 ? temp_col(sn.cpu_temp) : i == 1 ? temp_col(sn.gpu_temp) : t.text, "rm");
+    d.text(a.x + 12, detail_y, fit(d, details[i], detail, a.w - 24), detail, t.muted, "lm");
+    if (values[i]) bar(d, a.x + 12, a.y + a.h - 7, a.w - 24, values[i], 3);
+    if (i + 1 < labels.size()) d.line({{a.x + 12, a.y + a.h}, {right, a.y + a.h}}, t.line, 1);
 }
 
-void SysRenderer::expressive_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& sn) {
+void SysRenderer::expressive_card(Canvas& d, const Region& area, const SysSnapshot& sn, size_t index) {
     const Theme& t = g_theme;
-    const auto& cpu = areas[0]; const auto& gpu = areas[1];
     const Font tiny = font(11), value = font(14, true), hero = font(32, true);
-    card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name);
-    d.text(cpu.x + 14, cpu.y + 53, num(sn.cpu_pct, 0, "%"), hero, t.text, "lm");
-    bar(d, cpu.x + 14, cpu.y + cpu.h - 14, 98, sn.cpu_pct, 5);
-    const std::array<RowVal, 3> cpu_details = {{{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
-        {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text}, {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}}};
-    const float column = (cpu.w - 142) / 3;
-    for (size_t i = 0; i < cpu_details.size(); ++i) {
-        const float x = cpu.x + 132 + float(i) * column;
-        d.text(x, cpu.y + 42, cpu_details[i].label, tiny, t.muted, "lm");
-        d.text(x, cpu.y + 64, fit(d, cpu_details[i].value, value, column - 8), value, cpu_details[i].col, "lm");
+    if (index == 0) {
+        const auto& cpu = area;
+        card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name);
+        d.text(cpu.x + 14, cpu.y + 53, num(sn.cpu_pct, 0, "%"), hero, t.text, "lm");
+        bar(d, cpu.x + 14, cpu.y + cpu.h - 14, 98, sn.cpu_pct, 5);
+        const std::array<RowVal, 3> cpu_details = {{{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
+            {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text}, {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}}};
+        const float column = (cpu.w - 142) / 3;
+        for (size_t i = 0; i < cpu_details.size(); ++i) {
+            const float x = cpu.x + 132 + float(i) * column;
+            d.text(x, cpu.y + 42, cpu_details[i].label, tiny, t.muted, "lm");
+            d.text(x, cpu.y + 64, fit(d, cpu_details[i].value, value, column - 8), value, cpu_details[i].col, "lm");
+        }
+    } else if (index == 1) {
+        const auto& gpu = area;
+        d.rounded_rectangle(gpu.x, gpu.y, gpu.x + gpu.w, gpu.y + gpu.h, 20, t.card);
+        d.text(gpu.x + 12, gpu.y + 15, "GPU", f_card, t.accent, "lm");
+        d.text(gpu.x + 12, gpu.y + 35, fit(d, sn.gpu_name, tiny, gpu.w - 24), tiny, t.muted, "lm");
+        d.text(gpu.x + 12, gpu.y + 63, num(sn.gpu_pct, 0, "%"), font(24, true), t.text, "lm");
+        bar(d, gpu.x + 12, gpu.y + 83, gpu.w - 24, sn.gpu_pct, 5);
+        d.text(gpu.x + 12, gpu.y + 105, "Temp " + num(sn.gpu_temp, 0, "°C"), tiny, temp_col(sn.gpu_temp), "lm");
+        d.text(gpu.x + gpu.w - 12, gpu.y + 105, num(sn.gpu_fan, 0, "%") + " " + tr("Lüfter"), tiny, t.muted, "rm");
+        const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
+            ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
+        d.text(gpu.x + 12, gpu.y + 129, fit(d, "VRAM " + vram, tiny, gpu.w - 24), tiny, t.muted, "lm");
+    } else {
+        auto compact = [&](const Region& a, const std::string& title, const std::string& description, std::optional<double> pct) {
+            d.rounded_rectangle(a.x, a.y, a.x + a.w, a.y + a.h, 12, t.card);
+            d.text(a.x + 10, a.y + 12, title, font(12, true), t.accent, "lm");
+            d.text(a.x + a.w - 10, a.y + 12, num(pct, 0, "%"), value, t.text, "rm");
+            d.text(a.x + 10, a.y + 29, fit(d, description, tiny, a.w - 20), tiny, t.muted, "lm");
+            bar(d, a.x + 10, a.y + a.h - 7, a.w - 20, pct, 3);
+        };
+        if (index == 2) compact(area, "RAM", sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–", sn.ram_pct);
+        else if (index == 3) compact(area, "Datenträger", sn.disk_label + (sn.disk_temp ? " · " + num(sn.disk_temp, 0, "°C") : ""), sn.disk_pct);
+        else {
+            const auto& net = area;
+            d.rounded_rectangle(net.x, net.y, net.x + net.w, net.y + net.h, 12, t.card);
+            d.text(net.x + 10, net.y + 12, "Netzwerk", font(12, true), t.accent, "lm");
+            d.text(net.x + net.w - 10, net.y + 12, fit(d, sn.net_name, tiny, net.w - 100), tiny, t.muted, "rm");
+            // The compact network cell prioritizes both live rates over the old chart.
+            arrow(d, net.x + 15, net.y + 32, true, t.down);
+            d.text(net.x + 28, net.y + 32, fit(d, fmt_rate(sn.net_down, net_unit), tiny, net.w / 2 - 36), tiny, t.text, "lm");
+            arrow(d, net.x + net.w / 2 + 10, net.y + 32, false, t.bar);
+            d.text(net.x + net.w - 10, net.y + 32, fit(d, fmt_rate(sn.net_up, net_unit), tiny, net.w / 2 - 30), tiny, t.text, "rm");
+        }
     }
-    d.rounded_rectangle(gpu.x, gpu.y, gpu.x + gpu.w, gpu.y + gpu.h, 20, t.card);
-    d.text(gpu.x + 12, gpu.y + 15, "GPU", f_card, t.accent, "lm");
-    d.text(gpu.x + 12, gpu.y + 35, fit(d, sn.gpu_name, tiny, gpu.w - 24), tiny, t.muted, "lm");
-    d.text(gpu.x + 12, gpu.y + 63, num(sn.gpu_pct, 0, "%"), font(24, true), t.text, "lm");
-    bar(d, gpu.x + 12, gpu.y + 83, gpu.w - 24, sn.gpu_pct, 5);
-    d.text(gpu.x + 12, gpu.y + 105, "Temp " + num(sn.gpu_temp, 0, "°C"), tiny, temp_col(sn.gpu_temp), "lm");
-    d.text(gpu.x + gpu.w - 12, gpu.y + 105, num(sn.gpu_fan, 0, "%") + " " + tr("Lüfter"), tiny, t.muted, "rm");
-    const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
-        ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
-    d.text(gpu.x + 12, gpu.y + 129, fit(d, "VRAM " + vram, tiny, gpu.w - 24), tiny, t.muted, "lm");
-    auto compact = [&](const Region& a, const std::string& title, const std::string& description, std::optional<double> pct) {
-        d.rounded_rectangle(a.x, a.y, a.x + a.w, a.y + a.h, 12, t.card);
-        d.text(a.x + 10, a.y + 12, title, font(12, true), t.accent, "lm");
-        d.text(a.x + a.w - 10, a.y + 12, num(pct, 0, "%"), value, t.text, "rm");
-        d.text(a.x + 10, a.y + 29, fit(d, description, tiny, a.w - 20), tiny, t.muted, "lm");
-        bar(d, a.x + 10, a.y + a.h - 7, a.w - 20, pct, 3);
-    };
-    compact(areas[2], "RAM", sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–", sn.ram_pct);
-    compact(areas[3], "Datenträger", sn.disk_label + (sn.disk_temp ? " · " + num(sn.disk_temp, 0, "°C") : ""), sn.disk_pct);
-    const auto& net = areas[4];
-    d.rounded_rectangle(net.x, net.y, net.x + net.w, net.y + net.h, 12, t.card);
-    d.text(net.x + 10, net.y + 12, "Netzwerk", font(12, true), t.accent, "lm");
-    d.text(net.x + net.w - 10, net.y + 12, fit(d, sn.net_name, tiny, net.w - 100), tiny, t.muted, "rm");
-    // The compact network cell prioritizes both live rates over the old chart.
-    arrow(d, net.x + 15, net.y + 32, true, t.down);
-    d.text(net.x + 28, net.y + 32, fit(d, fmt_rate(sn.net_down, net_unit), tiny, net.w / 2 - 36), tiny, t.text, "lm");
-    arrow(d, net.x + net.w / 2 + 10, net.y + 32, false, t.bar);
-    d.text(net.x + net.w - 10, net.y + 32, fit(d, fmt_rate(sn.net_up, net_unit), tiny, net.w / 2 - 30), tiny, t.text, "rm");
 }
 
 void SysRenderer::card(Canvas& d, float x, float y, float cw, float ch, const std::string& ctitle, const std::string& sub) {
@@ -1278,113 +1403,200 @@ int SpotifyRenderer::button_at(int w_px, int h_px, int x_px, int y_px) {
     return -1;
 }
 
+// Fußtext ausschließlich aus dem Snapshot; dieselbe Priorität wie im bisherigen Zeichenweg.
+static std::string spotify_footer(const spotify::Snapshot& snap) {
+    using spotify::State;
+    switch (snap.state) {
+    case State::NotSetUp:
+    case State::LoggedOut:
+    case State::Connecting:
+    case State::Error:
+        return "Spotify";
+    case State::Idle:
+        if (!snap.last_played) return snap.error.empty() ? "Spotify" : snap.error;
+        [[fallthrough]];
+    default:
+        if (snap.last_played) return tr("Zuletzt gespielt");
+        return snap.error.empty() ? "Spotify" : snap.error;
+    }
+}
+
+class SpotifyRenderer::ContentBlock : public plugins::zones::Block {
+public:
+    enum Kind { Cover, Text, Levels, Progress, Buttons, Hint };
+    ContentBlock(SpotifyRenderer& renderer, Kind kind, const spotify::Snapshot& snap, double now,
+                 const std::vector<float>* levels, int color, bool simulated)
+        : renderer_(renderer), kind_(kind), snap_(snap), now_(now), levels_(levels), color_(color), simulated_(simulated),
+          id_(std::string("spotify.") + names_[kind]) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        using spotify::State;
+        auto& r = renderer_;
+        const auto& snap = snap_;
+        const auto* levels = levels_;
+        const double now = now_;
+        const int color = color_;
+        const bool simulated = simulated_;
+        const Theme& t = g_theme;
+        const float w = area.width, h = area.height, s = r.s;
+        // Vollfläche hält alle bisherigen absoluten Ausdrücke und Überlappungen bitgleich.
+        // Zeichnen und Treffer beziehen ihre Geometrie weiterhin aus layout().
+        Layout l = layout(w, h);
+        bool wide = w >= h;
+        float ty = l.title_y;
+        switch (kind_) {
+        case Cover: {
+            // Cover (oder dezenter Platzhalter)
+            d.rounded_rectangle(l.cover_x, l.cover_y, l.cover_x + l.cover_size, l.cover_y + l.cover_size, 8, t.card);
+            if (snap.cover && !snap.cover->empty()) {
+                int px = std::max(1, pyround_i(l.cover_size * s));
+                d.image(resize(*snap.cover, px, px), l.cover_x, l.cover_y);
+            } else {
+                d.text(l.cover_x + l.cover_size / 2, l.cover_y + l.cover_size / 2, "♪", r.font(40, true), t.muted, "mm");
+            }
+            break;
+        }
+        case Text: {
+            d.text(l.text_x, ty, r.fit(d, snap.title, r.f_track, l.text_w), r.f_track, snap.last_played ? t.muted : t.text, "lm");
+            d.text(l.text_x, ty + 28, r.fit(d, snap.artist, r.f_artist, l.text_w), r.f_artist, t.accent, "lm");
+            if (!snap.album.empty() && (wide || ty + 52 < l.bar_y - 10))
+                d.text(l.text_x, ty + 50, r.fit(d, snap.album, r.f_time, l.text_w), r.f_time, t.muted, "lm");
+            break;
+        }
+        case Levels: {
+            // Amplifier: Balken im freien Bereich zwischen Albumzeile und Fortschritt (nur Querformat, nur bei Wiedergabe)
+            if (levels && !levels->empty() && wide && snap.playing) {
+                const float ax = l.text_x, aw = l.text_w, ay0 = ty + 66, ay1 = l.bar_y - 14;
+                const float ah = ay1 - ay0;
+                if (ah >= 28) {
+                    const int n = (int)levels->size();
+                    const float gap = 3.f, bw = (aw - gap * (n - 1)) / n;
+                    for (int i = 0; i < n; ++i) {
+                        float v = std::clamp((*levels)[(size_t)i], 0.f, 1.f);
+                        float bh = std::max(2.f, v * ah);
+                        float x0 = ax + i * (bw + gap);
+                        Color c = v > 0.85f ? t.accent : t.bar;
+                        if (color == 1) {
+                            uint8_t rgb[3];
+                            audio::level_rgb(v, rgb);
+                            c = Color{rgb[0], rgb[1], rgb[2]};
+                        } else if (color == 2) {   // Verlauf im Design: Balken → Akzent → Heiß
+                            auto mix = [](Color a, Color b, float k) {
+                                return Color{uint8_t(a.r + (b.r - a.r) * k), uint8_t(a.g + (b.g - a.g) * k), uint8_t(a.b + (b.b - a.b) * k)};
+                            };
+                            c = v < 0.6f ? mix(t.bar, t.accent, v / 0.6f) : mix(t.accent, t.hot, (v - 0.6f) / 0.4f);
+                        }
+                        d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), c);
+                    }
+                    if (simulated) d.text(ax + aw, ay0 + 6, tr("simuliert"), r.font(11), t.muted, "rm");
+                }
+            }
+            break;
+        }
+        case Progress: {
+            // Fortschritt
+            long long pos = spotify::live_progress(snap, now ? now : mono());
+            float frac = snap.duration_ms > 0 ? std::min(1.f, (float)pos / snap.duration_ms) : 0.f;
+            d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + l.text_w, l.bar_y + 6, 3, t.line);
+            if (frac > 0) d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + std::max(6.f, l.text_w * frac), l.bar_y + 6, 3, t.bar);
+            d.text(l.text_x, l.times_y, spotify::format_time(pos), r.f_time, t.muted, "lm");
+            d.text(l.text_x + l.text_w, l.times_y, spotify::format_time(snap.duration_ms), r.f_time, t.muted, "rm");
+            break;
+        }
+        case Buttons: {
+            if (snap.controls) {   // Tasten nur, wenn Touch an ist – sonst wäre ein Tipp ohne Wirkung
+                for (int i = 0; i < 3; ++i) {
+                    float cx = l.btn_x[i], cy = l.btn_y, r = l.btn_r[i];
+                    bool main = i == PLAY_PAUSE;
+                    d.ellipse(cx - r, cy - r, cx + r, cy + r, main ? t.bar : t.card);
+                    Color ink = main ? t.head_text : t.text;
+                    float k = r * 0.42f;
+                    if (i == PLAY_PAUSE && snap.playing) {
+                        d.rectangle(cx - k * 0.8f, cy - k, cx - k * 0.2f, cy + k, ink);
+                        d.rectangle(cx + k * 0.2f, cy - k, cx + k * 0.8f, cy + k, ink);
+                    } else if (i == PLAY_PAUSE) {
+                        d.polygon({{cx - k * 0.6f, cy - k}, {cx - k * 0.6f, cy + k}, {cx + k, cy}}, ink);
+                    } else if (i == NEXT) {
+                        d.polygon({{cx - k, cy - k}, {cx - k, cy + k}, {cx + k * 0.6f, cy}}, ink);
+                        d.rectangle(cx + k * 0.7f, cy - k, cx + k, cy + k, ink);
+                    } else {
+                        d.polygon({{cx + k, cy - k}, {cx + k, cy + k}, {cx - k * 0.6f, cy}}, ink);
+                        d.rectangle(cx - k, cy - k, cx - k * 0.7f, cy + k, ink);
+                    }
+                }
+            }
+            break;
+        }
+        case Hint: {
+            switch (snap.state) {
+            case State::NotSetUp: r.message(d, "Spotify ist nicht fertig eingerichtet"); break;
+            case State::LoggedOut: r.message(d, "Bei Spotify anmelden: Einstellungen › Spotify"); break;
+            case State::Connecting: r.message(d, snap.error.empty() ? "Verbinde mit Spotify …" : snap.error); break;
+            case State::Error: r.message(d, snap.error.empty() ? "Spotify nicht erreichbar" : snap.error); break;
+            default: r.message(d, "Es läuft gerade nichts – Wiedergabe in Spotify starten"); break;
+            }
+            break;
+        }
+        }
+    }
+
+private:
+    inline static constexpr const char* names_[] = {"cover", "text", "pegel", "fortschritt", "tasten", "hinweis"};
+    SpotifyRenderer& renderer_;
+    Kind kind_;
+    const spotify::Snapshot& snap_;
+    double now_;
+    const std::vector<float>* levels_;
+    int color_;
+    bool simulated_;
+    std::string id_;
+};
+
 Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const std::vector<float>* levels, int color, bool simulated, std::time_t clock) {
     using spotify::State;
     const Theme& t = g_theme;
-    Canvas d(W, H, s, t.bg);
-    header(d, clock, "");
-    std::string footer_left = "Spotify";
+    std::vector<ContentBlock> content;
+    std::vector<Platzierung> blocks;
+    content.reserve(6);
+    auto add = [&](ContentBlock::Kind kind) {
+        content.emplace_back(*this, kind, snap, now, levels, color, simulated);
+        const auto& block = content.back();
+        blocks.push_back({&block, {block.id(), "spotify", {0, 0, w, h}, plugins::zones::Density::regular}});
+    };
     switch (snap.state) {
     case State::NotSetUp:
-        message(d, "Spotify ist nicht fertig eingerichtet");
-        break;
     case State::LoggedOut:
-        message(d, "Bei Spotify anmelden: Einstellungen › Spotify");
-        break;
     case State::Connecting:
-        message(d, snap.error.empty() ? "Verbinde mit Spotify …" : snap.error);
-        break;
     case State::Error:
-        message(d, snap.error.empty() ? "Spotify nicht erreichbar" : snap.error);
+        add(ContentBlock::Hint);
         break;
     case State::Idle:
         if (!snap.last_played) {
-            message(d, "Es läuft gerade nichts – Wiedergabe in Spotify starten");
-            if (!snap.error.empty()) footer_left = snap.error;
+            add(ContentBlock::Hint);
             break;
         }
-        [[fallthrough]];   // zuletzt gespielter Titel: gleiche Ansicht, gedimmt und ohne Steuerung
-    default: {
-        Layout l = layout(w, h);
-        // Cover (oder dezenter Platzhalter)
-        d.rounded_rectangle(l.cover_x, l.cover_y, l.cover_x + l.cover_size, l.cover_y + l.cover_size, 8, t.card);
-        if (snap.cover && !snap.cover->empty()) {
-            int px = std::max(1, pyround_i(l.cover_size * s));
-            d.image(resize(*snap.cover, px, px), l.cover_x, l.cover_y);
-        } else {
-            d.text(l.cover_x + l.cover_size / 2, l.cover_y + l.cover_size / 2, "♪", font(40, true), t.muted, "mm");
+        [[fallthrough]];
+    default:
+        add(ContentBlock::Cover);
+        add(ContentBlock::Text);
+        add(ContentBlock::Levels);
+        if (!snap.last_played) {
+            add(ContentBlock::Progress);
+            add(ContentBlock::Buttons);
         }
-        bool wide = w >= h;
-        float ty = l.title_y;
-        d.text(l.text_x, ty, fit(d, snap.title, f_track, l.text_w), f_track, snap.last_played ? t.muted : t.text, "lm");
-        d.text(l.text_x, ty + 28, fit(d, snap.artist, f_artist, l.text_w), f_artist, t.accent, "lm");
-        if (!snap.album.empty() && (wide || ty + 52 < l.bar_y - 10))
-            d.text(l.text_x, ty + 50, fit(d, snap.album, f_time, l.text_w), f_time, t.muted, "lm");
-        // Amplifier: Balken im freien Bereich zwischen Albumzeile und Fortschritt (nur Querformat, nur bei Wiedergabe)
-        if (levels && !levels->empty() && wide && snap.playing) {
-            const float ax = l.text_x, aw = l.text_w, ay0 = ty + 66, ay1 = l.bar_y - 14;
-            const float ah = ay1 - ay0;
-            if (ah >= 28) {
-                const int n = (int)levels->size();
-                const float gap = 3.f, bw = (aw - gap * (n - 1)) / n;
-                for (int i = 0; i < n; ++i) {
-                    float v = std::clamp((*levels)[(size_t)i], 0.f, 1.f);
-                    float bh = std::max(2.f, v * ah);
-                    float x0 = ax + i * (bw + gap);
-                    Color c = v > 0.85f ? t.accent : t.bar;
-                    if (color == 1) {
-                        uint8_t rgb[3];
-                        audio::level_rgb(v, rgb);
-                        c = Color{rgb[0], rgb[1], rgb[2]};
-                    } else if (color == 2) {   // Verlauf im Design: Balken → Akzent → Heiß
-                        auto mix = [](Color a, Color b, float k) {
-                            return Color{uint8_t(a.r + (b.r - a.r) * k), uint8_t(a.g + (b.g - a.g) * k), uint8_t(a.b + (b.b - a.b) * k)};
-                        };
-                        c = v < 0.6f ? mix(t.bar, t.accent, v / 0.6f) : mix(t.accent, t.hot, (v - 0.6f) / 0.4f);
-                    }
-                    d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), c);
-                }
-                if (simulated) d.text(ax + aw, ay0 + 6, tr("simuliert"), font(11), t.muted, "rm");
-            }
-        }
-        if (snap.last_played) {   // keine Fortschrittsanzeige, keine Tasten
-            footer_left = tr("Zuletzt gespielt");
-            break;
-        }
-        // Fortschritt
-        long long pos = spotify::live_progress(snap, now ? now : mono());
-        float frac = snap.duration_ms > 0 ? std::min(1.f, (float)pos / snap.duration_ms) : 0.f;
-        d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + l.text_w, l.bar_y + 6, 3, t.line);
-        if (frac > 0) d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + std::max(6.f, l.text_w * frac), l.bar_y + 6, 3, t.bar);
-        d.text(l.text_x, l.times_y, spotify::format_time(pos), f_time, t.muted, "lm");
-        d.text(l.text_x + l.text_w, l.times_y, spotify::format_time(snap.duration_ms), f_time, t.muted, "rm");
-        if (snap.controls) {   // Tasten nur, wenn Touch an ist – sonst wäre ein Tipp ohne Wirkung
-            for (int i = 0; i < 3; ++i) {
-                float cx = l.btn_x[i], cy = l.btn_y, r = l.btn_r[i];
-                bool main = i == PLAY_PAUSE;
-                d.ellipse(cx - r, cy - r, cx + r, cy + r, main ? t.bar : t.card);
-                Color ink = main ? t.head_text : t.text;
-                float k = r * 0.42f;
-                if (i == PLAY_PAUSE && snap.playing) {
-                    d.rectangle(cx - k * 0.8f, cy - k, cx - k * 0.2f, cy + k, ink);
-                    d.rectangle(cx + k * 0.2f, cy - k, cx + k * 0.8f, cy + k, ink);
-                } else if (i == PLAY_PAUSE) {
-                    d.polygon({{cx - k * 0.6f, cy - k}, {cx - k * 0.6f, cy + k}, {cx + k, cy}}, ink);
-                } else if (i == NEXT) {
-                    d.polygon({{cx - k, cy - k}, {cx - k, cy + k}, {cx + k * 0.6f, cy}}, ink);
-                    d.rectangle(cx + k * 0.7f, cy - k, cx + k, cy + k, ink);
-                } else {
-                    d.polygon({{cx + k, cy - k}, {cx + k, cy + k}, {cx - k * 0.6f, cy}}, ink);
-                    d.rectangle(cx - k, cy - k, cx - k * 0.7f, cy + k, ink);
-                }
-            }
-        }
-        if (!snap.error.empty()) footer_left = snap.error;
         break;
     }
-    }
-    footer(d, fit(d, footer_left, f_small, w - 110));
-    return d.finish();
+    const std::string foot = spotify_footer(snap);
+    return draw_framed({W, H, s, t.bg, [this, clock](Canvas& d) { header(d, clock, ""); },
+                        [this, &foot](Canvas& d) { footer(d, fit(d, foot, f_small, w - 110)); }}, blocks);
 }
 
 spotify::Snapshot demo_spotify() { return samples::spotify(); }
