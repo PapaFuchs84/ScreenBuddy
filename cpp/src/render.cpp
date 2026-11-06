@@ -927,70 +927,150 @@ StreamRenderer::StreamRenderer(int w_, int h_, std::string t) : Renderer(w_, h_,
     f_kind = font(13, true);
 }
 
+std::array<plugins::zones::PlacedBlock, StreamRenderer::MAX_ROWS> StreamRenderer::layout(float w, float h) {
+    float top = HEADER_H + 2, bot = h - FOOTER_H;
+    float rh = (float)floordiv(bot - top, MAX_ROWS);
+    std::array<plugins::zones::PlacedBlock, MAX_ROWS> rows;
+    for (size_t i = 0; i < rows.size(); ++i)
+        rows[i] = {"streaming.zeile." + std::to_string(i), "streaming", {0, top + i * rh, w, rh},
+                   plugins::zones::Density::regular};
+    return rows;
+}
+
 int StreamRenderer::row_at(int w_px, int h_px, int y_px) {
     float sc = scale_for(w_px, h_px);
     float lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
-    float top = HEADER_H + 2, bot = lh - FOOTER_H, y = y_px / sc;
-    float rh = (float)floordiv(bot - top, MAX_ROWS);
+    float lw = sc == 1 ? (float)w_px : (float)pyround_i(w_px / sc);
+    const auto rows = layout(lw, lh);
+    float top = rows[0].area.y, bot = lh - FOOTER_H, y = y_px / sc;
+    float rh = rows[0].area.height;
     if (y < top || y >= bot || rh <= 0) return -1;
     int row = (int)((y - top) / rh);
     return row < MAX_ROWS ? row : -1;
 }
 
+class StreamRenderer::RowBlock : public plugins::zones::Block {
+public:
+    RowBlock(StreamRenderer& renderer, const StreamItem& item, size_t index, size_t count,
+             const StreamLogos* logos, const std::string& lang)
+        : renderer_(renderer), item_(item), index_(index), count_(count), logos_(logos), lang_(lang),
+          id_("streaming.zeile." + std::to_string(index)) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 71.f : 44.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        auto& r = renderer_;
+        const Theme& t = g_theme;
+        const StreamItem& it = item_;
+        const StreamLogos* logos = logos_;
+        const std::string& lang = lang_;
+        const Font& f_act = r.f_act;
+        const Font& f_item = r.f_item;
+        const Font& f_kind = r.f_kind;
+        const float w = area.width, y = area.y, rh = area.height, s = r.s;
+        const std::string date = tmdb::format_date(it.date, lang);
+        d.text(w - 10, y + 14, date, f_act, t.muted, "rm");
+        const float title_w = w - 30 - d.textlength(date, f_act);
+        d.text(10, y + 14, r.fit(d, it.title, f_item, title_w), f_item, t.text, "lm");
+        const std::string kind = tr(it.series ? "Serie" : "Film");
+        d.text(10, y + 32, kind, f_kind, t.accent, "lm");
+        const float kx = 10 + d.textlength(kind, f_kind) + 10;
+        // Anbieter: Logos (höchstens MAX_LOGOS, Rest „+n“); fehlt ein Logo, steht an seiner Stelle das Kürzel
+        const int shown = tmdb::logos_shown(it.providers.size());
+        float lx = kx;
+        for (int k = 0; k < shown; ++k) {
+            const StreamLogos::const_iterator none = logos ? logos->end() : StreamLogos::const_iterator();
+            StreamLogos::const_iterator li = none;
+            if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
+            if (logos && li != none && li->second && !li->second->empty()) {
+                const int px = pyround_i(LOGO_SIZE * s);
+                d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
+                lx += LOGO_SIZE + 4;
+            } else {
+                const std::string& ab = it.providers[k];
+                d.text(lx, y + 32, ab, f_act, t.muted, "lm");
+                lx += d.textlength(ab, f_act) + 8;
+            }
+        }
+        const std::string more = tmdb::logos_overflow(it.providers.size());
+        if (!more.empty()) d.text(lx, y + 32, more, f_act, t.muted, "lm");
+        if (index_ < count_ - 1) d.line({{10, y + rh - 1}, {w - 10, y + rh - 1}}, t.line, 1);
+    }
+private:
+    StreamRenderer& renderer_;
+    const StreamItem& item_;
+    size_t index_, count_;
+    const StreamLogos* logos_;
+    std::string lang_, id_;
+};
+
+class StreamRenderer::HintBlock : public plugins::zones::Block {
+public:
+    HintBlock(StreamRenderer& renderer, StreamState state) : renderer_(renderer), state_(state) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        const Theme& t = g_theme;
+        const float w = area.width, h = area.height;
+        const Font& f_big = renderer_.f_big;
+        const Font& f_act = renderer_.f_act;
+        if (state_ == StreamState::NoKey) {
+            d.text(w / 2, h / 2 - 12, "Kein Key", f_big, t.muted, "mm");
+            d.text(w / 2, h / 2 + 14, "TMDB-Key in den Einstellungen eintragen", f_act, t.muted, "mm");
+        } else if (state_ == StreamState::Loading) {
+            d.text(w / 2, h / 2, "Lade Daten …", f_big, t.muted, "mm");
+        } else if (state_ == StreamState::Error) {
+            d.text(w / 2, h / 2, "Keine Daten", f_big, t.muted, "mm");
+        } else {
+            d.text(w / 2, h / 2, "Keine Neustarts gefunden", f_big, t.muted, "mm");
+        }
+    }
+private:
+    StreamRenderer& renderer_;
+    StreamState state_;
+    std::string id_ = "streaming.hinweis";
+};
+
+std::string StreamRenderer::footer_text(StreamState state, std::optional<std::time_t> updated) {
+    // Pflichtangabe der Datenquellen bleibt unabhängig von den Inhaltsblöcken erhalten.
+    return updated && state == StreamState::Ok ? "TMDB / JustWatch · Stand " + clock_hhmm(*updated) : "TMDB / JustWatch";
+}
+
 Image StreamRenderer::render(StreamState state, const std::vector<StreamItem>& items, std::optional<std::time_t> updated,
                              std::time_t now, const StreamLogos* logos) {
     const Theme& t = g_theme;
-    Canvas d(W, H, s, t.bg);
-    header(d, now, "");
-    const float top = HEADER_H + 2, bot = h - FOOTER_H;
-    if (state == StreamState::NoKey) {
-        d.text(w / 2, h / 2 - 12, "Kein Key", f_big, t.muted, "mm");
-        d.text(w / 2, h / 2 + 14, "TMDB-Key in den Einstellungen eintragen", f_act, t.muted, "mm");
-    } else if (state == StreamState::Loading) {
-        d.text(w / 2, h / 2, "Lade Daten …", f_big, t.muted, "mm");
-    } else if (state == StreamState::Error) {
-        d.text(w / 2, h / 2, "Keine Daten", f_big, t.muted, "mm");
-    } else if (items.empty()) {
-        d.text(w / 2, h / 2, "Keine Neustarts gefunden", f_big, t.muted, "mm");
+    std::vector<RowBlock> rows;
+    std::vector<Platzierung> blocks;
+    HintBlock hint(*this, state);
+    if (state == StreamState::NoKey || state == StreamState::Loading || state == StreamState::Error || items.empty()) {
+        // Vollfläche erhält wie bei RSS die bisherige Mitte und alle Textversätze.
+        blocks.push_back({&hint, {hint.id(), "streaming", {0, 0, w, h}, plugins::zones::Density::regular}});
     } else {
         const size_t n = std::min(items.size(), (size_t)MAX_ROWS);
-        const float rh = (float)floordiv(bot - top, MAX_ROWS);
+        const auto areas = layout(w, h);
         const std::string lang = i18n::lang();
+        rows.reserve(n);
         for (size_t i = 0; i < n; ++i) {
-            const StreamItem& it = items[i];
-            const float y = top + i * rh;
-            const std::string date = tmdb::format_date(it.date, lang);
-            d.text(w - 10, y + 14, date, f_act, t.muted, "rm");
-            const float title_w = w - 30 - d.textlength(date, f_act);
-            d.text(10, y + 14, fit(d, it.title, f_item, title_w), f_item, t.text, "lm");
-            const std::string kind = tr(it.series ? "Serie" : "Film");
-            d.text(10, y + 32, kind, f_kind, t.accent, "lm");
-            const float kx = 10 + d.textlength(kind, f_kind) + 10;
-            // Anbieter: Logos (höchstens MAX_LOGOS, Rest „+n“); fehlt ein Logo, steht an seiner Stelle das Kürzel
-            const int shown = tmdb::logos_shown(it.providers.size());
-            float lx = kx;
-            for (int k = 0; k < shown; ++k) {
-                const StreamLogos::const_iterator none = logos ? logos->end() : StreamLogos::const_iterator();
-                StreamLogos::const_iterator li = none;
-                if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
-                if (logos && li != none && li->second && !li->second->empty()) {
-                    const int px = pyround_i(LOGO_SIZE * s);
-                    d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
-                    lx += LOGO_SIZE + 4;
-                } else {
-                    const std::string& ab = it.providers[k];
-                    d.text(lx, y + 32, ab, f_act, t.muted, "lm");
-                    lx += d.textlength(ab, f_act) + 8;
-                }
-            }
-            const std::string more = tmdb::logos_overflow(it.providers.size());
-            if (!more.empty()) d.text(lx, y + 32, more, f_act, t.muted, "lm");
-            if (i < n - 1) d.line({{10, y + rh - 1}, {w - 10, y + rh - 1}}, t.line, 1);
+            rows.emplace_back(*this, items[i], i, n, logos, lang);
+            blocks.push_back({&rows.back(), areas[i]});
         }
     }
-    // Pflichtangabe der Datenquellen (TMDB, Anbieterdaten JustWatch) steht immer in der Fußzeile
-    footer(d, updated && state == StreamState::Ok ? "TMDB / JustWatch · Stand " + clock_hhmm(*updated) : "TMDB / JustWatch");
-    return d.finish();
+    const std::string foot = footer_text(state, updated);
+    return draw_framed({W, H, s, t.bg, [this, now](Canvas& d) { header(d, now, ""); },
+                        [this, &foot](Canvas& d) { footer(d, foot); }}, blocks);
 }
 
 // ---------- Home Assistant ----------

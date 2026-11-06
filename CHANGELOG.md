@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+- P5-2 (2026-11-06): Streaming wie RSS auf `draw_framed`, Zeilen-/Hinweisblöcke und gemeinsame feste Zeichen-/Trefferanordnung umgestellt; Fußzeile rein aus Zustand/Zeitstempel. Built-in: 4.221 Bilder + 4.221 Trefferkarten bitgleich (0 Fehler); Plugin-Snapshots 1.901/0, plugin-touch 2.093/0. Baselines und andere Seiten unverändert.
+
 - P5-1 (2026-11-06): Nur RSS auf `draw_framed`, Zeilen-/Hinweisblöcke und feste gemeinsame Zeichen-/Trefferanordnung umgestellt; Zeichenfolge und Rechenausdrücke beibehalten. Vollständiger Neuaufbau und fünf Einzelsuiten grün; Built-in-Bitgleichheit wegen unsichtbarem Roboto nicht geprüft, externe Abnahme offen. Baselines unverändert.
 
 ### P5-0 – Built-in-Baseline (2026-11-06, Entwicklung)

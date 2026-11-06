@@ -153,6 +153,10 @@ public:
     static int row_at(int w_px, int h_px, int y_px);
 
 private:
+    class RowBlock;
+    class HintBlock;
+    static std::array<plugins::zones::PlacedBlock, MAX_ROWS> layout(float w, float h);
+    static std::string footer_text(StreamState state, std::optional<std::time_t> updated);
     Font f_item, f_kind;
 };
 

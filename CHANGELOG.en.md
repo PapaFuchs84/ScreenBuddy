@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+- P5-2 (2026-11-06): Migrated Streaming using the RSS pattern: `draw_framed`, row/message blocks and a shared fixed drawing/hit layout; pure footer from state/timestamp. Built-in: 4,221 images + 4,221 hit maps bit-exact (0 failures); plugin snapshots 1,901/0, plugin-touch 2,093/0. Baselines and other pages unchanged.
+
 - P5-1 (2026-11-06): Migrated only RSS to `draw_framed`, row/message blocks and a shared fixed drawing/hit layout; retained drawing order and arithmetic. Full clean build and five individual suites pass; built-in bit equality remains unverified because Roboto is invisible in the sandbox, pending external acceptance. Baselines unchanged.
 
 ### P5-0 – Built-in baseline (2026-11-06, development)
