@@ -196,6 +196,7 @@ public:
     static int button_at(int w_px, int h_px, int x_px, int y_px);
 
 private:
+    class ContentBlock;
     struct Layout {
         float cover_x, cover_y, cover_size;
         float text_x, text_w, title_y, bar_y, times_y;
