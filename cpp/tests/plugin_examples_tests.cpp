@@ -15,7 +15,7 @@ static int passed = 0, failed = 0;
 int main(int argc, char** argv) {
     const auto directory = std::filesystem::path(argc > 1 ? argv[1] : FL_PLUGIN_EXAMPLE_DIR);
     std::set<std::string> ids;
-    bool focus_seen = false, weather_seen = false, zones_seen = false;
+    bool focus_seen = false, weather_seen = false, zones_seen = false, conditional_seen = false;
     try {
         for (const auto& file : std::filesystem::recursive_directory_iterator(directory)) {
             if (!file.is_regular_file() || !file.path().filename().string().ends_with(".flplugin.json")) continue;
@@ -35,7 +35,9 @@ int main(int argc, char** argv) {
             sample.date = "2026-01-01";
             auto page = render_page(manifest, sample);
             CHECK(!page.missing_data);
-            CHECK(page.widgets.size() == manifest.widgets.size());
+            // Every block is either shown or hidden by show_if; shipped examples never fail during evaluation.
+            CHECK(page.widgets.size() + page.hidden.size() == manifest.widgets.size());
+            CHECK(page.failed.empty());
             for (const auto& source : manifest.sources) {
                 CHECK(parse_source_data(source.sample.dump()));
                 CHECK(prepare_request(manifest, source, Json::object()));
@@ -88,6 +90,33 @@ int main(int argc, char** argv) {
                     CHECK(page.widgets[2].text == "Go" && page.widgets[3].text == "Ship" && page.widgets[4].text == "45");
                     CHECK(page.widgets[5].bar_fraction == 0.75 && page.widgets[6].text == "4" && page.widgets[7].text == "1");
                 }
+            } else if (manifest.id == "offline-bedingt") {
+                // Manifest v2 mit bedingter Anzeige (show_if) auf Einstellungen: offline, store-tauglich.
+                conditional_seen = true;
+                CHECK(manifest.schema_version == 2 && manifest.sources.empty() && manifest.layout.has_value());
+                CHECK(store_problems(manifest).empty());
+                size_t conditional = 0;
+                for (const auto& widget : manifest.widgets) if (widget.show_if) ++conditional;
+                CHECK(conditional == 6);
+                auto shown_ids = [](const Page& p) { std::vector<std::string> out; for (const auto& w : p.widgets) out.push_back(w.id); return out; };
+                // Standardwerte: Modus fokus, Fortschritt 40, keine Pausen, kein Hinweis.
+                CHECK(shown_ids(page) == std::vector<std::string>({"uhr", "dauer", "balken"}));
+                CHECK(page.hidden == std::vector<std::string>({"pause", "geschafft", "hinweis", "pausen"}));
+                CHECK(!page.missing_data);
+                sample.settings = {{"mode", "pause"}, {"progress", 100}, {"breaks", 2}, {"note", "Wasser trinken"}};
+                page = render_page(manifest, sample);
+                CHECK(shown_ids(page) == std::vector<std::string>({"uhr", "pause", "geschafft", "hinweis", "pausen"}));
+                CHECK(page.hidden == std::vector<std::string>({"dauer", "balken"}));
+                CHECK(!page.missing_data && page.failed.empty());
+                if (page.widgets.size() == 5) CHECK(page.widgets[3].text == "Wasser trinken" && page.widgets[4].text == "2");
+                // Alle Blöcke passen in beiden Ausrichtungen, auch wenn alle gleichzeitig sichtbar wären.
+                if (manifest.layout) {
+                    const fl::plugins::zones::DensityTable table;
+                    std::vector<fl::plugins::zones::BlockInput> inputs;
+                    for (const auto& widget : manifest.widgets) inputs.push_back(fl::plugins::zones::describe(widget.id, widget.type, table, widget.zone));
+                    for (const auto& area : {fl::plugins::zones::Rect{10, 39, 460, 252}, fl::plugins::zones::Rect{10, 39, 300, 412}})
+                        for (const auto& block : fl::plugins::zones::plan(area, *manifest.layout, inputs, 7).blocks) CHECK(block.visible());
+                }
             } else if (manifest.id == "public-weather") {
                 weather_seen = true;
                 CHECK(manifest.sources.size() == 1);
@@ -125,7 +154,7 @@ int main(int argc, char** argv) {
         std::puts("Example fixture read/validation failed.");
     }
     // The default shipped set must retain the documented tutorials' fixtures.
-    if (argc == 1) { CHECK(focus_seen); CHECK(weather_seen); CHECK(zones_seen); CHECK(ids.contains("offline-clock")); }
+    if (argc == 1) { CHECK(focus_seen); CHECK(weather_seen); CHECK(zones_seen); CHECK(conditional_seen); CHECK(ids.contains("offline-clock")); }
     CHECK(!ids.empty());
     std::printf("Plugin examples: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;

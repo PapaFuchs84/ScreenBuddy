@@ -3,8 +3,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <memory>
+#include <mutex>
 
+#include "plugin_isolation.h"
+#include "plugin_render_testing.h"
 #include "plugin_zones.h"
 #include "render.h"
 #include "util.h"
@@ -42,7 +46,32 @@ struct Look {
     // ist eine Zeile in logischen Pixeln 1/s mal so hoch. k = max(1, 1/s) dehnt Schwellen und senkrechte/waagerechte
     // Zeichengeometrie entsprechend; bei Skalierung >= 1 ist k = 1 (unverändertes Bild).
     float k = 1;
+    const testing::DrawHooks* hooks = nullptr;  // nur Tests (plugin_render_testing.h); in der App immer nullptr
 };
+
+// Block-Schlüssel für Log und Test-Hook: v2 die Block-ID, v1 "#<Position im Manifest>".
+std::string block_key(const RenderedWidget& widget) {
+    return widget.id.empty() ? "#" + std::to_string(widget.index) : widget.id;
+}
+void after_card(const testing::DrawHooks* hooks, Canvas& canvas, const RenderedWidget& widget) {
+    if (hooks && hooks->after_card) hooks->after_card(canvas, block_key(widget));
+}
+void after_content(const testing::DrawHooks* hooks, Canvas& canvas, const RenderedWidget& widget) {
+    if (hooks && hooks->after_content) hooks->after_content(canvas, block_key(widget));
+}
+// Ein Log-Eintrag je Plugin, Block und Stufe höchstens alle 60 s (Zeichnen läuft in jedem Frame). Der Text ist fest:
+// nie Daten, Einstellungswerte oder Ausnahmetexte.
+void report(const std::string& plugin, const std::string& block, isolation::Stage stage) noexcept {
+    try {
+        static std::mutex mutex;
+        static isolation::RateLimiter limiter;
+        {
+            std::lock_guard lock(mutex);
+            if (!limiter.allow(isolation::limiter_key(plugin, block, stage), isolation::RateLimiter::Clock::now())) return;
+        }
+        LOGW("plugins", "%s", isolation::failure_message(plugin, block, stage).c_str());
+    } catch (...) {}  // Logging darf die Seite nie gefährden
+}
 
 constexpr float kPadY = 6;      // oberer/unterer Innenabstand (bei k = 1)
 constexpr float kLabelRow = 22; // Höhe der Bezeichnungszeile (Schrift 11, Mitte bei +12)
@@ -61,8 +90,10 @@ public:
     void draw(Canvas& canvas, const zones::Rect& area, zones::Density density) const final {
         const float x0 = area.x, y0 = area.y, x1 = area.x + area.width - 1, y1 = area.y + area.height - 1;
         canvas.rounded_rectangle(x0, y0, x1, y1, look_.radius, look_.colors.card);
+        after_card(look_.hooks, canvas, widget_);
         const float inset = std::min(look_.inset, area.width / 6);
         content(canvas, {area.x + inset, area.y, area.width - 2 * inset, area.height}, density);
+        after_content(look_.hooks, canvas, widget_);
     }
 protected:
     // `inner`: Fläche ohne waagerechten Innenabstand; Texte werden gekürzt, nie über den Rand gezeichnet.
@@ -253,38 +284,119 @@ std::unique_ptr<PluginBlock> make_block(const RenderedWidget& widget, const Look
     return std::make_unique<TextBlock>(widget, look);  // "text"; unbekannte Typen passen nie (DensityTable) und bleiben aus
 }
 
-// Clip auf die Blockfläche, auch wenn ein Block eine Ausnahme wirft (sonst bliebe der Clip offen).
+// Clip-Stapel eines Blocks: optional ein Clip auf die Blockfläche; beim Verlassen (auch durch eine Ausnahme) wird der
+// Stapel exakt auf die Tiefe von vorher zurückgesetzt, also auch Clips geschlossen, die der Block selbst offen ließ.
 class ClipScope {
 public:
-    ClipScope(Canvas& canvas, const zones::Rect& area) : canvas_(canvas) {
-        canvas_.clip_push(area.x, area.y, area.x + area.width - 1, area.y + area.height - 1);
+    ClipScope(Canvas& canvas, const zones::Rect* area) : canvas_(canvas), depth_(canvas.clip_depth()), own_(area ? 1 : 0) {
+        if (area) canvas_.clip_push(area->x, area->y, area->x + area->width - 1, area->y + area->height - 1);
     }
-    ~ClipScope() { canvas_.clip_pop(); }
+    ~ClipScope() { unwind(depth_); }
+    // Nach einem Fehler: nur die inneren Clips des Blocks schließen, der eigene Clip bleibt für das Löschen aktiv.
+    void unwind_inner() { unwind(depth_ + own_); }
     ClipScope(const ClipScope&) = delete;
     ClipScope& operator=(const ClipScope&) = delete;
 private:
+    void unwind(int depth) { while (canvas_.clip_depth() > depth) canvas_.clip_pop(); }
     Canvas& canvas_;
+    const int depth_, own_;
 };
 
+// Fehlerisolierung: zeichnet einen Block mit Clip auf seine Fläche; wirft er (auch halb fertig oder nach dem letzten
+// Text), wird seine Fläche wieder mit dem Seitenhintergrund gefüllt (der Block ist ausgeblendet), der Clip-Stapel
+// wiederhergestellt und ein ratenbegrenzter Log-Eintrag geschrieben. Weil der Clip auf genau der Löschfläche liegt,
+// kann nichts außerhalb übrig bleiben. Die übrigen Blöcke und der Fußtext werden normal gezeichnet.
+template <class Draw>
+void isolated(Canvas& canvas, const Page& page, const RenderedWidget& widget, const zones::Rect& area, Color bg, Draw&& draw) {
+    ClipScope scope(canvas, &area);
+    try {
+        draw();
+    } catch (...) {
+        try {
+            scope.unwind_inner();
+            canvas.rectangle(area.x, area.y, area.x + area.width - 1, area.y + area.height - 1, bg);
+        } catch (...) {}
+        report(page.id, block_key(widget), isolation::Stage::draw);
+    }
+}
 void draw_zoned(Canvas& canvas, const Page& page, const Look& look, const zones::Rect& area, float gap) {
     std::vector<std::unique_ptr<PluginBlock>> blocks;
     std::vector<zones::BlockInput> inputs;
     for (const auto& widget : page.widgets) {
         if (blocks.size() >= static_cast<size_t>(zones::max_blocks)) break;
-        blocks.push_back(make_block(widget, look));
-        inputs.push_back(zones::describe(*blocks.back(), widget.zone));
+        // Auch das Messen ist abgesichert: ein Block, der dabei wirft, passt nie (bleibt aus); Indizes bleiben gleich.
+        try {
+            blocks.push_back(make_block(widget, look));
+            inputs.push_back(zones::describe(*blocks.back(), widget.zone));
+        } catch (...) {
+            if (blocks.size() > inputs.size()) blocks.back().reset();
+            else blocks.push_back(nullptr);
+            zones::BlockInput never{widget.id, widget.zone, {}};
+            for (auto& size : never.min.min) size = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
+            inputs.push_back(std::move(never));
+            report(page.id, block_key(widget), isolation::Stage::draw);
+        }
     }
     const zones::Plan plan = zones::plan(area, *page.layout, inputs, gap);
     for (size_t i = 0; i < plan.blocks.size() && i < blocks.size(); ++i) {
         const auto& placed = plan.blocks[i];
-        if (!placed.visible()) continue;  // zu wenig Fläche: ausgeblendet statt überlappt
-        ClipScope clip(canvas, placed.area);  // Clip pro Block; die Fehlerisolierung folgt in Phase 3
-        blocks[i]->draw(canvas, placed.area, *placed.density);
+        if (!placed.visible() || !blocks[i]) continue;  // zu wenig Fläche: ausgeblendet statt überlappt
+        isolated(canvas, page, page.widgets[i], placed.area, look.colors.bg,
+                 [&] { blocks[i]->draw(canvas, placed.area, *placed.density); });
     }
 }
+
+// Automatisches Raster (v1 und v2 ohne layout): Zeichnung unverändert, je Karte abgesichert und auf das Kartenrechteck
+// geclippt (Text, der bei kleiner Skalierung über die Karte hinausragen würde, wird abgeschnitten; die Snapshots sind
+// unverändert, siehe fl-plugin-snapshot-tests).
+void draw_grid(Canvas& canvas, const Page& page, const render::Theme& theme, const testing::DrawHooks* hooks, float logical_w,
+               float logical_h, float margin, float gap, float inset, float card_radius, float header, float footer) {
+    const size_t count = std::min<size_t>(page.widgets.size(), 6);
+    const int columns = count <= 2 ? 1 : 2;
+    const int rows = std::max(1, static_cast<int>((count + columns - 1) / columns));
+    const float card_w = (logical_w - 2 * margin - (columns - 1) * gap) / columns;
+    const float card_h = (logical_h - header - footer - margin - (rows - 1) * gap) / rows;
+    for (size_t index = 0; index < count; ++index) {
+        const auto& widget = page.widgets[index];
+        const int row = static_cast<int>(index) / columns, column = static_cast<int>(index) % columns;
+        const float x = margin + column * (card_w + gap), y = header + row * (card_h + gap);
+        // Clip- und Löschfläche = Kartenrechteck plus 1 logisches Pixel ringsum (rounded_rectangle schließt x + card_w /
+        // y + card_h ein, die Kantenglättung reicht bei gebrochenen Koordinaten ein Pixel weiter); der Abstand zur Nachbarkarte
+        // ist größer, Nachbarn werden also nie berührt.
+        isolated(canvas, page, widget, {x - 1, y - 1, card_w + 3, card_h + 3}, theme.bg, [&] {
+            canvas.rounded_rectangle(x, y, x + card_w, y + card_h, card_radius, theme.card);
+            after_card(hooks, canvas, widget);
+            const float usable = card_w - inset * 2;
+            if (!widget.label.empty())
+                canvas.text(x + inset, y + 15, fit(canvas, widget.label, {11, true}, usable), {11, true}, theme.muted, "lm");
+            const float content_y = y + (widget.label.empty() ? 20 : 35);
+            if (widget.type == "list") {
+                for (size_t i = 0; i < widget.items.size(); ++i) {
+                    const float line_y = content_y + static_cast<float>(i) * 18;
+                    if (line_y > y + card_h - 7) break;
+                    canvas.text(x + inset, line_y, fit(canvas, widget.items[i], {12, false}, usable),
+                                {12, false}, theme.text, "lm");
+                }
+            } else {
+                const Font value_font{widget.type == "metric" || widget.type == "clock" ? 20.f : 14.f,
+                                      widget.type == "metric" || widget.type == "clock"};
+                std::string value = widget.text;
+                if (!widget.unit.empty() && widget.type == "metric") value += " " + widget.unit;
+                canvas.text(x + inset, content_y, fit(canvas, value, value_font, usable), value_font, theme.text, "lm");
+                if (widget.type == "bar" && widget.bar_fraction) {
+                    const float bar_y = std::min(y + card_h - 14, content_y + 22);
+                    const float fraction = static_cast<float>(std::clamp(*widget.bar_fraction, 0.0, 1.0));
+                    canvas.rounded_rectangle(x + inset, bar_y, x + inset + usable, bar_y + 7, 3, theme.line);
+                    if (fraction > 0)
+                        canvas.rounded_rectangle(x + inset, bar_y, x + inset + usable * fraction, bar_y + 7, 3, theme.accent);
+                }
+            }
+            after_content(hooks, canvas, widget);
+        });
+    }
 }
 
-Image draw_page(const Page& page, int width, int height, bool sample) {
+Image draw_page_with(const Page& page, int width, int height, bool sample, const testing::DrawHooks* hooks) {
     if (width < 1 || height < 1) return {};
     const auto& theme = render::theme();
     const float scale = render::scale_for(width, height);
@@ -297,49 +409,26 @@ Image draw_page(const Page& page, int width, int height, bool sample) {
     const float card_radius = design.card_radius, header = 39, footer = 19;
     canvas.rectangle(0, 0, logical_w, 32, theme.orange);
     canvas.text(margin, 16, fit(canvas, page.title, {16, true}, logical_w - 2 * margin), {16, true}, theme.head_text, "lm");
-    // Manifest v2 mit layout: Zonen-Plan statt automatischem Raster (v1 und v2 ohne layout zeichnen unverändert unten).
-    if (page.layout)
-        draw_zoned(canvas, page, {theme, inset, card_radius, std::max(1.f, 1.f / scale)},
-                   {margin, header, logical_w - 2 * margin, logical_h - header - footer - margin}, gap);
-    const size_t count = page.layout ? 0 : std::min<size_t>(page.widgets.size(), 6);
-    const int columns = count <= 2 ? 1 : 2;
-    const int rows = std::max(1, static_cast<int>((count + columns - 1) / columns));
-    const float card_w = (logical_w - 2 * margin - (columns - 1) * gap) / columns;
-    const float card_h = (logical_h - header - footer - margin - (rows - 1) * gap) / rows;
-    for (size_t index = 0; index < count; ++index) {
-        const auto& widget = page.widgets[index];
-        const int row = static_cast<int>(index) / columns, column = static_cast<int>(index) % columns;
-        const float x = margin + column * (card_w + gap), y = header + row * (card_h + gap);
-        canvas.rounded_rectangle(x, y, x + card_w, y + card_h, card_radius, theme.card);
-        const float usable = card_w - inset * 2;
-        if (!widget.label.empty())
-            canvas.text(x + inset, y + 15, fit(canvas, widget.label, {11, true}, usable), {11, true}, theme.muted, "lm");
-        const float content_y = y + (widget.label.empty() ? 20 : 35);
-        if (widget.type == "list") {
-            for (size_t i = 0; i < widget.items.size(); ++i) {
-                const float line_y = content_y + static_cast<float>(i) * 18;
-                if (line_y > y + card_h - 7) break;
-                canvas.text(x + inset, line_y, fit(canvas, widget.items[i], {12, false}, usable),
-                            {12, false}, theme.text, "lm");
-            }
-        } else {
-            const Font value_font{widget.type == "metric" || widget.type == "clock" ? 20.f : 14.f,
-                                  widget.type == "metric" || widget.type == "clock"};
-            std::string value = widget.text;
-            if (!widget.unit.empty() && widget.type == "metric") value += " " + widget.unit;
-            canvas.text(x + inset, content_y, fit(canvas, value, value_font, usable), value_font, theme.text, "lm");
-            if (widget.type == "bar" && widget.bar_fraction) {
-                const float bar_y = std::min(y + card_h - 14, content_y + 22);
-                const float fraction = static_cast<float>(std::clamp(*widget.bar_fraction, 0.0, 1.0));
-                canvas.rounded_rectangle(x + inset, bar_y, x + inset + usable, bar_y + 7, 3, theme.line);
-                if (fraction > 0)
-                    canvas.rounded_rectangle(x + inset, bar_y, x + inset + usable * fraction, bar_y + 7, 3, theme.accent);
-            }
-        }
-    }
+    // Blöcke, deren Datenauswertung in render_page fehlschlug, fehlen in page.widgets; hier nur der Log-Eintrag.
+    for (const auto& key : page.failed) report(page.id, key, isolation::Stage::data);
+    try {
+        // Manifest v2 mit layout: Zonen-Plan statt automatischem Raster (v1 und v2 ohne layout zeichnen unverändert).
+        if (page.layout)
+            draw_zoned(canvas, page, {theme, inset, card_radius, std::max(1.f, 1.f / scale), hooks},
+                       {margin, header, logical_w - 2 * margin, logical_h - header - footer - margin}, gap);
+        else draw_grid(canvas, page, theme, hooks, logical_w, logical_h, margin, gap, inset, card_radius, header, footer);
+    } catch (...) {}  // nur außerhalb der Blöcke möglich (z. B. kein Speicher für den Plan): Kopf und Fuß bleiben
     const char* state = sample ? "Beispieldaten – keine Live-Daten" :
                         page.missing_data ? "Plugin-Daten fehlen" : "ScreenBuddy Plugin";
     canvas.text(margin, logical_h - 8, state, {10, false}, page.missing_data ? theme.warn : theme.muted, "lm");
     return canvas.finish();
+}
+}
+
+Image draw_page(const Page& page, int width, int height, bool sample) { return draw_page_with(page, width, height, sample, nullptr); }
+namespace testing {
+Image draw_page(const Page& page, int width, int height, bool sample, const DrawHooks& hooks) {
+    return draw_page_with(page, width, height, sample, &hooks);
+}
 }
 }

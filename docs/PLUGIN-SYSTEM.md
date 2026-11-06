@@ -32,7 +32,7 @@ Prüfungen: Manifest-Parser (223), Speicher (127), Transport (134, einschließli
 
 ## Manifest v2: Zonen-Layout (2.10.0, in Vorbereitung)
 
-**Stand Phase 2b:** Parser, Grenzen, Store-Regel, Zonen-Geometrie, Block-Schnittstelle, Dichtestufen **und das Zeichnen nach Zonen** sind umgesetzt und getestet (`fl-plugin-zones-tests`, `fl-plugin-snapshot-tests`). Eine v2-Seite mit `layout` zeichnet die App nach Zonen; v1 und v2 ohne `layout` zeichnen pixelidentisch wie bisher im automatischen Raster (höchstens 6 Widgets). Manifest v1 bleibt unverändert. Ein fertiges Beispiel mit acht Blöcken: [offline-zonen.flplugin.json](../cpp/examples/plugins/offline-zonen.flplugin.json).
+**Stand Phase 2b:** Parser, Grenzen, Store-Regel, Zonen-Geometrie, Block-Schnittstelle, Dichtestufen **und das Zeichnen nach Zonen** sind umgesetzt und getestet (`fl-plugin-zones-tests`, `fl-plugin-snapshot-tests`). Eine v2-Seite mit `layout` zeichnet die App nach Zonen; v1 und v2 ohne `layout` zeichnen pixelidentisch wie bisher im automatischen Raster (höchstens 6 Widgets). Manifest v1 bleibt unverändert. Ein fertiges Beispiel mit acht Blöcken: [offline-zonen.flplugin.json](../cpp/examples/plugins/offline-zonen.flplugin.json). **Phase 3:** [bedingte Anzeige](#bedingte-anzeige-show_if-phase-3) (`show_if`) und [Fehlerisolierung](#fehlerisolierung-phase-3) pro Block sind umgesetzt und getestet.
 
 ```json
 {
@@ -92,6 +92,50 @@ Was jede Stufe zeichnet:
 ### Block-Schnittstelle (für Entwickler)
 
 `cpp/src/plugin_zones.h`: Ein `zones::Block` liefert seine stabile ID, `min_size(Dichtestufe)` und `draw(Canvas, Fläche, Dichtestufe)`. `draw` wird nie mit einer Fläche unter der Mindestgröße aufgerufen. `TableBlock` holt die Mindestgrößen aus einer `DensityTable` und hält nur deren Adresse: Die Tabelle muss den Block überleben, **temporäre Tabellen lassen sich nicht übergeben** (gelöschter Konstruktor). `plugin_render.cpp` hat je Widget-Typ eine Unterklasse (Text, Wert für `metric`/`clock`, Balken, Liste) und eine zentrale statische Tabelle. `zones::plan(Fläche, Layout, Blöcke, Abstand)` ist eine reine Funktion ohne Grafik und liefert die Rechtecke aller Zonen und Blöcke samt Dichtestufe oder „ausgeblendet“.
+
+### Bedingte Anzeige (`show_if`, Phase 3)
+
+Ein v2-Widget kann `show_if` tragen (mit und ohne `layout`). Der Block erscheint nur, wenn die Bedingung erfüllt ist. Es gibt genau zwei Formen: **keine Ausdruckssprache**, keine Verknüpfung mit und/oder, höchstens eine Bedingung pro Block. Beispiel: [offline-bedingt.flplugin.json](../cpp/examples/plugins/offline-bedingt.flplugin.json).
+
+```json
+"show_if": {"path": "wetter.warnung"}
+"show_if": {"path": "wetter.temperatur", "op": ">=", "value": 25}
+```
+
+- `path`: `<quelle>` (die ganze Antwort ist vorhanden), `<quelle>.<feld>[.<feld>…]` (Feldnamen und Listenindizes wie in Vorlagen) oder `settings.<schlüssel>` einer **nicht geheimen** Einstellung. Nicht erlaubt: `time`, `date`, `item`, unbekannte Quellen und Einstellungen sowie Einstellungen vom Typ `secret` (feste Meldung „Secret settings cannot appear in conditions.“). Höchstens 128 Zeichen und 8 Segmente.
+- `op` (optional): `==`, `!=`, `<`, `<=`, `>`, `>=`. Ohne `op` wird nur geprüft, ob ein Wert vorhanden ist; `value` ist dann verboten. Mit `op` ist `value` Pflicht, und `path` muss ein Feld sein (nicht die ganze Quelle).
+- `value`: Text (1–256 Zeichen, keine Steuer-, Bidi- oder Nullbreitenzeichen), endliche Zahl oder `true`/`false`. `null`, Listen und Objekte werden abgewiesen; `<`, `<=`, `>`, `>=` nur mit Zahlen.
+- Ein ungültiges `show_if` lässt wie jeder andere Fehler das **ganze Manifest** scheitern. In Schema 1 ist `show_if` ein unbekanntes Feld („Unknown or misplaced field.“).
+
+**Semantik (schlägt geschlossen fehl):** Zuerst muss der Wert *vorhanden* sein, erst dann wird verglichen. Es gibt keine Typumwandlung. „ja“ = Block sichtbar.
+
+| Wert an `path` | ohne `op` (vorhanden) | `==` / `!=` | `<` `<=` `>` `>=` |
+| --- | --- | --- | --- |
+| fehlt (Pfad, Feld, Listenindex oder die ganze Quelle) | nein | nein | nein |
+| `null` | nein | nein | nein |
+| nicht endliche Zahl | nein | nein | nein |
+| leer: `""`, `[]`, `{}` | nein | nein | nein |
+| `false` | **ja** | nur gegen Wahrheitswerte: `== false` ja, `!= false` nein, `== true` nein, `!= true` ja | nein |
+| `true` | ja | nur gegen Wahrheitswerte | nein |
+| `0` | **ja** | nur gegen Zahlen: `== 0` ja, `!= 0` nein | normal (`>= 0` ja, `> 0` nein) |
+| andere Zahl | ja | nur gegen Zahlen | normal |
+| Text (auch `" "`, `"0"`, `"false"`) | ja | nur gegen Text, exakt (Groß-/Kleinschreibung zählt) | nein |
+| nicht leere Liste oder Objekt | ja | nein | nein |
+
+- „nein“ gilt auch für `!=`: Ein fehlender oder anders typisierter Wert ist nie „ungleich“. `"42"` ist nicht die Zahl `42`, `true` nicht `1`. Wer einen Block bei `false` oder `0` ausblenden will, schreibt `{"op": "==", "value": true}` bzw. `{"op": "!=", "value": 0}`.
+- Zahlen werden als Gleitkommazahl verglichen (`-0.0 == 0`); ganze Zahlen über 2^53 verlieren Genauigkeit.
+- Einstellungen: gespeicherter Wert, sonst Standardwert. Sind die gespeicherten Einstellungen ungültig, gelten alle als fehlend (und die Fußzeile meldet fehlende Daten).
+- Ausgeblendete Blöcke fehlen auf der Seite. Im automatischen Raster rücken die übrigen nach; im Zonen-Layout teilen sich die übrigen Blöcke derselben Zone die Fläche. Eine Zone ohne sichtbaren Block bleibt leer, andere Zonen verschieben sich nicht.
+- Vorlagen eines ausgeblendeten Blocks werden nicht ausgewertet und lösen deshalb kein „Plugin-Daten fehlen“ aus. Ausnahme: Hat eine Quelle live noch gar nichts geliefert, meldet die Fußzeile „Plugin-Daten fehlen“, auch wenn alle Blöcke dieser Quelle bedingt sind. Fehlt nur ein Feld in einer gelieferten Antwort, bleibt die Fußzeile normal.
+- **Vorschau ohne Daten:** Die Vorschau (Import, Store) wertet Bedingungen gegen das `sample` der Quellen aus, live gegen die Antwort. Ohne oder mit leerem `sample` sind Blöcke mit Quellbedingung in der Vorschau ausgeblendet. Für den Store ist `sample` Pflicht; es sollte so gewählt sein, dass die Vorschau die bedingten Blöcke zeigt. Live ohne Antwort werden Beispieldaten nie verwendet (Bedingungen auf Quellen sind dann falsch).
+
+### Fehlerisolierung (Phase 3)
+
+- **Datenauswertung** (`render_page`): Jeder Block wird einzeln ausgewertet (Bedingung, Vorlagen, Liste, Balken). Wirft die Auswertung eines Blocks, fehlt nur dieser (`Page::failed`); die übrigen bleiben unverändert, die Fußzeile meldet „Plugin-Daten fehlen“. `render_page` wirft nicht: Ein Fehler außerhalb der Blöcke (etwa kein Speicher beim Kopieren von ID, Titel oder Layout) ergibt eine Seite ohne Blöcke mit „Plugin-Daten fehlen“; ID und Titel bleiben, wenn sie sich noch kopieren lassen.
+- **Zeichnen** (`draw_page`): Jeder Block (Zonen-Layout) und jede Karte (automatisches Raster, Schema 1 und 2 ohne `layout`) wird einzeln abgesichert. Wirft er, auch halb fertig, wird seine Fläche wieder mit dem Seitenhintergrund gefüllt (der Block ist ausgeblendet). Der Clip-Stapel wird exakt auf den Stand vor dem Block zurückgesetzt, auch Clips, die der Block selbst offen ließ. Die übrigen Blöcke, Kopf- und Fußzeile werden normal gezeichnet. Auch im Raster liegt dafür ein Clip auf der Karte (plus 1 logisches Pixel für die Kantenglättung), damit nach einem Fehler nichts außerhalb übrig bleibt, auch kein Text, der bei kleiner Skalierung über die Karte hinausreichen würde; im Normalfall zeichnet das Raster pixelgleich wie bisher (alle Snapshot-Hashes unverändert). Auch das Messen eines Blocks ist abgesichert: ein Block, der dabei wirft, passt nie.
+- **Log:** Warnung im vorhandenen App-Log (Bereich `plugins`), etwa „Plugin offline-zonen: Block dauer ausgeblendet (Fehler beim Zeichnen)“ oder „… (Fehler beim Auswerten der Daten)“. Sie enthält nur Plugin-ID, Block-ID (Schema 1: `#<Position>`) und die Stufe, nie Daten, Einstellungswerte, Secrets oder Ausnahmetexte. Ratenbegrenzt: höchstens ein Eintrag je Plugin, Block und Stufe pro 60 s, höchstens 64 verfolgte Schlüssel (darüber wird verworfen statt zu wachsen).
+- Abgefangen werden C++-Ausnahmen (`/EHsc`). Zugriffsverletzungen (SEH) isoliert das nicht.
+- Tests injizieren Fehler pro Block über Test-Hooks (`plugins_testing.h`, `plugin_render_testing.h`). Die App ruft `render_page` und `draw_page` immer ohne Hook auf.
 
 ### Store
 

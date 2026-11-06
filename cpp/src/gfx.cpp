@@ -572,6 +572,8 @@ void Canvas::clip_pop() {
     --d_->clips;
 }
 
+int Canvas::clip_depth() const { return d_->done ? 0 : d_->clips; }
+
 Image Canvas::finish() {
     if (!d_->done) {
         while (d_->clips > 0) clip_pop();

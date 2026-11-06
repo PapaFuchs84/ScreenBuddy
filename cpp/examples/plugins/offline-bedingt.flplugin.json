@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "id": "offline-bedingt",
+  "name": "Bedingt / Conditional",
+  "description": "Lokales Board mit bedingter Anzeige / Local board with conditional blocks. Blocks appear only when a setting has a value or passes a simple comparison; no network, timer or code execution.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "info",
+  "min_app_version": "2.10.0",
+  "settings": [
+    {"key": "mode", "label": "Modus (fokus oder pause) / Mode (fokus or pause)", "type": "text", "default": "fokus"},
+    {"key": "minutes", "label": "Geplante Minuten / Planned minutes", "type": "number", "default": 25},
+    {"key": "progress", "label": "Fortschritt 0-100 / Progress 0-100", "type": "number", "default": 40},
+    {"key": "breaks", "label": "Pausen / Breaks", "type": "number", "default": 0},
+    {"key": "note", "label": "Hinweis (leer = ausblenden) / Note (empty = hide)", "type": "text", "default": ""}
+  ],
+  "sources": [],
+  "layout": {
+    "columns": [1, 1],
+    "rows": [2, 2, 1],
+    "zones": [
+      {"id": "zeit", "column": 0, "row": 0},
+      {"id": "status", "column": 1, "row": 0},
+      {"id": "fortschritt", "column": 0, "row": 1, "column_span": 2},
+      {"id": "hinweis", "column": 0, "row": 2},
+      {"id": "pausen", "column": 1, "row": 2}
+    ]
+  },
+  "widgets": [
+    {"type": "clock", "id": "uhr", "zone": "zeit", "label": "Ortszeit / Local time", "format": "time"},
+    {"type": "metric", "id": "dauer", "zone": "status", "label": "Fokusblock / Focus session", "value": "{{settings.minutes}}", "unit": "min",
+     "show_if": {"path": "settings.mode", "op": "==", "value": "fokus"}},
+    {"type": "text", "id": "pause", "zone": "status", "label": "Pause / Break", "text": "Kurz bewegen / Move a little",
+     "show_if": {"path": "settings.mode", "op": "==", "value": "pause"}},
+    {"type": "bar", "id": "balken", "zone": "fortschritt", "label": "Fortschritt / Progress (%)", "value": "{{settings.progress}}", "min": 0, "max": 100,
+     "show_if": {"path": "settings.progress", "op": "<", "value": 100}},
+    {"type": "text", "id": "geschafft", "zone": "fortschritt", "label": "Fortschritt / Progress", "text": "Geschafft! / Done!",
+     "show_if": {"path": "settings.progress", "op": ">=", "value": 100}},
+    {"type": "text", "id": "hinweis", "zone": "hinweis", "label": "Hinweis / Note", "text": "{{settings.note}}",
+     "show_if": {"path": "settings.note"}},
+    {"type": "metric", "id": "pausen", "zone": "pausen", "label": "Pausen / Breaks", "value": "{{settings.breaks}}",
+     "show_if": {"path": "settings.breaks", "op": ">", "value": 0}}
+  ]
+}

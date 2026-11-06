@@ -32,7 +32,7 @@ Checks passed: manifest parser (223), store (127), transport (134, including a l
 
 ## Manifest v2: zone layout (2.10.0, in preparation)
 
-**Status phase 2b:** parser, limits, store rule, zone geometry, block interface, density levels **and drawing by zones** are implemented and tested (`fl-plugin-zones-tests`, `fl-plugin-snapshot-tests`). The app draws a v2 page with a `layout` by zones; v1 and v2 without `layout` draw pixel-identically to before in the automatic grid (at most 6 widgets). Manifest v1 is unchanged. A complete example with eight blocks: [offline-zonen.flplugin.json](../cpp/examples/plugins/offline-zonen.flplugin.json).
+**Status phase 2b:** parser, limits, store rule, zone geometry, block interface, density levels **and drawing by zones** are implemented and tested (`fl-plugin-zones-tests`, `fl-plugin-snapshot-tests`). The app draws a v2 page with a `layout` by zones; v1 and v2 without `layout` draw pixel-identically to before in the automatic grid (at most 6 widgets). Manifest v1 is unchanged. A complete example with eight blocks: [offline-zonen.flplugin.json](../cpp/examples/plugins/offline-zonen.flplugin.json). **Phase 3:** [conditional display](#conditional-display-show_if-phase-3) (`show_if`) and per-block [fault isolation](#fault-isolation-phase-3) are implemented and tested.
 
 ```json
 {
@@ -92,6 +92,50 @@ What each level draws:
 ### Block interface (for developers)
 
 `cpp/src/plugin_zones.h`: a `zones::Block` provides its stable ID, `min_size(density)` and `draw(Canvas, area, density)`. `draw` is never called with an area below the minimum size. `TableBlock` takes its minimum sizes from a `DensityTable` and keeps only its address: the table must outlive the block, and **temporary tables cannot be passed** (deleted constructor). `plugin_render.cpp` has one subclass per widget type (text, value for `metric`/`clock`, bar, list) and one central static table. `zones::plan(area, layout, blocks, gap)` is a pure function without graphics and returns the rectangles of all zones and blocks with their density level or "hidden".
+
+### Conditional display (`show_if`, phase 3)
+
+A v2 widget may carry `show_if` (with and without `layout`). The block appears only if the condition holds. There are exactly two forms: **no expression language**, no and/or combination, at most one condition per block. Example: [offline-bedingt.flplugin.json](../cpp/examples/plugins/offline-bedingt.flplugin.json).
+
+```json
+"show_if": {"path": "weather.warning"}
+"show_if": {"path": "weather.temperature", "op": ">=", "value": 25}
+```
+
+- `path`: `<source>` (the whole response is present), `<source>.<field>[.<field>…]` (field names and list indices as in templates) or `settings.<key>` of a **non-secret** setting. Not allowed: `time`, `date`, `item`, unknown sources and settings, and settings of type `secret` (fixed message "Secret settings cannot appear in conditions."). At most 128 characters and 8 segments.
+- `op` (optional): `==`, `!=`, `<`, `<=`, `>`, `>=`. Without `op` only presence is tested and `value` is forbidden. With `op`, `value` is required and `path` must be a field (not the whole source).
+- `value`: text (1–256 characters, no control, bidi or zero-width characters), a finite number or `true`/`false`. `null`, arrays and objects are rejected; `<`, `<=`, `>`, `>=` only with numbers.
+- An invalid `show_if` fails the **whole manifest**, like any other error. In schema 1 `show_if` is an unknown field ("Unknown or misplaced field.").
+
+**Semantics (fail closed):** the value must first be *present*; only then is it compared. There is no type conversion. "yes" = block shown.
+
+| Value at `path` | without `op` (present) | `==` / `!=` | `<` `<=` `>` `>=` |
+| --- | --- | --- | --- |
+| missing (path, field, list index or the whole source) | no | no | no |
+| `null` | no | no | no |
+| non-finite number | no | no | no |
+| empty: `""`, `[]`, `{}` | no | no | no |
+| `false` | **yes** | only against booleans: `== false` yes, `!= false` no, `== true` no, `!= true` yes | no |
+| `true` | yes | only against booleans | no |
+| `0` | **yes** | only against numbers: `== 0` yes, `!= 0` no | normal (`>= 0` yes, `> 0` no) |
+| other number | yes | only against numbers | normal |
+| text (also `" "`, `"0"`, `"false"`) | yes | only against text, exact (case-sensitive) | no |
+| non-empty array or object | yes | no | no |
+
+- "no" also applies to `!=`: a missing or differently typed value is never "unequal". `"42"` is not the number `42`, `true` is not `1`. To hide a block on `false` or `0`, write `{"op": "==", "value": true}` or `{"op": "!=", "value": 0}`.
+- Numbers compare as floating point (`-0.0 == 0`); integers above 2^53 lose precision.
+- Settings: stored value, otherwise the default. If the stored settings are invalid, all settings count as missing (and the footer reports missing data).
+- Hidden blocks are left out of the page. In the automatic grid the others move up; in a zone layout the remaining blocks of the same zone share its area. A zone without a visible block stays empty; other zones do not move.
+- Templates of a hidden block are not evaluated, so they do not trigger "Plugin-Daten fehlen". Exception: if a source has delivered nothing at all in live mode, the footer reports missing data even when every block of that source is conditional. If only a field is missing from a delivered response, the footer stays normal.
+- **Preview without data:** the preview (import, store) evaluates conditions against the sources' `sample`, live mode against the response. Without a `sample` (or with an empty one), blocks with a source condition are hidden in the preview. The store requires `sample`; choose it so the preview shows the conditional blocks. Live mode without a response never uses sample data (source conditions are then false).
+
+### Fault isolation (phase 3)
+
+- **Data evaluation** (`render_page`): every block is evaluated separately (condition, templates, list, bar). If evaluating a block throws, only that block is left out (`Page::failed`); the others are unchanged and the footer reports missing data. `render_page` does not throw: a failure outside the blocks (e.g. out of memory while copying ID, title or layout) gives a page without blocks that reports missing data; ID and title are kept if they can still be copied.
+- **Drawing** (`draw_page`): every block (zone layout) and every card (automatic grid, schema 1 and 2 without `layout`) is guarded separately. If it throws, even half-way, its area is filled with the page background again (the block is hidden). The clip stack is restored exactly to its depth before the block, including clips the block itself left open. The other blocks, header and footer are drawn normally. In the grid, too, a clip lies on the card (plus 1 logical pixel for anti-aliasing), so nothing is left outside after a failure, not even text that would reach beyond the card at a small scale; in the normal case the grid draws pixel-identically to before (all snapshot hashes unchanged). Measuring a block is guarded too: a block that throws there never fits.
+- **Log:** a warning in the existing app log (area `plugins`), e.g. "Plugin offline-zonen: Block dauer ausgeblendet (Fehler beim Zeichnen)" or "… (Fehler beim Auswerten der Daten)". It contains only the plugin ID, the block ID (schema 1: `#<position>`) and the stage, never data, setting values, secrets or exception texts. Rate-limited: at most one entry per plugin, block and stage per 60 s, at most 64 tracked keys (beyond that entries are dropped instead of growing).
+- Only C++ exceptions are caught (`/EHsc`). Access violations (SEH) are not isolated.
+- Tests inject faults per block through test hooks (`plugins_testing.h`, `plugin_render_testing.h`). The app always calls `render_page` and `draw_page` without a hook.
 
 ### Store
 

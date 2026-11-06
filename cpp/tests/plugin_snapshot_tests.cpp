@@ -5,12 +5,14 @@
 //   default: compare against the baseline in snapshot-dir (hashes.txt, PNGs are for human review)
 //   update : rewrite the baseline (hashes.txt + PNGs)
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -19,9 +21,11 @@
 #include "config.h"
 #include "gfx.h"
 #include "plugin_render.h"
+#include "plugin_render_testing.h"
 #include "plugins.h"
 #include "render.h"
 #include "theme.h"
+#include "util.h"
 
 namespace fs = std::filesystem;
 using namespace fl;
@@ -455,6 +459,250 @@ int main(int argc, char** argv) {
         }
         CHECK(gaps_clean);
     }
+
+    // ---------------------------------------------------------------- Phase 3: bedingte Anzeige und Fehlerisolierung
+    // Vorschau ohne Daten mit Bedingungen: dieselbe v2-Seite mit Beispieldaten (Vorschau), ohne Antwort (live, "missing") und
+    // mit Antwort ohne passende Werte ("partial"). Neue Snapshot-Einträge "bedingt-quelle.*" (Referenz-Theme dunkel).
+    {
+        plugins::Json j = {{"schema_version", 2}, {"id", "bedingt-quelle"}, {"name", "Bedingt mit Quelle"}, {"version", "1.0.0"}};
+        j["sources"] = plugins::Json::array({{{"id", "feed"}, {"url", "https://api.example.com/status"},
+            {"sample", {{"temp", 21.5}, {"alerts", plugins::Json::array({{{"t", "Sturm"}}, {{"t", "Glatteis"}}})}, {"online", true}, {"load", 72}}}}});
+        j["layout"] = {{"columns", {1, 1}}, {"rows", {1, 1}}, {"zones", plugins::Json::array({
+            {{"id", "a"}, {"column", 0}, {"row", 0}}, {{"id", "b"}, {"column", 1}, {"row", 0}},
+            {{"id", "c"}, {"column", 0}, {"row", 1}}, {{"id", "d"}, {"column", 1}, {"row", 1}}})}};
+        j["widgets"] = plugins::Json::array({
+            {{"type", "metric"}, {"id", "temp"}, {"zone", "a"}, {"label", "Temperatur"}, {"value", "{{feed.temp}}"}, {"unit", "°C"},
+             {"show_if", {{"path", "feed.temp"}}}},
+            {{"type", "list"}, {"id", "alerts"}, {"zone", "b"}, {"label", "Warnungen"}, {"items", "feed.alerts"}, {"item_template", "{{item.t}}"},
+             {"max_items", 3}, {"show_if", {{"path", "feed.alerts"}}}},
+            {{"type", "text"}, {"id", "online"}, {"zone", "c"}, {"label", "Status"}, {"text", "Online"},
+             {"show_if", {{"path", "feed.online"}, {"op", "=="}, {"value", true}}}},
+            {{"type", "bar"}, {"id", "load"}, {"zone", "c"}, {"label", "Last"}, {"value", "{{feed.load}}"}, {"min", 0}, {"max", 100},
+             {"show_if", {{"path", "feed.load"}, {"op", ">="}, {"value", 50}}}},
+            {{"type", "clock"}, {"id", "uhr"}, {"zone", "d"}, {"label", "Uhr"}, {"format", "time"}}});
+        auto parsed = plugins::parse_manifest(j.dump());
+        CHECK(parsed);
+        if (parsed) {
+            const auto& manifest = *parsed.manifest;
+            plugins::RenderContext context;
+            context.time = "12:34";
+            context.date = "2026-01-01";
+            context.sources = plugins::sample_data(manifest);
+            const auto sample = plugins::render_page(manifest, context);
+            CHECK(sample.widgets.size() == 5 && sample.hidden.empty() && !sample.missing_data);
+            context.sources.clear();
+            const auto missing = plugins::render_page(manifest, context);
+            CHECK(missing.widgets.size() == 1 && missing.hidden.size() == 4 && missing.missing_data);
+            context.sources = {{"feed", {{"temp", nullptr}, {"alerts", plugins::Json::array()}, {"online", false}, {"load", 10}}}};
+            const auto partial = plugins::render_page(manifest, context);
+            CHECK(partial.widgets.size() == 1 && partial.hidden.size() == 4 && !partial.missing_data);
+            const std::pair<const char*, const plugins::Page*> variants[] = {{"sample", &sample}, {"missing", &missing}, {"partial", &partial}};
+            for (const auto& size : kSizes) {
+                std::map<std::string, std::string> hashes;
+                for (const auto& [name, page] : variants) {
+                    const bool preview = std::string(name) == "sample";
+                    const Image image = draw(*page, themes[0], size, preview);
+                    CHECK(image.w == size.w && image.h == size.h);
+                    hashes[name] = hash_image(image);
+                    CHECK(hashes[name] == hash_image(draw(*page, themes[0], size, preview)));
+                    actual[std::string("bedingt-quelle.") + name + "." + size.name] = {hashes[name], image};
+                }
+                CHECK(hashes["sample"] != hashes["missing"] && hashes["missing"] != hashes["partial"]);  // Fußtext unterscheidet missing/partial
+            }
+        }
+    }
+
+    // Fehlerinjektion pro Block (Test-Hook aus plugin_render_testing.h; die App zeichnet immer ohne Hook).
+    auto draw_hooked = [](const plugins::Page& page, const ThemeCase& theme_case, const Size& size, bool sample,
+                          const plugins::testing::DrawHooks& hooks) {
+        std::lock_guard lock(render::mutex());
+        if (theme_case.inline_theme.is_null()) render::apply_theme({{"theme", theme_case.name}});
+        else render::apply_theme({{"theme_inline", theme_case.inline_theme}});
+        return plugins::testing::draw_page(page, size.w, size.h, sample, hooks);
+    };
+    auto load_page = [&](const char* file) -> std::optional<plugins::Page> {
+        std::ifstream input(examples / file, std::ios::binary);
+        auto parsed = plugins::parse_manifest(std::string((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>()));
+        if (!parsed) return std::nullopt;
+        plugins::RenderContext context;
+        context.time = "12:34";
+        context.date = "2026-01-01";
+        context.sources = plugins::sample_data(*parsed.manifest);
+        return plugins::render_page(*parsed.manifest, context);
+    };
+    // Prüft: außerhalb von `rect` (±1 Pixel Kante) pixelgleich zur Referenz, innerhalb (−1 Pixel) nur Seitenhintergrund,
+    // und in der Referenz war dort wirklich etwas gezeichnet.
+    struct Box { int x0, y0, x1, y1; };
+    auto only_erased = [](const Image& reference, const Image& image, Box box, uint32_t bg) {
+        bool outside_same = true, inside_bg = true, drawn_before = false;
+        for (int y = 0; y < image.h; ++y) for (int x = 0; x < image.w; ++x) {
+            const bool near = x >= box.x0 - 1 && x <= box.x1 + 1 && y >= box.y0 - 1 && y <= box.y1 + 1;
+            const bool inner = x >= box.x0 + 1 && x <= box.x1 - 1 && y >= box.y0 + 1 && y <= box.y1 - 1;
+            if (!near && image.at(x, y) != reference.at(x, y)) outside_same = false;
+            if (inner && image.at(x, y) != bg) inside_bg = false;
+            if (inner && reference.at(x, y) != bg) drawn_before = true;
+        }
+        return outside_same && inside_bg && drawn_before;
+    };
+    auto box_of = [](const plugins::zones::Rect& r) {
+        return Box{static_cast<int>(std::floor(r.x)), static_cast<int>(std::floor(r.y)), static_cast<int>(std::floor(r.x + r.width - 1)),
+                   static_cast<int>(std::floor(r.y + r.height - 1))};
+    };
+    float margin = 10, gap = 7;  // Rahmenstil des Referenz-Themes (wie draw_page)
+    {
+        std::lock_guard lock(render::mutex());
+        render::apply_theme({{"theme", themes[0].name}});
+        const float spacing = theme::design(render::theme().style).spacing / 12.f;
+        margin = 10 * spacing;
+        gap = 7 * spacing;
+    }
+    const Size landscape = kSizes[0];  // 480x320: Skalierung 1, logische Koordinaten = Pixel
+    if (auto zoned = load_page("offline-zonen.flplugin.json")) {
+        const Image reference = draw(*zoned, themes[0], landscape, true);
+        const uint32_t bg = reference.at(1, 100);
+        const plugins::zones::DensityTable table;
+        std::vector<plugins::zones::BlockInput> inputs;
+        for (const auto& w : zoned->widgets) inputs.push_back(plugins::zones::describe(w.id, w.type, table, w.zone));
+        const auto plan = plugins::zones::plan({margin, 39, 480 - 2 * margin, 320 - 39 - 19 - margin}, *zoned->layout, inputs, gap);
+        auto area = [&](const std::string& id) {
+            for (const auto& b : plan.blocks) if (b.id == id) return b.area;
+            return plugins::zones::Rect{};
+        };
+        for (const char* target : {"uhr", "motto", "dauer", "pausen"}) {  // erster, gestapelter, einzelner, letzter Block
+            plugins::testing::DrawHooks hooks;
+            hooks.after_card = [&](Canvas&, const std::string& key) { if (key == target) throw std::runtime_error("GEHEIM-123"); };
+            const Image image = draw_hooked(*zoned, themes[0], landscape, true, hooks);
+            CHECK(only_erased(reference, image, box_of(area(target)), bg));
+        }
+        // Ein Block, der eigene Clips offen lässt und dann wirft: der Clip-Stapel wird vor dem Löschen und danach exakt
+        // wiederhergestellt (gleiches Bild wie ohne die offenen Clips); ohne Ausnahme bleiben offene Clips eines Blocks
+        // ebenfalls folgenlos für alle anderen Blöcke und den Fußtext.
+        plugins::testing::DrawHooks thrower;
+        thrower.after_card = [](Canvas&, const std::string& key) { if (key == "dauer") throw 7; };
+        plugins::testing::DrawHooks leaker;
+        leaker.after_card = [](Canvas& canvas, const std::string& key) {
+            if (key != "dauer") return;
+            for (int i = 0; i < 3; ++i) canvas.clip_push(0, 0, 1, 1);
+            throw std::runtime_error("leak");
+        };
+        CHECK(hash_image(draw_hooked(*zoned, themes[0], landscape, true, leaker)) == hash_image(draw_hooked(*zoned, themes[0], landscape, true, thrower)));
+        plugins::testing::DrawHooks quiet_leak;
+        quiet_leak.after_card = [](Canvas& canvas, const std::string& key) { if (key == "uhr") canvas.clip_push(0, 0, 1, 1); };
+        const Image leaked = draw_hooked(*zoned, themes[0], landscape, true, quiet_leak);
+        const Box uhr = box_of(area("uhr"));
+        bool rest_same = true;
+        for (int y = 0; y < leaked.h; ++y) for (int x = 0; x < leaked.w; ++x)
+            if (!(x >= uhr.x0 - 1 && x <= uhr.x1 + 1 && y >= uhr.y0 - 1 && y <= uhr.y1 + 1) && leaked.at(x, y) != reference.at(x, y)) rest_same = false;
+        CHECK(rest_same);
+        // Alle Blöcke werfen: nur Kopf und Fuß bleiben (Fußzeile unverändert lesbar).
+        plugins::testing::DrawHooks all;
+        all.after_card = [](Canvas&, const std::string&) { throw std::bad_alloc(); };
+        const Image empty = draw_hooked(*zoned, themes[0], landscape, true, all);
+        plugins::Page none = *zoned;
+        none.widgets.clear();
+        CHECK(hash_image(empty) == hash_image(draw(none, themes[0], landscape, true)));
+        // Ohne Hook-Auslösung: pixelgleich zur App-Zeichnung.
+        plugins::testing::DrawHooks idle;
+        idle.after_card = [](Canvas&, const std::string&) {};
+        CHECK(hash_image(draw_hooked(*zoned, themes[0], landscape, true, idle)) == hash_image(reference));
+    } else CHECK(false);
+    // v1-Raster (offline-focus, 4 Karten): eine werfende Karte wird gelöscht, die anderen bleiben pixelgleich.
+    if (auto grid = load_page("offline-focus.flplugin.json")) {
+        const Image reference = draw(*grid, themes[0], landscape, true);
+        const uint32_t bg = reference.at(1, 100);
+        const float card_w = (480 - 2 * margin - gap) / 2, card_h = (320 - 39 - 19 - margin - gap) / 2;
+        for (size_t index = 0; index < grid->widgets.size() && index < 4; ++index) {
+            const std::string key = "#" + std::to_string(grid->widgets[index].index);
+            plugins::testing::DrawHooks hooks;
+            hooks.after_card = [&](Canvas&, const std::string& k) { if (k == key) throw std::runtime_error("GEHEIM-123"); };
+            const Image image = draw_hooked(*grid, themes[0], landscape, true, hooks);
+            const float x = margin + static_cast<float>(index % 2) * (card_w + gap), y = 39 + static_cast<float>(index / 2) * (card_h + gap);
+            CHECK(only_erased(reference, image, box_of({x, y, card_w + 1, card_h + 1}), bg));
+        }
+    } else CHECK(false);
+    // Codex-Review Phase 3: Wurf nach dem Text und mehrere Skalierungen (0,5 / 1 / 2). Der Clip liegt auch im v1-Raster auf der
+    // Löschfläche (Karte plus 1 logisches Pixel), deshalb kann außerhalb nichts übrig bleiben, auch wenn Text bei kleiner Skalierung
+    // über die Karte hinausreichen würde. Erwartete Fläche in echten Pixeln: logisches Rechteck mal Skalierung.
+    {
+        const Size scales[] = {kSizes[2], kSizes[0], {"double", 960, 640}};  // 240x160 (0,5), 480x320 (1), 960x640 (2)
+        auto pixel_box = [](const plugins::zones::Rect& r, float s) {
+            return Box{static_cast<int>(std::floor(r.x * s)), static_cast<int>(std::floor(r.y * s)),
+                       static_cast<int>(std::floor((r.x + r.width - 1) * s)), static_cast<int>(std::floor((r.y + r.height - 1) * s))};
+        };
+        auto grid = load_page("offline-focus.flplugin.json");
+        auto zoned = load_page("offline-zonen.flplugin.json");
+        CHECK(grid && zoned);
+        for (const auto& size : scales) {
+            const float s = render::scale_for(size.w, size.h);
+            if (grid) {
+                const Image reference = draw(*grid, themes[0], size, true);
+                const uint32_t bg = reference.at(1, reference.h / 2);
+                const float card_w = (480 - 2 * margin - gap) / 2, card_h = (320 - 39 - 19 - margin - gap) / 2;
+                for (size_t index = 0; index < grid->widgets.size() && index < 4; ++index) {
+                    const std::string key = "#" + std::to_string(grid->widgets[index].index);
+                    for (int when = 0; when < 2; ++when) {  // 0: nach der Karte, 1: nach dem gesamten Inhalt
+                        plugins::testing::DrawHooks hooks;
+                        auto fail = [key](Canvas&, const std::string& k) { if (k == key) throw std::runtime_error("GEHEIM-123"); };
+                        if (when == 0) hooks.after_card = fail; else hooks.after_content = fail;
+                        const Image image = draw_hooked(*grid, themes[0], size, true, hooks);
+                        const float x = margin + static_cast<float>(index % 2) * (card_w + gap), y = 39 + static_cast<float>(index / 2) * (card_h + gap);
+                        const bool ok = only_erased(reference, image, pixel_box({x - 1, y - 1, card_w + 3, card_h + 3}, s), bg);
+                        CHECK(ok);
+                        if (!ok) std::printf("grid erase failed: %s card %zu hook %d\n", size.name, index, when);
+                    }
+                }
+            }
+            if (zoned) {
+                const Image reference = draw(*zoned, themes[0], size, true);
+                const uint32_t bg = reference.at(1, reference.h / 2);
+                const float k = std::max(1.f, 1.f / s);  // wie draw_page: Schwellen bei Skalierung < 1 mal 1/s
+                const plugins::zones::DensityTable table;
+                std::vector<plugins::zones::BlockInput> inputs;
+                for (const auto& w : zoned->widgets) {
+                    auto input = plugins::zones::describe(w.id, w.type, table, w.zone);
+                    for (auto& m : input.min.min) m = {m.width * k, m.height * k};
+                    inputs.push_back(std::move(input));
+                }
+                const auto plan = plugins::zones::plan({margin, 39, 480 - 2 * margin, 320 - 39 - 19 - margin}, *zoned->layout, inputs, gap);
+                for (const auto& placed : plan.blocks) {
+                    if (!placed.visible()) continue;
+                    plugins::testing::DrawHooks hooks;
+                    const std::string target = placed.id;
+                    hooks.after_content = [target](Canvas&, const std::string& key) { if (key == target) throw std::runtime_error("GEHEIM-123"); };
+                    const Image image = draw_hooked(*zoned, themes[0], size, true, hooks);
+                    const bool ok = only_erased(reference, image, pixel_box(placed.area, s), bg);
+                    CHECK(ok);
+                    if (!ok) std::printf("zone erase failed: %s block %s\n", size.name, target.c_str());
+                }
+            }
+        }
+    }
+    // Log: fester Text ohne Daten/Ausnahmetext, höchstens ein Eintrag je Plugin, Block und Stufe pro Minute.
+    if (auto probe = load_page("offline-zonen.flplugin.json")) {
+        probe->id = "log-probe";
+        probe->failed = {"kaputt"};
+        const fs::path log_file = fs::temp_directory_path() / "fl-plugin-isolation-test.log";
+        std::error_code ec;
+        fs::remove(log_file, ec);
+        log_init(log_file, false);
+        plugins::testing::DrawHooks hooks;
+        hooks.after_card = [](Canvas&, const std::string& key) { if (key == "dauer") throw std::runtime_error("GEHEIM-123"); };
+        for (int i = 0; i < 3; ++i) draw_hooked(*probe, themes[0], landscape, true, hooks);
+        log_init({}, false);
+        std::ifstream in(log_file, std::ios::binary);
+        const std::string log((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        in.close();
+        fs::remove(log_file, ec);
+        auto count = [&](const std::string& needle) {
+            size_t n = 0;
+            for (size_t at = log.find(needle); at != std::string::npos; at = log.find(needle, at + 1)) ++n;
+            return n;
+        };
+        CHECK(count("Plugin log-probe: Block dauer ausgeblendet (Fehler beim Zeichnen)") == 1);
+        CHECK(count("Plugin log-probe: Block kaputt ausgeblendet (Fehler beim Auswerten der Daten)") == 1);
+        CHECK(count("\n") == 2);
+        CHECK(log.find("GEHEIM") == std::string::npos && log.find("Ruhig") == std::string::npos && log.find("Fokus") == std::string::npos);
+    } else CHECK(false);
 
     const fs::path hash_file = snapshots / "hashes.txt";
     if (update) {

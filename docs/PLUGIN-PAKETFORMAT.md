@@ -19,7 +19,7 @@ Bestehende Manifeste ohne diese Felder bleiben unverändert gültig und lokal im
 
 ## Schema 2: Zonen-Layout (ab 2.10.0, in Vorbereitung)
 
-Ein Plugin bleibt auch mit `schema_version: 2` eine einzelne JSON-Datei. Neu sind die Block-ID `id` an jedem Widget (Pflicht), das optionale `layout` (Raster aus ganzen Anteilen, Zonen mit Spalte/Zeile/Spannweite) und `zone` an jedem Widget, sobald ein `layout` vorhanden ist; mit `layout` außerdem bis zu 12 statt 6 Widgets. Grenzen und Verhalten: [Plugin-System, Manifest v2](PLUGIN-SYSTEM.md#manifest-v2-zonen-layout-2100-in-vorbereitung). Manifeste mit Schema 1 bleiben unverändert gültig; `layout`, `id` und `zone` sind dort unbekannte Felder und werden abgewiesen. ScreenBuddy bis 2.9.x lehnt Schema 2 beim Import ab.
+Ein Plugin bleibt auch mit `schema_version: 2` eine einzelne JSON-Datei. Neu sind die Block-ID `id` an jedem Widget (Pflicht), das optionale `layout` (Raster aus ganzen Anteilen, Zonen mit Spalte/Zeile/Spannweite) und `zone` an jedem Widget, sobald ein `layout` vorhanden ist; mit `layout` außerdem bis zu 12 statt 6 Widgets. Grenzen und Verhalten: [Plugin-System, Manifest v2](PLUGIN-SYSTEM.md#manifest-v2-zonen-layout-2100-in-vorbereitung). Manifeste mit Schema 1 bleiben unverändert gültig; `layout`, `id`, `zone` und `show_if` sind dort unbekannte Felder und werden abgewiesen. ScreenBuddy bis 2.9.x lehnt Schema 2 beim Import ab.
 
 Regeln für v2 (der Parser erzwingt sie, `fl-plugin-validate` meldet Verstöße):
 
@@ -28,6 +28,7 @@ Regeln für v2 (der Parser erzwingt sie, `fl-plugin-validate` meldet Verstöße)
 - Block-ID `id` an jedem Widget: gleiche Zeichenregeln, plugin-weit eindeutig. `zone` muss auf eine vorhandene Zone verweisen; höchstens 4 Widgets pro Zone, jede Zone braucht mindestens eines; mit `layout` 1–12 Widgets.
 - Ohne `layout` (Schema 2 ohne Raster) gelten die Schema-1-Regeln: höchstens 6 Widgets, kein `zone`; die Seite wird pixelidentisch wie Schema 1 gezeichnet.
 - Kein Pixel- oder Prozentmaß im Manifest: Die App wählt je Block die Dichtestufe (kompakt, normal, ausführlich) aus der Zonenfläche und blendet Blöcke aus, die nicht passen. Auf kleinen Displays (Skalierung unter 1, etwa 240×160) sind die Mindestflächen entsprechend größer, weil die Schrift nicht mitskaliert; dort entfallen eher Blöcke. Plugins sollten den wichtigsten Block an den Anfang der Zone setzen (der letzte nicht passende Block entfällt zuerst).
+- Optional `show_if` an jedem Widget (mit und ohne `layout`): `{"path": "<quelle>[.<feld>…]"}` oder `{"path": "settings.<schlüssel>"}` (Wert vorhanden) bzw. mit `"op"` (`==`, `!=`, `<`, `<=`, `>`, `>=`) und `"value"` (Text 1–256 Zeichen, endliche Zahl oder Wahrheitswert; `<`/`>` nur Zahlen). Keine Ausdruckssprache, eine Bedingung pro Block, `path` höchstens 128 Zeichen und 8 Segmente. Einstellungen vom Typ `secret`, `time`, `date` und `item` sind verboten; jeder Fehler lehnt das ganze Manifest ab. Semantik (fehlend, `null`, leer, `false`, `0`): [Bedingte Anzeige](PLUGIN-SYSTEM.md#bedingte-anzeige-show_if-phase-3).
 
 ## Zusätzliche Store-Regeln
 

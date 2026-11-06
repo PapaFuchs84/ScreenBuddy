@@ -82,6 +82,7 @@ public:
     // schließt offene Clips. Ohne clip_push() ändert sich nichts an den übrigen Zeichenpfaden.
     void clip_push(float x0, float y0, float x1, float y1);
     void clip_pop();
+    int clip_depth() const;  // offene clip_push()-Aufrufe (für das Wiederherstellen nach einem Fehler)
 
     Image finish();
 

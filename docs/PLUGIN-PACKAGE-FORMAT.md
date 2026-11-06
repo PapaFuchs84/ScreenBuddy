@@ -19,7 +19,7 @@ Existing manifests without these fields stay valid and importable locally. An in
 
 ## Schema 2: zone layout (from 2.10.0, in preparation)
 
-With `schema_version: 2` a plugin is still a single JSON file. New are the block ID `id` on every widget (required), the optional `layout` (grid of integer shares, zones with column/row/span) and `zone` on every widget as soon as a `layout` exists; with a `layout` also up to 12 instead of 6 widgets. Limits and behaviour: [plugin system, manifest v2](PLUGIN-SYSTEM.en.md#manifest-v2-zone-layout-2100-in-preparation). Schema 1 manifests stay valid unchanged; `layout`, `id` and `zone` are unknown fields there and are rejected. ScreenBuddy up to 2.9.x rejects schema 2 on import.
+With `schema_version: 2` a plugin is still a single JSON file. New are the block ID `id` on every widget (required), the optional `layout` (grid of integer shares, zones with column/row/span) and `zone` on every widget as soon as a `layout` exists; with a `layout` also up to 12 instead of 6 widgets. Limits and behaviour: [plugin system, manifest v2](PLUGIN-SYSTEM.en.md#manifest-v2-zone-layout-2100-in-preparation). Schema 1 manifests stay valid unchanged; `layout`, `id`, `zone` and `show_if` are unknown fields there and are rejected. ScreenBuddy up to 2.9.x rejects schema 2 on import.
 
 Rules for v2 (enforced by the parser; `fl-plugin-validate` reports violations):
 
@@ -28,6 +28,7 @@ Rules for v2 (enforced by the parser; `fl-plugin-validate` reports violations):
 - Block ID `id` on every widget: same character rules, unique across the plugin. `zone` must reference an existing zone; at most 4 widgets per zone, every zone needs at least one; with a `layout` 1–12 widgets.
 - Without a `layout` (schema 2 without a grid) the schema 1 rules apply: at most 6 widgets, no `zone`; the page is drawn pixel-identical to schema 1.
 - No pixel or percentage sizes in the manifest: the app picks each block's density level (compact, regular, detailed) from the zone area and hides blocks that do not fit. On small displays (scale below 1, e.g. 240×160) the minimum areas are correspondingly larger because the font is not scaled along, so more blocks drop out there. Put the most important block first in a zone (the last block that does not fit is dropped first).
+- Optional `show_if` on every widget (with and without `layout`): `{"path": "<source>[.<field>…]"}` or `{"path": "settings.<key>"}` (value present), or with `"op"` (`==`, `!=`, `<`, `<=`, `>`, `>=`) and `"value"` (text of 1–256 characters, a finite number or a boolean; `<`/`>` numbers only). No expression language, one condition per block, `path` at most 128 characters and 8 segments. Settings of type `secret`, `time`, `date` and `item` are forbidden; any error rejects the whole manifest. Semantics (missing, `null`, empty, `false`, `0`): [conditional display](PLUGIN-SYSTEM.en.md#conditional-display-show_if-phase-3).
 
 ## Additional store rules
 

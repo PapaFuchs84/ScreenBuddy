@@ -1,4 +1,20 @@
 # Render snapshot baseline (FNV-1a 64 of size+ARGB pixels), themes dunkel (reference, unprefixed) hell windows custom custom-cupertino custom-fluent custom-material (prefixed), sizes landscape portrait landscape-small portrait-small, clock 12:34, date 2026-01-01. Rewrite: fl-plugin-snapshot-tests update
+bedingt-quelle.missing.landscape d48a0ffab25a4a9f
+bedingt-quelle.missing.landscape-small c1bdee1a3f90dd64
+bedingt-quelle.missing.portrait 6412506b1b14d99f
+bedingt-quelle.missing.portrait-small fbd768ebc892ac44
+bedingt-quelle.partial.landscape 54b31364c82bad44
+bedingt-quelle.partial.landscape-small 8b44c01ab1492dd7
+bedingt-quelle.partial.portrait 90fcacb517208244
+bedingt-quelle.partial.portrait-small 6559e165aebc4177
+bedingt-quelle.sample.landscape ebce5ecc1d4eebd7
+bedingt-quelle.sample.landscape-small 8d8230dbed6522b7
+bedingt-quelle.sample.portrait ea484f3678155bac
+bedingt-quelle.sample.portrait-small 1ecab2b64e408e68
+custom-cupertino.offline-bedingt.sample.landscape 151d48f882edafc8
+custom-cupertino.offline-bedingt.sample.landscape-small f43e02f8e0bfff12
+custom-cupertino.offline-bedingt.sample.portrait acd3203555aea390
+custom-cupertino.offline-bedingt.sample.portrait-small 737d02ea996a502a
 custom-cupertino.offline-clock.sample.landscape 24c19eb5f0b8df40
 custom-cupertino.offline-clock.sample.landscape-small ad4b0fd9095130cc
 custom-cupertino.offline-clock.sample.portrait 48cba35ba57dd5c0
@@ -19,6 +35,10 @@ custom-cupertino.public-weather.sample.landscape 639db49a5c2a9df6
 custom-cupertino.public-weather.sample.landscape-small f2853067e0bdf34b
 custom-cupertino.public-weather.sample.portrait d06ab9cabab35b90
 custom-cupertino.public-weather.sample.portrait-small a5335b94fe8a432b
+custom-fluent.offline-bedingt.sample.landscape 0e12df8874753203
+custom-fluent.offline-bedingt.sample.landscape-small 0c45ff2b815cf725
+custom-fluent.offline-bedingt.sample.portrait 841e4136df085d33
+custom-fluent.offline-bedingt.sample.portrait-small b64bc798de187d64
 custom-fluent.offline-clock.sample.landscape b02647c43854186a
 custom-fluent.offline-clock.sample.landscape-small b0dfbe347120810f
 custom-fluent.offline-clock.sample.portrait 4a0a537fdb0ac0ea
@@ -39,6 +59,10 @@ custom-fluent.public-weather.sample.landscape cdffcd23e750956b
 custom-fluent.public-weather.sample.landscape-small 99b8d66554181a0f
 custom-fluent.public-weather.sample.portrait abb3b71adae233b9
 custom-fluent.public-weather.sample.portrait-small 3c7015f104e3ec6d
+custom-material.offline-bedingt.sample.landscape fc21288d7c5db3ba
+custom-material.offline-bedingt.sample.landscape-small 17224e992b8136a2
+custom-material.offline-bedingt.sample.portrait 866deb2624c59c55
+custom-material.offline-bedingt.sample.portrait-small aa5616c7c83d35be
 custom-material.offline-clock.sample.landscape a9e69f8472ee15de
 custom-material.offline-clock.sample.landscape-small dc8000600b1cbd96
 custom-material.offline-clock.sample.portrait fc7b4ac9073d935e
@@ -59,6 +83,10 @@ custom-material.public-weather.sample.landscape 34278732f01954d5
 custom-material.public-weather.sample.landscape-small a7c2d66e95a0ed4e
 custom-material.public-weather.sample.portrait 6296c26e5b8e22a9
 custom-material.public-weather.sample.portrait-small f3f9da3188fc6bcd
+custom.offline-bedingt.sample.landscape 08a4cb5273ada31e
+custom.offline-bedingt.sample.landscape-small 3969865632fb6f77
+custom.offline-bedingt.sample.portrait 1e23a588d5fe7056
+custom.offline-bedingt.sample.portrait-small a8e4555576ff3d7a
 custom.offline-clock.sample.landscape 7b47a643f4b0000f
 custom.offline-clock.sample.landscape-small 11da516657ada8a6
 custom.offline-clock.sample.portrait bf2257ed5ae065cf
@@ -79,6 +107,10 @@ custom.public-weather.sample.landscape ef450a9bcd391f3c
 custom.public-weather.sample.landscape-small 2c528dd74d042c91
 custom.public-weather.sample.portrait 617932f3c4b2e895
 custom.public-weather.sample.portrait-small 68c4170533d9d12b
+hell.offline-bedingt.sample.landscape f77e9521e8feef1e
+hell.offline-bedingt.sample.landscape-small 38cc827409c8d2f1
+hell.offline-bedingt.sample.portrait 10c99d92e0ba492a
+hell.offline-bedingt.sample.portrait-small 0ab30cb10aa787fb
 hell.offline-clock.sample.landscape 673c4e399c9303d2
 hell.offline-clock.sample.landscape-small 230f1920fbcf21bf
 hell.offline-clock.sample.portrait 68e06f88ea894012
@@ -99,6 +131,10 @@ hell.public-weather.sample.landscape 5892f1563223993c
 hell.public-weather.sample.landscape-small 47983a31800f6461
 hell.public-weather.sample.portrait 17c6af3cfcdc6103
 hell.public-weather.sample.portrait-small 8130eb9d3d035398
+offline-bedingt.sample.landscape 6274d441ece25c9d
+offline-bedingt.sample.landscape-small 23a6b2dcd3f4e524
+offline-bedingt.sample.portrait 49d7b892f872ae5a
+offline-bedingt.sample.portrait-small 9efca22f489b1554
 offline-clock.sample.landscape 8a1817e42080375a
 offline-clock.sample.landscape-small d8b7478968b7c4e0
 offline-clock.sample.portrait 42806abb13ae835a
@@ -119,6 +155,10 @@ public-weather.sample.landscape 9a0e55a4df8d760c
 public-weather.sample.landscape-small c4785ccdbcc97dd4
 public-weather.sample.portrait 343fd5f4ddc71ff9
 public-weather.sample.portrait-small ba886c4bd3b09a44
+windows.offline-bedingt.sample.landscape cc30358026157b51
+windows.offline-bedingt.sample.landscape-small ecaeda14a00cd51a
+windows.offline-bedingt.sample.portrait dad2bd52daca2709
+windows.offline-bedingt.sample.portrait-small a07d456704d976eb
 windows.offline-clock.sample.landscape 34d95f2698b1a095
 windows.offline-clock.sample.landscape-small a98596ee25e78f43
 windows.offline-clock.sample.portrait bf29773c01920f15

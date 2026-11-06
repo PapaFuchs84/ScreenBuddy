@@ -76,6 +76,22 @@ With `schema_version: 2` you arrange up to 12 widgets (blocks) in **zones** of a
 
 On a small area a block shows fewer details (compact, regular, detailed). If a block does not fit at all, ScreenBuddy hides it instead of overlapping or cutting it off, so put the most important blocks into large zones. Without a `layout` a v2 page stays in the automatic grid with at most 6 widgets, and `zone` is not allowed.
 
+### Conditional display with `show_if`
+
+Should a block only appear when there is something to show? Give it a `show_if` in schema 2. The complete local example is [offline-bedingt.flplugin.json](../cpp/examples/plugins/offline-bedingt.flplugin.json): the note appears only if the setting is not empty, "Breaks" only with more than 0 breaks, and the blocks change with mode and progress.
+
+```json
+{"type": "text", "id": "hinweis", "zone": "hinweis", "text": "{{settings.note}}", "show_if": {"path": "settings.note"}}
+{"type": "metric", "id": "pausen", "zone": "pausen", "value": "{{settings.breaks}}", "show_if": {"path": "settings.breaks", "op": ">", "value": 0}}
+```
+
+- Without `op`, `show_if` means "value present": missing, `null`, `""`, `[]` and `{}` hide the block; `false` and `0` count as present.
+- With `op` (`==`, `!=`, `<`, `<=`, `>`, `>=`) the value is compared with exactly one fixed literal, without type conversion: `"42"` is not `42`. If the value is missing or has another type, the block stays hidden, also for `!=`.
+- Secret settings (`secret`) are forbidden in conditions; the validator then rejects the manifest.
+- The preview uses the `sample` data: choose it so the conditional blocks are visible there.
+
+The complete value table is in [conditional display](PLUGIN-SYSTEM.en.md#conditional-display-show_if-phase-3). If a block throws while being evaluated or drawn, ScreenBuddy hides only that block and writes a short log entry without data.
+
 ## Credentials and safe sharing
 
 Enter credentials only into a declared `secret` field in local plugin settings. On Windows, stored plugin values use DPAPI protection; values explicitly referenced in requests can still be sent to approved hosts. Prefer `Authorization` over tokens in URLs. An empty credential input preserves its saved value; enable **Clear saved value** and save to remove it.

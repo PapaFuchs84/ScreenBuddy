@@ -29,12 +29,28 @@ struct Source {
     // All settings this host can receive (including non-secret settings).
     std::vector<std::string> setting_keys;
 };
+// Manifest v2 only: conditional display (`show_if`). One test per block, no expression language:
+// presence of `path` alone, or presence plus one comparison against a literal. Semantics table:
+// docs/PLUGIN-SYSTEM.md ("Bedingte Anzeige"). Secret settings are rejected by the parser.
+inline constexpr size_t condition_path_limit = 128;   // characters of `path`
+inline constexpr size_t condition_segment_limit = 8;  // dot-separated segments of `path`
+inline constexpr size_t condition_text_limit = 256;   // characters of a text literal
+struct Condition {
+    std::string path; // "<source>[.<field>...]" or "settings.<non-secret key>"
+    std::string op;   // empty = presence only; otherwise "==", "!=", "<", "<=", ">", ">="
+    Json value;       // comparison literal: non-empty text, finite number or boolean; null for presence
+};
+// Value present = not missing, not null, not a non-finite number, not "" and not an empty array/object.
+// false and 0 are present. Every comparison requires a present value of the literal's JSON type (no
+// conversion); otherwise the condition is false, also for "!=". `value` nullptr = path not found.
+bool condition_holds(const Condition& condition, const Json* value);
 struct Widget {
     std::string type, label, text, value, unit, items, item_template, format;
     double min = 0, max = 100;
     int max_items = 1;
     // Manifest v2 only (empty in v1): stable block ID and, with a layout, the zone the block sits in.
     std::string id, zone;
+    std::optional<Condition> show_if; // v2 only; absent = always shown
 };
 struct Manifest {
     int schema_version = 1; // 1 or 2; v2 adds widgets[].id, optional layout and up to 12 widgets
@@ -89,15 +105,22 @@ struct RenderContext {
 struct RenderedWidget {
     std::string type, label, text, unit;
     std::string id, zone; // v2 block ID / zone ID; empty for v1
+    size_t index = 0;     // position in manifest.widgets (v1 block key "#<index>")
     std::vector<std::string> items;
     std::optional<double> bar_fraction; // absent for a missing/non-finite number; otherwise 0..1
 };
 struct Page {
     std::string id, title;
-    std::vector<RenderedWidget> widgets;
+    std::vector<RenderedWidget> widgets; // shown blocks only (manifest order); hidden/failed ones are left out
     bool missing_data = false;
     std::optional<zones::Layout> layout; // copied from a v2 manifest; draw_page lays the blocks out by zone (phase 2b); absent = automatic grid
+    // Block keys (v2: block ID; v1: "#<index>") left out of `widgets`:
+    std::vector<std::string> hidden; // show_if was false (v2 only)
+    std::vector<std::string> failed; // evaluating the block's data threw; draw_page logs these (rate-limited)
 };
+// Does not throw: every block is evaluated separately (a failing block is left out and listed in Page::failed,
+// the rest of the page is unaffected). A failure outside the blocks (e.g. out of memory while copying ID, title
+// or layout) yields a page without blocks and with missing_data set; ID and title are kept if they can be copied.
 Page render_page(const Manifest& manifest, const RenderContext& context);
 
 struct Request {

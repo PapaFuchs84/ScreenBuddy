@@ -2,8 +2,12 @@
 // Rein: keine Dateien, kein Netz, keine Grafik, kein Windows-API.
 // Standalone: c++ -std=c++20 -I<json-include> -Isrc src/plugins.cpp src/plugin_zones.cpp tests/plugin_zones_tests.cpp
 #include "plugins.h"
+#include "plugins_testing.h"
+#include "plugin_isolation.h"
 #include "plugin_zones.h"
+#include <chrono>
 #include <cmath>
+#include <stdexcept>
 #include <cstdio>
 #include <functional>
 #include <limits>
@@ -512,9 +516,386 @@ static void test_fuzz() {
     std::printf("fuzz: 4000 manifests, %d accepted\n", accepted);
 }
 
+// ---------------------------------------------------------------- Phase 3: bedingte Anzeige (show_if)
+static Json v2_cond() {
+    auto j = v2();
+    j["settings"] = Json::array({
+        {{"key", "token"}, {"label", "Token"}, {"type", "secret"}},
+        {{"key", "city"}, {"label", "Ort"}, {"type", "text"}, {"default", "Hamburg"}},
+        {{"key", "limit"}, {"label", "Grenze"}, {"type", "number"}, {"default", 30}}});
+    j["sources"][0]["headers"] = {{"Authorization", "Bearer {{settings.token}}"}};
+    j["widgets"][0]["show_if"] = {{"path", "feed.temp"}};
+    j["widgets"][1]["show_if"] = {{"path", "feed.load"}, {"op", ">="}, {"value", 50}};
+    j["widgets"][2]["show_if"] = {{"path", "feed.rows"}};
+    j["widgets"][3]["show_if"] = {{"path", "settings.city"}, {"op", "!="}, {"value", "Berlin"}};
+    return j;
+}
+static Json with_condition(const Json& show_if) { auto j = v2_cond(); j["widgets"][0]["show_if"] = show_if; return j; }
+static std::vector<std::string> shown_ids(const Page& p) { std::vector<std::string> out; for (const auto& w : p.widgets) out.push_back(w.id); return out; }
+using Ids = std::vector<std::string>;
+
+static void test_conditions_parse() {
+    auto parsed = parse_manifest(v2_cond().dump());
+    CHECK(parsed);
+    if (!parsed) { std::printf("v2_cond error: %s\n", parsed.error.c_str()); return; }
+    const auto& m = *parsed.manifest;
+    CHECK(m.widgets[0].show_if && m.widgets[0].show_if->path == "feed.temp" && m.widgets[0].show_if->op.empty() &&
+          m.widgets[0].show_if->value.is_null());
+    CHECK(m.widgets[1].show_if && m.widgets[1].show_if->op == ">=" && m.widgets[1].show_if->value == 50);
+    CHECK(m.widgets[3].show_if && m.widgets[3].show_if->value == "Berlin");
+    auto again = parse_manifest(m.definition.dump()); // Rundreise wie plugin_store.cpp
+    CHECK(again && again.manifest->definition == m.definition && again.manifest->widgets[1].show_if->op == ">=");
+    // Gültige Formen: ganze Quelle vorhanden, Feld vorhanden, Vergleich gegen Text, Zahl, Wahrheitswert; Grenzen genau getroffen.
+    const std::string long_field(condition_path_limit - 5, 'a');
+    for (const Json& ok : {Json{{"path", "feed"}}, Json{{"path", "feed.rows.0.t"}, {"op", "=="}, {"value", "A"}},
+                           Json{{"path", "settings.limit"}, {"op", "<="}, {"value", -3.5}},
+                           Json{{"path", "settings.city"}, {"op", "=="}, {"value", "Hamburg"}},
+                           Json{{"path", "feed.flag"}, {"op", "!="}, {"value", false}},
+                           Json{{"path", "feed.n"}, {"op", ">"}, {"value", 1e300}},
+                           Json{{"path", "feed.a.b.c.d.e.f.g"}}, Json{{"path", "feed." + long_field}},
+                           Json{{"path", "feed.t"}, {"op", "!="}, {"value", std::string(condition_text_limit, 'x')}},
+                           Json{{"path", "feed.t"}, {"op", "=="}, {"value", "Gr\xC3\xBC\xC3\x9F" "e"}}}) {
+        CHECK(accepts(with_condition(ok)));
+        if (!accepts(with_condition(ok))) std::printf("rejected: %s (%s)\n", ok.dump().c_str(), error_of(with_condition(ok)).c_str());
+    }
+    // v2 ohne layout kennt show_if ebenfalls; v1 nicht (unverändert "Unknown or misplaced field.").
+    auto plain = v2_plain();
+    plain["settings"] = Json::array({{{"key", "city"}, {"label", "Ort"}, {"type", "text"}}});
+    plain["widgets"][0]["show_if"] = {{"path", "settings.city"}};
+    CHECK(accepts(plain));
+    auto old = v1();
+    old["settings"] = plain["settings"];
+    old["widgets"][0]["show_if"] = {{"path", "settings.city"}};
+    CHECK(!accepts(old) && error_of(old) == "Unknown or misplaced field.");
+    // Secrets nie in Bedingungen: weder als Vorhanden-Test noch im Vergleich (eigene, feste Meldung).
+    for (const Json& secret : {Json{{"path", "settings.token"}}, Json{{"path", "settings.token"}, {"op", "=="}, {"value", "x"}},
+                               Json{{"path", "settings.token"}, {"op", "!="}, {"value", "PRIVATE"}}}) {
+        CHECK(!accepts(with_condition(secret)));
+        CHECK(error_of(with_condition(secret)) == "Secret settings cannot appear in conditions.");
+    }
+    // Abgelehnt, jeweils mit fester Meldung (nie mit Manifestwerten).
+    const std::vector<std::pair<Json, std::string>> bad = {
+        {Json{{"path", "settings.nope"}}, "Unknown setting reference."},
+        {Json{{"path", "settings"}}, "Setting reference must have exactly one key."},
+        {Json{{"path", "settings.city.x"}}, "Setting reference must have exactly one key."},
+        {Json{{"path", "other.x"}}, "Condition must reference a source or a setting."},
+        {Json{{"path", "time"}}, "Condition must reference a source or a setting."},
+        {Json{{"path", "date"}}, "Condition must reference a source or a setting."},
+        {Json{{"path", "item.t"}}, "Condition must reference a source or a setting."},
+        {Json{{"path", "feed..temp"}}, "Invalid condition path."},
+        {Json{{"path", "feed.te-mp"}}, "Invalid condition path."},
+        {Json{{"path", ".feed"}}, "Invalid condition path."},
+        {Json{{"path", "feed."}}, "Invalid condition path."},
+        {Json{{"path", "feed.temp "}}, "Invalid condition path."},
+        {Json{{"path", "feed.temp>3"}}, "Invalid condition path."},
+        {Json{{"path", "{{feed.temp}}"}}, "Invalid condition path."},
+        {Json{{"path", "feed.a.b.c.d.e.f.g.h"}}, "Invalid condition path."},
+        {Json{{"path", "feed." + long_field + "a"}}, "String length outside allowed range."},
+        {Json{{"path", ""}}, "String length outside allowed range."},
+        {Json{{"path", 5}}, "Missing or invalid string field."},
+        {Json::object(), "Missing or invalid string field."},
+        {Json{{"path", "feed.temp"}, {"op", "="}, {"value", 1}}, "Unsupported condition operator."},
+        {Json{{"path", "feed.temp"}, {"op", "<>"}, {"value", 1}}, "Unsupported condition operator."},
+        {Json{{"path", "feed.temp"}, {"op", "in"}, {"value", 1}}, "Unsupported condition operator."},
+        {Json{{"path", "feed.temp"}, {"op", "&&"}, {"value", 1}}, "Unsupported condition operator."},
+        {Json{{"path", "feed.temp"}, {"op", "==="}, {"value", 1}}, "String length outside allowed range."},
+        {Json{{"path", "feed.temp"}, {"op", ""}, {"value", 1}}, "String length outside allowed range."},
+        {Json{{"path", "feed.temp"}, {"op", 1}, {"value", 1}}, "Missing or invalid string field."},
+        {Json{{"path", "feed.temp"}, {"op", "=="}}, "A comparison needs a value."},
+        {Json{{"path", "feed.temp"}, {"value", 1}}, "A condition value needs an operator."},
+        {Json{{"path", "feed.temp"}, {"op", "=="}, {"value", nullptr}}, "Condition value must be text, a number or a boolean."},
+        {Json{{"path", "feed.temp"}, {"op", "=="}, {"value", Json::array({1})}}, "Condition value must be text, a number or a boolean."},
+        {Json{{"path", "feed.temp"}, {"op", "=="}, {"value", Json::object()}}, "Condition value must be text, a number or a boolean."},
+        {Json{{"path", "feed.temp"}, {"op", "<"}, {"value", "10"}}, "Only numbers can be compared with <, <=, > or >=."},
+        {Json{{"path", "feed.temp"}, {"op", ">="}, {"value", true}}, "Only numbers can be compared with <, <=, > or >=."},
+        {Json{{"path", "feed.temp"}, {"op", "=="}, {"value", ""}}, "String length outside allowed range."},
+        {Json{{"path", "feed.temp"}, {"op", "=="}, {"value", std::string(condition_text_limit + 1, 'x')}}, "String length outside allowed range."},
+        {Json{{"path", "feed.temp"}, {"op", "=="}, {"value", "a\nb"}}, "Control, bidirectional or zero-width characters are not allowed in display text."},
+        {Json{{"path", "feed.temp"}, {"op", "=="}, {"value", "a\xE2\x80\xAE" "b"}}, "Control, bidirectional or zero-width characters are not allowed in display text."},
+        {Json{{"path", "feed"}, {"op", "=="}, {"value", 1}}, "Comparisons need a field path."},
+        {Json{{"path", "feed.temp"}, {"not", true}}, "Unknown or misplaced field."},
+        {Json{{"path", "feed.temp"}, {"and", Json::array()}}, "Unknown or misplaced field."},
+        {Json("feed.temp > 3"), "Expected an object."},
+        {Json::array({"feed.temp"}), "Expected an object."},
+        {Json(true), "Expected an object."},
+        {Json(nullptr), "Expected an object."}};
+    for (const auto& [condition, message] : bad) {
+        const auto j = with_condition(condition);
+        CHECK(!accepts(j));
+        CHECK(error_of(j) == message);
+        if (error_of(j) != message) std::printf("%s -> '%s' (expected '%s')\n", condition.dump().c_str(), error_of(j).c_str(), message.c_str());
+    }
+    // Strenger JSON-Parser auch in show_if: doppelte Schlüssel und nicht endliche Zahlen kippen das ganze Manifest.
+    const auto text = v2_cond().dump();
+    const std::string marker = "{\"path\":\"feed.temp\"}";
+    CHECK(text.find(marker) != std::string::npos);
+    auto dup = text; dup.replace(dup.find(marker), marker.size(), "{\"path\":\"feed.temp\",\"path\":\"settings.token\"}");
+    CHECK(!parse_manifest(dup));
+    auto inf = text; inf.replace(inf.find(marker), marker.size(), "{\"path\":\"feed.temp\",\"op\":\">\",\"value\":1e999}");
+    CHECK(!parse_manifest(inf));
+    // Ein einziger ungültiger show_if lehnt das komplette Manifest ab (nicht nur den Block).
+    auto one_bad = v2_cond(); one_bad["widgets"][3]["show_if"]["op"] = "~";
+    CHECK(!accepts(one_bad));
+}
+
+// Wertzustands-Tabelle: Zeilen = Wert an `path`, Spalten = Bedingung; T = Block sichtbar. Dieselbe Tabelle steht in
+// docs/PLUGIN-SYSTEM.md ("Bedingte Anzeige").
+static void test_condition_table() {
+    const std::vector<std::pair<const char*, Condition>> columns = {
+        {"vorhanden", {"f.x", "", nullptr}}, {"==0", {"f.x", "==", 0}}, {"!=0", {"f.x", "!=", 0}}, {">0", {"f.x", ">", 0}},
+        {">=0", {"f.x", ">=", 0}}, {"<1", {"f.x", "<", 1}}, {"==abc", {"f.x", "==", "abc"}}, {"!=abc", {"f.x", "!=", "abc"}},
+        {"==true", {"f.x", "==", true}}, {"==false", {"f.x", "==", false}}, {"!=false", {"f.x", "!=", false}}};
+    struct Row { const char* name; std::optional<Json> value; const char* expected; };
+    const std::vector<Row> rows = {
+        //                                          vorh ==0 !=0 >0 >=0 <1 ==abc !=abc ==t ==f !=f
+        {"fehlend", std::nullopt,                   "F    F   F   F  F   F  F     F     F   F   F"},
+        {"null", Json(nullptr),                     "F    F   F   F  F   F  F     F     F   F   F"},
+        {"nicht endlich", Json(NAN),                "F    F   F   F  F   F  F     F     F   F   F"},
+        {"\"\"", Json(""),                          "F    F   F   F  F   F  F     F     F   F   F"},
+        {"[]", Json::array(),                       "F    F   F   F  F   F  F     F     F   F   F"},
+        {"{}", Json::object(),                      "F    F   F   F  F   F  F     F     F   F   F"},
+        {"false", Json(false),                      "T    F   F   F  F   F  F     F     F   T   F"},
+        {"true", Json(true),                        "T    F   F   F  F   F  F     F     T   F   T"},
+        {"0", Json(0),                              "T    T   F   F  T   T  F     F     F   F   F"},
+        {"-0.0", Json(-0.0),                        "T    T   F   F  T   T  F     F     F   F   F"},
+        {"2.5", Json(2.5),                          "T    F   T   T  T   F  F     F     F   F   F"},
+        {"-1", Json(-1),                            "T    F   T   F  F   T  F     F     F   F   F"},
+        {"2^64-1", Json(18446744073709551615ull),   "T    F   T   T  T   F  F     F     F   F   F"},
+        {"\"0\"", Json("0"),                        "T    F   F   F  F   F  F     T     F   F   F"},
+        {"\"abc\"", Json("abc"),                    "T    F   F   F  F   F  T     F     F   F   F"},
+        {"\"ABC\"", Json("ABC"),                    "T    F   F   F  F   F  F     T     F   F   F"},
+        {"\" \"", Json(" "),                        "T    F   F   F  F   F  F     T     F   F   F"},
+        {"\"true\"", Json("true"),                  "T    F   F   F  F   F  F     T     F   F   F"},
+        {"[1]", Json::array({1}),                   "T    F   F   F  F   F  F     F     F   F   F"},
+        {"{a:1}", Json{{"a", 1}},                   "T    F   F   F  F   F  F     F     F   F   F"}};
+    for (const auto& row : rows) {
+        std::string expected;
+        for (char c : std::string(row.expected)) if (c == 'T' || c == 'F') expected += c;
+        CHECK(expected.size() == columns.size());
+        std::string actual;
+        for (const auto& [name, condition] : columns) actual += condition_holds(condition, row.value ? &*row.value : nullptr) ? 'T' : 'F';
+        CHECK(actual == expected);
+        if (actual != expected) std::printf("table row %s: %s (expected %s)\n", row.name, actual.c_str(), expected.c_str());
+    }
+    // Unbekannte Operatoren oder Literaltypen (nie vom Parser erzeugt) schlagen geschlossen fehl.
+    const Json one(1);
+    CHECK(!condition_holds({"f.x", "~", 1}, &one) && !condition_holds({"f.x", "==", nullptr}, &one) &&
+          !condition_holds({"f.x", "==", Json::array({1})}, &one) && !condition_holds({"f.x", "<", "1"}, &one));
+}
+
+static void test_condition_render() {
+    auto parsed = parse_manifest(v2_cond().dump());
+    CHECK(parsed);
+    if (!parsed) return;
+    const auto& m = *parsed.manifest;
+    RenderContext ctx{sample_data(m), Json::object(), "12:00", "06.11.2026"};
+    // Vorschau mit Beispieldaten (so rendert App::plugin_preview): load 40 >= 50 ist falsch.
+    auto page = render_page(m, ctx);
+    CHECK(shown_ids(page) == Ids({"temp", "rows", "uhr"}) && page.hidden == Ids({"load"}) && !page.missing_data && page.failed.empty());
+    for (size_t i = 0; i < page.widgets.size(); ++i) CHECK(page.widgets[i].index == (i == 0 ? 0u : i + 1));
+    // Live ohne Antwort (Vorschau "missing"): alle Blöcke mit Quellbedingung aus, Fußzeile meldet fehlende Daten.
+    ctx.sources.clear();
+    page = render_page(m, ctx);
+    CHECK(shown_ids(page) == Ids({"uhr"}) && page.hidden == Ids({"temp", "load", "rows"}) && page.missing_data);
+    // Antwort da, Felder fehlen: ausgeblendet, aber keine "fehlenden Daten" (genau dafür ist show_if da).
+    ctx.sources = {{"feed", {{"other", 1}}}};
+    page = render_page(m, ctx);
+    CHECK(shown_ids(page) == Ids({"uhr"}) && !page.missing_data);
+    // null / leer / Wert: null und [] blenden aus, 80 >= 50 zeigt den Balken.
+    ctx.sources = {{"feed", {{"temp", nullptr}, {"load", 80}, {"rows", Json::array()}}}};
+    page = render_page(m, ctx);
+    CHECK(shown_ids(page) == Ids({"load", "uhr"}) && !page.missing_data);
+    CHECK(page.widgets.size() == 2 && page.widgets[0].bar_fraction && std::abs(*page.widgets[0].bar_fraction - 0.8) < 1e-9);
+    // Typen werden nicht umgewandelt: "80" ist keine Zahl. 0 ist vorhanden.
+    ctx.sources = {{"feed", {{"temp", 0}, {"load", "80"}, {"rows", Json::array({{{"t", "A"}}})}}}};
+    page = render_page(m, ctx);
+    CHECK(shown_ids(page) == Ids({"temp", "rows", "uhr"}) && page.widgets[0].text == "0");
+    // Einstellungen: Standardwert, überschrieben, ungültig (dann wie fehlend und "Daten fehlen").
+    ctx.sources = sample_data(m);
+    ctx.settings = {{"city", "Berlin"}, {"token", "PRIVATE"}};
+    page = render_page(m, ctx);
+    CHECK(shown_ids(page) == Ids({"temp", "rows"}) && page.hidden == Ids({"load", "uhr"}));
+    ctx.settings = {{"city", 5}};
+    page = render_page(m, ctx);
+    CHECK(shown_ids(page) == Ids({"temp", "rows"}) && page.missing_data);
+    // Beispieldaten fehlen ganz (Quelle ohne sample): in der Vorschau ist die Quelle leer, also alle Quellblöcke aus.
+    auto no_sample = v2_cond(); no_sample["sources"][0].erase("sample");
+    auto ns = parse_manifest(no_sample.dump());
+    CHECK(ns);
+    if (ns) {
+        RenderContext preview{sample_data(*ns.manifest), Json::object(), "12:00", "06.11.2026"};
+        auto p = render_page(*ns.manifest, preview);
+        CHECK(shown_ids(p) == Ids({"uhr"}) && !p.missing_data);
+        auto whole = no_sample; whole["widgets"][0]["show_if"] = {{"path", "feed"}};
+        auto w = parse_manifest(whole.dump());
+        CHECK(w && render_page(*w.manifest, preview).hidden.front() == "temp");
+        preview.sources = {{"feed", {{"x", 1}}}};
+        CHECK(w && shown_ids(render_page(*w.manifest, preview)).front() == "temp"); // ganze Quelle vorhanden
+    }
+    // Zonen: eine Zone, deren Blöcke alle ausgeblendet sind, bleibt leer; die Geometrie bleibt gültig, nichts fließt um.
+    ctx.settings = Json::object();
+    ctx.sources.clear();
+    page = render_page(m, ctx);
+    const z::DensityTable table;
+    std::vector<z::BlockInput> inputs;
+    for (const auto& w : page.widgets) inputs.push_back(z::describe(w.id, w.type, table, w.zone));
+    const auto plan = z::plan({10, 39, 460, 252}, *page.layout, inputs, 7);
+    CHECK(plan.zones.size() == 3 && plan.blocks.size() == 1 && plan.blocks[0].visible() && sane(plan, {10, 39, 460, 252}));
+    CHECK(plan.zones[2].area.width < 200);  // "foot" behält seine Rasterfläche, auch wenn "main" leer ist
+}
+
+// Fehlerinjektion in die Datenauswertung über den Test-Hook (plugins_testing.h; die App ruft render_page ohne Hook).
+static void test_data_isolation() {
+    auto parsed = parse_manifest(v2_cond().dump());
+    CHECK(parsed);
+    if (!parsed) return;
+    const auto& m = *parsed.manifest;
+    const RenderContext ctx{sample_data(m), Json::object(), "12:00", "06.11.2026"};
+    const auto reference = render_page(m, ctx);
+    testing::DataHooks none;
+    auto same = testing::render_page(m, ctx, none);
+    CHECK(shown_ids(same) == shown_ids(reference) && same.hidden == reference.hidden && same.failed.empty());
+    for (const char* target : {"temp", "rows", "uhr"}) {
+        testing::DataHooks hooks;
+        hooks.before_block = [&](const std::string& key) { if (key == target) throw std::runtime_error("GEHEIM-123"); };
+        auto page = testing::render_page(m, ctx, hooks);
+        CHECK(page.failed == Ids({target}) && page.missing_data);
+        Ids expected;
+        for (const auto& w : reference.widgets) if (w.id != target) expected.push_back(w.id);
+        CHECK(shown_ids(page) == expected);
+        for (const auto& w : page.widgets) // übrige Blöcke unverändert
+            for (const auto& r : reference.widgets)
+                if (r.id == w.id) CHECK(r.text == w.text && r.items == w.items && r.bar_fraction == w.bar_fraction && r.index == w.index);
+    }
+    testing::DataHooks odd;  // keine std::exception
+    odd.before_block = [](const std::string& key) { if (key == "rows") throw 42; };
+    CHECK(testing::render_page(m, ctx, odd).failed == Ids({"rows"}));
+    testing::DataHooks all;
+    all.before_block = [](const std::string&) { throw std::bad_alloc(); };
+    auto empty = testing::render_page(m, ctx, all);
+    CHECK(empty.widgets.empty() && empty.hidden.empty() && empty.failed.size() == 4 && empty.missing_data);
+    // Fehler außerhalb jedes Blocks (äußere Fehlergrenze): Seite ohne Blöcke, Daten fehlen, ID/Titel bleiben, keine Ausnahme.
+    for (int kind = 0; kind < 2; ++kind) {
+        testing::DataHooks outside;
+        outside.outside_blocks = [kind] { if (kind == 0) throw std::bad_alloc(); throw 5; };
+        bool threw = false;
+        Page page;
+        try { page = testing::render_page(m, ctx, outside); } catch (...) { threw = true; }
+        CHECK(!threw && page.widgets.empty() && page.hidden.empty() && page.failed.empty() && page.missing_data &&
+              page.id == m.id && page.title == m.name && !page.layout);
+    }
+    // v1: Schlüssel "#<Index>".
+    auto old = parse_manifest(v1().dump());
+    CHECK(old);
+    if (old) {
+        testing::DataHooks first;
+        first.before_block = [](const std::string& key) { if (key == "#0") throw std::runtime_error("x"); };
+        auto page = testing::render_page(*old.manifest, {}, first);
+        CHECK(page.failed == Ids({"#0"}) && page.widgets.empty());
+    }
+}
+
+static void test_rate_limiter() {
+    using namespace std::chrono_literals;
+    namespace iso = fl::plugins::isolation;
+    iso::RateLimiter limiter(60s, 3);
+    const iso::RateLimiter::Clock::time_point t0{};
+    CHECK(limiter.allow("a", t0) && !limiter.allow("a", t0 + 59s) && limiter.allow("a", t0 + 60s) && !limiter.allow("a", t0 + 61s));
+    CHECK(limiter.allow("b", t0) && limiter.allow("c", t0));
+    CHECK(!limiter.allow("d", t0 + 1s) && limiter.tracked() == 3);   // voll, nichts abgelaufen: verworfen statt zu wachsen
+    CHECK(limiter.allow("d", t0 + 61s) && limiter.tracked() == 2);   // b und c abgelaufen und entfernt, a (60 s) bleibt
+    CHECK(iso::safe_id("offline-bedingt") == "offline-bedingt" && iso::safe_id("#3") == "#3" && iso::safe_id("") == "?");
+    const auto hostile = iso::safe_id("Token=GEHEIM\n%s{{settings.token}}" + std::string(100, 'x'));
+    CHECK(hostile.size() == 48 && hostile.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-#?") == std::string::npos);
+    CHECK(iso::failure_message("p", "#1", iso::Stage::data) == "Plugin p: Block #1 ausgeblendet (Fehler beim Auswerten der Daten)");
+    CHECK(iso::failure_message("p", "temp", iso::Stage::draw) == "Plugin p: Block temp ausgeblendet (Fehler beim Zeichnen)");
+    CHECK(iso::limiter_key("p", "b", iso::Stage::data) != iso::limiter_key("p", "b", iso::Stage::draw));
+}
+
+// Fuzz-nahe Bedingungen (eigener fester Seed; der Fuzz oben bleibt unverändert).
+static Json random_condition(std::mt19937& rng) {
+    static const Json paths[] = {"feed", "feed.temp", "feed.rows.0.t", "settings.token", "settings.city", "settings.limit", "time",
+                                 "item.t", "settings", "x.y", "", "feed..t", 7, nullptr, "feed.a.b.c.d.e.f.g.h"};
+    static const Json ops[] = {"==", "!=", "<", "<=", ">", ">=", "=", "", "in", 3, nullptr};
+    static const Json values[] = {0, -1.5, 1e300, "abc", "", true, false, nullptr, Json::array({1}), Json::object(), "a\nb"};
+    Json c = Json::object();
+    if (rng() % 8) c["path"] = paths[rng() % std::size(paths)];
+    if (rng() % 2) c["op"] = ops[rng() % std::size(ops)];
+    if (rng() % 2) c["value"] = values[rng() % std::size(values)];
+    if (rng() % 10 == 0) c["extra"] = 1;
+    return rng() % 12 ? c : Json("feed.temp > 3");
+}
+static Json random_data(std::mt19937& rng, int depth = 0) {
+    switch (rng() % (depth < 2 ? 9 : 6)) {
+        case 0: return nullptr;
+        case 1: return static_cast<int>(rng() % 200) - 100;
+        case 2: return std::numeric_limits<double>::infinity();
+        case 3: return rng() % 2 ? "" : "Berlin";
+        case 4: return rng() % 2 == 1;
+        case 5: return 50.5;
+        case 6: return Json::array({random_data(rng, depth + 1)});
+        case 7: return Json::object();
+        default: return Json{{"t", random_data(rng, depth + 1)}};
+    }
+}
+static void test_fuzz_conditions() {
+    std::mt19937 rng(20261107u);
+    int accepted = 0, exceptions = 0, broken = 0, conditional = 0;
+    for (int round = 0; round < 4000; ++round) {
+        Json j = v2_cond();
+        const int edits = 1 + static_cast<int>(rng() % 3);
+        for (int e = 0; e < edits; ++e) {
+            // frühere Änderungen können widgets (oder das ganze Manifest) ersetzt haben: dann nur noch freie Änderungen
+            const bool widgets = j.is_object() && j.contains("widgets") && j["widgets"].is_array() && !j["widgets"].empty();
+            Json* w = widgets ? &j["widgets"][rng() % j["widgets"].size()] : nullptr;
+            const auto choice = rng() % 8;
+            if (w && w->is_object() && choice < 6) (*w)["show_if"] = random_condition(rng);
+            else if (w && w->is_object() && choice == 6) w->erase("show_if");
+            else *random_node(j, rng) = random_value(rng);
+        }
+        if (rng() % 5 == 0 && j.is_object()) j["schema_version"] = rng() % 2 ? 2 : 1;
+        try {
+            auto parsed = parse_manifest(j.dump());
+            if (!parsed) continue;
+            ++accepted;
+            const auto& m = *parsed.manifest;
+            bool ok = true;
+            for (const auto& w : m.widgets) {
+                if (!w.show_if) continue;
+                ++conditional;
+                ok = ok && m.schema_version == 2;
+                const auto& c = *w.show_if;
+                const auto head = c.path.substr(0, c.path.find('.'));
+                if (head == "settings")
+                    for (const auto& s : m.settings) if ("settings." + s.key == c.path) ok = ok && s.type != "secret";
+                ok = ok && head != "time" && head != "date" && head != "item";
+                if (!c.op.empty()) ok = ok && !c.value.is_null() && !c.value.is_structured() &&
+                                        (c.value.is_number() || c.op == "==" || c.op == "!=");
+                else ok = ok && c.value.is_null();
+            }
+            for (int r = 0; r < 4; ++r) {  // Auswertung mit zufälligen Antworten und Einstellungen: nie eine Ausnahme
+                RenderContext ctx;
+                if (rng() % 4) ctx.sources["feed"] = {{"temp", random_data(rng)}, {"load", random_data(rng)}, {"rows", random_data(rng)}};
+                if (rng() % 2) ctx.settings = {{"city", random_data(rng)}, {"limit", random_data(rng)}, {"token", "PRIVATE"}};
+                const auto page = render_page(m, ctx);
+                ok = ok && page.failed.empty() && page.widgets.size() + page.hidden.size() == m.widgets.size();
+            }
+            auto again = parse_manifest(m.definition.dump());
+            ok = ok && again && again.manifest->definition == m.definition;
+            if (!ok) ++broken;
+        } catch (...) { ++exceptions; }
+    }
+    CHECK(exceptions == 0);
+    CHECK(broken == 0);
+    CHECK(accepted > 0 && conditional > 0);
+    std::printf("fuzz show_if: 4000 manifests, %d accepted, %d conditional blocks\n", accepted, conditional);
+}
+
 int main() {
     test_v1_unchanged(); test_v2_accepts(); test_v2_rejects(); test_store_rules();
     test_density(); test_geometry(); test_fuzz();
+    test_conditions_parse(); test_condition_table(); test_condition_render(); test_data_isolation(); test_rate_limiter();
+    test_fuzz_conditions();
     std::printf("plugin zones: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;
 }

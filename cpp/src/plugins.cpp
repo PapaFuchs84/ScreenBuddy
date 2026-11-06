@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "plugins.h"
+#include "plugins_testing.h"
 #include <algorithm>
 #include <charconv>
 #include <cmath>
@@ -251,6 +252,37 @@ std::vector<int> shares(const Json& j, const char* key, int limit) {
     }
     return out;
 }
+// Manifest v2 `show_if`: object {path[, op, value]}; no expression syntax at all. Secret settings never allowed.
+bool ordering(const std::string& op) { return op == "<" || op == "<=" || op == ">" || op == ">="; }
+Condition condition(const Manifest& m, const Json& j) {
+    fields(j, {"path", "op", "value"});
+    Condition c;
+    c.path = str(j, "path", 1, condition_path_limit);
+    const auto path = split(c.path);
+    require(path.size() <= condition_segment_limit &&
+            std::all_of(path.begin(), path.end(), [](const auto& p) { return path_segment(p); }), "Invalid condition path.");
+    if (path[0] == "settings") {
+        require(path.size() == 2, "Setting reference must have exactly one key.");
+        const auto* s = setting(m, path[1]);
+        require(s != nullptr, "Unknown setting reference.");
+        require(s->type != "secret", "Secret settings cannot appear in conditions.");
+    } else require(source_exists(m, path[0]), "Condition must reference a source or a setting."); // time/date/item are no sources
+    if (!j.contains("op")) {
+        require(!j.contains("value"), "A condition value needs an operator.");
+        return c;
+    }
+    c.op = str(j, "op", 1, 2);
+    require(c.op == "==" || c.op == "!=" || ordering(c.op), "Unsupported condition operator.");
+    require(path.size() >= 2, "Comparisons need a field path.");
+    require(j.contains("value"), "A comparison needs a value.");
+    const auto& v = j["value"];
+    if (v.is_number()) c.value = number(j, "value");
+    else if (v.is_string()) c.value = checked_text(j, "value", 1, condition_text_limit);
+    else if (v.is_boolean()) c.value = v.get<bool>();
+    else throw Invalid("Condition value must be text, a number or a boolean.");
+    require(v.is_number() || !ordering(c.op), "Only numbers can be compared with <, <=, > or >=.");
+    return c;
+}
 zones::Layout layout(const Json& j) {
     fields(j, {"columns", "rows", "zones"});
     zones::Layout l;
@@ -400,7 +432,7 @@ ParseResult parse_manifest(std::string_view utf8) {
             w.type = str(v, "type");
             // v2 widgets carry a stable block ID and, with a layout, their zone.
             auto allowed = [&](std::initializer_list<const char*> base) {
-                auto list = with(base, v2, {"id"});
+                auto list = with(base, v2, {"id", "show_if"});
                 if (zoned) list.push_back("zone");
                 return list;
             };
@@ -428,6 +460,7 @@ ParseResult parse_manifest(std::string_view utf8) {
             if (v2) {
                 w.id = str(v, "id");
                 require(identifier(w.id) && block_ids.insert(w.id).second, "Invalid or duplicate block ID.");
+                if (v.contains("show_if")) w.show_if = condition(m, v["show_if"]);
             }
             if (zoned) {
                 w.zone = str(v, "zone");
@@ -459,11 +492,42 @@ SourceData sample_data(const Manifest& manifest) {
     for (const auto& source : manifest.sources) result.emplace(source.id, source.sample);
     return result;
 }
-Page render_page(const Manifest& m, const RenderContext& context) {
+bool condition_holds(const Condition& c, const Json* v) {
+    // Presence first (the same rule for every operator): missing, null, non-finite, "" , [] and {} never pass.
+    if (!v || v->is_null()) return false;
+    if (v->is_number() && !std::isfinite(v->get<double>())) return false;
+    if (v->is_string() && v->get_ref<const std::string&>().empty()) return false;
+    if (v->is_structured() && v->empty()) return false;
+    if (c.op.empty()) return true;
+    const Json& literal = c.value;
+    const bool equal_op = c.op == "==", unequal_op = c.op == "!=";
+    if (literal.is_number()) {
+        if (!v->is_number()) return false; // no conversion: "42" is not 42, true is not 1
+        const double a = v->get<double>(), b = literal.get<double>();
+        if (!std::isfinite(b)) return false;
+        if (equal_op) return a == b;
+        if (unequal_op) return a != b;
+        if (c.op == "<") return a < b;
+        if (c.op == "<=") return a <= b;
+        if (c.op == ">") return a > b;
+        if (c.op == ">=") return a >= b;
+        return false;
+    }
+    if (literal.is_string() || literal.is_boolean()) {
+        if (literal.type() != v->type()) return false;
+        if (equal_op) return *v == literal;
+        if (unequal_op) return *v != literal;
+    }
+    return false; // unknown operator or literal type (the parser never produces one): fail closed
+}
+namespace {
+std::string block_key(const Widget& w, size_t index) { return w.id.empty() ? "#" + std::to_string(index) : w.id; }
+Page render_page_unguarded(const Manifest& m, const RenderContext& context, const testing::DataHooks* hooks) {
     Page page{m.id, bounded(m.name), {}, false, m.layout};
-    Json values;
+    Json values; // null without valid settings: every settings path is then missing (null needs no allocation)
     try { values = settings_values(m, context.settings, false); }
-    catch (const Invalid&) { values = Json::object(); page.missing_data = true; }
+    catch (...) { values = Json(); page.missing_data = true; }
+    if (hooks && hooks->outside_blocks) hooks->outside_blocks();
     auto data = [&](const std::string& ref, const Json* item) -> const Json* {
         auto path = split(ref);
         if (path[0] == "settings") return walk(&values, path, 1);
@@ -478,7 +542,7 @@ Page render_page(const Manifest& m, const RenderContext& context) {
             return scalar(data(ref, item), page.missing_data);
         }, true);
     };
-    for (const auto& w : m.widgets) {
+    auto render_block = [&](const Widget& w) {
         RenderedWidget rendered;
         rendered.type = w.type; rendered.label = text(w.label); rendered.unit = text(w.unit);
         rendered.id = w.id; rendered.zone = w.zone;
@@ -504,10 +568,55 @@ Page render_page(const Manifest& m, const RenderContext& context) {
                 } else page.missing_data = true;
             }
         }
-        page.widgets.push_back(std::move(rendered));
+        return rendered;
+    };
+    // false = block hidden by show_if. A source that delivered nothing at all (live mode before or without a
+    // response) counts as missing data even if every block using it is conditional; a missing field in a
+    // delivered response does not (that is what show_if is for).
+    auto shown = [&](const Widget& w) {
+        if (!w.show_if) return true;
+        const auto& path = w.show_if->path;
+        const auto head = path.substr(0, path.find('.'));
+        if (head != "settings" && !context.sources.contains(head)) page.missing_data = true;
+        return condition_holds(*w.show_if, data(path, nullptr));
+    };
+    for (size_t index = 0; index < m.widgets.size(); ++index) {
+        const auto& w = m.widgets[index];
+        // Isolation per block: a failure while evaluating this block's condition or data leaves only this block out.
+        try {
+            if (hooks && hooks->before_block) hooks->before_block(block_key(w, index));
+            if (shown(w)) {
+                page.widgets.push_back(render_block(w));
+                page.widgets.back().index = index;
+            }
+            else page.hidden.push_back(block_key(w, index));
+        } catch (...) {
+            page.missing_data = true;
+            try { page.failed.push_back(block_key(w, index)); } catch (...) {} // out of memory: the block stays out anyway
+        }
     }
     return page;
 }
+// Outer boundary: a failure outside the per-block isolation (e.g. out of memory while copying ID, title or layout)
+// gives a page without blocks and with missing_data. The fallback only uses non-throwing default construction;
+// ID and title are kept when they can still be copied.
+Page render_page_with(const Manifest& m, const RenderContext& context, const testing::DataHooks* hooks) {
+    try { return render_page_unguarded(m, context, hooks); }
+    catch (...) {
+        Page fallback;
+        fallback.missing_data = true;
+        try { fallback.id = m.id; fallback.title = bounded(m.name); } catch (...) { fallback.id.clear(); fallback.title.clear(); }
+        return fallback;
+    }
+}
+} // namespace
+
+Page render_page(const Manifest& m, const RenderContext& context) { return render_page_with(m, context, nullptr); }
+namespace testing {
+Page render_page(const Manifest& m, const RenderContext& context, const DataHooks& hooks) {
+    return render_page_with(m, context, &hooks);
+}
+} // namespace testing
 RequestResult prepare_request(const Manifest& m, const Source& source, const Json& supplied) {
     try {
         const auto values = settings_values(m, supplied, true);

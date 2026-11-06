@@ -76,6 +76,22 @@ Mit `schema_version: 2` ordnest du bis zu 12 Widgets (Blöcke) in **Zonen** eine
 
 Auf kleiner Fläche zeigt ein Block weniger Details (kompakt, normal, ausführlich). Passt ein Block gar nicht, blendet ihn ScreenBuddy aus, statt ihn zu überlappen oder abzuschneiden. Plane deshalb die wichtigsten Blöcke in große Zonen. Ohne `layout` bleibt eine v2-Seite im automatischen Raster mit höchstens 6 Widgets, und `zone` ist dann nicht erlaubt.
 
+### Bedingte Anzeige mit `show_if`
+
+Ein Block soll nur erscheinen, wenn es etwas zu zeigen gibt? Gib ihm in Schema 2 ein `show_if`. Das fertige lokale Beispiel ist [offline-bedingt.flplugin.json](../cpp/examples/plugins/offline-bedingt.flplugin.json): Der Hinweis erscheint nur, wenn die Einstellung nicht leer ist, „Pausen“ nur bei mehr als 0 Pausen, und je nach Modus und Fortschritt wechseln die Blöcke.
+
+```json
+{"type": "text", "id": "hinweis", "zone": "hinweis", "text": "{{settings.note}}", "show_if": {"path": "settings.note"}}
+{"type": "metric", "id": "pausen", "zone": "pausen", "value": "{{settings.breaks}}", "show_if": {"path": "settings.breaks", "op": ">", "value": 0}}
+```
+
+- Ohne `op` heißt `show_if` „Wert vorhanden“: fehlend, `null`, `""`, `[]` und `{}` blenden aus; `false` und `0` gelten als vorhanden.
+- Mit `op` (`==`, `!=`, `<`, `<=`, `>`, `>=`) wird gegen genau einen festen Wert verglichen, ohne Typumwandlung: `"42"` ist nicht `42`. Ist der Wert nicht vorhanden oder hat er einen anderen Typ, bleibt der Block aus, auch bei `!=`.
+- Geheime Einstellungen (`secret`) sind in Bedingungen verboten; der Validator lehnt das Manifest dann ab.
+- Für die Vorschau zählen die `sample`-Daten: Wähle sie so, dass die bedingten Blöcke dort sichtbar sind.
+
+Die vollständige Wertetabelle steht unter [Bedingte Anzeige](PLUGIN-SYSTEM.md#bedingte-anzeige-show_if-phase-3). Wirft ein Block beim Auswerten oder Zeichnen einen Fehler, blendet ScreenBuddy nur diesen Block aus und schreibt einen kurzen Log-Eintrag ohne Daten.
+
 ## Zugangsdaten und sichere Weitergabe
 
 Geheimnisse ausschließlich in einem deklarierten Feld vom Typ `secret` über die lokale Plugin-Konfiguration eingeben. Unter Windows werden gespeicherte Pluginwerte mit DPAPI geschützt; das verhindert nicht, dass ausdrücklich referenzierte Werte an freigegebene Hosts gesendet werden. Tokens möglichst in `Authorization` statt URL-Parametern verwenden. Ein leeres Zugangsfeld behält den gespeicherten Wert; zum Entfernen **Gespeicherten Wert löschen** verwenden und speichern.
