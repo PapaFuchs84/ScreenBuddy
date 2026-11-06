@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+- P5-3 (2026-11-06): BF6 mechanisch wie RSS auf `draw_framed` mit festen Zeilen-/Hinweisblöcken umgestellt; Sortierung, Seitenindex, Fußtext und bestehende gemeinsame Zeilen-/Treffergeometrie beibehalten. Bitgleich bestätigt: 4.221 Bilder und 4.221 Trefferkarten, 0 Fehler; Plugin-Snapshots 1.901/0, Plugin-Touch 2.093/0. Alle vier angeforderten Release-Ziele gebaut; Baselines unverändert, physische Abnahme offen.
+
 - P5-1 (2026-11-06): Nur RSS auf `draw_framed`, Zeilen-/Hinweisblöcke und feste gemeinsame Zeichen-/Trefferanordnung umgestellt; Zeichenfolge und Rechenausdrücke beibehalten. Vollständiger Neuaufbau und fünf Einzelsuiten grün; Built-in-Bitgleichheit wegen unsichtbarem Roboto nicht geprüft, externe Abnahme offen. Baselines unverändert.
 
 ### P5-0 – Built-in-Baseline (2026-11-06, Entwicklung)

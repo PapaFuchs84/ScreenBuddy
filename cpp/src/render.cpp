@@ -469,69 +469,127 @@ Bf6Renderer::Bf6Renderer(int w_, int h_, std::string t) : Renderer(w_, h_, std::
     f_pos = font(14, true);
 }
 
+std::vector<plugins::zones::PlacedBlock> Bf6Renderer::layout() const {
+    // Wie Renderer::row_at: dieselbe Kopfkante, Zeilenhöhe und Zeilenzahl.
+    float body_top = HEADER_H + 2;
+    std::vector<plugins::zones::PlacedBlock> rows;
+    for (int i = 0; i < rows_per_page(); ++i)
+        rows.push_back({"bf6.zeile." + std::to_string(i), "bf6",
+                        {0, body_top + i * row_height(), w, (float)row_height()},
+                        plugins::zones::Density::regular});
+    return rows;
+}
+
+class Bf6Renderer::RowBlock : public plugins::zones::Block {
+public:
+    RowBlock(Bf6Renderer& renderer, const Bf6Player& player, int index, int pos)
+        : renderer_(renderer), player_(player), pos_(pos), id_("bf6.zeile." + std::to_string(index)) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        return {renderer_.h > renderer_.w ? 320.f : 480.f, (float)row_height()};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        auto& r = renderer_;
+        const auto& p = player_;
+        int pos = pos_;
+        float y = area.y;
+        const Theme& t = g_theme;
+        float cy = y + row_height() / 2;
+        const float l1 = cy - 9, l2 = cy + 9;   // zwei Zeilen vertikal zentriert (44: 13/31)
+        Color pos_col = pos <= 3 && p.error.empty() ? t.accent : t.muted;
+        d.text(24, cy, std::to_string(pos) + ".", r.f_pos, pos_col, "rm");
+        float ix = 30;
+        if (p.rank_icon && !p.rank_icon->empty()) {
+            int n = pyround_i((AVATAR + 4) * r.s);
+            Image icon = thumbnail(*p.rank_icon, n, n);
+            float iw = icon.w / r.s, ih = icon.h / r.s;  // logische Größe
+            d.image(icon, ix + (float)floordiv(AVATAR + 4 - iw, 2), cy - (float)floordiv(ih, 2));
+        } else if (p.rank) {
+            d.ellipse_outline(ix + 2, cy - 16, ix + 34, cy + 16, t.orange, 2);
+            d.text(ix + 18, cy, std::to_string(*p.rank), r.f_small, t.text, "mm");
+        }
+        float tx = ix + AVATAR + 12;
+        // Rechte Spalte: K/D groß, Siegquote und Spielstunden klein.
+        std::string detail;
+        if (p.win_pct) detail = tr(strprintf("%.0f %% Siege", *p.win_pct));
+        if (p.hours && std::isfinite(*p.hours) && *p.hours >= 0)
+            detail += (detail.empty() ? "" : " · ") + strprintf("%.0f h", *p.hours);
+        float stat_w = std::max(92.f, d.textlength(tr(detail), r.f_act) + 8), sx = r.w - 10;
+        if (p.kd) d.text(sx, l1, strprintf("K/D %.2f", *p.kd), r.f_stat, t.text, "rm");
+        if (!detail.empty()) d.text(sx, l2, detail, r.f_act, t.muted, "rm");
+        float max_w = sx - stat_w - tx;
+        d.text(tx, l1, r.fit(d, p.name, r.f_name, max_w), r.f_name, p.error.empty() ? t.text : t.muted, "lm");
+        std::string line2;
+        Color col;
+        if (!p.error.empty()) {
+            line2 = p.error;
+            col = t.status.at("dnd");
+        } else {
+            line2 = p.rank ? "Rang " + std::to_string(*p.rank) : "Rang unbekannt";
+            if (!p.rank_name.empty()) line2 += " · " + p.rank_name;
+            col = t.accent;
+        }
+        d.text(tx, l2, r.fit(d, line2, r.f_act, max_w), r.f_act, col, "lm");
+        d.line({{tx, y + row_height() - 1}, {r.w - 10, y + row_height() - 1}}, t.line, 1);
+    }
+private:
+    Bf6Renderer& renderer_;
+    const Bf6Player& player_;
+    int pos_;
+    std::string id_;
+};
+
+class Bf6Renderer::HintBlock : public plugins::zones::Block {
+public:
+    HintBlock(Bf6Renderer& renderer, const char* text) : renderer_(renderer), text_(text) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        d.text(area.width / 2, area.height / 2, text_, renderer_.f_big, g_theme.muted, "mm");
+    }
+private:
+    Bf6Renderer& renderer_;
+    const char* text_;
+    std::string id_ = "bf6.hinweis";
+};
+
 Image Bf6Renderer::render(std::vector<Bf6Player> players, int page, std::optional<std::time_t> updated, std::time_t now) {
     const Theme& t = g_theme;
     players = sort_players(std::move(players));
-    Canvas d(W, H, s, t.bg);
     int found = (int)std::count_if(players.begin(), players.end(), [](auto& p) { return p.error.empty(); });
-    header(d, now, std::to_string(found) + " Spieler");
-    float body_top = HEADER_H + 2;
     int n = pages(players.size());
     page = ((page % n) + n) % n;
-    if (players.empty()) {
-        d.text(w / 2, h / 2, "Keine Spieler in config.toml", f_big, t.muted, "mm");
-    } else if (!updated) {
-        d.text(w / 2, h / 2, "Lade Battlefield-Profile …", f_big, t.muted, "mm");
+    std::vector<RowBlock> rows;
+    std::vector<Platzierung> blocks;
+    HintBlock hint(*this, players.empty() ? "Keine Spieler in config.toml" : "Lade Battlefield-Profile …");
+    if (players.empty() || !updated) {
+        // Vollfläche erhält die bisherige Mitte w/2, h/2 wie bei RSS.
+        blocks.push_back({&hint, {hint.id(), "bf6", {0, 0, w, h}, plugins::zones::Density::regular}});
     } else {
         int per = rows_per_page();
-        for (int i = 0; i < per && page * per + i < (int)players.size(); ++i)
-            bf_row(d, players[page * per + i], page * per + i + 1, body_top + i * row_height());
+        const auto areas = layout();
+        rows.reserve(per);
+        for (int i = 0; i < per && page * per + i < (int)players.size(); ++i) {
+            rows.emplace_back(*this, players[page * per + i], i, page * per + i + 1);
+            blocks.push_back({&rows.back(), areas[i]});
+        }
     }
     std::string left = updated ? "Stand " + clock_hhmm(*updated) : "";
     if (n > 1) left = strprintf("Seite %d/%d", page + 1, n) + (left.empty() ? "" : " · " + left);
-    footer(d, left);
-    return d.finish();
-}
-
-void Bf6Renderer::bf_row(Canvas& d, const Bf6Player& p, int pos, float y) {
-    const Theme& t = g_theme;
-    float cy = y + row_height() / 2;
-    const float l1 = cy - 9, l2 = cy + 9;   // zwei Zeilen vertikal zentriert (44: 13/31)
-    Color pos_col = pos <= 3 && p.error.empty() ? t.accent : t.muted;
-    d.text(24, cy, std::to_string(pos) + ".", f_pos, pos_col, "rm");
-    float ix = 30;
-    if (p.rank_icon && !p.rank_icon->empty()) {
-        int n = pyround_i((AVATAR + 4) * s);
-        Image icon = thumbnail(*p.rank_icon, n, n);
-        float iw = icon.w / s, ih = icon.h / s;  // logische Größe
-        d.image(icon, ix + (float)floordiv(AVATAR + 4 - iw, 2), cy - (float)floordiv(ih, 2));
-    } else if (p.rank) {
-        d.ellipse_outline(ix + 2, cy - 16, ix + 34, cy + 16, t.orange, 2);
-        d.text(ix + 18, cy, std::to_string(*p.rank), f_small, t.text, "mm");
-    }
-    float tx = ix + AVATAR + 12;
-    // Rechte Spalte: K/D groß, Siegquote und Spielstunden klein.
-    std::string detail;
-    if (p.win_pct) detail = tr(strprintf("%.0f %% Siege", *p.win_pct));
-    if (p.hours && std::isfinite(*p.hours) && *p.hours >= 0)
-        detail += (detail.empty() ? "" : " · ") + strprintf("%.0f h", *p.hours);
-    float stat_w = std::max(92.f, d.textlength(tr(detail), f_act) + 8), sx = w - 10;
-    if (p.kd) d.text(sx, l1, strprintf("K/D %.2f", *p.kd), f_stat, t.text, "rm");
-    if (!detail.empty()) d.text(sx, l2, detail, f_act, t.muted, "rm");
-    float max_w = sx - stat_w - tx;
-    d.text(tx, l1, fit(d, p.name, f_name, max_w), f_name, p.error.empty() ? t.text : t.muted, "lm");
-    std::string line2;
-    Color col;
-    if (!p.error.empty()) {
-        line2 = p.error;
-        col = t.status.at("dnd");
-    } else {
-        line2 = p.rank ? "Rang " + std::to_string(*p.rank) : "Rang unbekannt";
-        if (!p.rank_name.empty()) line2 += " · " + p.rank_name;
-        col = t.accent;
-    }
-    d.text(tx, l2, fit(d, line2, f_act, max_w), f_act, col, "lm");
-    d.line({{tx, y + row_height() - 1}, {w - 10, y + row_height() - 1}}, t.line, 1);
+    const std::string info = std::to_string(found) + " Spieler";
+    return draw_framed({W, H, s, t.bg, [this, now, &info](Canvas& d) { header(d, now, info); },
+                        [this, &left](Canvas& d) { footer(d, left); }}, blocks);
 }
 
 // ---------- System ----------
