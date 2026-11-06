@@ -661,41 +661,100 @@ int SysRenderer::zone_at(int w_px, int h_px, int x_px, int y_px) {
     return -1;
 }
 
+class SysRenderer::CardBlock : public plugins::zones::Block {
+public:
+    CardBlock(SysRenderer& renderer, const SysSnapshot& snap, size_t index, bool group = false, float group_bottom = 0)
+        : renderer_(renderer), snap_(snap), index_(index), group_(group), group_bottom_(group_bottom),
+          id_(group ? "system.gruppe" : ids_[index]) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        const auto areas = regions(portrait ? 320.f : 480.f, portrait ? 480.f : 320.f, g_theme.style);
+        return {areas[index_].w, group_ ? areas.back().y + areas.back().h - areas.front().y : areas[index_].h};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        auto& r = renderer_;
+        const Region a{area.x, area.y, area.width, area.height, -1};
+        if (group_) {
+            d.rounded_rectangle(a.x, a.y, a.x + a.w, group_bottom_, 14, g_theme.card);
+        } else if (g_theme.style == theme::Style::Cupertino) {
+            r.grouped_row(d, a, snap_, index_);
+        } else if (g_theme.style == theme::Style::Material) {
+            r.expressive_card(d, a, snap_, index_);
+        } else {
+            r.system_card(d, a, snap_, index_);
+        }
+    }
+private:
+    inline static const std::array<std::string, 5> ids_ = {
+        "system.cpu", "system.gpu", "system.ram", "system.datentraeger", "system.netz"};
+    SysRenderer& renderer_;
+    const SysSnapshot& snap_;
+    size_t index_;
+    bool group_;
+    float group_bottom_;
+    std::string id_;
+};
+
 Image SysRenderer::render(const SysSnapshot& sn, std::time_t now) {
     const Theme& t = g_theme;
-    Canvas d(W, H, s, t.bg);
-    header(d, now, sn.hwinfo ? "" : "ohne HWiNFO");
     const auto areas = regions(w, h, t.style);
+    std::vector<CardBlock> cards;
+    std::vector<Platzierung> blocks;
+    cards.reserve(6);
     if (t.style == theme::Style::Cupertino) {
-        grouped_system(d, areas, sn);
-    } else if (t.style == theme::Style::Material) {
-        expressive_system(d, areas, sn);
-    } else {
-        const auto& cpu = areas[0]; const auto& gpu = areas[1];
-        const auto& ram_area = areas[2]; const auto& disk_area = areas[3]; const auto& net = areas[4];
+        const auto& first = areas.front(); const auto& last = areas.back();
+        cards.emplace_back(*this, sn, 0, true, last.y + last.h);
+        // Endkante unverändert: keine zusätzliche Subtraktion/Addition für die Gruppenhöhe.
+        blocks.push_back({&cards.back(), {cards.back().id(), "system",
+            {first.x, first.y, first.w, last.y + last.h - first.y}, plugins::zones::Density::regular}});
+    }
+    for (size_t i = 0; i < areas.size(); ++i) {
+        cards.emplace_back(*this, sn, i);
+        const auto& a = areas[i];
+        blocks.push_back({&cards.back(), {cards.back().id(), "system",
+            {a.x, a.y, a.w, a.h}, plugins::zones::Density::regular}});
+    }
+    return draw_framed({W, H, s, t.bg,
+        [this, now, &sn](Canvas& d) { header(d, now, sn.hwinfo ? "" : "ohne HWiNFO"); },
+        [this](Canvas& d) { footer(d, ""); }}, blocks);
+}
+
+void SysRenderer::system_card(Canvas& d, const Region& area, const SysSnapshot& sn, size_t index) {
+    const Theme& t = g_theme;
+    if (index == 0) {
+        const auto& cpu = area;
         usage_card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name, sn.cpu_pct,
                    {{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
                     {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text},
                     {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}});
+    } else if (index == 1) {
+        const auto& gpu = area;
         std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
                                ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
         usage_card(d, gpu.x, gpu.y, gpu.w, gpu.h, "GPU", sn.gpu_name, sn.gpu_pct,
                    {{"Temp", num(sn.gpu_temp, 0, "°C"), temp_col(sn.gpu_temp)},
                     {"Lüfter", num(sn.gpu_fan, 0, "%"), t.text}, {"VRAM", vram, t.text}});
+    } else if (index == 2) {
+        const auto& ram_area = area;
         std::string ram = sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–";
         bar_card(d, ram_area.x, ram_area.y, ram_area.w, ram_area.h, "RAM", ram, sn.ram_pct);
+    } else if (index == 3) {
+        const auto& disk_area = area;
         std::string disk = sn.disk_label + " " + (sn.disk_temp ? num(sn.disk_temp, 0, "°C") : tr("belegt"));
         bar_card(d, disk_area.x, disk_area.y, disk_area.w, disk_area.h, "Datenträger", disk, sn.disk_pct);
+    } else {
+        const auto& net = area;
         net_card(d, net.x, net.y, net.w, net.h, sn);
     }
-    footer(d, "");
-    return d.finish();
 }
 
-void SysRenderer::grouped_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& sn) {
+void SysRenderer::grouped_row(Canvas& d, const Region& a, const SysSnapshot& sn, size_t i) {
     const Theme& t = g_theme;
-    const auto& first = areas.front(); const auto& last = areas.back();
-    d.rounded_rectangle(first.x, first.y, first.x + first.w, last.y + last.h, 14, t.card);
     const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
         ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
     const std::array<std::string, 5> labels = {"CPU", "GPU", "RAM", "Datenträger", "Netzwerk"};
@@ -710,65 +769,69 @@ void SysRenderer::grouped_system(Canvas& d, const std::array<Region, 5>& areas, 
         "Download " + fmt_rate(sn.net_down, net_unit) + " · Upload " + fmt_rate(sn.net_up, net_unit)};
     const std::array<std::optional<double>, 5> values = {sn.cpu_pct, sn.gpu_pct, sn.ram_pct, sn.disk_pct, std::nullopt};
     const Font label = font(13, true), detail = font(11), value = font(18, true);
-    for (size_t i = 0; i < areas.size(); ++i) {
-        const auto& a = areas[i];
-        const float right = a.x + a.w - 12;
-        const float label_y = a.y + 14, detail_y = a.y + 33;
-        const std::string reading = i == 4 ? fmt_rate(sn.net_down, net_unit) : num(values[i], 0, "%");
-        const float reading_left = right - d.textlength(reading, value);
-        const float name_x = a.x + 112;
-        d.text(a.x + 12, label_y, labels[i], label, t.text, "lm");
-        d.text(name_x, label_y, fit(d, names[i], detail, std::max(0.f, reading_left - name_x - 12)), detail, t.muted, "lm");
-        d.text(right, label_y, reading, value, i == 0 ? temp_col(sn.cpu_temp) : i == 1 ? temp_col(sn.gpu_temp) : t.text, "rm");
-        d.text(a.x + 12, detail_y, fit(d, details[i], detail, a.w - 24), detail, t.muted, "lm");
-        if (values[i]) bar(d, a.x + 12, a.y + a.h - 7, a.w - 24, values[i], 3);
-        if (i + 1 < areas.size()) d.line({{a.x + 12, a.y + a.h}, {right, a.y + a.h}}, t.line, 1);
-    }
+    const float right = a.x + a.w - 12;
+    const float label_y = a.y + 14, detail_y = a.y + 33;
+    const std::string reading = i == 4 ? fmt_rate(sn.net_down, net_unit) : num(values[i], 0, "%");
+    const float reading_left = right - d.textlength(reading, value);
+    const float name_x = a.x + 112;
+    d.text(a.x + 12, label_y, labels[i], label, t.text, "lm");
+    d.text(name_x, label_y, fit(d, names[i], detail, std::max(0.f, reading_left - name_x - 12)), detail, t.muted, "lm");
+    d.text(right, label_y, reading, value, i == 0 ? temp_col(sn.cpu_temp) : i == 1 ? temp_col(sn.gpu_temp) : t.text, "rm");
+    d.text(a.x + 12, detail_y, fit(d, details[i], detail, a.w - 24), detail, t.muted, "lm");
+    if (values[i]) bar(d, a.x + 12, a.y + a.h - 7, a.w - 24, values[i], 3);
+    if (i + 1 < labels.size()) d.line({{a.x + 12, a.y + a.h}, {right, a.y + a.h}}, t.line, 1);
 }
 
-void SysRenderer::expressive_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& sn) {
+void SysRenderer::expressive_card(Canvas& d, const Region& area, const SysSnapshot& sn, size_t index) {
     const Theme& t = g_theme;
-    const auto& cpu = areas[0]; const auto& gpu = areas[1];
     const Font tiny = font(11), value = font(14, true), hero = font(32, true);
-    card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name);
-    d.text(cpu.x + 14, cpu.y + 53, num(sn.cpu_pct, 0, "%"), hero, t.text, "lm");
-    bar(d, cpu.x + 14, cpu.y + cpu.h - 14, 98, sn.cpu_pct, 5);
-    const std::array<RowVal, 3> cpu_details = {{{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
-        {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text}, {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}}};
-    const float column = (cpu.w - 142) / 3;
-    for (size_t i = 0; i < cpu_details.size(); ++i) {
-        const float x = cpu.x + 132 + float(i) * column;
-        d.text(x, cpu.y + 42, cpu_details[i].label, tiny, t.muted, "lm");
-        d.text(x, cpu.y + 64, fit(d, cpu_details[i].value, value, column - 8), value, cpu_details[i].col, "lm");
+    if (index == 0) {
+        const auto& cpu = area;
+        card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name);
+        d.text(cpu.x + 14, cpu.y + 53, num(sn.cpu_pct, 0, "%"), hero, t.text, "lm");
+        bar(d, cpu.x + 14, cpu.y + cpu.h - 14, 98, sn.cpu_pct, 5);
+        const std::array<RowVal, 3> cpu_details = {{{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
+            {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text}, {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}}};
+        const float column = (cpu.w - 142) / 3;
+        for (size_t i = 0; i < cpu_details.size(); ++i) {
+            const float x = cpu.x + 132 + float(i) * column;
+            d.text(x, cpu.y + 42, cpu_details[i].label, tiny, t.muted, "lm");
+            d.text(x, cpu.y + 64, fit(d, cpu_details[i].value, value, column - 8), value, cpu_details[i].col, "lm");
+        }
+    } else if (index == 1) {
+        const auto& gpu = area;
+        d.rounded_rectangle(gpu.x, gpu.y, gpu.x + gpu.w, gpu.y + gpu.h, 20, t.card);
+        d.text(gpu.x + 12, gpu.y + 15, "GPU", f_card, t.accent, "lm");
+        d.text(gpu.x + 12, gpu.y + 35, fit(d, sn.gpu_name, tiny, gpu.w - 24), tiny, t.muted, "lm");
+        d.text(gpu.x + 12, gpu.y + 63, num(sn.gpu_pct, 0, "%"), font(24, true), t.text, "lm");
+        bar(d, gpu.x + 12, gpu.y + 83, gpu.w - 24, sn.gpu_pct, 5);
+        d.text(gpu.x + 12, gpu.y + 105, "Temp " + num(sn.gpu_temp, 0, "°C"), tiny, temp_col(sn.gpu_temp), "lm");
+        d.text(gpu.x + gpu.w - 12, gpu.y + 105, num(sn.gpu_fan, 0, "%") + " " + tr("Lüfter"), tiny, t.muted, "rm");
+        const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
+            ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
+        d.text(gpu.x + 12, gpu.y + 129, fit(d, "VRAM " + vram, tiny, gpu.w - 24), tiny, t.muted, "lm");
+    } else {
+        auto compact = [&](const Region& a, const std::string& title, const std::string& description, std::optional<double> pct) {
+            d.rounded_rectangle(a.x, a.y, a.x + a.w, a.y + a.h, 12, t.card);
+            d.text(a.x + 10, a.y + 12, title, font(12, true), t.accent, "lm");
+            d.text(a.x + a.w - 10, a.y + 12, num(pct, 0, "%"), value, t.text, "rm");
+            d.text(a.x + 10, a.y + 29, fit(d, description, tiny, a.w - 20), tiny, t.muted, "lm");
+            bar(d, a.x + 10, a.y + a.h - 7, a.w - 20, pct, 3);
+        };
+        if (index == 2) compact(area, "RAM", sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–", sn.ram_pct);
+        else if (index == 3) compact(area, "Datenträger", sn.disk_label + (sn.disk_temp ? " · " + num(sn.disk_temp, 0, "°C") : ""), sn.disk_pct);
+        else {
+            const auto& net = area;
+            d.rounded_rectangle(net.x, net.y, net.x + net.w, net.y + net.h, 12, t.card);
+            d.text(net.x + 10, net.y + 12, "Netzwerk", font(12, true), t.accent, "lm");
+            d.text(net.x + net.w - 10, net.y + 12, fit(d, sn.net_name, tiny, net.w - 100), tiny, t.muted, "rm");
+            // The compact network cell prioritizes both live rates over the old chart.
+            arrow(d, net.x + 15, net.y + 32, true, t.down);
+            d.text(net.x + 28, net.y + 32, fit(d, fmt_rate(sn.net_down, net_unit), tiny, net.w / 2 - 36), tiny, t.text, "lm");
+            arrow(d, net.x + net.w / 2 + 10, net.y + 32, false, t.bar);
+            d.text(net.x + net.w - 10, net.y + 32, fit(d, fmt_rate(sn.net_up, net_unit), tiny, net.w / 2 - 30), tiny, t.text, "rm");
+        }
     }
-    d.rounded_rectangle(gpu.x, gpu.y, gpu.x + gpu.w, gpu.y + gpu.h, 20, t.card);
-    d.text(gpu.x + 12, gpu.y + 15, "GPU", f_card, t.accent, "lm");
-    d.text(gpu.x + 12, gpu.y + 35, fit(d, sn.gpu_name, tiny, gpu.w - 24), tiny, t.muted, "lm");
-    d.text(gpu.x + 12, gpu.y + 63, num(sn.gpu_pct, 0, "%"), font(24, true), t.text, "lm");
-    bar(d, gpu.x + 12, gpu.y + 83, gpu.w - 24, sn.gpu_pct, 5);
-    d.text(gpu.x + 12, gpu.y + 105, "Temp " + num(sn.gpu_temp, 0, "°C"), tiny, temp_col(sn.gpu_temp), "lm");
-    d.text(gpu.x + gpu.w - 12, gpu.y + 105, num(sn.gpu_fan, 0, "%") + " " + tr("Lüfter"), tiny, t.muted, "rm");
-    const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
-        ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
-    d.text(gpu.x + 12, gpu.y + 129, fit(d, "VRAM " + vram, tiny, gpu.w - 24), tiny, t.muted, "lm");
-    auto compact = [&](const Region& a, const std::string& title, const std::string& description, std::optional<double> pct) {
-        d.rounded_rectangle(a.x, a.y, a.x + a.w, a.y + a.h, 12, t.card);
-        d.text(a.x + 10, a.y + 12, title, font(12, true), t.accent, "lm");
-        d.text(a.x + a.w - 10, a.y + 12, num(pct, 0, "%"), value, t.text, "rm");
-        d.text(a.x + 10, a.y + 29, fit(d, description, tiny, a.w - 20), tiny, t.muted, "lm");
-        bar(d, a.x + 10, a.y + a.h - 7, a.w - 20, pct, 3);
-    };
-    compact(areas[2], "RAM", sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–", sn.ram_pct);
-    compact(areas[3], "Datenträger", sn.disk_label + (sn.disk_temp ? " · " + num(sn.disk_temp, 0, "°C") : ""), sn.disk_pct);
-    const auto& net = areas[4];
-    d.rounded_rectangle(net.x, net.y, net.x + net.w, net.y + net.h, 12, t.card);
-    d.text(net.x + 10, net.y + 12, "Netzwerk", font(12, true), t.accent, "lm");
-    d.text(net.x + net.w - 10, net.y + 12, fit(d, sn.net_name, tiny, net.w - 100), tiny, t.muted, "rm");
-    // The compact network cell prioritizes both live rates over the old chart.
-    arrow(d, net.x + 15, net.y + 32, true, t.down);
-    d.text(net.x + 28, net.y + 32, fit(d, fmt_rate(sn.net_down, net_unit), tiny, net.w / 2 - 36), tiny, t.text, "lm");
-    arrow(d, net.x + net.w / 2 + 10, net.y + 32, false, t.bar);
-    d.text(net.x + net.w - 10, net.y + 32, fit(d, fmt_rate(sn.net_up, net_unit), tiny, net.w / 2 - 30), tiny, t.text, "rm");
 }
 
 void SysRenderer::card(Canvas& d, float x, float y, float cw, float ch, const std::string& ctitle, const std::string& sub) {
