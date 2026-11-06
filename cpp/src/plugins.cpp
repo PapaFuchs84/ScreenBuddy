@@ -597,7 +597,9 @@ ArrangementResult parse_arrangement(std::string_view utf8) {
         for (const auto& b : j["blocks"]) {
             fields(b, {"id", "zone", "shown", "seconds", "show_if"});
             auto id = str(b, "id");
-            require(identifier(id) && ids.insert(id).second, "Invalid or duplicate block ID.");
+            auto block_id = id;
+            std::replace(block_id.begin(), block_id.end(), '.', '_');
+            require(identifier(block_id) && ids.insert(id).second, "Invalid or duplicate block ID.");
             require(identifier(str(b, "zone")), "Invalid block zone.");
             require(b.contains("shown") && b["shown"].is_boolean(), "Missing or invalid shown flag.");
             if (b.contains("seconds")) integer(b, "seconds", 3, 600);

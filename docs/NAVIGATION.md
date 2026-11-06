@@ -6,7 +6,7 @@ Die Seiten heißen in allen Themes gleich. Das Design bestimmt, wie du sie errei
 | --- | --- |
 | Ansicht | Übersicht, Anzeige, Seiten & Reihenfolge, Farben & Design |
 | Seiten | System, Freunde, Discord, Battlefield 6, Blogs (RSS), Streaming-Neustarts, Home Assistant, Spotify |
-| App | Companion, Plugins, Plugin-Store, Plugin-Seite anordnen (ab 2.10.0, in Vorbereitung), Updates & Autostart |
+| App | Companion, Plugins, Plugin-Store, Seite anordnen (ab 2.10.0, in Vorbereitung), Updates & Autostart |
 
 ## Je nach Theme navigieren
 
@@ -36,10 +36,16 @@ Unter **Companion → Sperrzone: gemeinsame Vorgabe** gelten die Ränder für de
 
 Erlaubt sind ganze Pixel 0–1000; ungültige Eingaben werden mit Meldung abgelehnt. Beim Zeichnen wird jeder Rand auf ein Drittel der kleineren Bildkante begrenzt. Bleiben weniger als 160 × 120 Pixel nutzbar, wird die gesamte Sperrzone ignoriert (ratenbegrenzte Warnung). Ein Tipp im Rand bewirkt nichts; die Drittel-Navigation bezieht sich auf den nutzbaren Inhalt. Veraltete Companion-Bildgrößen werden verworfen.
 
-## Plugin-Seite anordnen (Entwicklung für 2.10.0)
+## Seite anordnen (Entwicklung für 2.10.0)
 
-Unter **App → Plugin-Seite anordnen** ordnest du die Blöcke eines aktivierten Plugins mit Manifest v2 im Raster an: Zonen festlegen, Blöcke zuweisen, Bedingungen (`show_if`) setzen und die Vorschau in Quer- und Hochformat prüfen. Rückgängig und Wiederholen (100 Schritte) sowie die Tastaturbedienung sind verfügbar. **Übernehmen** speichert nur die Anordnung, mit Sicherungskopie. Inhalte, Linkfreigaben und das Manifest bleiben unverändert. Manifest-v1-Plugins zeigen dort nur den Hinweis „Anordnung braucht Manifest v2“. Eingebaute Seiten und Home Assistant gehören nicht dazu. Weitere Einstiege: **Seiten & Reihenfolge** und **Plugins → Anordnen …**. Blöcke lassen sich auch per Maus ziehen (Bausteinleiste, Griffe, Ablage); Tastatur: F6 wechselt den Bereich, Leertaste nimmt auf, Enter legt ab, Esc bricht ab; Strg+Auf/Ab wählt Block-Chips in einer Zone (Leertaste nimmt auf, Entf zurück in die Leiste). Loslassen außerhalb des Rasters bricht still ab. Details: [Plugin-System](PLUGIN-SYSTEM.md#seiten-editor-p6-3-bis-p7-4-entwicklung-für-2100). Maus-, Touchpad- und Touch-Bedienung sind noch nicht abgenommen.
+Unter **App → Seite anordnen** ordnest du die Blöcke eines aktivierten Plugins mit Manifest v2 im Raster an: Zonen festlegen, Blöcke zuweisen, Bedingungen (`show_if`) setzen und die Vorschau in Quer- und Hochformat prüfen. Rückgängig und Wiederholen (100 Schritte) sowie die Tastaturbedienung sind verfügbar. **Übernehmen** speichert nur die Anordnung, mit Sicherungskopie. Inhalte, Linkfreigaben und das Manifest bleiben unverändert. Manifest-v1-Plugins zeigen dort nur den Hinweis „Anordnung braucht Manifest v2“. RSS ist als erste eingebaute Seite enthalten; weitere eingebaute Seiten und Home Assistant folgen später. Weitere Einstiege: **Seiten & Reihenfolge** und **Plugins → Anordnen …**. Blöcke lassen sich auch per Maus ziehen (Bausteinleiste, Griffe, Ablage); Tastatur: F6 wechselt den Bereich, Leertaste nimmt auf, Enter legt ab, Esc bricht ab; Strg+Auf/Ab wählt Block-Chips in einer Zone (Leertaste nimmt auf, Entf zurück in die Leiste). Loslassen außerhalb des Rasters bricht still ab. Details: [Plugin-System](PLUGIN-SYSTEM.md#seiten-editor-p6-3-bis-p7-7-entwicklung-für-2100). Maus-, Touchpad- und Touch-Bedienung sind noch nicht abgenommen.
 
 ## Plugin-Tipps (Phase 4c, Entwicklung)
 
 Schema-2-Plugins können HTTPS-Links und den nächsten Wechselfeld-Eintrag anbieten. Links öffnen am PC, auch bei einem Tipp auf dem Handy. Die eigene Freigabe unter Einstellungen → Plugins ist standardmäßig aus und zeigt die Link-Hosts. Ziele brauchen 1,0 s Ruhe beim Companion bzw. 0,3 s beim Monitor und sind während Übergängen gesperrt; verweigerte Tipps wechseln die Seite nicht. Ohne Ziel gilt die bisherige Drittel-Regel. Android-TV erhält keine Tap-/D-Pad-Aktion. Details: [Plugin-System](PLUGIN-SYSTEM.md#tap-ziele-für-plugin-blöcke-phase-4c-entwicklung-für-2100). Physische Abnahme offen.
+
+P7-5 (2026-11-06, Agent Codex CLI 0.166.0): Reiner Built-in-Katalog und strikt versionierte Overlays; Standard behält festen Renderweg, HA später. 14 Suiten grün (Companion offline: 250); Built-in 4.221 Bilder/Trefferkarten: 0 Fehler, Plugin 2.093 Prüfungen: 0 Fehler; physische Abnahme offen.
+
+P7-6 (2026-11-06, Agent Codex CLI 0.166.0): Atomare Seitenlayouts mit Backup/Revision, Beispieldatenvorschau, Raster-Touch-Zielen und isoliertem Clip; fester Renderweg unverändert. 14 Suiten grün (Editor 835; Companion offline 250); Built-in 4.221 Bilder/Trefferkarten und Plugin-Baselines unverändert; Hardware offen.
+
+P7-7 (2026-11-06, Agent Codex CLI 0.166.0): RSS-Editor mit Beiträge/Pflicht-Zustand, getrennten Quer-/Hochlayouts in `layouts/builtin.rss.layout.json`; Öffnen/Übernehmen von Standard behält den pixelgleichen festen Weg, echte Änderungen nutzen das Raster (Abstände können sich ändern, E2). Zurücksetzen stellt Standard her; Zeilen, Blättern und Touch teilen einen Plan. Kopf/Fuß fest; Built-in-Wechselfelder und HA später. 14 Suiten grün (Katalog 217, Editor 874, Kern 3.470; Companion offline 250); bestehende Baselines bitgleich, zusätzlich 1.024 RSS-Bilder/Trefferkarten und 5.952 Prüfungen ohne Fehler; Hardware offen.

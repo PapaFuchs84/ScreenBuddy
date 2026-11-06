@@ -7,10 +7,12 @@
 #include <shellapi.h>
 
 #include <fstream>
+#include <chrono>
 #include <ctime>
 #include <set>
 
 #include "bf6.h"
+#include "page_samples.h"
 #include "discord.h"
 #include "friends.h"
 #include "ha.h"
@@ -34,6 +36,172 @@
 #include "winsetup.h"
 
 namespace fl {
+
+namespace builtin {
+namespace {
+namespace fs=std::filesystem;
+bool plain_path(const fs::path& path) {
+    // Symlinks, Junctions und andere Reparse-Punkte einschließlich Eltern ablehnen.
+    for (auto current = path; !current.empty();) {
+        std::error_code ec;
+        auto status = fs::symlink_status(current, ec);
+        if (ec && ec != std::errc::no_such_file_or_directory) return false;
+        if (!ec && fs::is_symlink(status)) return false;
+#ifdef _WIN32
+        const auto attr = GetFileAttributesW(current.c_str());
+        if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_REPARSE_POINT)) return false;
+#endif
+        const auto parent = current.parent_path();
+        if (parent == current) break;
+        current = parent;
+    }
+    return true;
+}
+bool regular_or_missing(const fs::path& path) {
+    if (!plain_path(path)) return false;
+    std::error_code ec;
+    auto status = fs::symlink_status(path, ec);
+    if (ec == std::errc::no_such_file_or_directory) return true;
+    return !ec && (status.type() == fs::file_type::not_found || fs::is_regular_file(status));
+}
+bool ready_directory(const fs::path& path, bool create) {
+    if (!plain_path(path)) return false;
+    std::error_code ec;
+    if (create) fs::create_directories(path, ec);
+    if (ec) return false;
+    return fs::is_directory(path, ec) && !ec && plain_path(path);
+}
+bool read_bounded(const fs::path& path, std::string& out, size_t limit = plugins::manifest_limit) {
+    if (!regular_or_missing(path)) return false;
+#ifdef _WIN32
+    HANDLE handle = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) return false;
+    BY_HANDLE_FILE_INFORMATION info{};
+    bool ok = GetFileInformationByHandle(handle, &info) &&
+        !(info.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY)) &&
+        info.nFileSizeHigh == 0 && info.nFileSizeLow <= limit;
+    if (ok) {
+        out.resize(info.nFileSizeLow);
+        DWORD bytes = 0;
+        ok = ReadFile(handle, out.data(), static_cast<DWORD>(out.size()), &bytes, nullptr) && bytes == out.size();
+    }
+    CloseHandle(handle);
+    return ok;
+#else
+    int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_NONBLOCK);
+    if (fd < 0) return false;
+    struct stat info{};
+    bool ok = fstat(fd, &info) == 0 && S_ISREG(info.st_mode) && info.st_size >= 0 &&
+        static_cast<uint64_t>(info.st_size) <= limit;
+    if (ok) {
+        out.resize(static_cast<size_t>(info.st_size));
+        size_t total = 0;
+        while (total < out.size()) {
+            auto n = read(fd, out.data() + total, out.size() - total);
+            if (n <= 0) { ok = false; break; }
+            total += static_cast<size_t>(n);
+        }
+    }
+    close(fd);
+    return ok;
+#endif
+}
+bool atomic_write(const fs::path& target, std::string_view data) {
+    if (!regular_or_missing(target) || !ready_directory(target.parent_path(), false)) return false;
+    static std::atomic<uint64_t> sequence{0};
+    // Exklusiv anlegen: keine bestehenden Links verfolgen oder temporäre Dateien überschreiben.
+    const auto token = std::chrono::steady_clock::now().time_since_epoch().count();
+    fs::path temporary = target;
+    temporary += ".tmp-" + std::to_string(token) + "-" + std::to_string(++sequence);
+#ifdef _WIN32
+    HANDLE handle = CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) return false;
+    DWORD count = 0;
+    bool ok = WriteFile(handle, data.data(), static_cast<DWORD>(data.size()), &count, nullptr) && count == data.size();
+    if (ok) ok = FlushFileBuffers(handle) != 0;
+    if (!CloseHandle(handle)) ok = false;
+    if (ok) ok = regular_or_missing(target) && MoveFileExW(temporary.c_str(), target.c_str(),
+        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+#else
+    int fd = open(temporary.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+    if (fd < 0) return false;
+    bool ok = true;
+    size_t total = 0;
+    while (total < data.size()) {
+        auto n = write(fd, data.data() + total, data.size() - total);
+        if (n <= 0) { ok = false; break; }
+        total += static_cast<size_t>(n);
+    }
+    if (ok) ok = fsync(fd) == 0;
+    if (close(fd) != 0) ok = false;
+    if (ok) {
+        std::error_code ec;
+        if (!regular_or_missing(target)) ok = false;
+        else { fs::rename(temporary, target, ec); ok = !ec; }
+    }
+#endif
+    if (!ok) { std::error_code ignored; fs::remove(temporary, ignored); }
+    return ok;
+}
+}
+LayoutStore::LayoutStore(fs::path directory):directory_(std::move(directory)) {
+    const bool ready=ready_directory(directory_,true);
+    for(const auto& c:catalogs()) {
+        auto& state=states_[c.key];
+        auto path=directory_/("builtin."+c.key+".layout.json");
+        std::error_code ec;
+        if(!ready || !regular_or_missing(path)) state.state="invalid";
+        else if(fs::exists(path,ec)) {
+            std::string text;
+            if(!read_bounded(path,text,plugins::arrangement_limit)) state.state="invalid";
+            else {
+                auto parsed=parse(c,text);
+                if(parsed) { if(!is_standard(c,*parsed.overlay)) state.overlay=std::move(parsed.overlay); state.state=state.overlay?"ok":"none"; }
+                else state.state=parsed.error=="Catalog version is stale."?"stale":"invalid";
+            }
+        } else if(ec) state.state="invalid";
+        if(state.state=="stale" || state.state=="invalid") LOGW("layout","Eingebaute Anordnung %s: %s; Standard aktiv",c.key.c_str(),state.state.c_str());
+    }
+}
+LayoutState LayoutStore::get(const std::string& key) const {
+    std::lock_guard lock(mutex_); auto it=states_.find(key); return it==states_.end()?LayoutState{}:it->second;
+}
+Json LayoutStore::view(const std::string& key) const {
+    auto c=find(key); if(!c) return {};
+    auto state=get(key);
+    return {{"state",state.state},{"layout_revision",state.revision},{"overlay",to_json(state.overlay.value_or(standard(*c)))}};
+}
+std::string LayoutStore::apply(const std::string& key,std::string_view text) {
+    auto c=find(key); if(!c) return "Unknown built-in page.";
+    auto parsed=parse(*c,text); if(!parsed) return parsed.error;
+    std::lock_guard lock(mutex_);
+    if(is_standard(*c,*parsed.overlay)) return reset_locked(key);
+    auto next=states_.at(key);
+    if(next.overlay && to_json(*next.overlay)==to_json(*parsed.overlay)) return {};
+    next.overlay=std::move(parsed.overlay); next.state="ok"; ++next.revision;
+    const auto bytes=to_json(*next.overlay).dump();
+    const auto path=directory_/("builtin."+key+".layout.json"), backup=fs::path(path.wstring()+L".bak");
+    if(!ready_directory(directory_,false) || !regular_or_missing(path) || !regular_or_missing(backup)) return "Unsafe arrangement path.";
+    std::error_code ec; const bool exists=fs::exists(path,ec); if(ec) return "Arrangement unavailable.";
+    if(exists) { std::string old; if(!read_bounded(path,old,plugins::arrangement_limit) || !atomic_write(backup,old)) return "Arrangement backup failed."; }
+    if(!atomic_write(path,bytes)) return "Atomic arrangement write failed.";
+    states_.at(key)=std::move(next); return {};
+}
+std::string LayoutStore::reset_locked(const std::string& key) {
+    const auto path=directory_/("builtin."+key+".layout.json"), backup=fs::path(path.wstring()+L".bak");
+    if(!ready_directory(directory_,false) || !regular_or_missing(path) || !regular_or_missing(backup)) return "Unsafe arrangement path.";
+    std::error_code ec; fs::remove(backup,ec); if(ec) return "Arrangement backup removal failed.";
+    fs::remove(path,ec); if(ec) return "Arrangement removal failed.";
+    auto& state=states_.at(key);
+    if(state.overlay || state.state!="none") ++state.revision;
+    state.overlay.reset(); state.state="none"; return {};
+}
+std::string LayoutStore::reset(const std::string& key) {
+    std::lock_guard lock(mutex_); if(!find(key)) return "Unknown built-in page."; return reset_locked(key);
+}
+} // namespace builtin
 
 struct App::RendererSet {
     int width, height;
@@ -107,6 +275,7 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
     }
     if (b(fr, "enabled"))
         friends_ = std::make_unique<friends::FriendsHub>(fr, b(fr, "include_discord", true) ? discord_.get() : nullptr, dirty);
+    builtin_layouts_=std::make_unique<builtin::LayoutStore>(cfg_path_.parent_path()/L"layouts");
     plugins_ = std::make_unique<plugins::Store>(cfg_path_.parent_path() / L"plugins");
     if (auto result = plugins_->load(); !result) LOGW("plugins", "Plugin-Bibliothek: %s", result.error.c_str());
     plugin_settings_ = std::make_unique<plugins::SettingsStore>(cfg_path_.parent_path() / L"plugin-settings");
@@ -265,6 +434,40 @@ std::optional<Image> App::plugin_preview(std::string_view manifest, std::string&
     render::apply_theme(dp_);
     auto [width, height] = dimensions;
     return plugins::draw_page(page, width, height, true);
+}
+
+nlohmann::json App::builtin_layout_get(const std::string& key) { return builtin_layouts_->view(key); }
+void App::builtin_layout_apply(const std::string& key,const nlohmann::json& overlay) {
+    const auto c=builtin::find(key);
+    if(!c || !c->enabled) throw std::runtime_error("Built-in page is not enabled for editing.");
+    auto error=builtin_layouts_->apply(key,overlay.dump()); if(!error.empty()) throw std::runtime_error(error);
+    mark_dirty();
+}
+void App::builtin_layout_reset(const std::string& key) {
+    const auto c=builtin::find(key);
+    if(!c || !c->enabled) throw std::runtime_error("Built-in page is not enabled for editing.");
+    auto error=builtin_layouts_->reset(key); if(!error.empty()) throw std::runtime_error(error);
+    mark_dirty();
+}
+std::optional<Image> App::page_preview(const std::string& key,const nlohmann::json& overlay,
+                                     std::pair<int,int> dimensions,std::string& error) {
+    error.clear(); const auto c=builtin::find(key);
+    if(!c) { error="Unknown built-in page."; return {}; }
+    auto parsed=builtin::parse(*c,overlay.dump()); if(!parsed) {error=parsed.error;return {};}
+    if(key!="rss" && !builtin::is_standard(*c,*parsed.overlay)) {error="Built-in arranged renderer is not enabled yet.";return {};}
+    const auto [width,height]=dimensions;
+    if(width<1 || height<1 || width>4096 || height>4096) {error="Invalid preview size.";return {};}
+    std::lock_guard lock(render::mutex()); render::apply_theme(dp_);
+    // Dieselben Renderer und fest eingefrorenen Daten wie im Built-in-Baseline-Test.
+    RendererSet rs(width,height,cfg_); using namespace render::samples;
+    if(key=="rss") return rs.rss.render_arranged(posts(i18n::lang()),CLOCK,*parsed.overlay,0,CLOCK).image;
+    if(key=="streaming") {auto logos=stream_logos();return rs.stream.render(tmdb::State::Ok,stream(),CLOCK,CLOCK,&logos);}
+    if(key=="bf6") return rs.bf6.render(players(),0,CLOCK,CLOCK);
+    if(key=="friends") return rs.friends.render_friends(render::samples::friends(),0,true,"",CLOCK);
+    if(key=="discord") return rs.discord.render_friends(render::samples::friends(),0,true,"",CLOCK);
+    if(key=="system") return rs.system.render(system(),CLOCK);
+    if(key=="spotify") return rs.spotify.render(render::samples::spotify(),1000,nullptr,0,false,CLOCK);
+    error="Unknown built-in page.";return {};
 }
 
 bool App::touch_enabled() const {
@@ -534,6 +737,13 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
     // [(Name, Seitenanzahl, Zeichenfunktion(seite, zeichner))] in der eingestellten Reihenfolge
     std::vector<PageEntry> out;
     for (auto& key : active_pages(companion, pages_override)) {
+        if(view && builtin::find(key)) {
+            const auto revision=builtin_layouts_->get(key).revision;
+            if(view->builtin_revisions[key]!=revision) {
+                view->cycles.erase("builtin:"+key); view->fade_caches.erase("builtin:"+key);
+                view->builtin_revisions[key]=revision;
+            }
+        }
         if (key.rfind("plugin:", 0) == 0) {
             auto installed = plugins_ ? plugins_->find(key.substr(7)) : std::nullopt;
             if (!installed || !installed->enabled) continue;
@@ -697,8 +907,25 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
         } else if (key == "rss") {
             auto posts = rss_->posts();
             auto updated = rss_->updated();
-            out.push_back({key, 1, [posts, updated](int, RendererSet& rs) { return rs.rss.render(posts, updated); },
-                           [posts, updated](int, RendererSet&) { return updated ? touch::post_rows(posts) : touch::Rows{}; }});
+            auto arrangement=builtin_layouts_->get(key).overlay;
+            if(!arrangement || !r.rss.uses_arrangement(*arrangement)) {
+                out.push_back({key, 1, [posts, updated](int, RendererSet& rs) { return rs.rss.render(posts, updated); },
+                               [posts, updated](int, RendererSet&) { return updated ? touch::post_rows(posts) : touch::Rows{}; }});
+            } else {
+                PageEntry entry{key,updated?r.rss.pages(posts.size(),*arrangement):1,{}};
+                entry.builtin_draw=[posts,updated,arrangement](int page,RendererSet& rs) {
+                    auto drawn=rs.rss.render_arranged(posts,updated,*arrangement,page);
+                    std::vector<touch::ArrangedTarget> targets;
+                    // Alle Links werden an genau den gezeichneten Feed-Schnappschuss gebunden.
+                    for(const auto& target:drawn.targets) {
+                        auto links=touch::post_rows({posts.at(target.item)});
+                        targets.push_back({target.rect_px,links.empty()?touch::Targets{}:std::move(links.front()),{}});
+                    }
+                    return std::pair{std::move(drawn.image),std::move(targets)};
+                };
+                entry.fn=[posts,updated,arrangement](int page,RendererSet& rs){return rs.rss.render_arranged(posts,updated,*arrangement,page).image;};
+                out.push_back(std::move(entry));
+            }
         }
     }
     return out;
@@ -716,8 +943,10 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
         for (auto& p : pages) {
             if (idx < p.n) {
                 plugins::DrawOut plugin_out;
+                std::vector<touch::ArrangedTarget> arranged_targets;
                 auto& renderer=renderers_for(boxes[k].w,boxes[k].h);
-                if(p.plugin_draw) { plugin_out=p.plugin_draw(renderer);frames.push_back(std::move(plugin_out.image)); }
+                if(p.builtin_draw) { auto out=p.builtin_draw(idx,renderer); frames.push_back(std::move(out.first)); arranged_targets=std::move(out.second); }
+                else if(p.plugin_draw) { plugin_out=p.plugin_draw(renderer);frames.push_back(std::move(plugin_out.image)); }
                 else frames.push_back(p.fn(idx,renderer));
                 keys.push_back(p.key);
                 touch::Tile tile{boxes[k], p.key == "rss", p.targets ? p.targets(idx, renderers_for(boxes[k].w, boxes[k].h)) : touch::Rows{}};
@@ -726,6 +955,7 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
                 tile.spotify = p.key == "spotify";
                 tile.streaming = p.key == "streaming";
                 tile.cells = p.actions;
+                tile.arranged=bool(p.builtin_draw); tile.arranged_targets=std::move(arranged_targets);
                 tile.plugin=std::move(plugin_out.targets);
                 taps.push_back(std::move(tile));
                 break;
@@ -1274,6 +1504,9 @@ void App::run() {
         actions.set_link_consent = [this](const std::string& id,bool allowed) {
             std::string error; if(!plugin_set_link_consent(id,allowed,error)) throw std::runtime_error(error);
         };
+        actions.builtin_layout_get=[this](const std::string& key){return builtin_layout_get(key);};
+        actions.builtin_layout_apply=[this](const std::string& key,const nlohmann::json& overlay){builtin_layout_apply(key,overlay);};
+        actions.builtin_layout_reset=[this](const std::string& key){builtin_layout_reset(key);};
         actions.arrangement_get = [this](const std::string& id) {
             auto result = plugins_ ? plugins_->arrangement_get(id) : plugins::Json();
             if (result.is_null()) throw std::runtime_error("layout:Plugin is not available.");

@@ -2,6 +2,8 @@
 #include "snapshot_support.h"
 #include "page_samples.h"
 #include "i18n.h"
+#include "layout_edit.h"
+#include "touch.h"
 #include <windows.h>
 #include <dwrite.h>
 #include <wrl/client.h>
@@ -10,6 +12,8 @@
 #include <sstream>
 #include <cstdlib>
 #include <ctime>
+#include <cmath>
+#include <algorithm>
 
 using namespace fl;
 using namespace fl::render;
@@ -173,11 +177,112 @@ std::vector<Case> cases(const std::string& lang) {
     return out;
 }
 }
+// P7-7: zusätzliche Rasterbasis. Die vorhandene Built-in-/Plugin-Basis wird nie beschrieben.
+static int rss_layout_snapshots(bool record,const fs::path& output) {
+    const fs::path file=fs::path(FL_BUILTIN_SNAPSHOT_DIR).parent_path()/"layout-snapshots"/"p7-rss-hashes.txt";
+    if(record && fs::exists(file)) throw std::runtime_error("Neue RSS-Basis existiert bereits; Überschreiben verboten.");
+    std::map<std::string,std::string> expected,actual;
+    if(!record) {std::ifstream in(file);if(!in) throw std::runtime_error("Additive RSS-Rasterbasis fehlt.");for(std::string key,hash;in>>key>>hash;) if(!expected.emplace(key,hash).second) throw std::runtime_error("Doppelte RSS-Rasterbasis.");}
+    int failures=0,checked=0;
+    auto require=[&](bool ok,const std::string& what){++checked;if(!ok){++failures;std::cerr<<"RSS-Raster: "<<what<<'\n';}};
+    const auto& catalog=*builtin::find("rss");
+    auto defaults=builtin::standard(catalog);
+    for(const auto& lang:{std::string("de"),std::string("en")}) {
+        i18n::set_lang(lang);
+        for(const auto& tc:theme_cases()) for(const auto& size:sizes()) {
+            if(lang=="en" && (tc.name!="dunkel" || std::string(size.name)!="landscape")) continue;
+            if(tc.inline_theme.is_null()) apply_theme({{"theme",tc.name}});else apply_theme({{"theme_inline",tc.inline_theme}});
+            RssRenderer r(size.w,size.h,"RSS");
+            auto posts=samples::posts(lang);
+            for(size_t i=0;i<posts.size();++i) posts[i].link="https://example.org/post/"+std::to_string(i);
+            auto more=posts;for(int i=0;i<6;++i) more.push_back(posts[i%posts.size()]);
+            const std::string prefix=lang+"."+tc.name+"."+size.name;
+            for(int state=0;state<3;++state) {
+                auto data=state==2?std::vector<Post>{}:posts;
+                auto updated=state==1?std::optional<std::time_t>{}:std::optional<std::time_t>{clock_value};
+                require(hash_image(r.render(data,updated,clock_value))==hash_image(r.render_arranged(data,updated,defaults,0,clock_value).image),prefix+" standard");
+            }
+            auto portrait_only=defaults;portrait_only.portrait->layout["rows"]={3,1};
+            auto landscape_only=defaults;landscape_only.model.layout["rows"]={3,1};
+            require(r.uses_arrangement(portrait_only)==(size.h>size.w),prefix+" portrait-only switch");
+            require(r.uses_arrangement(landscape_only)==(size.h<=size.w),prefix+" landscape-only switch");
+            const auto& unchanged=size.h>size.w?landscape_only:portrait_only;
+            require(hash_image(r.render(posts,clock_value,clock_value))==hash_image(r.render_arranged(posts,clock_value,unchanged,0,clock_value).image),prefix+" untouched orientation fixed");
+            for(int variant=0;variant<4;++variant) {
+                auto overlay=defaults;
+                for(auto* m:{&overlay.model,&*overlay.portrait}) {
+                    if(variant==0) m->layout["rows"]={3,1};
+                    if(variant==1) {
+                        m->layout["columns"]={1,1};m->layout["rows"]={1};
+                        m->layout["zones"][0]["column"]=1;m->layout["zones"][0]["row"]=0;
+                        m->layout["zones"][1]["column"]=0;m->layout["zones"][1]["row"]=0;
+                    }
+                    if(variant==2) m->layout["rows"]={1,4};
+                    if(variant==3) {
+                        m->blocks[0]["shown"]=false;m->blocks[1]["zone"]=m->blocks[0]["zone"];
+                        m->layout["zones"].erase(m->layout["zones"].begin()+1);m->layout["rows"]={1};
+                    }
+                }
+                if(variant==2) overlay.portrait->layout["rows"]={1,6};
+                require(builtin::validate(catalog,overlay).empty(),prefix+" valid");
+                const int per=r.arranged_rows(overlay);
+                require(per>=0 && per<=4,prefix+" capacity");
+                require(r.pages(more.size(),overlay)==(per?int((more.size()+per-1)/per):1),prefix+" pages");
+                for(int state=0;state<4;++state) {
+                    const bool empty=state==2,loading=state==1;
+                    auto data=empty?std::vector<Post>{}:more;
+                    const int page=state==3?r.pages(data.size(),overlay)-1:0;
+                    auto drawn=r.render_arranged(data,loading?std::optional<std::time_t>{}:clock_value,overlay,page,clock_value);
+                    const auto key=prefix+".v"+std::to_string(variant)+".s"+std::to_string(state);
+                    actual[key]=hash_image(drawn.image);
+                    require(drawn.targets.size()==size_t(loading || empty || !per?0:std::min(per,int(data.size())-page*per)),key+" target count");
+                    touch::Tile tile{{17,23,size.w,size.h},true,{}};tile.arranged=true;
+                    for(const auto& target:drawn.targets) {
+                        require(target.item<data.size() && target.item==size_t(page*per+tile.arranged_targets.size()),key+" snapshot index");
+                        tile.arranged_targets.push_back({target.rect_px,{{data.at(target.item).link,""}},{}});
+                    }
+                    std::vector<touch::Tile> tiles{std::move(tile)};
+                    // Unabhängige Sollgeometrie aus dem Katalogplan, nicht aus den gelieferten Zielen.
+                    const auto& model=size.h>size.w?*overlay.portrait:overlay.model;
+                    const float scale=scale_for(size.w,size.h);
+                    const float w=scale==1?float(size.w):float(std::nearbyint(size.w/scale));
+                    const float h=scale==1?float(size.h):float(std::nearbyint(size.h/scale));
+                    auto plan=plugins::zones::plan({8,36,w-16,h-54},*plugins::edit::geometry(model),builtin::inputs(catalog,model),6);
+                    uint64_t touch_hash=1469598103934665603ull;bool same=true;
+                    for(int y=0;y<size.h;y+=4) for(int x=0;x<size.w;x+=4) {
+                        int hit=-1;
+                        for(const auto& b:plan.blocks) if(!loading && !empty && per && b.id=="rss.liste" && b.visible())
+                            for(int row=0;row<per && page*per+row<int(data.size());++row) {
+                                const int left=int(std::nearbyint(b.area.x*scale)),right=int(std::nearbyint((b.area.x+b.area.width)*scale));
+                                const int top=int(std::nearbyint((b.area.y+std::floor(b.area.height*row/per))*scale));
+                                const int bottom=int(std::nearbyint((b.area.y+std::floor(b.area.height*(row+1)/per))*scale));
+                                if(x>=left && x<right && y>=top && y<bottom) hit=page*per+row;
+                            }
+                        const auto* actual_hit=touch::at(tiles,x+17,y+23);
+                        same=same && ((hit<0 && !actual_hit) || (hit>=0 && actual_hit && actual_hit->front().url==data.at(hit).link));
+                        touch_hash^=uint64_t(hit+1);touch_hash*=1099511628211ull;
+                    }
+                    require(same,key+" 4px hit map");actual[key+".touch"]=std::to_string(touch_hash);
+                }
+            }
+        }
+    }
+    if(record && failures) throw std::runtime_error("RSS-Rasterprüfung fehlgeschlagen; keine neue Basis geschrieben.");
+    if(record) {std::ofstream out(file,std::ios::binary);for(const auto& [key,hash]:actual) out<<key<<' '<<hash<<'\n';if(!out) throw std::runtime_error("Neue RSS-Rasterbasis nicht geschrieben.");}
+    else {for(const auto& [key,hash]:actual) require(expected.contains(key) && expected[key]==hash,key+" hash");require(expected.size()==actual.size(),"complete hash matrix");}
+    // Erst nach dem Hashlauf mit WIC schreiben, damit die Vergleichsbasis unverändert bleibt.
+    i18n::set_lang("de");apply_theme({{"theme","hell"}});
+    auto preview=builtin::standard(catalog);preview.model.layout["rows"]={3,1};preview.portrait->layout["rows"]={3,1};
+    write_png(output/"p7-rss-layout-preview.png",RssRenderer(480,320,"RSS").render_arranged(samples::posts(),clock_value,preview,0,clock_value).image);
+    std::cout<<"RSS layout: "<<actual.size()/2<<" images/hit maps, "<<checked<<" checks, "<<failures<<" errors\n";
+    return failures;
+}
+
 int main(int argc,char** argv) {
     try {
         _putenv_s("TZ","UTC0"); _tzset();
         const std::string mode=argc>1 ? argv[1] : "pruefen";
-        if(argc>3 || (mode!="export" && argc>2) || (mode!="pruefen" && mode!="prüfen" && mode!="update" && mode!="export") ||
+        if(argc>3 || (mode!="export" && argc>2) || (mode!="pruefen" && mode!="prüfen" && mode!="update" && mode!="export" && mode!="record-rss-layout") ||
            (mode=="export" && argc!=3)) throw std::runtime_error("Aufruf: fl-builtin-snapshot-tests [pruefen|update|export <Ordner>]");
         require_fonts(); gfx_init();
         const fs::path root=mode=="export" ? fs::path(argv[2]) : fs::path(FL_BUILTIN_SNAPSHOT_DIR);
@@ -246,6 +351,8 @@ int main(int argc,char** argv) {
             for(const auto& [k,v]:actual) file<<k<<' '<<v<<'\n';
             if(!file) throw std::runtime_error("Hashes konnten nicht geschrieben werden.");
         } else for(const auto& [k,v]:expected) if(!actual.contains(k)) { ++failures; std::cerr<<"Veralteter Eintrag: "<<k<<'\n'; }
+        if(mode=="record-rss-layout" && failures) throw std::runtime_error("Bestehende Baseline abweichend; keine neue Basis geschrieben.");
+        if(mode!="update" && mode!="export") failures+=rss_layout_snapshots(mode=="record-rss-layout",fs::path(argv[0]).parent_path());
         std::cout<<"Built-in snapshots: "<<images<<" Bilder, "<<actual.size()/2<<" Trefferkarten, "<<failures<<" Fehler\n";
         return failures ? 1 : 0;
     } catch(const std::exception& e) { std::cerr<<"Built-in snapshots ABBRUCH: "<<e.what()<<'\n'; return 2; }

@@ -2,6 +2,7 @@
 #include "render.h"
 #include "page_samples.h"
 #include "page_frame.h"
+#include "layout_edit.h"
 #include "theme.h"
 
 #include <windows.h>
@@ -1040,6 +1041,21 @@ public:
         bool portrait = renderer_.h > renderer_.w;
         return {portrait ? 320.f : 480.f, portrait ? 106.f : 66.f};
     }
+    void draw_arranged(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density density) const {
+        auto& r=renderer_; const auto& t=g_theme;
+        const float x=area.x, y=area.y, right=x+area.width;
+        const auto age=ago(post_.published,now_);
+        d.text(right-10,y+12,age,r.f_act,t.muted,"rm");
+        const float available=area.width-30-d.textlength(age,r.f_act);
+        d.text(x+10,y+12,r.fit(d,post_.source,r.f_src,available),r.f_src,t.accent,"lm");
+        if(density==plugins::zones::Density::compact)
+            d.text(x+10,y+31,r.fit(d,short_title(post_.title),r.f_post,area.width-20),r.f_post,t.text,"lm");
+        else {
+            const auto lines=r.wrap(d,short_title(post_.title),r.f_post,area.width-20);
+            for(size_t j=0;j<lines.size();++j) d.text(x+10,y+32+j*20.f,lines[j],r.f_post,t.text,"lm");
+        }
+        if(index_<count_-1) d.line({{x+10,y+area.height-1},{right-10,y+area.height-1}},t.line,1);
+    }
     void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
         auto& r = renderer_;
         const Theme& t = g_theme;
@@ -1102,6 +1118,90 @@ Image RssRenderer::render(const std::vector<Post>& posts, std::optional<std::tim
     const std::string foot = updated ? "Stand " + clock_hhmm(*updated) : "";
     return draw_framed({W, H, s, t.bg, [this, now](Canvas& d) { header(d, now, ""); },
                         [this, &foot](Canvas& d) { footer(d, foot); }}, blocks);
+}
+
+// Rasterweg ausschließlich nach einer echten Änderung; Standard bleibt oben unverändert.
+plugins::zones::Plan RssRenderer::arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    const auto layout=plugins::edit::geometry(model);
+    if(!layout) return {};
+    return plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("rss"),model),6);
+}
+bool RssRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("rss"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+int RssRenderer::arranged_rows(const builtin::Overlay& overlay) const {
+    if(!uses_arrangement(overlay)) return MAX_ROWS;
+    for(const auto& b:arrangement(overlay).blocks) if(b.id=="rss.liste" && b.visible())
+        return std::clamp(int(b.area.height/(*b.density==plugins::zones::Density::compact?44.f:66.f)),1,MAX_ROWS);
+    return 0;
+}
+int RssRenderer::pages(size_t items,const builtin::Overlay& overlay) const {
+    const int per=arranged_rows(overlay);
+    return per?std::max(1,int((items+per-1)/per)):1;
+}
+class RssRenderer::ListBlock : public plugins::zones::Block {
+public:
+    ListBlock(RssRenderer& r,const std::vector<Post>& posts,int page,int per,std::time_t now)
+        :r_(r),posts_(posts),page_(page),per_(per),now_(now) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("rss")->blocks.front().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density density) const override {
+        const size_t start=size_t(page_)*per_,count=start<posts_.size()?std::min(size_t(per_),posts_.size()-start):0;
+        for(size_t i=0;i<count;++i) {
+            const float top=area.y+std::floor(area.height*i/per_);
+            const float bottom=area.y+std::floor(area.height*(i+1)/per_);
+            RowBlock row(r_,posts_[start+i],i,count,now_);
+            row.draw_arranged(d,{area.x,top,area.width,bottom-top},density);
+        }
+    }
+private:
+    RssRenderer& r_;const std::vector<Post>& posts_;int page_,per_;std::time_t now_;
+    std::string id_="rss.liste";
+};
+class RssRenderer::ArrangedHintBlock : public plugins::zones::Block {
+public:
+    ArrangedHintBlock(RssRenderer& r,const char* text):r_(r),text_(text) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("rss")->blocks.back().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density) const override {
+        d.text(area.x+area.width/2,area.y+area.height/2,r_.fit(d,text_,r_.f_act,area.width-8),r_.f_act,g_theme.muted,"mm");
+    }
+private:
+    RssRenderer& r_;const char* text_;std::string id_="rss.hinweis";
+};
+BuiltinDrawOut RssRenderer::render_arranged(const std::vector<Post>& posts,std::optional<std::time_t> updated,
+                                           const builtin::Overlay& overlay,int page,std::time_t now) {
+    const auto& c=*builtin::find("rss");
+    if(!builtin::validate(c,overlay).empty() || !uses_arrangement(overlay)) return {render(posts,updated,now),{}};
+    const auto plan=arrangement(overlay);
+    const int per=arranged_rows(overlay),count=pages(posts.size(),overlay);
+    page=std::clamp(page,0,count-1);
+    ListBlock list(*this,posts,page,per,now);
+    ArrangedHintBlock hint(*this,!updated?"Lade Feeds …":"Keine Beiträge gefunden");
+    const bool ready=updated && !posts.empty();
+    std::vector<Platzierung> blocks;
+    for(const auto& b:plan.blocks) if((ready && b.id==list.id()) || (!ready && b.id==hint.id())) blocks.push_back({ready?static_cast<const plugins::zones::Block*>(&list):&hint,b});
+    const auto foot=(count>1 && ready?"Seite "+std::to_string(page+1)+"/"+std::to_string(count)+" · ":"")+(updated?"Stand "+clock_hhmm(*updated):"");
+    std::vector<std::string> failed;
+    BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,now](Canvas& d){header(d,now,"");},
+                            [this,&foot](Canvas& d){footer(d,foot);}},blocks,&failed);
+    if(ready && per && failed.empty()) for(const auto& b:plan.blocks) if(b.id==list.id() && b.visible()) {
+        const size_t start=size_t(page)*per,n=start<posts.size()?std::min(size_t(per),posts.size()-start):0;
+        for(size_t i=0;i<n;++i) {
+            const int left=pyround_i(b.area.x*s),right=pyround_i((b.area.x+b.area.width)*s);
+            const int top=pyround_i((b.area.y+std::floor(b.area.height*i/per))*s);
+            const int bottom=pyround_i((b.area.y+std::floor(b.area.height*(i+1)/per))*s);
+            out.targets.push_back({{left,top,right-left,bottom-top},start+i});
+        }
+    }
+    return out;
 }
 
 // ---------- Streaming-Neustarts ----------

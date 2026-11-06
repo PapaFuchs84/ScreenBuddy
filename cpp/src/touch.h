@@ -22,6 +22,12 @@ struct PluginTarget {
     double stable_since = 0;
     bool transitioning = false;
 };
+// Rechtecke relativ zur Kachel, aus demselben Rasterplan wie das veröffentlichte Bild.
+struct ArrangedTarget {
+    render::Box rect_px;
+    Targets links;
+    std::function<void()> action;
+};
 struct Tile {
     render::Box box;
     bool rss = false;
@@ -32,6 +38,8 @@ struct Tile {
     bool ha = false;                              // Home-Assistant-Kacheln: je Kachel eine Aktion (Schalter umlegen) oder leer
     std::vector<std::function<void()>> cells;
     std::vector<PluginTarget> plugin;
+    bool arranged = false; // auch eine leere Zielkarte unterbindet den festen Trefferweg
+    std::vector<ArrangedTarget> arranged_targets;
 };
 const PluginTarget* plugin_at(const std::vector<Tile>& tiles, int x, int y);
 // Reine Entscheidung auf dem veröffentlichten Bild; kein Browser, keine Navigation.

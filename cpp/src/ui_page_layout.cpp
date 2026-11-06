@@ -14,7 +14,7 @@ using plugins::Json;
 class LayoutPage : public Page {
 public:
     PageInfo info() const override {
-        return {"layout", Group::App, T(L"Plugin-Seite anordnen",L"Arrange plugin page"),
+        return {"layout", Group::App, T(L"Seite anordnen",L"Arrange page"),
             T(L"Blöcke im Raster anordnen · Vorschau mit Beispieldaten",L"Arrange blocks in a grid · preview with sample data")};
     }
     void build(Host& host, Column& root) override {
@@ -22,8 +22,8 @@ public:
         // Nach „Verwerfen“ können alle bisherigen Widgets bereits zerstört sein.
         grid_=nullptr; blocks_=nullptr; zone_id_=seconds_=literal_=nullptr;
         apply_=undo_=redo_=reset_=error_=nullptr; validation_=nullptr;
-        auto card=root.add<Card>(T(L"Plugin auswählen",L"Select plugin"));
-        choice_=card->row<Combo>(T(L"Aktiviertes Plugin",L"Enabled plugin"),Text(),std::vector<Text>{},-1);
+        auto card=root.add<Card>(T(L"Seite auswählen",L"Select page"));
+        choice_=card->row<Combo>(host.plugins().builtin_layout_get?T(L"Seite",L"Page"):T(L"Aktiviertes Plugin",L"Enabled plugin"),Text(),std::vector<Text>{},-1);
         choice_->on_change=[this] { choose(choice_->index); };
         status_=root.add<Label>(T(L"Wird geladen …",L"Loading …"));
         body_=root.add<Column>();
@@ -40,7 +40,7 @@ public:
         update_buttons();
     }
 private:
-    struct Entry { std::string id; Text name; Json data; };
+    struct Entry { std::string id; Text name; Json data; bool builtin=false; };
     Host* host_=nullptr;
     Column* body_=nullptr;
     Combo* choice_=nullptr;
@@ -56,7 +56,8 @@ private:
     std::vector<Entry> entries_;
     std::vector<std::string> paths_;
     plugins::Manifest base_;
-    pe::EditHistory history_;
+    pe::EditHistory history_, other_history_;
+    const builtin::Catalog* catalog_=nullptr;
     int chosen_=-1, block_=0;
     bool visible_=false, reload_=false, pending_=false, previewing_=false, valid_=false, syncing_=false, uncommitted_=false, portrait_=false;
     uint64_t generation_=0;
@@ -69,8 +70,8 @@ private:
     void update_buttons() {
         if (!apply_) return;
         const bool idle=!host_->busy();
-        apply_->enabled=idle && valid_ && !uncommitted_ && bool(host_->plugins().arrangement_apply);
-        reset_->enabled=idle && bool(host_->plugins().arrangement_reset);
+        apply_->enabled=idle && valid_ && !uncommitted_ && (catalog_?bool(host_->plugins().builtin_layout_apply):bool(host_->plugins().arrangement_apply));
+        reset_->enabled=idle && (catalog_?bool(host_->plugins().builtin_layout_reset):bool(host_->plugins().arrangement_reset));
         undo_->enabled=history_.can_undo(); redo_->enabled=history_.can_redo();
         if(error_) error_->enabled=!valid_;
         choice_->enabled=idle;
@@ -78,24 +79,27 @@ private:
     }
     void load() {
         auto h=host_; reload_=false;
-        if (!h->plugins().list || !h->plugins().arrangement_get) {
+        if ((!h->plugins().list || !h->plugins().arrangement_get) && !h->plugins().builtin_layout_get) {
             status_->text=T(L"Anordnung ist in diesem Build nicht angebunden.",L"Arrangement is not connected in this build."); return;
         }
         h->run([this,h]() -> std::function<void()> {
             std::vector<Entry> entries;
-            for(auto& e:h->plugins().list()) if(e.enabled) entries.push_back({e.id,Text(widen(e.name)),h->plugins().arrangement_get(e.id)});
+            if(h->plugins().list && h->plugins().arrangement_get)
+                for(auto& e:h->plugins().list()) if(e.enabled) entries.push_back({e.id,Text(widen(e.name)),h->plugins().arrangement_get(e.id)});
+            if(h->plugins().builtin_layout_get) for(const auto& c:builtin::catalogs()) if(c.enabled)
+                entries.push_back({c.key,Text(widen(c.label.de),widen(c.label.en)),h->plugins().builtin_layout_get(c.key),true});
             return [this,entries=std::move(entries)] {
-                std::string selected=chosen_>=0 && chosen_<int(entries_.size()) ? entries_[chosen_].id : "";
+                std::string selected=chosen_>=0 && chosen_<int(entries_.size()) ? (entries_[chosen_].builtin?"builtin:":"plugin:")+entries_[chosen_].id : "";
                 entries_=entries; chosen_=0;
-                for(size_t i=0;i<entries_.size();++i) if(entries_[i].id==selected) chosen_=int(i);
+                for(size_t i=0;i<entries_.size();++i) if((entries_[i].builtin?"builtin:":"plugin:")+entries_[i].id==selected) chosen_=int(i);
                 fill_choices(); choose(entries_.empty()?-1:chosen_,true);
             };
         });
     }
-    void fill_choices() { choice_->options.clear(); for(auto& e:entries_) choice_->options.push_back(e.name); choice_->index=chosen_; }
+    void fill_choices() { choice_->options.clear(); for(auto& e:entries_) choice_->options.push_back(Text((e.builtin?L"Eingebaut · ":L"Plugins · ")+e.name.de,(e.builtin?L"Built-in · ":L"Plugins · ")+e.name.en)); choice_->index=chosen_; }
     void choose(int i, bool preserve=false) {
-        if(!preserve && i!=chosen_ && (history_.can_undo() || uncommitted_) &&
-            !host_->confirm(T(L"Ungesicherte Änderungen verwerfen und das Plugin wechseln?",L"Discard unsaved changes and switch plugin?"))) {
+        if(!preserve && i!=chosen_ && (history_.can_undo() || (catalog_ && other_history_.can_undo()) || uncommitted_) &&
+            !host_->confirm(T(L"Ungesicherte Änderungen verwerfen und die Seite wechseln?",L"Discard unsaved changes and switch page?"))) {
             choice_->index=chosen_; host_->surface().invalidate(); return;
         }
         reported_.clear();
@@ -105,9 +109,25 @@ private:
         body_->clear(); grid_=nullptr; blocks_=nullptr; apply_=undo_=redo_=reset_=error_=nullptr;
         zone_id_=seconds_=literal_=nullptr; validation_=nullptr;
         if(i<0 || i>=int(entries_.size())) {
-            status_->text=T(L"Kein aktiviertes Plugin installiert.",L"No enabled plugin installed."); host_->relayout(); return;
+            catalog_=nullptr; status_->text=T(L"Keine Seite verfügbar.",L"No page available."); host_->relayout(); return;
         }
         const auto& data=entries_[i].data;
+        const auto* previous_catalog=catalog_;
+        catalog_=entries_[i].builtin?builtin::find(entries_[i].id):nullptr;
+        if(catalog_) {
+            auto parsed=builtin::parse(*catalog_,data.value("overlay",Json()).dump());
+            if(!parsed) { status_->text=T(L"Anordnung konnte nicht geladen werden.",L"Could not load arrangement.");host_->relayout();return; }
+            if(!preserve || previous_catalog!=catalog_) {
+                history_.reset(portrait_?parsed.overlay->portrait.value_or(parsed.overlay->model):parsed.overlay->model);
+                other_history_.reset(portrait_?parsed.overlay->model:parsed.overlay->portrait.value_or(parsed.overlay->model));
+            }
+            base_={};block_=0;uncommitted_=false;
+            status_->text=T(L"Schematisches Raster. Standard bleibt pixelgleich; eigene Anordnung – Abstände folgen dem Raster.",
+                            L"Schematic grid. Standard stays pixel-identical; custom arrangement – spacing follows the grid.");
+            if(data.value("state",std::string())=="stale") status_->text=T(L"Anordnung passt nicht mehr zum Katalog. Auf Standard zurücksetzen.",L"Arrangement no longer matches the catalog. Reset to standard.");
+            if(data.value("state",std::string())=="invalid") status_->text=T(L"Gespeicherte Anordnung ungültig. Standard aktiv; Zurücksetzen entfernt die fehlerhafte Datei.",L"Saved arrangement is invalid. Standard active; reset removes the invalid file.");
+            editor();sync();clean(*body_);host_->relayout();return;
+        }
         auto p=plugins::parse_manifest(data.value("definition",Json()).dump());
         if(!p || p.manifest->schema_version!=2) {
             status_->text=T(L"Anordnung braucht Manifest v2.",L"Arrangement requires manifest v2."); host_->relayout(); return;
@@ -125,7 +145,15 @@ private:
         if(data.value("state",std::string())=="invalid") status_->text=T(L"Gespeicherte Anordnung ungültig. Manifest-Vorschlag prüfen oder zurücksetzen.",L"Saved arrangement is invalid. Review the manifest proposal or reset it.");
         editor(); sync(); clean(*body_); host_->relayout();
     }
+    builtin::Overlay builtin_overlay() const {
+        return {catalog_->version,portrait_?other_history_.current():model(),
+            portrait_?model():other_history_.current()};
+    }
     void accept(pe::Model next, std::string group={}) {
+        if(catalog_) for(const auto& spec:catalog_->blocks) if(spec.required &&
+            std::none_of(next.blocks.begin(),next.blocks.end(),[&](const auto& b){return b["id"]==spec.id && b.value("shown",false);})) {
+            host_->toast(T(L"Pflichtblock kann nicht entfernt werden.",L"Required block cannot be removed."),ToastKind::Error);sync();return;
+        }
         if(history_.push(std::move(next),std::move(group),GetTickCount64())) { ++generation_; pending_=true; }
         uncommitted_=false; sync();
     }
@@ -172,6 +200,7 @@ private:
         cycle_=zone->row<Segment>(T(L"Wechsel",L"Cycle"),Text(),std::vector<Text>{T(L"Aus",L"Off"),Text(L"rotate"),Text(L"first_available")},0);
         transition_=zone->row<Segment>(T(L"Übergang",L"Transition"),Text(),std::vector<Text>{Text(L"fade"),Text(L"none")},0);
         cycle_->on_change=transition_->on_change=[this] { commit_zone(); };
+        if(catalog_) {zone->items[1]->visible=false;zone->items[2]->visible=false;}
         auto split=zone->add<ButtonRow>();
         split->add(T(L"Horizontal teilen",L"Split horizontally"),Button::Secondary,[this] { operation([this](auto& n) { return pe::split_zone(n,grid_->selected,true); }); });
         split->add(T(L"Vertikal teilen",L"Split vertically"),Button::Secondary,[this] { operation([this](auto& n) { return pe::split_zone(n,grid_->selected,false); }); });
@@ -198,9 +227,16 @@ private:
         // Werttyp/Operator ändern nur den Entwurf, damit ein neuer Wert zuerst eingegeben werden kann.
         op_->on_change=type_->on_change=[this] { text_pending(); };
         bc->add<ButtonRow>()->add(T(L"Bedingung bestätigen",L"Confirm condition"),Button::Secondary,[this] { commit_block(); });
-        auto pv=body_->add<Card>(T(L"Live-Vorschau",L"Live preview"),T(L"Beispieldaten aus dem Plugin, derselbe Seitenrenderer wie auf dem Display.",L"Plugin sample data, the same page renderer as on the display."));
+        if(catalog_) for(size_t i=2;i<bc->items.size();++i) bc->items[i]->visible=false;
+        auto pv=body_->add<Card>(T(L"Live-Vorschau",L"Live preview"),catalog_?T(L"RSS-Beispieldaten, derselbe Renderer wie auf dem Display. Kopf und Fuß sind fest.",L"RSS sample data, the same renderer as on the display. Header and footer are fixed."):T(L"Beispieldaten aus dem Plugin, derselbe Seitenrenderer wie auf dem Display.",L"Plugin sample data, the same page renderer as on the display."));
         auto orientation=pv->row<Segment>(T(L"Ausrichtung",L"Orientation"),Text(),std::vector<Text>{T(L"Quer",L"Landscape"),T(L"Hoch",L"Portrait")},portrait_?1:0);
-        orientation->on_change=[this,orientation] { portrait_=orientation->index==1; ++generation_; pending_=true; };
+        orientation->on_change=[this,orientation] {
+            if(grid_ && grid_->carrying()) grid_->cancel(host_->surface());
+            if(catalog_ && uncommitted_) { orientation->index=portrait_?1:0;host_->toast(T(L"Eingabe zuerst abschließen.",L"Commit the field first."),ToastKind::Error);return; }
+            const bool next=orientation->index==1;
+            if(catalog_ && next!=portrait_) std::swap(history_,other_history_);
+            portrait_=next;++generation_;pending_=true;if(catalog_) sync();
+        };
         validation_=body_->add<Label>(Text());
         error_=body_->add<ButtonRow>()->add(T(L"Fehlerstelle auswählen",L"Select invalid field"),Button::Secondary,[this] {
             if(issue_block_>=0) { block_=issue_block_; blocks_->selected=block_; sync_block(); host_->relayout(); host_->surface().focus(block_zone_,true); }
@@ -210,7 +246,7 @@ private:
         undo_=buttons->add(T(L"Rückgängig",L"Undo"),Button::Secondary,[this] { undo(); });
         redo_=buttons->add(T(L"Wiederholen",L"Redo"),Button::Secondary,[this] { redo(); });
         apply_=buttons->add(T(L"Übernehmen",L"Apply"),Button::Primary,[this] { apply(false); });
-        reset_=buttons->add(T(L"Auf Manifest zurücksetzen",L"Reset to manifest"),Button::Danger,[this] { apply(true); });
+        reset_=buttons->add(catalog_?T(L"Auf Standard zurücksetzen",L"Reset to standard"):T(L"Auf Manifest zurücksetzen",L"Reset to manifest"),Button::Danger,[this] { apply(true); });
         pending_=true;
     }
     void build_paths() {
@@ -228,7 +264,7 @@ private:
         if(!grid_) return; syncing_=true;
         int z=grid_->selected;
         bool selected=z>=0 && z<int(model().layout["zones"].size());
-        zone_id_->enabled=cycle_->enabled=transition_->enabled=selected;
+        zone_id_->enabled=selected; cycle_->enabled=transition_->enabled=selected && !catalog_;
         if(selected) {
             auto& j=model().layout["zones"][z]; zone_id_->set_text(widen(j["id"].get<std::string>()));
             cycle_->index=!j.contains("cycle")?0:j["cycle"]["mode"]=="rotate"?1:2;
@@ -239,12 +275,12 @@ private:
     void sync_block() {
         if(!blocks_) return;
         const bool selected=block_>=0 && block_<int(model().blocks.size());
-        block_zone_->enabled=path_->enabled=op_->enabled=type_->enabled=literal_->enabled=selected;
+        block_zone_->enabled=selected;path_->enabled=op_->enabled=type_->enabled=literal_->enabled=selected && !catalog_;
         if(!selected) { seconds_->enabled=false; return; }
         syncing_=true; auto& b=model().blocks[block_]; auto& zs=model().layout["zones"];
         block_zone_->options.clear(); block_zone_->index=0;
         for(size_t i=0;i<zs.size();++i) { block_zone_->options.push_back(Text(widen(zs[i]["id"].get<std::string>()))); if(zs[i]["id"]==b["zone"]) block_zone_->index=int(i); }
-        auto& z=zs[block_zone_->index]; seconds_->enabled=z.contains("cycle") && z["cycle"]["mode"]=="rotate";
+        auto& z=zs[block_zone_->index]; seconds_->enabled=!catalog_ && z.contains("cycle") && z["cycle"]["mode"]=="rotate";
         seconds_->set_text(b.contains("seconds")?std::to_wstring(b["seconds"].get<int>()):L"");
         path_->index=0; op_->index=0; type_->index=0; literal_->set_text(L"");
         if(b.contains("show_if")) {
@@ -265,9 +301,16 @@ private:
             auto& axis=model().layout[a==0?"columns":"rows"];
             weight_rows_[a][i]->visible=i<int(axis.size()); if(i<int(axis.size())) weights_[a][i]->val=axis[i];
         }
-        blocks_->items.clear(); for(auto& b:model().blocks) blocks_->items.push_back({b["id"],Text(widen(b["id"].get<std::string>())),Text(widen(b["zone"].get<std::string>())),b["shown"]});
+        blocks_->items.clear(); for(auto& b:model().blocks) {
+            Text label(widen(b["id"].get<std::string>()));
+            if(catalog_) for(const auto& spec:catalog_->blocks) if(b["id"]==spec.id)
+                label=Text(widen(spec.label.de)+(spec.required?L" (Pflicht)":L""),widen(spec.label.en)+(spec.required?L" (required)":L""));
+            blocks_->items.push_back({b["id"],label,Text(widen(b["zone"].get<std::string>())),b["shown"]});
+        }
         block_=model().blocks.empty()?-1:std::clamp(block_,0,int(model().blocks.size())-1); blocks_->selected=block_;
-        auto result=plugins::merge_arrangement(base_,model()); valid_=bool(result);
+        plugins::ParseResult result;
+        if(catalog_) {result.error=builtin::validate(*catalog_,builtin_overlay());valid_=result.error.empty();}
+        else {result=plugins::merge_arrangement(base_,model());valid_=bool(result);}
         issue_zone_=issue_block_=-1;
         const auto& zs=model().layout["zones"];
         if(!valid_) for(size_t z=0;z<zs.size();++z) {
@@ -276,6 +319,7 @@ private:
         }
         if(!valid_ && issue_zone_<0) issue_block_=block_;
         validation_->text=valid_?T(L"Anordnung gültig.",L"Arrangement valid."):Text(widen(pe::diagnostic(result.error,false)),widen(pe::diagnostic(result.error,true)));
+        if(catalog_ && !valid_) validation_->text=T(L"Anordnung ungültig: Jede Zone braucht Blöcke, Pflichtblöcke müssen sichtbar bleiben und in Quer/Hoch passen.",L"Invalid arrangement: every zone needs blocks; required blocks must stay visible and fit landscape/portrait.");
         if(!valid_ && (issue_zone_>=0 || issue_block_>=0)) {
             std::wstring where=issue_zone_>=0?L"Zone "+widen(zs[issue_zone_]["id"].get<std::string>()):L"Block "+widen(model().blocks[issue_block_]["id"].get<std::string>());
             validation_->text.de=where+L": "+validation_->text.de; validation_->text.en=where+L": "+validation_->text.en;
@@ -328,19 +372,24 @@ private:
     }
     void apply(bool reset) {
         if(host_->busy() || chosen_<0 || (!reset && (!valid_ || uncommitted_))) return;
-        if(reset && !host_->confirm(T(L"Anordnung und Backup löschen und die Manifest-Anordnung wiederherstellen?",L"Remove the arrangement and its backup and restore the manifest layout?"))) return;
-        auto h=host_; auto id=entries_[chosen_].id; auto overlay=plugins::to_json(model()); ++generation_; pending_=false;
+        if(reset && !host_->confirm(catalog_?T(L"Anordnung und Backup löschen und den pixelgleichen Standard wiederherstellen?",L"Remove arrangement and backup and restore the pixel-identical standard?"):T(L"Anordnung und Backup löschen und die Manifest-Anordnung wiederherstellen?",L"Remove the arrangement and its backup and restore the manifest layout?"))) return;
+        auto h=host_; auto id=entries_[chosen_].id;const bool built=bool(catalog_); auto overlay=built?builtin::to_json(builtin_overlay()):plugins::to_json(model()); ++generation_; pending_=false;
         const auto serial=generation_;
-        h->run([this,h,id,overlay,reset,serial]() -> std::function<void()> {
-            if(reset) h->plugins().arrangement_reset(id); else h->plugins().arrangement_apply(id,overlay);
-            auto data=h->plugins().arrangement_get(id);
-            return [this,h,id,data,serial] {
-                for(auto& e:entries_) if(e.id==id) e.data=data;
-                if(chosen_>=0 && entries_[chosen_].id==id && grid_ && serial==generation_) {
-                    auto parsed=plugins::parse_arrangement(data.value("overlay",Json()).dump());
-                    if(parsed) {
-                        history_.reset(*parsed.arrangement); uncommitted_=false; pending_=true;
-                        status_->text=T(L"Nur die Anordnung wird gespeichert. Inhalte und Freigaben bleiben erhalten.",L"Only arrangement is saved. Content and consent are preserved.");
+        h->run([this,h,id,overlay,reset,serial,built]() -> std::function<void()> {
+            if(built) {if(reset) h->plugins().builtin_layout_reset(id);else h->plugins().builtin_layout_apply(id,overlay);}
+            else {if(reset) h->plugins().arrangement_reset(id); else h->plugins().arrangement_apply(id,overlay);}
+            auto data=built?h->plugins().builtin_layout_get(id):h->plugins().arrangement_get(id);
+            return [this,h,id,data,serial,built] {
+                for(auto& e:entries_) if(e.id==id && e.builtin==built) e.data=data;
+                if(chosen_>=0 && entries_[chosen_].id==id && entries_[chosen_].builtin==built && grid_ && serial==generation_) {
+                    auto parsed=built?plugins::ArrangementResult{}:plugins::parse_arrangement(data.value("overlay",Json()).dump());
+                    auto builtin_parsed=built?builtin::parse(*catalog_,data.value("overlay",Json()).dump()):builtin::Result{};
+                    if(parsed || builtin_parsed) {
+                        if(built) {
+                            history_.reset(portrait_?builtin_parsed.overlay->portrait.value_or(builtin_parsed.overlay->model):builtin_parsed.overlay->model);
+                            other_history_.reset(portrait_?builtin_parsed.overlay->model:builtin_parsed.overlay->portrait.value_or(builtin_parsed.overlay->model));
+                        } else history_.reset(*parsed.arrangement); uncommitted_=false; pending_=true;
+                        status_->text=built?T(L"Standard bleibt pixelgleich; eigene Anordnung – Abstände folgen dem Raster.",L"Standard stays pixel-identical; custom arrangement – spacing follows the grid."):T(L"Nur die Anordnung wird gespeichert. Inhalte und Freigaben bleiben erhalten.",L"Only arrangement is saved. Content and consent are preserved.");
                         sync();
                     }
                 }
@@ -354,12 +403,14 @@ private:
     void preview() {
         pending_=false;
         if(!visible_ || !grid_ || !valid_ || uncommitted_) return;
-        auto merged=plugins::merge_arrangement(base_,model()); if(!merged) return;
-        const auto serial=generation_; auto h=host_; auto json=merged.manifest->definition.dump();
+        const bool built=bool(catalog_);
+        auto merged=built?plugins::ParseResult{}:plugins::merge_arrangement(base_,model()); if(!built && !merged) return;
+        const auto serial=generation_; auto h=host_; auto json=built?builtin::to_json(builtin_overlay()).dump():merged.manifest->definition.dump();
+        const auto key=built?catalog_->key:std::string();
         auto size=portrait_?std::pair{320,480}:std::pair{480,320}; previewing_=true;
-        h->run([this,h,json,size,serial]() -> std::function<void()> {
+        h->run([this,h,json,size,serial,built,key]() -> std::function<void()> {
             std::string error; std::optional<Image> image;
-            try { image=h->app().plugin_preview(json,error,size,true); } catch(const std::exception&) { error="preview"; }
+            try { image=built?h->app().page_preview(key,Json::parse(json),size,error):h->app().plugin_preview(json,error,size,true); } catch(const std::exception&) { error="preview"; }
             return [this,h,image=std::move(image),serial] {
                 previewing_=false;
                 if(visible_ && serial==generation_ && image) h->preview(image);

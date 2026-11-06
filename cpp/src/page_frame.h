@@ -19,4 +19,6 @@ struct Platzierung {
     plugins::zones::PlacedBlock placed;
 };
 Image draw_framed(const Rahmen& frame, const std::vector<Platzierung>& blocks);
+// Ausschließlich für eigene Rasteranordnungen; failed enthält Blöcke ohne Trefferziel.
+Image draw_arranged(const Rahmen& frame, const std::vector<Platzierung>& blocks, std::vector<std::string>* failed = nullptr);
 } // namespace fl::render

@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "config.h"
+#include "builtin_catalog.h"
 #include "gfx.h"
 #include "models.h"
 #include "output.h"
@@ -41,6 +42,27 @@ namespace audio { class LevelMeter; }
 namespace update { class UpdateChecker; }
 class Tray;
 
+// Dateispeicher eingebauter Anordnungen; die App und der serielle UI-Jobweg teilen ihn.
+namespace builtin {
+struct LayoutState {
+    std::optional<Overlay> overlay;
+    std::string state = "none";
+    uint64_t revision = 0;
+};
+class LayoutStore {
+public:
+    explicit LayoutStore(std::filesystem::path directory);
+    LayoutState get(const std::string& key) const;
+    Json view(const std::string& key) const;
+    std::string apply(const std::string& key, std::string_view text);
+    std::string reset(const std::string& key);
+private:
+    std::filesystem::path directory_;
+    mutable std::mutex mutex_;
+    std::map<std::string,LayoutState> states_;
+    std::string reset_locked(const std::string& key);
+};
+}
 class App {
 public:
     App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out, std::optional<std::filesystem::path> preview_dir, bool show_settings_on_start = false);
@@ -89,12 +111,18 @@ public:
     bool plugin_remove(const std::string& id, std::string& error);
     std::optional<Image> plugin_preview(std::string_view manifest, std::string& error);
     std::optional<Image> plugin_preview(std::string_view manifest, std::string& error, std::pair<int,int> dimensions, bool fixed_sample_clock = false);
+    nlohmann::json builtin_layout_get(const std::string& key);
+    void builtin_layout_apply(const std::string& key, const nlohmann::json& overlay);
+    void builtin_layout_reset(const std::string& key);
+    std::optional<Image> page_preview(const std::string& key, const nlohmann::json& overlay,
+                                    std::pair<int,int> dimensions, std::string& error);
     spotify::SpotifyClient* spotify() { return spotify_.get(); }   // nullptr = Seite aus oder keine Client-ID
     NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 
 private:
     struct RendererSet;
     struct ViewState {
+        std::map<std::string,uint64_t> builtin_revisions;
         std::map<std::string,std::map<std::string,plugins::schedule::ZoneState>> cycles;
         std::map<std::string,std::shared_ptr<plugins::FadeCache>> fade_caches;
         std::map<std::string,std::pair<uint64_t,uint64_t>> cycle_generations;
@@ -139,6 +167,7 @@ private:
         std::vector<std::function<void()>> actions;   // Home Assistant: Schalt-Aktion je Kachel
         std::function<void(PageEntry&)> prepare;
         std::function<plugins::DrawOut(RendererSet&)> plugin_draw;
+        std::function<std::pair<Image,std::vector<touch::ArrangedTarget>>(int,RendererSet&)> builtin_draw;
     };
     struct DrawResult {
         Image frame;
@@ -216,6 +245,7 @@ private:
     std::unique_ptr<spotify::SpotifyClient> spotify_;
     std::unique_ptr<audio::LevelMeter> meter_;   // Amplifier der Spotify-Seite (Systemausgabe, nur lokal)
     std::unique_ptr<update::UpdateChecker> update_;
+    std::unique_ptr<builtin::LayoutStore> builtin_layouts_;
     std::unique_ptr<plugins::Store> plugins_;
     std::unique_ptr<plugins::SettingsStore> plugin_settings_;
     std::atomic<uint64_t> plugin_settings_revision_{0};

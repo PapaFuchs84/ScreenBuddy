@@ -6,7 +6,7 @@ Page names remain the same across themes; the design determines how you reach th
 | --- | --- |
 | View | Overview, Display, Pages & order, Colors & design |
 | Pages | System, Friends, Discord, Battlefield 6, Blogs (RSS), New on streaming, Home Assistant, Spotify |
-| App | Companion, Plugins, Plugin store, Arrange plugin page (from 2.10.0, in preparation), Updates & startup |
+| App | Companion, Plugins, Plugin store, Arrange page (from 2.10.0, in preparation), Updates & startup |
 
 ## Navigation by theme
 
@@ -36,10 +36,16 @@ New menu images were captured during release testing and anonymized afterwards. 
 
 Only integer pixels 0–1000 are accepted; invalid input produces a message. Rendering limits each edge to one third of the smaller frame dimension. If less than 160 × 120 usable pixels remain, the entire keepout is ignored (rate-limited warning). Border taps do nothing; navigation thirds use the usable content width. Stale Companion frame sizes are rejected.
 
-## Arrange plugin page (development for 2.10.0)
+## Arrange page (development for 2.10.0)
 
-Under **App → Arrange plugin page** you arrange the blocks of an enabled plugin with manifest v2 on a grid: define zones, assign blocks, set conditions (`show_if`) and check the preview in landscape and portrait. Undo and redo (100 steps) and keyboard operation are available. **Apply** saves only the arrangement, with a backup copy; plugin content, link consents and the manifest stay unchanged. Manifest v1 plugins only show "Arrangement needs manifest v2" there. Built-in pages and Home Assistant are not part of it. Other entry points: **Pages & order** and **Plugins → Arrange …**. Blocks can also be dragged with the mouse (block palette, handles, trash); keyboard: F6 switches the area, Space picks up, Enter drops, Esc cancels; Ctrl+Up/Down selects block chips in a zone (Space picks up, Delete returns to the palette). Releasing outside the grid cancels silently. Details: [Plugin system](PLUGIN-SYSTEM.en.md#page-editor-p6-3-to-p7-4-development-for-2100). Mouse, touchpad and touch operation are not yet accepted.
+Under **App → Arrange page** you arrange the blocks of an enabled plugin with manifest v2 on a grid: define zones, assign blocks, set conditions (`show_if`) and check the preview in landscape and portrait. Undo and redo (100 steps) and keyboard operation are available. **Apply** saves only the arrangement, with a backup copy; plugin content, link consents and the manifest stay unchanged. Manifest v1 plugins only show "Arrangement needs manifest v2" there. RSS is the first built-in page included; other built-in pages and Home Assistant follow later. Other entry points: **Pages & order** and **Plugins → Arrange …**. Blocks can also be dragged with the mouse (block palette, handles, trash); keyboard: F6 switches the area, Space picks up, Enter drops, Esc cancels; Ctrl+Up/Down selects block chips in a zone (Space picks up, Delete returns to the palette). Releasing outside the grid cancels silently. Details: [Plugin system](PLUGIN-SYSTEM.en.md#page-editor-p6-3-to-p7-7-development-for-2100). Mouse, touchpad and touch operation are not yet accepted.
 
 ## Plugin taps (Phase 4c, development)
 
 Schema 2 plugins can offer HTTPS links and the next cycling-zone entry. Links open on the PC, including taps from a phone. The separate grant in Settings → Plugins defaults to off and displays the link hosts. Targets require 1.0 s stability on Companion or 0.3 s on a monitor and are blocked during transitions; denied taps do not navigate. Areas without a target retain thirds navigation. Android TV gains no tap/D-pad action. See the [plugin system](PLUGIN-SYSTEM.en.md#tap-targets-for-plugin-blocks-phase-4c-development-for-2100). Physical acceptance is pending.
+
+P7-5 (2026-11-06, Agent Codex CLI 0.166.0): Pure built-in catalog and strict versioned overlays; standard keeps the fixed renderer; HA deferred. 14 suites passed (Companion offline: 250); built-in 4,221 images/hit maps unchanged, plugin 2,093 checks passed; physical acceptance pending.
+
+P7-6 (2026-11-06, Agent Codex CLI 0.166.0): Atomic per-page layouts with backup/revision, sample preview, arranged touch targets and isolated clipping; fixed rendering unchanged. 14 suites passed (editor 835; Companion offline 250); built-in 4,221 images/hit maps and plugin baselines unchanged; hardware pending.
+
+P7-7 (2026-11-06, Agent Codex CLI 0.166.0): RSS editor with Posts/required Status, separate landscape/portrait layouts in `layouts/builtin.rss.layout.json`; opening or applying Standard keeps the pixel-identical fixed path, real changes use the grid (spacing may shift, E2). Reset restores Standard; rows, paging and touch share one plan. Header/footer fixed; built-in cycles and HA deferred. 14 suites passed (catalog 217, editor 874, core 3,470; Companion offline 250); existing baselines unchanged, plus 1,024 RSS images/hit maps and 5,952 checks without errors; hardware pending.

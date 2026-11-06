@@ -94,7 +94,7 @@ Mehr: [Plugin-System](PLUGIN-SYSTEM.md) · [Tutorial](PLUGIN-TUTORIAL.md) · [St
 - **Bedingungen (`show_if`):** Ein Block erscheint nur bei vorhandenem Wert oder einfachem Vergleich. Fehler in einem Block betreffen nur diesen Block.
 - **Wechselfeld:** Eine Zone wechselt zwischen Blöcken (`rotate` mit 3–600 s oder `first_available`).
 - **Tap-Ziele:** Ein Block kann einen HTTPS-Link am PC öffnen. Die Freigabe je Plugin steht unter **Einstellungen → Plugins**, ist standardmäßig aus und zeigt die Hosts.
-- **Seiten-Editor:** **App → Plugin-Seite anordnen**. Speichert nur die Anordnung, mit Sicherungskopie; das Manifest bleibt unverändert.
+- **Seiten-Editor:** **App → Seite anordnen**. Speichert nur die Anordnung, mit Sicherungskopie; das Manifest bleibt unverändert.
 - **Sperrzone pro Gerät:** Siehe [Navigation](NAVIGATION.md#geräteprofil-und-sperrzone-phase-4a-entwicklung).
 
 Details: [Plugin-System](PLUGIN-SYSTEM.md) · [Tutorial](PLUGIN-TUTORIAL.md) · [Navigation](NAVIGATION.md#plugin-seite-anordnen-entwicklung-für-2100).

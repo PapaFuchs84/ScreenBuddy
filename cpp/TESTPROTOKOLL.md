@@ -1,5 +1,17 @@
 # Testprotokoll – Stand 06.11.2026
 
+## P7-5 bis P7-7 – Katalog, Store und RSS-Editor (06.11.2026)
+
+Branch `feature/zonen-layout`, Hauptcheckout auf `12ca4ed`, uncommittiert. Kein Netzwerk/Port, kein Audio, keine laufende App oder Hardware. Companion ausschließlich `--offline`; TLS-/Serverintegration ausgelassen.
+
+P7-5 (2026-11-06, Agent Codex CLI 0.166.0): Reiner Built-in-Katalog und strikt versionierte Overlays; Standard behält festen Renderweg, HA später. 14 Suiten grün (Companion offline: 250); Built-in 4.221 Bilder/Trefferkarten: 0 Fehler, Plugin 2.093 Prüfungen: 0 Fehler; physische Abnahme offen.
+
+P7-6 (2026-11-06, Agent Codex CLI 0.166.0): Atomare Seitenlayouts mit Backup/Revision, Beispieldatenvorschau, Raster-Touch-Zielen und isoliertem Clip; fester Renderweg unverändert. 14 Suiten grün (Editor 835; Companion offline 250); Built-in 4.221 Bilder/Trefferkarten und Plugin-Baselines unverändert; Hardware offen.
+
+P7-7 (2026-11-06, Agent Codex CLI 0.166.0): RSS-Editor mit Beiträge/Pflicht-Zustand, getrennten Quer-/Hochlayouts in `layouts/builtin.rss.layout.json`; Öffnen/Übernehmen von Standard behält den pixelgleichen festen Weg, echte Änderungen nutzen das Raster (Abstände können sich ändern, E2). Zurücksetzen stellt Standard her; Zeilen, Blättern und Touch teilen einen Plan. Kopf/Fuß fest; Built-in-Wechselfelder und HA später. 14 Suiten grün (Katalog 217, Editor 874, Kern 3.470; Companion offline 250); bestehende Baselines bitgleich, zusätzlich 1.024 RSS-Bilder/Trefferkarten und 5.952 Prüfungen ohne Fehler; Hardware offen.
+
+Abschluss P7-7: `fl-tests` 3470/0; layout-edit 163/0; layout-ui 874/0; plugins 380/0; store 422/0; zones 462/0; example 124/0; settings 135/0; snapshots 2093/0; builtin 4221 Bilder + 4221 Trefferkarten/0; companion `--offline` 250/0; device-profile 85/0; schedule 845/0; neuer Katalog 217/0. Neue Datei `tests/layout-snapshots/p7-rss-hashes.txt`: 1024 Rasterbilder/Trefferkarten, 5952 Prüfungen/0. Keine bestehenden Baselines aktualisiert. Abweichungen vom Dateiplan: punktierte Built-in-IDs nur im Overlay-Parser zugelassen (`plugins.cpp`); Editor und Einstiege für RSS ergänzt. Built-in-Wechselfelder bleiben deaktiviert (E6 offen). Keine Release-Prüfung, kein Commit/Push/Branchwechsel; öffentliche Auslieferung nicht erstellt.
+
 ## P7-1 bis P7-4 – Drag & Drop im Seiten-Editor (06.11.2026)
 
 Branch `feature/zonen-layout`, uncommittete Änderungen auf HEAD `ccf8eab`. Code gebaut und getestet; kein Commit, kein Push. Umfang: P7-1 `ui_kit` (Mauszeiger je Stelle, Abbruch bei Capture-Verlust und Esc), P7-2 Modell (`place_block`, `remove_block`, `move_block`, `probe`), P7-3 `GridEditor` (Bausteinleiste, Ziehen, Griffe, Ablage, Aufnehmen und Ablegen per Tastatur, MSAA), P7-4 Editor-Seite (Hinweistext, Vorschau nach dem Ablegen).

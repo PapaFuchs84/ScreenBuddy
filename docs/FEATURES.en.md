@@ -94,7 +94,7 @@ More: [Plugin system](PLUGIN-SYSTEM.en.md) · [Tutorial](PLUGIN-TUTORIAL.en.md) 
 - **Conditions (`show_if`):** A block appears only when a value is present or a simple comparison holds. A fault in one block affects only that block.
 - **Cycling zone:** A zone alternates between blocks (`rotate` every 3–600 s, or `first_available`).
 - **Tap targets:** A block can open an HTTPS link on the PC. Consent per plugin is under **Settings → Plugins**, off by default, and shows the hosts.
-- **Page editor:** **App → Arrange plugin page**. Saves only the arrangement, with a backup copy; the manifest stays unchanged.
+- **Page editor:** **App → Arrange page**. Saves only the arrangement, with a backup copy; the manifest stays unchanged.
 - **Keepout per device:** See [Navigation](NAVIGATION.en.md#device-profile-and-keepout-phase-4a-development).
 
 Details: [Plugin system](PLUGIN-SYSTEM.en.md) · [Tutorial](PLUGIN-TUTORIAL.en.md) · [Navigation](NAVIGATION.en.md#arrange-plugin-page-development-for-2100).

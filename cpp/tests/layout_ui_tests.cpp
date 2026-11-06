@@ -5,6 +5,8 @@
 #include "app.h"
 #include "util.h"
 #include "snapshot_support.h"
+#include "page_frame.h"
+#include "page_samples.h"
 #include <oleacc.h>
 #include <wincodec.h>
 #include <deque>
@@ -300,11 +302,126 @@ static Image grid_image(Kit& kit,int width,int height,const plugins::Arrangement
     if(first_column) *first_column=grid.first_column;
     Image image(width,height); bitmap->CopyPixels(nullptr,width*4,UINT(image.px.size()*4),reinterpret_cast<BYTE*>(image.px.data())); return image;
 }
+// P7-6: echter Dateispeicher und veröffentlichte Treffer, ohne App-/Serverstart.
+static void builtin_infrastructure_tests(const fs::path& root) {
+    const auto directory=root/"builtin-layouts";
+    const auto& c=*builtin::find("rss");
+    auto standard=builtin::standard(c), changed=standard;
+    changed.model.layout["rows"][0]=3;
+    builtin::LayoutStore store(directory);
+    CHECK(!store.get("rss").overlay); CHECK(store.get("rss").revision==0);
+    CHECK(store.apply("../escape",builtin::to_json(changed).dump())!="");
+    CHECK(store.apply("rss",builtin::to_json(standard).dump()).empty());
+    CHECK(store.get("rss").revision==0); CHECK(!fs::exists(directory/"builtin.rss.layout.json"));
+    CHECK(store.apply("rss",builtin::to_json(changed).dump()).empty());
+    CHECK(store.get("rss").revision==1); CHECK(store.get("friends").revision==0);
+    CHECK(store.apply("rss",builtin::to_json(changed).dump()).empty()); CHECK(store.get("rss").revision==1);
+    auto next=changed; next.model.layout["rows"][0]=2;
+    CHECK(store.apply("rss",builtin::to_json(next).dump()).empty()); CHECK(store.get("rss").revision==2);
+    const auto path=directory/"builtin.rss.layout.json",backup=directory/"builtin.rss.layout.json.bak";
+    auto read=[](const fs::path& p){std::ifstream in(p,std::ios::binary);return std::string(std::istreambuf_iterator<char>(in),{});};
+    CHECK(read(backup)==builtin::to_json(changed).dump());
+    builtin::LayoutStore loaded(directory); CHECK(loaded.get("rss").overlay); CHECK(loaded.get("rss").state=="ok");
+    CHECK(builtin::to_json(*loaded.get("rss").overlay)==builtin::to_json(next));
+    // Ein nicht beschreibbares Backup verhindert den Austausch und erhält Speicher und Datei.
+    fs::remove(backup); fs::create_directory(backup);
+    CHECK(!store.apply("rss",builtin::to_json(changed).dump()).empty());
+    CHECK(store.get("rss").revision==2);CHECK(read(path)==builtin::to_json(next).dump());
+    CHECK(!store.reset("rss").empty()); CHECK(store.get("rss").overlay);
+    fs::remove(backup);
+    CHECK(store.apply("rss",builtin::to_json(standard).dump()).empty());
+    CHECK(!store.get("rss").overlay);CHECK(!fs::exists(path));CHECK(!fs::exists(backup));
+    CHECK(store.get("rss").revision==3);
+    {auto stale=builtin::to_json(changed);stale["catalog_version"]=99;std::ofstream(path)<<stale.dump();}
+    builtin::LayoutStore stale(directory);CHECK(stale.get("rss").state=="stale");CHECK(!stale.get("rss").overlay);
+    {std::ofstream(path)<<"corrupt";}
+    builtin::LayoutStore corrupt(directory);CHECK(corrupt.get("rss").state=="invalid");CHECK(!corrupt.get("rss").overlay);
+    CHECK(corrupt.reset("rss").empty());
+    CHECK(store.apply("friends",builtin::to_json(builtin::standard(*builtin::find("friends"))).dump()).empty());
+    CHECK(!store.get("discord").overlay); CHECK(store.view("missing").is_null());
+    {std::ofstream(path)<<std::string(16385,' ');}
+    builtin::LayoutStore huge(directory);CHECK(huge.get("rss").state=="invalid");CHECK(huge.reset("rss").empty());
+    // Statische RSS-Treffer dürfen bei leerer oder anderer Rasterkarte niemals durchfallen.
+    touch::Tile tile{{20,30,480,320},true,{{{"https://example.org/old",""}}}};
+    tile.arranged=true;
+    CHECK(!touch::at({tile},21,70)); CHECK(!touch::action_at({tile},21,70));
+    tile.arranged_targets.push_back({{40,50,100,44},{{"https://example.org/drawn",""}},[]{}});
+    std::vector<touch::Tile> tiles{tile};
+    CHECK(touch::at(tiles,60,80) && touch::at(tiles,60,80)->front().url=="https://example.org/drawn");
+    CHECK(touch::action_at(tiles,60,80)); CHECK(!touch::at(tiles,160,80)); CHECK(!touch::at(tiles,59,80));
+    CHECK(!touch::at(tiles,60,124)); CHECK(!touch::at(tiles,60,79));
+    // Nur der Rasterrahmen isoliert Fehler und stellt verschachtelte Clips wieder her.
+    class FaultBlock : public plugins::zones::Block {
+    public:
+        std::string key="fault"; bool fail=true;
+        const std::string& id() const override{return key;}
+        plugins::zones::Size min_size(plugins::zones::Density) const override{return {1,1};}
+        void draw(Canvas& d,const plugins::zones::Rect&,plugins::zones::Density) const override {
+            d.clip_push(0,0,40,40);d.rectangle(0,0,90,90,{255,0,0});if(fail) throw std::runtime_error("test");
+            d.rectangle(0,0,90,90,{255,0,0});
+        }
+    } block;
+    render::Rahmen frame{100,100,1,{0,0,0},[](Canvas&){},[](Canvas& d){d.rectangle(90,90,99,99,{0,255,0});}};
+    std::vector<render::Platzierung> placements{{&block,{"fault","zone",{10,10,20,20},plugins::zones::Density::regular}}};
+    std::vector<std::string> failures;
+    auto image=render::draw_arranged(frame,placements,&failures);CHECK(failures.size()==1);CHECK(image.at(15,15)==0xff000000);CHECK(image.at(95,95)==0xff00ff00);
+    block.fail=false;failures.clear();image=render::draw_arranged(frame,placements,&failures);
+    CHECK(failures.empty());CHECK(image.at(15,15)==0xffff0000);CHECK(image.at(31,15)==0xff000000);CHECK(image.at(95,95)==0xff00ff00);
+    App app(offline_config(),root/"preview.toml",nullptr,root/"preview");
+    std::string error;
+    CHECK(app.page_preview("rss",builtin::to_json(standard),{480,320},error));
+    CHECK(!app.page_preview("rss",builtin::to_json(standard),{0,320},error));
+    CHECK(!app.page_preview("homeassistant",builtin::to_json(standard),{480,320},error));
+    CHECK(app.page_preview("rss",builtin::to_json(changed),{480,320},error));
+}
+// P7-7: Editor öffnet und übernimmt Standard ohne Dateianlage; Hochformat separat.
+static void rss_editor_tests(const fs::path& root) {
+    TestHost h(root/"rss-editor");
+    h.actions.builtin_layout_get=[&](const std::string& key){return h.application.builtin_layout_get(key);};
+    h.actions.builtin_layout_apply=[&](const std::string& key,const Json& overlay){h.application.builtin_layout_apply(key,overlay);};
+    h.actions.builtin_layout_reset=[&](const std::string& key){h.application.builtin_layout_reset(key);};
+    auto page=make_layout_page();page->build(h,h.root);page->shown(h);h.drain();page->tick(h,h.state);h.drain();page->tick(h,h.state);
+    auto grid=h.find<GridEditor>();CHECK(grid);if(!grid) return;
+    auto choice=h.find<Combo>(L"Seite");CHECK(choice && choice->options.size()==1);
+    CHECK(choice && choice->options[0].de==L"Eingebaut · RSS");
+    CHECK(grid->model.blocks[0]["id"]=="rss.liste");CHECK(grid->model.blocks[1]["id"]=="rss.hinweis");
+    const auto original=grid->model;
+    CHECK(count_dirty(&h.root)==0);CHECK(h.image);
+    const auto file=h.dir/"layouts"/"builtin.rss.layout.json";
+    CHECK(!fs::exists(file));auto apply=h.find<Button>(L"Übernehmen");CHECK(apply && apply->enabled);
+    apply->on_click();h.drain();CHECK(!fs::exists(file));CHECK(h.application.builtin_layout_get("rss")["layout_revision"]==0);
+    auto n=grid->model;n.blocks[1]["shown"]=false;grid->on_edit(n,{});
+    CHECK(plugins::edit::equal(grid->model,original));CHECK(h.toast_text==L"Pflichtblock kann nicht entfernt werden.");
+    n=grid->model;CHECK(plugins::edit::weight(n,false,0,3));grid->on_edit(n,{});
+    page->tick(h,h.state);h.drain();CHECK(h.image);CHECK(!fs::exists(file));
+    apply->on_click();h.drain();CHECK(fs::exists(file));CHECK(h.application.builtin_layout_get("rss")["layout_revision"]==1);
+    auto saved=builtin::parse(*builtin::find("rss"),h.application.builtin_layout_get("rss")["overlay"].dump());CHECK(saved);
+    CHECK(saved.overlay->model.layout["rows"][0]==3);CHECK(saved.overlay->portrait->layout["rows"][0]==4);
+    auto orientation=h.find<Segment>(L"Ausrichtung");CHECK(orientation);orientation->index=1;orientation->on_change();
+    CHECK(grid->model.layout["rows"][0]==4);CHECK(!h.find<Button>(L"Rückgängig")->enabled);
+    n=grid->model;CHECK(plugins::edit::weight(n,false,0,2));grid->on_edit(n,{});
+    orientation->index=0;orientation->on_change();CHECK(grid->model.layout["rows"][0]==3);
+    apply->on_click();h.drain();
+    saved=builtin::parse(*builtin::find("rss"),h.application.builtin_layout_get("rss")["overlay"].dump());CHECK(saved);
+    CHECK(saved.overlay->model.layout["rows"][0]==3);CHECK(saved.overlay->portrait->layout["rows"][0]==2);
+    // Übermäßig verkleinerter Pflichtblock sperrt die Anwendung in beiden Ausrichtungen.
+    n=grid->model;n.layout["rows"]={12,1};grid->on_edit(n,{});CHECK(!apply->enabled);
+    h.find<Button>(L"Rückgängig")->on_click();CHECK(apply->enabled);
+    auto reset=h.find<Button>(L"Auf Standard zurücksetzen");CHECK(reset);h.confirm_answer=true;reset->on_click();h.drain();
+    CHECK(!fs::exists(file));CHECK(!fs::exists(fs::path(file.wstring()+L".bak")));
+    CHECK(plugins::edit::equal(grid->model,original));
+    page->tick(h,h.state);h.drain();CHECK(h.image);
+    // Englische Katalogbeschriftungen und kein Eintrag für spätere Seiten (insbesondere HA).
+    CHECK(choice->options[0].en==L"Built-in · RSS");CHECK(choice->options.size()==1);
+    h.view.set_root(nullptr);
+}
 int main(int argc,char** argv) {
     gfx_init(); SetConsoleOutputCP(CP_UTF8); capture_tests();
     if(argc==2 && std::string(argv[1])=="--capture-only") { std::printf("Capture: %d passed, %d failed\n",passed,failed); return failed?1:0; }
     gesture_tests();
     const auto dir=fs::temp_directory_path()/("fl-layout-ui-"+std::to_string(GetCurrentProcessId()));
+    builtin_infrastructure_tests(dir);
+    rss_editor_tests(dir);
     struct Cleanup { fs::path path; ~Cleanup() { std::error_code ec; fs::remove_all(path,ec); } } cleanup{dir};
     fs::create_directories(dir);
     {

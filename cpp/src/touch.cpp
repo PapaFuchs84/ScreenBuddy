@@ -137,6 +137,11 @@ const Targets* at(const std::vector<Tile>& tiles, int x, int y) {
     for (const auto& t : tiles) {
         const auto& b = t.box;
         if (x < b.x || x >= b.x + b.w || y < b.y || y >= b.y + b.h) continue;
+        if(t.arranged) {
+            for(const auto& target:t.arranged_targets) {const auto& r=target.rect_px;
+                if(x-b.x>=r.x && x-b.x<r.x+r.w && y-b.y>=r.y && y-b.y<r.y+r.h) return target.links.empty()?nullptr:&target.links;}
+            return nullptr;
+        }
         int row = t.streaming ? render::StreamRenderer::row_at(b.w, b.h, y - b.y) :
                   t.rss ? render::RssRenderer::row_at(b.w, b.h, y - b.y) : render::Renderer::row_at(b.w, b.h, y - b.y);
         return row >= 0 && row < (int)t.rows.size() && !t.rows[row].empty() ? &t.rows[row] : nullptr;
@@ -148,6 +153,11 @@ const std::function<void()>* action_at(const std::vector<Tile>& tiles, int x, in
     for (const auto& t : tiles) {
         const auto& b = t.box;
         if (x < b.x || x >= b.x + b.w || y < b.y || y >= b.y + b.h) continue;
+        if(t.arranged) {
+            for(const auto& target:t.arranged_targets) {const auto& r=target.rect_px;
+                if(x-b.x>=r.x && x-b.x<r.x+r.w && y-b.y>=r.y && y-b.y<r.y+r.h) return target.action?&target.action:nullptr;}
+            return nullptr;
+        }
         int i = t.sys ? render::SysRenderer::zone_at(b.w, b.h, x - b.x, y - b.y)
                       : t.spotify ? render::SpotifyRenderer::button_at(b.w, b.h, x - b.x, y - b.y)
                       : t.ha ? render::HaRenderer::cell_at(b.w, b.h, t.cells.size(), x - b.x, y - b.y) : -1;

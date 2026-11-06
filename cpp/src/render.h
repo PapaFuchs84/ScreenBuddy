@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "config.h"
+#include "builtin_catalog.h"
 #include "theme.h"
 #include "gfx.h"
 #include "models.h"
@@ -132,10 +133,18 @@ private:
     void net_card(Canvas& d, float x, float y, float w, float h, const SysSnapshot& s);
 };
 
+struct BuiltinTarget { Box rect_px; size_t item = 0; };
+struct BuiltinDrawOut { Image image; std::vector<BuiltinTarget> targets; };
 class RssRenderer : public Renderer {
 public:
     RssRenderer(int w, int h, std::string title);
     Image render(const std::vector<Post>& posts, std::optional<std::time_t> updated, std::time_t now = 0);
+    // Die Standardanordnung nutzt weiterhin render(), ohne Raster und ohne neue Trefferkarte.
+    BuiltinDrawOut render_arranged(const std::vector<Post>& posts, std::optional<std::time_t> updated,
+                                  const builtin::Overlay& overlay, int page = 0, std::time_t now = 0);
+    bool uses_arrangement(const builtin::Overlay& overlay) const;
+    int arranged_rows(const builtin::Overlay& overlay) const;
+    int pages(size_t items, const builtin::Overlay& overlay) const;
     static constexpr int MAX_ROWS = 4;
     // Welcher Beitrag liegt an Pixelzeile y (Kachel w × h)? -1 = keiner (Kopf-/Fußzeile). Für "Tippen öffnet Beitrag".
     static int row_at(int w, int h, int y);
@@ -143,6 +152,9 @@ public:
 private:
     class RowBlock;
     class HintBlock;
+    class ListBlock;
+    class ArrangedHintBlock;
+    plugins::zones::Plan arrangement(const builtin::Overlay& overlay) const;
     static std::array<plugins::zones::PlacedBlock, MAX_ROWS> layout(float w, float h);
     Font f_post, f_src;
     std::vector<std::string> wrap(Canvas& d, const std::string& text, const Font& f, float max_w, int lines = 2);

@@ -56,6 +56,9 @@ struct NativePluginActions {
     std::function<nlohmann::json(const std::string&)> arrangement_get;
     std::function<void(const std::string&, const nlohmann::json&)> arrangement_apply;
     std::function<void(const std::string&)> arrangement_reset;
+    std::function<nlohmann::json(const std::string&)> builtin_layout_get;
+    std::function<void(const std::string&, const nlohmann::json&)> builtin_layout_apply;
+    std::function<void(const std::string&)> builtin_layout_reset;
     std::function<void()> open_advanced;
     // Store: all three run on the settings job thread (they may block on the network).
     std::function<NativeStoreState(const std::string& search, const std::string& category)> store_list;

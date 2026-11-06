@@ -9,7 +9,7 @@
 - **Bedingte Anzeige (`show_if`)** und **Fehlerisolierung:** Ein Block erscheint nur bei vorhandenem Wert oder einfachem Vergleich; schlägt ein Block fehl, fehlt nur dieser Block.
 - **Wechselfeld:** Eine Zone wechselt zwischen Blöcken (Modus `rotate` mit 3–600 s oder `first_available`).
 - **Tap-Ziele:** Blöcke können HTTPS-Links am PC öffnen. Die Freigabe je Plugin ist standardmäßig aus.
-- **Seiten-Editor:** unter **App → Plugin-Seite anordnen**: Raster, Blockliste, Bedingungen, Vorschau in Quer- und Hochformat, Rückgängig/Wiederholen, Tastaturbedienung. Gespeichert wird nur die Anordnung, mit Sicherungskopie.
+- **Seiten-Editor:** unter **App → Seite anordnen**: Raster, Blockliste, Bedingungen, Vorschau in Quer- und Hochformat, Rückgängig/Wiederholen, Tastaturbedienung. Gespeichert wird nur die Anordnung, mit Sicherungskopie.
 - **Rahmenstil:** Plugin-Karten übernehmen Radius und Abstände aus dem Theme.
 
 ## Neu: Geräte und Darstellung
@@ -42,7 +42,7 @@
 
 **Status: in preparation, not released.** No tag, no EXE and no Companion APK exist for this version. The current release remains **2.9.5**; the Companion app remains **1.0.3**.
 
-- **Plugin pages:** manifest v2 with a zone grid (up to 8 zones, 4 blocks per zone, 12 widgets with a layout), density levels, conditional display (`show_if`), fault isolation per block, cycling zones (`rotate`, 3–600 s, or `first_available`), and tap targets that open HTTPS links on the PC. Link consent is off by default. The page editor is under **App → Arrange plugin page**. Manifest v1 is unchanged. See [Plugin system](PLUGIN-SYSTEM.en.md).
+- **Plugin pages:** manifest v2 with a zone grid (up to 8 zones, 4 blocks per zone, 12 widgets with a layout), density levels, conditional display (`show_if`), fault isolation per block, cycling zones (`rotate`, 3–600 s, or `first_available`), and tap targets that open HTTPS links on the PC. Link consent is off by default. The page editor is under **App → Arrange page**. Manifest v1 is unchanged. See [Plugin system](PLUGIN-SYSTEM.en.md).
 - **Devices:** keepout in whole pixels 0–1000 for the USB display and monitor, plus a shared default and an individual keepout per paired Companion device in independent mode. Android TV always runs in landscape.
 - **Built-in pages** draw their cards through the shared frame; Home Assistant stays native.
 - **Fixed:** BF6 leaderboard requests use `platform=pc` with fallbacks; Spotify shows the last played track when nothing is playing (re-sign-in required for the new permission).

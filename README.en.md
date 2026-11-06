@@ -27,7 +27,7 @@ Store edition in preparation: [Microsoft Store / Companion build](docs/STORE-DIS
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
 
-**In preparation 2.10.0 (unreleased):** plugin pages with a zone layout (manifest v2), density levels, conditional display, cycling zones, tap targets with link consent (off by default), keepout per device, built-in pages on the shared frame and a page editor under **App → Arrange plugin page**. Nothing has been released yet; hardware, Companion and UI acceptance are pending. [Release notes 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.en.md)
+**In preparation 2.10.0 (unreleased):** plugin pages with a zone layout (manifest v2), density levels, conditional display, cycling zones, tap targets with link consent (off by default), keepout per device, built-in pages on the shared frame and a page editor under **App → Arrange page**. Nothing has been released yet; hardware, Companion and UI acceptance are pending. [Release notes 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.en.md)
 
 **New in 2.9.5:** View, Pages and App navigation; **Colors & design under View**, including signed store-theme installation. [Menu and theme guide](docs/NAVIGATION.en.md).
 
