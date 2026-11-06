@@ -111,8 +111,10 @@ public:
     static int zone_at(int w_px, int h_px, int x_px, int y_px);
 
 private:
-    void grouped_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& snap);
-    void expressive_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& snap);
+    class CardBlock;
+    void system_card(Canvas& d, const Region& area, const SysSnapshot& snap, size_t index);
+    void grouped_row(Canvas& d, const Region& area, const SysSnapshot& snap, size_t index);
+    void expressive_card(Canvas& d, const Region& area, const SysSnapshot& snap, size_t index);
     std::string net_unit;
     Font f_card, f_huge, f_val, f_lbl;
     struct RowVal {
