@@ -113,6 +113,13 @@ int main(int argc, char** argv) {
 
     // name -> (hash, image); name = "[<theme>.]<id>.<variant>.<orientation>" (no prefix for dunkel)
     const auto themes = theme_cases();
+    { // P7b-0: Kontrast additiv, ohne die bestehenden Snapshot-Schlüssel zu ändern.
+        std::lock_guard lock(render::mutex());
+        render::apply_theme({{"theme",theme::DEFAULT_ID}});
+        check_contrast(contrast_input(theme::DEFAULT_ID));
+        CHECK(render::theme().style==theme::Style::Material);
+        CHECK(theme::contrast(render::theme().accent,render::theme().card)>=4.5);
+    }
     for (const auto& theme_case : themes) {  // every theme must be valid and pass the text contrast rule (>= 4.5:1)
         if (!theme_case.inline_theme.is_null()) {
             std::string err;

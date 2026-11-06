@@ -1,6 +1,7 @@
 // © 2026 FuchsLabs – reine Katalogprüfung, ohne Renderer und Dateien.
 #include "builtin_catalog.h"
 #include "layout_edit.h"
+#include "device_overlays.h"
 #include <cstdio>
 using namespace fl::builtin;
 int main() {
@@ -36,6 +37,29 @@ int main() {
             auto plan=zones::plan({8,36,portrait?304.f:464.f,portrait?426.f:266.f},*fl::plugins::edit::geometry(model),inputs(c,model),6);
             for(const auto& block:plan.blocks) CHECK(block.visible());
         }
+    }
+    // Geräte-Container: strikt, begrenzt und bei Fehler transaktional.
+    {
+        using namespace fl::device;
+        OverlayMap map;
+        const auto& c=*find("rss");const auto overlay=to_json(standard(c));
+        for(int i=0;i<16;++i) map["device-"+std::to_string(i)]=overlay;
+        CHECK(overlay_fits(map));
+        OverlayMap parsed;
+        auto validate=[&](const auto& bytes){return bool(parse(c,bytes));};
+        CHECK(parse_overlays(overlays_json(map).dump(),parsed,validate));CHECK(parsed==map);
+        map["device-16"]=overlay;CHECK(!overlay_fits(map));
+        CHECK(!parse_overlays(overlays_json(map).dump(),parsed,validate));CHECK(parsed.size()==16);
+        CHECK(!parse_overlays(std::string(overlay_bytes_limit+1,' '),parsed,validate));
+        CHECK(!parse_overlays(R"({"schema_version":1,"schema_version":1,"devices":{}})",parsed,validate));
+        map.clear();map[""]=overlay;CHECK(!overlay_fits(map));
+        map.clear();map[std::string(513,'a')]=overlay;CHECK(!overlay_fits(map));
+        map.clear();map["bad\nID"]=overlay;CHECK(!overlay_fits(map));
+        map.clear();map["device"]=Json{{"bad",true}};CHECK(!parse_overlays(overlays_json(map).dump(),parsed,validate));
+        map.clear();for(int i=0;i<15;++i) map["id-"+std::to_string(i)]=std::string(16300,'x');
+        CHECK(overlay_fits(map));map["sixteen"]=std::string(16300,'x');CHECK(!overlay_fits(map));
+        CHECK(!parse_overlays(overlays_json(map).dump(),parsed,[](const auto&){return true;}));
+        CHECK(!valid_layout_id(""));CHECK(valid_layout_id("monitor:\\\\DISPLAY2"));
     }
     std::printf("%d passed, %d failed\n",ok,fail); return fail?1:0;
 }

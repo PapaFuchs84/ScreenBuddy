@@ -218,7 +218,7 @@ void NetworkDisplay::connect() {
         }
         return *jpeg;
     };
-    hooks.on_resize_for = [this](const std::string& device, int w, int h) { if (on_device_resize) on_device_resize(device, w, h); };
+    hooks.on_resize_for = [this](const std::string& device, int w, int h) { store_->set_device_size(device,w,h); if (on_device_resize) on_device_resize(device, w, h); };
     hooks.on_swipe_for = [this](const std::string& device, int dir) { if (on_device_swipe) on_device_swipe(device, dir); };
     hooks.on_touch_frame_for = [this](const std::string& device, int x, int y, int w, int h) {
         std::lock_guard lk(tap_mu_);
@@ -448,6 +448,8 @@ void NetworkDisplay::mdns_unregister() {
     else mdns_release(m);
     mdns_release(m);  // freigegeben wird erst, wenn auch verspätete Rückrufe durch sind
 }
+
+bool NetworkDisplay::set_device_tv(const std::string& id,bool tv) {return store_->set_device_tv(id,tv);}
 
 ojson NetworkDisplay::status() {
     auto srv = server();

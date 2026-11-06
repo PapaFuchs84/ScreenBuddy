@@ -170,6 +170,8 @@ struct Device {
     double added = 0, last_seen = 0;
     std::optional<std::vector<std::string>> pages;  // eigene Seitenliste (Reihenfolge = Auswahl); leer = Standardliste
     std::optional<device::Insets> keepout;
+    int width = 480, height = 320;
+    bool tv = false;
 };
 
 class Store {
@@ -191,6 +193,8 @@ public:
     std::optional<device::Insets> device_keepout(const std::string& id);
     bool set_device_keepout(const std::string& id, const std::optional<device::Insets>& insets);
     bool set_device_pages(const std::string& id, const std::optional<std::vector<std::string>>& pages);
+    bool set_device_size(const std::string& id, int w, int h);
+    bool set_device_tv(const std::string& id, bool tv);
     json list();                                     // ohne Schlüssel
 
 private:

@@ -525,7 +525,8 @@ struct NativeSettings::Impl : ui::Host {
         kit->use_design(initial_["display"]);
         kit->use_windows(windows);
         inspector_open = !cupertino() && !material();
-        const bool dark = windows ? kit->dark : (settings_theme == "dunkel" || (settings_theme != "hell" && ui::system_prefers_dark()));
+        const bool default_dark = settings_theme == "auto" && initial_["display"].value("theme",std::string()) == theme::DEFAULT_ID;
+        const bool dark = windows ? kit->dark : (default_dark || settings_theme == "dunkel" || (settings_theme != "hell" && ui::system_prefers_dark()));
         kit->dark = dark;
         kit->english = initial_.at("ui").value("language", "de") == "en";
         lang = own<ui::Segment>(std::vector<ui::Text>{ui::Text(L"DE"), ui::Text(L"EN")}, kit->english ? 1 : 0);

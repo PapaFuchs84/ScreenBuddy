@@ -38,7 +38,7 @@ const ojson& defaults() {
                         {"ignore_ids", ojson::array()}, {"show_offline", false}};
         j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}, {"brightness", 50}, {"reset_on_start", true},
                         {"page_seconds", 15}, {"pages", PAGES}, {"visible_pages", PAGES}, {"title", "Discord-Freunde"},
-                        {"screen_off_on_exit", true}, {"theme", "hell"},
+                        {"screen_off_on_exit", true}, {"theme", theme::DEFAULT_ID},
                         // Ausgabe: serial = USB-Display (3,5"), monitor = HDMI/USB-C-Bildschirm als Vollbildfenster
                         {"output", "serial"}, {"monitor", ""}, {"touch", true},
                         // Eigene Farben (theme = "eigen"): Vorlage plus #RRGGBB-Werte; leer = Farbe der Vorlage
@@ -64,7 +64,7 @@ const ojson& defaults() {
         j["companion"] = {{"enabled", false}, {"port", 8777}, {"page_seconds", 15}, {"pages", PAGES}, {"sync", true}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}};
         j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true}, {"plugin_store", true},
                    // Darstellung des nativen Einstellungsfensters: auto = wie Windows
-                   {"settings_theme", "auto"}};
+                   {"settings_theme", "auto"}, {"standard_theme_choice", "new"}};
         return j;
     }();
     return d;
@@ -86,6 +86,7 @@ static const std::map<Key, std::vector<std::string>> CHOICES = {
     {{"display", "output"}, {"serial", "monitor", "network"}},
     {{"ui", "language"}, {"de", "en"}},
     {{"ui", "settings_theme"}, {"auto", "hell", "dunkel", "windows"}},
+    {{"ui", "standard_theme_choice"}, {"new", "pending", "accepted", "declined"}},
 };
 static const std::set<Key> ID_LISTS = {{"discord", "guild_ids"}, {"discord", "friend_ids"}, {"discord", "ignore_ids"}};
 static const std::vector<Key> SECRETS = {{"discord", "token"}, {"friends", "steam_api_key"}, {"friends", "xbox_api_key"}, {"friends", "psn_npsso"},
@@ -146,6 +147,9 @@ ojson load(const std::filesystem::path& path) {
     ojson cfg = defaults();
     std::error_code ec;
     if (std::filesystem::exists(path, ec)) {
+        // Alte Installationen behalten auch bei fehlendem theme-Schlüssel ihren alten Standard.
+        cfg["display"]["theme"] = "hell";
+        cfg["ui"]["standard_theme_choice"] = "pending";
         ojson user = read_toml(path);
         for (auto& [sec, vals] : user.items()) {
             if (!vals.is_object()) continue;
@@ -165,6 +169,18 @@ ojson load(const std::filesystem::path& path) {
         if (!std::count(pages.begin(), pages.end(), p)) pages.push_back(p);
     cfg["display"]["pages"] = pages;
     return cfg;
+}
+
+bool standard_theme_pending(const ojson& cfg) {
+    return cfg.contains("ui") && cfg["ui"].is_object() &&
+        cfg["ui"].contains("standard_theme_choice") && cfg["ui"]["standard_theme_choice"] == "pending";
+}
+bool save_standard_theme_answer(const std::filesystem::path& path, ojson& cfg, std::optional<bool> answer) {
+    if(!answer || !standard_theme_pending(cfg)) return false;
+    auto next=cfg;
+    next["ui"]["standard_theme_choice"]=*answer?"accepted":"declined";
+    if(*answer) {next["display"]["theme"]=theme::DEFAULT_ID;next["ui"]["settings_theme"]="dunkel";}
+    save(path,next);cfg=std::move(next);return true;
 }
 
 bool token_is_plaintext(const std::filesystem::path& path) {
@@ -286,7 +302,7 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
     if (k == Key{"streaming", "api_key"} && !v.empty() && tmdb::key_kind(v) == tmdb::KeyKind::None)
         throw std::invalid_argument("Ungültiger TMDB-Key");
     if (k == Key{"display", "theme"} && !(v == "eigen" || theme::valid_theme_key(v)))
-        throw std::invalid_argument("erlaubt: hell, dunkel, windows, custom:<id>");
+        throw std::invalid_argument("erlaubt: material-orange, cupertino, fluent, hell, dunkel, windows, custom:<id>");
     if (auto it = CHOICES.find(k); it != CHOICES.end() && !std::count(it->second.begin(), it->second.end(), v))
         throw std::invalid_argument("erlaubt: " + join(it->second, ", "));
     if (sec == "display" && is_color_key(key) && !v.empty()) {

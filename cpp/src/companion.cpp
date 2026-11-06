@@ -615,6 +615,11 @@ void Store::load() {
                 dev.pages = clean_pages(raw_pages);
             }
             if (d.contains("keepout") && d["keepout"].is_object()) dev.keepout = device::parse_insets(ojson(d["keepout"]));
+            if(d.contains("width") && d["width"].is_number_integer() && d.contains("height") && d["height"].is_number_integer() &&
+               d["width"]>=160 && d["width"]<=3840 && d["height"]>=120 && d["height"]<=3840) {
+                dev.width=d["width"].get<int>();dev.height=d["height"].get<int>();
+            }
+            dev.tv=d.contains("tv") && d["tv"].is_boolean() && d["tv"].get<bool>();
             if (devices_.size() < MAX_DEVICES) devices_.push_back(std::move(dev));
         }
 }
@@ -629,6 +634,7 @@ void Store::save_locked() {
     json arr = json::array();
     for (auto& d : devices_) {
         json e = {{"id", d.id}, {"name", d.name}, {"key", protect_(base64(d.key))}, {"added", d.added}, {"last_seen", d.last_seen}};
+        e["width"]=d.width;e["height"]=d.height;e["tv"]=d.tv;
         if (d.pages) e["pages"] = *d.pages;
         if (d.keepout) e["keepout"] = device::insets_json(*d.keepout);
         arr.push_back(std::move(e));
@@ -748,11 +754,26 @@ bool Store::set_device_keepout(const std::string& id, const std::optional<device
     for (auto& d : devices_) if (d.id == id) { d.keepout = insets; save_locked(); return true; }
     return false;
 }
+bool Store::set_device_size(const std::string& id,int w,int h) {
+    if(w<160 || h<120 || w>3840 || h>3840) return false;
+    std::lock_guard lk(mu_);
+    for(auto& d:devices_) if(d.id==id) {
+        if(d.width==w && d.height==h) return true;
+        d.width=w;d.height=h;save_locked();return true;
+    }
+    return false;
+}
+bool Store::set_device_tv(const std::string& id,bool tv) {
+    std::lock_guard lk(mu_);
+    for(auto& d:devices_) if(d.id==id) {if(d.tv!=tv) {d.tv=tv;save_locked();}return true;}
+    return false;
+}
 json Store::list() {
     std::lock_guard lk(mu_);
     json arr = json::array();
     for (auto& d : devices_) {
         json e = {{"id", d.id}, {"name", d.name}, {"added", d.added}, {"last_seen", d.last_seen}, {"pages", nullptr}};
+        e["width"]=d.width;e["height"]=d.height;e["tv"]=d.tv;
         if (d.pages) e["pages"] = *d.pages;
         if (d.keepout) e["keepout"] = device::insets_json(*d.keepout);
         arr.push_back(std::move(e));

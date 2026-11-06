@@ -53,6 +53,11 @@ struct NativePluginActions {
     std::function<void(const std::string&, bool)> set_link_consent;
     std::function<void(const std::string&, const nlohmann::json&)> save_settings;
     // Offline-Anordnung: dieselbe serielle Job-Thread-Regel wie für andere Plugin-Aktionen.
+    std::function<nlohmann::json()> layout_displays;
+    std::function<void(const std::string&,bool)> layout_device_tv;
+    std::function<nlohmann::json(bool,const std::string&,const std::string&)> device_layout_get;
+    std::function<void(bool,const std::string&,const std::string&,const nlohmann::json&)> device_layout_apply;
+    std::function<void(bool,const std::string&,const std::string&)> device_layout_reset;
     std::function<nlohmann::json(const std::string&)> arrangement_get;
     std::function<void(const std::string&, const nlohmann::json&)> arrangement_apply;
     std::function<void(const std::string&)> arrangement_reset;

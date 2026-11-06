@@ -4,6 +4,7 @@
 #include "i18n.h"
 #include "layout_edit.h"
 #include "touch.h"
+#include "plugin_render.h"
 #include <windows.h>
 #include <dwrite.h>
 #include <wrl/client.h>
@@ -791,11 +792,49 @@ static int spotify_layout_snapshots(bool record,const fs::path& output) {
 }
 
 
+// P7b-0: ausschließlich neue Hashdatei; alte Theme-Matrizen bleiben unverändert.
+static int material_orange_snapshots(bool record,const fs::path& output) {
+    const auto file=fs::path(FL_BUILTIN_SNAPSHOT_DIR).parent_path()/"layout-snapshots"/"p7b0-material-orange-hashes.txt";
+    if(record && fs::exists(file)) throw std::runtime_error("Material-Orange-Basis existiert; Überschreiben verboten.");
+    std::map<std::string,std::string> expected,actual;
+    if(!record) {std::ifstream in(file);if(!in) throw std::runtime_error("Material-Orange-Basis fehlt.");for(std::string k,v;in>>k>>v;) if(!expected.emplace(k,v).second) throw std::runtime_error("Doppelte Material-Orange-Basis.");}
+    std::vector<std::pair<fs::path,Image>> previews;
+    const std::vector<Size> matrix={{"landscape",480,320},{"portrait",320,480},{"small",240,160}};
+    for(const auto& lang:{std::string("de"),std::string("en")}) {
+        i18n::set_lang(lang);
+        for(const auto& size:matrix) {
+            std::lock_guard lock(render::mutex());apply_theme({{"theme",theme::DEFAULT_ID}});
+            for(const auto& c:cases(lang)) {
+                const auto key=lang+".material-orange."+size.name+"."+c.name;
+                auto image=c.draw(size.w,size.h);actual[key]=hash_image(image);actual[key+".touch"]=hit_hash(c,size.w,size.h);
+                if(lang=="de" && std::string(size.name)=="landscape" && (c.name=="system.full" || c.name=="spotify.playing-0")) previews.emplace_back(output/("p7b0-"+c.name+".png"),std::move(image));
+            }
+            for(const auto* name:{"offline-clock","offline-zonen"}) {
+                const auto path=fs::path(FL_BUILTIN_SNAPSHOT_DIR).parent_path().parent_path()/"examples"/"plugins"/(std::string(name)+".flplugin.json");
+                std::ifstream in(path);std::string text((std::istreambuf_iterator<char>(in)),{});auto parsed=plugins::parse_manifest(text);
+                if(!parsed) throw std::runtime_error("Plugin-Themabeispiel ungültig.");
+                plugins::RenderContext context;context.sources=plugins::sample_data(*parsed.manifest);context.time="12:34";context.date="2026-01-01";
+                for(const auto& setting:parsed.manifest->settings) if(setting.type!="secret")context.settings[setting.key]=setting.default_value;
+                auto drawn=plugins::draw_page_out(plugins::render_page(*parsed.manifest,context),size.w,size.h);
+                const auto key=lang+".material-orange."+size.name+".plugin-"+name;
+                actual[key]=hash_image(drawn.image);
+                if(lang=="de" && std::string(size.name)=="landscape" && std::string(name)=="offline-zonen") previews.emplace_back(output/"p7b0-plugin.png",std::move(drawn.image));
+            }
+        }
+    }
+    int failures=0;
+    if(record) {std::ofstream out(file);for(const auto& [k,v]:actual)out<<k<<' '<<v<<'\n';if(!out) throw std::runtime_error("Neue Themebasis nicht geschrieben.");}
+    else {for(const auto& [k,v]:actual) if(!expected.contains(k) || expected.at(k)!=v) {++failures;std::cerr<<"Material Orange abweichend: "<<k<<'\n';}if(expected.size()!=actual.size())++failures;}
+    // PNG erst nach allen Hashes: WIC beeinflusst auf diesem Rechner spätere Textdarstellung.
+    for(const auto& [path,image]:previews)write_png(path,image);
+    std::cout<<"Material Orange: "<<actual.size()<<" additive image/hit hashes, "<<failures<<" errors\n";
+    return failures;
+}
 int main(int argc,char** argv) {
     try {
         _putenv_s("TZ","UTC0"); _tzset();
         const std::string mode=argc>1 ? argv[1] : "pruefen";
-        if(argc>3 || (mode!="export" && argc>2) || (mode!="pruefen" && mode!="prüfen" && mode!="update" && mode!="export" && mode!="record-rss-layout" && mode!="record-streaming-layout" && mode!="record-bf6-layout" && mode!="record-friends-layout" && mode!="record-system-layout" && mode!="record-spotify-layout") ||
+        if(argc>3 || (mode!="export" && argc>2) || (mode!="pruefen" && mode!="prüfen" && mode!="update" && mode!="export" && mode!="record-rss-layout" && mode!="record-streaming-layout" && mode!="record-bf6-layout" && mode!="record-friends-layout" && mode!="record-system-layout" && mode!="record-spotify-layout" && mode!="record-material-orange") ||
            (mode=="export" && argc!=3)) throw std::runtime_error("Aufruf: fl-builtin-snapshot-tests [pruefen|update|export <Ordner>]");
         require_fonts(); gfx_init();
         const fs::path root=mode=="export" ? fs::path(argv[2]) : fs::path(FL_BUILTIN_SNAPSHOT_DIR);
@@ -877,6 +916,8 @@ int main(int argc,char** argv) {
         if(mode!="update" && mode!="export") failures+=system_layout_snapshots(mode=="record-system-layout",fs::path(argv[0]).parent_path());
         if(failures && mode.starts_with("record-")) throw std::runtime_error("Vorhandene Rasterbasis abweichend; keine neue Basis geschrieben.");
         if(mode!="update" && mode!="export") failures+=spotify_layout_snapshots(mode=="record-spotify-layout",fs::path(argv[0]).parent_path());
+        if(mode=="record-material-orange" && failures) throw std::runtime_error("Vorhandene Baseline abweichend; neue Themebasis nicht geschrieben.");
+        if(mode!="update" && mode!="export") failures+=material_orange_snapshots(mode=="record-material-orange",fs::path(argv[0]).parent_path());
         std::cout<<"Built-in snapshots: "<<images<<" Bilder, "<<actual.size()/2<<" Trefferkarten, "<<failures<<" Fehler\n";
         return failures ? 1 : 0;
     } catch(const std::exception& e) { std::cerr<<"Built-in snapshots ABBRUCH: "<<e.what()<<'\n'; return 2; }

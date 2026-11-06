@@ -1,6 +1,7 @@
 // © 2026 FuchsLabs – local, offline-only plugin installation store.
 #pragma once
 #include "plugins.h"
+#include "device_overlays.h"
 #include <filesystem>
 #include <mutex>
 #include <set>
@@ -17,7 +18,12 @@ struct Installed {
     uint64_t layout_revision = 0; // eigene Revision; Daten und Freigaben bleiben gültig
     std::optional<Arrangement> arrangement;
     std::string arrangement_state = "none"; // none | ok | stale | invalid
-    const Manifest& effective() const { return arranged ? *arranged : manifest; }
+    device::OverlayMap device_overlays;
+    std::map<std::string,Manifest> device_arranged;
+    const Manifest& effective(const std::string& device = {}) const {
+        auto it=device_arranged.find(device);
+        return it!=device_arranged.end()?it->second:arranged?*arranged:manifest;
+    }
 };
 struct StoreResult {
     bool ok = false;
@@ -36,10 +42,10 @@ public:
     StoreResult set_host_consent(const std::string& id, const std::string& host, bool allowed);
     StoreResult set_link_consent(const std::string& id, bool allowed);
     bool source_authorized(const std::string& id, const std::string& source_id, uint64_t generation) const;
-    StoreResult set_arrangement(const std::string& id, std::string_view utf8);
-    StoreResult clear_arrangement(const std::string& id);
+    StoreResult set_arrangement(const std::string& id, std::string_view utf8, const std::string& device = {});
+    StoreResult clear_arrangement(const std::string& id, const std::string& device = {});
     // Konsistenter Schnappschuss einschließlich an die Basis gebundenem Startmodell.
-    Json arrangement_get(const std::string& id) const;
+    Json arrangement_get(const std::string& id, const std::string& device = {}) const;
     StoreResult remove(const std::string& id);
     std::vector<Installed> entries() const;
     std::optional<Installed> find(const std::string& id) const;

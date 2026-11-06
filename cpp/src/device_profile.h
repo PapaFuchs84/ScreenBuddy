@@ -21,6 +21,11 @@ struct Profile {
 inline Insets select_keepout(Insets common, std::optional<Insets> own, bool sync) {
     return !sync && own ? *own : common;
 }
+// TV ist eine lokale PC-Profilangabe: Protokoll v1 enthält keinen Gerätetyp.
+inline std::pair<int,int> layout_size(std::pair<int,int> size,bool tv) {
+    if(tv && size.first<size.second) std::swap(size.first,size.second);
+    return size;
+}
 struct Area {
     int x = 0, y = 0, w = 0, h = 0;
     bool operator==(const Area&) const = default;

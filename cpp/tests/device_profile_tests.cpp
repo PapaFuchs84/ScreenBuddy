@@ -12,6 +12,9 @@ int count=0;
 void check(bool ok) { ++count; if(!ok) throw std::runtime_error("Geräteprofil-Prüfung fehlgeschlagen: "+std::to_string(count)); }
 int main() { try {
     using namespace device;
+    check(layout_size({320,480},true)==std::pair{480,320});
+    check(layout_size({480,320},true)==std::pair{480,320});
+    check(layout_size({320,480},false)==std::pair{320,480});
     Insets p{10,20,30,40};
     check(to_frame(p,Orientation::Portrait)==p);
     check(to_frame(p,Orientation::ReversePortrait)==Insets{30,40,10,20});

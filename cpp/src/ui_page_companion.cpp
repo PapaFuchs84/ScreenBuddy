@@ -49,8 +49,8 @@ public:
         form_.number(*base, "companion", "port", T(L"TLS-Port", L"TLS port"),
                      T(L"1024–65535; nie der Port der Einstellungen (8765)", L"1024–65535; never the settings port (8765)"), 1024, 65535);
         form_.toggle(*base, "companion", "sync", T(L"Geräte synchron anzeigen", L"Show the same on all devices"),
-                     T(L"An: alle Handys zeigen dasselbe Bild und wechseln gemeinsam. Aus: jedes Gerät hat eigene Seite, Auflösung, Wischen/Tippen und optional eine eigene Seitenliste (unten). Wirkt nach Speichern und Neustart.",
-                       L"On: all phones show the same picture and switch together. Off: every device has its own page, resolution, swipe/tap and optionally its own page list (below). Applies after saving and restarting."));
+                     T(L"An: Geräte wechseln gemeinsam durch die Companion-Seiten. Auflösung und Anordnung gelten je Display. Aus: eigene Seitenposition, Wischen/Tippen und optional eigene Seitenliste (unten). Wirkt nach Speichern und Neustart.",
+                       L"On: devices switch through Companion pages together. Resolution and arrangement apply per display. Off: own page position, swipe/tap and optionally own page list (below). Applies after saving and restarting."));
         form_.slider(*base, "companion", "page_seconds", T(L"Seitenwechsel", L"Page interval"), T(L"3–600 Sekunden", L"3–600 seconds"),
                      3, 600, Text(L"s"));
 

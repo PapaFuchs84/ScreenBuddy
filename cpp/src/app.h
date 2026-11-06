@@ -22,6 +22,7 @@
 #include "models.h"
 #include "output.h"
 #include "device_profile.h"
+#include "device_overlays.h"
 #include "plugin_store.h"
 #include "plugin_render.h"
 #include "plugin_settings.h"
@@ -48,14 +49,15 @@ struct LayoutState {
     std::optional<Overlay> overlay;
     std::string state = "none";
     uint64_t revision = 0;
+    device::OverlayMap devices;
 };
 class LayoutStore {
 public:
     explicit LayoutStore(std::filesystem::path directory);
-    LayoutState get(const std::string& key) const;
-    Json view(const std::string& key) const;
-    std::string apply(const std::string& key, std::string_view text);
-    std::string reset(const std::string& key);
+    LayoutState get(const std::string& key, const std::string& device = {}) const;
+    Json view(const std::string& key, const std::string& device = {}) const;
+    std::string apply(const std::string& key, std::string_view text, const std::string& device = {});
+    std::string reset(const std::string& key, const std::string& device = {});
 private:
     std::filesystem::path directory_;
     mutable std::mutex mutex_;
@@ -111,9 +113,9 @@ public:
     bool plugin_remove(const std::string& id, std::string& error);
     std::optional<Image> plugin_preview(std::string_view manifest, std::string& error);
     std::optional<Image> plugin_preview(std::string_view manifest, std::string& error, std::pair<int,int> dimensions, bool fixed_sample_clock = false);
-    nlohmann::json builtin_layout_get(const std::string& key);
-    void builtin_layout_apply(const std::string& key, const nlohmann::json& overlay);
-    void builtin_layout_reset(const std::string& key);
+    nlohmann::json builtin_layout_get(const std::string& key, const std::string& device = {});
+    void builtin_layout_apply(const std::string& key, const nlohmann::json& overlay, const std::string& device = {});
+    void builtin_layout_reset(const std::string& key, const std::string& device = {});
     std::optional<Image> page_preview(const std::string& key, const nlohmann::json& overlay,
                                     std::pair<int,int> dimensions, std::string& error);
     spotify::SpotifyClient* spotify() { return spotify_.get(); }   // nullptr = Seite aus oder keine Client-ID
@@ -176,13 +178,15 @@ private:
     };
     RendererSet& renderers_for(int w, int h);
     std::vector<PageEntry> page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion = false,
-                                    const std::vector<std::string>* pages_override = nullptr, ViewState* view = nullptr, double now = 0, bool phone = false);
+                                    const std::vector<std::string>* pages_override = nullptr, ViewState* view = nullptr, double now = 0, bool phone = false, const std::string& device = {});
     DrawResult draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start, std::pair<int, int> size, device::Area area);
     Image welcome(std::pair<int, int> size);
     void render_view(bool secondary, bool dirty);
     RenderOut render_core(ViewState& view, std::pair<int, int> size, double page_seconds, bool phone,
                           const std::vector<std::string>* pages_override, bool dirty, bool register_redraw, const std::string& id = {});
     device::Profile profile_for(bool phone, const std::string& id = {});
+    std::string primary_layout_id() const;
+    nlohmann::json layout_displays();
     bool independent() const;
     void render_devices(bool dirty);
     void device_tap(const std::string& id, int x, int y, int w, int h);

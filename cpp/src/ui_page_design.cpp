@@ -45,8 +45,8 @@ public:
         ++preview_generation_;
         cfg_theme_ = host.config().at("display").value("theme", "hell");
         Card* card = root.add<Card>(T(L"Farbschema", L"Color scheme"),
-            T(L"Gilt für USB-Display, Bildschirm und Companion. Standard ist das FuchsLabs-Design.",
-              L"Applies to USB display, monitor and Companion. The default is the FuchsLabs design."));
+            T(L"Gilt für USB-Display, Bildschirm und Companion. Neuer Standard: dunkles Material mit Fuchs-Orange. Bestehende Installationen wechseln erst nach Zustimmung.",
+              L"Applies to USB display, monitor and Companion. New default: dark Material with fox orange. Existing installations only switch after consent."));
         combo_ = card->row<Combo>(T(L"Farbschema", L"Color scheme"), T(L"Eigene Themes siehe unten", L"See below for your own themes"),
                                   std::vector<Text>{}, 0);
         combo_->width = 300;
@@ -230,8 +230,8 @@ private:
     void reload(const std::string& select) {
         std::vector<std::string> problems;
         themes_ = th::Store().list(&problems);
-        keys_ = {"hell", "dunkel", "windows"};
-        std::vector<Text> labels = {T(L"Hell (FuchsLabs)", L"Light (FuchsLabs)"), T(L"Dunkel (FuchsLabs)", L"Dark (FuchsLabs)"),
+        keys_ = {th::DEFAULT_ID, "cupertino", "fluent", "hell", "dunkel", "windows"};
+        std::vector<Text> labels = {T(L"Material Orange (dunkel, Standard)",L"Material Orange (dark, default)"),Text(L"Cupertino"),Text(L"Fluent"),T(L"Hell (FuchsLabs)", L"Light (FuchsLabs)"), T(L"Dunkel (FuchsLabs)", L"Dark (FuchsLabs)"),
                                     T(L"An Windows anpassen", L"Match Windows")};
         for (const auto& t : themes_) {
             keys_.push_back(std::string(th::CUSTOM_PREFIX) + t.id);
@@ -453,6 +453,7 @@ private:
         c.name = fresh_name(key == "dunkel" ? (en() ? "Dark (copy)" : "Dunkel (Kopie)")
                             : key == th::WINDOWS_ID ? (en() ? "Windows (copy)" : "Windows (Kopie)") : (en() ? "Light (copy)" : "Hell (Kopie)"));
         c.base = r.base;
+        c.style = r.style;
         c.dark = r.dark;
         c.colors = r.colors;
         if (!th::Store().save(c, err)) { host_->toast(Text(L"Duplizieren nicht möglich: " + widen(err), L"Cannot duplicate: " + widen(err)), ToastKind::Error); return; }

@@ -17,6 +17,11 @@ namespace fl::theme {
 
 namespace fs = std::filesystem;
 
+DefaultPrompt default_prompt(bool english) {
+    return english ? DefaultPrompt{L"Set the new default?",L"Use dark Material with orange accents? Your current theme stays selected unless you choose Yes.",L"Yes",L"No"}
+                   : DefaultPrompt{L"Neuen Standard setzen?",L"Dunkles Material mit Orange-Akzenten verwenden? Dein bisheriges Theme bleibt ausgewählt, bis du Ja wählst.",L"Ja",L"Nein"};
+}
+
 Design design(Style style) {
     switch (style) {
     case Style::Cupertino: return {style, 12, 10, 16, true, false, false};
@@ -527,6 +532,7 @@ bool migrate_config(ojson& cfg, const Store& store) {
 
 // ---------------------------------------------------------------- Auflösen
 bool valid_theme_key(const std::string& k) {
+    if (k == DEFAULT_ID || k == "cupertino" || k == "fluent") return true;
     if (k == "hell" || k == "dunkel" || k == WINDOWS_ID) return true;
     return k.rfind(CUSTOM_PREFIX, 0) == 0 && valid_id(k.substr(std::strlen(CUSTOM_PREFIX)));
 }
@@ -543,6 +549,16 @@ Resolved resolve_custom(const Custom& t) {
 
 Resolved resolve(const std::string& key, const Store& store, const WindowsSettings* ws) {
     Resolved r;
+    if (key == DEFAULT_ID || key == "cupertino" || key == "fluent") {
+        r.style = key == DEFAULT_ID ? Style::Material : key == "cupertino" ? Style::Cupertino : Style::Fluent;
+        r.dark = key == DEFAULT_ID;
+        r.base = r.dark ? "dunkel" : "hell";
+        r.colors = profile_palette(r.style,r.dark);
+        if (key == DEFAULT_ID) r.colors.header = r.colors.accent = brand::ORANGE;
+        r.colors = correct_contrast(r.colors);
+        r.bar = r.colors.header;
+        return r;
+    }
     if (key == "dunkel" || key == "hell") {
         r.dark = key == "dunkel";
         r.base = key;

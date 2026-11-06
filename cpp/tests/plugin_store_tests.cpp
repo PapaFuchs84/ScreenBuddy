@@ -58,6 +58,27 @@ static void test_arrangements(const fs::path& root) {
     CHECK(reload.find("arranged")->enabled && reload.find("arranged")->links_allowed);
     CHECK(reload.arrangement_get("arranged")["state"]=="ok");
     CHECK(reload.arrangement_get("arranged")["overlay"]==a);
+    // Geräte erben Standard; eigene Anordnungen verändern weder Manifest noch Grants.
+    auto device_a=a;device_a["layout"]["columns"]={4};
+    auto device_b=a;device_b["layout"]["columns"]={5};
+    CHECK(store.arrangement_get("arranged","unknown")["overlay"]==a);
+    CHECK(store.arrangement_get("arranged","unknown")["inherited"]==true);
+    CHECK(store.set_arrangement("arranged",device_a.dump(),"phone-a"));
+    CHECK(store.set_arrangement("arranged",device_b.dump(),"phone-b"));
+    CHECK(store.find("arranged")->effective("phone-a").layout->columns[0]==4);
+    CHECK(store.find("arranged")->effective("phone-b").layout->columns[0]==5);
+    CHECK(store.find("arranged")->effective("unknown").layout->columns[0]==2);
+    CHECK(store.find("arranged")->generation==before.generation);
+    CHECK(store.arrangement_get("arranged","phone-a")["inherited"]==false);
+    Store devices_reload(dir);CHECK(devices_reload.load());
+    CHECK(devices_reload.find("arranged")->effective("phone-a").layout->columns[0]==4);
+    for(int i=2;i<16;++i) CHECK(store.set_arrangement("arranged",device_a.dump(),"phone-"+std::to_string(i)));
+    CHECK(!store.set_arrangement("arranged",device_a.dump(),"seventeenth"));
+    CHECK(!store.set_arrangement("arranged",device_a.dump(),std::string(513,'x')));
+    CHECK(store.clear_arrangement("arranged","phone-a"));
+    CHECK(store.find("arranged")->effective("phone-a").layout->columns[0]==2);
+    CHECK(store.find("arranged")->effective("phone-b").layout->columns[0]==5);
+    CHECK(read(dir/"arranged.flplugin.json")==manifest_bytes);
     const auto revision=store.find("arranged")->layout_revision;
     const auto committed=read(path); a["layout"]["columns"]={3};
 #ifdef _WIN32

@@ -145,6 +145,16 @@ bool atomic_write(const fs::path& target, std::string_view data) {
     if (!ok) { std::error_code ignored; fs::remove(temporary, ignored); }
     return ok;
 }
+
+std::string write_devices(const fs::path& path,const device::OverlayMap& next,bool reset=false) {
+    const auto backup=fs::path(path.wstring()+L".bak");
+    if(!regular_or_missing(path) || !regular_or_missing(backup) || !ready_directory(path.parent_path(),false)) return "Unsafe device arrangement path.";
+    std::error_code ec;
+    if(reset) {fs::remove(backup,ec);if(ec) return "Device backup removal failed.";}
+    else if(fs::exists(path,ec)) {std::string old;if(!read_bounded(path,old,device::overlay_bytes_limit) || !atomic_write(backup,old)) return "Device backup failed.";}
+    if(ec || !atomic_write(path,device::overlays_json(next).dump())) return "Device arrangement write failed.";
+    return {};
+}
 }
 LayoutStore::LayoutStore(fs::path directory):directory_(std::move(directory)) {
     const bool ready=ready_directory(directory_,true);
@@ -162,21 +172,44 @@ LayoutStore::LayoutStore(fs::path directory):directory_(std::move(directory)) {
                 else state.state=parsed.error=="Catalog version is stale."?"stale":"invalid";
             }
         } else if(ec) state.state="invalid";
+        const auto devices_path=directory_/("builtin."+c.key+".devices.json");
+        if(ready && fs::exists(devices_path,ec)) {
+            std::string text;
+            if(!read_bounded(devices_path,text,device::overlay_bytes_limit) ||
+               !device::parse_overlays(text,state.devices,[&](const auto& bytes){return bool(parse(c,bytes));}))
+                LOGW("layout","Geräte-Anordnungen ungültig; Standard aktiv");
+        }
         if(state.state=="stale" || state.state=="invalid") LOGW("layout","Eingebaute Anordnung %s: %s; Standard aktiv",c.key.c_str(),state.state.c_str());
     }
 }
-LayoutState LayoutStore::get(const std::string& key) const {
-    std::lock_guard lock(mutex_); auto it=states_.find(key); return it==states_.end()?LayoutState{}:it->second;
+LayoutState LayoutStore::get(const std::string& key,const std::string& device) const {
+    std::lock_guard lock(mutex_); auto it=states_.find(key);
+    if(it==states_.end()) return {};
+    auto state=it->second;
+    if(auto own=state.devices.find(device);own!=state.devices.end()) {
+        auto parsed=parse(*find(key),own->second.dump());
+        if(parsed) { state.overlay=std::move(parsed.overlay);state.state="ok"; }
+    }
+    return state;
 }
-Json LayoutStore::view(const std::string& key) const {
+Json LayoutStore::view(const std::string& key,const std::string& device) const {
     auto c=find(key); if(!c) return {};
-    auto state=get(key);
-    return {{"state",state.state},{"layout_revision",state.revision},{"overlay",to_json(state.overlay.value_or(standard(*c)))}};
+    auto state=get(key,device);
+    return {{"inherited",!device.empty() && !state.devices.contains(device)},{"state",state.state},{"layout_revision",state.revision},{"overlay",to_json(state.overlay.value_or(standard(*c)))}};
 }
-std::string LayoutStore::apply(const std::string& key,std::string_view text) {
+std::string LayoutStore::apply(const std::string& key,std::string_view text,const std::string& device) {
     auto c=find(key); if(!c) return "Unknown built-in page.";
     auto parsed=parse(*c,text); if(!parsed) return parsed.error;
     std::lock_guard lock(mutex_);
+    if(!device.empty()) {
+        if(!device::valid_layout_id(device)) return "Invalid device ID.";
+        auto next=states_.at(key).devices;
+        next[device]=to_json(*parsed.overlay);
+        if(!device::overlay_fits(next)) return "Device overlay limit exceeded.";
+        const auto error=write_devices(directory_/("builtin."+key+".devices.json"),next);
+        if(!error.empty()) return error;
+        states_.at(key).devices=std::move(next);++states_.at(key).revision;return {};
+    }
     if(is_standard(*c,*parsed.overlay)) return reset_locked(key);
     auto next=states_.at(key);
     if(next.overlay && to_json(*next.overlay)==to_json(*parsed.overlay)) return {};
@@ -198,8 +231,14 @@ std::string LayoutStore::reset_locked(const std::string& key) {
     if(state.overlay || state.state!="none") ++state.revision;
     state.overlay.reset(); state.state="none"; return {};
 }
-std::string LayoutStore::reset(const std::string& key) {
-    std::lock_guard lock(mutex_); if(!find(key)) return "Unknown built-in page."; return reset_locked(key);
+std::string LayoutStore::reset(const std::string& key,const std::string& device) {
+    std::lock_guard lock(mutex_); if(!find(key)) return "Unknown built-in page.";
+    if(device.empty()) return reset_locked(key);
+    if(!device::valid_layout_id(device)) return "Invalid device ID.";
+    auto next=states_.at(key).devices;next.erase(device);
+    const auto error=write_devices(directory_/("builtin."+key+".devices.json"),next,true);
+    if(!error.empty()) return error;
+    states_.at(key).devices=std::move(next);++states_.at(key).revision;return {};
 }
 } // namespace builtin
 
@@ -247,7 +286,7 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
     }
     // Betriebsart gilt von Anfang an, auch für Geräte, die sich vor der ersten Zeichenrunde verbinden
     was_independent_ = independent();
-    if (companion_) companion_->set_independent(was_independent_);
+    if (companion_) companion_->set_independent(true);
     render::apply_theme(dp_);
     const ojson &bf = cfg_["bf6"], &rs = cfg_["rss"], &sy = cfg_["system"], &dc = cfg_["discord"], &fr = cfg_["friends"];
     auto dirty = [this] { mark_dirty(); };
@@ -436,17 +475,17 @@ std::optional<Image> App::plugin_preview(std::string_view manifest, std::string&
     return plugins::draw_page(page, width, height, true);
 }
 
-nlohmann::json App::builtin_layout_get(const std::string& key) { return builtin_layouts_->view(key); }
-void App::builtin_layout_apply(const std::string& key,const nlohmann::json& overlay) {
+nlohmann::json App::builtin_layout_get(const std::string& key,const std::string& device) { return builtin_layouts_->view(key,device); }
+void App::builtin_layout_apply(const std::string& key,const nlohmann::json& overlay,const std::string& device) {
     const auto c=builtin::find(key);
     if(!c || !c->enabled) throw std::runtime_error("Built-in page is not enabled for editing.");
-    auto error=builtin_layouts_->apply(key,overlay.dump()); if(!error.empty()) throw std::runtime_error(error);
+    auto error=builtin_layouts_->apply(key,overlay.dump(),device); if(!error.empty()) throw std::runtime_error(error);
     mark_dirty();
 }
-void App::builtin_layout_reset(const std::string& key) {
+void App::builtin_layout_reset(const std::string& key,const std::string& device) {
     const auto c=builtin::find(key);
     if(!c || !c->enabled) throw std::runtime_error("Built-in page is not enabled for editing.");
-    auto error=builtin_layouts_->reset(key); if(!error.empty()) throw std::runtime_error(error);
+    auto error=builtin_layouts_->reset(key,device); if(!error.empty()) throw std::runtime_error(error);
     mark_dirty();
 }
 std::optional<Image> App::page_preview(const std::string& key,const nlohmann::json& overlay,
@@ -511,9 +550,9 @@ void App::mark_dirty() {
 }
 
 void App::step_page(int delta, bool companion) {
-    if (companion && independent()) {
-        std::lock_guard lk(dev_mu_);
-        for (auto& [id, d] : devices_) d->view.step += delta;
+    if (companion && companion_) {
+        if(!independent()) (companion_output_?companion_view_:primary_view_).step+=delta;
+        else {std::lock_guard lk(dev_mu_);for (auto& [id, d] : devices_) d->view.step += delta;}
     } else {
         (companion && companion_output_ ? companion_view_.step : primary_view_.step) += delta;
     }
@@ -737,12 +776,12 @@ std::string App::friends_message() {
 }
 
 std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion,
-                                           const std::vector<std::string>* pages_override, ViewState* view, double tick, bool phone) {
+                                           const std::vector<std::string>* pages_override, ViewState* view, double tick, bool phone, const std::string& device) {
     // [(Name, Seitenanzahl, Zeichenfunktion(seite, zeichner))] in der eingestellten Reihenfolge
     std::vector<PageEntry> out;
     for (auto& key : active_pages(companion, pages_override)) {
         if(view && builtin::find(key)) {
-            const auto revision=builtin_layouts_->get(key).revision;
+            const auto revision=builtin_layouts_->get(key,device).revision;
             if(view->builtin_revisions[key]!=revision) {
                 view->cycles.erase("builtin:"+key); view->fade_caches.erase("builtin:"+key);
                 view->builtin_revisions[key]=revision;
@@ -751,7 +790,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
         if (key.rfind("plugin:", 0) == 0) {
             auto installed = plugins_ ? plugins_->find(key.substr(7)) : std::nullopt;
             if (!installed || !installed->enabled) continue;
-            auto manifest = installed->effective();
+            auto manifest = installed->effective(device);
             plugins::RenderContext context;
             if (plugin_settings_) {
                 auto public_settings = plugin_settings_->public_view(manifest);
@@ -840,7 +879,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                     if (touch::open_system(zone)) LOGI("app", "Touch: Systemwerkzeug %d geöffnet", zone);
                     else LOGW("app", "Touch: Systemwerkzeug %d ließ sich nicht öffnen", zone);
                 });
-            auto arrangement=builtin_layouts_->get(key).overlay;
+            auto selected=builtin_layouts_->get(key,device);
+            auto arrangement=selected.overlay;
             if(arrangement && r.system.uses_arrangement(*arrangement)) {
                 const auto snap=sys_->snapshot();const auto actions=pe.actions;
                 pe.fn=[snap,arrangement](int,RendererSet& rs){return rs.system.render_arranged(snap,*arrangement).image;};
@@ -854,7 +894,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             out.push_back(std::move(pe));
         } else if (key == "discord") {
             std::string st = discord_->status();
-            auto arrangement=builtin_layouts_->get(key).overlay;
+            auto selected=builtin_layouts_->get(key,device);
+            auto arrangement=selected.overlay;
             if(!arrangement || !r.discord.uses_friends_arrangement(*arrangement)) {
             out.push_back({key, r.discord.pages(friends.size()), [friends, st](int i, RendererSet& rs) {
                                return rs.discord.render_friends(friends, i, st.empty(), st);
@@ -879,7 +920,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
         } else if (key == "friends") {
             std::string msg = friends_message();
             bool bad = !msg.empty() && people.empty();
-            auto arrangement=builtin_layouts_->get(key).overlay;
+            auto selected=builtin_layouts_->get(key,device);
+            auto arrangement=selected.overlay;
             if(!arrangement || !r.friends.uses_friends_arrangement(*arrangement)) {
             out.push_back({key, r.friends.pages(people.size()), [people, msg, bad](int i, RendererSet& rs) {
                                return rs.friends.render_friends(people, i, !bad, msg);
@@ -904,7 +946,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
         } else if (key == "bf6") {
             auto players = bf6_->players();
             auto updated = bf6_->updated();
-            auto arrangement=builtin_layouts_->get(key).overlay;
+            auto selected=builtin_layouts_->get(key,device);
+            auto arrangement=selected.overlay;
             if(!arrangement || !r.bf6.uses_arrangement(*arrangement)) {
             out.push_back({key, r.bf6.pages(players.size()), [players, updated](int i, RendererSet& rs) {
                                return rs.bf6.render(players, i, updated);
@@ -964,7 +1007,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         LOGW("app", "Spotify-App konnte nicht geöffnet werden");
                 };
             }
-            auto arrangement=builtin_layouts_->get(key).overlay;
+            auto selected=builtin_layouts_->get(key,device);
+            auto arrangement=selected.overlay;
             if(arrangement && r.spotify.uses_arrangement(*arrangement)) {
                 auto draw=[this,snap,amp_color,arrangement](RendererSet& rs) {
                     std::vector<float> levels;bool simulated=false;
@@ -984,7 +1028,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             out.push_back(std::move(pe));
         } else if (key == "streaming") {
             auto snap = streaming_->snapshot();
-            auto arrangement=builtin_layouts_->get(key).overlay;
+            auto selected=builtin_layouts_->get(key,device);
+            auto arrangement=selected.overlay;
             if(!arrangement || !r.stream.uses_arrangement(*arrangement)) {
             out.push_back({key, 1, [snap](int, RendererSet& rs) { return rs.stream.render(snap.state, snap.items, snap.updated, 0, &snap.logos); },
                 [snap](int, RendererSet&) { return snap.state == tmdb::State::Ok ? touch::stream_rows(snap.items) : touch::Rows{}; }});
@@ -1006,7 +1051,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
         } else if (key == "rss") {
             auto posts = rss_->posts();
             auto updated = rss_->updated();
-            auto arrangement=builtin_layouts_->get(key).overlay;
+            auto selected=builtin_layouts_->get(key,device);
+            auto arrangement=selected.overlay;
             if(!arrangement || !r.rss.uses_arrangement(*arrangement)) {
                 out.push_back({key, 1, [posts, updated](int, RendererSet& rs) { return rs.rss.render(posts, updated); },
                                [posts, updated](int, RendererSet&) { return updated ? touch::post_rows(posts) : touch::Rows{}; }});
@@ -1140,6 +1186,47 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
     }
 }
 
+std::string App::primary_layout_id() const { return out_?out_->layout_id():std::string(); }
+nlohmann::json App::layout_displays() {
+    auto result=nlohmann::json::array();
+    const auto cache_path=cfg_path_.parent_path()/L"layouts"/L"displays.json";
+    std::string previous;
+    if(builtin::read_bounded(cache_path,previous,16384)) {
+        auto cache=plugins::parse_strict_json(previous,16384);
+        if(cache && cache->is_array() && cache->size()<=16) for(auto d:*cache) {
+            if(!d.is_object() || !d.contains("id") || !d["id"].is_string() || !device::valid_layout_id(d["id"].get<std::string>()) ||
+               !d.contains("name") || !d["name"].is_string() || d["name"].get<std::string>().size()>256) continue;
+            bool valid=true;
+            for(const auto* key:{"width","height","usable_width","usable_height"})
+                valid=valid && d.contains(key) && d[key].is_number_integer() && d[key]>=1 && d[key]<=16384;
+            if(valid) {d["online"]=false;d["tv"]=false;result.push_back(std::move(d));}
+        }
+    }
+    auto add=[&](std::string id,std::string name,std::pair<int,int> size,bool online,bool tv,device::Profile profile) {
+        size=device::layout_size(size,tv);auto area=device::usable(size,profile);
+        for(auto it=result.begin();it!=result.end();) {if(it->value("id",std::string())==id) it=result.erase(it);else ++it;}
+        result.push_back({{"id",id},{"name",name},{"width",size.first},{"height",size.second},
+            {"usable_width",area.w},{"usable_height",area.h},{"online",online},{"tv",tv}});
+    };
+    if(out_ && out_.get()!=companion_) {
+        auto id=primary_layout_id();if(!id.empty()) add(id,out_->layout_name(),out_->size(),display_ok(),false,profile_for(false));
+    }
+    // Nur bekannte lokale Ausgänge cachen; Companion-Profile sind bereits gespeichert.
+    if(result.size()>16) result.erase(result.begin(),result.end()-16);
+    auto cache=result;for(auto& d:cache)d["online"]=false;
+    if(cache.dump()!=previous && cache.dump().size()<=16384) builtin::atomic_write(cache_path,cache.dump());
+    if(companion_) {
+        add("network","Netzwerk / Network",companion_->size(),companion_->running(),false,profile_for(true));
+        auto status=companion_->status();const auto clients=companion_->client_ids();
+        for(const auto& d:status["devices"]) {
+            const auto id=d.value("id",std::string());
+            add(id,d.value("name",id),{d.value("width",480),d.value("height",320)},
+                std::find(clients.begin(),clients.end(),id)!=clients.end(),d.value("tv",false),profile_for(true,id));
+        }
+    }
+    return result;
+}
+
 device::Profile App::profile_for(bool phone, const std::string& id) {
     device::Profile p;
     auto& settings = phone ? cfg_["companion"] : dp_;
@@ -1195,12 +1282,12 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         // Bound cached renderer sets when a resizable window reports many intermediate sizes.
         if (sets_.size() > 16) sets_.clear();
         auto boxes = render::tile_layout(area.w, area.h);
-        auto pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone);
+        auto pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone, phone ? (id.empty()?"network":id) : primary_layout_id());
         int total = 0;
         for (auto& p : pages) total += p.n;
         if (0 < total && total < (int)boxes.size()) {
             boxes = render::tile_layout(area.w, area.h, total);
-            pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone);
+            pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone, phone ? (id.empty()?"network":id) : primary_layout_id());
             total = 0; for (auto& p : pages) total += p.n;
         }
         int step = view.step.exchange(0);
@@ -1268,6 +1355,7 @@ void App::render_view(bool secondary, bool dirty) {
 // Unabhängiger Companion-Betrieb: jedes verbundene Gerät hat Ansicht, Größe und (optional) Seitenliste für sich.
 void App::render_devices(bool dirty) {
     const auto ids = companion_->client_ids();
+    const auto profiles=companion_->status();
     const double now = mono();
     const double seconds = cfg_["companion"].value("page_seconds", 15);
     bool first = true;
@@ -1280,10 +1368,17 @@ void App::render_devices(bool dirty) {
             slot->last_seen = now;
             d = slot.get();   // bleibt gültig: nur dieser Thread löscht Einträge
         }
-        auto own = companion_->device_pages(id);
+        auto own = independent()?companion_->device_pages(id):std::nullopt;
         std::pair<int, int> size;
         { std::lock_guard lk(dev_mu_); size = d->size.first > 0 ? d->size : companion_->size(); }
-        RenderOut r = render_core(d->view, size, seconds, true, own ? &*own : nullptr, dirty, false, id);
+        bool tv=false;
+        for(const auto& info:profiles["devices"]) if(info.value("id",std::string())==id) tv=info.value("tv",false);
+        size=device::layout_size(size,tv);
+        // Synchronisation betrifft die Companion-Seitenposition, nicht die USB-Ausgabe.
+        const auto& shared=companion_output_?companion_view_:primary_view_;
+        const bool page_changed=!independent() && d->view.page!=shared.page;
+        if(!independent()) { d->view.page=shared.page;d->view.switched=shared.switched; }
+        RenderOut r = render_core(d->view, size, seconds, true, own ? &*own : nullptr, dirty || page_changed, false, id);
         if (r.skipped) { first = false; continue; }
         {
             std::lock_guard lk(dev_mu_);
@@ -1355,7 +1450,7 @@ void App::device_tap(const std::string& id, int x, int y, int w, int h) {
         if(plugin.kind==touch::PluginDecision::none) {
             if (auto* a = touch::action_at(d.taps, x, y)) action = *a;
             else if (auto selected = touch::at(d.taps, x, y)) { targets = *selected; have_target = true; }
-            else { d.view.step += tap.step; }   // wie sonst: links = zurück, sonst weiter
+            else { if(independent()) d.view.step += tap.step;else (companion_output_?companion_view_:primary_view_).step+=tap.step; }   // wie sonst: links = zurück, sonst weiter
         }
     }
     if(plugin.kind!=touch::PluginDecision::none) {execute_plugin(plugin);return;}
@@ -1386,7 +1481,7 @@ void App::display_loop() {
             companion_try = mono() + 30;
         }
         const bool indep = independent();
-        if (companion_) companion_->set_independent(indep);
+        if (companion_) companion_->set_independent(true);
         if (indep != was_independent_) {   // Betriebsart gewechselt: alles neu zeichnen
             was_independent_ = indep;
             dirty = true;
@@ -1400,13 +1495,14 @@ void App::display_loop() {
             render_devices(dirty);
         } else {
             render_view(false, dirty);
-            if (companion_output_) render_view(true, dirty);
+            if(companion_output_) render_view(true,dirty);
         }
+        if(companion_ && !indep) render_devices(dirty);
         std::vector<double> deadlines;
         bool animating=false;
         if (!indep || (out_ && out_.get()!=companion_)) { deadlines.push_back(primary_view_.next_deadline); animating=primary_view_.animating; }
         if (!indep && companion_output_) { deadlines.push_back(companion_view_.next_deadline); animating=animating || companion_view_.animating; }
-        { std::lock_guard lk(dev_mu_); for (const auto& [id,d]:devices_) if (indep) { deadlines.push_back(d->view.next_deadline); animating=animating || d->view.animating; } }
+        { std::lock_guard lk(dev_mu_); for (const auto& [id,d]:devices_) if (companion_) { deadlines.push_back(d->view.next_deadline); animating=animating || d->view.animating; } }
         bool metering=meter_ && meter_->active() && (meter_->available() || meter_->simulated());
         auto wake=plugins::schedule::wake_at(mono(),deadlines,animating,metering);
         for (int i=0;i<int(std::lround(wake.min_gap/.05)) && !stop_;++i) Sleep(50);
@@ -1478,6 +1574,7 @@ void App::run() {
         companion_->on_resize = [this] { mark_dirty(); };
         companion_->on_device_tap = [this](const std::string& id, int x, int y, int w, int h) { device_tap(id, x, y, w, h); };
         companion_->on_device_swipe = [this](const std::string& id, int d) {
+            if(!independent()) {step_page(d,true);return;}
             { std::lock_guard lk(dev_mu_); if (auto it = devices_.find(id); it != devices_.end()) it->second->view.step += d; }
             mark_dirty();
         };
@@ -1602,6 +1699,22 @@ void App::run() {
         };
         actions.set_link_consent = [this](const std::string& id,bool allowed) {
             std::string error; if(!plugin_set_link_consent(id,allowed,error)) throw std::runtime_error(error);
+        };
+        actions.layout_displays=[this]{return layout_displays();};
+        actions.layout_device_tv=[this](const std::string& id,bool tv) {
+            if(!companion_ || !companion_->set_device_tv(id,tv)) throw std::runtime_error("Device is not available.");
+            mark_dirty();
+        };
+        actions.device_layout_get=[this](bool built,const std::string& key,const std::string& device) {
+            return built?builtin_layout_get(key,device):plugins_?plugins_->arrangement_get(key,device):plugins::Json();
+        };
+        actions.device_layout_apply=[this](bool built,const std::string& key,const std::string& device,const nlohmann::json& overlay) {
+            if(built) builtin_layout_apply(key,overlay,device);
+            else {if(!plugins_) throw std::runtime_error("Plugin unavailable.");auto result=plugins_->set_arrangement(key,overlay.dump(),device);if(!result) throw std::runtime_error(result.error);mark_dirty();}
+        };
+        actions.device_layout_reset=[this](bool built,const std::string& key,const std::string& device) {
+            if(built) builtin_layout_reset(key,device);
+            else {if(!plugins_) throw std::runtime_error("Plugin unavailable.");auto result=plugins_->clear_arrangement(key,device);if(!result) throw std::runtime_error(result.error);mark_dirty();}
         };
         actions.builtin_layout_get=[this](const std::string& key){return builtin_layout_get(key);};
         actions.builtin_layout_apply=[this](const std::string& key,const nlohmann::json& overlay){builtin_layout_apply(key,overlay);};

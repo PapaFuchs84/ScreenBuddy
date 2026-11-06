@@ -1128,6 +1128,17 @@ static void test_independent(bool offline = false) {
     std::string a_id, b_id;
     store.add_device("A", &a_id);
     store.add_device("B", &b_id);
+    CHECK(store.set_device_size(a_id,1080,2400));
+    CHECK(store.set_device_tv(b_id,true));
+    CHECK(!store.set_device_size(a_id,-1,2400));CHECK(!store.set_device_size("unknown",480,320));
+    CHECK(!store.set_device_tv("unknown",true));
+    {
+        Store offline_profile(path,enc,dec,[]{return 2.0;});offline_profile.load();
+        for(const auto& d:offline_profile.list()) {
+            if(d["id"]==a_id) {CHECK(d["width"]==1080);CHECK(d["height"]==2400);CHECK(d["tv"]==false);}
+            if(d["id"]==b_id) CHECK(d["tv"]==true);
+        }
+    }
     CHECK(!store.device_keepout(a_id).has_value());
     CHECK(!store.set_device_keepout("unknown", fl::device::Insets{}));
     CHECK(!store.set_device_keepout(a_id, fl::device::Insets{-1,0,0,0}));

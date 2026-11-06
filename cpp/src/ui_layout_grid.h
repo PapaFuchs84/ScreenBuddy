@@ -8,6 +8,7 @@ namespace fl::ui {
 class GridEditor : public Widget {
 public:
     plugins::Arrangement model;
+    float display_aspect = 0; // 0: bisheriges schematisches Raster; sonst Gerätefläche.
     int column = 0, row = 0, selected = 0;
     int first_column = 0; // horizontaler Ausschnitt bei weniger als 32 DIP je Zelle
     std::function<void(plugins::Arrangement, std::string)> on_edit;

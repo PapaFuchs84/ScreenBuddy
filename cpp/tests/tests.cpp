@@ -1282,9 +1282,42 @@ static void test_editor_contrast() {
         theme::Custom t; t.name="Editor"; t.base="hell"; t.style=style; t.colors=theme::profile_palette(style,false);
         kit.use_design({{"theme_inline",theme::to_json(t)}}); check(kit.theme());
     }
+    kit.use_design({{"theme",theme::DEFAULT_ID}});kit.dark=true;check(kit.theme());
+    kit.dark=false;
     kit.use_design({{"theme","hell"}});
     theme::WindowsSettings fixed; fixed.light=true; fixed.has_accent=true;
     kit.use_windows(true,&fixed); check(kit.theme());
+}
+// P7b-0: frische Installation, Bestandsmigration und gespeicherte Ja/Nein/keine Antwort.
+static void test_standard_theme() {
+    const auto root=fs::temp_directory_path()/("fl-standard-theme-"+std::to_string(GetCurrentProcessId()));
+    fs::create_directories(root);const auto path=root/"config.toml";fs::remove(path);
+    auto fresh=config::load(path);
+    CHECK(fresh["display"]["theme"]==theme::DEFAULT_ID);CHECK(!config::standard_theme_pending(fresh));
+    auto legacy=[&](const std::string& display) {std::ofstream out(path);out<<display<<"\n[ui]\nsettings_theme = \"hell\"\n";out.close();return config::load(path);};
+    auto old=legacy("[display]\ntheme = \"custom:previous\"");
+    CHECK(config::standard_theme_pending(old));CHECK(old["display"]["theme"]=="custom:previous");
+    const auto unchanged=old;
+    CHECK(!config::save_standard_theme_answer(path,old,std::nullopt));CHECK(old==unchanged);
+    CHECK(config::save_standard_theme_answer(path,old,false));CHECK(old["display"]["theme"]=="custom:previous");
+    CHECK(old["ui"]["settings_theme"]=="hell");CHECK(!config::standard_theme_pending(config::load(path)));
+    CHECK(!config::save_standard_theme_answer(path,old,true));CHECK(old["display"]["theme"]=="custom:previous");
+    old=legacy("[display]");CHECK(old["display"]["theme"]=="hell");
+    CHECK(config::save_standard_theme_answer(path,old,true));CHECK(old["display"]["theme"]==theme::DEFAULT_ID);
+    CHECK(old["ui"]["settings_theme"]=="dunkel");CHECK(!config::standard_theme_pending(config::load(path)));
+    old=legacy("[display]\ntheme = \"dunkel\"");const auto before=old;
+    bool failed=false;try {config::save_standard_theme_answer(root/"missing"/"config.toml",old,true);}catch(const std::exception&){failed=true;}
+    CHECK(failed);CHECK(old==before);
+    for(bool en:{false,true}) {auto prompt=theme::default_prompt(en);CHECK(!prompt.default_yes);CHECK(prompt.no==(en?L"No":L"Nein"));CHECK(prompt.title==(en?L"Set the new default?":L"Neuen Standard setzen?"));}
+    const auto resolved=theme::resolve(theme::DEFAULT_ID,theme::Store(root/"themes"));
+    CHECK(resolved.found && resolved.dark && resolved.style==theme::Style::Material);
+    CHECK(resolved.colors.accent==brand::ORANGE);CHECK(theme::contrast_warnings(resolved.colors).empty());
+    for(auto bg:{resolved.colors.bg,resolved.colors.card}) {
+        CHECK(theme::contrast(resolved.colors.text,bg)>=4.5);CHECK(theme::contrast(resolved.colors.muted,bg)>=4.5);
+        CHECK(theme::contrast(resolved.colors.accent,bg)>=4.5);CHECK(theme::contrast(resolved.bar,bg)>=3);
+    }
+    for(auto key:{"cupertino","fluent","hell","dunkel"}) {CHECK(theme::valid_theme_key(key));CHECK(theme::resolve(key,theme::Store(root/"themes")).found);}
+    fs::remove_all(root);
 }
 int main(int argc, char** argv) {
     if (argc == 2 && std::string(argv[1]) == "plugin-touch") {
@@ -1327,7 +1360,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"bf6-platforms", test_bf6_platforms},{"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}, {"themes", test_themes}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"bf6-platforms", test_bf6_platforms},{"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}, {"themes", test_themes}, {"standard-theme",test_standard_theme}}) {
         std::printf("· %s\n", name);
         fn();
     }

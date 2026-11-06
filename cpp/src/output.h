@@ -40,6 +40,8 @@ public:
     virtual void close() = 0;
     virtual TransferStats transfer() const { return {}; }
     virtual bool is_monitor() const { return false; }
+    virtual std::string layout_id() const { return {}; }
+    virtual std::string layout_name() const { return {}; }
 };
 
 enum class Orientation { Portrait = 0, ReversePortrait = 1, Landscape = 2, ReverseLandscape = 3 };
@@ -57,6 +59,8 @@ public:
     void close() override;
 
     TransferStats transfer() const override { std::lock_guard lk(mu_); return stats_; }
+    std::string layout_id() const override { std::lock_guard lk(mu_); return port_id_; }
+    std::string layout_name() const override { std::lock_guard lk(mu_);return "USB-Display · "+resolved_port_; }
     static std::optional<std::string> find_port();
     static std::string rgb565le(const Image& img, int y0, int y1);
 
@@ -70,7 +74,7 @@ private:
     void blit(const Image& img, int y0, int y1);
     int show_locked(const Image& frame);
 
-    std::string port_cfg_;
+    std::string port_cfg_, port_id_, resolved_port_;
     Orientation orientation_;
     int brightness_;
     bool reset_on_start_;
@@ -104,6 +108,8 @@ public:
     void screen_off() override;
     void close() override;
     bool is_monitor() const override { return true; }
+    std::string layout_id() const override;
+    std::string layout_name() const override { return mon_?mon_->name:std::string(); }
     bool setup_touch();
 
     std::function<void(int)> on_step;  // +1 nächste Seite, -1 vorige (aus dem Fenster-Thread)
@@ -183,6 +189,7 @@ public:
     bool set_device_keepout(const std::string& id, const std::optional<device::Insets>& insets);
     bool set_device_pages(const std::string& id, const std::optional<std::vector<std::string>>& pages);
 
+    bool set_device_tv(const std::string& id, bool tv);
     bool running();
     std::string error();
 

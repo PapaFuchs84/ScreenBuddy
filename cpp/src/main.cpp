@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <winhttp.h>
 #include <shellapi.h>
+#include <commctrl.h>
 
 #include <filesystem>
 #include <fstream>
@@ -248,6 +249,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         }
     }
 
+    // Einmalige Entscheidung bei Bestandskonfigurationen; Schließen/Esc ist keine Antwort.
+    if(!test_instance() && !args.demo && !args.preview && cfg["ui"].value("enabled",true) && config::standard_theme_pending(cfg)) {
+        const auto prompt=theme::default_prompt(cfg["ui"].value("language","de")=="en");
+        const TASKDIALOG_BUTTON buttons[]={{IDYES,prompt.yes.c_str()},{IDNO,prompt.no.c_str()}};
+        TASKDIALOGCONFIG dialog{};dialog.cbSize=sizeof dialog;
+        dialog.dwFlags=TDF_ALLOW_DIALOG_CANCELLATION|TDF_SIZE_TO_CONTENT;
+        dialog.pszWindowTitle=L"ScreenBuddy";dialog.pszMainInstruction=prompt.title.c_str();dialog.pszContent=prompt.body.c_str();
+        dialog.cButtons=2;dialog.pButtons=buttons;dialog.nDefaultButton=prompt.default_yes?IDYES:IDNO;
+        int answer=IDCANCEL;
+        if(SUCCEEDED(TaskDialogIndirect(&dialog,&answer,nullptr,nullptr))) {
+            try {config::save_standard_theme_answer(cfg_path,cfg,answer==IDYES?std::optional(true):answer==IDNO?std::optional(false):std::nullopt);}
+            catch(const std::exception&) {LOGW("app","Theme-Entscheidung konnte nicht gespeichert werden; bisheriges Theme bleibt aktiv");}
+        }
+    }
     const ojson& dp = cfg["display"];
     if (args.preview) fs::create_directories(*args.preview, ec);
     std::unique_ptr<Output> lcd;

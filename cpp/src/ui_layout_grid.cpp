@@ -30,7 +30,7 @@ float GridEditor::palette_height() const { return 26.f+32.f*float((model.blocks.
 float GridEditor::height(Ctx&, float w) {
     auto l=geometry(model); int cols=std::max(1,int(w/144));
     return l ? 26.f+32.f*float((model.blocks.size()+cols-1)/cols)+
-        std::max(120.f,w/float(l->columns.size()))*float(l->rows.size())+44.f : 64.f;
+        (display_aspect>0?w/display_aspect:std::max(120.f,w/float(l->columns.size()))*float(l->rows.size()))+44.f : 64.f;
 }
 Rect GridEditor::grid_rect() const { return {rc.left,rc.top+palette_height(),rc.right,std::max(rc.top+palette_height()+32,rc.bottom-44)}; }
 Rect GridEditor::palette_rect(size_t b) const {

@@ -11,6 +11,13 @@ namespace fl::ui {
 namespace {
 namespace pe = plugins::edit;
 using plugins::Json;
+class DisplayTab : public Button {
+public:
+    bool selected;
+    DisplayTab(Text text,bool active,std::function<void()> action):Button(std::move(text),active?Primary:Secondary,std::move(action)),selected(active) {}
+    Role role() const override {return Role::NavTab;}
+    bool checked() const override {return selected;}
+};
 class LayoutPage : public Page {
 public:
     PageInfo info() const override {
@@ -22,6 +29,8 @@ public:
         // Nach „Verwerfen“ können alle bisherigen Widgets bereits zerstört sein.
         grid_=nullptr; blocks_=nullptr; zone_id_=seconds_=literal_=nullptr;
         apply_=undo_=redo_=reset_=error_=nullptr; validation_=nullptr;
+        tabs_=root.add<ButtonRow>();
+        rebuild_tabs();
         auto card=root.add<Card>(T(L"Seite auswählen",L"Select page"));
         choice_=card->row<Combo>(host.plugins().builtin_layout_get?T(L"Seite",L"Page"):T(L"Aktiviertes Plugin",L"Enabled plugin"),Text(),std::vector<Text>{},-1);
         choice_->on_change=[this] { choose(choice_->index); };
@@ -40,9 +49,49 @@ public:
         update_buttons();
     }
 private:
-    struct Entry { std::string id; Text name; Json data; bool builtin=false; };
+    struct Entry { std::string id; Text name; Json data; bool builtin=false; std::map<std::string,bool> inherited; };
     Host* host_=nullptr;
     Column* body_=nullptr;
+    ButtonRow* tabs_=nullptr;
+    Note* inheritance_note_=nullptr;
+    Json displays_=Json::array();
+    std::string device_;
+    bool switch_pending_=false;
+    Json read_layout(bool built,const std::string& id) {
+        auto& a=host_->plugins();
+        return a.device_layout_get?a.device_layout_get(built,id,device_):built?a.builtin_layout_get(id):a.arrangement_get(id);
+    }
+    bool unsaved() const {return history_.can_undo() || (catalog_ && other_history_.can_undo()) || uncommitted_;}
+    Json display() const {for(const auto& d:displays_) if(d.value("id",std::string())==device_) return d;return Json::object();}
+    void switch_device(const std::string& id) {
+        if(id==device_ || host_->busy()) return;
+        if(unsaved() && !host_->confirm(T(L"Ungesicherte Änderungen verwerfen und das Display wechseln?",L"Discard unsaved changes and switch display?"))) return;
+        if(grid_) grid_->cancel(host_->surface());
+        if(zone_id_) zone_id_->on_commit={};if(seconds_) seconds_->on_commit={};if(literal_) literal_->on_commit={};
+        host_->surface().focus(choice_,true);body_->visible=false;host_->relayout();
+        device_=id;switch_pending_=true;portrait_=display().value("height",320)>display().value("width",480);
+        history_=pe::EditHistory{};other_history_=pe::EditHistory{};uncommitted_=false;
+        ++generation_;pending_=false;reload_=true;rebuild_tabs();
+    }
+    void rebuild_tabs() {
+        if(!tabs_) return;
+        tabs_->buttons.clear();
+        auto add=[this](Text label,const std::string& id) {tabs_->buttons.push_back(std::make_unique<DisplayTab>(std::move(label),device_==id,[this,id]{switch_device(id);}));};
+        add(T(L"Standard für alle Displays",L"Standard for all displays"),"");
+        for(const auto& d:displays_) {
+            auto id=d.value("id",std::string());auto name=widen(d.value("name",id));
+            auto w=d.value("width",480),h=d.value("height",320);
+            auto suffix=L" · "+std::to_wstring(w)+L" × "+std::to_wstring(h);
+            Text label(name+suffix+(h>w?L" · Hoch":L" · Quer")+(d.value("online",false)?L"":L" · offline"),
+                name+suffix+(h>w?L" · Portrait":L" · Landscape")+(d.value("online",false)?L"":L" · offline"));
+            if(chosen_>=0 && chosen_<int(entries_.size())) {
+                const auto& states=entries_[chosen_].inherited;auto it=states.find(id);
+                if(it!=states.end()) {label.de+=it->second?L" · erbt Standard":L" · eigene Anordnung";label.en+=it->second?L" · inherits standard":L" · own arrangement";}
+            }
+            add(label,id);
+        }
+        clean(*tabs_);
+    }
     Combo* choice_=nullptr;
     Label *status_=nullptr, *validation_=nullptr;
     GridEditor* grid_=nullptr;
@@ -84,15 +133,22 @@ private:
         }
         h->run([this,h]() -> std::function<void()> {
             std::vector<Entry> entries;
+            auto displays=h->plugins().layout_displays?h->plugins().layout_displays():Json::array();
             if(h->plugins().list && h->plugins().arrangement_get)
-                for(auto& e:h->plugins().list()) if(e.enabled) entries.push_back({e.id,Text(widen(e.name)),h->plugins().arrangement_get(e.id)});
+                for(auto& e:h->plugins().list()) if(e.enabled) entries.push_back({e.id,Text(widen(e.name)),read_layout(false,e.id)});
             if(h->plugins().builtin_layout_get) for(const auto& c:builtin::catalogs()) if(c.enabled)
-                entries.push_back({c.key,Text(widen(c.label.de),widen(c.label.en)),h->plugins().builtin_layout_get(c.key),true});
-            return [this,entries=std::move(entries)] {
+                entries.push_back({c.key,Text(widen(c.label.de),widen(c.label.en)),read_layout(true,c.key),true});
+            if(h->plugins().device_layout_get) for(auto& entry:entries) for(const auto& d:displays) {
+                auto id=d.value("id",std::string());
+                entry.inherited[id]=h->plugins().device_layout_get(entry.builtin,entry.id,id).value("inherited",true);
+            }
+            return [this,entries=std::move(entries),displays=std::move(displays)] {
+                displays_=displays;if(display().value("tv",false)) portrait_=false;rebuild_tabs();
                 std::string selected=chosen_>=0 && chosen_<int(entries_.size()) ? (entries_[chosen_].builtin?"builtin:":"plugin:")+entries_[chosen_].id : "";
                 entries_=entries; chosen_=0;
                 for(size_t i=0;i<entries_.size();++i) if((entries_[i].builtin?"builtin:":"plugin:")+entries_[i].id==selected) chosen_=int(i);
-                fill_choices(); choose(entries_.empty()?-1:chosen_,true);
+                const bool preserve=!switch_pending_;switch_pending_=false;
+                fill_choices(); choose(entries_.empty()?-1:chosen_,preserve);
             };
         });
     }
@@ -103,10 +159,10 @@ private:
             choice_->index=chosen_; host_->surface().invalidate(); return;
         }
         reported_.clear();
-        ++generation_; pending_=false; chosen_=i; choice_->index=i;
+        ++generation_; pending_=false; chosen_=i; choice_->index=i;rebuild_tabs();
         // Alte Eingabefelder nicht während ihres Abbaus erneut abschließen.
         if(zone_id_) zone_id_->on_commit={}; if(seconds_) seconds_->on_commit={}; if(literal_) literal_->on_commit={};
-        body_->clear(); grid_=nullptr; blocks_=nullptr; apply_=undo_=redo_=reset_=error_=nullptr;
+        body_->clear(); body_->visible=true;inheritance_note_=nullptr;grid_=nullptr; blocks_=nullptr; apply_=undo_=redo_=reset_=error_=nullptr;
         zone_id_=seconds_=literal_=nullptr; validation_=nullptr;
         if(i<0 || i>=int(entries_.size())) {
             catalog_=nullptr; status_->text=T(L"Keine Seite verfügbar.",L"No page available."); host_->relayout(); return;
@@ -175,6 +231,19 @@ private:
     void redo() { if(history_.redo()) { ++generation_; pending_=true; uncommitted_=false; sync(); } }
     void text_pending() { if(!syncing_) { uncommitted_=true; ++generation_; pending_=false; update_buttons(); } }
     void editor() {
+        if(!device_.empty()) {
+            const bool inherited=entries_[chosen_].data.value("inherited",true);
+            inheritance_note_=body_->add<Note>(inherited?T(L"Erbt von Standard. Übernehmen legt eine eigene Anordnung an.",L"Inherits from standard. Apply creates an own arrangement."):T(L"Eigene Anordnung. Zurücksetzen aktiviert die Vererbung vom Standard.",L"Own arrangement. Reset restores inheritance from standard."));
+            auto d=display();
+            if(device_!="network" && !device_.starts_with("serial:") && !device_.starts_with("monitor:") && host_->plugins().layout_device_tv) {
+                auto tv=body_->add<ButtonRow>();
+                tv->add(d.value("tv",false)?T(L"Android-TV: nur Querformat (ändern)",L"Android TV: landscape only (change)"):T(L"Als Android-TV markieren",L"Mark as Android TV"),Button::Secondary,[this] {
+                    if(unsaved() && !host_->confirm(T(L"Ungesicherte Änderungen verwerfen?",L"Discard unsaved changes?"))) return;
+                    const auto id=device_;const bool tv=!display().value("tv",false);auto h=host_;
+                    h->run([this,h,id,tv]() -> std::function<void()> {h->plugins().layout_device_tv(id,tv);return [this]{history_=pe::EditHistory{};other_history_=pe::EditHistory{};uncommitted_=false;switch_pending_=true;reload_=true;};});
+                });
+            }
+        }
         body_->add<Note>(T(L"Bausteine ziehen, Zone am Titel verschieben, Griffe zum Vergrößern ziehen; Ablage entfernt. F6/Strg+Tab: Leiste, Raster, Ablage. Pfeile: Ziel; Leertaste: aufnehmen; Enter: ablegen/wählen/anlegen; Esc: abbrechen. Aufgenommen: Strg+Auf/Ab = Stapelposition. Umschalt+Pfeil: Größe; Alt+Pfeil: verschieben; Entf: entfernen; Strg+Z/Y: Rückgängig/Wiederholen. Vorschau nach dem Ablegen. Texte mit Enter oder Fokuswechsel abschließen.",
             L"Drag blocks, move zones by their title, drag handles to resize; drop on trash to remove. F6/Ctrl+Tab: palette, grid, trash. Arrows: target; Space: pick up; Enter: drop/select/create; Esc: cancel. While carrying: Ctrl+Up/Down = stack position. Shift+arrow: resize; Alt+arrow: move; Delete: remove; Ctrl+Z/Y: undo/redo. Preview after dropping. Commit text with Enter or by leaving the field."));
         auto raster=body_->add<Card>(T(L"Raster",L"Grid"));
@@ -230,12 +299,13 @@ private:
         if(catalog_) for(size_t i=2;i<bc->items.size();++i) bc->items[i]->visible=false;
         auto pv=body_->add<Card>(T(L"Live-Vorschau",L"Live preview"),catalog_?T(L"Beispieldaten der Seite, derselbe Renderer wie auf dem Display. Kopf und Fuß sind fest.",L"Page sample data, the same renderer as on the display. Header and footer are fixed."):T(L"Beispieldaten aus dem Plugin, derselbe Seitenrenderer wie auf dem Display.",L"Plugin sample data, the same page renderer as on the display."));
         auto orientation=pv->row<Segment>(T(L"Ausrichtung",L"Orientation"),Text(),std::vector<Text>{T(L"Quer",L"Landscape"),T(L"Hoch",L"Portrait")},portrait_?1:0);
+        orientation->enabled=!display().value("tv",false);
         orientation->on_change=[this,orientation] {
             if(grid_ && grid_->carrying()) grid_->cancel(host_->surface());
             if(catalog_ && uncommitted_) { orientation->index=portrait_?1:0;host_->toast(T(L"Eingabe zuerst abschließen.",L"Commit the field first."),ToastKind::Error);return; }
             const bool next=orientation->index==1;
             if(catalog_ && next!=portrait_) std::swap(history_,other_history_);
-            portrait_=next;++generation_;pending_=true;if(catalog_) sync();
+            portrait_=next;++generation_;pending_=true;sync();
         };
         validation_=body_->add<Label>(Text());
         error_=body_->add<ButtonRow>()->add(T(L"Fehlerstelle auswählen",L"Select invalid field"),Button::Secondary,[this] {
@@ -246,7 +316,7 @@ private:
         undo_=buttons->add(T(L"Rückgängig",L"Undo"),Button::Secondary,[this] { undo(); });
         redo_=buttons->add(T(L"Wiederholen",L"Redo"),Button::Secondary,[this] { redo(); });
         apply_=buttons->add(T(L"Übernehmen",L"Apply"),Button::Primary,[this] { apply(false); });
-        reset_=buttons->add(catalog_?T(L"Auf Standard zurücksetzen",L"Reset to standard"):T(L"Auf Manifest zurücksetzen",L"Reset to manifest"),Button::Danger,[this] { apply(true); });
+        reset_=buttons->add(!device_.empty()?T(L"Von Standard erben",L"Inherit from standard"):catalog_?T(L"Auf Standard zurücksetzen",L"Reset to standard"):T(L"Auf Manifest zurücksetzen",L"Reset to manifest"),Button::Danger,[this] { apply(true); });
         pending_=true;
     }
     void build_paths() {
@@ -294,6 +364,12 @@ private:
     }
     void sync() {
         if(!grid_) return; syncing_=true;
+        auto d=display();
+        if(!device_.empty()) {
+            float w=float(d.value("usable_width",480)),h=float(d.value("usable_height",320));
+            if(!d.value("tv",false) && (h>w)!=portrait_) std::swap(w,h);
+            grid_->display_aspect=w/std::max(1.f,h);
+        }
         grid_->model=model(); grid_->selected=std::clamp(grid_->selected,-1,int(model().layout["zones"].size())-1);
         auto l=pe::geometry(model());
         if(l) { grid_->column=std::clamp(grid_->column,0,int(l->columns.size())-1); grid_->row=std::clamp(grid_->row,0,int(l->rows.size())-1); }
@@ -372,15 +448,20 @@ private:
     }
     void apply(bool reset) {
         if(host_->busy() || chosen_<0 || (!reset && (!valid_ || uncommitted_))) return;
-        if(reset && !host_->confirm(catalog_?T(L"Anordnung und Backup löschen und den pixelgleichen Standard wiederherstellen?",L"Remove arrangement and backup and restore the pixel-identical standard?"):T(L"Anordnung und Backup löschen und die Manifest-Anordnung wiederherstellen?",L"Remove the arrangement and its backup and restore the manifest layout?"))) return;
+        if(reset && !host_->confirm(!device_.empty()?T(L"Eigene Anordnung löschen und wieder vom Standard erben?",L"Remove own arrangement and inherit from standard again?"):catalog_?T(L"Anordnung und Backup löschen und den pixelgleichen Standard wiederherstellen?",L"Remove arrangement and backup and restore the pixel-identical standard?"):T(L"Anordnung und Backup löschen und die Manifest-Anordnung wiederherstellen?",L"Remove the arrangement and its backup and restore the manifest layout?"))) return;
         auto h=host_; auto id=entries_[chosen_].id;const bool built=bool(catalog_); auto overlay=built?builtin::to_json(builtin_overlay()):plugins::to_json(model()); ++generation_; pending_=false;
-        const auto serial=generation_;
-        h->run([this,h,id,overlay,reset,serial,built]() -> std::function<void()> {
-            if(built) {if(reset) h->plugins().builtin_layout_reset(id);else h->plugins().builtin_layout_apply(id,overlay);}
+        const auto serial=generation_;const auto device=device_;
+        h->run([this,h,id,overlay,reset,serial,built,device]() -> std::function<void()> {
+            if(h->plugins().device_layout_apply && h->plugins().device_layout_reset) {
+                if(reset) h->plugins().device_layout_reset(built,id,device);else h->plugins().device_layout_apply(built,id,device,overlay);
+            }
+            else if(built) {if(reset) h->plugins().builtin_layout_reset(id);else h->plugins().builtin_layout_apply(id,overlay);}
             else {if(reset) h->plugins().arrangement_reset(id); else h->plugins().arrangement_apply(id,overlay);}
-            auto data=built?h->plugins().builtin_layout_get(id):h->plugins().arrangement_get(id);
-            return [this,h,id,data,serial,built] {
-                for(auto& e:entries_) if(e.id==id && e.builtin==built) e.data=data;
+            auto data=h->plugins().device_layout_get?h->plugins().device_layout_get(built,id,device):built?h->plugins().builtin_layout_get(id):h->plugins().arrangement_get(id);
+            return [this,h,id,data,serial,built,device] {
+                for(auto& e:entries_) if(e.id==id && e.builtin==built) {e.data=data;e.inherited[device]=data.value("inherited",true);}
+                rebuild_tabs();
+                if(inheritance_note_) inheritance_note_->text=data.value("inherited",true)?T(L"Erbt von Standard. Übernehmen legt eine eigene Anordnung an.",L"Inherits from standard. Apply creates an own arrangement."):T(L"Eigene Anordnung. Zurücksetzen aktiviert die Vererbung vom Standard.",L"Own arrangement. Reset restores inheritance from standard.");
                 if(chosen_>=0 && entries_[chosen_].id==id && entries_[chosen_].builtin==built && grid_ && serial==generation_) {
                     auto parsed=built?plugins::ArrangementResult{}:plugins::parse_arrangement(data.value("overlay",Json()).dump());
                     auto builtin_parsed=built?builtin::parse(*catalog_,data.value("overlay",Json()).dump()):builtin::Result{};
@@ -407,7 +488,10 @@ private:
         auto merged=built?plugins::ParseResult{}:plugins::merge_arrangement(base_,model()); if(!built && !merged) return;
         const auto serial=generation_; auto h=host_; auto json=built?builtin::to_json(builtin_overlay()).dump():merged.manifest->definition.dump();
         const auto key=built?catalog_->key:std::string();
-        auto size=portrait_?std::pair{320,480}:std::pair{480,320}; previewing_=true;
+        auto d=display();
+        auto size=device_.empty()?(portrait_?std::pair{320,480}:std::pair{480,320}):std::pair{d.value("usable_width",480),d.value("usable_height",320)};
+        if(!d.value("tv",false) && (size.second>size.first)!=portrait_) std::swap(size.first,size.second);
+        previewing_=true;
         h->run([this,h,json,size,serial,built,key]() -> std::function<void()> {
             std::string error; std::optional<Image> image;
             try { image=built?h->app().page_preview(key,Json::parse(json),size,error):h->app().plugin_preview(json,error,size,true); } catch(const std::exception&) { error="preview"; }

@@ -341,6 +341,35 @@ static void builtin_infrastructure_tests(const fs::path& root) {
     CHECK(!store.get("discord").overlay); CHECK(store.view("missing").is_null());
     {std::ofstream(path)<<std::string(16385,' ');}
     builtin::LayoutStore huge(directory);CHECK(huge.get("rss").state=="invalid");CHECK(huge.reset("rss").empty());
+    // P7b-6: zwei Geräte, Standard-Vererbung, Persistenz, Grenzen und Rücksetzen.
+    auto bytes=builtin::to_json(changed).dump();
+    CHECK(huge.view("rss","unknown")["inherited"]==true);
+    CHECK(huge.apply("rss",bytes,"phone-a").empty());
+    CHECK(huge.apply("rss",builtin::to_json(next).dump(),"phone-b").empty());
+    CHECK(huge.get("rss","phone-a").overlay->model.layout["rows"][0]==3);
+    CHECK(huge.get("rss","phone-b").overlay->model.layout["rows"][0]==2);
+    CHECK(!huge.get("rss","unknown").overlay);
+    CHECK(huge.apply("rss",builtin::to_json(next).dump()).empty());
+    CHECK(huge.get("rss","unknown").overlay->model.layout["rows"][0]==2);
+    CHECK(huge.get("rss","phone-a").overlay->model.layout["rows"][0]==3);
+    builtin::LayoutStore offline(directory);
+    CHECK(offline.get("rss","phone-a").overlay->model.layout["rows"][0]==3);
+    CHECK(offline.view("rss","phone-a")["inherited"]==false);
+    CHECK(huge.apply("rss",builtin::to_json(standard).dump(),"phone-a").empty());
+    CHECK(builtin::is_standard(c,*huge.get("rss","phone-a").overlay));
+    CHECK(huge.reset("rss","phone-a").empty());
+    CHECK(huge.get("rss","phone-a").overlay->model.layout["rows"][0]==2);
+    for(int i=1;i<16;++i) CHECK(huge.apply("rss",bytes,"device-"+std::to_string(i)).empty());
+    CHECK(!huge.apply("rss",bytes,"seventeenth").empty());
+    CHECK(!huge.apply("rss",bytes,std::string(513,'a')).empty());
+    CHECK(huge.get("rss","phone-b").overlay->model.layout["rows"][0]==2);
+    auto device_revision=huge.get("rss").revision;
+    const auto device_backup=directory/"builtin.rss.devices.json.bak";
+    fs::remove(device_backup);fs::create_directory(device_backup);
+    CHECK(!huge.apply("rss",bytes,"phone-b").empty());
+    CHECK(huge.get("rss").revision==device_revision);
+    CHECK(huge.get("rss","phone-b").overlay->model.layout["rows"][0]==2);
+    CHECK(!huge.reset("rss","phone-b").empty());fs::remove(device_backup);
     // Statische RSS-Treffer dürfen bei leerer oder anderer Rasterkarte niemals durchfallen.
     touch::Tile tile{{20,30,480,320},true,{{{"https://example.org/old",""}}}};
     tile.arranged=true;
@@ -373,6 +402,45 @@ static void builtin_infrastructure_tests(const fs::path& root) {
     CHECK(!app.page_preview("rss",builtin::to_json(standard),{0,320},error));
     CHECK(!app.page_preview("homeassistant",builtin::to_json(standard),{480,320},error));
     CHECK(app.page_preview("rss",builtin::to_json(changed),{480,320},error));
+}
+// P7b-6: dieselbe Seite auf zwei Geräten mit verschiedenen Bildern und Trefferflächen.
+static void device_render_tests(const fs::path& root) {
+    builtin::LayoutStore store(root/"multi-display");const auto& c=*builtin::find("rss");
+    auto a=builtin::standard(c),b=a;a.model.layout["rows"]={1,1};b.model.layout["rows"]={3,1};
+    CHECK(store.apply("rss",builtin::to_json(a).dump(),"a").empty());
+    CHECK(store.apply("rss",builtin::to_json(b).dump(),"b").empty());
+    render::RssRenderer renderer(480,320,"RSS");
+    auto draw_a=renderer.render_arranged(render::samples::posts(),render::samples::CLOCK,*store.get("rss","a").overlay);
+    auto draw_b=renderer.render_arranged(render::samples::posts(),render::samples::CLOCK,*store.get("rss","b").overlay);
+    CHECK(snapshot::hash_image(draw_a.image)!=snapshot::hash_image(draw_b.image));
+    CHECK(!draw_a.targets.empty());CHECK(!draw_b.targets.empty());
+    if(!draw_a.targets.empty() && !draw_b.targets.empty()) CHECK(draw_a.targets[0].rect_px.h!=draw_b.targets[0].rect_px.h);
+}
+static void device_editor_tests(const fs::path& root) {
+    TestHost h(root/"device-editor");CHECK(h.store.load());CHECK(h.store.import_manifest(fixture().dump()));
+    h.actions.layout_displays=[] {return Json::array({
+        {{"id","phone"},{"name","Phone"},{"width",320},{"height",480},{"usable_width",320},{"usable_height",460},{"online",false},{"tv",false}},
+        {{"id","tv"},{"name","Android TV"},{"width",1920},{"height",1080},{"usable_width",1920},{"usable_height",1080},{"online",false},{"tv",true}}});};
+    h.actions.device_layout_get=[&](bool,const auto& id,const auto& device){return h.store.arrangement_get(id,device);};
+    h.actions.device_layout_apply=[&](bool,const auto& id,const auto& device,const auto& j){CHECK(h.store.set_arrangement(id,j.dump(),device));};
+    h.actions.device_layout_reset=[&](bool,const auto& id,const auto& device){CHECK(h.store.clear_arrangement(id,device));};
+    auto page=make_layout_page();page->build(h,h.root);page->shown(h);h.drain();page->tick(h,h.state);h.drain();
+    auto settle=[&]{page->tick(h,h.state);h.drain();page->tick(h,h.state);h.drain();page->tick(h,h.state);};
+    auto grid=h.find<GridEditor>();CHECK(grid);if(!grid)return;
+    auto model=grid->model;model.layout["columns"]={2,1,1};grid->on_edit(model,"");
+    auto phone=h.find<Button>(L"Phone · 320 × 480 · Hoch · offline · erbt Standard");CHECK(phone);if(!phone)return;
+    phone->activate(h.view);CHECK(h.confirmations==1);CHECK(h.question.en.find(L"display")!=std::wstring::npos);
+    CHECK(h.find<GridEditor>()->model.layout["columns"][0]==2);
+    h.confirm_answer=true;phone->activate(h.view);settle();
+    auto orientation=h.find<Segment>(L"Ausrichtung");CHECK(orientation && orientation->index==1);
+    auto apply=h.find<Button>(L"Übernehmen");CHECK(apply);if(apply)apply->activate(h.view);settle();
+    CHECK(h.store.arrangement_get("editor-test","phone")["inherited"]==false);
+    auto own_tab=h.find<Button>(L"Phone · 320 × 480 · Hoch · offline · eigene Anordnung");
+    CHECK(own_tab && own_tab->role()==Role::NavTab && own_tab->checked());
+    CHECK(std::abs(h.find<GridEditor>()->display_aspect-320.f/460.f)<.001f);
+    CHECK(h.store.arrangement_get("editor-test","tv")["inherited"]==true);
+    auto tv=h.find<Button>(L"Android TV · 1920 × 1080 · Quer · offline · erbt Standard");CHECK(tv);if(tv)tv->activate(h.view);settle();
+    orientation=h.find<Segment>(L"Ausrichtung");CHECK(orientation && !orientation->enabled && orientation->index==0);
 }
 // P7-10: Freunde und Discord teilen den Katalog, niemals Datei, Backup oder Revision.
 static void friends_store_tests(const fs::path& root) {
@@ -469,11 +537,13 @@ static void builtin_editor_tests(const fs::path& root, const builtin::Catalog& c
     h.view.set_root(nullptr);
 }
 int main(int argc,char** argv) {
+    setvbuf(stdout,nullptr,_IONBF,0);
     gfx_init(); SetConsoleOutputCP(CP_UTF8); capture_tests();
     if(argc==2 && std::string(argv[1])=="--capture-only") { std::printf("Capture: %d passed, %d failed\n",passed,failed); return failed?1:0; }
     gesture_tests();
     const auto dir=fs::temp_directory_path()/("fl-layout-ui-"+std::to_string(GetCurrentProcessId()));
     builtin_infrastructure_tests(dir);
+    device_render_tests(dir);device_editor_tests(dir);
     friends_store_tests(dir);
     for(const auto& catalog:builtin::catalogs()) if(catalog.enabled) builtin_editor_tests(dir,catalog);
     struct Cleanup { fs::path path; ~Cleanup() { std::error_code ec; fs::remove_all(path,ec); } } cleanup{dir};

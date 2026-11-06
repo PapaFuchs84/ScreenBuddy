@@ -73,6 +73,22 @@ std::optional<std::string> SerialDisplay::find_port() {
     return found;
 }
 
+// Windows-Geräteinstanz statt veränderlicher COM-Nummer; ohne ID wird Standard geerbt.
+static std::string serial_layout_id(const std::string& port) {
+    HDEVINFO set=SetupDiGetClassDevsW(&GUID_DEVINTERFACE_COMPORT,nullptr,nullptr,DIGCF_PRESENT|DIGCF_DEVICEINTERFACE);
+    if(set==INVALID_HANDLE_VALUE) return {};
+    std::string found;SP_DEVINFO_DATA dev{sizeof dev};
+    for(DWORD i=0;SetupDiEnumDeviceInfo(set,i,&dev);++i) {
+        HKEY key=SetupDiOpenDevRegKey(set,&dev,DICS_FLAG_GLOBAL,0,DIREG_DEV,KEY_READ);
+        if(key==INVALID_HANDLE_VALUE) continue;
+        wchar_t name[64]={};DWORD size=sizeof name;
+        const bool match=RegQueryValueExW(key,L"PortName",nullptr,nullptr,reinterpret_cast<BYTE*>(name),&size)==ERROR_SUCCESS && _wcsicmp(name,widen(port).c_str())==0;
+        RegCloseKey(key);
+        wchar_t id[512]={};
+        if(match && SetupDiGetDeviceInstanceIdW(set,&dev,id,512,nullptr)) {found="serial:"+narrow(id);break;}
+    }
+    SetupDiDestroyDeviceInfoList(set);return found;
+}
 std::string SerialDisplay::rgb565le(const Image& img, int y0, int y1) {
     std::string out;
     out.resize(size_t(img.w) * (y1 - y0) * 2);
@@ -102,6 +118,7 @@ void SerialDisplay::open(int attempts) {
         std::string up = port_cfg_;
         for (auto& c : up) c = (char)toupper((unsigned char)c);
         std::optional<std::string> port = up == "AUTO" ? find_port() : std::optional<std::string>(port_cfg_);
+        if(port) {resolved_port_=*port;port_id_=serial_layout_id(*port);}
         if (port) {
             std::wstring path = L"\\\\.\\" + widen(*port);
             HANDLE h = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);

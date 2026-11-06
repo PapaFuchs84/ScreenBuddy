@@ -158,7 +158,7 @@ void apply_theme(const ojson& dp) {
         if (auto t = theme::parse(dp["theme_inline"], err)) { set_resolved(theme::resolve_custom(*t)); return; }
     }
     const std::string key = str("theme", "hell");
-    if (key == "windows" || key.rfind("custom:", 0) == 0) {
+    if (key == theme::DEFAULT_ID || key == "cupertino" || key == "fluent" || key == "windows" || key.rfind("custom:", 0) == 0) {
         set_resolved(theme::resolve(key, theme::Store()));
     } else if (key == "eigen") {
         std::map<std::string, std::string> custom;
