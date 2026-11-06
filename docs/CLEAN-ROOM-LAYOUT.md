@@ -35,7 +35,7 @@ Die Umsetzung erfolgt ohne Einsicht in Fremdcode implementiert.
 | Phase | Datum | Agent | Bestätigung | Codex-Ähnlichkeitsprüfung |
 |---|---|---|---|---|
 | 0 Vorbereitung | 2026-11-06 | Claude Haiku 5.5 | ohne Einsicht in Fremdcode implementiert | ausstehend |
-| 1 Rahmenstil an Theme anbinden | | | | |
+| 1 Rahmenstil an Theme anbinden | 2026-11-06 | Claude Sonnet 5.5 | ohne Einsicht in Fremdcode implementiert | ausstehend |
 | 2 Plugin-Fundament: Zonen, Block-Schnittstelle, Dichtestufen | | | | |
 | 3 Bedingte Anzeige und Fehlerisolierung | | | | |
 | 4 Geräteprofile, Wechselfeld, Tap-Ziele | | | | |

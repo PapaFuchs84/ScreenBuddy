@@ -6,6 +6,12 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### 2.10.0 – in Vorbereitung (nicht veröffentlicht)
+
+- Plugin-Seiten: Die Plugin-Karte übernimmt Eckenradius und Abstandsmaß aus dem Rahmenstil des Themes (`theme::Design`) statt fester Werte. FuchsLabs-Themes: Radius 9 → 8, Abstände unverändert; Cupertino, Fluent und Material erhalten ihre eigenen Radien und Abstände. Farben, Manifest v1 und Inhalte bleiben unverändert.
+- Tests: Der Snapshot-Test (`fl-plugin-snapshot-tests`) rendert jetzt eine Theme-Matrix (dunkel, hell, Windows mit festen Einstellungen, eigenes Theme sowie je ein Theme im Cupertino-, Fluent- und Material-Stil) in vier Größen (480x320, 320x480, 240x160, 160x240) und prüft die Textkontraste ≥ 4,5:1 auch für eingebaute Themes sowie Kopf- und Fußzeilentext; Basis neu erzeugt (112 statt 8 Snapshots).
+- Kontrast: drei Paletten-Befunde behoben (≥ 4,5:1). Helles Theme: Warnfarbe (190,120,0) → (146,92,0); Windows-Kontrastdesign (schwarzer Hintergrund): Warnfarbe jetzt helles Bernstein (240,178,50); Cupertino-dunkel-Profil: Kopfzeile (10,132,255) → (17,136,255), damit die Kopfzeilenschrift lesbar ist.
+
 ### 2.9.6 – in Vorbereitung
 
 Öffentliche Windows-EXE-Auslieferungen verlangen jetzt vertrauenswürdige Authenticode-Signierung mit Zeitstempel; ohne Zertifikat wird der Export gesperrt.

@@ -110,7 +110,7 @@ void set_theme(const std::string& name, const std::map<std::string, std::string>
         t.bg = brand::CREME; t.card = brand::SAND; t.line = brand::LINE;
         t.accent = brand::GLUT; t.text = brand::NAVY; t.muted = brand::NEBEL;
         t.status = {{"online", {22, 140, 72}}, {"idle", {200, 140, 0}}, {"dnd", {215, 45, 50}}, {"offline", {140, 140, 140}}};
-        t.warn = {190, 120, 0}; t.hot = {215, 45, 50}; t.down = {22, 140, 72};
+        t.warn = {146, 92, 0}; t.hot = {215, 45, 50}; t.down = {22, 140, 72};
     }
     std::map<std::string, Color> c;
     for (auto& [k, v] : custom) {
@@ -135,7 +135,9 @@ void set_resolved(const theme::Resolved& r) {
     t.bar = r.bar;
     t.status = dark ? std::map<std::string, Color>{{"online", p.success}, {"idle", {240, 178, 50}}, {"dnd", p.danger}, {"offline", {128, 132, 142}}}
                     : std::map<std::string, Color>{{"online", p.success}, {"idle", {180, 126, 0}}, {"dnd", p.danger}, {"offline", {136, 136, 136}}};
-    t.warn = dark ? Color{240, 178, 50} : Color{150, 95, 0};
+    // Warnfarbe nach tatsächlichem Hintergrund (Kontrastdesign: schwarz, aber Basis "hell"): helle Bernsteinfarbe auf dunklem Grund
+    const Color warn_light{240, 178, 50}, warn_dark{150, 95, 0};
+    t.warn = (dark || contrast(warn_light, p.bg) > contrast(warn_dark, p.bg)) ? warn_light : warn_dark;
     t.hot = p.danger; t.down = p.success;
 }
 

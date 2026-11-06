@@ -29,7 +29,11 @@ Image draw_page(const Page& page, int width, int height, bool sample) {
     const float scale = render::scale_for(width, height);
     Canvas canvas(width, height, scale, theme.bg);
     const float logical_w = width / scale, logical_h = height / scale;
-    const float margin = 10, gap = 7, header = 39, footer = 19;
+    // Rahmenstil aus dem Theme: Kartenradius und Abstandsmaß (FuchsLabs: Radius 8, Abstand 12 = bisherige Maße 10/7/9)
+    const theme::Design design = theme::design(theme.style);
+    const float spacing_scale = design.spacing / 12.f;
+    const float margin = 10 * spacing_scale, gap = 7 * spacing_scale, inset = 9 * spacing_scale;
+    const float card_radius = design.card_radius, header = 39, footer = 19;
     canvas.rectangle(0, 0, logical_w, 32, theme.orange);
     canvas.text(margin, 16, fit(canvas, page.title, {16, true}, logical_w - 2 * margin), {16, true}, theme.head_text, "lm");
     const size_t count = std::min<size_t>(page.widgets.size(), 6);
@@ -41,8 +45,8 @@ Image draw_page(const Page& page, int width, int height, bool sample) {
         const auto& widget = page.widgets[index];
         const int row = static_cast<int>(index) / columns, column = static_cast<int>(index) % columns;
         const float x = margin + column * (card_w + gap), y = header + row * (card_h + gap);
-        canvas.rounded_rectangle(x, y, x + card_w, y + card_h, 9, theme.card);
-        const float inset = 9, usable = card_w - inset * 2;
+        canvas.rounded_rectangle(x, y, x + card_w, y + card_h, card_radius, theme.card);
+        const float usable = card_w - inset * 2;
         if (!widget.label.empty())
             canvas.text(x + inset, y + 15, fit(canvas, widget.label, {11, true}, usable), {11, true}, theme.muted, "lm");
         const float content_y = y + (widget.label.empty() ? 20 : 35);

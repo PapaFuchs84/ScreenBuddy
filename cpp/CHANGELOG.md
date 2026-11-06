@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### 2.10.0 – preparation, phase 1 (unreleased)
+
+- Plugin pages: card corner radius and spacing now come from the theme's frame style (`theme::Design`) instead of fixed values (FuchsLabs: radius 9 -> 8, spacing unchanged; Cupertino/Fluent/Material use their own). Colors, manifest v1 and content unchanged (`plugin_render.cpp`).
+- Tests: `fl-plugin-snapshot-tests` renders a theme matrix (dunkel, hell, windows with fixed settings, custom, custom-cupertino/-fluent/-material) in four sizes (480x320, 320x480, 240x160, 160x240); text contrast >= 4.5:1 is checked for built-in and inline themes incl. header and footer text; baseline regenerated (112 snapshots).
+- Contrast fixes (>= 4.5:1), `g_known_findings` now empty: hell `t.warn` (190,120,0) -> (146,92,0) in `set_theme`; `set_resolved` picks the warn color by contrast against the real background (high contrast/black -> (240,178,50)); Cupertino dark `profile_palette` header (10,132,255) -> (17,136,255). Snapshot baseline regenerated.
+
 ### 2.9.6 – preparation
 
 Verbindlicher Signier-/Prüfschritt vor öffentlichem EXE-Export; lokale Entwicklungsbuilds bleiben möglich.

@@ -2,12 +2,12 @@
 
 ## Render-Snapshots (2.10.0)
 
-Testgerüst für das Zonen-Layout (Phase 0): `fl-plugin-snapshot-tests` rendert alle Beispiel-Plugins aus `cpp/examples/plugins` mit `plugins::draw_page` (feste Beispieldaten, Uhr 12:34, Datum 2026-01-01, Theme `dunkel`, Querformat 480x320 und Hochformat 320x480; bei Plugins mit Quellen zusätzlich die Variante „Daten fehlen“). Offline, ohne Netzwerk, ohne Port 8765, ohne Ton. Basis: `cpp/tests/plugin-snapshots/` (`hashes.txt` = FNV-1a-64 über Größe und Pixel, PNGs zur Sichtprüfung).
+Testgerüst für das Zonen-Layout (Phase 0): `fl-plugin-snapshot-tests` rendert alle Beispiel-Plugins aus `cpp/examples/plugins` mit `plugins::draw_page` (feste Beispieldaten, Uhr 12:34, Datum 2026-01-01, Theme `dunkel` als Referenz in Querformat 480x320 und Hochformat 320x480 sowie (Phase 1) die Theme-Matrix hell, windows (feste Einstellungen, inline), custom, custom-cupertino, custom-fluent, custom-material nur im Querformat mit Präfix `<theme>.`; bei Plugins mit Quellen zusätzlich die Variante „Daten fehlen“). Offline, ohne Netzwerk, ohne Port 8765, ohne Ton. Basis: `cpp/tests/plugin-snapshots/` (`hashes.txt` = FNV-1a-64 über Größe und Pixel, PNGs zur Sichtprüfung).
 
 - Vergleichen (Standard): `build/store/fl-plugin-snapshot-tests.exe` (Exit 1 bei Abweichung; Ist-Bilder landen in `%TEMP%\fl-plugin-snapshot-actual`).
 - Basis neu schreiben: `build/store/fl-plugin-snapshot-tests.exe update` (danach Diff der PNGs prüfen und bewusst committen).
 - Bauen: `cmake --build build/store --target fl-plugin-snapshot-tests`; ist in `build.bat` und `tests/run_release_checks.py` eingebunden.
-- Stand: 8 Snapshots, 45 Prüfungen bestanden, 0 fehlgeschlagen. Die Hashes beruhen auf Direct2D/DirectWrite; andere Schriftarten, Treiber oder Skalierung können sie ändern, dann bewusst mit `update` neu erzeugen.
+- Stand (Phase 1, Rahmenstil aus `theme::Design`): 32 Snapshots, 185 Prüfungen bestanden, 0 fehlgeschlagen. Die acht dunkel-Hashes wurden bewusst neu erzeugt (Kartenradius 9 → 8). Die Hashes beruhen auf Direct2D/DirectWrite; andere Schriftarten, Treiber oder Skalierung können sie ändern, dann bewusst mit `update` neu erzeugen.
 
 ## Release 2.9.5 – 01.11.2026
 

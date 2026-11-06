@@ -6,6 +6,12 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### 2.10.0 – in preparation (unreleased)
+
+- Plugin pages: the plugin card now takes its corner radius and spacing from the theme's frame style (`theme::Design`) instead of fixed values. FuchsLabs themes: radius 9 → 8, spacing unchanged; Cupertino, Fluent and Material use their own radii and spacing. Colors, manifest v1 and content are unchanged.
+- Tests: the snapshot test (`fl-plugin-snapshot-tests`) now renders a theme matrix (dark, light, Windows with fixed settings, a custom theme, and one theme each in Cupertino, Fluent and Material style) in four sizes (480x320, 320x480, 240x160, 160x240) and checks text contrast ≥ 4.5:1, including built-in themes and header/footer text; baseline regenerated (112 instead of 8 snapshots).
+- Contrast: three palette findings fixed (≥ 4.5:1). Light theme: warning color (190,120,0) → (146,92,0); Windows high contrast (black background): warning color is now the light amber (240,178,50); Cupertino dark profile: header (10,132,255) → (17,136,255) so the header text is readable.
+
 ### 2.9.6 – in preparation
 
 Public Windows EXE delivery now requires trusted timestamped Authenticode signing; exporting unsigned public releases is blocked.
