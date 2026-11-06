@@ -1278,113 +1278,200 @@ int SpotifyRenderer::button_at(int w_px, int h_px, int x_px, int y_px) {
     return -1;
 }
 
+// Fußtext ausschließlich aus dem Snapshot; dieselbe Priorität wie im bisherigen Zeichenweg.
+static std::string spotify_footer(const spotify::Snapshot& snap) {
+    using spotify::State;
+    switch (snap.state) {
+    case State::NotSetUp:
+    case State::LoggedOut:
+    case State::Connecting:
+    case State::Error:
+        return "Spotify";
+    case State::Idle:
+        if (!snap.last_played) return snap.error.empty() ? "Spotify" : snap.error;
+        [[fallthrough]];
+    default:
+        if (snap.last_played) return tr("Zuletzt gespielt");
+        return snap.error.empty() ? "Spotify" : snap.error;
+    }
+}
+
+class SpotifyRenderer::ContentBlock : public plugins::zones::Block {
+public:
+    enum Kind { Cover, Text, Levels, Progress, Buttons, Hint };
+    ContentBlock(SpotifyRenderer& renderer, Kind kind, const spotify::Snapshot& snap, double now,
+                 const std::vector<float>* levels, int color, bool simulated)
+        : renderer_(renderer), kind_(kind), snap_(snap), now_(now), levels_(levels), color_(color), simulated_(simulated),
+          id_(std::string("spotify.") + names_[kind]) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        using spotify::State;
+        auto& r = renderer_;
+        const auto& snap = snap_;
+        const auto* levels = levels_;
+        const double now = now_;
+        const int color = color_;
+        const bool simulated = simulated_;
+        const Theme& t = g_theme;
+        const float w = area.width, h = area.height, s = r.s;
+        // Vollfläche hält alle bisherigen absoluten Ausdrücke und Überlappungen bitgleich.
+        // Zeichnen und Treffer beziehen ihre Geometrie weiterhin aus layout().
+        Layout l = layout(w, h);
+        bool wide = w >= h;
+        float ty = l.title_y;
+        switch (kind_) {
+        case Cover: {
+            // Cover (oder dezenter Platzhalter)
+            d.rounded_rectangle(l.cover_x, l.cover_y, l.cover_x + l.cover_size, l.cover_y + l.cover_size, 8, t.card);
+            if (snap.cover && !snap.cover->empty()) {
+                int px = std::max(1, pyround_i(l.cover_size * s));
+                d.image(resize(*snap.cover, px, px), l.cover_x, l.cover_y);
+            } else {
+                d.text(l.cover_x + l.cover_size / 2, l.cover_y + l.cover_size / 2, "♪", r.font(40, true), t.muted, "mm");
+            }
+            break;
+        }
+        case Text: {
+            d.text(l.text_x, ty, r.fit(d, snap.title, r.f_track, l.text_w), r.f_track, snap.last_played ? t.muted : t.text, "lm");
+            d.text(l.text_x, ty + 28, r.fit(d, snap.artist, r.f_artist, l.text_w), r.f_artist, t.accent, "lm");
+            if (!snap.album.empty() && (wide || ty + 52 < l.bar_y - 10))
+                d.text(l.text_x, ty + 50, r.fit(d, snap.album, r.f_time, l.text_w), r.f_time, t.muted, "lm");
+            break;
+        }
+        case Levels: {
+            // Amplifier: Balken im freien Bereich zwischen Albumzeile und Fortschritt (nur Querformat, nur bei Wiedergabe)
+            if (levels && !levels->empty() && wide && snap.playing) {
+                const float ax = l.text_x, aw = l.text_w, ay0 = ty + 66, ay1 = l.bar_y - 14;
+                const float ah = ay1 - ay0;
+                if (ah >= 28) {
+                    const int n = (int)levels->size();
+                    const float gap = 3.f, bw = (aw - gap * (n - 1)) / n;
+                    for (int i = 0; i < n; ++i) {
+                        float v = std::clamp((*levels)[(size_t)i], 0.f, 1.f);
+                        float bh = std::max(2.f, v * ah);
+                        float x0 = ax + i * (bw + gap);
+                        Color c = v > 0.85f ? t.accent : t.bar;
+                        if (color == 1) {
+                            uint8_t rgb[3];
+                            audio::level_rgb(v, rgb);
+                            c = Color{rgb[0], rgb[1], rgb[2]};
+                        } else if (color == 2) {   // Verlauf im Design: Balken → Akzent → Heiß
+                            auto mix = [](Color a, Color b, float k) {
+                                return Color{uint8_t(a.r + (b.r - a.r) * k), uint8_t(a.g + (b.g - a.g) * k), uint8_t(a.b + (b.b - a.b) * k)};
+                            };
+                            c = v < 0.6f ? mix(t.bar, t.accent, v / 0.6f) : mix(t.accent, t.hot, (v - 0.6f) / 0.4f);
+                        }
+                        d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), c);
+                    }
+                    if (simulated) d.text(ax + aw, ay0 + 6, tr("simuliert"), r.font(11), t.muted, "rm");
+                }
+            }
+            break;
+        }
+        case Progress: {
+            // Fortschritt
+            long long pos = spotify::live_progress(snap, now ? now : mono());
+            float frac = snap.duration_ms > 0 ? std::min(1.f, (float)pos / snap.duration_ms) : 0.f;
+            d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + l.text_w, l.bar_y + 6, 3, t.line);
+            if (frac > 0) d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + std::max(6.f, l.text_w * frac), l.bar_y + 6, 3, t.bar);
+            d.text(l.text_x, l.times_y, spotify::format_time(pos), r.f_time, t.muted, "lm");
+            d.text(l.text_x + l.text_w, l.times_y, spotify::format_time(snap.duration_ms), r.f_time, t.muted, "rm");
+            break;
+        }
+        case Buttons: {
+            if (snap.controls) {   // Tasten nur, wenn Touch an ist – sonst wäre ein Tipp ohne Wirkung
+                for (int i = 0; i < 3; ++i) {
+                    float cx = l.btn_x[i], cy = l.btn_y, r = l.btn_r[i];
+                    bool main = i == PLAY_PAUSE;
+                    d.ellipse(cx - r, cy - r, cx + r, cy + r, main ? t.bar : t.card);
+                    Color ink = main ? t.head_text : t.text;
+                    float k = r * 0.42f;
+                    if (i == PLAY_PAUSE && snap.playing) {
+                        d.rectangle(cx - k * 0.8f, cy - k, cx - k * 0.2f, cy + k, ink);
+                        d.rectangle(cx + k * 0.2f, cy - k, cx + k * 0.8f, cy + k, ink);
+                    } else if (i == PLAY_PAUSE) {
+                        d.polygon({{cx - k * 0.6f, cy - k}, {cx - k * 0.6f, cy + k}, {cx + k, cy}}, ink);
+                    } else if (i == NEXT) {
+                        d.polygon({{cx - k, cy - k}, {cx - k, cy + k}, {cx + k * 0.6f, cy}}, ink);
+                        d.rectangle(cx + k * 0.7f, cy - k, cx + k, cy + k, ink);
+                    } else {
+                        d.polygon({{cx + k, cy - k}, {cx + k, cy + k}, {cx - k * 0.6f, cy}}, ink);
+                        d.rectangle(cx - k, cy - k, cx - k * 0.7f, cy + k, ink);
+                    }
+                }
+            }
+            break;
+        }
+        case Hint: {
+            switch (snap.state) {
+            case State::NotSetUp: r.message(d, "Spotify ist nicht fertig eingerichtet"); break;
+            case State::LoggedOut: r.message(d, "Bei Spotify anmelden: Einstellungen › Spotify"); break;
+            case State::Connecting: r.message(d, snap.error.empty() ? "Verbinde mit Spotify …" : snap.error); break;
+            case State::Error: r.message(d, snap.error.empty() ? "Spotify nicht erreichbar" : snap.error); break;
+            default: r.message(d, "Es läuft gerade nichts – Wiedergabe in Spotify starten"); break;
+            }
+            break;
+        }
+        }
+    }
+
+private:
+    inline static constexpr const char* names_[] = {"cover", "text", "pegel", "fortschritt", "tasten", "hinweis"};
+    SpotifyRenderer& renderer_;
+    Kind kind_;
+    const spotify::Snapshot& snap_;
+    double now_;
+    const std::vector<float>* levels_;
+    int color_;
+    bool simulated_;
+    std::string id_;
+};
+
 Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const std::vector<float>* levels, int color, bool simulated, std::time_t clock) {
     using spotify::State;
     const Theme& t = g_theme;
-    Canvas d(W, H, s, t.bg);
-    header(d, clock, "");
-    std::string footer_left = "Spotify";
+    std::vector<ContentBlock> content;
+    std::vector<Platzierung> blocks;
+    content.reserve(6);
+    auto add = [&](ContentBlock::Kind kind) {
+        content.emplace_back(*this, kind, snap, now, levels, color, simulated);
+        const auto& block = content.back();
+        blocks.push_back({&block, {block.id(), "spotify", {0, 0, w, h}, plugins::zones::Density::regular}});
+    };
     switch (snap.state) {
     case State::NotSetUp:
-        message(d, "Spotify ist nicht fertig eingerichtet");
-        break;
     case State::LoggedOut:
-        message(d, "Bei Spotify anmelden: Einstellungen › Spotify");
-        break;
     case State::Connecting:
-        message(d, snap.error.empty() ? "Verbinde mit Spotify …" : snap.error);
-        break;
     case State::Error:
-        message(d, snap.error.empty() ? "Spotify nicht erreichbar" : snap.error);
+        add(ContentBlock::Hint);
         break;
     case State::Idle:
         if (!snap.last_played) {
-            message(d, "Es läuft gerade nichts – Wiedergabe in Spotify starten");
-            if (!snap.error.empty()) footer_left = snap.error;
+            add(ContentBlock::Hint);
             break;
         }
-        [[fallthrough]];   // zuletzt gespielter Titel: gleiche Ansicht, gedimmt und ohne Steuerung
-    default: {
-        Layout l = layout(w, h);
-        // Cover (oder dezenter Platzhalter)
-        d.rounded_rectangle(l.cover_x, l.cover_y, l.cover_x + l.cover_size, l.cover_y + l.cover_size, 8, t.card);
-        if (snap.cover && !snap.cover->empty()) {
-            int px = std::max(1, pyround_i(l.cover_size * s));
-            d.image(resize(*snap.cover, px, px), l.cover_x, l.cover_y);
-        } else {
-            d.text(l.cover_x + l.cover_size / 2, l.cover_y + l.cover_size / 2, "♪", font(40, true), t.muted, "mm");
+        [[fallthrough]];
+    default:
+        add(ContentBlock::Cover);
+        add(ContentBlock::Text);
+        add(ContentBlock::Levels);
+        if (!snap.last_played) {
+            add(ContentBlock::Progress);
+            add(ContentBlock::Buttons);
         }
-        bool wide = w >= h;
-        float ty = l.title_y;
-        d.text(l.text_x, ty, fit(d, snap.title, f_track, l.text_w), f_track, snap.last_played ? t.muted : t.text, "lm");
-        d.text(l.text_x, ty + 28, fit(d, snap.artist, f_artist, l.text_w), f_artist, t.accent, "lm");
-        if (!snap.album.empty() && (wide || ty + 52 < l.bar_y - 10))
-            d.text(l.text_x, ty + 50, fit(d, snap.album, f_time, l.text_w), f_time, t.muted, "lm");
-        // Amplifier: Balken im freien Bereich zwischen Albumzeile und Fortschritt (nur Querformat, nur bei Wiedergabe)
-        if (levels && !levels->empty() && wide && snap.playing) {
-            const float ax = l.text_x, aw = l.text_w, ay0 = ty + 66, ay1 = l.bar_y - 14;
-            const float ah = ay1 - ay0;
-            if (ah >= 28) {
-                const int n = (int)levels->size();
-                const float gap = 3.f, bw = (aw - gap * (n - 1)) / n;
-                for (int i = 0; i < n; ++i) {
-                    float v = std::clamp((*levels)[(size_t)i], 0.f, 1.f);
-                    float bh = std::max(2.f, v * ah);
-                    float x0 = ax + i * (bw + gap);
-                    Color c = v > 0.85f ? t.accent : t.bar;
-                    if (color == 1) {
-                        uint8_t rgb[3];
-                        audio::level_rgb(v, rgb);
-                        c = Color{rgb[0], rgb[1], rgb[2]};
-                    } else if (color == 2) {   // Verlauf im Design: Balken → Akzent → Heiß
-                        auto mix = [](Color a, Color b, float k) {
-                            return Color{uint8_t(a.r + (b.r - a.r) * k), uint8_t(a.g + (b.g - a.g) * k), uint8_t(a.b + (b.b - a.b) * k)};
-                        };
-                        c = v < 0.6f ? mix(t.bar, t.accent, v / 0.6f) : mix(t.accent, t.hot, (v - 0.6f) / 0.4f);
-                    }
-                    d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), c);
-                }
-                if (simulated) d.text(ax + aw, ay0 + 6, tr("simuliert"), font(11), t.muted, "rm");
-            }
-        }
-        if (snap.last_played) {   // keine Fortschrittsanzeige, keine Tasten
-            footer_left = tr("Zuletzt gespielt");
-            break;
-        }
-        // Fortschritt
-        long long pos = spotify::live_progress(snap, now ? now : mono());
-        float frac = snap.duration_ms > 0 ? std::min(1.f, (float)pos / snap.duration_ms) : 0.f;
-        d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + l.text_w, l.bar_y + 6, 3, t.line);
-        if (frac > 0) d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + std::max(6.f, l.text_w * frac), l.bar_y + 6, 3, t.bar);
-        d.text(l.text_x, l.times_y, spotify::format_time(pos), f_time, t.muted, "lm");
-        d.text(l.text_x + l.text_w, l.times_y, spotify::format_time(snap.duration_ms), f_time, t.muted, "rm");
-        if (snap.controls) {   // Tasten nur, wenn Touch an ist – sonst wäre ein Tipp ohne Wirkung
-            for (int i = 0; i < 3; ++i) {
-                float cx = l.btn_x[i], cy = l.btn_y, r = l.btn_r[i];
-                bool main = i == PLAY_PAUSE;
-                d.ellipse(cx - r, cy - r, cx + r, cy + r, main ? t.bar : t.card);
-                Color ink = main ? t.head_text : t.text;
-                float k = r * 0.42f;
-                if (i == PLAY_PAUSE && snap.playing) {
-                    d.rectangle(cx - k * 0.8f, cy - k, cx - k * 0.2f, cy + k, ink);
-                    d.rectangle(cx + k * 0.2f, cy - k, cx + k * 0.8f, cy + k, ink);
-                } else if (i == PLAY_PAUSE) {
-                    d.polygon({{cx - k * 0.6f, cy - k}, {cx - k * 0.6f, cy + k}, {cx + k, cy}}, ink);
-                } else if (i == NEXT) {
-                    d.polygon({{cx - k, cy - k}, {cx - k, cy + k}, {cx + k * 0.6f, cy}}, ink);
-                    d.rectangle(cx + k * 0.7f, cy - k, cx + k, cy + k, ink);
-                } else {
-                    d.polygon({{cx + k, cy - k}, {cx + k, cy + k}, {cx - k * 0.6f, cy}}, ink);
-                    d.rectangle(cx - k, cy - k, cx - k * 0.7f, cy + k, ink);
-                }
-            }
-        }
-        if (!snap.error.empty()) footer_left = snap.error;
         break;
     }
-    }
-    footer(d, fit(d, footer_left, f_small, w - 110));
-    return d.finish();
+    const std::string foot = spotify_footer(snap);
+    return draw_framed({W, H, s, t.bg, [this, clock](Canvas& d) { header(d, clock, ""); },
+                        [this, &foot](Canvas& d) { footer(d, fit(d, foot, f_small, w - 110)); }}, blocks);
 }
 
 spotify::Snapshot demo_spotify() { return samples::spotify(); }
