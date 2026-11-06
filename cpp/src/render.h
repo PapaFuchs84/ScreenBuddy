@@ -80,9 +80,10 @@ protected:
     void footer(Canvas& d, const std::string& left);
     void message(Canvas& d, const std::string& text);
     std::string fit(Canvas& d, const std::string& text, const Font& f, float max_w);
-    float badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy);
-    void row(Canvas& d, const Friend& f, float y);
-    void avatar(Canvas& d, const Friend& f, float x, float y, bool faded);
+private:
+    class FriendRowBlock;
+    class FriendHintBlock;
+    std::vector<plugins::zones::PlacedBlock> friend_layout() const;
 };
 
 class Bf6Renderer : public Renderer {

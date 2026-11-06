@@ -360,29 +360,89 @@ std::vector<Friend> sort_friends(std::vector<Friend> friends) {
     return friends;
 }
 
+std::vector<plugins::zones::PlacedBlock> Renderer::friend_layout() const {
+    // Wie Renderer::row_at: dieselbe Kopfkante, Zeilenhöhe und Zeilenzahl.
+    float body_top = HEADER_H + 2;
+    std::vector<plugins::zones::PlacedBlock> rows;
+    for (int i = 0; i < rows_per_page(); ++i)
+        rows.push_back({"freunde.zeile." + std::to_string(i), "freunde",
+                        {0, body_top + i * row_height(), w, (float)row_height()},
+                        plugins::zones::Density::regular});
+    return rows;
+}
+
+class Renderer::FriendRowBlock : public plugins::zones::Block {
+public:
+    FriendRowBlock(Renderer& renderer, const Friend& f, int index)
+        : renderer_(renderer), friend_(f), id_("freunde.zeile." + std::to_string(index)) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        return {renderer_.h > renderer_.w ? 320.f : 480.f, (float)row_height()};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override;
+private:
+    float badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) const;
+    void avatar(Canvas& d, const Friend& f, float x, float y, bool faded) const;
+    Renderer& renderer_;
+    const Friend& friend_;
+    std::string id_;
+};
+
+class Renderer::FriendHintBlock : public plugins::zones::Block {
+public:
+    FriendHintBlock(Renderer& renderer, const std::string& text) : renderer_(renderer), text_(text) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect&, plugins::zones::Density) const override {
+        renderer_.message(d, text_);
+    }
+private:
+    Renderer& renderer_;
+    std::string text_;
+    std::string id_ = "freunde.hinweis";
+};
+
 Image Renderer::render_friends(std::vector<Friend> friends, int page, bool connected, const std::string& msg,
                                std::time_t now) {
     const Theme& t = g_theme;
     friends = sort_friends(std::move(friends));
-    Canvas d(W, H, s, t.bg);
     int online = (int)std::count_if(friends.begin(), friends.end(), [](auto& f) { return f.status != "offline"; });
-    header(d, now, std::to_string(online) + " online");
-    float body_top = HEADER_H + 2;
     int n = pages(friends.size());
-    if (!connected) {
-        message(d, msg.empty() ? "Keine Verbindung zu Discord …" : msg);
-    } else if (friends.empty()) {
-        message(d, "Gerade ist niemand online");
+    page = ((page % n) + n) % n;
+    std::vector<FriendRowBlock> rows;
+    std::vector<Platzierung> blocks;
+    FriendHintBlock hint(*this, !connected ? (msg.empty() ? "Keine Verbindung zu Discord …" : msg)
+                                         : "Gerade ist niemand online");
+    if (!connected || friends.empty()) {
+        // message behält seine bisherige mehrzeilige Zentrierung auf der Vollfläche.
+        blocks.push_back({&hint, {hint.id(), "freunde", {0, 0, w, h}, plugins::zones::Density::regular}});
     } else {
         int per = rows_per_page();
-        page = ((page % n) + n) % n;
-        for (int i = 0; i < per && page * per + i < (int)friends.size(); ++i) row(d, friends[page * per + i], body_top + i * row_height());
+        const auto areas = friend_layout();
+        rows.reserve(per);
+        for (int i = 0; i < per && page * per + i < (int)friends.size(); ++i) {
+            rows.emplace_back(*this, friends[page * per + i], i);
+            blocks.push_back({&rows.back(), areas[i]});
+        }
     }
-    footer(d, n > 1 ? strprintf("Seite %d/%d", ((page % n) + n) % n + 1, n) : "");
-    return d.finish();
+    const std::string left = n > 1 ? strprintf("Seite %d/%d", page + 1, n) : "";
+    const std::string info = std::to_string(online) + " online";
+    return draw_framed({W, H, s, t.bg, [this, now, &info](Canvas& d) { header(d, now, info); },
+                        [this, &left](Canvas& d) { footer(d, left); }}, blocks);
 }
 
-float Renderer::badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) {
+float Renderer::FriendRowBlock::badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) const {
     // Kleine Plattform-Marken (D/S/X/P) rechts oben in der Zeile; Rückgabe: belegte Breite
     static const std::map<std::string, std::pair<std::string, Color>> BADGE = {
         {"discord", {"D", {88, 101, 242}}}, {"steam", {"S", {35, 98, 148}}}, {"xbox", {"X", {16, 124, 16}}},
@@ -391,33 +451,35 @@ float Renderer::badges(Canvas& d, const std::vector<std::string>& platforms, flo
     for (auto it = platforms.rbegin(); it != platforms.rend(); ++it) {
         auto b = BADGE.count(*it) ? BADGE.at(*it) : std::make_pair(std::string("?"), g_theme.muted);
         d.rounded_rectangle(x - 16, cy - 8, x, cy + 8, 4, b.second);
-        d.text(x - 8, cy, b.first, f_small, brand::WHITE, "mm");
+        d.text(x - 8, cy, b.first, renderer_.f_small, brand::WHITE, "mm");
         x -= 20;
     }
     return right - x + 8;
 }
 
-void Renderer::avatar(Canvas& d, const Friend& f, float x, float y, bool faded) {
+void Renderer::FriendRowBlock::avatar(Canvas& d, const Friend& f, float x, float y, bool faded) const {
     // offline: wie Version 1.x stark ausgeblendet (45 % Deckkraft zweimal überlagert ≈ 20 %)
     const Theme& t = g_theme;
     float op = faded ? 0.45f * 0.45f : 1.f;
-    int size = pyround_i(AVATAR * s);
+    int size = pyround_i(AVATAR * renderer_.s);
     if (f.avatar && !f.avatar->empty()) {
         d.round_image(*f.avatar, x, y, size, op);
         return;
     }
     // Platzhalter: Initiale auf Orange
-    float px = std::nearbyint(x * s), py = std::nearbyint(y * s);
-    d.ellipse(px / s, py / s, (px + size - 1) / s, (py + size - 1) / s, faded ? mix(t.bg, t.orange, op) : t.orange);
+    float px = std::nearbyint(x * renderer_.s), py = std::nearbyint(y * renderer_.s);
+    d.ellipse(px / renderer_.s, py / renderer_.s, (px + size - 1) / renderer_.s, (py + size - 1) / renderer_.s, faded ? mix(t.bg, t.orange, op) : t.orange);
     std::wstring wn = widen(f.name.empty() ? "?" : f.name);
     std::wstring ch = wn.substr(0, (wn.size() > 1 && IS_HIGH_SURROGATE(wn[0])) ? 2 : 1);
     CharUpperBuffW(ch.data(), (DWORD)ch.size());
     Font fi{(float)(int)(size * 0.55), true};
-    d.text((px + size / 2.f) / s, (py + size / 2.f) / s, narrow(ch), fi, faded ? mix(t.bg, t.head_text, op) : t.head_text,
+    d.text((px + size / 2.f) / renderer_.s, (py + size / 2.f) / renderer_.s, narrow(ch), fi, faded ? mix(t.bg, t.head_text, op) : t.head_text,
            "mm");
 }
 
-void Renderer::row(Canvas& d, const Friend& f, float y) {
+void Renderer::FriendRowBlock::draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const {
+    const auto& f = friend_;
+    float y = area.y;
     const Theme& t = g_theme;
     float ax = 10, ay = y + (row_height() - AVATAR) / 2;
     const float l1 = y + row_height() / 2.f - 9, l2 = l1 + 18;   // zwei Zeilen vertikal zentriert (44: 13/31)
@@ -436,19 +498,19 @@ void Renderer::row(Canvas& d, const Friend& f, float y) {
         else if (f.status == "offline") d.ellipse(cx - 3, cy - 3, cx + 3, cy + 3, t.bg);
     }
     float tx = ax + AVATAR + 12;
-    float max_w = w - tx - 10;
+    float max_w = renderer_.w - tx - 10;
     if (f.platforms.size() > 1 || (f.platforms.size() == 1 && f.platforms[0] != "discord"))
-        max_w -= badges(d, f.platforms, w - 10, l1);
+        max_w -= badges(d, f.platforms, renderer_.w - 10, l1);
     Color name_col = f.status != "offline" ? t.text : t.muted;
     std::string line2 = !f.activity.empty() ? f.activity : (STATUS_LABEL.count(f.status) ? STATUS_LABEL.at(f.status) : "");
     if (!line2.empty()) {
-        d.text(tx, l1, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
+        d.text(tx, l1, renderer_.fit(d, f.name, renderer_.f_name, max_w), renderer_.f_name, name_col, "lm");
         Color act_col = starts_with_any(f.activity, {"Spielt", "Streamt"}) ? t.accent : t.muted;
-        d.text(tx, l2, fit(d, line2, f_act, max_w), f_act, act_col, "lm");
+        d.text(tx, l2, renderer_.fit(d, line2, renderer_.f_act, max_w), renderer_.f_act, act_col, "lm");
     } else {
-        d.text(tx, y + row_height() / 2, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
+        d.text(tx, y + row_height() / 2, renderer_.fit(d, f.name, renderer_.f_name, max_w), renderer_.f_name, name_col, "lm");
     }
-    d.line({{tx, y + row_height() - 1}, {w - 10, y + row_height() - 1}}, t.line, 1);
+    d.line({{tx, y + row_height() - 1}, {renderer_.w - 10, y + row_height() - 1}}, t.line, 1);
 }
 
 // ---------- Battlefield 6 ----------
