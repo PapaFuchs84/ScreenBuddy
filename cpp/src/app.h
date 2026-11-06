@@ -83,6 +83,7 @@ public:
     bool plugin_import(std::string_view manifest, std::string& error, bool force_disabled = false);
     bool plugin_set_enabled(const std::string& id, bool enabled, std::string& error);
     bool plugin_set_host_consent(const std::string& id, const std::string& host, bool allowed, std::string& error);
+    bool plugin_set_link_consent(const std::string& id, bool allowed, std::string& error);
     ojson plugin_settings_view(const std::string& id);
     bool plugin_save_settings(const std::string& id, const ojson& patch, std::string& error);
     bool plugin_remove(const std::string& id, std::string& error);
@@ -100,6 +101,7 @@ private:
         bool animating = false;
         std::optional<double> render_ms;
         std::vector<std::string> next_requests;
+        std::vector<std::string> frame_next_requests; // nur Anzeige-Thread
         std::mutex next_mu;
         device::Area area;
         double keepout_warning = -60;
@@ -135,6 +137,7 @@ private:
         std::function<touch::Rows(int, RendererSet&)> targets;
         std::vector<std::function<void()>> actions;   // Home Assistant: Schalt-Aktion je Kachel
         std::function<void(PageEntry&)> prepare;
+        std::function<plugins::DrawOut(RendererSet&)> plugin_draw;
     };
     struct DrawResult {
         Image frame;
@@ -174,6 +177,11 @@ private:
     std::mutex dev_mu_;                      // devices_
     std::map<std::string, std::unique_ptr<DeviceState>> devices_;
     bool was_independent_ = false;
+    touch::PluginAccess plugin_access(const std::string& id);
+    void execute_plugin(const touch::PluginDecision& decision);
+    static void queue_plugin_next(ViewState& view, const touch::PluginDecision& decision);
+    std::mutex plugin_tap_mu_;
+    std::map<std::string,double> plugin_last_open_;
     std::mutex tap_mu_;
     device::Area tap_area_, companion_tap_area_;  // zusammen mit Bild und Zielen veröffentlicht
     std::vector<touch::Tile> companion_taps_;

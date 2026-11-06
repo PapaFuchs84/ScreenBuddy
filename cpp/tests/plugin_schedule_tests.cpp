@@ -118,5 +118,24 @@ int main() {
         CHECK(wake_at(tick+.5,{},false,false).wait_until==tick+1.5);
     }
     CHECK((frames==std::vector<double>{0,15,30,45,60}));
+    // Review 4b: ein next in der wartenden Zone bleibt bis zur Freigabe erhalten.
+    z.mode=Mode::rotate;z.entries={{"one",30,true},{"two",30,true}};z2=z;z2.zone="b";s.clear();
+    advance({z,z2},s,0,fade);
+    auto requested=advance({z,z2},s,1,fade,{"a","b"});
+    CHECK(requested.zones[0].from_block.has_value());CHECK(s["b"].pending_next);
+    CHECK(s["b"].shown==0);
+    advance({z,z2},s,1.41,fade);CHECK(s["b"].shown==1 && !s["b"].pending_next);
+    // Doppelte prepare-Auswertung bei derselben Uhrzeit dreht nicht ein zweites Mal.
+    s.clear();advance({z},s,0,cut);advance({z},s,1,cut,{"a"});
+    CHECK(advance({z},s,1,cut,{"a"}).zones[0].block=="two");
+    z.mode=Mode::first_available;s.clear();advance({z},s,0,cut);
+    CHECK(advance({z},s,1,cut,{"a"}).zones[0].block=="two");
+    CHECK(advance({z},s,2,cut).zones[0].block=="two");
+    // Ohne tap: first_available muss einen automatischen Wechsel auch nach Wartezeit ausführen.
+    z.mode=Mode::rotate;z2=z;z2.zone="b";z2.mode=Mode::first_available;
+    z2.entries[0].available=false;s.clear();advance({z,z2},s,0,fade);
+    z2.entries[0].available=true;
+    advance({z,z2},s,1,fade,{"a"});CHECK(s["b"].shown==1);
+    advance({z,z2},s,1.41,fade);CHECK(s["b"].shown==0);
     std::printf("schedule: %d passed, %d failed\n",passed,failed);return failed?1:0;
 }

@@ -1,5 +1,82 @@
 # Testprotokoll – Stand 06.11.2026
 
+## Phase-4c-Sicherheitsreview M1/M2/N1–N4 (06.11.2026)
+
+Neuer Korrekturlauf auf `feature/zonen-layout`, bestehende uncommittete Phase-4c-Arbeit fortgeführt. Tap-URLs prüfen feste RFC-3986-Zeichen, vollständige Prozentsequenzen und kleine feste Hosts; Prüfung beim Parsen und über dieselbe Funktion bei Touch-Entscheidung und unmittelbar vor dem Browserstart. Punktwerte sowie feste (auch prozentkodierte) Punktpfadsegmente ergeben kein Ziel. Quellen-URLs behalten ihre bisherige Hostnormalisierung. Quellenfreigabe/Aktivzustand bleiben ausschließlich bei geänderter Linkliste und vollständig gleichem übrigen Manifest erhalten; identische Re-Imports und zusätzliche Widget-/Settings-/Tap-Änderungen widerrufen Freigaben. Listen ohne Platz erhalten keine Zeilen; gesammelte Ziele werden auf die Blockfläche begrenzt. Busy-Linkschalter setzt seinen lokalen Zustand zurück.
+
+Release-Build über `vcvars64.bat` und CMake/Ninja in `cpp/build/store` erfolgreich (bekannte `vswhere.exe`-Warnung ohne Abbruch). Einzeln gestartete Suiten mit **0 Fehlern**:
+
+| Suite | Prüfungen |
+|---|---:|
+| `fl-plugin-tests` | 316 |
+| `fl-plugin-store-tests` | 193 |
+| `fl-plugin-snapshot-tests` | 1.901 |
+| `fl-tests plugin-touch` | 2.093 |
+| `fl-plugin-zones-tests` | 462 + zweimal 4.000 feste Fuzz-Fälle |
+| `fl-plugin-schedule-tests` | 845 |
+| `fl-plugin-example-tests` | 124 |
+| `fl-plugin-transport-tests` | 140 |
+| `fl-plugin-sign-tests` | 111 |
+| `fl-plugin-catalog-tests` | 77 |
+| `fl-device-profile-tests` | 85 |
+| `fl-tmdb-tests` | 119 |
+| `fl-psn-tests` | 37 |
+| `fl-key-help-tests` | OK |
+| `fl-amp-tests` | 13, synthetisch ohne Wiedergabe |
+| `fl-monitor-tests` | 11, ohne Fenstermodus |
+| `fl-companion-tests` | 377, isolierter lokaler Testserver |
+
+Neue Regressionen: ungültige feste URL-Zeichen/Prozentsequenzen/Platzhalter und Großschreibung, Punktwerte und -segmente, Update nur der Linkliste versus Links plus Widgets/Settings/Tap sowie identischer Re-Import (auch neu geladen), kaputte `links.json` beim Laden, tatsächlicher `write_links`-Fehler über ein Verzeichnis am Dateipfad (Widerruf, Erteilen und Import), Rasterziele ohne Layout, flache Listenfläche und Rate bei 1,9 s gesperrt / 2,0 s erlaubt. Browserstarts werden ausschließlich durch injizierte Funktionen geprüft. Die zusätzliche Rasterprüfung trennt die größere Löschfläche für Kantenglättung von der eigentlichen Tap-Fläche; vorhandene Snapshot-Vergleiche sind grün.
+
+**Umgebungsblocker:** `fl-plugin-settings-tests` beendet sich beim ersten Speichern mit „Plugin settings could not be encrypted or saved“ (Exit 2). `fl-tests` vollständig bricht im Abschnitt `config` mit „Verschlüsselung fehlgeschlagen“ ab (Exit -1073740791). DPAPI wird nicht ersetzt oder umgangen; beide Suiten sind nicht grün. Prozess-/Installer-/Distributionstests und reale Geräte/UI-Abnahme wurden in diesem Korrekturlauf nicht ausgeführt. Native Busy-Schalter-Sichtprüfung bleibt offen.
+
+Clean-Room: nur eigener Repo-Code und lokale Arbeitsanweisungen, kein Fremdcode gelesen. Keine Töne, keine Hardware/COM-Zugriffe, keine echten Links, kein Port 8765 gestartet, kein `run_release_checks.py`, kein EXE-Export und kein Commit/Push/Branchwechsel. DE/EN-System, Paketformat, Tutorial und drei Changelogs aktualisiert. `git diff --check` und lokale Dateilinks der sechs betroffenen Plugin-Dokumente geprüft. Bestehende Snapshot-Basis unverändert: `cpp/tests/plugin-snapshots/hashes.txt`, SHA-256 `3039AF0D01635BC21F06FE458523014B8929ABC814A9338AD53E67915963ACA2`. Die folgenden Abschnitte dokumentieren frühere Läufe mit ihren damaligen Prüfzahlen.
+
+
+## Phase 4c – P4c-1 bis P4c-4 (06.11.2026)
+
+Implementiert in Paket-Reihenfolge: strenge Schema-2-Felder `links`/`tap` und kodierte Expansion; Ziele im selben Zeichenlauf mit gemeinsamer Listenzeilen-Geometrie; persistente eigene Linkfreigabe (Standard aus) mit DE/EN-Schalter und Hostliste; Snapshot-Treffer, Ruhezeit (Companion 1,0 s / Monitor 0,3 s), Generations-/HTTPS-/Host-Prüfung beim Tipp und unmittelbar vor dem Browserstart, global je Plugin höchstens ein Linkversuch alle zwei Sekunden. Nur `open_link` und `next`; keine geheimen Einstellungen in Linkvorlagen. Feste Logtexte ohne URLs/Daten. Kachel- und Sperrzonenversatz werden über die Kachelbox in die lokale Zielgeometrie eingerechnet.
+
+`next` verwendet die auf acht unterschiedliche Schlüssel begrenzte, per Mutex gesicherte Liste je Ansicht. Nur der Anzeige-Thread übernimmt die Wünsche. Zusätzlich zu den P4c-Dateien wurde `plugin_schedule.h/.cpp` für den ausdrücklich beauftragten 4b-Reviewpunkt geändert: ein wartendes Wechselfeld behält `pending_next` bis zur Ausführung. `first_available` behält eine manuelle Auswahl bis zur nächsten Änderung der verfügbaren Einträge; ohne Tap bleibt die automatische Auswahl erhalten, auch wenn ein anderer Übergang sie verzögert. Reine Regressionen decken diese Fälle ab.
+
+Build: VS Build Tools 2022, `vcvars64.bat`, CMake/Ninja Release in **`cpp/build/store`** mit bestehender vcpkg-Konfiguration. Bekannte `vswhere.exe`-Warnung ohne Abbruch, PATH-Anführungszeichen wie in `build.bat` bereinigt. Ein zwischenzeitlicher Linkversuch traf eine noch laufende Snapshot-Test-EXE (LNK1104); nach ihrem Ende erfolgreich neu gebaut. Kein neuer Testtarget, deshalb keine Änderung an `CMakeLists.txt`, `build.bat` oder `run_release_checks.py`; letzteres wurde **nicht gestartet**.
+
+Einzeln gestartete Suiten, jeweils **0 Fehler**:
+
+| Suite | Prüfungen |
+|---|---:|
+| `fl-plugin-tests` | 292 |
+| `fl-plugin-zones-tests` | 462 + 2 feste Fuzz-Läufe à 4.000 |
+| `fl-plugin-schedule-tests` | 845 |
+| `fl-plugin-example-tests` | 124 |
+| `fl-plugin-store-tests` | 146 |
+| `fl-plugin-transport-tests` | 140 |
+| `fl-plugin-sign-tests` | 111 |
+| `fl-plugin-catalog-tests` | 77 |
+| `fl-plugin-snapshot-tests` | 1.859 |
+| `fl-device-profile-tests` | 85 |
+| `fl-tmdb-tests` | 119 |
+| `fl-psn-tests` | 37 |
+| `fl-key-help-tests` | OK (keine Anzahl ausgegeben) |
+| `fl-amp-tests` | 13 (rein synthetisch, keine Wiedergabe) |
+| `fl-monitor-tests` | 11 (ohne Fenstermodus) |
+| `fl-companion-tests` | 377 (lokaler Testserver, keine Geräte) |
+| `fl-tests plugin-touch` | 2.083 (davon 29 neue Plugin-Touch-Prüfungen) |
+| `installer_preserves_config.py` | 2 isolierte Prüfungen |
+| `fl-distribution-tests standalone` | Exit 0 |
+| `fl-plugin-validate --store cpp/examples/plugins` | 6 Manifeste gültig |
+
+Die sechs Beispielmanifeste und ein aus dem Doku-Ausschnitt vervollständigtes synthetisches Tap-Manifest sind offline gültig. Python-Syntax, lokale Links der betroffenen Doku und `git diff --check` geprüft. Die Codeänderungen benötigen kein neues Testziel.
+
+Die Vollsuiten **`fl-tests` und `fl-plugin-settings-tests` sind nicht gelaufen** (bekannte DPAPI-Sandbox-Grenze). Der neue Modus `fl-tests plugin-touch` führt ausschließlich die vorhandenen Touch-/Systemziel-Regressionen und die neuen reinen Plugin-Touch-Tests aus, ohne DPAPI, Netzabruf oder echte Linkstarts. Er ersetzt die Vollsuite nicht.
+
+Mehrgeräte-Prozessprüfung `app_companion_multi.py cpp/build/store/ScreenBuddy.exe --tap-only`: **blockiert vor Kopplung**, Companion meldet im isolierten Testlog „Verschlüsselung fehlgeschlagen“, anschließend Status-Timeout; Prozess sauber beendet. Damit sind die neuen Prozess-Akzeptanzprüfungen (verweigerter Link ohne Navigation auf A/B, normale Navigation außerhalb der Zielrechtecke) hier **nicht ausgeführt**. `app_companion_integration.py`: Fall mit ausgeschaltetem Companion durchlaufen, aktivierter Companion am gleichen Start-Timeout blockiert; gesamte Suite nicht grün. Die reinen Mehransicht-Tests und die Companion-Suite sind separate Nachweise, kein Ersatz dafür.
+
+Keine Hardware/COM-Ports, keine echten Browserlinks und keine Töne. Linkstarts in Tests ausschließlich injiziert; die Prozessprüfung besitzt keine Linkfreigabe. Alle Prozessprüfungen verwenden isolierte Daten/Instanzen und freie Ports mit Ausschluss von 8765. Installerprüfung ebenfalls nur in isolierten Testordnern mit `--no-lcd`, ohne echten Autostart/Startmenüeingriff. Manifest v1 und alle bestehenden Snapshot-Hashes unverändert: `hashes.txt` SHA-256 **3039AF0D01635BC21F06FE458523014B8929ABC814A9338AD53E67915963ACA2**. Keine neue Snapshot-Basis geschrieben.
+
+Offen: native UI-Sichtprüfung und physische 4c-H1-Abnahme durch Basti (Monitor/Handy, Freigabe, Ruhezeit). Die übrigen bekannten 4b-Punkte (mehrfache Zonengeometrie, Warnung bei absichtlich leerem Eintrag, Seriell-Lockverschachtelung) bleiben offen. Keine Veröffentlichung, kein EXE-Export, Commit, Push oder Branchwechsel; Branch bleibt `feature/zonen-layout`.
+
+
 ## Phase-4b-Reviewkorrekturen (06.11.2026)
 
 Serieller Vorhang: Budget umfasst Bandübertragung, 50 ms Ruhe und gemessene Renderzeit; maximal ein Band-Schritt je Aufruf, bei Verspätung wird die Zeitbasis verschoben. Nur Companion darf verspätete Zwischenschritte verwerfen. Monitor bleibt beim erreichten Zwischenbild. Rotation überspringt einen datenlos gewordenen Eintrag vorwärts. Globale Bandaufteilung auch bei Kachelversatz. Reine Tests für first_available-Überblendung, Generations-/Größenreset, Parsergrenzen und altes Skip-Prädikat ergänzt. Der Prozessprüfer verwirft Start-/Größenbilder über eine neue bestätigte Auflösung, nutzt das erste Plugin-JPEG nur als Basis, prüft Navigation während der gesamten Beobachtung und führt zusätzlich ein statisches Plugin ohne cycle als Negativkontrolle aus.
@@ -15,7 +92,7 @@ Prozessprüfung `app_companion_multi.py … --cycle-only`: **blockiert vor Koppl
 Diese Punkte sind dokumentiert und in diesem Korrekturlauf bewusst unverändert:
 - Zonengeometrie wird dreifach berechnet (`app.cpp`: `zone_rows`, sowie Geometrie-/Zeichenpfade in `plugin_render.cpp`). Eine gemeinsame Berechnung bleibt offen.
 - Die Seitenwarnung „Plugin-Daten fehlen“ erscheint auch bei einem absichtlich leeren Eintrag.
-- Ein `next`-Wunsch kann in einer wartenden Zone verloren gehen; in Phase 4c behandeln.
+- Ein `next`-Wunsch konnte in einer wartenden Zone verloren gehen; **in Phase 4c behoben**, siehe aktueller Abschnitt oben.
 - Lock-Verschachtelung: `render::mutex` → `SerialDisplay::mu_`; separater Seriell-Thread bleibt außerhalb von Phase 4.
 
 ## Phase 4b – P4b-0 bis P4b-4 (06.11.2026)

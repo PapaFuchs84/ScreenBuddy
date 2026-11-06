@@ -128,7 +128,7 @@ const Setting* setting(const Manifest& m, const std::string& key) {
 bool source_exists(const Manifest& m, const std::string& id) {
     return std::any_of(m.sources.begin(), m.sources.end(), [&](const Source& s) { return s.id == id; });
 }
-enum class Usage { display, item, request };
+enum class Usage { display, item, request, link, link_item };
 void reference(const Manifest& m, const std::string& ref, Usage usage, std::set<std::string>* used) {
     auto path = split(ref);
     require(std::all_of(path.begin(), path.end(), [](const auto& p) { return path_segment(p); }), "Invalid template path.");
@@ -141,8 +141,8 @@ void reference(const Manifest& m, const std::string& ref, Usage usage, std::set<
         return;
     }
     require(usage != Usage::request, "Requests may only reference settings.");
-    if ((path[0] == "time" || path[0] == "date") && path.size() == 1) return;
-    if (path[0] == "item" && usage == Usage::item) return;
+    if ((path[0] == "time" || path[0] == "date") && path.size() == 1 && usage != Usage::link && usage != Usage::link_item) return;
+    if (path[0] == "item" && (usage == Usage::item || usage == Usage::link_item)) return;
     require(path.size() >= 2 && source_exists(m, path[0]), "Unknown source or invalid template reference.");
 }
 template<class F> std::string expand(std::string_view s, F resolve, bool cap) {
@@ -223,9 +223,9 @@ std::string scalar(const Json* value, bool& missing) {
     if (value->is_number() && !std::isfinite(value->get<double>())) { missing = true; return "—"; }
     return value->dump();
 }
-std::string encode_component(std::string_view value) {
+std::string encode_component(std::string_view value, bool source_path = true) {
     // "." and ".." would become dot segments in a URL path (traversal after server/proxy normalization).
-    require(value != "." && value != "..", "Setting value is not allowed as a URL path segment.");
+    require(!source_path || (value != "." && value != ".."), "Setting value is not allowed as a URL path segment.");
     const char* hex = "0123456789ABCDEF";
     std::string out;
     for (unsigned char c : value) {
@@ -336,6 +336,59 @@ std::string source_fingerprint(const Manifest& manifest) {
     return sources.dump(); // std::map keeps headers in a stable order
 }
 
+std::string link_fingerprint(const Manifest& m) {
+    auto hosts = m.links; std::sort(hosts.begin(), hosts.end()); return Json(hosts).dump();
+}
+bool tap_url_valid(const std::string& url, bool placeholders) {
+    try {
+        if (url.size()>2048) return false;
+        auto host=url_host(url);
+        auto authority_end=url.find_first_of("/?",8);
+        auto authority=url.substr(8,authority_end==url.npos ? url.size()-8 : authority_end-8);
+        if(authority.ends_with(":443")) authority.resize(authority.size()-4);
+        if(authority!=host) return false;
+        auto start=url.find_first_of("/?",8);
+        if(start==url.npos) return true;
+        auto hex=[](unsigned char c) { return (c>='0' && c<='9') || (c>='a' && c<='f') || (c>='A' && c<='F'); };
+        std::string path;
+        bool query=false;
+        for(size_t i=start;i<url.size();++i) {
+            unsigned char c=url[i];
+            if(placeholders && url.compare(i,2,"{{")==0) {
+                auto end=url.find("}}",i+2);
+                if(end==url.npos || end==i+2) return false;
+                for(size_t j=i+2;j<end;++j) if(!alpha(url[j]) && !digit(url[j]) && url[j]!='_' && url[j]!='.') return false;
+                if(!query) path+='x';
+                i=end+1; continue;
+            }
+            if(!alpha(c) && !digit(c) && std::string_view("-._~!$&'()*+,;=:@/?%").find(c)==std::string_view::npos) return false;
+            if(c=='%') {
+                if(i+2>=url.size() || !hex(url[i+1]) || !hex(url[i+2])) return false;
+                if(!query) {
+                    if(url[i+1]=='2' && (url[i+2]=='e' || url[i+2]=='E')) path+='.';
+                    else path+=url.substr(i,3);
+                }
+                i+=2; continue;
+            }
+            if(c=='?') query=true;
+            if(!query) path+=char(c);
+        }
+        size_t begin=0;
+        while(begin<=path.size()) {
+            auto end=path.find('/',begin);
+            auto segment=path.substr(begin,end==path.npos ? path.size()-begin : end-begin);
+            if(segment=="." || segment=="..") return false;
+            if(end==path.npos) break;
+            begin=end+1;
+        }
+        return true;
+    } catch(...) { return false; }
+}
+bool link_allowed(const Manifest& m, const std::string& url) {
+    try { auto host = url_host(url); return std::find(m.links.begin(), m.links.end(), host) != m.links.end(); }
+    catch (...) { return false; }
+}
+
 std::optional<Json> parse_strict_json(std::string_view utf8, size_t limit) {
     try { return parse_bounded(utf8, limit); }
     catch (const Invalid&) { return std::nullopt; }
@@ -349,7 +402,7 @@ ParseResult parse_manifest(std::string_view utf8) {
         const bool v2 = j.is_object() && j.contains("schema_version") && j["schema_version"].is_number_integer() &&
                         j["schema_version"].get<double>() == 2;
         fields(j, with({"schema_version", "id", "name", "description", "version", "license", "author", "category", "min_app_version",
-                        "refresh_seconds", "settings", "sources", "widgets"}, v2, {"layout"}));
+                        "refresh_seconds", "settings", "sources", "widgets"}, v2, {"layout", "links"}));
         const int schema = integer(j, "schema_version", 1, 2);
         require(schema == 1 || v2, "Unsupported schema version.");
         Manifest m;
@@ -428,6 +481,17 @@ ParseResult parse_manifest(std::string_view utf8) {
             s.setting_keys.assign(used.begin(), used.end());
             m.sources.push_back(std::move(s));
         }
+        if (v2 && j.contains("links")) {
+            require(j["links"].is_array() && j["links"].size() <= 4, "At most four link hosts allowed.");
+            for (const auto& v : j["links"]) {
+                require(v.is_string(), "Link host must be a string.");
+                auto host = v.get<std::string>();
+                require(url_host("https://" + host) == host && host.find_first_of("/:?#") == host.npos,
+                        "Link host must be a literal public hostname.");
+                require(std::find(m.links.begin(), m.links.end(), host) == m.links.end(), "Duplicate link host.");
+                m.links.push_back(host);
+            }
+        }
         if (v2 && j.contains("layout")) m.layout = layout(j["layout"]);
         const bool zoned = m.layout.has_value();
         // Without a layout (v1, or v2 without layout) the automatic grid places at most 6 widgets.
@@ -442,7 +506,7 @@ ParseResult parse_manifest(std::string_view utf8) {
             w.type = str(v, "type");
             // v2 widgets carry a stable block ID and, with a layout, their zone.
             auto allowed = [&](std::initializer_list<const char*> base) {
-                auto list = with(base, v2, {"id", "show_if"});
+                auto list = with(base, v2, {"id", "show_if", "tap"});
                 if (zoned) { list.push_back("zone"); list.push_back("seconds"); }
                 return list;
             };
@@ -482,6 +546,22 @@ ParseResult parse_manifest(std::string_view utf8) {
                     w.seconds = integer(v, "seconds", 3, 600);
                 }
                 require(++per_zone[w.zone] <= zones::max_blocks_per_zone, "At most 4 blocks per zone allowed.");
+            }
+            if (v2 && v.contains("tap")) {
+                const auto& t = v["tap"];
+                fields(t, {"action", "url"});
+                Tap tap; tap.action = str(t, "action");
+                require(tap.action == "open_link" || tap.action == "next", "Unsupported tap action.");
+                if (tap.action == "open_link") {
+                    tap.url = str(t, "url", 1, 2048);
+                    require(tap_url_valid(tap.url, true) && link_allowed(m, tap.url), "Link requires a declared literal HTTPS host.");
+                    validate_template(m, tap.url, w.type == "list" ? Usage::link_item : Usage::link);
+                } else {
+                    require(!t.contains("url"), "Next cannot contain a URL.");
+                    require(zoned && std::any_of(m.layout->zones.begin(), m.layout->zones.end(),
+                        [&](const auto& z) { return z.id == w.zone && z.cycle.has_value(); }), "Next requires a cycle zone.");
+                }
+                w.tap = std::move(tap);
             }
             m.widgets.push_back(std::move(w));
         }
@@ -558,11 +638,27 @@ Page render_page_unguarded(const Manifest& m, const RenderContext& context, cons
             return scalar(data(ref, item), block_missing);
         }, true);
     };
+    auto link = [&](const Widget& w, const Json* item = nullptr) -> std::string {
+        if (!w.tap || w.tap->action != "open_link") return {};
+        try {
+            auto url = expand(w.tap->url, [&](const std::string& ref) {
+                const auto* v = data(ref, item);
+                require(v && !v->is_structured(), "Link value missing.");
+                require(!v->is_null() && (!v->is_string() || !v->get_ref<const std::string&>().empty()) &&
+                    (!v->is_number() || std::isfinite(v->get<double>())), "Link value missing.");
+                auto raw=v->is_string() ? v->get<std::string>() : v->dump();
+                require(raw!="." && raw!="..", "Dot link value is not allowed.");
+                return encode_component(raw, false);
+            }, false);
+            return tap_url_valid(url) && link_allowed(m, url) ? url : std::string();
+        } catch (...) { return {}; }
+    };
     auto render_block = [&](const Widget& w) {
         block_missing = false;
         RenderedWidget rendered;
         rendered.type = w.type; rendered.label = text(w.label); rendered.unit = text(w.unit);
         rendered.id = w.id; rendered.zone = w.zone;
+        if (w.tap) { rendered.tap_action = w.tap->action; if (w.type != "list") rendered.tap_url = link(w); }
         if (w.type == "text") rendered.text = text(w.text);
         else if (w.type == "clock") rendered.text = bounded(w.format == "time" ? context.time :
             w.format == "date" ? context.date : context.date + " " + context.time);
@@ -570,7 +666,8 @@ Page render_page_unguarded(const Manifest& m, const RenderContext& context, cons
             const Json* array = data(w.items, nullptr);
             if (!array || !array->is_array()) { rendered.items.push_back("—"); block_missing = true; }
             else for (size_t i = 0; i < array->size() && i < static_cast<size_t>(w.max_items); ++i)
-                rendered.items.push_back(text(w.item_template, &(*array)[i]));
+                { rendered.items.push_back(text(w.item_template, &(*array)[i]));
+                  rendered.item_urls.push_back(link(w, &(*array)[i])); }
         } else {
             rendered.text = text(w.value);
             if (w.type == "bar") {

@@ -1218,7 +1218,54 @@ static void test_transfer_simulated() {
     b.px[8*4]=1; CHECK((changed_bands(a,b)==std::vector<std::pair<int,int>>{{0,16}}));
     b=a;b.px[18*4]=1;CHECK((changed_bands(a,b)==std::vector<std::pair<int,int>>{{16,19}}));
 }
+static void test_plugin_taps() {
+    using namespace fl::touch;
+    Tile tile;tile.box={40,30,480,320};
+    tile.plugin={{{10,20,100,50},"test-plugin","card","zone","open_link","https://news.example.org/old",7,10,false}};
+    std::vector<Tile> shown={tile}, computed=shown;
+    PluginAccess grant{true,true,7,{"news.example.org"}};
+    auto access=[&](const std::string&) {return grant;};
+    auto decide=[&](double now,double min=1.) {return plugin_decide(shown,60,60,now,min,access);};
+    CHECK(decide(10.99).kind==PluginDecision::swallow);
+    CHECK(decide(10.29,.3).kind==PluginDecision::swallow);
+    CHECK(decide(10.31,.3).kind==PluginDecision::open_link);
+    computed[0].plugin[0].url="https://news.example.org/new";
+    CHECK(decide(11).url=="https://news.example.org/old");
+    stabilize_plugins(computed,shown,11);CHECK(computed[0].plugin[0].stable_since==11);
+    auto unchanged=shown;stabilize_plugins(unchanged,shown,11);CHECK(unchanged[0].plugin[0].stable_since==10);
+    computed[0].plugin[0].transitioning=true;
+    CHECK(plugin_decide(computed,60,60,20,1,access).kind==PluginDecision::swallow);
+    computed[0].plugin[0].transitioning=false;auto previous=computed;previous[0].plugin[0].transitioning=true;
+    stabilize_plugins(computed,previous,20);CHECK(computed[0].plugin[0].stable_since==20);
+    grant.consent=false;CHECK(decide(12).kind==PluginDecision::swallow);grant.consent=true;
+    grant.enabled=false;CHECK(decide(12).kind==PluginDecision::swallow);grant.enabled=true;
+    grant.generation=8;CHECK(decide(12).kind==PluginDecision::swallow);grant.generation=7;
+    grant.hosts={"other.example.org"};CHECK(decide(12).kind==PluginDecision::swallow);grant.hosts={"news.example.org"};
+    auto saved=shown[0].plugin[0].url;
+    for(const auto& bad:{"http://news.example.org/a","https://news.example.org/a\n","https://news.example.org/#fragment","https://user@news.example.org/a","https://news.example.org:444/a","https://news.example.org.evil.org/a","https://NEWS.example.org/a","https://news.example.org/a/.","https://news.example.org/a/../b","https://news.example.org/%2e","https://news.example.org/%GG","https://news.example.org/{{settings.x}}","https://news.example.org/a b","https://news.example.org/ä","https://news.example.org/<","https://news.example.org/\""}) {
+        shown[0].plugin[0].url=bad;CHECK(decide(12).kind==PluginDecision::swallow);
+    }
+    shown[0].plugin[0].url=saved;
+    std::map<std::string,double> rate;std::vector<std::string> launched;
+    auto launch=[&](const std::string& url) {launched.push_back(url);return true;};
+    CHECK(plugin_dispatch(decide(12),12,rate,launch));CHECK(!plugin_dispatch(decide(13.9),13.9,rate,launch));
+    CHECK(plugin_dispatch(decide(14),14,rate,launch));CHECK(launched==std::vector<std::string>({saved,saved}));
+    CHECK(!plugin_dispatch(PluginDecision{},20,rate,launch));
+    // Zwei Ansichten, gleiche Koordinaten, getrennte URLs und Ruhezeiten.
+    computed[0].plugin[0].stable_since=10;
+    CHECK(plugin_decide(computed,60,60,12,1,access).url=="https://news.example.org/new");
+    CHECK(decide(12).url==saved);
+    shown[0].plugin[0].action="next";grant.consent=false;
+    CHECK(decide(12).kind==PluginDecision::next);CHECK(decide(12).zone=="zone");
+    CHECK(plugin_decide(shown,0,0,12,1,access).kind==PluginDecision::none);
+    shown[0].plugin.clear();CHECK(decide(12).kind==PluginDecision::none);
+}
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "plugin-touch") {
+        gfx_init();
+        test_touch_targets(); test_system_touch(); test_plugin_taps();
+        std::printf("plugin-touch: %d passed, %d failed\n",g_ok,g_fail); return g_fail ? 1 : 0;
+    }
     if (argc == 2 && std::string(argv[1]) == "transfer-sim") {
         test_transfer_simulated();
         std::printf("transfer-sim: %d passed, %d failed\n",g_ok,g_fail); return g_fail ? 1 : 0;
@@ -1228,6 +1275,7 @@ int main(int argc, char** argv) {
         return touch_probe(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
     gfx_init();
     test_transfer_simulated();
+    test_plugin_taps();
     test_material_shell();
     if (argc >= 2 && std::string(argv[1]) == "dpp") {
         argc_probe_winstore = argc >= 3;

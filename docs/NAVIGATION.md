@@ -35,3 +35,7 @@ Unter **Anzeige → Sperrzone** stehen vier per Tab erreichbare Zahlenfelder obe
 Unter **Companion → Sperrzone: gemeinsame Vorgabe** gelten die Ränder für den gemeinsamen Betrieb und als Standard. Für das ausgewählte gekoppelte Gerät lässt sich daneben eine eigene Sperrzone sofort speichern oder auf die gemeinsame Vorgabe zurücksetzen; sie wirkt nur bei ausgeschalteter Synchronisation. Das eignet sich für TV-Overscan. Die Gerätevorschau enthält den Rand.
 
 Erlaubt sind ganze Pixel 0–1000; ungültige Eingaben werden mit Meldung abgelehnt. Beim Zeichnen wird jeder Rand auf ein Drittel der kleineren Bildkante begrenzt. Bleiben weniger als 160 × 120 Pixel nutzbar, wird die gesamte Sperrzone ignoriert (ratenbegrenzte Warnung). Ein Tipp im Rand bewirkt nichts; die Drittel-Navigation bezieht sich auf den nutzbaren Inhalt. Veraltete Companion-Bildgrößen werden verworfen.
+
+## Plugin-Tipps (Phase 4c, Entwicklung)
+
+Schema-2-Plugins können HTTPS-Links und den nächsten Wechselfeld-Eintrag anbieten. Links öffnen am PC, auch bei einem Tipp auf dem Handy. Die eigene Freigabe unter Einstellungen → Plugins ist standardmäßig aus und zeigt die Link-Hosts. Ziele brauchen 1,0 s Ruhe beim Companion bzw. 0,3 s beim Monitor und sind während Übergängen gesperrt; verweigerte Tipps wechseln die Seite nicht. Ohne Ziel gilt die bisherige Drittel-Regel. Android-TV erhält keine Tap-/D-Pad-Aktion. Details: [Plugin-System](PLUGIN-SYSTEM.md#tap-ziele-für-plugin-blöcke-phase-4c-entwicklung-für-2100). Physische Abnahme offen.

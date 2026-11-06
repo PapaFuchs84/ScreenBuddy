@@ -6,6 +6,14 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Phase 4c – Tap-Ziele (2026-11-06, Entwicklung)
+
+- Sicherheitsreview M1/M2/N1–N4: strenge Tap-URL-Zeichen und Prozentsequenzen, kleingeschriebene Tap-Hosts, keine Punktsegmente/-werte; erneute Prüfung vor Browserstart. Freigaben nur bei ausschließlicher Linklistenänderung teilweise erhalten, sonst widerrufen. Flache Listen bleiben im Block; beschäftigter Linkschalter wird zurückgesetzt. Regressionen für Raster, defekte Linkfreigaben, Schreibfehler und 1,9/2,0-s-Grenze ergänzt.
+
+- P4c-1–4: Schema-2-Parser `tap`/`links`, prozentkodierte nicht geheime Werte, Ziele im selben Zeichenaufruf und gemeinsame Listenzeilen, getrennte Linkfreigabe (Standard aus), HTTPS-/Host-/Generationsprüfung beim Tipp und ein Linkversuch je Plugin alle zwei Sekunden. Ruhezeit 1,0 s Companion / 0,3 s Monitor; Übergänge und verweigerte Ziele verschlucken Tipps. `next` läuft über die geschützte Anfrageliste; wartende Zonen verlieren den Wunsch nicht mehr.
+- DE/EN-Vertrag, Paketformat, Tutorial und Clean-Room-Nachweis ergänzt. Manifest v1 und bestehende Snapshot-Hashes bleiben unverändert. Entwicklungsbuild, keine Veröffentlichung; Prüfzahlen und Sandbox-Grenzen in `cpp/TESTPROTOKOLL.md` (im C++-Ordner `TESTPROTOKOLL.md`).
+
+
 ### Phase 4b – Wechselfeld (2026-11-06, Entwicklung)
 
 - Phase-4b-Review: verspätete Schritte nur beim Companion verwerfen; serieller Vorhang mit realem Zyklusbudget und aufeinanderfolgenden globalen 8-Zeilen-Bändern. Rotation bei Datenverlust bleibt in Reihenfolge. Zusätzliche reine Regressionstests und strengere JPEG-Prozessprüfung mit statischer Negativkontrolle; Prüfstand und bekannte offene Punkte im Testprotokoll.

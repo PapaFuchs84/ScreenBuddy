@@ -35,3 +35,7 @@ New menu images were captured during release testing and anonymized afterwards. 
 **Companion → Keepout: shared default** applies in shared mode and supplies the default. For the selected paired device, save an individual keepout immediately or reset it to the shared default; this only applies with synchronisation off. Use it for TV overscan. Device previews include the border.
 
 Only integer pixels 0–1000 are accepted; invalid input produces a message. Rendering limits each edge to one third of the smaller frame dimension. If less than 160 × 120 usable pixels remain, the entire keepout is ignored (rate-limited warning). Border taps do nothing; navigation thirds use the usable content width. Stale Companion frame sizes are rejected.
+
+## Plugin taps (Phase 4c, development)
+
+Schema 2 plugins can offer HTTPS links and the next cycling-zone entry. Links open on the PC, including taps from a phone. The separate grant in Settings → Plugins defaults to off and displays the link hosts. Targets require 1.0 s stability on Companion or 0.3 s on a monitor and are blocked during transitions; denied taps do not navigate. Areas without a target retain thirds navigation. Android TV gains no tap/D-pad action. See the [plugin system](PLUGIN-SYSTEM.en.md#tap-targets-for-plugin-blocks-phase-4c-development-for-2100). Physical acceptance is pending.

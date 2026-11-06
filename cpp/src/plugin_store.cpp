@@ -174,6 +174,19 @@ bool write_consent(const fs::path& path, const Installed& entry) {
     return atomic_write(path, Json({{"schema_version", 1}, {"manifest_sha256", fingerprint(entry.manifest)},
         {"hosts", entry.consented_hosts}}).dump());
 }
+bool write_links(const fs::path& path, const Installed& entry) {
+    return atomic_write(path, Json({{"fingerprint",link_fingerprint(entry.manifest)}, {"allowed",entry.links_allowed}}).dump());
+}
+bool read_links(const fs::path& path, Installed& entry) {
+    if (!regular_or_missing(path)) return false;
+    std::error_code ec; if (!fs::exists(path,ec)) return !ec;
+    std::string text; if(!read_bounded(path,text)) return false;
+    auto j=parse_strict_json(text,manifest_limit);
+    if(!j || !j->is_object() || j->size()!=2 || !j->contains("fingerprint") || !(*j)["fingerprint"].is_string() ||
+       !j->contains("allowed") || !(*j)["allowed"].is_boolean()) return false;
+    entry.links_allowed=(*j)["fingerprint"]==link_fingerprint(entry.manifest) && (*j)["allowed"].get<bool>();
+    return true;
+}
 } // namespace
 
 Store::Store(std::filesystem::path directory) : directory_(fs::absolute(std::move(directory)).lexically_normal()) {}
@@ -204,7 +217,7 @@ StoreResult Store::load() {
                     auto id = parsed.manifest->id;
                     // Missing/stale host grants always leave source plugins disabled.
                     Installed entry{std::move(*parsed.manifest), false, {}, ++generation_};
-                    if (!read_consent(directory_ / (id + ".consent.json"), entry)) invalid = true;
+                    if (!read_consent(directory_ / (id + ".consent.json"), entry) || !read_links(directory_ / (id + ".links.json"), entry)) invalid = true;
                     else {
                         entry.enabled = !disabled && all_hosts_allowed(entry);
                         if (!installed_.emplace(id, std::move(entry)).second) invalid = true;
@@ -226,16 +239,29 @@ StoreResult Store::import_manifest(std::string_view utf8, bool force_disabled) {
     auto& manifest = *parsed.manifest;
     auto existing = installed_.find(manifest.id);
     if (existing == installed_.end() && installed_.size() >= installation_limit) return failure("At most 32 plugins may be installed.");
+    // Only a changed link list with an otherwise identical manifest retains source grants and activation.
+    // Identical reimports and all other updates revoke every grant.
+    std::set<std::string> retained_hosts;
+    bool retain_enabled=false;
+    if(existing!=installed_.end()) {
+        auto before=existing->second.manifest.definition, after=manifest.definition;
+        before.erase("links"); after.erase("links");
+        if(before==after && link_fingerprint(existing->second.manifest)!=link_fingerprint(manifest)) {
+            retained_hosts=existing->second.consented_hosts;
+            retain_enabled=existing->second.enabled;
+        }
+    }
     // An update invalidates in-flight work and grants even when persistence fails.
     if (existing != installed_.end()) {
         existing->second.enabled = false;
         existing->second.consented_hosts.clear();
+        existing->second.links_allowed = false;
         existing->second.generation = ++generation_;
     }
     if (!ready_directory(directory_, true)) return failure("Plugin directory cannot be created safely.");
     bool disabled = false;
     if (!marker_state(directory_ / (manifest.id + ".disabled"), disabled)) return failure("Plugin state file is invalid.");
-    if ((force_disabled || !manifest.sources.empty()) && !disabled) {
+    if ((force_disabled || (!manifest.sources.empty() && !retain_enabled)) && !disabled) {
         if (!atomic_write(directory_ / (manifest.id + ".disabled"), "")) return failure("Plugin could not be disabled safely.");
         disabled = true;
         // The marker is already committed. Keep in-memory state consistent even
@@ -243,9 +269,11 @@ StoreResult Store::import_manifest(std::string_view utf8, bool force_disabled) {
         if (existing != installed_.end()) { existing->second.enabled = false; existing->second.generation = ++generation_; }
     }
     auto id = manifest.id;
-    // Persist an empty grant before replacing a source manifest, including exact
-    // reimports. A failed invalidation must never leave a reusable old grant.
-    Installed replacement{manifest, !disabled, {}, ++generation_};
+    // Persist revoked grants before replacement, except source grants for link-list-only updates.
+    // A failed invalidation must never leave a reusable old grant.
+    Installed replacement{manifest, !disabled, retained_hosts, ++generation_};
+    replacement.links_allowed=false;
+    if(!write_links(directory_ / (id + ".links.json"),replacement)) return failure("Plugin link consent could not be saved.");
     if (!write_consent(directory_ / (id + ".consent.json"), replacement)) {
         if (existing != installed_.end()) { existing->second.enabled = false; existing->second.generation = ++generation_; }
         return failure("Plugin consent could not be reset safely.");
@@ -294,6 +322,8 @@ StoreResult Store::remove(const std::string& id) {
     if (ec) return failure("Plugin was removed but its disabled marker could not be cleaned up.");
     fs::remove(directory_ / (id + ".consent.json"), ec);
     if (ec) return failure("Plugin was removed but its consent could not be cleaned up.");
+    fs::remove(directory_ / (id + ".links.json"), ec);
+    if (ec) return failure("Plugin link consent could not be cleaned up.");
     return {true, {}};
 }
 StoreResult Store::set_host_consent(const std::string& id, const std::string& host, bool allowed) {
@@ -319,6 +349,17 @@ StoreResult Store::set_host_consent(const std::string& id, const std::string& ho
     next.generation = ++generation_;
     it->second = std::move(next);
     return {true, {}};
+}
+StoreResult Store::set_link_consent(const std::string& id, bool allowed) {
+    std::lock_guard lock(mutex_);
+    auto it=installed_.find(id);
+    if(it==installed_.end()) return failure("Plugin is not installed.");
+    if(allowed && it->second.manifest.links.empty()) return failure("Plugin has no declared link hosts.");
+    if(!allowed) { it->second.links_allowed=false; it->second.generation=++generation_; }
+    auto next=it->second; next.links_allowed=allowed;
+    if(!ready_directory(directory_,false) || !write_links(directory_/(id+".links.json"),next))
+        return failure("Plugin link consent could not be saved.");
+    next.generation=++generation_; it->second=std::move(next);return {true,{}};
 }
 bool Store::source_authorized(const std::string& id, const std::string& source_id, uint64_t generation) const {
     std::lock_guard lock(mutex_);

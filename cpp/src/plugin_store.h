@@ -12,6 +12,7 @@ struct Installed {
     bool enabled = true;
     std::set<std::string> consented_hosts;
     uint64_t generation = 0; // changes on every mutation; never persisted
+    bool links_allowed = false;
 };
 struct StoreResult {
     bool ok = false;
@@ -28,6 +29,7 @@ public:
     StoreResult import_manifest(std::string_view utf8, bool force_disabled = false); // store installs and sources force disabled
     StoreResult set_enabled(const std::string& id, bool enabled); // sources require every host's consent
     StoreResult set_host_consent(const std::string& id, const std::string& host, bool allowed);
+    StoreResult set_link_consent(const std::string& id, bool allowed);
     bool source_authorized(const std::string& id, const std::string& source_id, uint64_t generation) const;
     StoreResult remove(const std::string& id);
     std::vector<Installed> entries() const;

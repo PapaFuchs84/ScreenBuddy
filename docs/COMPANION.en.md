@@ -57,3 +57,7 @@ The PC Companion settings offer four shared default edges (`companion.keepout`) 
 Top/right/bottom/left use the reported full frame size without rotation. Integer pixels 0–1000 are accepted; rendering limits each edge to one third of the smaller frame dimension. Below 160 × 120 usable pixels, the entire keepout is ignored (warning at most once per view/minute). Content is drawn at usable size and placed in a full frame with the theme background; previews include this border. `ready.w/h` and touch positions remain full-frame coordinates (unchanged protocol). The PC shifts targets per device; border taps cause neither actions nor navigation, and stale frame sizes are rejected.
 
 Usage: [navigation](NAVIGATION.en.md#device-profile-and-keepout-phase-4a-development). Validation: [test record](../cpp/TESTPROTOKOLL.md); physical TV/enclosure acceptance remains open.
+
+## Plugin taps (Phase 4c, development)
+
+Schema 2 plugins can offer HTTPS links and the next cycling-zone entry. Links open on the PC, including taps from a phone. The separate grant in Settings → Plugins defaults to off and displays the link hosts. Targets require 1.0 s stability on Companion or 0.3 s on a monitor and are blocked during transitions; denied taps do not navigate. Areas without a target retain thirds navigation. Android TV gains no tap/D-pad action. See the [plugin system](PLUGIN-SYSTEM.en.md#tap-targets-for-plugin-blocks-phase-4c-development-for-2100). Physical acceptance is pending.

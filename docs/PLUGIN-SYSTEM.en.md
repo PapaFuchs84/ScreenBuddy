@@ -59,7 +59,7 @@ Checks passed: manifest parser (223), store (127), transport (134, including a l
 
 Terms: **zone** = rectangular area of a flat grid; **block** = one widget in a zone; **density level** = compact, regular or detailed.
 
-- **The parser recognizes v2 only by `schema_version: 2` as an integer.** All v1 rules still apply (templates, texts, sources, settings). In addition every widget has a **stable block ID** `id` (lowercase letter first, then lowercase letters/digits/`_`, at most 40 characters, unique). The ID stays the same across versions and later keys tap targets and settings.
+- **The parser recognizes v2 only by `schema_version: 2` as an integer.** All v1 rules still apply (templates, texts, sources, settings). In addition every widget has a **stable block ID** `id` (lowercase letter first, then lowercase letters/digits/`_`, at most 40 characters, unique). The ID stays the same across versions and keys tap targets and settings.
 - **`layout` is optional.** Without `layout` a v2 page uses the automatic grid and `zone` is not allowed. With `layout` every widget needs an existing `zone`, and every zone needs at least one block.
 - **Grid in fractions:** `columns` and `rows` are integer shares 1–12 (e.g. `[2, 1]` = two thirds / one third). Decimals, `2.0`, `1e0`, strings, booleans and negative numbers are rejected.
 - **Zones:** `id`, `column`, `row` (0-based), optional `column_span`/`row_span` (default 1). A zone must lie entirely inside the grid and must not overlap another one. Empty cells are allowed. No nesting: zones do not contain zones.
@@ -153,6 +153,30 @@ Only `schema_version: 2` with `layout` permits a zone to carry `"cycle": {"mode"
 
 The output determines the quiet transition: monitor 4 fade steps over 400 ms (2 steps or a cut at high rendering cost), Companion 2 steps over 400 ms with connected clients, serial a band reveal only with a sufficiently fast measured rate, otherwise a cut. Data is frozen during transitions. Resizing ends the transition; theme changes rebuild its image cache. Slow outputs stretch the entry duration to at least four times the last transfer duration. Simultaneous changes within a tile wait at most 600 ms. No sounds or intrusive effects.
 
-Example: [offline-wechselfeld.flplugin.json](../cpp/examples/plugins/offline-wechselfeld.flplugin.json). Import locally to try two texts with durations of 3 and 5 seconds. Physical acceptance and actual serial rate measurement by Basti remain pending; only simulated transfers have been checked. Tap actions belong to the later Phase 4c.
+Example: [offline-wechselfeld.flplugin.json](../cpp/examples/plugins/offline-wechselfeld.flplugin.json). Import locally to try two texts with durations of 3 and 5 seconds. Physical acceptance and actual serial rate measurement by Basti remain pending; only simulated transfers have been checked. Tap actions are implemented in Phase 4c (development, see below).
 
 Serial reveal timing includes transfer, rendering and a 50 ms rest. Global eight-row bands are revealed in order; an insufficient cycle budget uses a cut. Only Companion discards late steps; monitors show the intermediate state reached.
+
+## Tap targets for plugin blocks (Phase 4c, development for 2.10.0)
+
+Only schema 2 accepts `links` and `tap`; schema 1 and pages without `tap` keep their existing behaviour. Schema 2 store packages still require `min_app_version` at least `2.10.0`.
+
+```json
+"links": ["news.example.org"],
+"tap": {"action": "open_link", "url": "https://news.example.org/article/{{feed.id}}"}
+```
+
+`links` is a top-level manifest field; `tap` belongs to a block. This is a field excerpt, not a complete manifest. Up to four distinct public DNS hosts are allowed: no IP literals, local names, ports or placeholders in the host list. URLs start with literal `https://` and a declared literal host, allow only port 443, forbid control characters, backslashes and fragments, and are limited to 2048 bytes after expansion. Placeholders are allowed only in path and query: source fields and non-secret settings, plus `item.*` per displayed list row. Each UTF-8 value is percent-encoded using RFC 3986 unreserved characters. Missing, empty or structured values produce no target; secret settings are rejected by the parser.
+
+The closed action list is `open_link` and `next`. `next` has no URL and requires a zone with `cycle`: `"tap": {"action": "next"}`. It requests the next entry with data, retaining the request while another transition blocks the zone. In `first_available`, manual selection remains until the set of available entries changes. Each view has a protected queue of at most eight distinct plugin/zone keys; only the display thread changes the schedule.
+
+**Opening links defaults to off.** Settings → Plugins shows the selected plugin's link hosts and a separate **Open links from this plugin on the PC** switch. A phone tap opens the link on the PC. This consent is independent of source consent. Only a link-list-only update retains source grants and activation; link consent is reset. All other updates and identical reimports revoke every grant. At most one launch attempt per plugin every two seconds is allowed across all views. Each tap rechecks enabled state, generation, consent, HTTPS and host. Logs use fixed messages only, without URLs, data or setting values.
+
+Targets and pixels are created in the same drawing call; list drawing and hit testing share row geometry. A published target must remain stable for **1.0 s on Companion** or **0.3 s on a monitor**. Transitions, unstable targets and denied consent consume the tap without navigation. Areas without a target retain the existing thirds navigation. Android TV has no Phase 4c touch/D-pad action. Companion protocol v1 still has no frame identifier; stability limits latency risk without acknowledging a particular JPEG version.
+
+Automated tests use synthetic data and an injected launcher; no real browser is opened. Counts, sandbox limits and pending hardware acceptance: [test record](../cpp/TESTPROTOKOLL.md).
+
+
+Tap URL validation (parser and again immediately before browser launch): the literal host must be lowercase. Fixed path/query text permits only RFC 3986 characters (unreserved, sub-delimiters, `:`, `@`, `/`, `?`); `%` requires exactly two hexadecimal digits. Raw non-ASCII, spaces, quotes, angle brackets, backslashes, square brackets, carets, backticks, braces and vertical bars are rejected. Braces are allowed only as validated `{{reference}}` placeholders. Values `.` and `..` produce no target; fixed dot path segments (including percent-encoded dots) are rejected. Unicode values remain supported through percent-encoding.
+
+Only an actual link-list change with **every other manifest field identical** retains source consent and activation; link consent is reset. Other updates, including widgets, settings or tap templates changed alongside links, and identical reimports reset all grants (source plugins become disabled). Corrupt link-consent files fail closed; failed consent writes never grant permission. While busy, the link toggle restores its previous state. List rows and targets stay within their block even on shallow surfaces; targets also work in the automatic grid without a layout.

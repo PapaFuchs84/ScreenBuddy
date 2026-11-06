@@ -15,6 +15,16 @@
 #include "util.h"
 
 namespace fl::plugins {
+std::vector<zones::Rect> list_rows(zones::Rect a, zones::Density d, float k, bool label, size_t count) {
+    std::vector<zones::Rect> out;
+    if(a.width<=0 || a.height<=0 || k<=0) return out;
+    if (d==zones::Density::compact) { if(count) out.push_back(a); return out; }
+    float top=a.y+(label ? 22 : 6)*k, pitch=18*k;
+    size_t fits=size_t(std::max(0.f,(a.y+a.height-6*k-top)/pitch));
+    size_t shown=std::min({count,fits,d==zones::Density::regular ? size_t(2) : size_t(5)});
+    for(size_t i=0;i<shown;++i) out.push_back({a.x,top+i*pitch,a.width,pitch});
+    return out;
+}
 namespace {
 std::string fit(Canvas& canvas, const std::string& raw, Font font, float width) {
     std::string value = render::clean_text(raw);
@@ -47,6 +57,8 @@ struct Look {
     // ist eine Zeile in logischen Pixeln 1/s mal so hoch. k = max(1, 1/s) dehnt Schwellen und senkrechte/waagerechte
     // Zeichengeometrie entsprechend; bei Skalierung >= 1 ist k = 1 (unverändertes Bild).
     float k = 1;
+    std::vector<PluginTarget>* targets = nullptr;
+    const std::string* plugin = nullptr;
     const testing::DrawHooks* hooks = nullptr;  // nur Tests (plugin_render_testing.h); in der App immer nullptr
 };
 
@@ -74,6 +86,24 @@ void report(const std::string& plugin, const std::string& block, isolation::Stag
     } catch (...) {}  // Logging darf die Seite nie gefährden
 }
 
+void collect(std::vector<PluginTarget>* targets, const std::string& plugin, const RenderedWidget& w,
+             const zones::Rect& area, float scale, const std::vector<zones::Rect>& rows) {
+    if (!targets || w.tap_action.empty()) return;
+    auto add=[&](zones::Rect r, const std::string& url) {
+        if(w.tap_action=="open_link" && url.empty()) return;
+        float right=std::min(r.x+r.width,area.x+area.width), bottom=std::min(r.y+r.height,area.y+area.height);
+        r.x=std::max(r.x,area.x); r.y=std::max(r.y,area.y);
+        r.width=right-r.x; r.height=bottom-r.y;
+        if(r.width<=0 || r.height<=0) return;
+        int x=int(std::floor(r.x*scale)), y=int(std::floor(r.y*scale));
+        targets->push_back({{x,y,int(std::ceil((r.x+r.width)*scale))-x,int(std::ceil((r.y+r.height)*scale))-y},
+            plugin,w.id,w.zone,w.tap_action,url});
+    };
+    if(w.type=="list") {
+        for(size_t i=0;i<rows.size();++i) add(rows[i],i<w.item_urls.size() ? w.item_urls[i] : "");
+    } else add(area,w.tap_url);
+}
+
 constexpr float kPadY = 6;      // oberer/unterer Innenabstand (bei k = 1)
 constexpr float kLabelRow = 22; // Höhe der Bezeichnungszeile (Schrift 11, Mitte bei +12)
 constexpr float kLinePitch = 18;
@@ -95,6 +125,10 @@ public:
         const float inset = std::min(look_.inset, area.width / 6);
         content(canvas, {area.x + inset, area.y, area.width - 2 * inset, area.height}, density);
         after_content(look_.hooks, canvas, widget_);
+        if(look_.targets && !widget_.tap_action.empty()) {
+            auto rows=list_rows(area,density,k(),has_label(),widget_.items.size());
+            collect(look_.targets,*look_.plugin,widget_,area,canvas.s(),rows);
+        }
     }
 protected:
     // `inner`: Fläche ohne waagerechten Innenabstand; Texte werden gekürzt, nie über den Rand gezeichnet.
@@ -259,20 +293,19 @@ protected:
             if (!items.empty()) single_line(canvas, inner, items.front(), {12, false}, centre(inner, false));
             return;
         }
-        const float top = inner.y + (has_label() ? label_row() : pad());
-        const size_t fits = std::max<size_t>(1, static_cast<size_t>((inner.y + inner.height - pad() - top) / pitch()));
-        const size_t shown = std::min({items.size(), fits, density == zones::Density::regular ? size_t{2} : size_t{5}});
+        const auto rows=list_rows(inner,density,k(),has_label(),items.size());
+        const size_t shown=rows.size();
         std::string more;
         if (density == zones::Density::detailed && items.size() > shown) more = "+" + std::to_string(items.size() - shown);
         const float more_w = more.empty() ? 0 : canvas.textlength(more, {11, true}) + 6;
         // "+N" steht in der Kopfzeile neben der Bezeichnung; ohne Bezeichnung in der Zeile des ersten Eintrags, dessen Breite
         // dafür um die Breite von "+N" gekürzt wird (sonst läge es über dem Text).
-        const float first_row_y = top + pitch() / 2;
+        const float first_row_y = rows.empty() ? inner.y : rows[0].y + rows[0].height / 2;
         label(canvas, inner, has_label() ? more_w : 0);
         if (!more.empty())
             canvas.text(inner.x + inner.width, has_label() ? inner.y + 12 * k() : first_row_y, more, {11, true}, colors().muted, "rm");
         for (size_t i = 0; i < shown; ++i)
-            canvas.text(inner.x, first_row_y + static_cast<float>(i) * pitch(),
+            canvas.text(inner.x, rows[i].y + rows[i].height / 2,
                         fit(canvas, items[i], {12, false}, inner.width - (i == 0 && !has_label() ? more_w : 0)), {12, false},
                         colors().text, "lm");
     }
@@ -308,11 +341,13 @@ private:
 // wiederhergestellt und ein ratenbegrenzter Log-Eintrag geschrieben. Weil der Clip auf genau der Löschfläche liegt,
 // kann nichts außerhalb übrig bleiben. Die übrigen Blöcke und der Fußtext werden normal gezeichnet.
 template <class Draw>
-void isolated(Canvas& canvas, const Page& page, const RenderedWidget& widget, const zones::Rect& area, Color bg, Draw&& draw) {
+void isolated(Canvas& canvas, const Page& page, const RenderedWidget& widget, const zones::Rect& area, Color bg, Draw&& draw, std::vector<PluginTarget>* targets = nullptr) {
+    const auto target_count=targets ? targets->size() : 0;
     ClipScope scope(canvas, &area);
     try {
         draw();
     } catch (...) {
+        if(targets) targets->resize(target_count);
         try {
             scope.unwind_inner();
             canvas.rectangle(area.x, area.y, area.x + area.width - 1, area.y + area.height - 1, bg);
@@ -343,7 +378,7 @@ void draw_zoned(Canvas& canvas, const Page& page, const Look& look, const zones:
         const auto& placed = plan.blocks[i];
         if (!placed.visible() || !blocks[i]) continue;  // zu wenig Fläche: ausgeblendet statt überlappt
         isolated(canvas, page, page.widgets[i], placed.area, look.colors.bg,
-                 [&] { blocks[i]->draw(canvas, placed.area, *placed.density); });
+                 [&] { blocks[i]->draw(canvas, placed.area, *placed.density); },look.targets);
     }
 }
 
@@ -351,7 +386,7 @@ void draw_zoned(Canvas& canvas, const Page& page, const Look& look, const zones:
 // geclippt (Text, der bei kleiner Skalierung über die Karte hinausragen würde, wird abgeschnitten; die Snapshots sind
 // unverändert, siehe fl-plugin-snapshot-tests).
 void draw_grid(Canvas& canvas, const Page& page, const render::Theme& theme, const testing::DrawHooks* hooks, float logical_w,
-               float logical_h, float margin, float gap, float inset, float card_radius, float header, float footer) {
+               float logical_h, float margin, float gap, float inset, float card_radius, float header, float footer, std::vector<PluginTarget>* targets) {
     const size_t count = std::min<size_t>(page.widgets.size(), 6);
     const int columns = count <= 2 ? 1 : 2;
     const int rows = std::max(1, static_cast<int>((count + columns - 1) / columns));
@@ -393,11 +428,17 @@ void draw_grid(Canvas& canvas, const Page& page, const render::Theme& theme, con
                 }
             }
             after_content(hooks, canvas, widget);
-        });
+            std::vector<zones::Rect> rows;
+            if(widget.type=="list") for(size_t i=0;i<widget.items.size();++i) {
+                float cy=content_y+i*18; if(cy>y+card_h-7) break;
+                rows.push_back({x,cy-9,card_w+1,18});
+            }
+            collect(targets,page.id,widget,{x,y,card_w+1,card_h+1},canvas.s(),rows);
+        },targets);
     }
 }
 
-Image draw_page_with(const Page& page, int width, int height, bool sample, const testing::DrawHooks* hooks) {
+Image draw_page_with(const Page& page, int width, int height, bool sample, const testing::DrawHooks* hooks, std::vector<PluginTarget>* targets = nullptr) {
     if (width < 1 || height < 1) return {};
     const auto& theme = render::theme();
     const float scale = render::scale_for(width, height);
@@ -415,9 +456,9 @@ Image draw_page_with(const Page& page, int width, int height, bool sample, const
     try {
         // Manifest v2 mit layout: Zonen-Plan statt automatischem Raster (v1 und v2 ohne layout zeichnen unverändert).
         if (page.layout)
-            draw_zoned(canvas, page, {theme, inset, card_radius, std::max(1.f, 1.f / scale), hooks},
+            draw_zoned(canvas, page, {theme, inset, card_radius, std::max(1.f, 1.f / scale), targets, &page.id, hooks},
                        {margin, header, logical_w - 2 * margin, logical_h - header - footer - margin}, gap);
-        else draw_grid(canvas, page, theme, hooks, logical_w, logical_h, margin, gap, inset, card_radius, header, footer);
+        else draw_grid(canvas, page, theme, hooks, logical_w, logical_h, margin, gap, inset, card_radius, header, footer, targets);
     } catch (...) {}  // nur außerhalb der Blöcke möglich (z. B. kein Speicher für den Plan): Kopf und Fuß bleiben
     const char* state = sample ? "Beispieldaten – keine Live-Daten" :
                         page.missing_data ? "Plugin-Daten fehlen" : "ScreenBuddy Plugin";
@@ -448,9 +489,9 @@ void reveal_rect(Image& dst, const Image& from, const Image& to, zones::Rect r, 
         size_t i=size_t(y)*dst.w+x; dst.px[i]=y<edge ? to.px[i] : from.px[i];
     }
 }
-Image draw_choices(const Page& page, int w, int h, const std::vector<schedule::ZoneChoice>& choices,
+DrawOut draw_choices_out(const Page& page, int w, int h, const std::vector<schedule::ZoneChoice>& choices,
                    std::map<std::string,std::shared_ptr<FadeCache>>& caches) {
-    if (choices.empty() || !page.layout) return draw_page(page,w,h);
+    if (choices.empty() || !page.layout) return draw_page_out(page,w,h);
     auto selected = [&](bool from) {
         Page p=page;
         std::erase_if(p.widgets,[&](const auto& widget) {
@@ -463,7 +504,7 @@ Image draw_choices(const Page& page, int w, int h, const std::vector<schedule::Z
     };
     Image result;
     bool fading = std::any_of(choices.begin(),choices.end(),[](const auto& c){return c.from_block.has_value();});
-    if (!fading) { caches.clear(); return draw_page(selected(false),w,h); }
+    if (!fading) { caches.clear(); return draw_page_out(selected(false),w,h); }
     const float scale=render::scale_for(w,h);
     const auto design=theme::design(render::theme().style);
     const float spacing=design.spacing/12.f, margin=10*spacing;
@@ -473,7 +514,10 @@ Image draw_choices(const Page& page, int w, int h, const std::vector<schedule::Z
     for (const auto& c:choices) signature+=c.zone+":"+c.from_block.value_or("")+">"+c.block.value_or("")+";";
     auto& cache=caches[page.id]; if (!cache) cache=std::make_shared<FadeCache>();
     if (cache->width!=w || cache->height!=h || cache->revision!=render::theme_revision() || cache->signature!=signature) {
-        cache->from=draw_page(selected(true),w,h); cache->to=draw_page(selected(false),w,h);
+        auto old=draw_page_out(selected(true),w,h);
+        cache->from=std::move(old.image); cache->from_targets=std::move(old.targets);
+        auto drawn=draw_page_out(selected(false),w,h);
+        cache->to=std::move(drawn.image); cache->targets=std::move(drawn.targets);
         cache->width=w; cache->height=h; cache->revision=render::theme_revision(); cache->signature=signature;
     }
     result=cache->to;
@@ -484,20 +528,30 @@ Image draw_choices(const Page& page, int w, int h, const std::vector<schedule::Z
         if (c.shape==schedule::Shape::reveal) reveal_rect(result,cache->from,cache->to,r,c.mix);
         else blend_rect(result,cache->from,cache->to,r,c.mix);
     }
-    return result;
+    auto targets=cache->targets;
+    for(const auto& t:cache->from_targets)
+        if(std::any_of(choices.begin(),choices.end(),[&](const auto& c){return c.zone==t.zone && c.from_block;})) targets.push_back(t);
+    for(auto& t:targets) for(const auto& c:choices) if(c.zone==t.zone && c.from_block) t.transitioning=true;
+    return {std::move(result),std::move(targets)};
+}
+Image draw_choices(const Page& p,int w,int h,const std::vector<schedule::ZoneChoice>& c,std::map<std::string,std::shared_ptr<FadeCache>>& caches) {
+    return draw_choices_out(p,w,h,c,caches).image;
 }
 
-Image draw_page(const Page& page, int width, int height, bool sample) {
+DrawOut draw_page_out(const Page& page, int width, int height, const schedule::Result* selection, bool sample) {
+    DrawOut out;
+    if (selection) { std::map<std::string,std::shared_ptr<FadeCache>> caches; return draw_choices_out(page,width,height,selection->zones,caches); }
     if (!page.layout || std::none_of(page.layout->zones.begin(),page.layout->zones.end(),[](const auto& z){return z.cycle.has_value();}))
-        return draw_page_with(page,width,height,sample,nullptr);
+        { out.image=draw_page_with(page,width,height,sample,nullptr,&out.targets); return out; }
     Page selected=page;
     std::set<std::string> seen;
     std::erase_if(selected.widgets,[&](const auto& w){
         auto z=std::find_if(page.layout->zones.begin(),page.layout->zones.end(),[&](const auto& z){return z.id==w.zone;});
         return z!=page.layout->zones.end() && z->cycle && (w.missing || !seen.insert(w.zone).second);
     });
-    return draw_page_with(selected,width,height,sample,nullptr);
+    out.image=draw_page_with(selected,width,height,sample,nullptr,&out.targets); return out;
  }
+Image draw_page(const Page& p,int w,int h,bool sample) { return draw_page_out(p,w,h,nullptr,sample).image; }
 namespace testing {
 Image draw_page(const Page& page, int width, int height, bool sample, const DrawHooks& hooks) {
     return draw_page_with(page, width, height, sample, &hooks);

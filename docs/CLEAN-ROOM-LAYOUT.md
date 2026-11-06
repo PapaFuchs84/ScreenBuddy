@@ -49,6 +49,12 @@ Die Umsetzung erfolgt ohne Einsicht in Fremdcode implementiert.
 | P4b-3 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
 | P4b-4 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
 | Phase-4b-Reviewkorrekturen | 2026-11-06 | Codex | ohne Einsicht in Fremdcode implementiert; nur ScreenBuddy-Code und Phase-4-Entwurf gelesen. | ausstehend |
+| P4c-1 | 2026-11-06 | Codex CLI 0.166.0 | Parser und kodierte Tap-Expansion ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4c-2 | 2026-11-06 | Codex CLI 0.166.0 | Ziele im Zeichenaufruf und gemeinsame Listenzeilen ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4c-3 | 2026-11-06 | Codex CLI 0.166.0 | Separate persistente Linkfreigabe und DE/EN-Schalter ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4c-4 | 2026-11-06 | Codex CLI 0.166.0 | Snapshot-Entscheidung, Ruhezeit, Rate und gesicherte Next-Liste ohne Einsicht in Fremdcode implementiert. | ausstehend |
 | 4 Geräteprofile, Wechselfeld, Tap-Ziele | | | | |
 | 5 Eingebaute Seiten und gemeinsamer Renderer | | | | |
 | 6 Editor und Erststart | | | | |
+
+Phase-4c-Sicherheitsreview M1/M2/N1–N4 (06.11.2026, Codex): ausschließlich eigenen Repo-Code und lokale Arbeitsanweisungen gelesen; URL-, Freigabe-, Geometrie- und Busy-Schalter-Korrekturen ohne Einsicht in Fremdcode. Automatischer Prüfstand und offene physische/UI-Abnahme: [Testprotokoll](../cpp/TESTPROTOKOLL.md).

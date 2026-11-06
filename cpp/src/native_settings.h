@@ -22,6 +22,8 @@ struct NativePluginEntry {
     bool enabled = false;
     std::vector<std::string> hosts, consented_hosts, setting_keys;
     std::vector<NativePluginSetting> settings;
+    std::vector<std::string> links;
+    bool links_allowed = false;
 };
 // Plugin store (signed index, see plugin_catalog.h). Data only; the store never executes plugin code.
 struct NativeStoreCard {
@@ -48,6 +50,7 @@ struct NativePluginActions {
     std::function<void(const std::string&, bool)> set_enabled;
     std::function<void(const std::string&)> remove;
     std::function<void(const std::string&, const std::string&, bool)> set_host_consent;
+    std::function<void(const std::string&, bool)> set_link_consent;
     std::function<void(const std::string&, const nlohmann::json&)> save_settings;
     std::function<void()> open_advanced;
     // Store: all three run on the settings job thread (they may block on the network).

@@ -6,6 +6,14 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Phase 4c – Tap targets (2026-11-06, development)
+
+- Security review M1/M2/N1–N4: strict tap URL characters/percent escapes, lowercase tap hosts, no dot segments/values, rechecked before browser launch. Source grants survive only exclusive link-list changes; other updates revoke grants. Shallow lists stay inside blocks; busy link toggles revert. Added grid, corrupt consent, write-failure and 1.9/2.0-second boundary regressions.
+
+- P4c-1–4: schema 2 `tap`/`links`, percent-encoded non-secret values, targets created with their pixels, shared list-row geometry, separate link consent (off by default), tap-time HTTPS/host/generation checks and one launch attempt per plugin every two seconds. Stability: 1.0 s Companion / 0.3 s monitor; transitions and denied targets consume taps. `next` uses the protected request queue; waiting zones retain requests.
+- Updated DE/EN contract, package format, tutorial and clean-room record. Manifest v1 and existing snapshot hashes remain unchanged. Development build only, no release; test counts and sandbox limits in `cpp/TESTPROTOKOLL.md`.
+
+
 ### Phase 4b – cycling zones (2026-11-06, development)
 
 - Phase 4b review: discard late steps only on Companion; serial reveal uses the full cycle budget and consecutive global eight-row bands. Rotation preserves order when data disappears. Added pure regression checks and stricter JPEG process checks with a static negative control; see the test report for validation and known open points.

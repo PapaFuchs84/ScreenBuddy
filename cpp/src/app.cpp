@@ -203,6 +203,12 @@ bool App::plugin_set_host_consent(const std::string& id, const std::string& host
     return true;
 }
 
+bool App::plugin_set_link_consent(const std::string& id, bool allowed, std::string& error) {
+    if(!plugins_) {error="Plugin store unavailable";return false;}
+    auto result=plugins_->set_link_consent(id,allowed);
+    if(!result) {error=result.error;return false;}
+    mark_dirty();return true;
+}
 ojson App::plugin_settings_view(const std::string& id) {
     auto entry = plugins_ ? plugins_->find(id) : std::nullopt;
     if (!entry || !plugin_settings_) return ojson::object();
@@ -550,6 +556,11 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             context.date = date;
             const auto page = plugins::render_page(manifest, context);
             PageEntry entry{key, 1, [page](int, RendererSet& rs) { return plugins::draw_page(page,rs.width,rs.height); }};
+            entry.plugin_draw=[page,generation=installed->generation](RendererSet& rs) {
+                auto out=plugins::draw_page_out(page,rs.width,rs.height);
+                for(auto& target:out.targets) target.generation=generation;
+                return out;
+            };
             if (view && manifest.layout && std::any_of(manifest.layout->zones.begin(),manifest.layout->zones.end(),[](const auto& z){return z.cycle.has_value();})) {
                 entry.prepare = [this,view,tick,phone,page,manifest,generation=installed->generation,tile_width=r.width,tile_height=r.height](PageEntry& entry) {
                     using namespace plugins::schedule;
@@ -579,7 +590,9 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                     auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,view->render_ms.value_or(0),zone_rows,view->size.first,
                         companion_ ? companion_->client_ids().size() : 0);
                     std::vector<std::string> requests;
-                    { std::lock_guard lk(view->next_mu); requests.swap(view->next_requests); }
+                    const auto prefix=manifest.id+"/";
+                    for(const auto& request:view->frame_next_requests)
+                        if(request.starts_with(prefix)) requests.push_back(request.substr(prefix.size()));
                     auto result=advance(inputs,state,tick,budget,requests);
                     if (std::any_of(state.begin(),state.end(),[&](const auto& pair){return pair.second.fade && pair.second.fade->start==tick;}))
                         view->fade_caches.erase(manifest.id);
@@ -587,6 +600,11 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                     view->animating=view->animating || result.animating;
                     auto& cache=view->fade_caches[manifest.id]; if (!cache) cache=std::make_shared<plugins::FadeCache>();
                     std::map<std::string,std::shared_ptr<plugins::FadeCache>> caches{{manifest.id,cache}};
+                    entry.plugin_draw=[page,choices=result.zones,caches,generation](RendererSet& rs) mutable {
+                        auto out=plugins::draw_choices_out(page,rs.width,rs.height,choices,caches);
+                        for(auto& target:out.targets) target.generation=generation;
+                        return out;
+                    };
                     entry.fn=[page,choices=result.zones,caches](int,RendererSet& rs) mutable { return plugins::draw_choices(page,rs.width,rs.height,choices,caches); };
                 };
             }
@@ -688,7 +706,10 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
         int idx = (start + (int)k) % total;
         for (auto& p : pages) {
             if (idx < p.n) {
-                frames.push_back(p.fn(idx, renderers_for(boxes[k].w, boxes[k].h)));
+                plugins::DrawOut plugin_out;
+                auto& renderer=renderers_for(boxes[k].w,boxes[k].h);
+                if(p.plugin_draw) { plugin_out=p.plugin_draw(renderer);frames.push_back(std::move(plugin_out.image)); }
+                else frames.push_back(p.fn(idx,renderer));
                 keys.push_back(p.key);
                 touch::Tile tile{boxes[k], p.key == "rss", p.targets ? p.targets(idx, renderers_for(boxes[k].w, boxes[k].h)) : touch::Rows{}};
                 tile.ha = p.key == "homeassistant";
@@ -696,6 +717,7 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
                 tile.spotify = p.key == "spotify";
                 tile.streaming = p.key == "streaming";
                 tile.cells = p.actions;
+                tile.plugin=std::move(plugin_out.targets);
                 taps.push_back(std::move(tile));
                 break;
             }
@@ -819,6 +841,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                     std::count(view.current.begin(), view.current.end(), "spotify") > 0);
     if (!plugins::schedule::should_render(dirty,due,live,view.step,view.size!=size || view.area!=area,view.minute!=minute,now,view.next_deadline)) return out;
     if (view.size!=size || view.area!=area) { for (auto& [plugin,zones]:view.cycles) plugins::schedule::reset(zones,false,true); view.fade_caches.clear(); }
+    { std::lock_guard lk(view.next_mu); view.frame_next_requests.clear(); view.frame_next_requests.swap(view.next_requests); }
     view.next_deadline=plugins::schedule::never; view.animating=false;
     out.skipped = false;
     view.minute = minute;
@@ -895,11 +918,12 @@ void App::render_view(bool secondary, bool dirty) {
     if (secondary) {
         // Snapshot and its touch targets are published together.
         companion_output_->show(r.frame);
+        touch::stabilize_plugins(r.taps,companion_taps_,mono());
         companion_taps_ = std::move(r.taps); companion_tap_area_ = r.area;
         std::lock_guard state(mu_);
         companion_frame_ = r.frame; companion_navigation_ = r.navigation;
     } else {
-        output(r.frame, r.switched, r.navigation); tap_tiles_ = std::move(r.taps); tap_area_ = r.area;
+        output(r.frame, r.switched, r.navigation); touch::stabilize_plugins(r.taps,tap_tiles_,mono()); tap_tiles_ = std::move(r.taps); tap_area_ = r.area;
     }
 }
 
@@ -925,9 +949,10 @@ void App::render_devices(bool dirty) {
         if (r.skipped) { first = false; continue; }
         {
             std::lock_guard lk(dev_mu_);
+            companion_->show_for(id, r.frame, r.navigation);
+            touch::stabilize_plugins(r.taps,d->taps,mono());
             d->frame = r.frame; d->area = r.area; d->taps = std::move(r.taps); d->navigation = r.navigation;
         }
-        companion_->show_for(id, r.frame, r.navigation);
         if (first) {   // Vorschau und Seitennavigation der Einstellungen folgen dem ersten Gerät
             std::lock_guard state(mu_);
             if (companion_output_) { companion_frame_ = r.frame; companion_navigation_ = r.navigation; }
@@ -950,7 +975,32 @@ void App::render_devices(bool dirty) {
     for (const auto& id : gone) companion_->forget_device(id);
 }
 
+touch::PluginAccess App::plugin_access(const std::string& id) {
+    auto installed=plugins_ ? plugins_->find(id) : std::nullopt;
+    if(!installed) return {};
+    return {installed->enabled,installed->links_allowed,installed->generation,installed->manifest.links};
+}
+void App::queue_plugin_next(ViewState& view,const touch::PluginDecision& decision) {
+    std::lock_guard lk(view.next_mu);
+    auto key=decision.plugin+"/"+decision.zone;
+    if(view.next_requests.size()<8 && std::find(view.next_requests.begin(),view.next_requests.end(),key)==view.next_requests.end())
+        view.next_requests.push_back(std::move(key));
+}
+void App::execute_plugin(const touch::PluginDecision& decision) {
+    if(decision.kind==touch::PluginDecision::next) {mark_dirty();return;}
+    if(decision.kind!=touch::PluginDecision::open_link) {LOGD("plugins","Plugin-Link verworfen (Prüfung)");return;}
+    std::lock_guard lk(plugin_tap_mu_);
+    bool opened=touch::plugin_dispatch(decision,mono(),plugin_last_open_,[this,&decision](const std::string& url) {
+        auto grant=plugin_access(decision.plugin);
+        plugins::Manifest manifest;manifest.links=grant.hosts;
+        if(!grant.enabled || !grant.consent || grant.generation!=decision.generation || !plugins::tap_url_valid(url) || !plugins::link_allowed(manifest,url)) return false;
+        return touch::open({{url,""}});
+    });
+    if(opened) LOGI("plugins","Plugin-Link geöffnet (Plugin, Block)");
+    else LOGD("plugins","Plugin-Link verworfen (Rate oder Start)");
+}
 void App::device_tap(const std::string& id, int x, int y, int w, int h) {
+    touch::PluginDecision plugin;
     touch::Targets targets;
     std::function<void()> action;
     bool have_target = false;
@@ -962,10 +1012,15 @@ void App::device_tap(const std::string& id, int x, int y, int w, int h) {
         if (d.frame.empty() || d.frame.w != w || d.frame.h != h) return;   // veraltete Koordinaten verwerfen
         auto tap = device::resolve_tap(d.area, x, y);
         if (tap.blocked) return;
-        if (auto* a = touch::action_at(d.taps, x, y)) action = *a;
-        else if (auto selected = touch::at(d.taps, x, y)) { targets = *selected; have_target = true; }
-        else { d.view.step += tap.step; }   // wie sonst: links = zurück, sonst weiter
+        plugin=touch::plugin_decide(d.taps,x,y,mono(),1.0,[this](const auto& id){return plugin_access(id);});
+        if(plugin.kind==touch::PluginDecision::next) queue_plugin_next(d.view,plugin);
+        if(plugin.kind==touch::PluginDecision::none) {
+            if (auto* a = touch::action_at(d.taps, x, y)) action = *a;
+            else if (auto selected = touch::at(d.taps, x, y)) { targets = *selected; have_target = true; }
+            else { d.view.step += tap.step; }   // wie sonst: links = zurück, sonst weiter
+        }
     }
+    if(plugin.kind!=touch::PluginDecision::none) {execute_plugin(plugin);return;}
     if (action) { action(); return; }
     if (have_target) { if (!touch::open(targets)) LOGW("app", "Touch-Ziel nicht geöffnet: keine passende App oder Start fehlgeschlagen"); return; }
     mark_dirty();
@@ -1034,6 +1089,7 @@ void App::companion_tap(int x, int y, int w, int h) {
 }
 
 bool App::tap_at(int x, int y, bool secondary, int w, int h) {
+    touch::PluginDecision plugin;
     touch::Targets targets;
     std::function<void()> action;
     int step = 0;
@@ -1045,13 +1101,18 @@ bool App::tap_at(int x, int y, bool secondary, int w, int h) {
         }
         const auto tap = device::resolve_tap(secondary ? companion_tap_area_ : tap_area_, x, y);
         if (tap.blocked) return true;
-        if (auto* a = touch::action_at(secondary ? companion_taps_ : tap_tiles_, x, y)) action = *a;
-        if (!action) {
+        const auto& tiles=secondary ? companion_taps_ : tap_tiles_;
+        plugin=touch::plugin_decide(tiles,x,y,mono(),w>0 ? 1.0 : .3,[this](const auto& id){return plugin_access(id);});
+        if(plugin.kind==touch::PluginDecision::next) queue_plugin_next(secondary ? companion_view_ : primary_view_,plugin);
+        if(plugin.kind==touch::PluginDecision::none)
+            if (auto* a = touch::action_at(tiles,x,y)) action = *a;
+        if (!action && plugin.kind==touch::PluginDecision::none) {
             auto selected = touch::at(secondary ? companion_taps_ : tap_tiles_, x, y);
             if (!selected) step = tap.step;
             else targets = *selected;
         }
     }
+    if(plugin.kind!=touch::PluginDecision::none) {execute_plugin(plugin);return true;}
     if (step) { step_page(step, secondary); return true; }
     if (action) {
         action();
@@ -1152,6 +1213,7 @@ void App::run() {
                 item.name = installed.manifest.name;
                 item.version = installed.manifest.version;
                 item.enabled = installed.enabled;
+                item.links = installed.manifest.links; item.links_allowed = installed.links_allowed;
                 std::set<std::string> hosts, setting_keys;
                 for (const auto& source : installed.manifest.sources) {
                     hosts.insert(source.host);
@@ -1199,6 +1261,9 @@ void App::run() {
         actions.set_host_consent = [this](const std::string& id, const std::string& host, bool allowed) {
             std::string error;
             if (!plugin_set_host_consent(id, host, allowed, error)) throw std::runtime_error(error);
+        };
+        actions.set_link_consent = [this](const std::string& id,bool allowed) {
+            std::string error; if(!plugin_set_link_consent(id,allowed,error)) throw std::runtime_error(error);
         };
         actions.save_settings = [this](const std::string& id, const nlohmann::json& patch) {
             std::string error;

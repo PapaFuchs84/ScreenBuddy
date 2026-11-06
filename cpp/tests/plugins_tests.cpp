@@ -315,6 +315,8 @@ static void test_cycle() {
     j["layout"]={{"columns",{1}},{"rows",{1}},{"zones",Json::array({{{"id","a"},{"column",0},{"row",0},{"cycle",{{"mode","rotate"}}}}})}};
     j["widgets"]=Json::array({{{"id","one"},{"zone","a"},{"type","text"},{"text","{{time}}"},{"seconds",3}}});
     auto parse=[&]{return parse_manifest(j.dump());}; CHECK(parse());
+    j["widgets"][0]["tap"]={{"action","next"}}; CHECK(parse());
+    j["widgets"][0].erase("tap");
     j["description"]="Cycling zone example";j["license"]="MIT";j["author"]="Example";j["category"]="info";j["min_app_version"]="2.10.0";
     CHECK(store_problems(*parse().manifest).empty());
     j["min_app_version"]="2.9.9";CHECK(!store_problems(*parse().manifest).empty());
@@ -340,8 +342,40 @@ static void test_cycle() {
     m=parse();CHECK(m);
     if(m) { auto page=render_page(*m.manifest,{});CHECK(page.missing_data && page.widgets[0].missing && !page.widgets[1].missing); }
 }
+static void test_tap() {
+    auto j=fixture(); j["schema_version"]=2;
+    for(size_t i=0;i<j["widgets"].size();++i) j["widgets"][i]["id"]="block_"+std::to_string(i);
+    j["links"]={"news.example.org"};
+    j["widgets"][0]["tap"]={{"action","open_link"},{"url","https://news.example.org/a/{{settings.city}}?q={{feed.temperature}}"}};
+    auto parse=[&]{return parse_manifest(j.dump());}; auto m=parse();CHECK(m);
+    if(m) {
+        auto fp=source_fingerprint(*m.manifest);
+        RenderContext c; c.sources=sample_data(*m.manifest); c.settings={{"city","/?#%&ä"}};
+        auto p=render_page(*m.manifest,c);
+        CHECK(p.widgets[0].tap_url=="https://news.example.org/a/%2F%3F%23%25%26%C3%A4?q=21.5");
+        for(auto dot:{".",".."}) { c.settings["city"]=dot;CHECK(render_page(*m.manifest,c).widgets[0].tap_url.empty()); }
+        c.settings["city"]=std::string(2048,'/');CHECK(render_page(*m.manifest,c).widgets[0].tap_url.empty());
+        c.sources.clear();CHECK(render_page(*m.manifest,c).widgets[0].tap_url.empty());
+        j["links"].push_back("other.example.org");auto n=parse();CHECK(n && source_fingerprint(*n.manifest)==fp);
+        CHECK(n && link_fingerprint(*n.manifest)!=link_fingerprint(*m.manifest));j["links"]={"news.example.org"};
+    }
+    for(auto url:{"http://news.example.org/a","https://other.example.org/a","https://{{settings.city}}/a","https://127.0.0.1/a","https://news.example.org/{{settings.token}}","https://news.example.org/{{item.title}}","https://news.example.org/#x"}) {
+        j["widgets"][0]["tap"]["url"]=url;CHECK(!parse());
+    }
+    for(const auto& suffix: {"/a/.","/a/../b","/a/%2e", "/a/.%2E/", "/%", "/%0", "/%GG", "/a b", "/\"", "/<", "/>", "/\\", "/^", "/`", "/{", "/|", "/}", "/ä", "/{{}}", "/{{settings.city}", "/{{settings..city}}"}) {
+        j["widgets"][0]["tap"]["url"]=std::string("https://news.example.org")+suffix;CHECK(!parse());
+    }
+    j["widgets"][0]["tap"]["url"]="https://NEWS.example.org/a";CHECK(!parse());
+    j["widgets"][0]["tap"]["url"]="https://news.example.org/a-._~!$&'()*+,;=:@/b?q=%20/?x=1";CHECK(parse());
+    j["widgets"][0]["tap"]={{"action","next"}};CHECK(!parse());
+    j["widgets"][0].erase("tap");
+    j["widgets"][3]["tap"]={{"action","open_link"},{"url","https://news.example.org/{{item.title}}"}};
+    m=parse();CHECK(m);if(m) {RenderContext c;c.sources=sample_data(*m.manifest);auto p=render_page(*m.manifest,c);CHECK(p.widgets[3].item_urls==std::vector<std::string>({"https://news.example.org/Eins","https://news.example.org/Zwei"}));}
+    j["links"]={"a.example.org","b.example.org","c.example.org","d.example.org","e.example.org"};CHECK(!parse());
+    auto v1=minimal();v1["links"]=Json::array();CHECK(!parse_manifest(v1.dump()));v1.erase("links");v1["widgets"][0]["tap"]={{"action","next"}};CHECK(!parse_manifest(v1.dump()));
+}
 int main() {
-    test_cycle(); test_validation(); test_render(); test_requests(); test_security_hardening(); test_store_metadata();
+    test_tap(); test_cycle(); test_validation(); test_render(); test_requests(); test_security_hardening(); test_store_metadata();
     std::printf("plugins: %d passed, %d failed\n", passed, failed);
     return failed ? 1 : 0;
 }

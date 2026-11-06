@@ -210,7 +210,7 @@ enabled = true
         check(p.returncode == 0, 'Isolated app exits cleanly')
 
 
-def run_cycles(enabled=True):
+def run_cycles(enabled=True, taps=False):
     # Synthetische Kopplungen und Offline-Plugin, ausschließlich im isolierten Buildordner.
     import hashlib
     with socket.socket() as probe:
@@ -222,18 +222,28 @@ def run_cycles(enabled=True):
     (work/'plugins').mkdir()
     source=Path(__file__).resolve().parents[1]/'examples/plugins/offline-wechselfeld.flplugin.json'
     manifest=json.loads(source.read_text(encoding='utf-8'))
+    if taps:
+        manifest['links']=['news.example.org']
+        manifest['widgets']=manifest['widgets'][:1]
+        manifest['widgets'][0].pop('seconds',None)
+        manifest['widgets'][0]['tap']=dict(action='open_link',url='https://news.example.org/synthetic')
+        manifest['layout']['zones'][0].pop('cycle',None)
+        control=dict(manifest,id='tap-control',name='Tap control',links=[])
+        control['widgets']=[dict(id='text',zone='main',type='text',text='Control')]
+        (work/'plugins/tap-control.flplugin.json').write_text(json.dumps(control),encoding='utf-8')
     if not enabled:
         for zone in manifest['layout']['zones']: zone.pop('cycle',None)
         for widget in manifest['widgets']: widget.pop('seconds',None)
     (work/'plugins'/source.name).write_text(json.dumps(manifest),encoding='utf-8')
+    pages='"plugin:offline-wechselfeld", "plugin:tap-control"' if taps else '"plugin:offline-wechselfeld"'
     config=work/'config.toml'
     config.write_text(f'''[display]
-visible_pages = ["plugin:offline-wechselfeld"]
+visible_pages = [{pages}]
 page_seconds = 600
 [companion]
 enabled = true
 port = {phone}
-pages = ["plugin:offline-wechselfeld"]
+pages = [{pages}]
 page_seconds = 600
 sync = false
 [ui]
@@ -259,6 +269,18 @@ enabled = false
             return {c['name']:c.get('navigation') for c in api('/api/companion/status').get('clients',[]) if c.get('name','').startswith('Cycle ')}
         initial=wait_for(lambda: (n if len(n:=navigation())==2 and all(n.values()) else None))
         check(all(n['current']==['plugin:offline-wechselfeld'] for n in initial.values()),'Cycle: both clients show plugin')
+        if taps:
+            # Standard aus: diese Prozessprüfung darf niemals einen Browser starten.
+            check(not list((work/'plugins').glob('*.links.json')), 'Tap: no link grant exists')
+            time.sleep(1.2)
+            for ws,(w,h) in zip(clients,[(480,320),(320,480)]):
+                ws.send(dict(t='touch',x=w//2,y=h//2))
+                time.sleep(1.2)
+                check(navigation()==initial,'Tap: denied link is consumed without navigation on either device')
+            clients[0].send(dict(t='touch',x=470,y=310))
+            wait_for(lambda: navigation()['Cycle A']['index']!=initial['Cycle A']['index'])
+            check(navigation()['Cycle B']==initial['Cycle B'],'Tap: uncovered area navigates only on A')
+            return
         # Erst nach bestätigter Plugin-Navigation auf neue, eindeutige Größen wechseln.
         # ready verwirft ältere Start-/Größenbilder; erstes JPEG ist nur die Basis.
         sizes=[(488,328),(328,488)]
@@ -308,6 +330,10 @@ enabled = false
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         BUILD = Path(sys.argv[1]).resolve().parent
+    run_cycles(taps=True)
+    if "--tap-only" in sys.argv:
+        print(f'{len(base.checks)} tap process checks passed')
+        sys.exit(0)
     run_cycles(False)
     run_cycles()
     if "--cycle-only" not in sys.argv:

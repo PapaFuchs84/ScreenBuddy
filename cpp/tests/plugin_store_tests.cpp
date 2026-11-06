@@ -22,6 +22,48 @@ int main() {
     const auto root = fs::temp_directory_path() /
         ("fl-plugin-tests-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     if (!fs::create_directory(root)) return 2;
+    {
+        Store links(root/"link-grants");CHECK(links.load());
+        auto j=Json::parse(manifest("link-test"));j["schema_version"]=2;j["widgets"][0]["id"]="clock";
+        j["links"]={"news.example.org"};j["sources"]=Json::array({{{"id","feed"},{"url","https://api.example.org/data"}}});
+        CHECK(links.import_manifest(j.dump()));CHECK(!links.find("link-test")->links_allowed);
+        CHECK(links.set_host_consent("link-test","api.example.org",true));CHECK(links.set_enabled("link-test",true));
+        auto generation=links.find("link-test")->generation;
+        CHECK(links.set_link_consent("link-test",true));CHECK(links.find("link-test")->generation>generation);
+        Store reload_links(root/"link-grants");CHECK(reload_links.load());CHECK(reload_links.find("link-test")->links_allowed);
+        j["links"]={"other.example.org"};CHECK(links.import_manifest(j.dump()));
+        auto e=links.find("link-test");CHECK(!e->links_allowed);CHECK(e->consented_hosts.contains("api.example.org"));CHECK(e->enabled);
+        Store changed_reload(root/"link-grants");CHECK(changed_reload.load());
+        CHECK(!changed_reload.find("link-test")->links_allowed && changed_reload.find("link-test")->consented_hosts==e->consented_hosts);
+        CHECK(links.set_link_consent("link-test",true));CHECK(links.set_link_consent("link-test",false));
+        CHECK(!links.find("link-test")->links_allowed);CHECK(!links.set_link_consent("missing",true));
+    }
+    for(const auto& change:{"widget","setting","tap","identical"}) {
+        Store store(root/(std::string("update-")+change));CHECK(store.load());
+        auto j=Json::parse(manifest("review"));j["schema_version"]=2;j["widgets"][0]["id"]="clock";
+        j["links"]={"news.example.org"};j["sources"]=Json::array({{{"id","feed"},{"url","https://api.example.org/data"}}});
+        CHECK(store.import_manifest(j.dump()));CHECK(store.set_host_consent("review","api.example.org",true));
+        CHECK(store.set_enabled("review",true));CHECK(store.set_link_consent("review",true));
+        if(std::string(change)!="identical") j["links"].push_back("other.example.org");
+        if(std::string(change)=="widget") j["widgets"][0]["label"]="Changed";
+        if(std::string(change)=="setting") j["settings"]=Json::array({{{"key","city"},{"type","text"},{"label","City"},{"default","Berlin"}}});
+        if(std::string(change)=="tap") j["widgets"][0]["tap"]={{"action","open_link"},{"url","https://news.example.org/changed"}};
+        CHECK(store.import_manifest(j.dump()));auto e=store.find("review");
+        CHECK(e && !e->enabled && e->consented_hosts.empty() && !e->links_allowed);
+        Store reload(root/(std::string("update-")+change));CHECK(reload.load());
+        e=reload.find("review");CHECK(e && !e->enabled && e->consented_hosts.empty() && !e->links_allowed);
+    }
+    {
+        auto dir=root/"broken-link-grants";Store store(dir);CHECK(store.load());
+        auto j=Json::parse(manifest());j["schema_version"]=2;j["widgets"][0]["id"]="clock";j["links"]={"news.example.org"};
+        CHECK(store.import_manifest(j.dump()));CHECK(store.set_link_consent("clock",true));
+        write(dir/"clock.links.json","{broken");
+        Store broken(dir);CHECK(!broken.load());CHECK(broken.entries().empty());
+        fs::remove(dir/"clock.links.json");fs::create_directory(dir/"clock.links.json");
+        CHECK(!store.set_link_consent("clock",false));CHECK(!store.find("clock")->links_allowed);
+        CHECK(!store.set_link_consent("clock",true));CHECK(!store.find("clock")->links_allowed);
+        CHECK(!store.import_manifest(j.dump()));CHECK(!store.find("clock")->enabled);
+    }
     // Cleanup only the exact newly created test directory; never any caller path.
     struct Cleanup { fs::path path; ~Cleanup() { std::error_code ec; fs::remove_all(path, ec); } } cleanup{root};
     Store store(root / "plugins");

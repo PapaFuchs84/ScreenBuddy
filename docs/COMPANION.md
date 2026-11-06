@@ -59,3 +59,7 @@ Die PC-Einstellungen bieten unter Companion vier Ränder als gemeinsame Vorgabe 
 Die Ränder oben/rechts/unten/links gelten in der gemeldeten vollen Bildgröße ohne Drehung. Ganze Pixel 0–1000 sind erlaubt; beim Rendern je Rand höchstens ein Drittel der kleineren Bildkante. Unter 160 × 120 nutzbaren Pixeln wird die komplette Sperrzone ignoriert (Warnung höchstens einmal je Ansicht/Minute). Inhalte werden in der freien Größe gezeichnet und in ein Vollbild mit Theme-Hintergrund eingesetzt; auch Vorschauen zeigen diesen Rand. `ready.w/h` und Touch-Koordinaten bleiben volle Bildkoordinaten (Protokoll unverändert). Der PC verschiebt Ziele je Gerät; Randtipps bewirken weder Aktionen noch Navigation, veraltete Bildgrößen werden verworfen.
 
 Bedienung: [Navigation](NAVIGATION.md#geräteprofil-und-sperrzone-phase-4a-entwicklung). Prüfstand: [Testprotokoll](../cpp/TESTPROTOKOLL.md); physische TV-/Gehäuseabnahme offen.
+
+## Plugin-Tipps (Phase 4c, Entwicklung)
+
+Schema-2-Plugins können HTTPS-Links und den nächsten Wechselfeld-Eintrag anbieten. Links öffnen am PC, auch bei einem Tipp auf dem Handy. Die eigene Freigabe unter Einstellungen → Plugins ist standardmäßig aus und zeigt die Link-Hosts. Ziele brauchen 1,0 s Ruhe beim Companion bzw. 0,3 s beim Monitor und sind während Übergängen gesperrt; verweigerte Tipps wechseln die Seite nicht. Ohne Ziel gilt die bisherige Drittel-Regel. Android-TV erhält keine Tap-/D-Pad-Aktion. Details: [Plugin-System](PLUGIN-SYSTEM.md#tap-ziele-für-plugin-blöcke-phase-4c-entwicklung-für-2100). Physische Abnahme offen.

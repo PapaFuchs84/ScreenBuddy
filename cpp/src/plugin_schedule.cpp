@@ -38,8 +38,11 @@ Result advance(const std::vector<ZoneInput>& zones, std::map<std::string,ZoneSta
     std::erase_if(state, [&](const auto& item) { return !visible.contains(item.first); });
     for (const auto& z : zones) {
         auto& s = state[z.zone]; bool waiting = false; ZoneChoice c; c.zone = z.zone;
+        if (now!=s.last_now && std::find(requests.begin(),requests.end(),z.zone)!=requests.end()) s.pending_next=true;
         std::vector<size_t> available;
         for (size_t i=0;i<z.entries.size();++i) if (z.entries[i].available) available.push_back(i);
+        bool availability_changed=s.available!=available; s.available=available;
+        if(availability_changed) s.manual_selection=false;
         auto valid = [&](size_t i) { return i < z.entries.size() && z.entries[i].available; };
         if (available.empty()) { s = {}; result.zones.push_back(c); continue; }
         if (!s.shown || !valid(*s.shown)) { auto next = s.shown && z.mode == Mode::rotate
@@ -62,11 +65,11 @@ Result advance(const std::vector<ZoneInput>& zones, std::map<std::string,ZoneSta
         if (!s.fade) {
             size_t target = *s.shown;
             double end = s.since + std::max(double(z.entries[target].seconds),budget.min_entry_seconds);
-            if (z.mode == Mode::first_available) target = available.front();
-            else if (now >= end || (now != s.last_now && std::find(requests.begin(),requests.end(),z.zone) != requests.end())) {
+            if (s.pending_next || (z.mode==Mode::rotate && now>=end)) {
                 auto i = std::find(available.begin(),available.end(),target);
                 target = available[(size_t(i-available.begin())+1)%available.size()];
-            }
+            } else if (z.mode == Mode::first_available && !s.manual_selection) target = available.front();
+            if (target == *s.shown) s.pending_next=false;
             if (target != *s.shown) {
                 double busy_until = now;
                 for (const auto& [key,other] : state) if (key != z.zone && other.fade)
@@ -79,6 +82,8 @@ Result advance(const std::vector<ZoneInput>& zones, std::map<std::string,ZoneSta
                         s.last_step = 0; result.animating = true; result.next_deadline = std::min(result.next_deadline,now+budget.step_seconds);
                     }
                     s.shown = target; s.since = now;
+                    if(s.pending_next && z.mode==Mode::first_available) s.manual_selection=true;
+                    s.pending_next=false;
                 }
             }
         }

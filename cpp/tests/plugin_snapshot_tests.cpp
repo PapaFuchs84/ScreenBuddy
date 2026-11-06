@@ -783,6 +783,60 @@ int main(int argc, char** argv) {
         CHECK(log.find("GEHEIM") == std::string::npos && log.find("Ruhig") == std::string::npos && log.find("Fokus") == std::string::npos);
     } else CHECK(false);
 
+    CHECK(plugins::list_rows({10,20,80,10},plugins::zones::Density::regular,1,true,3).empty());
+    CHECK(plugins::list_rows({10,20,80,10},plugins::zones::Density::detailed,1,false,3).empty());
+    // Ziele und Pixel stammen aus demselben Zeichenlauf; alte Hashes werden nie neu geschrieben.
+    for (bool zoned:{false,true}) for (auto size:kSizes) {
+        plugins::Page p; p.id="tap-test";p.title="Tap";
+        plugins::zones::Layout layout;layout.columns={1};layout.rows={1};
+        plugins::zones::Zone zone;zone.id="zone";layout.zones={zone};if(zoned) p.layout=layout;
+        plugins::RenderedWidget w;w.id="card";w.zone="zone";w.type="text";w.text="Tap";
+        w.tap_action="open_link";w.tap_url="https://news.example.org/rendered";p.widgets={w};
+        auto out=plugins::draw_page_out(p,size.w,size.h);
+        CHECK(out.image.px==plugins::draw_page(p,size.w,size.h).px);CHECK(out.targets.size()==1);
+        if(!out.targets.empty()) {
+            auto r=out.targets[0].rect_px;
+            CHECK(r.x>=0 && r.y>=int(std::floor(39*render::scale_for(size.w,size.h))) && r.x+r.w<=size.w && r.y+r.h<=size.h);
+            plugins::testing::DrawHooks hooks;
+            hooks.after_card=[](Canvas& c,const std::string&) { c.rectangle(0,0,10000,10000,{255,0,255}); throw 1; };
+            // Der Fehlerpfad löscht genau die geclippte Kartenfläche. Jeder geänderte Pixel gehört zum Ziel.
+            auto erased=plugins::testing::draw_page(p,size.w,size.h,false,hooks);
+            bool contained=true;
+            for(int y=0;y<size.h;++y) for(int x=0;x<size.w;++x)
+                if(out.image.px[size_t(y)*size.w+x]!=erased.px[size_t(y)*size.w+x])
+                    contained=contained && x>=r.x && y>=r.y && x<r.x+r.w && y<r.y+r.h;
+            // Grid fault cleanup includes the card antialiasing margin; it is intentionally wider than its tap target.
+            if(zoned) CHECK(contained);
+        }
+        w.type="list";w.items={"One","Two","Three"};w.item_urls={"https://news.example.org/1","https://news.example.org/2","https://news.example.org/3"};p.widgets={w};
+        out=plugins::draw_page_out(p,size.w,size.h);
+        CHECK(out.image.px==plugins::draw_page(p,size.w,size.h).px);
+        CHECK(!out.targets.empty());
+        for(size_t i=0;i<out.targets.size();++i) {
+            CHECK(out.targets[i].url==w.item_urls[i]);
+            if(i) CHECK(out.targets[i].rect_px.y>=out.targets[i-1].rect_px.y+out.targets[i-1].rect_px.h-1);
+        }
+    }
+
+    {
+        plugins::Page page;page.id="tap-transition";page.title="Transition";
+        plugins::zones::Layout layout;layout.columns={1};layout.rows={1};
+        plugins::zones::Zone zone;zone.id="zone";zone.cycle=plugins::zones::Cycle{"rotate","fade"};layout.zones={zone};page.layout=layout;
+        plugins::RenderedWidget a;a.id="one";a.zone="zone";a.type="text";a.text="One";
+        a.tap_action="open_link";a.tap_url="https://news.example.org/one";
+        auto b=a;b.id="two";b.text="Two";b.tap_action.clear();b.tap_url.clear();page.widgets={a,b};
+        std::map<std::string,std::shared_ptr<plugins::FadeCache>> cache;
+        plugins::schedule::ZoneChoice c;c.zone="zone";c.block="two";c.from_block="one";c.shape=plugins::schedule::Shape::fade;c.mix=.5;
+        auto out=plugins::draw_choices_out(page,480,320,{c},cache);
+        CHECK(out.targets.size()==1 && out.targets[0].transitioning);
+        CHECK(out.targets[0].url==a.tap_url);
+        page.widgets[0].tap_url="https://news.example.org/not-published";
+        auto cached=plugins::draw_choices_out(page,480,320,{c},cache);
+        CHECK(cached.image.px==out.image.px && cached.targets[0].url==a.tap_url);
+        c.from_block.reset();c.mix=1;
+        CHECK(plugins::draw_choices_out(page,480,320,{c},cache).targets.empty());
+    }
+
     const fs::path hash_file = snapshots / "hashes.txt";
     if (update) {
         fs::create_directories(snapshots);

@@ -44,11 +44,13 @@ struct Condition {
 // false and 0 are present. Every comparison requires a present value of the literal's JSON type (no
 // conversion); otherwise the condition is false, also for "!=". `value` nullptr = path not found.
 bool condition_holds(const Condition& condition, const Json* value);
+struct Tap { std::string action, url; };
 struct Widget {
     std::string type, label, text, value, unit, items, item_template, format;
     double min = 0, max = 100;
     int max_items = 1;
     int seconds = 8;
+    std::optional<Tap> tap;
     // Manifest v2 only (empty in v1): stable block ID and, with a layout, the zone the block sits in.
     std::string id, zone;
     std::optional<Condition> show_if; // v2 only; absent = always shown
@@ -62,6 +64,7 @@ struct Manifest {
     int refresh_seconds = 60;
     std::vector<Setting> settings;
     std::vector<Source> sources;
+    std::vector<std::string> links;
     std::vector<Widget> widgets;
     std::optional<zones::Layout> layout; // v2 only; absent = automatic grid as in v1
     // Validated manifest only: never merge installed settings into this export.
@@ -94,6 +97,9 @@ bool reserved_device_name(std::string_view id);
 // Canonical text over everything that decides where data/secrets may flow: per source
 // ID, URL, host and headers. Different text means previously stored secrets must not be reused.
 std::string source_fingerprint(const Manifest& manifest);
+std::string link_fingerprint(const Manifest& manifest);
+bool tap_url_valid(const std::string& url, bool placeholders = false);
+bool link_allowed(const Manifest& manifest, const std::string& url);
 DataResult parse_source_data(std::string_view utf8);
 
 using SourceData = std::map<std::string, Json>;
@@ -109,6 +115,8 @@ struct RenderedWidget {
     std::string id, zone; // v2 block ID / zone ID; empty for v1
     size_t index = 0;     // position in manifest.widgets (v1 block key "#<index>")
     std::vector<std::string> items;
+    std::string tap_action, tap_url;
+    std::vector<std::string> item_urls;
     std::optional<double> bar_fraction; // absent for a missing/non-finite number; otherwise 0..1
 };
 struct Page {

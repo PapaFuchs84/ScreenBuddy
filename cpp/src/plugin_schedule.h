@@ -16,6 +16,8 @@ struct ZoneInput { std::string zone; Mode mode; bool animate; std::vector<EntryI
 struct Budget { Shape shape = Shape::cut; int steps = 0; double step_seconds = 0, min_entry_seconds = 0; bool skip_late = false; };
 struct ZoneState {
     std::optional<size_t> shown; double since = 0;
+    bool pending_next = false, manual_selection = false;
+    std::vector<size_t> available;
     struct Fade { size_t from, to; double start; int steps; double step_seconds; Shape shape; bool skip_late; };
     std::optional<Fade> fade;
     double last_now = -never; int last_step = 0;
