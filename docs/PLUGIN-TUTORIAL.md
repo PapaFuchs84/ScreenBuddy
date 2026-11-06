@@ -65,6 +65,17 @@ Maßgeblich sind [plugins.h](../cpp/src/plugins.h) und [plugins.cpp](../cpp/src/
 
 Fehlende/null-Werte erscheinen als `—`; Objekt-/Arraywerte in Text als `[Daten]`. Für eine sinnvolle Anzeige auf konkrete skalare Felder zugreifen. Die lokale Uhrzeit wird von ScreenBuddy geliefert; die Zeitzone eines API-Zeitstempels bestimmt der Anbieter.
 
+## Schema 2: Zonen-Layout (ab 2.10.0)
+
+Mit `schema_version: 2` ordnest du bis zu 12 Widgets (Blöcke) in **Zonen** eines Rasters an. Das fertige, vollständig lokale Beispiel ist [offline-zonen.flplugin.json](../cpp/examples/plugins/offline-zonen.flplugin.json) (Uhr, Datum, Motto, Fokus, Fokusblock, Fortschritt und zwei Zähler). Die Regeln stehen im Abschnitt [Manifest v2](PLUGIN-SYSTEM.md#manifest-v2-zonen-layout-2100-in-vorbereitung).
+
+1. Setze `schema_version` auf `2` und gib jedem Widget eine stabile `id` (Kleinbuchstabe am Anfang, dann `a-z`, `0-9`, `_`).
+2. Lege ein `layout` an: `columns` und `rows` sind ganze Anteile 1–12 (`[1, 1]` = zwei gleich breite Spalten, `[3, 2, 2]` = drei Zeilen im Verhältnis 3 : 2 : 2). Jede Zone hat `id`, `column`, `row` und optional `column_span`/`row_span`. Zonen dürfen sich nicht überlappen und enthalten keine weiteren Zonen.
+3. Gib jedem Widget die `zone`, in der es stehen soll. Bis zu vier Blöcke einer Zone stehen in Manifest-Reihenfolge untereinander. Jede Zone braucht mindestens einen Block.
+4. Trage für den Store `min_app_version: "2.10.0"` ein und prüfe mit `fl-plugin-validate --store`.
+
+Auf kleiner Fläche zeigt ein Block weniger Details (kompakt, normal, ausführlich). Passt ein Block gar nicht, blendet ihn ScreenBuddy aus, statt ihn zu überlappen oder abzuschneiden. Plane deshalb die wichtigsten Blöcke in große Zonen. Ohne `layout` bleibt eine v2-Seite im automatischen Raster mit höchstens 6 Widgets, und `zone` ist dann nicht erlaubt.
+
 ## Zugangsdaten und sichere Weitergabe
 
 Geheimnisse ausschließlich in einem deklarierten Feld vom Typ `secret` über die lokale Plugin-Konfiguration eingeben. Unter Windows werden gespeicherte Pluginwerte mit DPAPI geschützt; das verhindert nicht, dass ausdrücklich referenzierte Werte an freigegebene Hosts gesendet werden. Tokens möglichst in `Authorization` statt URL-Parametern verwenden. Ein leeres Zugangsfeld behält den gespeicherten Wert; zum Entfernen **Gespeicherten Wert löschen** verwenden und speichern.

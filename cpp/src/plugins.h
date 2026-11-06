@@ -1,4 +1,4 @@
-// © 2026 FuchsLabs – declarative plugin v1. Pure data; no I/O or code execution.
+// © 2026 FuchsLabs – declarative plugins (manifest v1, v2 with zone layout). Pure data; no I/O or code execution.
 #pragma once
 #include <cstddef>
 #include <map>
@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include "plugin_zones.h" // header-only Strukturen; plugins.cpp braucht plugin_zones.cpp nicht
 
 namespace fl::plugins {
 using Json = nlohmann::json;
@@ -32,8 +33,11 @@ struct Widget {
     std::string type, label, text, value, unit, items, item_template, format;
     double min = 0, max = 100;
     int max_items = 1;
+    // Manifest v2 only (empty in v1): stable block ID and, with a layout, the zone the block sits in.
+    std::string id, zone;
 };
 struct Manifest {
+    int schema_version = 1; // 1 or 2; v2 adds widgets[].id, optional layout and up to 12 widgets
     std::string id, name, description, version;
     // Store metadata (optional for local use, required by store_problems): SPDX license from the
     // whitelist, author display name, category slug and minimum ScreenBuddy version (X.Y.Z).
@@ -42,6 +46,7 @@ struct Manifest {
     std::vector<Setting> settings;
     std::vector<Source> sources;
     std::vector<Widget> widgets;
+    std::optional<zones::Layout> layout; // v2 only; absent = automatic grid as in v1
     // Validated manifest only: never merge installed settings into this export.
     Json definition;
 };
@@ -83,6 +88,7 @@ struct RenderContext {
 };
 struct RenderedWidget {
     std::string type, label, text, unit;
+    std::string id, zone; // v2 block ID / zone ID; empty for v1
     std::vector<std::string> items;
     std::optional<double> bar_fraction; // absent for a missing/non-finite number; otherwise 0..1
 };
@@ -90,6 +96,7 @@ struct Page {
     std::string id, title;
     std::vector<RenderedWidget> widgets;
     bool missing_data = false;
+    std::optional<zones::Layout> layout; // copied from a v2 manifest; draw_page lays the blocks out by zone (phase 2b); absent = automatic grid
 };
 Page render_page(const Manifest& manifest, const RenderContext& context);
 

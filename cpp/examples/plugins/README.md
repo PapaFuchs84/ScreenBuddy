@@ -1,11 +1,12 @@
 # ScreenBuddy plugin examples
 
-These UTF-8 JSON manifests use the provisional ScreenBuddy 2.5 schema 1. They contain data, never executable plugin code.
+These UTF-8 JSON manifests use the provisional ScreenBuddy 2.5 schema 1 (and, for `offline-zonen`, schema 2 with a zone layout, 2.10.0). They contain data, never executable plugin code.
 
 | File | Purpose | Network |
 | --- | --- | --- |
 | [offline-clock.flplugin.json](offline-clock.flplugin.json) | Smallest starting point | None |
 | [offline-focus.flplugin.json](offline-focus.flplugin.json) | Configurable four-card board with clock, text, metric and manual progress | None |
+| [offline-zonen.flplugin.json](offline-zonen.flplugin.json) | Schema 2 with zone layout: eight blocks (clock, date, motto, focus, session, progress, two counters) in six zones; shows compact, regular and detailed block levels | None |
 | [public-weather.flplugin.json](public-weather.flplugin.json) | Optional public JSON source with coordinate settings, host consent and fictional preview data | `api.open-meteo.com`, only after enabling with consent |
 
 The examples carry the store metadata fields (`license`, `author`, `category`, `min_app_version`) and pass `fl-plugin-validate --store`; see the [package format](../../../docs/PLUGIN-PACKAGE-FORMAT.md).

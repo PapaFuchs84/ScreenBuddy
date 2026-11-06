@@ -65,6 +65,17 @@ The authority is [plugins.h](../cpp/src/plugins.h) and [plugins.cpp](../cpp/src/
 
 Missing/null values render as `—`; objects/arrays embedded in text as `[Daten]`. Reference scalar fields for readable output. ScreenBuddy supplies local clock time; API timestamp timezones are determined by the provider.
 
+## Schema 2: zone layout (from 2.10.0)
+
+With `schema_version: 2` you arrange up to 12 widgets (blocks) in **zones** of a grid. The complete, fully local example is [offline-zonen.flplugin.json](../cpp/examples/plugins/offline-zonen.flplugin.json) (clock, date, motto, focus, focus session, progress and two counters). The rules are in the [manifest v2](PLUGIN-SYSTEM.en.md#manifest-v2-zone-layout-2100-in-preparation) section.
+
+1. Set `schema_version` to `2` and give every widget a stable `id` (lowercase letter first, then `a-z`, `0-9`, `_`).
+2. Add a `layout`: `columns` and `rows` are integer shares 1–12 (`[1, 1]` = two equally wide columns, `[3, 2, 2]` = three rows in the ratio 3 : 2 : 2). Each zone has `id`, `column`, `row` and optionally `column_span`/`row_span`. Zones must not overlap and contain no further zones.
+3. Give every widget the `zone` it belongs in. Up to four blocks of a zone stack in manifest order. Every zone needs at least one block.
+4. For the store set `min_app_version: "2.10.0"` and check with `fl-plugin-validate --store`.
+
+On a small area a block shows fewer details (compact, regular, detailed). If a block does not fit at all, ScreenBuddy hides it instead of overlapping or cutting it off, so put the most important blocks into large zones. Without a `layout` a v2 page stays in the automatic grid with at most 6 widgets, and `zone` is not allowed.
+
 ## Credentials and safe sharing
 
 Enter credentials only into a declared `secret` field in local plugin settings. On Windows, stored plugin values use DPAPI protection; values explicitly referenced in requests can still be sent to approved hosts. Prefer `Authorization` over tokens in URLs. An empty credential input preserves its saved value; enable **Clear saved value** and save to remove it.

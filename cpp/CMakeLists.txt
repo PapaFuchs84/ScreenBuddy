@@ -33,7 +33,7 @@ set(CORE_SOURCES
     src/ui_kit.cpp src/ui_logic.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
     src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_streaming.cpp src/ui_page_homeassistant.cpp src/ui_page_spotify.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_store.cpp src/ui_page_app.cpp src/ui_page_design.cpp
     src/companion.cpp src/companion_server.cpp src/network_display.cpp
-    src/plugins.cpp src/plugin_sign.cpp src/plugin_catalog.cpp src/plugin_catalog_net.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
+    src/plugins.cpp src/plugin_sign.cpp src/plugin_catalog.cpp src/plugin_catalog_net.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp src/plugin_zones.cpp third_party/qrcodegen/qrcodegen.cpp)
 
 add_library(flcore STATIC ${CORE_SOURCES})
 target_include_directories(flcore PUBLIC src third_party/qrcodegen)
@@ -82,7 +82,12 @@ add_executable(fl-plugin-tests tests/plugins_tests.cpp src/plugins.cpp)
 target_include_directories(fl-plugin-tests PRIVATE src)
 target_link_libraries(fl-plugin-tests PRIVATE nlohmann_json::nlohmann_json)
 
-add_executable(fl-plugin-example-tests tests/plugin_examples_tests.cpp src/plugins.cpp)
+# Manifest v2 (Zonen-Layout), Zonen-Geometrie und Dichtestufen: rein, ohne Grafik und Netz
+add_executable(fl-plugin-zones-tests tests/plugin_zones_tests.cpp src/plugins.cpp src/plugin_zones.cpp)
+target_include_directories(fl-plugin-zones-tests PRIVATE src)
+target_link_libraries(fl-plugin-zones-tests PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(fl-plugin-example-tests tests/plugin_examples_tests.cpp src/plugins.cpp src/plugin_zones.cpp)
 target_include_directories(fl-plugin-example-tests PRIVATE src)
 target_link_libraries(fl-plugin-example-tests PRIVATE nlohmann_json::nlohmann_json)
 target_compile_definitions(fl-plugin-example-tests PRIVATE FL_PLUGIN_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/plugins")

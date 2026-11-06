@@ -344,6 +344,7 @@ struct Canvas::Impl {
     };
     BrushEntry brushes[16]{};
     int brush_count = 0, next_evict = 0;
+    int clips = 0;  // offene clip_push()-Aufrufe
     bool done = false;
 
     ID2D1SolidColorBrush* brush(Color c) {
@@ -387,7 +388,10 @@ Canvas::Canvas(int w, int h, float s, Color bg, uint8_t bg_alpha) : d_(std::make
 }
 
 Canvas::~Canvas() {
-    if (!d_->done) d_->rt->EndDraw();
+    if (!d_->done) {
+        while (d_->clips > 0) clip_pop();
+        d_->rt->EndDraw();
+    }
 }
 
 void Canvas::rectangle(float x0, float y0, float x1, float y1, Color fill) {
@@ -547,8 +551,30 @@ void Canvas::fox(float x, float y, int size, bool badge) {
     draw_fox(d_->rt.Get(), pyround(x * s_), pyround(y * s_), size, badge);
 }
 
+void Canvas::clip_push(float x0, float y0, float x1, float y1) {
+    if (d_->done) return;
+    float s = s_;
+    // Umgekehrte Grenzen in logischen Koordinaten erkennen, bevor gerundet wird: die Rundung (z. B. 25/24 bei Skalierung 0,5)
+    // kann sie sonst zu einem nichtleeren Rechteck machen.
+    const bool reversed_x = x1 < x0, reversed_y = y1 < y0;
+    if (s != 1) { x0 = pyround(x0 * s); y0 = pyround(y0 * s); x1 = pyround(x1 * s); y1 = pyround(y1 * s); }
+    // wie rectangle(): ganze Pixel, x1/y1 eingeschlossen; ein leeres oder umgekehrtes Rechteck clippt alles weg
+    const float right = std::max(std::floor(x0), std::floor(x1) + 1), bottom = std::max(std::floor(y0), std::floor(y1) + 1);
+    d_->rt->PushAxisAlignedClip(D2D1::RectF(std::floor(x0), std::floor(y0), reversed_x || x1 < x0 ? std::floor(x0) : right,
+                                            reversed_y || y1 < y0 ? std::floor(y0) : bottom),
+                                D2D1_ANTIALIAS_MODE_ALIASED);
+    ++d_->clips;
+}
+
+void Canvas::clip_pop() {
+    if (d_->done || d_->clips <= 0) return;
+    d_->rt->PopAxisAlignedClip();
+    --d_->clips;
+}
+
 Image Canvas::finish() {
     if (!d_->done) {
+        while (d_->clips > 0) clip_pop();
         d_->rt->EndDraw();
         d_->done = true;
     }

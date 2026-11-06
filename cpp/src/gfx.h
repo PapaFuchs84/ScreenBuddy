@@ -77,6 +77,12 @@ public:
     // Fuchs-Logo, size in echten Pixeln, Lage logisch
     void fox(float x, float y, int size, bool badge);
 
+    // Rechteckiger Clip in logischen Koordinaten (x1/y1 gehören wie bei rectangle() zum Rechteck). Wirkt auf alles,
+    // was bis zum passenden clip_pop() gezeichnet wird; Aufrufe lassen sich schachteln (Schnittmenge). finish()
+    // schließt offene Clips. Ohne clip_push() ändert sich nichts an den übrigen Zeichenpfaden.
+    void clip_push(float x0, float y0, float x1, float y1);
+    void clip_pop();
+
     Image finish();
 
 private:

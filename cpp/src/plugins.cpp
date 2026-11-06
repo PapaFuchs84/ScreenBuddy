@@ -66,11 +66,17 @@ std::string bounded(std::string s) {
     s.resize(n);
     return s;
 }
-void fields(const Json& j, std::initializer_list<const char*> allowed) {
+void fields(const Json& j, const std::vector<const char*>& allowed) {
     require(j.is_object(), "Expected an object.");
     for (auto it = j.begin(); it != j.end(); ++it)
         require(std::any_of(allowed.begin(), allowed.end(), [&](const char* x) { return it.key() == x; }),
                 "Unknown or misplaced field.");
+}
+// Field list for v1, plus the v2-only extras when `extra` is true (v1 lists stay exactly as before).
+std::vector<const char*> with(std::initializer_list<const char*> base, bool extra, std::initializer_list<const char*> more) {
+    std::vector<const char*> out(base);
+    if (extra) out.insert(out.end(), more);
+    return out;
 }
 std::string str(const Json& j, const char* key, size_t min = 0, size_t max = manifest_limit) {
     require(j.contains(key) && j[key].is_string(), "Missing or invalid string field.");
@@ -232,6 +238,48 @@ std::string checked_text(const Json& j, const char* key, size_t min = 0, size_t 
     require(display_clean(s), "Control, bidirectional or zero-width characters are not allowed in display text.");
     return s;
 }
+// Manifest v2 layout: flat grid of integer shares, non-overlapping zones, no nesting. Mirrors zones::valid().
+std::vector<int> shares(const Json& j, const char* key, int limit) {
+    require(j.contains(key) && j[key].is_array() && !j[key].empty() && j[key].size() <= static_cast<size_t>(limit),
+            "Layout needs 1 to 6 columns and 1 to 6 rows.");
+    std::vector<int> out;
+    for (const auto& v : j[key]) {
+        require(v.is_number_integer(), "Layout shares must be integers.");
+        const auto n = v.get<double>();
+        require(n >= 1 && n <= zones::max_weight, "Layout shares must be 1 to 12.");
+        out.push_back(static_cast<int>(n));
+    }
+    return out;
+}
+zones::Layout layout(const Json& j) {
+    fields(j, {"columns", "rows", "zones"});
+    zones::Layout l;
+    l.columns = shares(j, "columns", zones::max_columns);
+    l.rows = shares(j, "rows", zones::max_rows);
+    require(j.contains("zones") && j["zones"].is_array() && !j["zones"].empty() &&
+            j["zones"].size() <= static_cast<size_t>(zones::max_zones), "Layout needs 1 to 8 zones.");
+    const int columns = static_cast<int>(l.columns.size()), rows = static_cast<int>(l.rows.size());
+    std::set<std::string> ids;
+    std::vector<char> used(static_cast<size_t>(columns * rows), 0);
+    for (const auto& v : j["zones"]) {
+        fields(v, {"id", "column", "row", "column_span", "row_span"});
+        zones::Zone z;
+        z.id = str(v, "id");
+        require(identifier(z.id) && ids.insert(z.id).second, "Invalid or duplicate zone ID.");
+        z.column = integer(v, "column", 0, columns - 1);
+        z.row = integer(v, "row", 0, rows - 1);
+        if (v.contains("column_span")) z.column_span = integer(v, "column_span", 1, columns - z.column);
+        if (v.contains("row_span")) z.row_span = integer(v, "row_span", 1, rows - z.row);
+        for (int r = z.row; r < z.row + z.row_span; ++r)
+            for (int c = z.column; c < z.column + z.column_span; ++c) {
+                auto& cell = used[static_cast<size_t>(r * columns + c)];
+                require(!cell, "Zones must not overlap.");
+                cell = 1;
+            }
+        l.zones.push_back(std::move(z));
+    }
+    return l;
+}
 } // namespace
 
 bool reserved_device_name(std::string_view id) {
@@ -255,10 +303,15 @@ std::optional<Json> parse_strict_json(std::string_view utf8, size_t limit) {
 ParseResult parse_manifest(std::string_view utf8) {
     try {
         Json j = parse_bounded(utf8, manifest_limit);
-        fields(j, {"schema_version", "id", "name", "description", "version", "license", "author", "category", "min_app_version",
-                   "refresh_seconds", "settings", "sources", "widgets"});
-        require(integer(j, "schema_version", 1, 1) == 1, "Unsupported schema version.");
+        // v2 is recognized only by an exact integer 2; everything else keeps the unchanged v1 rules.
+        const bool v2 = j.is_object() && j.contains("schema_version") && j["schema_version"].is_number_integer() &&
+                        j["schema_version"].get<double>() == 2;
+        fields(j, with({"schema_version", "id", "name", "description", "version", "license", "author", "category", "min_app_version",
+                        "refresh_seconds", "settings", "sources", "widgets"}, v2, {"layout"}));
+        const int schema = integer(j, "schema_version", 1, 2);
+        require(schema == 1 || v2, "Unsupported schema version.");
         Manifest m;
+        m.schema_version = schema;
         m.id = str(j, "id", 1, 48);
         require(lower(m.id[0]) && m.id.back() != '-' && m.id.find("--") == m.id.npos &&
                 std::all_of(m.id.begin(), m.id.end(), [](char c) { return lower(c) || digit(c) || c == '-'; }) &&
@@ -333,19 +386,32 @@ ParseResult parse_manifest(std::string_view utf8) {
             s.setting_keys.assign(used.begin(), used.end());
             m.sources.push_back(std::move(s));
         }
-        require(j.contains("widgets") && j["widgets"].is_array() && !j["widgets"].empty() && j["widgets"].size() <= 6,
-                "A plugin needs 1 to 6 widgets.");
+        if (v2 && j.contains("layout")) m.layout = layout(j["layout"]);
+        const bool zoned = m.layout.has_value();
+        // Without a layout (v1, or v2 without layout) the automatic grid places at most 6 widgets.
+        if (!zoned) require(j.contains("widgets") && j["widgets"].is_array() && !j["widgets"].empty() && j["widgets"].size() <= 6,
+                            "A plugin needs 1 to 6 widgets.");
+        else require(j.contains("widgets") && j["widgets"].is_array() && !j["widgets"].empty() &&
+                     j["widgets"].size() <= static_cast<size_t>(zones::max_blocks), "A plugin with a layout needs 1 to 12 widgets.");
+        std::set<std::string> block_ids;
+        std::map<std::string, int> per_zone;
         for (const auto& v : j["widgets"]) {
             Widget w;
             w.type = str(v, "type");
-            if (w.type == "text") { fields(v, {"type", "label", "text"}); w.text = checked_text(v, "text"); }
-            else if (w.type == "metric") { fields(v, {"type", "label", "value", "unit"}); w.value = checked_text(v, "value"); }
+            // v2 widgets carry a stable block ID and, with a layout, their zone.
+            auto allowed = [&](std::initializer_list<const char*> base) {
+                auto list = with(base, v2, {"id"});
+                if (zoned) list.push_back("zone");
+                return list;
+            };
+            if (w.type == "text") { fields(v, allowed({"type", "label", "text"})); w.text = checked_text(v, "text"); }
+            else if (w.type == "metric") { fields(v, allowed({"type", "label", "value", "unit"})); w.value = checked_text(v, "value"); }
             else if (w.type == "bar") {
-                fields(v, {"type", "label", "value", "unit", "min", "max"});
+                fields(v, allowed({"type", "label", "value", "unit", "min", "max"}));
                 w.value = checked_text(v, "value"); w.min = number(v, "min"); w.max = number(v, "max");
                 require(w.max > w.min, "Bar maximum must exceed minimum.");
             } else if (w.type == "list") {
-                fields(v, {"type", "label", "items", "item_template", "max_items"});
+                fields(v, allowed({"type", "label", "items", "item_template", "max_items"}));
                 w.items = str(v, "items"); w.item_template = checked_text(v, "item_template");
                 w.max_items = integer(v, "max_items", 1, 5);
                 auto path = split(w.items);
@@ -353,14 +419,26 @@ ParseResult parse_manifest(std::string_view utf8) {
                 reference(m, w.items, Usage::display, nullptr);
                 validate_template(m, w.item_template, Usage::item);
             } else if (w.type == "clock") {
-                fields(v, {"type", "label", "format"}); w.format = str(v, "format");
+                fields(v, allowed({"type", "label", "format"})); w.format = str(v, "format");
                 require(w.format == "time" || w.format == "date" || w.format == "datetime", "Unsupported clock format.");
             } else throw Invalid("Unsupported widget type.");
             if (v.contains("label")) w.label = checked_text(v, "label");
             if (v.contains("unit")) w.unit = checked_text(v, "unit");
             for (const auto* text : {&w.label, &w.unit, &w.text, &w.value}) validate_template(m, *text, Usage::display);
+            if (v2) {
+                w.id = str(v, "id");
+                require(identifier(w.id) && block_ids.insert(w.id).second, "Invalid or duplicate block ID.");
+            }
+            if (zoned) {
+                w.zone = str(v, "zone");
+                require(std::any_of(m.layout->zones.begin(), m.layout->zones.end(), [&](const auto& z) { return z.id == w.zone; }),
+                        "Block references an unknown zone.");
+                require(++per_zone[w.zone] <= zones::max_blocks_per_zone, "At most 4 blocks per zone allowed.");
+            }
             m.widgets.push_back(std::move(w));
         }
+        if (zoned)
+            for (const auto& z : m.layout->zones) require(per_zone.count(z.id) != 0, "Every zone needs at least one block.");
         j["description"] = m.description; j["refresh_seconds"] = m.refresh_seconds;
         m.definition = std::move(j);
         return {std::move(m), {}};
@@ -382,7 +460,7 @@ SourceData sample_data(const Manifest& manifest) {
     return result;
 }
 Page render_page(const Manifest& m, const RenderContext& context) {
-    Page page{m.id, bounded(m.name), {}, false};
+    Page page{m.id, bounded(m.name), {}, false, m.layout};
     Json values;
     try { values = settings_values(m, context.settings, false); }
     catch (const Invalid&) { values = Json::object(); page.missing_data = true; }
@@ -403,6 +481,7 @@ Page render_page(const Manifest& m, const RenderContext& context) {
     for (const auto& w : m.widgets) {
         RenderedWidget rendered;
         rendered.type = w.type; rendered.label = text(w.label); rendered.unit = text(w.unit);
+        rendered.id = w.id; rendered.zone = w.zone;
         if (w.type == "text") rendered.text = text(w.text);
         else if (w.type == "clock") rendered.text = bounded(w.format == "time" ? context.time :
             w.format == "date" ? context.date : context.date + " " + context.time);
@@ -479,6 +558,11 @@ std::vector<std::string> store_problems(const Manifest& m) {
     if (!m.sources.empty() && m.refresh_seconds < 60) p.push_back("Store: plugins with sources need refresh_seconds of at least 60.");
     for (const auto& s : m.sources)
         if (s.sample.empty()) { p.push_back("Store: every source needs a sample for the preview."); break; }
+    // Older apps reject schema 2 at install time; the index must mark them "needs newer ScreenBuddy" first.
+    if (m.schema_version == 2 && !m.min_app_version.empty()) {
+        Manifest first; first.min_app_version = "2.10.0";
+        if (!app_compatible(first, m.min_app_version)) p.push_back("Store: schema_version 2 needs min_app_version 2.10.0 or newer.");
+    }
     return p;
 }
 
