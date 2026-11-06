@@ -29,6 +29,7 @@ if errorlevel 1 set "CMAKE=C:\Program Files (x86)\Microsoft Visual Studio\2022\B
 "%BUILD_DIR%\fl-plugin-zones-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-layout-edit-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-layout-ui-tests.exe" || goto :fail
+rem Editor-Offline-Pruefung ist fl-layout-ui-tests.exe (oben); die --editor-offline-Skripte starten nur dieselbe Exe und brauchen hier kein Python.
 "%BUILD_DIR%\fl-plugin-schedule-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-example-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-store-tests.exe" || goto :fail

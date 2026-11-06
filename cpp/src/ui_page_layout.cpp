@@ -31,12 +31,12 @@ public:
         clean(root);
     }
     void shown(Host&) override { visible_=true; reload_=true; tick(*host_,host_->status()); }
-    void hidden(Host& h) override { visible_=false; ++generation_; h.preview(std::nullopt); }
+    void hidden(Host& h) override { if(grid_) grid_->cancel(h.surface()); visible_=false; ++generation_; h.preview(std::nullopt); }
     void tick(Host&,const Status&) override {
         if (!visible_) return;
         if (host_->busy()) { update_buttons(); return; }
         if (reload_) { load(); return; }
-        if (pending_ && !previewing_) preview();
+        if (pending_ && !previewing_ && (!grid_ || !grid_->carrying())) preview();
         update_buttons();
     }
 private:
@@ -147,8 +147,8 @@ private:
     void redo() { if(history_.redo()) { ++generation_; pending_=true; uncommitted_=false; sync(); } }
     void text_pending() { if(!syncing_) { uncommitted_=true; ++generation_; pending_=false; update_buttons(); } }
     void editor() {
-        body_->add<Note>(T(L"Tab wechselt das Feld. Raster: Pfeile = Zelle, Enter/Leertaste = wählen/anlegen, Umschalt+Pfeil = Größe, Alt+Pfeil = verschieben, Entf = löschen. Strg+Z/Y = Rückgängig/Wiederholen. Texte mit Enter oder Fokuswechsel abschließen.",
-            L"Tab changes fields. Grid: arrows = cell, Enter/Space = select/create, Shift+arrow = resize, Alt+arrow = move, Delete = remove. Ctrl+Z/Y = undo/redo. Commit text with Enter or by leaving the field."));
+        body_->add<Note>(T(L"Bausteine ziehen, Zone am Titel verschieben, Griffe zum Vergrößern ziehen; Ablage entfernt. F6/Strg+Tab: Leiste, Raster, Ablage. Pfeile: Ziel; Leertaste: aufnehmen; Enter: ablegen/wählen/anlegen; Esc: abbrechen. Aufgenommen: Strg+Auf/Ab = Stapelposition. Umschalt+Pfeil: Größe; Alt+Pfeil: verschieben; Entf: entfernen; Strg+Z/Y: Rückgängig/Wiederholen. Vorschau nach dem Ablegen. Texte mit Enter oder Fokuswechsel abschließen.",
+            L"Drag blocks, move zones by their title, drag handles to resize; drop on trash to remove. F6/Ctrl+Tab: palette, grid, trash. Arrows: target; Space: pick up; Enter: drop/select/create; Esc: cancel. While carrying: Ctrl+Up/Down = stack position. Shift+arrow: resize; Alt+arrow: move; Delete: remove; Ctrl+Z/Y: undo/redo. Preview after dropping. Commit text with Enter or by leaving the field."));
         auto raster=body_->add<Card>(T(L"Raster",L"Grid"));
         grid_=raster->add<GridEditor>(); grid_->model=model();
         grid_->on_edit=[this](auto n,auto group) { accept(std::move(n),std::move(group)); };

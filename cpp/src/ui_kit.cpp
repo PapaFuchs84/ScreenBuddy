@@ -1378,6 +1378,7 @@ void Surface::notify(Widget* w, DWORD event) {
 }
 
 void Surface::focus(Widget* w, bool keyboard) {
+    if (focus_ && focus_ != w) focus_->cancel(*this);
     if (auto p = dynamic_cast<Portal*>(w)) {
         focus_ = w;
         if (p->target) { p->target->keyboard_cues = keyboard; p->target->focus_edge(true); }
@@ -1393,6 +1394,7 @@ void Surface::focus(Widget* w, bool keyboard) {
 }
 
 void Surface::native_focus(Widget* w) {
+    if (focus_ && focus_ != w) focus_->cancel(*this);
     if (focus_ != w) { focus_ = w; ensure_visible(w); }
     if (on_focus_in) on_focus_in();
     invalidate();
@@ -1494,6 +1496,7 @@ Point Surface::doc_point(LPARAM lp) const {
 }
 
 constexpr UINT_PTR TIP_TIMER = 0x7A11;
+constexpr UINT_PTR AUTOSCROLL_TIMER = 0x7A12;
 constexpr UINT TIP_DELAY_MS = 500;
 
 void Surface::tip_hide() {
@@ -1597,7 +1600,15 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         if (focus_) if (auto t = dynamic_cast<TextField*>(focus_); t && t->edit()) { t->focus_native(); return 0; }
         invalidate();
         return 0;
-    case WM_KILLFOCUS: invalidate(); return 0;
+    case WM_KILLFOCUS: {
+        auto captured = capture_;
+        if (capture_) {
+            auto w = capture_; capture_ = nullptr; w->pressed = false; w->cancel(*this);
+            if (GetCapture() == hwnd_) ReleaseCapture();
+        }
+        if (focus_ && focus_ != captured) focus_->cancel(*this);
+        invalidate(); return 0;
+    }
     case WM_MOUSEMOVE: {
         Point p = doc_point(lp);
         if (!tracking_) {
@@ -1628,6 +1639,15 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
             if (!tip_text_.empty() && hover_) { tip_shown_ = true; invalidate(); }
             return 0;
         }
+        if (wp == AUTOSCROLL_TIMER) {
+            // Ruht die Maus beim Ziehen am Rand, kommen keine WM_MOUSEMOVE mehr: Position nachliefern.
+            if (!capture_) { KillTimer(hwnd_, AUTOSCROLL_TIMER); return 0; }
+            if (capture_->autoscroll()) {
+                POINT pos{}; GetCursorPos(&pos); ScreenToClient(hwnd_, &pos);
+                capture_->drag(doc_point(MAKELPARAM(pos.x, pos.y)), *this);
+            }
+            return 0;
+        }
         break;
     case WM_MOUSELEAVE:
         tip_hide();
@@ -1636,7 +1656,10 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     case WM_SETCURSOR:
         if (reinterpret_cast<HWND>(wp) == hwnd_ && LOWORD(lp) == HTCLIENT) {
-            SetCursor(LoadCursorW(nullptr, hover_ && hover_->clickable() ? IDC_HAND : IDC_ARROW));
+            POINT pos{}; GetCursorPos(&pos); ScreenToClient(hwnd_, &pos);
+            auto p = doc_point(MAKELPARAM(pos.x, pos.y));
+            auto w = capture_ ? capture_ : hit(p);
+            SetCursor(LoadCursorW(nullptr, w ? w->cursor(p) : IDC_ARROW));
             return TRUE;
         }
         break;
@@ -1655,11 +1678,13 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         }
         Widget* w = hit(p);
         if (!w) { if (GetFocus() != hwnd_) SetFocus(hwnd_); return 0; }
+        // Fokuswechsel kann Capture synchron lösen; erst danach den neuen Vorgang beginnen.
+        if (w->focusable()) focus(w, false);
         capture_ = w;
         w->pressed = true;
         invalidate();
         SetCapture(hwnd_);
-        if (w->focusable()) focus(w, false);
+        SetTimer(hwnd_, AUTOSCROLL_TIMER, 100, nullptr);
         w->press(p, *this);
         return 0;
     }
@@ -1671,14 +1696,17 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         const bool dragged_thumb = thumb_drag_;
         capture_ = nullptr;
         thumb_drag_ = false;
+        KillTimer(hwnd_, AUTOSCROLL_TIMER);
         if (GetCapture() == hwnd_) ReleaseCapture();
         if (dragged_thumb) { invalidate(); return 0; }
         if (w) w->release(doc_point(lp), *this);
         return 0;
     }
     case WM_CAPTURECHANGED:
-        if (capture_) capture_->pressed = false;
-        capture_ = nullptr;
+        if (capture_) {
+            auto w = capture_; capture_ = nullptr;
+            w->pressed = false; w->cancel(*this);
+        }
         invalidate();
         if (thumb_drag_) { thumb_drag_ = false; invalidate(); }
         return 0;
@@ -1692,10 +1720,18 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         break;
     case WM_KEYDOWN: case WM_SYSKEYDOWN: {
         const UINT vk = UINT(wp);
+        if (vk == VK_ESCAPE && capture_) {
+            auto w = capture_; capture_ = nullptr; w->pressed = false; w->cancel(*this);
+            if (GetCapture() == hwnd_) ReleaseCapture();
+            invalidate(); return 0;
+        }
         if (msg == WM_SYSKEYDOWN && vk != VK_UP && vk != VK_DOWN &&
             !(focus_ && focus_->system_arrows() && (vk == VK_LEFT || vk == VK_RIGHT))) break;
         keyboard_cues = true;
-        if (vk == VK_TAB) { tab(GetKeyState(VK_SHIFT) >= 0); return 0; }
+        if (vk == VK_TAB) {
+            if (GetKeyState(VK_CONTROL) < 0 && focus_ && focus_->live() && focus_->key(vk, *this)) { invalidate(); return 0; }
+            tab(GetKeyState(VK_SHIFT) >= 0); return 0;
+        }
         if (focus_ && focus_->live() && focus_->key(vk, *this)) { invalidate(); return 0; }
         if (scrollable_) {
             float view = size().height;

@@ -20,6 +20,8 @@ suites = ['fl-layout-edit-tests','fl-layout-ui-tests','fl-device-profile-tests',
           'fl-plugin-example-tests','fl-plugin-sign-tests','fl-plugin-catalog-tests','fl-plugin-store-tests',
           'fl-plugin-transport-tests','fl-plugin-settings-tests','fl-plugin-snapshot-tests','fl-builtin-snapshot-tests','fl-monitor-tests','fl-companion-tests']
 commands = [(name, [str(build / (name + '.exe'))]) for name in suites]
+# Editor-Offline: fl-layout-ui-tests (siehe suites) ist die eigentliche Pruefung; die --editor-offline-Skripte
+# starten nur dieselbe Exe und laufen hier nicht ein zweites und drittes Mal.
 commands += [('installer-preservation', [sys.executable, str(cpp / 'tests/installer_preserves_config.py'), str(build / 'ScreenBuddy.exe')]),
              ('companion-integration', [sys.executable, str(cpp / 'tests/app_companion_integration.py')]),
              ('standalone-distribution', [str(build / 'fl-distribution-tests.exe'), 'standalone', str(out / 'standalone.json')])]

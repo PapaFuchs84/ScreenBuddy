@@ -23,6 +23,7 @@ No release yet, no tag, no EXE distribution. Hardware, native UI and Companion a
 - **Contrast fixes:** Warning colour in the light theme, Windows high-contrast design and the Cupertino dark-profile header adjusted; the focus ring in the light FuchsLabs theme is darkened to Glut. Snapshot tests check text contrast ≥ 4.5:1 across a theme matrix.
 - **Built-in pages on the shared frame:** System, Friends, Discord, Battlefield 6, Blogs (RSS), Streaming and Spotify draw their cards through the same frame (`draw_framed`). Home Assistant stays native. Bit-exact against the baselines (4221 images and hit maps, 0 differences on the reference machine).
 - **Page editor:** Under **App → Arrange plugin page**, arrange blocks on a grid, set conditions, preview in landscape and portrait, undo/redo (100 steps), keyboard operation. Only the arrangement is saved, with a backup copy; the manifest stays unchanged.
+- **Page editor with drag & drop:** Block palette; drag, drop and move blocks and zones; resize handles; trash area for removal; keyboard alternative pick up/drop (Space, Enter, Esc). One undo step per drag gesture. Cancelling restores the selection, releasing outside the grid cancels silently, targets that leave a zone without a shown block count as "does not fit", block chips work by keyboard (Ctrl+Up/Down, Space, Delete). Still an overlay, manifest unchanged. Mouse, touchpad and touch acceptance are still pending.
 
 #### Fixed
 

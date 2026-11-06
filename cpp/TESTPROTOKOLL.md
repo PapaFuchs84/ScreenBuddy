@@ -1,5 +1,21 @@
 # Testprotokoll – Stand 06.11.2026
 
+## P7-1 bis P7-4 – Drag & Drop im Seiten-Editor (06.11.2026)
+
+Branch `feature/zonen-layout`, uncommittete Änderungen auf HEAD `ccf8eab`. Code gebaut und getestet; kein Commit, kein Push. Umfang: P7-1 `ui_kit` (Mauszeiger je Stelle, Abbruch bei Capture-Verlust und Esc), P7-2 Modell (`place_block`, `remove_block`, `move_block`, `probe`), P7-3 `GridEditor` (Bausteinleiste, Ziehen, Griffe, Ablage, Aufnehmen und Ablegen per Tastatur, MSAA), P7-4 Editor-Seite (Hinweistext, Vorschau nach dem Ablegen).
+
+| Suite | Bestanden / Fehler |
+|---|---|
+| `fl-layout-edit-tests` | 145 / 0 |
+| `fl-layout-ui-tests` | 624 / 0 |
+| `fl-builtin-snapshot-tests` | 4.221 Bilder / 0 Fehler |
+| `fl-plugin-snapshot-tests` | 2.093 / 0 |
+| `fl-tests` | 3.470 / 0 |
+
+**Nicht gelaufen / offen:**
+- `native_mouse_smoke.py` und `native_settings_smoke.py` benötigen eine laufende App; in diesem Lauf nicht ausgeführt.
+- Hardware- und Sichtabnahme durch Basti (Maus, Touchpad, Touch-Bildschirm) steht aus.
+
 ## P6-Reviewkorrekturen (06.11.2026)
 
 Im Hauptcheckout `feature/zonen-layout`, auf den uncommitteten P6-3/4/5-Änderungen. Alle sieben Befunde bearbeitet: Body/Undo/Redo/Fehlerwahl bleiben bei busy bedienbar; verzögerte Vorschaujobs und verworfene ältere Bilder geprüft. Zone/Sekunden/Vergleichswert werden bei Fehlern markiert, ohne Fokusentzug aus `on_commit`/WM_KILLFOCUS und ohne wiederholten Toast derselben Eingabe. Pluginwechsel fragt vor dem Verwerfen mit Standard Nein (DE/EN); Nein und Ja automatisiert geprüft. Übernehmen/Reset synchronisieren vorhandene Widgets, setzen den Fokus vom gesperrten Aktionsknopf ins Raster und überschreiben keine während des Jobs entstandenen Änderungen. Null Blöcke sind abgesichert. App-Anordnungsfehler laufen markiert über die vorhandene DE/EN-Meldungstabelle im UI-Thread; bekannte Store-/Verfügbarkeitsmeldungen getestet. Beide Test-Tempordner werden nach App-Abbau entfernt, auch über RAII bei frühem Ende; erfolgreiche Entfernung geprüft.

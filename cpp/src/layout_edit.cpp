@@ -60,16 +60,79 @@ bool delete_zone(Model& m, size_t i) {
     auto l = geometry(m);
     if (!l || l->zones.size() <= 1 || i >= l->zones.size()) return false;
     auto target = l->zones[i == 0 ? 1 : 0].id;
-    int count = 0;
-    for (auto& b : m.blocks) if ((b["zone"] == target || b["zone"] == l->zones[i].id) && b.value("shown", true)) ++count;
-    if (count > zones::max_blocks_per_zone) return false;
     return change(m, [=](Model& n) {
-        for (auto& b : n.blocks) if (b["zone"] == l->zones[i].id) b["zone"] = target;
+        for (auto& b : n.blocks) if (b["zone"] == l->zones[i].id) { b["zone"] = target; b["shown"] = false; b.erase("seconds"); }
         n.layout["zones"].erase(n.layout["zones"].begin() + i);
     });
 }
 bool assign_block(Model& m, size_t b, size_t z) {
     return change(m, [=](Model& n) { n.blocks.at(b)["zone"] = n.layout["zones"].at(z).at("id"); });
+}
+namespace {
+bool inventory_valid(const Model& m) {
+    auto l = geometry(m); if (!l) return false;
+    for (const auto& b : m.blocks) {
+        if (std::none_of(l->zones.begin(), l->zones.end(), [&](const auto& z) { return b["zone"] == z.id; })) return false;
+    }
+    for (const auto& z : l->zones) {
+        int count = 0;
+        for (const auto& b : m.blocks) if (b["zone"] == z.id && b.value("shown", true)) ++count;
+        if (count > zones::max_blocks_per_zone) return false;
+    }
+    return true; // Leere Zonen bleiben wie bisher bearbeitbare, noch nicht anwendbare Entwürfe.
+}
+}
+bool move_block(Model& m, size_t b, size_t z, size_t index) {
+    auto n = m;
+    if (!change(n, [=](Model& a) {
+        auto block = a.blocks.at(b);
+        auto target = a.layout["zones"].at(z).at("id");
+        block["zone"] = target; block["shown"] = true;
+        const auto& zone = a.layout["zones"][z];
+        if (!zone.contains("cycle") || zone["cycle"]["mode"] != "rotate") block.erase("seconds");
+        a.blocks.erase(a.blocks.begin() + b);
+        size_t count = 0, at = a.blocks.size();
+        for (size_t i = 0; i < a.blocks.size(); ++i) {
+            if (a.blocks[i]["zone"] != target || !a.blocks[i].value("shown", true)) continue;
+            if (count++ == index) { at = i; break; }
+            at = i + 1;
+        }
+        if (index > count) throw Json::out_of_range::create(401, "Stapelposition ungültig", &a.blocks);
+        a.blocks.insert(a.blocks.begin() + at, block);
+    }) || !inventory_valid(n)) return false;
+    m = std::move(n); return true;
+}
+bool place_block(Model& m, size_t b, int column, int row) {
+    auto n = m; auto l = geometry(n); if (!l || b >= n.blocks.size()) return false;
+    for (size_t i = 0; i < l->zones.size(); ++i) {
+        const auto& z = l->zones[i];
+        if (column >= z.column && column < z.column + z.column_span && row >= z.row && row < z.row + z.row_span) {
+            if (!move_block(n, b, i, 0)) return false;
+            m = std::move(n); return true;
+        }
+    }
+    if (!add_zone(n, column, row) || !move_block(n, b, n.layout["zones"].size() - 1, 0)) return false;
+    m = std::move(n); return true;
+}
+bool remove_block(Model& m, size_t b) {
+    return change(m, [=](Model& n) { n.blocks.at(b)["shown"] = false; });
+}
+bool leaves_empty_zone(const Model& before, const Model& after) {
+    auto shown = [](const Model& m, const std::string& zone) {
+        int count = 0;
+        for (const auto& b : m.blocks) if (b.value("zone", "") == zone && b.value("shown", true)) ++count;
+        return count;
+    };
+    try {
+        for (const auto& z : after.layout.at("zones")) {
+            const std::string id = z.at("id");
+            if (shown(before, id) > 0 && shown(after, id) == 0) return true;
+        }
+    } catch (const Json::exception&) { return true; }
+    return false;
+}
+bool probe(const Model& m, const std::function<bool(Model&)>& operation) {
+    auto copy = m; return operation(copy);
 }
 bool resize_axis(Model& m, bool columns, int delta) {
     return change(m, [=](Model& n) {

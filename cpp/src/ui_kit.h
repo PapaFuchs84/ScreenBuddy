@@ -164,6 +164,9 @@ public:
     virtual void press(Point, Surface&) {}
     virtual void drag(Point, Surface&) {}
     virtual void release(Point, Surface&) {}
+    virtual void cancel(Surface&) {} // Abbruch ohne release, genau einmal je Capture.
+    virtual LPCWSTR cursor(Point) const { return clickable() ? IDC_HAND : IDC_ARROW; }
+    virtual bool autoscroll() const { return false; } // true: Surface ruft drag() per Timer weiter, solange die Maus am Rand ruht
     virtual void activate(Surface&) {}                       // Leertaste/Eingabe/Standardaktion
     virtual bool clickable() const { return focusable(); }
     virtual void place(Surface&, bool shown) {}              // native Kindfenster nachführen

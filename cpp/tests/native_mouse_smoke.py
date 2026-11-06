@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import socket
 import subprocess
+import sys
 import tempfile
 
 import native_settings_smoke as ui
@@ -167,4 +168,8 @@ def main():
 
 
 if __name__ == "__main__":
+    if "--editor-offline" in sys.argv:
+        # Kein Maus-Smoke der App: startet nur fl-layout-ui-tests.exe --capture-only (Capture-Tests im
+        # isolierten Surface, ohne App-Server, Socket oder Port). Gleiche Pruefung wie die Exe selbst.
+        raise SystemExit(subprocess.run([str(ui.BUILD / "fl-layout-ui-tests.exe"), "--capture-only"], cwd=ui.ROOT).returncode)
     main()

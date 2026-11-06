@@ -16,6 +16,13 @@ bool add_zone(Model& m, int column, int row);
 bool split_zone(Model& m, size_t zone, bool horizontal);
 bool delete_zone(Model& m, size_t zone);
 bool assign_block(Model& m, size_t block, size_t zone);
+// Zusammengesetzte Ablageoperationen: verborgenes Inventar bleibt im Overlay.
+bool place_block(Model& m, size_t block, int column, int row);
+bool remove_block(Model& m, size_t block);
+bool move_block(Model& m, size_t block, size_t zone, size_t index);
+bool probe(const Model& m, const std::function<bool(Model&)>& operation);
+// Wahr, wenn eine Zone, die vorher einen gezeigten Block hatte, danach keinen mehr hat (Ziel soll "passt nicht" melden).
+bool leaves_empty_zone(const Model& before, const Model& after);
 bool resize_axis(Model& m, bool columns, int delta);
 bool weight(Model& m, bool columns, size_t index, int value);
 std::string diagnostic(std::string_view error, bool english);

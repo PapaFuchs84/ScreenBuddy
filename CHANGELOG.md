@@ -23,6 +23,7 @@ Noch kein Release, kein Tag, keine EXE-Auslieferung. Hardware-, Oberflächen- un
 - **Kontrastfixes:** Warnfarbe im hellen Theme, Windows-Kontrastdesign und Kopfzeile des Cupertino-Dunkelprofils angehoben; der Fokusring im hellen FuchsLabs-Theme ist auf Glut abgedunkelt. Snapshot-Tests prüfen Textkontraste ≥ 4,5:1 in einer Themenmatrix.
 - **Eingebaute Seiten über gemeinsamen Rahmen:** System, Freunde, Discord, Battlefield 6, Blogs (RSS), Streaming und Spotify zeichnen ihre Karten über denselben Rahmen (`draw_framed`). Home Assistant bleibt nativ. Bitgleich zu den Basislinien (4221 Bilder und Trefferkarten, 0 Abweichungen auf dem Referenzrechner).
 - **Seiten-Editor:** Unter **App → Plugin-Seite anordnen** Blöcke im Raster anordnen, Bedingungen setzen, Vorschau in Quer- und Hochformat, Rückgängig/Wiederholen (100 Schritte), Tastaturbedienung. Gespeichert wird nur die Anordnung, mit Sicherungskopie; das Manifest bleibt unverändert.
+- **Seiten-Editor per Drag & Drop:** Bausteinleiste; Blöcke und Zonen ziehen, ablegen und verschieben; Resize-Griffe; Ablage zum Entfernen; Tastatur-Alternative Aufnehmen/Ablegen (Leertaste, Enter, Esc). Ein Rückgängig-Schritt pro Ziehvorgang. Abbruch stellt die Auswahl wieder her, Loslassen außerhalb des Rasters bricht still ab, Ziele ohne gezeigten Block in der Quellzone gelten als „passt nicht“, Block-Chips sind per Tastatur bedienbar (Strg+Auf/Ab, Leertaste, Entf). Weiterhin Overlay, Manifest unverändert. Maus-, Touchpad- und Touch-Abnahme stehen aus.
 
 #### Behoben
 

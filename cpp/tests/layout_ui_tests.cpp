@@ -10,6 +10,7 @@
 #include <deque>
 #include <fstream>
 #include <sstream>
+#include <cmath>
 using namespace fl;
 using namespace fl::ui;
 using plugins::Json;
@@ -85,6 +86,165 @@ public:
         return nullptr;
     }
 };
+class CaptureWidget : public Widget {
+public:
+    int downs=0, moves=0, ups=0, cancels=0; bool auto_scroll=false;
+    bool autoscroll() const override { return auto_scroll; }
+    float height(Ctx&,float) override { return 64; }
+    bool clickable() const override { return true; }
+    void press(Point,Surface&) override { ++downs; }
+    void drag(Point,Surface&) override { ++moves; }
+    void release(Point,Surface&) override { ++ups; }
+    void cancel(Surface&) override { ++cancels; }
+};
+static void capture_tests() {
+    Kit kit; Surface surface(kit,nullptr,L"Capture-Test",false); Column root;
+    auto w=root.add<CaptureWidget>(); surface.set_root(&root); SetWindowPos(surface.hwnd(),nullptr,0,0,400,200,SWP_NOZORDER|SWP_NOACTIVATE); surface.set_dpi(96); surface.relayout();
+    const auto point=MAKELPARAM(int(w->rc.left+10),int(w->rc.top+10));
+    auto send=[&](UINT message,WPARAM key=0) { SendMessageW(surface.hwnd(),message,key,point); };
+    CHECK(w->cursor({})==IDC_HAND); Widget plain; CHECK(plain.cursor({})==IDC_ARROW);
+    send(WM_LBUTTONDOWN); send(WM_MOUSEMOVE); send(WM_CAPTURECHANGED); send(WM_CAPTURECHANGED);
+    CHECK(w->downs==1); CHECK(w->moves>=1); CHECK(w->cancels==1); CHECK(!w->pressed);
+    send(WM_LBUTTONUP); CHECK(w->ups==0);
+    send(WM_LBUTTONDOWN); send(WM_LBUTTONUP); CHECK(w->ups==1); CHECK(w->cancels==1);
+    send(WM_LBUTTONDOWN); send(WM_KEYDOWN,VK_ESCAPE); send(WM_LBUTTONUP);
+    CHECK(w->cancels==2); CHECK(w->ups==1);
+    send(WM_LBUTTONDOWN); send(WM_KILLFOCUS); send(WM_LBUTTONUP);
+    CHECK(w->cancels==3); CHECK(w->ups==1);
+    // Rand-Bildlauf per Timer: nur für Widgets, die autoscroll() melden, nur mit Capture.
+    constexpr WPARAM autoscroll_timer=0x7A12;
+    send(WM_LBUTTONDOWN); int before=w->moves; SendMessageW(surface.hwnd(),WM_TIMER,autoscroll_timer,0); CHECK(w->moves==before);
+    w->auto_scroll=true; SendMessageW(surface.hwnd(),WM_TIMER,autoscroll_timer,0); CHECK(w->moves==before+1);
+    send(WM_LBUTTONUP); before=w->moves; SendMessageW(surface.hwnd(),WM_TIMER,autoscroll_timer,0); CHECK(w->moves==before);
+    surface.set_root(nullptr);
+}
+static void key(Surface&,UINT,bool,bool,bool);
+static Point middle(Rect r) { return {(r.left+r.right)/2,(r.top+r.bottom)/2}; }
+static void gesture_tests() {
+    auto original=plugins::arrangement_from(*plugins::parse_manifest(fixture().dump()).manifest);
+    original.blocks.push_back({{"id","c"},{"zone","one"},{"shown",true}}); // zweiter Block: Zone "one" darf einen abgeben
+    GridEditor g; g.rc={0,0,600,600}; plugins::edit::EditHistory history; int edits=0,rejects=0;
+    auto reset=[&] { g.pointer(GridEditor::Kind::Cancel,{}); g.model=original; g.column=g.row=g.selected=0; g.area=1; g.first_column=0; g.focused_block=-1; g.palette_block=0; history.reset(original); edits=rejects=0; };
+    g.on_edit=[&](auto m,auto group) { CHECK(group.empty()); ++edits; history.push(m); };
+    g.on_reject=[&] { ++rejects; };
+    auto point=[&](int x,int y) { auto r=g.grid_rect(); return Point{r.left+(x+.5f)*(r.right-r.left)/3,r.top+(y+.5f)*(r.bottom-r.top)/3}; };
+    auto title=[&] { auto r=g.zone_rect(0); return Point{r.left+30,r.top+12}; };
+    auto drag=[&](Point a,Point b) { g.pointer(GridEditor::Kind::Down,a); g.pointer(GridEditor::Kind::Move,b); g.pointer(GridEditor::Kind::Up,b); };
+    reset(); auto start=title(), end=start; end.x+=200;
+    g.pointer(GridEditor::Kind::Down,start);
+    g.pointer(GridEditor::Kind::Move,{end.x-10,end.y}); g.pointer(GridEditor::Kind::Move,end);
+    CHECK(g.carrying()); CHECK(g.target_valid()); CHECK(edits==0); CHECK(plugins::edit::equal(g.model,original));
+    CHECK(g.value(false).find(L"aufgenommen")!=std::wstring::npos); CHECK(g.value(true).find(L"valid")!=std::wstring::npos);
+    g.pointer(GridEditor::Kind::Up,end); CHECK(edits==1); CHECK(history.steps()==1);
+    CHECK(g.model.layout["zones"][0]["column"]==1); CHECK(history.undo()); CHECK(plugins::edit::equal(history.current(),original)); CHECK(history.redo());
+    reset(); drag(start,{start.x+1,start.y+1}); CHECK(edits==0); CHECK(!g.carrying());
+    reset(); g.pointer(GridEditor::Kind::Down,start); g.pointer(GridEditor::Kind::Move,end); g.pointer(GridEditor::Kind::Cancel,{});
+    CHECK(!g.carrying()); CHECK(edits==0); CHECK(plugins::edit::equal(g.model,original));
+    reset(); g.pointer(GridEditor::Kind::Down,start); g.pointer(GridEditor::Kind::Move,end); g.input(VK_ESCAPE); g.pointer(GridEditor::Kind::Up,end);
+    CHECK(edits==0); CHECK(plugins::edit::equal(g.model,original));
+    reset(); drag(start,{start.x+400,start.y+(g.grid_rect().bottom-g.grid_rect().top)*2/3});
+    CHECK(edits==0); CHECK(rejects==1); CHECK(plugins::edit::equal(g.model,original));
+    reset(); auto r=g.zone_rect(0); auto edge=Point{r.right,(r.top+r.bottom)/2};
+    CHECK(g.cursor(edge)==IDC_SIZEWE); drag(edge,{edge.x+200,edge.y});
+    CHECK(edits==1); CHECK(g.model.layout["zones"][0]["column_span"]==2);
+    reset(); r=g.zone_rect(0); edge={r.right,r.bottom}; CHECK(g.cursor(edge)==IDC_SIZENWSE);
+    drag(edge,{edge.x+200,edge.y+(g.grid_rect().bottom-g.grid_rect().top)/3});
+    CHECK(edits==1); CHECK(g.model.layout["zones"][0]["row_span"]==2);
+    reset(); r=g.zone_rect(0); edge={r.right,r.bottom};
+    g.pointer(GridEditor::Kind::Down,edge); g.pointer(GridEditor::Kind::Move,{-20,-20}); CHECK(!g.target_valid()); CHECK(g.cursor({})==IDC_NO);
+    g.pointer(GridEditor::Kind::Up,{-20,-20}); CHECK(edits==0); CHECK(rejects==0); CHECK(!g.carrying()); // außerhalb: stiller Abbruch
+    reset(); auto chip=middle(g.palette_rect(0)); drag(chip,point(1,1));
+    CHECK(edits==1); CHECK(g.model.layout["zones"].size()==3); CHECK(history.steps()==1); auto placed=g.model;
+    CHECK(history.undo()); CHECK(plugins::edit::equal(history.current(),original));
+    reset(); g.input(VK_F6,true); CHECK(g.area==0); g.input(VK_SPACE); CHECK(g.carrying());
+    g.input(VK_RIGHT); g.input(VK_DOWN); CHECK(edits==0); g.input(VK_RETURN);
+    CHECK(edits==1); CHECK(plugins::edit::equal(g.model,placed)); CHECK(!g.carrying());
+    reset(); drag(middle(g.block_rect(0)),middle(g.trash_rect())); CHECK(edits==1); CHECK(!g.model.blocks[0]["shown"].get<bool>());
+    CHECK(g.model.blocks.size()==3); CHECK(g.model.layout["zones"].size()==2);
+    reset(); drag(start,middle(g.trash_rect())); CHECK(edits==1); CHECK(g.model.layout["zones"].size()==1); CHECK(!g.model.blocks[0]["shown"].get<bool>());
+    reset(); g.input(VK_F6,true); g.input(VK_DELETE); CHECK(edits==1); CHECK(!g.model.blocks[0]["shown"].get<bool>());
+    reset(); g.input(VK_SPACE); g.input(VK_RIGHT); g.input(VK_RETURN); CHECK(edits==1); CHECK(g.model.layout["zones"][0]["column"]==1);
+    reset(); g.input(VK_SPACE); g.input(VK_RIGHT); g.input(VK_ESCAPE); CHECK(edits==0); CHECK(plugins::edit::equal(g.model,original));
+    reset(); g.input(VK_F6,true); g.input(VK_SPACE); g.input(VK_F6); CHECK(g.area==2); g.input(VK_RETURN); CHECK(edits==1); CHECK(!g.model.blocks[0]["shown"].get<bool>());
+    reset(); drag(middle(g.block_rect(0)),point(2,2)); CHECK(edits==1); CHECK(g.model.blocks[0]["zone"]=="two");
+    reset(); g.input(VK_F6,true); g.input(VK_SPACE); g.input(VK_RIGHT); g.input(VK_RIGHT); g.input(VK_DOWN); g.input(VK_DOWN); g.input(VK_DOWN,false,false,true); g.input(VK_RETURN);
+    CHECK(edits==1); CHECK(g.model.blocks[1]["id"]=="a"); // Einfügen hinter b
+    reset(); g.input(VK_F6,true); g.input(VK_SPACE); g.input(VK_F6,false,false,true); CHECK(g.area==2); g.input(VK_ESCAPE); CHECK(edits==0);
+    // Befund 1: Abbruch stellt die Auswahl vor dem Drücken wieder her (kein Wechsel auf die gedrückte Zone).
+    reset(); auto r2=g.zone_rect(1); Point s2{r2.left+30,r2.top+12};
+    g.pointer(GridEditor::Kind::Down,s2); CHECK(g.selected==1); g.pointer(GridEditor::Kind::Move,{s2.x-200,s2.y}); CHECK(g.carrying());
+    g.pointer(GridEditor::Kind::Cancel,{}); CHECK(g.selected==0); CHECK(edits==0); CHECK(!g.carrying());
+    g.pointer(GridEditor::Kind::Down,s2); g.pointer(GridEditor::Kind::Move,{s2.x-200,s2.y}); CHECK(g.input(VK_ESCAPE)); CHECK(g.selected==0); CHECK(edits==0);
+    g.pointer(GridEditor::Kind::Down,s2); CHECK(g.selected==1); g.pointer(GridEditor::Kind::Cancel,{}); CHECK(g.selected==0); // auch ohne Ziehen
+    reset(); g.pointer(GridEditor::Kind::Down,s2); g.pointer(GridEditor::Kind::Move,point(0,0)); CHECK(!g.target_valid()); // überlappt Zone one
+    g.pointer(GridEditor::Kind::Up,point(0,0)); CHECK(rejects==1); CHECK(g.selected==0); CHECK(edits==0);
+    reset(); CHECK(!g.input(VK_ESCAPE)); // Befund 4: Esc ohne Geste gehört dem Aufrufer
+    // Befund 2: Ziel, das eine Zone ohne gezeigten Block hinterlässt, passt nicht.
+    reset(); g.model.blocks[2]["shown"]=false; auto sole=g.model; // Zone "one" zeigt nur noch a
+    g.pointer(GridEditor::Kind::Down,middle(g.block_rect(0))); g.pointer(GridEditor::Kind::Move,point(1,1));
+    CHECK(g.carrying()); CHECK(!g.target_valid()); CHECK(g.cursor(point(1,1))==IDC_NO); CHECK(g.value(false).find(L"passt nicht")!=std::wstring::npos);
+    g.pointer(GridEditor::Kind::Up,point(1,1)); CHECK(edits==0); CHECK(rejects==1); CHECK(plugins::edit::equal(g.model,sole)); CHECK(g.selected==0);
+    g.pointer(GridEditor::Kind::Down,middle(g.block_rect(0))); g.pointer(GridEditor::Kind::Move,point(2,2)); CHECK(!g.target_valid());
+    g.pointer(GridEditor::Kind::Move,middle(g.trash_rect())); CHECK(!g.target_valid()); g.pointer(GridEditor::Kind::Cancel,{});
+    g.pointer(GridEditor::Kind::Down,middle(g.block_rect(0))); g.pointer(GridEditor::Kind::Move,{middle(g.block_rect(0)).x+2,middle(g.block_rect(0)).y+30});
+    g.pointer(GridEditor::Kind::Cancel,{});
+    reset(); drag(middle(g.block_rect(0)),point(1,1)); CHECK(edits==1); // mit zweitem Block gültig
+    reset(); g.model.blocks[2]["shown"]=false; g.input(VK_F6,true); CHECK(g.input(VK_DELETE)); CHECK(edits==0); CHECK(rejects==1); // Entf in der Leiste: gleiche Regel
+    // Befund 3: Block-Chips per Tastatur.
+    reset(); CHECK(g.focused_block==-1);
+    CHECK(g.input(VK_DOWN,false,false,true)); CHECK(g.focused_block==0); CHECK(g.carrying()==false);
+    CHECK(g.value(false).find(L"Block-Chip a gewählt")!=std::wstring::npos); CHECK(g.value(true).find(L"block chip a selected")!=std::wstring::npos);
+    CHECK(g.input(VK_DOWN)); CHECK(g.focused_block==2); CHECK(g.input(VK_DOWN)); CHECK(g.focused_block==2);
+    CHECK(g.input(VK_UP)); CHECK(g.focused_block==0); CHECK(g.input(VK_UP)); CHECK(g.focused_block==-1); CHECK(g.row==0);
+    CHECK(g.input(VK_UP,false,false,true)); CHECK(g.focused_block==2); // Strg+Hoch: letzter Chip
+    CHECK(g.input(VK_RIGHT)); CHECK(g.focused_block==-1); CHECK(g.column==1);
+    reset(); g.input(VK_DOWN,false,false,true); CHECK(g.input(VK_SPACE)); CHECK(g.carrying());
+    CHECK(g.value(false).find(L"Block a aufgenommen")!=std::wstring::npos);
+    g.input(VK_RIGHT); g.input(VK_RIGHT); g.input(VK_DOWN); g.input(VK_DOWN); CHECK(edits==0); CHECK(g.target_valid()); g.input(VK_RETURN);
+    CHECK(edits==1); CHECK(!g.carrying()); { size_t at=0; for(size_t i=0;i<g.model.blocks.size();++i) if(g.model.blocks[i]["id"]=="a") at=i;
+        CHECK(g.model.blocks[at]["zone"]=="two"); CHECK(g.selected==1); CHECK(g.focused_block==int(at)); }
+    reset(); g.input(VK_DOWN,false,false,true); g.input(VK_SPACE); g.input(VK_RIGHT); CHECK(g.input(VK_ESCAPE)); CHECK(!g.carrying()); CHECK(edits==0); CHECK(plugins::edit::equal(g.model,original));
+    reset(); g.input(VK_DOWN,false,false,true); CHECK(g.input(VK_DELETE)); CHECK(edits==1); CHECK(!g.model.blocks[0]["shown"].get<bool>()); CHECK(g.model.blocks[2]["shown"].get<bool>()); CHECK(g.focused_block==-1);
+    reset(); g.model.blocks[2]["shown"]=false; g.input(VK_DOWN,false,false,true); CHECK(g.focused_block==0); g.input(VK_DELETE); CHECK(edits==0); CHECK(rejects==1); CHECK(g.model.blocks[0]["shown"].get<bool>());
+    // Befund 4: Loslassen außerhalb des Rasters bricht still ab; freie Zelle ziehen legt nichts an; Auswahl folgt dem Objekt.
+    reset(); g.pointer(GridEditor::Kind::Down,start); g.pointer(GridEditor::Kind::Move,end); g.pointer(GridEditor::Kind::Move,{300,g.grid_rect().top-6});
+    CHECK(!g.target_valid()); g.pointer(GridEditor::Kind::Up,{300,g.grid_rect().top-6}); CHECK(edits==0); CHECK(rejects==0); CHECK(!g.carrying()); CHECK(g.selected==0);
+    reset(); g.pointer(GridEditor::Kind::Down,middle(g.palette_rect(0))); g.pointer(GridEditor::Kind::Move,{-40,-40}); g.pointer(GridEditor::Kind::Up,{-40,-40}); CHECK(edits==0); CHECK(rejects==0);
+    reset(); g.pointer(GridEditor::Kind::Down,point(1,0)); g.pointer(GridEditor::Kind::Move,point(1,1)); g.pointer(GridEditor::Kind::Up,point(1,1));
+    CHECK(edits==0); CHECK(g.model.layout["zones"].size()==2); CHECK(g.selected==0); // weder Druck- noch Loslasszelle
+    reset(); g.pointer(GridEditor::Kind::Down,point(1,0)); g.pointer(GridEditor::Kind::Up,point(1,0)); CHECK(edits==1); CHECK(g.model.layout["zones"].size()==3); // Klick legt weiter an
+    reset(); { auto tr=g.trash_rect(); drag(middle(g.block_rect(2)),{tr.right-5,(tr.top+tr.bottom)/2}); CHECK(edits==1); CHECK(g.selected==0); CHECK(!g.model.blocks[2]["shown"].get<bool>()); }
+    reset(); r=g.zone_rect(0); drag({r.left+30,r.top+12},point(1,0)); CHECK(edits==1); CHECK(g.selected==0); CHECK(g.model.layout["zones"][0]["column"]==1);
+    reset(); drag(middle(g.block_rect(0)),point(2,2)); CHECK(g.selected==1); // Block folgt in seine Zone
+    {   // leeres Inventar: kein std::clamp mit hi<lo
+        GridEditor e; e.model=original; e.model.blocks=Json::array(); e.input(VK_F6,true); CHECK(e.area==0);
+        CHECK(e.input(VK_RIGHT)); CHECK(e.input(VK_DOWN)); CHECK(!e.input(VK_SPACE)); CHECK(!e.input(VK_DELETE)); CHECK(!e.carrying()); CHECK(e.palette_block==0);
+        e.palette_block=5; e.input(VK_RIGHT); CHECK(e.palette_block==0);
+    }
+    // Echte WM_LBUTTON*/MOUSEMOVE-Nachrichten im isolierten Test-Surface, auch bei 200 % DPI.
+    for(UINT dpi : {96u,192u}) {
+        Kit kit; Surface surface(kit,nullptr,L"Drag-Test",true); Column root; auto grid=root.add<GridEditor>(); grid->model=original;
+        surface.set_root(&root); SetWindowPos(surface.hwnd(),nullptr,0,0,1000,1000,SWP_NOZORDER|SWP_NOACTIVATE); surface.set_dpi(dpi); surface.relayout();
+        grid->on_edit=[&](auto,auto group) { CHECK(group.empty()); ++edits; }; edits=0;
+        auto zr=grid->zone_rect(0); Point a{zr.left+24,zr.top+12};
+        auto gr=grid->grid_rect(); Point b{a.x+(gr.right-gr.left)/3,a.y};
+        auto send=[&](UINT msg,Point p) { SendMessageW(surface.hwnd(),msg,msg==WM_LBUTTONUP?0:MK_LBUTTON,MAKELPARAM(surface.px(p.x),surface.px(p.y-surface.scroll()))); };
+        send(WM_LBUTTONDOWN,a); send(WM_MOUSEMOVE,b); CHECK(edits==0); CHECK(grid->carrying());
+        { // Befund 6: VALUECHANGE nur bei Zielwechsel, nicht bei jeder Mausbewegung in derselben Zelle.
+            auto events=grid->value_events;
+            send(WM_MOUSEMOVE,{b.x+1,b.y}); send(WM_MOUSEMOVE,{b.x,b.y+1}); send(WM_MOUSEMOVE,{b.x+2,b.y+2}); CHECK(grid->value_events==events);
+            send(WM_MOUSEMOVE,{a.x,a.y}); CHECK(grid->value_events==events+1);
+            send(WM_MOUSEMOVE,b); CHECK(grid->value_events==events+2);
+        }
+        send(WM_LBUTTONUP,b); CHECK(edits==1); CHECK(!grid->carrying()); CHECK(grid->model.layout["zones"][0]["column"]==1);
+        grid->model=original; edits=0; send(WM_LBUTTONDOWN,a); send(WM_MOUSEMOVE,b); SendMessageW(surface.hwnd(),WM_CAPTURECHANGED,0,0); send(WM_LBUTTONUP,b);
+        CHECK(edits==0); CHECK(!grid->carrying()); CHECK(plugins::edit::equal(grid->model,original));
+        send(WM_LBUTTONDOWN,a); send(WM_MOUSEMOVE,b); key(surface,VK_ESCAPE,false,false,false); send(WM_LBUTTONUP,b);
+        CHECK(edits==0); CHECK(!grid->carrying());
+        grid->column=grid->row=0; key(surface,VK_SPACE,false,false,false); CHECK(grid->carrying()); surface.focus(nullptr); CHECK(!grid->carrying()); CHECK(edits==0);
+        surface.set_root(nullptr);
+    }
+}
 static std::wstring read_file(const fs::path& p) {
     std::ifstream f(p,std::ios::binary); return widen(std::string((std::istreambuf_iterator<char>(f)),{}));
 }
@@ -92,10 +252,14 @@ static void msaa(TestHost& h,GridEditor* grid) {
     ComPtr<IAccessible> acc;
     CHECK(SUCCEEDED(AccessibleObjectFromWindow(h.view.hwnd(),OBJID_CLIENT,IID_PPV_ARGS(acc.GetAddressOf()))));
     if(!acc) return;
-    long count=0; acc->get_accChildCount(&count); bool found=false;
+    long count=0; acc->get_accChildCount(&count); bool found=false,palette=false;
     for(long i=1;i<=count;++i) {
         VARIANT child{}; child.vt=VT_I4; child.lVal=i; BSTR name=nullptr;
         acc->get_accName(child,&name);
+        if(name && std::wstring(name)==L"Bausteinleiste") {
+            palette=true; VARIANT role{}; acc->get_accRole(child,&role); CHECK(role.lVal==ROLE_SYSTEM_LIST);
+            BSTR value=nullptr; acc->get_accValue(child,&value); CHECK(value && std::wstring(value).find(L"a gezeigt")!=std::wstring::npos); SysFreeString(value);
+        }
         if(name && std::wstring(name)==L"Anordnungsraster") {
             found=true; VARIANT role{}; acc->get_accRole(child,&role); CHECK(role.lVal==ROLE_SYSTEM_LIST);
             BSTR val=nullptr; acc->get_accValue(child,&val); CHECK(val && std::wstring(val)==grid->value(false)); SysFreeString(val);
@@ -103,7 +267,7 @@ static void msaa(TestHost& h,GridEditor* grid) {
         }
         SysFreeString(name);
     }
-    CHECK(found);
+    CHECK(found); CHECK(palette);
 }
 static void key(Surface& s,UINT vk,bool shift=false,bool alt=false,bool control=false) {
     BYTE saved[256]{},state[256]{}; GetKeyboardState(saved);
@@ -112,7 +276,7 @@ static void key(Surface& s,UINT vk,bool shift=false,bool alt=false,bool control=
     SendMessageW(s.hwnd(),alt?WM_SYSKEYDOWN:WM_KEYDOWN,vk,0);
     SetKeyboardState(saved); // nur Zustand des eigenen Testthreads, keine globalen Eingaben
 }
-static Image grid_image(Kit& kit,int width,int height,const plugins::Arrangement* model=nullptr,int column=0,int* first_column=nullptr) {
+static Image grid_image(Kit& kit,int width,int height,const plugins::Arrangement* model=nullptr,int column=0,int* first_column=nullptr,int state=0) {
     ComPtr<IWICImagingFactory> wic; CoCreateInstance(CLSID_WICImagingFactory,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(wic.GetAddressOf()));
     ComPtr<IWICBitmap> bitmap; wic->CreateBitmap(width,height,GUID_WICPixelFormat32bppPBGRA,WICBitmapCacheOnLoad,bitmap.GetAddressOf());
     ComPtr<ID2D1RenderTarget> rt;
@@ -120,13 +284,26 @@ static Image grid_image(Kit& kit,int width,int height,const plugins::Arrangement
     ComPtr<ID2D1SolidColorBrush> brush; rt->CreateSolidColorBrush(kit.theme().text,brush.GetAddressOf());
     Ctx ctx{rt.Get(),kit,kit.theme(),brush.Get()};
     auto base=plugins::parse_manifest(fixture().dump()); GridEditor grid; grid.model=model?*model:plugins::arrangement_from(*base.manifest); grid.column=column;
+    // Zustände 1 und 3 zeigen gültige Block-Ablagen: Zone "one" braucht dafür einen zweiten Block (Zustand 5 zeigt den ungültigen Fall).
+    if(!model && (state==1 || state==3)) grid.model.blocks.push_back({{"id","c"},{"zone","one"},{"shown",true}});
     grid.rc={8,8,float(width-8),float(height-8)};
+    if(state) {
+        auto source=middle(grid.palette_rect(0)); auto gr=grid.grid_rect();
+        Point target{gr.left+(gr.right-gr.left)/2,gr.top+(gr.bottom-gr.top)/2};
+        if(state==2) { auto z=grid.zone_rect(0); source={z.left+20,z.top+12}; target={source.x+(gr.right-gr.left)*2/3,source.y+(gr.bottom-gr.top)*2/3}; }
+        if(state==3 || state==5) target=middle(grid.trash_rect());
+        if(state==4) { auto z=grid.zone_rect(0); source={z.right,z.bottom}; target={source.x+(gr.right-gr.left)/3,source.y}; }
+        grid.pointer(GridEditor::Kind::Down,source); grid.pointer(GridEditor::Kind::Move,target);
+        CHECK(grid.carrying()); CHECK(grid.target_valid()==(state!=2 && state!=5));
+    }
     rt->BeginDraw(); rt->Clear(kit.theme().card); grid.paint(ctx); CHECK(SUCCEEDED(rt->EndDraw()));
     if(first_column) *first_column=grid.first_column;
     Image image(width,height); bitmap->CopyPixels(nullptr,width*4,UINT(image.px.size()*4),reinterpret_cast<BYTE*>(image.px.data())); return image;
 }
 int main(int argc,char** argv) {
-    gfx_init(); SetConsoleOutputCP(CP_UTF8);
+    gfx_init(); SetConsoleOutputCP(CP_UTF8); capture_tests();
+    if(argc==2 && std::string(argv[1])=="--capture-only") { std::printf("Capture: %d passed, %d failed\n",passed,failed); return failed?1:0; }
+    gesture_tests();
     const auto dir=fs::temp_directory_path()/("fl-layout-ui-"+std::to_string(GetCurrentProcessId()));
     struct Cleanup { fs::path path; ~Cleanup() { std::error_code ec; fs::remove_all(path,ec); } } cleanup{dir};
     fs::create_directories(dir);
@@ -140,6 +317,23 @@ int main(int argc,char** argv) {
         CHECK(grid->role()==Role::List); CHECK(grid->value(false)==L"Zone one, Spalte 1, Zeile 1, kein Wechsel, 1 Blöcke");
         msaa(h,grid);
         const auto original=grid->model;
+        // P7-4: MSAA-Aufnehmen/Ablegen und Vorschau nur nach abgeschlossener Ablage.
+        h.drain(); page->tick(h,h.state); h.drain();
+        h.view.focus(grid,true); key(h.view,VK_F6,true); CHECK(grid->area==0);
+        key(h.view,VK_SPACE); CHECK(grid->carrying()); msaa(h,grid);
+        CHECK(grid->value(false).find(L"aufgenommen")!=std::wstring::npos);
+        key(h.view,VK_ESCAPE); CHECK(!grid->carrying()); key(h.view,VK_F6,true); // Raster -> Leiste
+        key(h.view,VK_F6); CHECK(grid->area==1);
+        grid->column=grid->row=grid->selected=0;
+        auto zr=grid->zone_rect(0), gr=grid->grid_rect(); Point from{zr.left+24,zr.top+12}, to{zr.left+24+(gr.right-gr.left)/3,zr.top+12};
+        auto previous_previews=h.previews;
+        grid->pointer(GridEditor::Kind::Down,from); grid->pointer(GridEditor::Kind::Move,to);
+        CHECK(grid->carrying()); page->tick(h,h.state); CHECK(h.jobs.empty()); CHECK(h.previews==previous_previews);
+        grid->pointer(GridEditor::Kind::Up,to); CHECK(!grid->carrying()); page->tick(h,h.state); CHECK(h.jobs.size()==1);
+        h.drain(); CHECK(h.previews==previous_previews+1); CHECK(h.view.focused()==grid);
+        grid->input('Z',false,false,true); CHECK(plugins::edit::equal(grid->model,original));
+        grid->column=grid->row=0; h.drain(); page->tick(h,h.state); h.drain();
+
         h.view.focus(grid,true); SendMessageW(h.view.hwnd(),WM_KEYDOWN,VK_RIGHT,0); CHECK(grid->column==1);
         SendMessageW(h.view.hwnd(),WM_KEYDOWN,VK_LEFT,0); CHECK(grid->column==0);
         CHECK(grid->input(VK_RIGHT,false,true)); CHECK(grid->model.layout["zones"][0]["column"]==1);
@@ -283,7 +477,7 @@ int main(int argc,char** argv) {
     const fs::path baseline=FL_LAYOUT_SNAPSHOT_DIR;
     const bool update=argc==2 && std::string(argv[1])=="update";
     std::map<std::string,std::string> expected,actual;
-    if(!update) { std::ifstream in(baseline/"hashes.txt"); CHECK(bool(in)); for(std::string name,hash;in>>name>>hash;) expected[name]=hash; }
+    if(!update) { std::ifstream in(baseline/"p7-hashes.txt"); CHECK(bool(in)); for(std::string name,hash;in>>name>>hash;) expected[name]=hash; }
     Kit kit;
     for(auto& tc:snapshot::theme_cases()) {
         if(tc.name=="dunkel" || tc.name=="custom") continue;
@@ -291,11 +485,22 @@ int main(int argc,char** argv) {
         kit.use_design(dp);
         if(tc.name=="windows") { theme::WindowsSettings w; w.has_accent=true; kit.use_windows(true,&w); }
         else kit.use_windows(false);
+        const auto& th=kit.theme();
+        auto color=[](Rgba c) { return Color(uint8_t(std::lround(c.r*255)),uint8_t(std::lround(c.g*255)),uint8_t(std::lround(c.b*255))); };
+        CHECK(theme::contrast(color(th.text),color(th.card))>=4.5); // Chips, Geist, Ablage, Griffe
+        CHECK(theme::contrast(color(th.text),color(th.bg))>=4.5);   // Leistenüberschrift, Zellraster
         for(bool portrait:{false,true}) {
-            auto image=grid_image(kit,portrait?240:360,portrait?360:240);
+            auto image=grid_image(kit,portrait?320:640,portrait?760:600);
             auto key=tc.name+(portrait?".portrait":".landscape"); actual[key]=snapshot::hash_image(image);
             if(!update) CHECK(expected[key]==actual[key]);
-            fs::create_directories(dir/"snapshots"); snapshot::write_png(dir/"snapshots"/(key+".png"),image);
+            const auto images=fs::path(argv[0]).parent_path()/"p7-ui-snapshots";
+            fs::create_directories(images); snapshot::write_png(images/(key+".png"),image);
+            for(int state=1;state<=5;++state) {
+                auto state_image=grid_image(kit,portrait?320:640,portrait?760:600,nullptr,0,nullptr,state);
+                auto state_key=key+".state"+std::to_string(state); actual[state_key]=snapshot::hash_image(state_image);
+                if(!update) CHECK(expected[state_key]==actual[state_key]);
+                snapshot::write_png(images/(state_key+".png"),state_image);
+            }
         }
     }
     // Schmaler 6-Spalten-Ausschnitt folgt dem Tastaturfokus, ohne außerhalb zu zeichnen.
@@ -310,7 +515,7 @@ int main(int argc,char** argv) {
         if(x<8 || x>=96 || y<8 || y>=172) margin=margin && clipped.at(x,y)==clipped.at(0,0);
     CHECK(margin); actual["hell.narrow"]=snapshot::hash_image(clipped);
     if(!update) CHECK(expected["hell.narrow"]==actual["hell.narrow"]);
-    if(update) { fs::create_directories(baseline); std::ofstream out(baseline/"hashes.txt"); for(auto& [key,hash]:actual) out<<key<<' '<<hash<<'\n'; CHECK(bool(out)); }
+    if(update) { fs::create_directories(baseline); std::ofstream out(baseline/"p7-hashes.txt"); for(auto& [key,hash]:actual) out<<key<<' '<<hash<<'\n'; CHECK(bool(out)); }
     else CHECK(expected.size()==actual.size());
     std::error_code ec; fs::remove_all(dir,ec); CHECK(!ec && !fs::exists(dir));
     std::printf("Layout UI: %d passed, %d failed\n",passed,failed); return failed?1:0;
