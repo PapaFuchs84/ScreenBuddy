@@ -143,6 +143,16 @@ private:
         config_->title = Text(L"Konfiguration: " + widen(e->name), L"Settings: " + widen(e->name));
         config_->desc = T(L"Leere Zugangsfelder behalten gespeicherte Werte; zum Entfernen „Löschen“ einschalten. Wird sofort gespeichert.",
                           L"Empty credential fields keep saved values; switch on “Clear” to remove one. Saved immediately.");
+        if (!e->links.empty()) {
+            std::wstring hosts;
+            for(const auto& host:e->links) { if(!hosts.empty()) hosts+=L", ";hosts+=widen(host); }
+            auto toggle=config_->row<Toggle>(T(L"Links aus diesem Plugin am PC öffnen",L"Open links from this plugin on the PC"),Text(hosts),e->links_allowed);
+            toggle->track_dirty=false;
+            toggle->on_change=[this,id=e->id,toggle] {
+                if(host_->busy() || !host_->plugins().set_link_consent) { toggle->on=!toggle->on; host_->relayout(); return; }
+                bool allowed=toggle->on; Host* h=host_;reload_after([h,id,allowed] {h->plugins().set_link_consent(id,allowed);});
+            };
+        }
         if (e->settings.size() > 12) {
             config_->add<Note>(T(L"Dieses Plugin hat mehr als 12 Einstellungen und kann hier nicht bearbeitet werden.",
                                  L"This plugin has more than 12 settings and cannot be edited here."), Note::Warn);

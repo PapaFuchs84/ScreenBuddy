@@ -17,6 +17,12 @@ const std::string& lang() { return g_lang; }
 
 static const std::unordered_map<std::string, std::string>& en() {
     static const std::unordered_map<std::string, std::string> m = {
+        {"KI-Status","AI Status"}, {"Arbeitet","Working"}, {"Wartet","Waiting"}, {"Inaktiv","Idle"}, {"Aus","Off"},
+        {"Claude Sitzung (ca.)", "Claude session (est.)"},
+    {"Tokens Sitzung", "Session tokens"},
+    {"Claude heute (ca.)","Claude today (est.)"}, {"Tool","Tool"}, {"Modell","Model"}, {"Kontext","Context"},
+        {"Tokens heute","Tokens today"}, {"5 Stunden","5 hours"}, {"Woche","Week"}, {"Sitzungen","Sessions"},
+        {"Keine lokalen Sitzungsdaten","No local session data"}, {"Daten nur lokal","Local data only"}, {"Keine Quelle","No source"}, {"Keine Sitzung","No session"}, {"Statuszeile","Status line"}, {"Hooks","Hooks"}, {"Stand vor","Updated"}, {"Stand","Updated"},
         {"Windows meldet keinen Touchscreen. USB-Touchkabel und Treiber prüfen.", "Windows reports no touchscreen. Check the USB touch cable and driver."},
         {"Die Windows-Touch-Einrichtung konnte nicht geöffnet werden.", "Windows touch setup could not be opened."},
         // Companion-App (Android)
@@ -66,6 +72,7 @@ static const std::unordered_map<std::string, std::string>& en() {
         {"Lade Battlefield-Profile …", "Loading Battlefield profiles …"},
         {"Rang unbekannt", "Rank unknown"},
         {"nicht gefunden", "not found"},
+        {"Quelle gestört", "source unavailable"},
         {"Lade Feeds …", "Loading feeds …"},
         {"Keine Beiträge gefunden", "No posts found"},
         {"gerade eben", "just now"},
@@ -112,6 +119,8 @@ static const std::unordered_map<std::string, std::string>& en() {
         {"Name fehlt", "Name missing"},
         // Spotify
         {"Spotify ist nicht fertig eingerichtet", "Spotify is not fully set up"},
+        {"Zuletzt gespielt", "Last played"},
+        {"Letzter Titel: bitte in den Einstellungen neu bei Spotify anmelden", "Last track: please sign in to Spotify again in the settings"},
         {"Bei Spotify anmelden: Einstellungen › Spotify", "Sign in to Spotify: Settings › Spotify"},
         {"Verbinde mit Spotify …", "Connecting to Spotify …"},
         {"Spotify nicht erreichbar", "Spotify not reachable"},

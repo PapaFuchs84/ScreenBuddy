@@ -53,6 +53,10 @@ const Theme& Theme::get(bool dark) {
 
 void Kit::use_design(const ojson& display) {
     auto resolved = fl::theme::resolve(display.value("theme", std::string("hell")), fl::theme::Store());
+    if(display.contains("theme_inline")) {
+        std::string error;
+        if(auto t=fl::theme::parse(display["theme_inline"],error)) resolved=fl::theme::resolve_custom(*t);
+    }
     design = fl::theme::design(resolved.style);
     designed_ = resolved.style != fl::theme::Style::FuchsLabs;
     for (auto& f : formats_) f.Reset();
@@ -71,16 +75,20 @@ void Kit::use_design(const ojson& display) {
     }
 }
 
-void Kit::use_windows(bool on) {
+void Kit::use_windows(bool on, const fl::theme::WindowsSettings* fixed) {
     windows_ = on;
     if (!on) return;
-    const auto w = fl::theme::read_windows_settings();
+    const auto w = fixed ? *fixed : fl::theme::read_windows_settings();
     const auto p = fl::theme::windows_palette(w);
     dark = !w.light;
     win_theme_ = designed_ ? design_theme_[dark ? 1 : 0] : Theme::get(dark);   // Profil: Profilpalette statt FuchsLabs-Orange
     win_theme_.accent = from(w.high_contrast ? p.accent : (w.has_accent ? w.accent : p.accent));
     win_theme_.on_accent = from(fl::theme::readable_on(w.high_contrast ? p.accent : (w.has_accent ? w.accent : p.accent)));
     win_theme_.accent_text = from(p.accent);   // Akzent als Schrift: kontrastkorrigiert
+}
+
+Rgba focus_color(const Theme& t, bool navigation) {
+    return navigation && !t.dark ? t.on_accent : t.dark ? t.accent : t.accent_text;
 }
 
 bool system_prefers_dark() {
@@ -678,6 +686,10 @@ static LRESULT CALLBACK edit_proc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR
     switch (m) {
     case WM_KEYDOWN:
         if (wp == VK_TAB) { s->keyboard_cues = true; s->tab(GetKeyState(VK_SHIFT) >= 0); return 0; }
+        if (wp == VK_RETURN && !multi) {
+            if (auto* field = dynamic_cast<TextField*>(w); field && field->on_commit) field->on_commit();
+            return 0;
+        }
         break;
     case WM_CHAR:
         if (wp == VK_TAB || (wp == VK_RETURN && !multi)) return 0;
@@ -687,6 +699,7 @@ static LRESULT CALLBACK edit_proc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR
         if (w) s->native_focus(w);
         break;
     case WM_KILLFOCUS:
+        if (auto* field = dynamic_cast<TextField*>(w); field && field->on_commit) field->on_commit();
         InvalidateRect(s->hwnd(), nullptr, FALSE);
         break;
     case WM_MOUSEWHEEL:
@@ -735,7 +748,7 @@ bool TextField::dirty() const {
 void TextField::paint(Ctx& c) {
     c.fill(rc, c.th.input, 8);
     bool focused = edit_ && GetFocus() == edit_;
-    c.frame(rc, focused ? c.th.accent : c.th.line, 8, focused ? 2.f : 1.f);
+    c.frame(rc, invalid ? c.th.danger : focused ? focus_color(c.th) : c.th.line, 8, (focused || invalid) ? 2.f : 1.f);
 }
 void TextField::focus_native() { if (edit_) SetFocus(edit_); }
 void TextField::apply_hint(Surface& s) {
@@ -1365,6 +1378,7 @@ void Surface::notify(Widget* w, DWORD event) {
 }
 
 void Surface::focus(Widget* w, bool keyboard) {
+    if (focus_ && focus_ != w) focus_->cancel(*this);
     if (auto p = dynamic_cast<Portal*>(w)) {
         focus_ = w;
         if (p->target) { p->target->keyboard_cues = keyboard; p->target->focus_edge(true); }
@@ -1380,6 +1394,7 @@ void Surface::focus(Widget* w, bool keyboard) {
 }
 
 void Surface::native_focus(Widget* w) {
+    if (focus_ && focus_ != w) focus_->cancel(*this);
     if (focus_ != w) { focus_ = w; ensure_visible(w); }
     if (on_focus_in) on_focus_in();
     invalidate();
@@ -1481,6 +1496,7 @@ Point Surface::doc_point(LPARAM lp) const {
 }
 
 constexpr UINT_PTR TIP_TIMER = 0x7A11;
+constexpr UINT_PTR AUTOSCROLL_TIMER = 0x7A12;
 constexpr UINT TIP_DELAY_MS = 500;
 
 void Surface::tip_hide() {
@@ -1530,7 +1546,7 @@ void Surface::paint() {
     HWND focused_window = GetFocus();
     bool has_focus = focused_window == hwnd_ || (focused_window && GetParent(focused_window) == hwnd_);
     if (focus_ && keyboard_cues && has_focus && focus_->wants_focus_ring() && focus_->visible && !dynamic_cast<TextField*>(focus_))
-        c.frame(inflate(focus_->rc, 3), dynamic_cast<NavItem*>(focus_) && !th.dark ? th.on_accent : th.accent, 10, 2);
+        c.frame(inflate(focus_->rc, 3), focus_color(th,dynamic_cast<NavItem*>(focus_)!=nullptr), 10, 2);
     rt_->SetTransform(D2D1::Matrix3x2F::Identity());
     Rect t = thumb();
     if (rw(t) > 0) c.fill(t, alpha(th.muted, thumb_drag_ ? .8f : .45f), 3);
@@ -1584,7 +1600,15 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         if (focus_) if (auto t = dynamic_cast<TextField*>(focus_); t && t->edit()) { t->focus_native(); return 0; }
         invalidate();
         return 0;
-    case WM_KILLFOCUS: invalidate(); return 0;
+    case WM_KILLFOCUS: {
+        auto captured = capture_;
+        if (capture_) {
+            auto w = capture_; capture_ = nullptr; w->pressed = false; w->cancel(*this);
+            if (GetCapture() == hwnd_) ReleaseCapture();
+        }
+        if (focus_ && focus_ != captured) focus_->cancel(*this);
+        invalidate(); return 0;
+    }
     case WM_MOUSEMOVE: {
         Point p = doc_point(lp);
         if (!tracking_) {
@@ -1615,6 +1639,15 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
             if (!tip_text_.empty() && hover_) { tip_shown_ = true; invalidate(); }
             return 0;
         }
+        if (wp == AUTOSCROLL_TIMER) {
+            // Ruht die Maus beim Ziehen am Rand, kommen keine WM_MOUSEMOVE mehr: Position nachliefern.
+            if (!capture_) { KillTimer(hwnd_, AUTOSCROLL_TIMER); return 0; }
+            if (capture_->autoscroll()) {
+                POINT pos{}; GetCursorPos(&pos); ScreenToClient(hwnd_, &pos);
+                capture_->drag(doc_point(MAKELPARAM(pos.x, pos.y)), *this);
+            }
+            return 0;
+        }
         break;
     case WM_MOUSELEAVE:
         tip_hide();
@@ -1623,7 +1656,10 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     case WM_SETCURSOR:
         if (reinterpret_cast<HWND>(wp) == hwnd_ && LOWORD(lp) == HTCLIENT) {
-            SetCursor(LoadCursorW(nullptr, hover_ && hover_->clickable() ? IDC_HAND : IDC_ARROW));
+            POINT pos{}; GetCursorPos(&pos); ScreenToClient(hwnd_, &pos);
+            auto p = doc_point(MAKELPARAM(pos.x, pos.y));
+            auto w = capture_ ? capture_ : hit(p);
+            SetCursor(LoadCursorW(nullptr, w ? w->cursor(p) : IDC_ARROW));
             return TRUE;
         }
         break;
@@ -1642,11 +1678,13 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         }
         Widget* w = hit(p);
         if (!w) { if (GetFocus() != hwnd_) SetFocus(hwnd_); return 0; }
+        // Fokuswechsel kann Capture synchron lösen; erst danach den neuen Vorgang beginnen.
+        if (w->focusable()) focus(w, false);
         capture_ = w;
         w->pressed = true;
         invalidate();
         SetCapture(hwnd_);
-        if (w->focusable()) focus(w, false);
+        SetTimer(hwnd_, AUTOSCROLL_TIMER, 100, nullptr);
         w->press(p, *this);
         return 0;
     }
@@ -1658,14 +1696,17 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         const bool dragged_thumb = thumb_drag_;
         capture_ = nullptr;
         thumb_drag_ = false;
+        KillTimer(hwnd_, AUTOSCROLL_TIMER);
         if (GetCapture() == hwnd_) ReleaseCapture();
         if (dragged_thumb) { invalidate(); return 0; }
         if (w) w->release(doc_point(lp), *this);
         return 0;
     }
     case WM_CAPTURECHANGED:
-        if (capture_) capture_->pressed = false;
-        capture_ = nullptr;
+        if (capture_) {
+            auto w = capture_; capture_ = nullptr;
+            w->pressed = false; w->cancel(*this);
+        }
         invalidate();
         if (thumb_drag_) { thumb_drag_ = false; invalidate(); }
         return 0;
@@ -1679,9 +1720,18 @@ LRESULT Surface::handle(UINT msg, WPARAM wp, LPARAM lp) {
         break;
     case WM_KEYDOWN: case WM_SYSKEYDOWN: {
         const UINT vk = UINT(wp);
-        if (msg == WM_SYSKEYDOWN && vk != VK_UP && vk != VK_DOWN) break;
+        if (vk == VK_ESCAPE && capture_) {
+            auto w = capture_; capture_ = nullptr; w->pressed = false; w->cancel(*this);
+            if (GetCapture() == hwnd_) ReleaseCapture();
+            invalidate(); return 0;
+        }
+        if (msg == WM_SYSKEYDOWN && vk != VK_UP && vk != VK_DOWN &&
+            !(focus_ && focus_->system_arrows() && (vk == VK_LEFT || vk == VK_RIGHT))) break;
         keyboard_cues = true;
-        if (vk == VK_TAB) { tab(GetKeyState(VK_SHIFT) >= 0); return 0; }
+        if (vk == VK_TAB) {
+            if (GetKeyState(VK_CONTROL) < 0 && focus_ && focus_->live() && focus_->key(vk, *this)) { invalidate(); return 0; }
+            tab(GetKeyState(VK_SHIFT) >= 0); return 0;
+        }
         if (focus_ && focus_->live() && focus_->key(vk, *this)) { invalidate(); return 0; }
         if (scrollable_) {
             float view = size().height;
@@ -1840,6 +1890,7 @@ Card* placeholder(Host& host, Column& root, Text title, Text text) {
 }
 
 std::wstring source_title(const std::string& key, bool en) {
+    if (key == "ai") return en ? L"AI Status" : L"KI-Status";
     if (key == "system") return L"System";
     if (key == "friends") return en ? L"Friends" : L"Freunde";
     if (key == "discord") return L"Discord";

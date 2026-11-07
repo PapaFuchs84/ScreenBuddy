@@ -6,6 +6,7 @@
 
 #include "http.h"
 #include "util.h"
+#include "distribution.h"
 
 namespace fl::update {
 
@@ -51,7 +52,7 @@ std::optional<Release> parse_release(const nlohmann::json& data) {
 
 UpdateChecker::UpdateChecker(std::filesystem::path state_file, std::function<void(const Release&)> on_new)
     : file_(std::move(state_file)), on_new_(std::move(on_new)) {
-    load();
+    if (!distribution::packaged()) load();
 }
 
 UpdateChecker::~UpdateChecker() { stop(); }
@@ -82,6 +83,7 @@ void UpdateChecker::save() {
 }
 
 void UpdateChecker::start() {
+    if (distribution::packaged()) return;
     th_ = std::thread([this] { loop(); });
 }
 
@@ -95,6 +97,7 @@ void UpdateChecker::stop() {
 }
 
 bool UpdateChecker::fetch() {
+    if (distribution::packaged()) return false;
     http::Request r;
     r.url = RELEASES_API;
     r.headers = {{"Accept", "application/vnd.github+json"}, {"X-GitHub-Api-Version", "2022-11-28"}};
@@ -164,6 +167,7 @@ void UpdateChecker::loop() {
 }
 
 bool UpdateChecker::check_now() {
+    if (distribution::packaged()) { distribution::open_updates(); return true; }
     {
         std::lock_guard lk(mu_);
         if (now_s() - last_attempt_ < MANUAL_GAP) return false;
@@ -175,6 +179,7 @@ bool UpdateChecker::check_now() {
 }
 
 nlohmann::json UpdateChecker::info() {
+    if (distribution::packaged()) return {{"channel", "microsoft-store"}, {"current", VERSION}, {"available", false}};
     std::lock_guard lk(mu_);
     bool newer = !latest_.empty() && is_newer(latest_, VERSION);
     return {{"available", newer}, {"current", VERSION}, {"latest", latest_}, {"url", newer ? url_ : std::string()},

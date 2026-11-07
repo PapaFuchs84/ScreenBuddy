@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "util.h"
+#include "distribution.h"
 
 #include <windows.h>
 #include <shlobj.h>
@@ -294,6 +295,7 @@ static std::wstring env(const wchar_t* name) {
 }
 
 std::filesystem::path install_dir() {
+    if (distribution::packaged()) return distribution::data_dir();
     // FUCHSLABS_INSTALL_DIR nur für Tests (Installer ausprobieren, ohne die echte Installation anzufassen)
     if (auto t = env(L"FUCHSLABS_INSTALL_DIR"); !t.empty() && test_instance()) return t;
     return known_folder(FOLDERID_LocalAppData) / L"FuchsLabs" / L"USB-Display";

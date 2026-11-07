@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include "config.h"
+#include "output.h"
 #include "friends.h"
 #include "audio_levels.h"
 #include "ha.h"
@@ -21,6 +22,7 @@
 #include "brand.h"
 #include "rss.h"
 #include "spotify.h"
+#include "bf6.h"
 #include "secure.h"
 #include "util.h"
 #include "touch.h"
@@ -30,6 +32,9 @@
 
 using namespace fl;
 namespace fs = std::filesystem;
+int ai_cli_fixture(int argc,char** argv);
+int test_ai_cli(bool real);
+int test_ai_status(const std::filesystem::path& output = {});
 
 static int g_fail = 0, g_ok = 0;
 #define CHECK(cond)                                                              \
@@ -62,7 +67,7 @@ static void test_config() {
     fs::remove(tmp);
     ojson cfg = config::load(tmp);
     CHECK_EQ(cfg["ui"]["port"].get<int>(), 8765);
-    CHECK_EQ(cfg["display"]["pages"].size(), (size_t)8);
+    CHECK_EQ(cfg["display"]["pages"].size(), 9u);
     ojson in = {{"display", {{"brightness", "250"}, {"theme", "dunkel"}, {"color_bg", "#aabbcc"}}},
                 {"discord", {{"token", "geheim"}, {"guild_ids", {"123456789012345678", " ", "5"}}}},
                 {"rss", {{"feeds", {"a.de", "a.de", " b.de "}}}}};
@@ -140,7 +145,7 @@ static void test_config() {
                                                         {"visible_pages", {"system", "plugin:wetter", "plugin:"}}}}});
     CHECK_EQ(with_plugin["display"]["pages"][0], ojson("plugin:wetter"));
     CHECK_EQ(with_plugin["display"]["pages"][1], ojson("system"));
-    CHECK_EQ(with_plugin["display"]["pages"].size(), (size_t)9);
+    CHECK_EQ(with_plugin["display"]["pages"].size(), 10u);
     CHECK_EQ(with_plugin["display"]["visible_pages"], ojson::array({"system", "plugin:wetter"}));
     CHECK(config::is_page_key("plugin:wetter"));
     CHECK(!config::is_page_key("plugin:"));
@@ -349,6 +354,52 @@ static void test_ui_logic() {
     CHECK(qr.w == qr.h && qr.w > 40 && qr.px.front() == 0xFFFFFFFFu);
     CHECK(std::count(qr.px.begin(), qr.px.end(), 0xFF000000u) > 100);
 }
+static void test_bf6_platforms() {
+    // gametools akzeptiert für PC nur noch "pc"; "ea" bleibt als Rückfall, PSN/Xbox mit Alternativen
+    auto pc = bf6::platform_candidates("pc");
+    CHECK(pc.size() == 2 && pc[0] == "pc" && pc[1] == "ea");
+    CHECK(bf6::platform_candidates("steam")[0] == "pc");
+    CHECK(bf6::platform_candidates("psn")[0] == "psn" && bf6::platform_candidates("xbox")[0] == "xboxseries");
+    CHECK(bf6::platform_candidates("unbekannt")[0] == "pc");
+    auto n = bf6::name_candidates("P4p4F0x");
+    CHECK(n.size() == 2 && n[0] == "P4p4F0x" && n[1] == "p4p4f0x");
+    CHECK(bf6::name_candidates("abc").size() == 1);
+    // Spieler-ID im Eintrag: "Name#id" / "Name@psn#id", alte Formate unverändert
+    auto e = bf6::parse_entry_full("schmieselbeehee#1008293746");
+    CHECK(e.name == "schmieselbeehee" && e.platform == "pc" && e.id == "1008293746");
+    e = bf6::parse_entry_full(" Fox@psn#1234567 ");
+    CHECK(e.name == "Fox" && e.platform == "psn" && e.id == "1234567");
+    e = bf6::parse_entry_full("Fox@XBOX");
+    CHECK(e.name == "Fox" && e.platform == "xbox" && e.id.empty());
+    e = bf6::parse_entry_full("Fox");
+    CHECK(e.name == "Fox" && e.platform == "pc" && e.id.empty());
+    e = bf6::parse_entry_full("Fox#1234");  // kurze Zahl = Teil des Gamertags, keine ID
+    CHECK(e.name == "Fox#1234" && e.id.empty());
+    e = bf6::parse_entry_full("Fox #1@xbox");
+    CHECK(e.name == "Fox #1" && e.platform == "xbox" && e.id.empty());
+    e = bf6::parse_entry_full("Fox@unbekannt#123456");
+    CHECK(e.name == "Fox@unbekannt" && e.platform == "pc" && e.id == "123456");
+    e = bf6::parse_entry_full("#1234567");  // nur eine Zahl: bleibt Name
+    CHECK(e.name == "#1234567" && e.id.empty());
+    CHECK(bf6::parse_entry("Fox@psn#1234567") == std::make_pair(std::string("Fox"), std::string("psn")));
+    CHECK(bf6::parse_entry("Fox")  == std::make_pair(std::string("Fox"), std::string("pc")));
+    // ID aus JSON und Suchtreffer (Name nur exakt bzw. ohne Groß/Klein, sonst keine ID)
+    CHECK(bf6::json_id(nlohmann::json(1008293746LL)) == "1008293746" && bf6::json_id(nlohmann::json(" 77 ")) == "77");
+    CHECK(bf6::json_id(nlohmann::json(0)).empty() && bf6::json_id(nlohmann::json()).empty() && bf6::json_id(nlohmann::json(false)).empty());
+    auto res = nlohmann::json::parse(R"({"results":[{"name":"abc","id":1},{"userName":"ABC","personaId":"22"},{"name":"abcd","id":3}]})");
+    CHECK(bf6::pick_search_id(res, "ABC") == "22" && bf6::pick_search_id(res, "abc") == "1");
+    CHECK(bf6::pick_search_id(res, "AbC") == "1");
+    CHECK(bf6::pick_search_id(res, "xyz").empty() && bf6::pick_search_id(nlohmann::json::parse(R"({"results":[]})"), "abc").empty());
+    CHECK(bf6::pick_search_id(nlohmann::json::parse(R"([{"name":"Fox","nucleusId":99}])"), "fox") == "99");
+    // HTTP 5xx = "Quelle gestört", 404 und Netzwerkfehler (Status 0) bleiben "nicht gefunden"
+    CHECK(bf6::is_server_error(500) && bf6::is_server_error(502) && bf6::is_server_error(503) && bf6::is_server_error(599));
+    CHECK(!bf6::is_server_error(0) && !bf6::is_server_error(200) && !bf6::is_server_error(404) && !bf6::is_server_error(429) &&
+          !bf6::is_server_error(499) && !bf6::is_server_error(600));
+    CHECK_EQ(bf6::failure_text(true), std::string("Quelle gestört"));
+    CHECK_EQ(bf6::failure_text(false), std::string("nicht gefunden"));
+    CHECK_EQ(i18n::to_english(bf6::failure_text(true)), std::string("source unavailable"));
+}
+
 static void test_spotify() {
     // Slow serial writes must not expire the visible playback lease.
     {
@@ -400,6 +451,17 @@ static void test_spotify() {
     nlohmann::json episode = {{"is_playing", true}, {"item", {{"name", "Folge 1"}, {"duration_ms", 1000}, {"show", {{"name", "Podcast"}}}}}};
     CHECK_EQ(spotify::parse_player(episode, false).artist, std::string("Podcast"));
 
+    CHECK(url.find("user-read-recently-played") != std::string::npos);
+    auto recent = nlohmann::json::parse(R"({"items":[{"track":{"name":"Song","artists":[{"name":"A"},{"name":"B"}],
+        "album":{"name":"Alb","images":[{"url":"https://i.scdn.co/image/big","width":640},{"url":"https://evil.example/x","width":300}]}}}]})");
+    auto rs = spotify::parse_recent(recent, true);
+    CHECK(rs.state == spotify::State::Idle && rs.last_played && !rs.playing);
+    CHECK_EQ(rs.title, std::string("Song"));
+    CHECK_EQ(rs.artist, std::string("A, B"));
+    CHECK_EQ(spotify::recent_cover_url(recent), std::string("https://i.scdn.co/image/big"));
+    CHECK(!spotify::parse_recent(nlohmann::json::parse(R"({"items":[]})"), true).last_played);
+    CHECK(!spotify::parse_recent(nlohmann::json(), true).last_played);
+    CHECK_EQ(spotify::recent_cover_url(nlohmann::json()), std::string(""));
     CHECK_EQ(spotify::format_time(187000), std::string("3:07"));
     CHECK_EQ(spotify::format_time(-5), std::string("0:00"));
     CHECK_EQ(spotify::format_time(3725000), std::string("1:02:05"));
@@ -668,7 +730,17 @@ static void test_touch_targets() {
     CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/ps4/name/%C3%9Cni%2Fcode%3Fx%3D1?game=bf6"));
     p.query = "Fox@steam";
     CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/pc/name/Fox?game=bf6"));
+    // mit Spieler-ID (Eintrag oder Abfrage) zeigt der Link auf tracker.gg (gleiche ID wie bei gametools)
+    p.query = "Fox@psn#1234567890";
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://tracker.gg/bf6/profile/1234567890/overview"));
+    p.query = "Schmieselbee@psn#1001451188320";
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://tracker.gg/bf6/profile/1001451188320/overview"));
+    p.query = "Fox"; p.id = "42424242";
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://tracker.gg/bf6/profile/42424242/overview"));
+    p.id.clear();
     p.error = "nicht gefunden";
+    CHECK(touch::player_targets(p).empty());
+    p.error = "Quelle gestört";
     CHECK(touch::player_targets(p).empty());
     p.error.clear(); p.query.clear();
     CHECK(touch::player_targets(p).empty());
@@ -1177,11 +1249,152 @@ static void test_material_shell() {
         }
 }
 
+static void test_transfer_simulated() {
+    CHECK(std::abs(ewma(ewma(ewma({},100),200),300)-181)<.0001);
+    CHECK(!TransferStats{}.bytes_per_second);
+    TransferStats simulated;
+    // Simulierte Strecke mit 1 MB/s: keine Uhr, kein Port, kein Output::connect().
+    record_transfer(simulated,320,480,.3072,false);CHECK(!simulated.bytes_per_second);
+    record_transfer(simulated,8,480,.00768,true);CHECK(std::abs(*simulated.bytes_per_second-1000000)<.001);
+    record_transfer(simulated,0,480,.00001,true);CHECK(simulated.last_seconds==.00768);
+    record_transfer(simulated,3,480,.003,true);CHECK(std::abs(*simulated.bytes_per_second-1000000)<.001);
+    std::printf("Simulierte Strecke: %.0f Byte/s, reale Messung durch Basti offen\n",*simulated.bytes_per_second);
+    Image a(4,19), b=a;
+    CHECK(changed_bands(a,b).empty());
+    b.px[4]=1; CHECK((changed_bands(a,b)==std::vector<std::pair<int,int>>{{0,8}}));
+    b.px[8*4]=1; CHECK((changed_bands(a,b)==std::vector<std::pair<int,int>>{{0,16}}));
+    b=a;b.px[18*4]=1;CHECK((changed_bands(a,b)==std::vector<std::pair<int,int>>{{16,19}}));
+}
+static void test_plugin_taps() {
+    using namespace fl::touch;
+    Tile tile;tile.box={40,30,480,320};
+    tile.plugin={{{10,20,100,50},"test-plugin","card","zone","open_link","https://news.example.org/old",7,10,false}};
+    std::vector<Tile> shown={tile}, computed=shown;
+    PluginAccess grant{true,true,7,{"news.example.org"}};
+    auto access=[&](const std::string&) {return grant;};
+    auto decide=[&](double now,double min=1.) {return plugin_decide(shown,60,60,now,min,access);};
+    CHECK(decide(10.99).kind==PluginDecision::swallow);
+    CHECK(decide(10.29,.3).kind==PluginDecision::swallow);
+    CHECK(decide(10.31,.3).kind==PluginDecision::open_link);
+    computed[0].plugin[0].url="https://news.example.org/new";
+    CHECK(decide(11).url=="https://news.example.org/old");
+    stabilize_plugins(computed,shown,11);CHECK(computed[0].plugin[0].stable_since==11);
+    auto unchanged=shown;stabilize_plugins(unchanged,shown,11);CHECK(unchanged[0].plugin[0].stable_since==10);
+    computed[0].plugin[0].transitioning=true;
+    CHECK(plugin_decide(computed,60,60,20,1,access).kind==PluginDecision::swallow);
+    computed[0].plugin[0].transitioning=false;auto previous=computed;previous[0].plugin[0].transitioning=true;
+    stabilize_plugins(computed,previous,20);CHECK(computed[0].plugin[0].stable_since==20);
+    grant.consent=false;CHECK(decide(12).kind==PluginDecision::swallow);grant.consent=true;
+    grant.enabled=false;CHECK(decide(12).kind==PluginDecision::swallow);grant.enabled=true;
+    grant.generation=8;CHECK(decide(12).kind==PluginDecision::swallow);grant.generation=7;
+    grant.hosts={"other.example.org"};CHECK(decide(12).kind==PluginDecision::swallow);grant.hosts={"news.example.org"};
+    auto saved=shown[0].plugin[0].url;
+    for(const auto& bad:{"http://news.example.org/a","https://news.example.org/a\n","https://news.example.org/#fragment","https://user@news.example.org/a","https://news.example.org:444/a","https://news.example.org.evil.org/a","https://NEWS.example.org/a","https://news.example.org/a/.","https://news.example.org/a/../b","https://news.example.org/%2e","https://news.example.org/%GG","https://news.example.org/{{settings.x}}","https://news.example.org/a b","https://news.example.org/ä","https://news.example.org/<","https://news.example.org/\""}) {
+        shown[0].plugin[0].url=bad;CHECK(decide(12).kind==PluginDecision::swallow);
+    }
+    shown[0].plugin[0].url=saved;
+    std::map<std::string,double> rate;std::vector<std::string> launched;
+    auto launch=[&](const std::string& url) {launched.push_back(url);return true;};
+    CHECK(plugin_dispatch(decide(12),12,rate,launch));CHECK(!plugin_dispatch(decide(13.9),13.9,rate,launch));
+    CHECK(plugin_dispatch(decide(14),14,rate,launch));CHECK(launched==std::vector<std::string>({saved,saved}));
+    CHECK(!plugin_dispatch(PluginDecision{},20,rate,launch));
+    // Zwei Ansichten, gleiche Koordinaten, getrennte URLs und Ruhezeiten.
+    computed[0].plugin[0].stable_since=10;
+    CHECK(plugin_decide(computed,60,60,12,1,access).url=="https://news.example.org/new");
+    CHECK(decide(12).url==saved);
+    shown[0].plugin[0].action="next";grant.consent=false;
+    CHECK(decide(12).kind==PluginDecision::next);CHECK(decide(12).zone=="zone");
+    CHECK(plugin_decide(shown,0,0,12,1,access).kind==PluginDecision::none);
+    shown[0].plugin.clear();CHECK(decide(12).kind==PluginDecision::none);
+}
+static void test_editor_contrast() {
+    auto color=[](ui::Rgba c) { return Color{uint8_t(c.r*255+.5f),uint8_t(c.g*255+.5f),uint8_t(c.b*255+.5f)}; };
+    auto check=[&](const ui::Theme& t) {
+        for(auto bg:{t.bg,t.card,t.input}) {
+            CHECK(theme::contrast(color(t.text),color(bg))>=4.5);
+            CHECK(theme::contrast(color(t.muted),color(bg))>=4.5);
+            CHECK(theme::contrast(color(ui::focus_color(t)),color(bg))>=3);
+            CHECK(theme::contrast(color(t.text),color(bg))>=3); // Rasterrahmen/Auswahl
+        }
+        CHECK(theme::contrast(color(t.on_accent),color(t.accent))>=4.5);
+        CHECK(theme::contrast(color(t.danger),color(t.card))>=4.5);
+        auto blend=[](ui::Rgba fg,ui::Rgba bg,float alpha) { return ui::Rgba{fg.r*alpha+bg.r*(1-alpha),fg.g*alpha+bg.g*(1-alpha),fg.b*alpha+bg.b*(1-alpha),1}; };
+        // Editor-Liste: Titel und Detail nutzen Textfarbe, die ausgewählte Fläche 20 % davon auf input.
+        CHECK(theme::contrast(color(t.text),color(blend(t.text,t.input,.2f)))>=4.5);
+        CHECK(theme::contrast(color(t.text),color(blend(t.accent,t.bg,.12f)))>=4.5); // Hilfetext
+    };
+    check(ui::Theme::get(false));
+    ui::Kit kit; kit.dark=false;
+    for(auto style:{theme::Style::Cupertino,theme::Style::Fluent,theme::Style::Material}) {
+        theme::Custom t; t.name="Editor"; t.base="hell"; t.style=style; t.colors=theme::profile_palette(style,false);
+        kit.use_design({{"theme_inline",theme::to_json(t)}}); check(kit.theme());
+    }
+    kit.use_design({{"theme",theme::DEFAULT_ID}});kit.dark=true;check(kit.theme());
+    kit.dark=false;
+    kit.use_design({{"theme","hell"}});
+    theme::WindowsSettings fixed; fixed.light=true; fixed.has_accent=true;
+    kit.use_windows(true,&fixed); check(kit.theme());
+}
+// P7b-0: frische Installation, Bestandsmigration und gespeicherte Ja/Nein/keine Antwort.
+static void test_standard_theme() {
+    const auto root=fs::temp_directory_path()/("fl-standard-theme-"+std::to_string(GetCurrentProcessId()));
+    fs::create_directories(root);const auto path=root/"config.toml";fs::remove(path);
+    auto fresh=config::load(path);
+    CHECK(fresh["display"]["theme"]==theme::DEFAULT_ID);CHECK(!config::standard_theme_pending(fresh));
+    auto legacy=[&](const std::string& display) {std::ofstream out(path);out<<display<<"\n[ui]\nsettings_theme = \"hell\"\n";out.close();return config::load(path);};
+    auto old=legacy("[display]\ntheme = \"custom:previous\"");
+    CHECK(config::standard_theme_pending(old));CHECK(old["display"]["theme"]=="custom:previous");
+    const auto unchanged=old;
+    CHECK(!config::save_standard_theme_answer(path,old,std::nullopt));CHECK(old==unchanged);
+    CHECK(config::save_standard_theme_answer(path,old,false));CHECK(old["display"]["theme"]=="custom:previous");
+    CHECK(old["ui"]["settings_theme"]=="hell");CHECK(!config::standard_theme_pending(config::load(path)));
+    CHECK(!config::save_standard_theme_answer(path,old,true));CHECK(old["display"]["theme"]=="custom:previous");
+    old=legacy("[display]");CHECK(old["display"]["theme"]=="hell");
+    CHECK(config::save_standard_theme_answer(path,old,true));CHECK(old["display"]["theme"]==theme::DEFAULT_ID);
+    CHECK(old["ui"]["settings_theme"]=="dunkel");CHECK(!config::standard_theme_pending(config::load(path)));
+    old=legacy("[display]\ntheme = \"dunkel\"");const auto before=old;
+    bool failed=false;try {config::save_standard_theme_answer(root/"missing"/"config.toml",old,true);}catch(const std::exception&){failed=true;}
+    CHECK(failed);CHECK(old==before);
+    for(bool en:{false,true}) {auto prompt=theme::default_prompt(en);CHECK(!prompt.default_yes);CHECK(prompt.no==(en?L"No":L"Nein"));CHECK(prompt.title==(en?L"Set the new default?":L"Neuen Standard setzen?"));}
+    const auto resolved=theme::resolve(theme::DEFAULT_ID,theme::Store(root/"themes"));
+    CHECK(resolved.found && resolved.dark && resolved.style==theme::Style::Material);
+    CHECK(resolved.colors.accent==brand::ORANGE);CHECK(theme::contrast_warnings(resolved.colors).empty());
+    for(auto bg:{resolved.colors.bg,resolved.colors.card}) {
+        CHECK(theme::contrast(resolved.colors.text,bg)>=4.5);CHECK(theme::contrast(resolved.colors.muted,bg)>=4.5);
+        CHECK(theme::contrast(resolved.colors.accent,bg)>=4.5);CHECK(theme::contrast(resolved.bar,bg)>=3);
+    }
+    for(auto key:{"cupertino","fluent","hell","dunkel"}) {CHECK(theme::valid_theme_key(key));CHECK(theme::resolve(key,theme::Store(root/"themes")).found);}
+    fs::remove_all(root);
+}
 int main(int argc, char** argv) {
+    wchar_t aiModule[MAX_PATH];GetModuleFileNameW(nullptr,aiModule,MAX_PATH);
+    if(std::filesystem::path(aiModule).filename()==L"codex.exe" || std::filesystem::path(aiModule).filename()==L"claude.exe") return ai_cli_fixture(argc,argv);
+    if(argc>=2 && std::string(argv[1])=="ai-cli-test") return test_ai_cli(false);
+    if(argc>=2 && std::string(argv[1])=="ai-cli-probe") return test_ai_cli(true);
+
+    if (argc == 2 && std::string(argv[1]) == "plugin-touch") {
+        gfx_init();
+        test_touch_targets(); test_system_touch(); test_plugin_taps();
+        std::printf("plugin-touch: %d passed, %d failed\n",g_ok,g_fail); return g_fail ? 1 : 0;
+    }
+    if (argc == 2 && std::string(argv[1]) == "transfer-sim") {
+        test_transfer_simulated();
+        std::printf("transfer-sim: %d passed, %d failed\n",g_ok,g_fail); return g_fail ? 1 : 0;
+    }
     SetConsoleOutputCP(CP_UTF8);
     if (argc >= 6 && std::string(argv[1]) == "touch")
         return touch_probe(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
     gfx_init();
+    if (argc >= 2 && std::string(argv[1]) == "ai-status") {
+        try {return test_ai_status(argc>=3?fs::path(argv[2]):fs::path{}) ? 1 : 0;}
+        catch(const std::exception& e) {std::printf("AI exception: %s\n",e.what());return 1;}
+    }
+    CHECK(test_ai_status()==0);
+    // AI rendering uses Material; legacy geometry probes start in their original light theme.
+    render::set_theme("hell");
+    test_editor_contrast();
+    test_transfer_simulated();
+    test_plugin_taps();
     test_material_shell();
     if (argc >= 2 && std::string(argv[1]) == "dpp") {
         argc_probe_winstore = argc >= 3;
@@ -1206,7 +1419,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}, {"themes", test_themes}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"bf6-platforms", test_bf6_platforms},{"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}, {"themes", test_themes}, {"standard-theme",test_standard_theme}}) {
         std::printf("· %s\n", name);
         fn();
     }

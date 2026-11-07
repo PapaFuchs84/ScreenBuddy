@@ -16,13 +16,13 @@ if (signingFile != null) {
 }
 android {
     namespace = "de.fuchslabs.display"
-    compileSdk = 34
+    compileSdk = 36
     defaultConfig {
         applicationId = "de.fuchslabs.display"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 7
-        versionName = "1.0.3"
+        targetSdk = 36
+        versionCode = 8
+        versionName = "1.0.4"
     }
     signingConfigs {
         if (signingFile != null) create("companionRelease") {
@@ -51,3 +51,6 @@ dependencies {
     // ZXing-Scanner ohne Google Play Services (Kamera + ZXing-Decoder lokal).
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 }
+
+// A release artifact is distributable only with the established private signing key.
+// Fail explicitly in the delivery script rather than silently delivering an unsigned APK.

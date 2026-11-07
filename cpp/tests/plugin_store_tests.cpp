@@ -3,6 +3,11 @@
 #include <chrono>
 #include <cstdio>
 #include <fstream>
+#include <array>
+#include <thread>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 using namespace fl::plugins;
 namespace fs = std::filesystem;
@@ -17,13 +22,201 @@ static std::string manifest(const std::string& id = "clock", const std::string& 
 static void write(const fs::path& path, const std::string& text) {
     std::ofstream stream(path, std::ios::binary); stream << text;
 }
+static std::string read(const fs::path& path) {
+    std::ifstream f(path, std::ios::binary);
+    return {std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>()};
+}
+static void test_arrangements(const fs::path& root) {
+    const auto dir=root/"arrangements";
+    Store store(dir); CHECK(store.load());
+    auto j=Json::parse(manifest("arranged")); j["schema_version"]=2; j["widgets"][0]["id"]="clock";
+    j["links"]={"news.example.org"};
+    j["sources"]=Json::array({{{"id","feed"},{"url","https://api.example.org/data"}}});
+    CHECK(store.import_manifest(j.dump()));
+    CHECK(store.set_host_consent("arranged","api.example.org",true));
+    CHECK(store.set_link_consent("arranged",true)); CHECK(store.set_enabled("arranged",true));
+    auto before=*store.find("arranged");
+    auto initial=store.arrangement_get("arranged");
+    CHECK(initial["state"]=="none"); CHECK(initial["definition"]==before.manifest.definition);
+    CHECK(store.arrangement_get("missing").is_null());
+    auto a=initial["overlay"]; auto path=dir/"arranged.layout.json", backup=dir/"arranged.layout.json.bak";
+    auto manifest_bytes=read(dir/"arranged.flplugin.json");
+    auto consent_bytes=read(dir/"arranged.consent.json"), links_bytes=read(dir/"arranged.links.json");
+    CHECK(store.set_arrangement("arranged",a.dump()));
+    auto after=*store.find("arranged");
+    CHECK(after.arranged && after.arrangement_state=="ok");
+    CHECK(after.generation==before.generation && after.layout_revision>before.layout_revision);
+    CHECK(after.enabled && after.links_allowed && after.consented_hosts==before.consented_hosts);
+    CHECK(store.source_authorized("arranged","feed",before.generation));
+    CHECK(read(dir/"arranged.flplugin.json")==manifest_bytes);
+    CHECK(read(dir/"arranged.consent.json")==consent_bytes && read(dir/"arranged.links.json")==links_bytes);
+    CHECK(!fs::exists(backup));
+    auto previous=read(path); a["layout"]["columns"]={2};
+    CHECK(store.set_arrangement("arranged",a.dump())); CHECK(read(backup)==previous);
+    CHECK(store.find("arranged")->effective().layout->columns[0]==2);
+    Store reload(dir); CHECK(reload.load()); CHECK(reload.find("arranged")->arranged);
+    CHECK(reload.find("arranged")->enabled && reload.find("arranged")->links_allowed);
+    CHECK(reload.arrangement_get("arranged")["state"]=="ok");
+    CHECK(reload.arrangement_get("arranged")["overlay"]==a);
+    // Geräte erben Standard; eigene Anordnungen verändern weder Manifest noch Grants.
+    auto device_a=a;device_a["layout"]["columns"]={4};
+    auto device_b=a;device_b["layout"]["columns"]={5};
+    CHECK(store.arrangement_get("arranged","unknown")["overlay"]==a);
+    CHECK(store.arrangement_get("arranged","unknown")["inherited"]==true);
+    CHECK(store.set_arrangement("arranged",device_a.dump(),"phone-a"));
+    CHECK(store.set_arrangement("arranged",device_b.dump(),"phone-b"));
+    CHECK(store.find("arranged")->effective("phone-a").layout->columns[0]==4);
+    CHECK(store.find("arranged")->effective("phone-b").layout->columns[0]==5);
+    CHECK(store.find("arranged")->effective("unknown").layout->columns[0]==2);
+    CHECK(store.find("arranged")->generation==before.generation);
+    CHECK(store.arrangement_get("arranged","phone-a")["inherited"]==false);
+    Store devices_reload(dir);CHECK(devices_reload.load());
+    CHECK(devices_reload.find("arranged")->effective("phone-a").layout->columns[0]==4);
+    for(int i=2;i<16;++i) CHECK(store.set_arrangement("arranged",device_a.dump(),"phone-"+std::to_string(i)));
+    CHECK(!store.set_arrangement("arranged",device_a.dump(),"seventeenth"));
+    CHECK(!store.set_arrangement("arranged",device_a.dump(),std::string(513,'x')));
+    CHECK(store.clear_arrangement("arranged","phone-a"));
+    CHECK(store.find("arranged")->effective("phone-a").layout->columns[0]==2);
+    CHECK(store.find("arranged")->effective("phone-b").layout->columns[0]==5);
+    CHECK(read(dir/"arranged.flplugin.json")==manifest_bytes);
+    const auto revision=store.find("arranged")->layout_revision;
+    const auto committed=read(path); a["layout"]["columns"]={3};
+#ifdef _WIN32
+    // Lesen für das Backup erlaubt, Ersetzen der aktiven Datei durch den offenen Handle gesperrt.
+    HANDLE handle=CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+    CHECK(handle!=INVALID_HANDLE_VALUE);
+    if(handle!=INVALID_HANDLE_VALUE) {
+        CHECK(!store.set_arrangement("arranged",a.dump()));
+        CHECK(store.find("arranged")->layout_revision==revision);
+        CHECK(store.find("arranged")->effective().layout->columns[0]==2);
+        CHECK(read(path)==committed); CHECK(read(backup)==committed);
+        CloseHandle(handle);
+    }
+#endif
+    // Backupfehler ist ebenfalls vor dem Commit zu behandeln.
+    fs::remove(backup); fs::create_directory(backup);
+    CHECK(!store.set_arrangement("arranged",a.dump())); CHECK(read(path)==committed);
+    CHECK(store.find("arranged")->layout_revision==revision);
+    CHECK(!store.clear_arrangement("arranged"));CHECK(store.find("arranged")->arranged);
+    fs::remove(backup);
+    CHECK(!store.set_arrangement("missing",a.dump())); CHECK(!store.clear_arrangement("missing"));
+    auto bad=a;bad["manifest_sha256"]=std::string(64,'f');CHECK(!store.set_arrangement("arranged",bad.dump()));
+    bad=a;bad["blocks"][0]["text"]="injected";CHECK(!store.set_arrangement("arranged",bad.dump()));
+    CHECK(!store.set_arrangement("arranged",std::string(arrangement_limit+1,' ')));
+    CHECK(store.clear_arrangement("arranged"));CHECK(!fs::exists(path) && !fs::exists(backup));
+    CHECK(!store.find("arranged")->arranged && store.find("arranged")->arrangement_state=="none");
+    CHECK(store.find("arranged")->generation==before.generation);
+    CHECK(store.clear_arrangement("arranged"));
+    CHECK(store.set_arrangement("arranged",a.dump()));
+    // Update ersetzt nur die Basis; das alte Overlay bleibt sichtbar als stale liegen.
+    j["version"]="1.0.1";CHECK(store.import_manifest(j.dump()));
+    CHECK(store.find("arranged")->manifest.version=="1.0.1");
+    CHECK(!store.find("arranged")->arranged && store.arrangement_get("arranged")["state"]=="stale");
+    CHECK(fs::exists(path)); CHECK(!store.set_arrangement("arranged",a.dump()));
+    CHECK(reload.load()); CHECK(reload.arrangement_get("arranged")["state"]=="stale");
+    CHECK(reload.find("arranged")->effective().version=="1.0.1");
+    write(path,"{broken"); CHECK(!reload.load()); CHECK(reload.find("arranged"));
+    CHECK(reload.arrangement_get("arranged")["state"]=="invalid");CHECK(!reload.find("arranged")->arranged);
+    write(path,std::string(arrangement_limit+1,' '));CHECK(!reload.load());CHECK(reload.find("arranged"));
+    CHECK(reload.clear_arrangement("arranged")); CHECK(reload.load());
+    auto fresh=reload.arrangement_get("arranged")["overlay"];
+    CHECK(reload.set_arrangement("arranged",fresh.dump()));CHECK(reload.set_arrangement("arranged",fresh.dump()));
+    CHECK(fs::exists(backup));CHECK(reload.remove("arranged"));CHECK(!fs::exists(path) && !fs::exists(backup));
+    CHECK(store.import_manifest(manifest("legacy")));auto legacy=store.arrangement_get("legacy")["overlay"];
+    CHECK(!store.set_arrangement("legacy",legacy.dump()));
+    // 32 Plugins mit je sechs Dateien bleiben unter der Scan-Grenze von 256.
+    Store matrix(root/"arrangement-matrix"); CHECK(matrix.load());
+    for(int i=0;i<32;++i) {
+        j["id"]="matrix-"+std::to_string(i); auto id=j["id"].get<std::string>();
+        CHECK(matrix.import_manifest(j.dump(),true));
+        auto overlay=matrix.arrangement_get(id)["overlay"];
+        CHECK(matrix.set_arrangement(id,overlay.dump()));CHECK(matrix.set_arrangement(id,overlay.dump()));
+    }
+    CHECK(matrix.load());CHECK(matrix.entries().size()==32);
+    for(const auto& e:matrix.entries())CHECK(e.arranged && e.arrangement_state=="ok");
+    for(int i=0;i<65;++i)write(root/"arrangement-matrix"/("extra-"+std::to_string(i)),"");
+    CHECK(!matrix.load());
+    // Hardlinks: atomarer Austausch darf niemals den verlinkten Zielinhalt ändern.
+    Store safety(root/"arrangement-safety");CHECK(safety.load());
+    j["id"]="safe";CHECK(safety.import_manifest(j.dump()));auto safe=safety.arrangement_get("safe")["overlay"];
+    const auto safe_path=root/"arrangement-safety/safe.layout.json";
+    const auto outside=root/"arrangement-target";write(outside,"outside");
+    std::error_code ec;fs::create_hard_link(outside,safe_path,ec);CHECK(!ec);
+    if(!ec) {CHECK(safety.set_arrangement("safe",safe.dump()));CHECK(read(outside)=="outside");CHECK(safety.clear_arrangement("safe"));}
+    fs::create_symlink(outside,safe_path,ec);
+    if(!ec) {CHECK(!safety.set_arrangement("safe",safe.dump()));CHECK(!safety.clear_arrangement("safe"));CHECK(!safety.remove("safe"));CHECK(read(outside)=="outside");fs::remove(safe_path);}
+    else std::printf("SKIP arrangement symlink: unavailable.\n");
+    const auto safe_backup=root/"arrangement-safety/safe.layout.json.bak";
+    CHECK(safety.set_arrangement("safe",safe.dump()));
+    fs::create_hard_link(outside,safe_backup,ec); CHECK(!ec);
+    if(!ec) {CHECK(safety.set_arrangement("safe",safe.dump()));CHECK(read(outside)=="outside");fs::remove(safe_backup);}
+    fs::create_symlink(outside,safe_backup,ec);
+    if(!ec) {CHECK(!safety.set_arrangement("safe",safe.dump()));CHECK(!safety.clear_arrangement("safe"));CHECK(read(outside)=="outside");fs::remove(safe_backup);}
+    else std::printf("SKIP arrangement backup symlink: unavailable.\n");
+    // Mehrere Aufrufer werden durch denselben Store serialisiert; Backup bleibt ein gültiger Vorgänger.
+    std::array<int,4> results{}; std::vector<std::thread> threads;
+    auto start=safety.find("safe")->layout_revision;
+    for(int i=0;i<4;++i) threads.emplace_back([&,i] {
+        auto overlay=safe;overlay["layout"]["columns"]={i+1};
+        results[i]=bool(safety.set_arrangement("safe",overlay.dump()));
+    });
+    for(auto& t:threads)t.join();for(auto ok:results)CHECK(ok);
+    CHECK(safety.find("safe")->layout_revision==start+4);
+    CHECK(parse_arrangement(read(safe_path)));CHECK(parse_arrangement(read(safe_backup)));
+    CHECK(read(outside)=="outside");
+    // Keine exklusiven temporären Schreibdateien bleiben zurück.
+    for(const auto& f:fs::directory_iterator(dir))CHECK(f.path().filename().string().find(".tmp-")==std::string::npos);
+}
 int main() {
     std::setvbuf(stdout, nullptr, _IONBF, 0);
     const auto root = fs::temp_directory_path() /
         ("fl-plugin-tests-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     if (!fs::create_directory(root)) return 2;
+    {
+        Store links(root/"link-grants");CHECK(links.load());
+        auto j=Json::parse(manifest("link-test"));j["schema_version"]=2;j["widgets"][0]["id"]="clock";
+        j["links"]={"news.example.org"};j["sources"]=Json::array({{{"id","feed"},{"url","https://api.example.org/data"}}});
+        CHECK(links.import_manifest(j.dump()));CHECK(!links.find("link-test")->links_allowed);
+        CHECK(links.set_host_consent("link-test","api.example.org",true));CHECK(links.set_enabled("link-test",true));
+        auto generation=links.find("link-test")->generation;
+        CHECK(links.set_link_consent("link-test",true));CHECK(links.find("link-test")->generation>generation);
+        Store reload_links(root/"link-grants");CHECK(reload_links.load());CHECK(reload_links.find("link-test")->links_allowed);
+        j["links"]={"other.example.org"};CHECK(links.import_manifest(j.dump()));
+        auto e=links.find("link-test");CHECK(!e->links_allowed);CHECK(e->consented_hosts.contains("api.example.org"));CHECK(e->enabled);
+        Store changed_reload(root/"link-grants");CHECK(changed_reload.load());
+        CHECK(!changed_reload.find("link-test")->links_allowed && changed_reload.find("link-test")->consented_hosts==e->consented_hosts);
+        CHECK(links.set_link_consent("link-test",true));CHECK(links.set_link_consent("link-test",false));
+        CHECK(!links.find("link-test")->links_allowed);CHECK(!links.set_link_consent("missing",true));
+    }
+    for(const auto& change:{"widget","setting","tap","identical"}) {
+        Store store(root/(std::string("update-")+change));CHECK(store.load());
+        auto j=Json::parse(manifest("review"));j["schema_version"]=2;j["widgets"][0]["id"]="clock";
+        j["links"]={"news.example.org"};j["sources"]=Json::array({{{"id","feed"},{"url","https://api.example.org/data"}}});
+        CHECK(store.import_manifest(j.dump()));CHECK(store.set_host_consent("review","api.example.org",true));
+        CHECK(store.set_enabled("review",true));CHECK(store.set_link_consent("review",true));
+        if(std::string(change)!="identical") j["links"].push_back("other.example.org");
+        if(std::string(change)=="widget") j["widgets"][0]["label"]="Changed";
+        if(std::string(change)=="setting") j["settings"]=Json::array({{{"key","city"},{"type","text"},{"label","City"},{"default","Berlin"}}});
+        if(std::string(change)=="tap") j["widgets"][0]["tap"]={{"action","open_link"},{"url","https://news.example.org/changed"}};
+        CHECK(store.import_manifest(j.dump()));auto e=store.find("review");
+        CHECK(e && !e->enabled && e->consented_hosts.empty() && !e->links_allowed);
+        Store reload(root/(std::string("update-")+change));CHECK(reload.load());
+        e=reload.find("review");CHECK(e && !e->enabled && e->consented_hosts.empty() && !e->links_allowed);
+    }
+    {
+        auto dir=root/"broken-link-grants";Store store(dir);CHECK(store.load());
+        auto j=Json::parse(manifest());j["schema_version"]=2;j["widgets"][0]["id"]="clock";j["links"]={"news.example.org"};
+        CHECK(store.import_manifest(j.dump()));CHECK(store.set_link_consent("clock",true));
+        write(dir/"clock.links.json","{broken");
+        Store broken(dir);CHECK(!broken.load());CHECK(broken.entries().empty());
+        fs::remove(dir/"clock.links.json");fs::create_directory(dir/"clock.links.json");
+        CHECK(!store.set_link_consent("clock",false));CHECK(!store.find("clock")->links_allowed);
+        CHECK(!store.set_link_consent("clock",true));CHECK(!store.find("clock")->links_allowed);
+        CHECK(!store.import_manifest(j.dump()));CHECK(!store.find("clock")->enabled);
+    }
     // Cleanup only the exact newly created test directory; never any caller path.
     struct Cleanup { fs::path path; ~Cleanup() { std::error_code ec; fs::remove_all(path, ec); } } cleanup{root};
+    test_arrangements(root);
     Store store(root / "plugins");
     CHECK(!store.import_manifest(manifest()));
     CHECK(store.load());

@@ -1,5 +1,7 @@
 # ScreenBuddy · Funktionen im Detail
 
+Seit 2.10.0: [Game-Mode – Bedienung, Quellen und Grenzen](GAME-MODE.md).
+
 Aus dem README ausgelagert (Stand 2.9.4). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
 
 ## Inhalt
@@ -14,6 +16,7 @@ Aus dem README ausgelagert (Stand 2.9.4). Englisch: [FEATURES.en.md](FEATURES.en
 - [Farben & Design (ab 2.9.0)](#farben--design-ab-290)
 - [Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)](#android-companion-app-ab-230-mehrere-geräte-ab-270)
 - [Plugin-Store und Plugins (ab 2.6.0)](#plugin-store-und-plugins-ab-260)
+- [Plugin-Seiten mit Zonen-Layout und Seiten-Editor (ab 2.10.0)](#plugin-seiten-mit-zonen-layout-und-seiten-editor-ab-2100)
 - [Ansichten durchblättern (ab 2.0.4)](#ansichten-durchblättern-ab-204)
 
 ## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
@@ -83,6 +86,20 @@ Prüfstand: siehe [Release-Notizen 2.7](RELEASE-NOTES-2.7.md). Die automatisiert
 Einstellungsseite **Plugin-Store** (Gruppe **App**, neben Companion und Plugins, abschaltbar mit `[ui] plugin_store`): geprüfte Daten-Plugins aus dem signierten Store `PapaFuchs84/ScreenBuddy-Plugins` suchen, prüfen und installieren. Signierter Index und signierte Sperrliste (Ed25519, fest hinterlegter öffentlicher Schlüssel), Pakete per SHA-256 und Host-Angaben geprüft, täglicher Hintergrundabgleich. Vor der Installation zeigt die Karte, an welche Hosts ein Plugin Daten senden würde. Installierte Plugins bleiben aus, bis du sie unter **Plugins** einschaltest; jeder Host braucht deine Zustimmung. Seit 2.7.0 bleiben Store-Installationen und -Updates auch ohne Netzquellen ausgeschaltet; der direkte Import eines lokalen Manifests verhält sich wie bisher. Aktivierte Plugins lassen sich unter **Seiten & Reihenfolge** sortieren und ein-/ausblenden. Der Store zeigt signierte Vorschaubilder.
 
 Mehr: [Plugin-System](PLUGIN-SYSTEM.md) · [Tutorial](PLUGIN-TUTORIAL.md) · [Store-Bedingungen](PLUGIN-STORE-BEDINGUNGEN.md) · [Beispiele](../cpp/examples/plugins/README.md). Online-Plugins und CRL/OCSP-Prüfungen bleiben experimentell.
+
+## Plugin-Seiten mit Zonen-Layout und Seiten-Editor (ab 2.10.0)
+
+**Veröffentlicht mit 2.10.0.** Die Abnahme am Gerät erfolgte nur teilweise; siehe [Release-Notizen 2.10.0](RELEASE-NOTES-2.10.0.md).
+
+- **Zonen:** Ein Plugin mit `schema_version: 2` teilt seine Seite in ein Raster; Blöcke sitzen in Zonen und blenden sich aus, wenn der Platz nicht reicht. Grenzen: 6 × 6 Raster, 8 Zonen, 4 Blöcke je Zone. Ohne `layout` bleibt die bisherige Anordnung.
+- **Dichtestufen:** Je Baustein kompakt, normal oder ausführlich, gewählt nach verfügbarer Fläche.
+- **Bedingungen (`show_if`):** Ein Block erscheint nur bei vorhandenem Wert oder einfachem Vergleich. Fehler in einem Block betreffen nur diesen Block.
+- **Wechselfeld:** Eine Zone wechselt zwischen Blöcken (`rotate` mit 3–600 s oder `first_available`).
+- **Tap-Ziele:** Ein Block kann einen HTTPS-Link am PC öffnen. Die Freigabe je Plugin steht unter **Einstellungen → Plugins**, ist standardmäßig aus und zeigt die Hosts.
+- **Seiten-Editor:** **App → Eigene Ansichten** (Seitenliste, Einträge „Standard / Plugin“). Speichert nur die Anordnung, mit Sicherungskopie; das Manifest bleibt unverändert.
+- **Sperrzone pro Gerät:** Siehe [Navigation](NAVIGATION.md#geräteprofil-und-sperrzone-phase-4a-entwicklung).
+
+Details: [Plugin-System](PLUGIN-SYSTEM.md) · [Tutorial](PLUGIN-TUTORIAL.md) · [Navigation](NAVIGATION.md#plugin-seite-anordnen-entwicklung-für-2100).
 
 ## Ansichten durchblättern (ab 2.0.4)
 

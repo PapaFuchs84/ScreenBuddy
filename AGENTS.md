@@ -10,3 +10,9 @@
 - Nie Konfigurationen, Zugangsdaten, Logs oder private Screenshots veröffentlichen. Anleitungsbilder nur mit Beispieldaten; bei reinen Textkorrekturen vorhandene geprüfte Bilder unverändert lassen.
 
 Weitere Abläufe stehen in `CONTRIBUTING.md` und `CONTRIBUTING.en.md`.
+
+## Windows-Auslieferungen signieren
+
+- Ausdrückliche Nutzeranweisung: Öffentliche Windows-EXE-Auslieferungen ab jetzt immer mit vertrauenswürdiger Authenticode-Codesignierung und RFC-3161-Zeitstempel erstellen. Keine unsignierte EXE freigeben und kein selbstsigniertes Zertifikat als öffentliche Lösung verwenden.
+- `packaging/windows/Export-WindowsRelease.ps1` signiert und prüft vor Kopie und SHA-256. Fehlt ein geeignetes Zertifikat/Signierdienst, bleibt die öffentliche EXE-Auslieferung gesperrt; lokale Entwicklungsbuilds sind weiterhin möglich.
+- MSIX für den Microsoft Store wird nach Zertifizierung von Microsoft signiert. Lokale Testidentitäten niemals als Store-Einreichung ausgeben. SmartScreen-Warnungsfreiheit nicht versprechen: Reputation wird separat bewertet.

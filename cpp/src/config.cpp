@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "config.h"
+#include "custom_view.h"
 
 #include <windows.h>
 
@@ -20,10 +21,11 @@
 
 namespace fl::config {
 
-const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify"};
+const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify", "ai"};
 
 bool is_page_key(const std::string& k) {
     if (std::count(PAGES.begin(), PAGES.end(), k)) return true;
+    if (k.starts_with("custom:")) return custom::valid_id(k.substr(7));
     // Plugin-Seiten: "plugin:<id>"
     if (k.size() <= 7 || k.size() > 100 || k.rfind("plugin:", 0) != 0) return false;
     return std::none_of(k.begin(), k.end(), [](unsigned char ch) { return ch < 0x20 || ch == 0x7F; });
@@ -34,11 +36,13 @@ using Key = std::pair<std::string, std::string>;
 const ojson& defaults() {
     static const ojson d = [] {
         ojson j;
+        j["game_mode"] = {{"enabled",false},{"target_display","primary"},{"view",""},{"intro",true},{"reduce_motion",false},{"ping_target","1.1.1.1"},{"additional_games",""},{"exclusions",""}};
+        j["ai"] = {{"port",18765},{"enabled",false},{"automatic_usage",false},{"codex_real_account",false},{"claude_real_account",false}};
         j["discord"] = {{"enabled", true}, {"token", ""}, {"guild_ids", ojson::array()}, {"friend_ids", ojson::array()},
                         {"ignore_ids", ojson::array()}, {"show_offline", false}};
-        j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"brightness", 50}, {"reset_on_start", true},
+        j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}, {"brightness", 50}, {"reset_on_start", true},
                         {"page_seconds", 15}, {"pages", PAGES}, {"visible_pages", PAGES}, {"title", "Discord-Freunde"},
-                        {"screen_off_on_exit", true}, {"theme", "hell"},
+                        {"screen_off_on_exit", true}, {"theme", theme::DEFAULT_ID},
                         // Ausgabe: serial = USB-Display (3,5"), monitor = HDMI/USB-C-Bildschirm als Vollbildfenster
                         {"output", "serial"}, {"monitor", ""}, {"touch", true},
                         // Eigene Farben (theme = "eigen"): Vorlage plus #RRGGBB-Werte; leer = Farbe der Vorlage
@@ -61,10 +65,10 @@ const ojson& defaults() {
                               {"entities", ojson::array()}};
         j["spotify"] = {{"enabled", false}, {"title", "Spotify"}, {"client_id", ""}, {"amp", true}, {"amp_color", "level"}};
         // Companion-App (Android) im Heimnetz: standardmäßig aus; Port nie der der Einstellungsseite
-        j["companion"] = {{"enabled", false}, {"port", 8777}, {"page_seconds", 15}, {"pages", PAGES}, {"sync", true}};
+        j["companion"] = {{"enabled", false}, {"port", 8777}, {"page_seconds", 15}, {"pages", PAGES}, {"sync", true}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}};
         j["ui"] = {{"enabled", true}, {"port", 8765}, {"setup_done", false}, {"language", "de"}, {"update_check", true}, {"plugin_store", true},
                    // Darstellung des nativen Einstellungsfensters: auto = wie Windows
-                   {"settings_theme", "auto"}};
+                   {"settings_theme", "auto"}, {"standard_theme_choice", "new"}};
         return j;
     }();
     return d;
@@ -86,6 +90,7 @@ static const std::map<Key, std::vector<std::string>> CHOICES = {
     {{"display", "output"}, {"serial", "monitor", "network"}},
     {{"ui", "language"}, {"de", "en"}},
     {{"ui", "settings_theme"}, {"auto", "hell", "dunkel", "windows"}},
+    {{"ui", "standard_theme_choice"}, {"new", "pending", "accepted", "declined"}},
 };
 static const std::set<Key> ID_LISTS = {{"discord", "guild_ids"}, {"discord", "friend_ids"}, {"discord", "ignore_ids"}};
 static const std::vector<Key> SECRETS = {{"discord", "token"}, {"friends", "steam_api_key"}, {"friends", "xbox_api_key"}, {"friends", "psn_npsso"},
@@ -146,6 +151,9 @@ ojson load(const std::filesystem::path& path) {
     ojson cfg = defaults();
     std::error_code ec;
     if (std::filesystem::exists(path, ec)) {
+        // Alte Installationen behalten auch bei fehlendem theme-Schlüssel ihren alten Standard.
+        cfg["display"]["theme"] = "hell";
+        cfg["ui"]["standard_theme_choice"] = "pending";
         ojson user = read_toml(path);
         for (auto& [sec, vals] : user.items()) {
             if (!vals.is_object()) continue;
@@ -165,6 +173,18 @@ ojson load(const std::filesystem::path& path) {
         if (!std::count(pages.begin(), pages.end(), p)) pages.push_back(p);
     cfg["display"]["pages"] = pages;
     return cfg;
+}
+
+bool standard_theme_pending(const ojson& cfg) {
+    return cfg.contains("ui") && cfg["ui"].is_object() &&
+        cfg["ui"].contains("standard_theme_choice") && cfg["ui"]["standard_theme_choice"] == "pending";
+}
+bool save_standard_theme_answer(const std::filesystem::path& path, ojson& cfg, std::optional<bool> answer) {
+    if(!answer || !standard_theme_pending(cfg)) return false;
+    auto next=cfg;
+    next["ui"]["standard_theme_choice"]=*answer?"accepted":"declined";
+    if(*answer) {next["display"]["theme"]=theme::DEFAULT_ID;next["ui"]["settings_theme"]="dunkel";}
+    save(path,next);cfg=std::move(next);return true;
 }
 
 bool token_is_plaintext(const std::filesystem::path& path) {
@@ -194,8 +214,18 @@ static double to_number(const ojson& v) {
     throw std::invalid_argument("Zahl erwartet");
 }
 
-static ojson coerce(const std::string& sec, const std::string& key, const ojson& value, const ojson& def) {
+static ojson coerce(const std::string& sec, const std::string& key, const ojson& value, const ojson& def, const ojson& current) {
     Key k{sec, key};
+    if ((sec == "display" || sec == "companion") && key == "keepout") {
+        if (!value.is_object()) throw std::invalid_argument("Sperrzone / keepout: Objekt erwartet / object required");
+        ojson out = current.is_object() ? current : def;
+        for (auto& [edge, v] : value.items()) {
+            if (!def.contains(edge) || !v.is_number_integer() || v < 0 || v > 1000)
+                throw std::invalid_argument("Sperrzone / keepout: ganze Pixel 0–1000 erwartet / integer pixels 0–1000 required");
+            out[edge] = v;
+        }
+        return out;
+    }
     if (def.is_boolean()) {
         if (value.is_boolean()) return value;
         throw std::invalid_argument("Ja/Nein erwartet");
@@ -264,6 +294,26 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
         if (out.size() > cap) out.resize(cap);
         return out;
     }
+    if(sec=="game_mode") {
+        if(!value.is_string())throw std::invalid_argument("Text erwartet / text required");
+        auto v=trim(value.get<std::string>());
+        if(key=="additional_games" || key=="exclusions") {
+            if(v.size()>32768)throw std::invalid_argument("Maximal 32 KiB / at most 32 KiB");
+            auto lines=split(v,"\n");if(lines.size()>128)throw std::invalid_argument("Maximal 128 Einträge / at most 128 entries");
+            for(auto& line:lines){auto path=trim(line);if(path.empty())continue;
+                if(path.size()>2048 || path.find_first_of("\r\t")!=std::string::npos || (key=="additional_games" && (!std::filesystem::path(widen(path)).is_absolute() || casefold(narrow(std::filesystem::path(widen(path)).extension().wstring()))!=".exe")))throw std::invalid_argument("Absolute EXE-Pfade zeilenweise erwartet / absolute EXE paths required, one per line");}
+            return v;
+        }
+        if(v.size()>300)throw std::invalid_argument("Text zu lang / text too long");
+        if(key=="view" && !v.empty() && (!v.starts_with("custom:") || !custom::valid_id(v.substr(7))))throw std::invalid_argument("Eigene Ansicht erwartet / custom view required");
+        if(key=="target_display" && v!="primary" && !device::valid_layout_id(v))throw std::invalid_argument("Display-ID ungültig / invalid display ID");
+        if(key=="ping_target") {
+            static const std::regex ip(R"((?:[0-9]{1,3}\.){3}[0-9]{1,3})");bool valid=std::regex_match(v,ip);
+            if(valid)for(const auto& part:split(v,"."))if(std::stoi(part)>255)valid=false;
+            if(!valid)throw std::invalid_argument("IPv4-Ziel erwartet / IPv4 target required");
+        }
+        return v;
+    }
     std::u32string u = to_u32(trim(py_str(value)));
     if (u.size() > 300) u.resize(300);
     std::string v = from_u32(u);
@@ -276,7 +326,7 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
     if (k == Key{"streaming", "api_key"} && !v.empty() && tmdb::key_kind(v) == tmdb::KeyKind::None)
         throw std::invalid_argument("Ungültiger TMDB-Key");
     if (k == Key{"display", "theme"} && !(v == "eigen" || theme::valid_theme_key(v)))
-        throw std::invalid_argument("erlaubt: hell, dunkel, windows, custom:<id>");
+        throw std::invalid_argument("erlaubt: material-orange, cupertino, fluent, hell, dunkel, windows, custom:<id>");
     if (auto it = CHOICES.find(k); it != CHOICES.end() && !std::count(it->second.begin(), it->second.end(), v))
         throw std::invalid_argument("erlaubt: " + join(it->second, ", "));
     if (sec == "display" && is_color_key(key) && !v.empty()) {
@@ -297,7 +347,7 @@ ojson merge(const ojson& cfg, const ojson& incoming) {
             if (!d[sec].contains(key)) continue;
             if (is_secret(sec, key) && trim(py_str(value)).empty()) continue;
             try {
-                out[sec][key] = coerce(sec, key, value, d[sec][key]);
+                out[sec][key] = coerce(sec, key, value, d[sec][key], out.value(sec, ojson::object()).value(key, d[sec][key]));
             } catch (const std::exception& e) {
                 throw std::invalid_argument(sec + "." + key + ": " + e.what());
             }
@@ -341,6 +391,17 @@ static std::string toml_value(const ojson& v) {
         for (size_t i = 0; i < v.size(); ++i) s += (i ? ", " : "") + toml_value(v[i]);
         return s + "]";
     }
+    if (v.is_object()) {
+        // Verschachtelte Werte als TOML-Inline-Tabelle erhalten (z. B. Sperrzone).
+        std::string out = "{ ";
+        bool first = true;
+        for (const auto& [key, value] : v.items()) {
+            if (!first) out += ", ";
+            first = false;
+            out += toml_value(ojson(key)) + " = " + toml_value(value);
+        }
+        return out + " }";
+    }
     std::string s = py_str(v), out = "\"";
     for (unsigned char c : s) {
         if (c == '\\') out += "\\\\";
@@ -357,6 +418,8 @@ static const std::map<std::string, std::string> HEADERS = {
     {"discord", "Discord-Freunde (Bot-Token, Server, Personen)"},
     {"display", "Display und Seitenwechsel (pages = Reihenfolge der Seiten)"},
     {"system", "Systemansicht"},
+    {"ai", "KI-Status / AI Status (nur lokal / local only)"},
+    {"game_mode", "Game-Mode (lokal / local)"},
     {"homeassistant", "Home Assistant (Adresse, Zugriffstoken, bis zu 4 Entitäten; Schalter nur mit Touch)"},
     {"spotify", "Spotify (Client-ID deiner Spotify-Developer-App; Anmeldung in den Einstellungen, Tokens in spotify.token; Steuern nur mit Touch und Spotify Premium)"},
     {"friends", "Gemeinsame Freundesliste (Discord, Steam, Xbox, PlayStation); links = manuell verknüpfte Personen"},

@@ -12,7 +12,6 @@
     <style name="Theme.FuchsLabs.Display" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@color/fl_navy_deep</item>
         <item name="android:windowFullscreen">true</item>
-        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 </resources>
 

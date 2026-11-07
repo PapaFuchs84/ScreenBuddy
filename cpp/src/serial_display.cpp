@@ -73,6 +73,22 @@ std::optional<std::string> SerialDisplay::find_port() {
     return found;
 }
 
+// Windows-Geräteinstanz statt veränderlicher COM-Nummer; ohne ID wird Standard geerbt.
+static std::string serial_layout_id(const std::string& port) {
+    HDEVINFO set=SetupDiGetClassDevsW(&GUID_DEVINTERFACE_COMPORT,nullptr,nullptr,DIGCF_PRESENT|DIGCF_DEVICEINTERFACE);
+    if(set==INVALID_HANDLE_VALUE) return {};
+    std::string found;SP_DEVINFO_DATA dev{sizeof dev};
+    for(DWORD i=0;SetupDiEnumDeviceInfo(set,i,&dev);++i) {
+        HKEY key=SetupDiOpenDevRegKey(set,&dev,DICS_FLAG_GLOBAL,0,DIREG_DEV,KEY_READ);
+        if(key==INVALID_HANDLE_VALUE) continue;
+        wchar_t name[64]={};DWORD size=sizeof name;
+        const bool match=RegQueryValueExW(key,L"PortName",nullptr,nullptr,reinterpret_cast<BYTE*>(name),&size)==ERROR_SUCCESS && _wcsicmp(name,widen(port).c_str())==0;
+        RegCloseKey(key);
+        wchar_t id[512]={};
+        if(match && SetupDiGetDeviceInstanceIdW(set,&dev,id,512,nullptr)) {found="serial:"+narrow(id);break;}
+    }
+    SetupDiDestroyDeviceInfoList(set);return found;
+}
 std::string SerialDisplay::rgb565le(const Image& img, int y0, int y1) {
     std::string out;
     out.resize(size_t(img.w) * (y1 - y0) * 2);
@@ -102,6 +118,7 @@ void SerialDisplay::open(int attempts) {
         std::string up = port_cfg_;
         for (auto& c : up) c = (char)toupper((unsigned char)c);
         std::optional<std::string> port = up == "AUTO" ? find_port() : std::optional<std::string>(port_cfg_);
+        if(port) {resolved_port_=*port;port_id_=serial_layout_id(*port);}
         if (port) {
             std::wstring path = L"\\\\.\\" + widen(*port);
             HANDLE h = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
@@ -224,32 +241,32 @@ void SerialDisplay::blit(const Image& img, int y0, int y1) {
     for (size_t i = 0; i < data.size(); i += step) write(data.substr(i, step));
 }
 
+std::vector<std::pair<int,int>> changed_bands(const Image& old, const Image& next, int band) {
+    std::vector<std::pair<int,int>> ranges;
+    if (band <= 0 || next.empty()) return ranges;
+    if (old.w != next.w || old.h != next.h) return {{0, next.h}};
+    for (int y = 0; y < next.h; y += band) {
+        int end = std::min(next.h, y + band);
+        if (memcmp(&next.px[size_t(y)*next.w], &old.px[size_t(y)*next.w], size_t(end-y)*next.w*4) == 0) continue;
+        if (!ranges.empty() && ranges.back().second == y) ranges.back().second = end;
+        else ranges.emplace_back(y,end);
+    }
+    return ranges;
+}
+namespace plugins::schedule {
+size_t serial_bytes(const Image& prev, const Image& next) {
+    size_t bytes=0;
+    for (auto [start,end]:changed_bands(prev,next)) bytes+=size_t(end-start)*next.w*2;
+    return bytes;
+}
+}
 int SerialDisplay::show_locked(const Image& frame) {
-    int w = frame.w, h = frame.h;
-    if (!last_frame_) {
-        blit(frame, 0, h);
-        last_frame_ = frame;
-        return h;
-    }
-    const Image& old = *last_frame_;
-    int bh = band_height_;
-    std::vector<int> changed;
-    for (int y = 0; y < h; y += bh) {
-        int end = std::min(h, y + bh);
-        if (memcmp(&frame.px[size_t(y) * w], &old.px[size_t(y) * w], size_t(end - y) * w * 4) != 0) changed.push_back(y);
-    }
+    const double start = mono();
+    const bool partial = last_frame_.has_value();
+    auto ranges = partial ? changed_bands(*last_frame_, frame, band_height_) : std::vector<std::pair<int,int>>{{0,frame.h}};
     int sent = 0;
-    // Zusammenhängende Bänder zu einem Rechteck zusammenfassen
-    for (size_t i = 0; i < changed.size(); ++i) {
-        int start = changed[i], end = start + bh;
-        while (i + 1 < changed.size() && changed[i + 1] == end) {
-            ++i;
-            end += bh;
-        }
-        end = std::min(h, end);
-        blit(frame, start, end);
-        sent += end - start;
-    }
+    for (auto [first,end] : ranges) { blit(frame,first,end); sent += end-first; }
+    record_transfer(stats_,sent,frame.w,mono()-start,partial);
     last_frame_ = frame;
     return sent;
 }

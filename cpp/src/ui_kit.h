@@ -84,6 +84,7 @@ struct Theme {
         on_accent, header, header_text, success, danger, preview_bg;
     static const Theme& get(bool dark);
 };
+Rgba focus_color(const Theme& theme, bool navigation = false);
 Rgba rgb(uint8_t r, uint8_t g, uint8_t b, float a = 1.f);
 Rgba from(const Color& c, float a = 1.f);
 bool system_prefers_dark();
@@ -103,7 +104,7 @@ public:
     void use_design(const ojson& display);
     fl::theme::Design design;
     // "An Windows anpassen": Hell/Dunkel und Akzentfarbe des Systems (Kopfzeile und Logo bleiben Fuchs-Orange)
-    void use_windows(bool on);
+    void use_windows(bool on, const fl::theme::WindowsSettings* fixed = nullptr);
     bool windows() const { return windows_; }
     bool english = false, dark = false;
 private:
@@ -159,9 +160,13 @@ public:
     virtual void children(std::vector<Widget*>&) {}
     virtual bool focusable() const { return false; }
     virtual bool key(UINT, Surface&) { return false; }
+    virtual bool system_arrows() const { return false; } // Alt+Links/Rechts gezielt an eigene Raster weitergeben
     virtual void press(Point, Surface&) {}
     virtual void drag(Point, Surface&) {}
     virtual void release(Point, Surface&) {}
+    virtual void cancel(Surface&) {} // Abbruch ohne release, genau einmal je Capture.
+    virtual LPCWSTR cursor(Point) const { return clickable() ? IDC_HAND : IDC_ARROW; }
+    virtual bool autoscroll() const { return false; } // true: Surface ruft drag() per Timer weiter, solange die Maus am Rand ruht
     virtual void activate(Surface&) {}                       // Leertaste/Eingabe/Standardaktion
     virtual bool clickable() const { return focusable(); }
     virtual void place(Surface&, bool shown) {}              // native Kindfenster nachführen
@@ -394,12 +399,14 @@ public:
 // Echtes EDIT-Fenster in selbst gezeichnetem Rahmen.
 class TextField : public Widget {
 public:
+    std::function<void()> on_commit; // abgeschlossene Eingabe: Enter oder Fokuswechsel
     enum Kind { Single, Secret, Number, Multi };
     Kind kind;
     std::wstring original;
     Text hint;                  // Platzhalter (einzeilig)
     int lines = 4, limit = 1024;
     float width = 260;
+    bool invalid = false;       // Eingabefehler markieren, ohne den Fokus zurückzuholen
     bool secret_set = false;    // Secret: ein Wert ist gespeichert
     TextField(Kind k, std::wstring v);
     ~TextField() override;
@@ -635,6 +642,10 @@ public:
     virtual bool busy() const = 0;
     virtual void navigate(const std::string& id) = 0;
     virtual HWND window() const = 0;
+    virtual bool confirm(const Text& question) {
+        return MessageBoxW(window(),question.get(english()).c_str(),L"ScreenBuddy",
+            MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2)==IDYES;
+    }
     virtual void preview(std::optional<Image> frame) = 0;  // Vorschau überschreiben; nullopt = wieder live
     virtual const Status& status() const = 0;
     virtual Surface& surface() = 0;                 // Inhaltsbereich (z. B. für Toggle::set)

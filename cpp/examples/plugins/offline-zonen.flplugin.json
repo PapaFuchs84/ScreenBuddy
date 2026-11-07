@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "id": "offline-zonen",
+  "name": "Zonen-Tag / Zone day",
+  "description": "Lokales Tagesboard mit Zonen-Layout / Local day board with a zone layout. Clock, focus, counters; no network, timer or code execution.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "info",
+  "min_app_version": "2.10.0",
+  "settings": [
+    {"key": "motto", "label": "Motto / Motto", "type": "text", "default": "Ruhig bleiben / Stay calm"},
+    {"key": "focus", "label": "Mein Fokus / My focus", "type": "text", "default": "Eine Sache abschliessen / Finish one thing"},
+    {"key": "minutes", "label": "Geplante Minuten / Planned minutes", "type": "number", "default": 25},
+    {"key": "progress", "label": "Fortschritt 0-100 / Progress 0-100", "type": "number", "default": 60},
+    {"key": "rounds", "label": "Runden / Rounds", "type": "number", "default": 3},
+    {"key": "breaks", "label": "Pausen / Breaks", "type": "number", "default": 2}
+  ],
+  "sources": [],
+  "layout": {
+    "columns": [1, 1],
+    "rows": [3, 2, 2],
+    "zones": [
+      {"id": "zeit", "column": 0, "row": 0},
+      {"id": "datum", "column": 1, "row": 0},
+      {"id": "fokus", "column": 0, "row": 1},
+      {"id": "dauer", "column": 1, "row": 1},
+      {"id": "fortschritt", "column": 0, "row": 2},
+      {"id": "zaehler", "column": 1, "row": 2}
+    ]
+  },
+  "widgets": [
+    {"type": "clock", "id": "uhr", "zone": "zeit", "label": "Ortszeit / Local time", "format": "time"},
+    {"type": "clock", "id": "tag", "zone": "datum", "label": "Datum / Date", "format": "date"},
+    {"type": "text", "id": "motto", "zone": "datum", "label": "Heute / Today", "text": "{{settings.motto}}"},
+    {"type": "text", "id": "fokus", "zone": "fokus", "label": "Mein Fokus / My focus", "text": "{{settings.focus}}"},
+    {"type": "metric", "id": "dauer", "zone": "dauer", "label": "Fokusblock / Focus session", "value": "{{settings.minutes}}", "unit": "min"},
+    {"type": "bar", "id": "fortschritt", "zone": "fortschritt", "label": "Fortschritt / Progress (%)", "value": "{{settings.progress}}", "min": 0, "max": 100},
+    {"type": "metric", "id": "runden", "zone": "zaehler", "label": "Runden / Rounds", "value": "{{settings.rounds}}"},
+    {"type": "metric", "id": "pausen", "zone": "zaehler", "label": "Pausen / Breaks", "value": "{{settings.breaks}}"}
+  ]
+}

@@ -3,6 +3,7 @@
 // WebSocket-Rahmen und -Handshake, JSON-Nachrichten, PIN-Kopplung mit Sperre, Gerätespeicher, Kopplungs-URI und
 // QR-Code als SVG. Kein Windows-Code: läuft auch in den Linux-Tests (cpp/tests/companion_tests.cpp).
 #pragma once
+#include "device_profile.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -168,6 +169,9 @@ struct Device {
     std::string id, name, key;  // key = 32 Byte roh
     double added = 0, last_seen = 0;
     std::optional<std::vector<std::string>> pages;  // eigene Seitenliste (Reihenfolge = Auswahl); leer = Standardliste
+    std::optional<device::Insets> keepout;
+    int width = 480, height = 320;
+    bool tv = false;
 };
 
 class Store {
@@ -186,7 +190,11 @@ public:
     bool remove(const std::string& id);
     // Eigene Seitenliste je Gerät (nullopt = die gemeinsame Liste companion.pages). Ungültige Einträge fallen weg.
     std::optional<std::vector<std::string>> device_pages(const std::string& id);
+    std::optional<device::Insets> device_keepout(const std::string& id);
+    bool set_device_keepout(const std::string& id, const std::optional<device::Insets>& insets);
     bool set_device_pages(const std::string& id, const std::optional<std::vector<std::string>>& pages);
+    bool set_device_size(const std::string& id, int w, int h);
+    bool set_device_tv(const std::string& id, bool tv);
     json list();                                     // ohne Schlüssel
 
 private:

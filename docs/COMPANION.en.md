@@ -1,5 +1,7 @@
 ## Companion app (from 2.3.0): independent displays
 
+Unpublished candidate: Companion 1.0.4 (code 8), targetSdk 36; [build and Store preparation](STORE-DISTRIBUTION.en.md). The previously published release is unchanged.
+
 **Status 31 October 2026:** The current Companion app 1.0.3 (versionCode 7; new light and dark login design; since 1.0.1 it keeps clear of rounded corners and the camera cut-out) is a separate download and not part of the Windows EXE. The Redmi 8 acceptance over USB tethering on 27 October 2026 (landscape/portrait output, real finger gestures, automatic page rotation and reconnect without a new PIN) refers to the predecessor 0.2.1-preview (versionCode 3, signed with a new RSA-3072 release key, APK v2 signature verified). For Companion app 1.0.3 the interface was installed on a Pixel 10 Pro, Redmi 8 and BeyondTV on 31 October 2026 and checked by screenshot; a full connection test is not documented in the [test record](../cpp/TESTPROTOKOLL.md). The previous debug APK uses a different certificate and cannot be directly updated with the new APK. Do not uninstall automatically: local data and pairings would be removed. [Build, signing and migration](../android/README.md). Earlier device results below apply to 0.2.0-preview.
 
 The USB display or HDMI monitor and Android Companion can run at the same time, with separate page selections, positions, timers and touch targets. Data sources, accounts and theme stay shared. Enable and configure each data source in its tab before selecting its page for an output.
@@ -43,3 +45,19 @@ Up to 8 devices can be paired and several connected at the same time. The switch
 - **Independent (off):** every phone has its own page position, resolution (landscape/portrait), swipe and tap handling and switches by itself after `page_seconds`. Touch targets and toggles apply to the device that was tapped. Each device can also get **its own page list** (Settings → Companion → “Pages for the selected device”; saved immediately). An own list is binding: pages that are missing are not shown on that device. “Use shared list” restores the list under “Pages for Companion”. Each device’s position is part of the status (`/api/companion/status`, `clients[].navigation`).
 
 In independent mode the preview and “Show previous/next page” in the settings refer to the first connected device and to all connected devices respectively. The page lists live in `companion.json` (DPAPI-protected like the pairings). The protocol is unchanged; older app versions work without changes. **Test status:** automated checks with simulated devices (server tests and an isolated app run with two test clients); Pixel 10 Pro and Redmi 8 were checked on 30 October 2026 with different device page lists, injected swipes and automatic switching; see the [2.7.0 release notes](RELEASE-NOTES-2.7.md) for the full limits.
+
+## Device profile: keepout and Android TV (Phase 4a, development)
+
+Partial patches such as `{"companion":{"keepout":{"top":5}}}` preserve unspecified edges. Shared mode uses only `companion.keepout`; the device card explains that individual edges have no effect in that mode. Differently sized image content is clipped to the usable area as well.
+
+Android TV stays in landscape (`SENSOR_LANDSCAPE`). Orientation selection is hidden there; any previously stored choice is ignored and retained. Phones keep their Landscape/Portrait/Automatic behaviour. TV has no touch actions; D-pad left/right navigates as before, while CENTER/ENTER remains without action.
+
+The PC Companion settings offer four shared default edges (`companion.keepout`) and an individual keepout for the selected paired device. Individual edges are saved immediately through the Companion store, apply only in independent mode (`companion.sync = false`), and can be reset to the shared default. A missing field in older pairings means no individual override; all edges default to 0. Phone camera cutouts remain client-side as well.
+
+Top/right/bottom/left use the reported full frame size without rotation. Integer pixels 0–1000 are accepted; rendering limits each edge to one third of the smaller frame dimension. Below 160 × 120 usable pixels, the entire keepout is ignored (warning at most once per view/minute). Content is drawn at usable size and placed in a full frame with the theme background; previews include this border. `ready.w/h` and touch positions remain full-frame coordinates (unchanged protocol). The PC shifts targets per device; border taps cause neither actions nor navigation, and stale frame sizes are rejected.
+
+Usage: [navigation](NAVIGATION.en.md#device-profile-and-keepout-phase-4a-development). Validation: [test record](../cpp/TESTPROTOKOLL.md); physical TV/enclosure acceptance remains open.
+
+## Plugin taps (Phase 4c, development)
+
+Schema 2 plugins can offer HTTPS links and the next cycling-zone entry. Links open on the PC, including taps from a phone. The separate grant in Settings → Plugins defaults to off and displays the link hosts. Targets require 1.0 s stability on Companion or 0.3 s on a monitor and are blocked during transitions; denied taps do not navigate. Areas without a target retain thirds navigation. Android TV gains no tap/D-pad action. See the [plugin system](PLUGIN-SYSTEM.en.md#tap-targets-for-plugin-blocks-phase-4c-development-for-2100). Physical acceptance is pending.

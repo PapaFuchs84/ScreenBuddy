@@ -2,6 +2,9 @@
 // Die App: Datenquellen, Seitenwechsel und Ausgabe. Die Einstellungsseite (webui) und das Tray-Symbol greifen
 // über die öffentlichen Methoden zu (alle threadsicher).
 #pragma once
+#include "custom_view.h"
+#include "game_runtime.h"
+#include "game_intro.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -17,10 +20,14 @@
 #include <vector>
 
 #include "config.h"
+#include "builtin_catalog.h"
 #include "gfx.h"
 #include "models.h"
 #include "output.h"
+#include "device_profile.h"
+#include "device_overlays.h"
 #include "plugin_store.h"
+#include "plugin_render.h"
 #include "plugin_settings.h"
 #include "render.h"
 #include "touch.h"
@@ -39,6 +46,28 @@ namespace audio { class LevelMeter; }
 namespace update { class UpdateChecker; }
 class Tray;
 
+// Dateispeicher eingebauter Anordnungen; die App und der serielle UI-Jobweg teilen ihn.
+namespace builtin {
+struct LayoutState {
+    std::optional<Overlay> overlay;
+    std::string state = "none";
+    uint64_t revision = 0;
+    device::OverlayMap devices;
+};
+class LayoutStore {
+public:
+    explicit LayoutStore(std::filesystem::path directory);
+    LayoutState get(const std::string& key, const std::string& device = {}) const;
+    Json view(const std::string& key, const std::string& device = {}) const;
+    std::string apply(const std::string& key, std::string_view text, const std::string& device = {});
+    std::string reset(const std::string& key, const std::string& device = {});
+private:
+    std::filesystem::path directory_;
+    mutable std::mutex mutex_;
+    std::map<std::string,LayoutState> states_;
+    std::string reset_locked(const std::string& key);
+};
+}
 class App {
 public:
     App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out, std::optional<std::filesystem::path> preview_dir, bool show_settings_on_start = false);
@@ -47,6 +76,7 @@ public:
 
     // ---------- für die Einstellungsseite ----------
     ojson cfg();                                    // Kopie der aktuellen Konfiguration
+    ai::Service& ai_status() { return *ai_; }
     void set_setup_done();
     const std::filesystem::path& cfg_path() const { return cfg_path_; }
     std::pair<int, int> size() const;
@@ -81,16 +111,45 @@ public:
     bool plugin_import(std::string_view manifest, std::string& error, bool force_disabled = false);
     bool plugin_set_enabled(const std::string& id, bool enabled, std::string& error);
     bool plugin_set_host_consent(const std::string& id, const std::string& host, bool allowed, std::string& error);
+    bool plugin_set_link_consent(const std::string& id, bool allowed, std::string& error);
     ojson plugin_settings_view(const std::string& id);
     bool plugin_save_settings(const std::string& id, const ojson& patch, std::string& error);
     bool plugin_remove(const std::string& id, std::string& error);
     std::optional<Image> plugin_preview(std::string_view manifest, std::string& error);
+    std::optional<Image> plugin_preview(std::string_view manifest, std::string& error, std::pair<int,int> dimensions, bool fixed_sample_clock = false);
+    nlohmann::json builtin_layout_get(const std::string& key, const std::string& device = {});
+    void builtin_layout_apply(const std::string& key, const nlohmann::json& overlay, const std::string& device = {});
+    void builtin_layout_reset(const std::string& key, const std::string& device = {});
+    std::optional<Image> page_preview(const std::string& key, const nlohmann::json& overlay,
+                                    std::pair<int,int> dimensions, std::string& error);
+    std::optional<Image> custom_preview(const custom::View& view, const std::string& device, std::pair<int,int> dimensions);
+    std::vector<custom::Tile> custom_palette();
+    void render_primary_for_test() { render_view(false, true); }   // Testnaht: ein synchroner Zeichendurchlauf ohne Anzeige-Thread
     spotify::SpotifyClient* spotify() { return spotify_.get(); }   // nullptr = Seite aus oder keine Client-ID
     NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 
 private:
     struct RendererSet;
     struct ViewState {
+        game::Intro game_intro;
+        Image previous_frame;
+        uint64_t game_generation=0;
+        bool game_active=false;
+        double game_entered=0, saved_switched=0;
+        int saved_page=0;
+        std::map<std::string,uint64_t> builtin_revisions;
+        std::map<std::string,std::map<std::string,plugins::schedule::ZoneState>> cycles;
+        std::map<std::string,std::shared_ptr<plugins::FadeCache>> fade_caches;
+        std::map<std::string,std::pair<uint64_t,uint64_t>> cycle_generations;
+        double next_deadline = plugins::schedule::never;
+        bool animating = false;
+        std::optional<double> render_ms;
+        std::vector<std::string> next_requests;
+        std::vector<std::string> frame_next_requests; // nur Anzeige-Thread
+        std::mutex next_mu;
+        std::string page_request;
+        device::Area area;
+        double keepout_warning = -60;
         int page = 0;
         double switched = 0;
         std::atomic<int> step{0};
@@ -103,6 +162,7 @@ private:
         ViewState view;
         std::pair<int, int> size{0, 0};
         Image frame;
+        device::Area area;
         std::vector<touch::Tile> taps;
         ojson navigation = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
         double last_seen = 0;
@@ -110,6 +170,7 @@ private:
     struct RenderOut {
         bool skipped = true;
         Image frame;
+        device::Area area;
         std::vector<touch::Tile> taps;
         ojson navigation;
         bool switched = false;
@@ -120,6 +181,10 @@ private:
         std::function<Image(int, RendererSet&)> fn;
         std::function<touch::Rows(int, RendererSet&)> targets;
         std::vector<std::function<void()>> actions;   // Home Assistant: Schalt-Aktion je Kachel
+        std::function<void(PageEntry&)> prepare;
+        std::function<plugins::DrawOut(RendererSet&)> plugin_draw;
+        std::function<custom::DrawOut(RendererSet&)> custom_draw;
+        std::function<std::pair<Image,std::vector<touch::ArrangedTarget>>(int,RendererSet&)> builtin_draw;
     };
     struct DrawResult {
         Image frame;
@@ -128,12 +193,15 @@ private:
     };
     RendererSet& renderers_for(int w, int h);
     std::vector<PageEntry> page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion = false,
-                                    const std::vector<std::string>* pages_override = nullptr);
-    DrawResult draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start, std::pair<int, int> size);
+                                    const std::vector<std::string>* pages_override = nullptr, ViewState* view = nullptr, double now = 0, bool phone = false, const std::string& device = {}, const std::string& forced_custom = {});
+    DrawResult draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start, std::pair<int, int> size, device::Area area);
     Image welcome(std::pair<int, int> size);
     void render_view(bool secondary, bool dirty);
     RenderOut render_core(ViewState& view, std::pair<int, int> size, double page_seconds, bool phone,
-                          const std::vector<std::string>* pages_override, bool dirty, bool register_redraw);
+                          const std::vector<std::string>* pages_override, bool dirty, bool register_redraw, const std::string& id = {});
+    device::Profile profile_for(bool phone, const std::string& id = {});
+    std::string primary_layout_id() const;
+    nlohmann::json layout_displays();
     bool independent() const;
     void render_devices(bool dirty);
     void device_tap(const std::string& id, int x, int y, int w, int h);
@@ -158,7 +226,14 @@ private:
     std::mutex dev_mu_;                      // devices_
     std::map<std::string, std::unique_ptr<DeviceState>> devices_;
     bool was_independent_ = false;
+    touch::PluginAccess plugin_access(const std::string& id);
+    void execute_plugin(const touch::PluginDecision& decision);
+    void queue_custom_page(const std::string& page, bool phone, const std::string& device);
+    static void queue_plugin_next(ViewState& view, const touch::PluginDecision& decision);
+    std::mutex plugin_tap_mu_;
+    std::map<std::string,double> plugin_last_open_;
     std::mutex tap_mu_;
+    device::Area tap_area_, companion_tap_area_;  // zusammen mit Bild und Zielen veröffentlicht
     std::vector<touch::Tile> companion_taps_;
     std::vector<touch::Tile> tap_tiles_;     // Zeilenziele aus demselben Snapshot wie das letzte Bild
     std::function<void()> show_settings_callback_;
@@ -181,15 +256,18 @@ private:
     std::map<std::pair<int, int>, std::unique_ptr<RendererSet>> sets_;
 
     std::unique_ptr<bf6::Bf6Stats> bf6_;
+    std::unique_ptr<ai::Service> ai_;
     std::unique_ptr<rss::RssFeeds> rss_;
     std::unique_ptr<tmdb::TmdbFeed> streaming_;
     std::unique_ptr<sysinfo::SysMonitor> sys_;
+    std::unique_ptr<game::Runtime> game_;
     std::unique_ptr<discord::DiscordFeed> discord_;
     std::unique_ptr<friends::FriendsHub> friends_;
     std::unique_ptr<ha::HaClient> ha_;
     std::unique_ptr<spotify::SpotifyClient> spotify_;
     std::unique_ptr<audio::LevelMeter> meter_;   // Amplifier der Spotify-Seite (Systemausgabe, nur lokal)
     std::unique_ptr<update::UpdateChecker> update_;
+    std::unique_ptr<builtin::LayoutStore> builtin_layouts_;
     std::unique_ptr<plugins::Store> plugins_;
     std::unique_ptr<plugins::SettingsStore> plugin_settings_;
     std::atomic<uint64_t> plugin_settings_revision_{0};

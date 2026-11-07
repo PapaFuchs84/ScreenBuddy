@@ -17,6 +17,11 @@ namespace fl::theme {
 
 namespace fs = std::filesystem;
 
+DefaultPrompt default_prompt(bool english) {
+    return english ? DefaultPrompt{L"Set the new default?",L"Use dark Material with orange accents? Your current theme stays selected unless you choose Yes.",L"Yes",L"No"}
+                   : DefaultPrompt{L"Neuen Standard setzen?",L"Dunkles Material mit Orange-Akzenten verwenden? Dein bisheriges Theme bleibt ausgewählt, bis du Ja wählst.",L"Ja",L"Nein"};
+}
+
 Design design(Style style) {
     switch (style) {
     case Style::Cupertino: return {style, 12, 10, 16, true, false, false};
@@ -27,7 +32,7 @@ Design design(Style style) {
 }
 Palette profile_palette(Style style, bool dark) {
     if (style == Style::Cupertino) return dark
-        ? Palette{{0,0,0},{28,28,30},{56,56,58},{10,132,255},{100,170,255},{242,242,247},{174,174,178},{48,209,88},{255,105,97}}
+        ? Palette{{0,0,0},{28,28,30},{56,56,58},{17,136,255},{100,170,255},{242,242,247},{174,174,178},{48,209,88},{255,105,97}}
         : Palette{{242,242,247},{255,255,255},{138,138,141},{0,102,214},{0,86,179},{28,28,30},{96,96,99},{32,124,55},{215,0,21}};
     if (style == Style::Fluent) return dark
         ? Palette{{32,32,32},{44,44,44},{80,80,80},{96,205,255},{96,205,255},{255,255,255},{194,194,194},{108,203,95},{255,153,164}}
@@ -527,6 +532,7 @@ bool migrate_config(ojson& cfg, const Store& store) {
 
 // ---------------------------------------------------------------- Auflösen
 bool valid_theme_key(const std::string& k) {
+    if (k == DEFAULT_ID || k == "cupertino" || k == "fluent") return true;
     if (k == "hell" || k == "dunkel" || k == WINDOWS_ID) return true;
     return k.rfind(CUSTOM_PREFIX, 0) == 0 && valid_id(k.substr(std::strlen(CUSTOM_PREFIX)));
 }
@@ -543,6 +549,16 @@ Resolved resolve_custom(const Custom& t) {
 
 Resolved resolve(const std::string& key, const Store& store, const WindowsSettings* ws) {
     Resolved r;
+    if (key == DEFAULT_ID || key == "cupertino" || key == "fluent") {
+        r.style = key == DEFAULT_ID ? Style::Material : key == "cupertino" ? Style::Cupertino : Style::Fluent;
+        r.dark = key == DEFAULT_ID;
+        r.base = r.dark ? "dunkel" : "hell";
+        r.colors = profile_palette(r.style,r.dark);
+        if (key == DEFAULT_ID) r.colors.header = r.colors.accent = brand::ORANGE;
+        r.colors = correct_contrast(r.colors);
+        r.bar = r.colors.header;
+        return r;
+    }
     if (key == "dunkel" || key == "hell") {
         r.dark = key == "dunkel";
         r.base = key;

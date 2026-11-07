@@ -4,6 +4,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -17,7 +18,7 @@ using ojson = nlohmann::ordered_json;
 namespace config {
 
 extern const std::vector<std::string> PAGES;
-bool is_page_key(const std::string& key);  // feste Quelle oder "plugin:<id>"
+bool is_page_key(const std::string& key);  // feste Quelle, "plugin:<id>" oder validiertes "custom:<id>"
 const ojson& defaults();
 
 ojson load(const std::filesystem::path& path);         // Standardwerte + Datei, Geheimnisse entschlüsselt
@@ -26,6 +27,9 @@ ojson merge(const ojson& cfg, const ojson& incoming);  // wirft std::invalid_arg
 ojson public_view(const ojson& cfg);                   // ohne Geheimnisse, IDs als Text
 void save(const std::filesystem::path& path, const ojson& cfg);
 bool is_color_key(const std::string& key);             // color_bg … color_muted
+bool standard_theme_pending(const ojson& cfg);
+// Keine Antwort: keinerlei Änderung. Erst nach erfolgreichem Speichern live übernehmen.
+bool save_standard_theme_answer(const std::filesystem::path& path, ojson& cfg, std::optional<bool> answer);
 
 }  // namespace config
 }  // namespace fl

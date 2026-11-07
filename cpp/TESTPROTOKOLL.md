@@ -1,5 +1,426 @@
-# Testprotokoll – Stand 31.10.2026
+# Testprotokoll – Stand 07.11.2026
 
+P8-2 (2026-11-07): Eigene Quellen-Kacheln und nativer Editor unter App → Eigene Ansichten. / Custom source tiles and native editor under App → Custom views. Aktuelle Zahlen, Bildmatrizen und Grenzen / current counts, image matrices and limits: [Phase 8](../docs/PHASE8-EIGENE-ANSICHTEN.md). Die folgenden Einträge behalten ihren historischen Prüfstand. / Entries below retain their historical validation status.
+
+P7b-0 (2026-11-06, Claude Sonnet 5.5 im Auftrag): Neuer Standard dunkles Material mit Orange-Akzent (`material-orange`; Text/Fläche und Akzent/Fläche mindestens 4,5:1, Leiste mindestens 3:1, Kontrasttests in fl-tests und fl-layout-ui-tests). Neuinstallation startet damit; bestehende Installationen fragen einmalig per Dialog DE/EN „Neuen Standard setzen?“ (Voreinstellung Nein, Antwort in `ui.standard_theme_choice` gespeichert, Schließen ändert nichts). Cupertino, Fluent, Hell, Dunkel, Windows und eigene Themes bleiben wählbar. Bestehende Built-in-/Plugin-Hashdateien unverändert, neue Basis additiv in `p7b0-material-orange-hashes.txt` (768 Hashes).
+
+P7b-6 (2026-11-06, Agent Codex CLI 0.166.0): Geräte-Overlays für Built-ins/Plugins mit Standard-Vererbung (höchstens 16 je Seite, 16 KiB je Overlay, 256 KiB gesamt), atomarer Speicherung/Backup und gemeinsamer Geräteauswahl für Bild/Touch; Display-Tabs mit Größe/Ausrichtung, Offline-Profil und Rückfrage beim Verwerfen. Android-TV am PC markieren (Protokoll v1 meldet keinen Gerätetyp), dann nur Querformat. 14 Suiten grün (Companion offline), elf bestehende Hashdateien unverändert; physische Mehrgeräte-Abnahme offen. Nachweise: Kern 3530/0 (inkl. standard-theme), layout-edit 163/0, layout-ui 1188/0, builtin-catalog 234/0, plugins 380/0, store 453/0, zones 462/0, example 124/0, settings 135/0, Plugin-Snapshots 2101/0, Built-in 4221 Bilder + 4221 Trefferkarten/0, Companion 386/0, device-profile 88/0, schedule 845/0. Hauptcheckout feature/zonen-layout, Basis 91b2804; kein Netzwerk/Ton/Port 8765, kein Release-Check oder Git-Schreibbefehl.
+
+P7b-1 (2026-11-06, Agent Claude Sonnet 5.5): Editor-Fensteraufbau: Kopfleiste (Seitenauswahl, Gerätegröße-Chip, Rückgängig/Wiederholen/Übernehmen/Zurücksetzen), linke Schiene mit Kacheln/Ebenen/Seiten, Fläche und Eigenschaften als Drei-Spalten-Hülle (breit ab 900 DIP; mittel: Eigenschaften unter der Fläche; schmal: untereinander, Palette eingeklappt, Bereichswahl bleibt beim Seitenwechsel); Display-Tab-Leiste unverändert. Neu `ui_editor.*`. 14 Suiten grün, Baselines bitgleich; Handabnahme offen.
+
+P7b-2 (2026-11-06, Agent Claude Sonnet 5.5): Kachelpalette mit Suche, Filter-Chips (Alle/System/Zeit/Medien/Spiele/Sonstiges) und Raster lebender Mini-Vorschauen (derselbe Seitenrenderer mit Beispieldaten: Ausschnitt der Standardseite bzw. Einzelzone bei Plugins; Cache je Seite/Kachel/Größe/Anzeige-Theme, Laden nur beim Seitenwechsel, Kacheln ohne Daten als „keine Daten“). Ziehen auf die Fläche, Klick fügt an der ersten freien Stelle ein (ein Rückgängig-Schritt), Tastatur (Pfeile, Leertaste, Enter, Entf, F6), MSAA „Kachelpalette“. Neu `ui_tile_palette.*`. 14 Suiten grün, Baselines bitgleich.
+
+P7b-3 (2026-11-06, Agent Claude Sonnet 5.5): Fläche im Seitenverhältnis des Display-Tabs: Gerätegrößen-Rahmen, dezentes Zellraster, gestrichelte Ablageplätze „hier ablegen“, Geist mit Einrasten (ungültig: gestrichelt rot und Text „passt nicht“), Griffe, Papierkorb, Zoom −/+/Passend. Opt-in `GridEditor::canvas`; das bisherige Raster bleibt bitgleich. Editor-Snapshots additiv (`p7b-editor-hashes.txt`), Kontrast Text ≥ 4,5:1 und Fokusring/Rahmen ≥ 3:1 in allen Themes geprüft. 14 Suiten grün.
+
+P7b-4 (2026-11-06, Agent Claude Sonnet 5.5): Ebenenliste (Reihenfolge, Sichtbarkeit; Auswahl wirkt in Liste und Fläche), Seitenliste (Wechsel mit Rückfrage bei ungesicherten Änderungen) und Einsteigerkarte „In drei Schritten“ (einmal wegklickbar, gemerkt in `layouts/editor-intro.done`). 14 Suiten grün (fl-layout-ui-tests 1.615), Baselines bitgleich; Handabnahme offen.
+
+## P7-11 und P7-12 – System und Spotify (06.11.2026)
+
+P7-11 (2026-11-06, Agent Codex CLI 0.166.0): System im Editor mit CPU/GPU/RAM/Datenträger/Netz aus dem vorhandenen Schnappschuss; Temperaturen mit heutigen Schwellenfarben, Netzverlauf in normaler Dichte, kompakt Wert/Balken bzw. Raten. Eigenes Quer-/Hoch-Overlay, Cupertino-Gruppe je Zone, Werkzeugziele aus demselben Rasterplan. Standard/Reset bleiben pixelgleich; E2 bestätigt. Automatisierte Nachweise unten; physische Abnahme offen.
+
+Hauptcheckout `feature/zonen-layout`, Basis `95ce718`; CMake/VS Build Tools mit `vcvars64`, bereinigtem PATH, `cpp/build/store`. Kein Netzwerk, kein Audio, kein Port 8765; Companion ausschließlich `--offline`, Server-/TLS-Integration ausgelassen. Kein Release-Check, Commit, Push oder Branchwechsel. P7-11 abgeschlossen: alle 14 Suiten grün; Kern 3530/0 (inkl. standard-theme), layout-edit 163/0, layout-ui 1088/0, builtin-catalog 217/0, plugins 380/0, store 422/0, zones 462/0, example 124/0, settings 135/0, Plugin-Snapshots 2101/0, Built-in 4221 Bilder + Trefferkarten/0, Companion offline 250/0, device-profile 85/0, schedule 845/0. Neue Systembasis additiv: 1536 Rasterbilder/Trefferkarten, 4827 Prüfungen/0 beim Erstaufzeichnen. Eine anfängliche Abweichung von zwei Pixeln zwischen Renderer und Prüfplan wurde vor dem Aufzeichnen korrigiert. Hardware und interaktive Bedienung offen.
+
+P7-12 (2026-11-06, Agent Codex CLI 0.166.0): Spotify im Editor mit Cover, Titel/Interpret/Album, Fortschritt, Tasten, Pegel und Pflicht-Zustand aus vorhandenem Snapshot/Meter; „zuletzt gespielt“ bleibt ohne Fortschritt/Tasten. Quer-/Hoch-Overlay je Seite, kompakter einzeiliger Text, alle drei Pegelfarbmodi, getrennte 48-Punkte-Tastenziele aus derselben Anordnung. Standard/Reset pixelgleich; Automatisierte Nachweise unten; physische Abnahme offen.
+
+P7-12: alle 14 Suiten grün; Kern 3530/0 (inkl. standard-theme), layout-edit 163/0, layout-ui 1124/0, builtin-catalog 217/0, plugins 380/0, store 422/0, zones 462/0, example 124/0, settings 135/0, Plugin-Snapshots 2101/0, Built-in 4221 Bilder + Trefferkarten/0, Companion offline 250/0, device-profile 85/0, schedule 845/0. Neue Spotifybasis additiv: 4096 Rasterbilder/Trefferkarten, 23211 Prüfungen/0 beim Erstaufzeichnen; bestehende Systembasis lesend 7900/0. Normaler lesender Wiederholungslauf ohne Record-/Update-Option ebenfalls grün: Built-in 4221 Bilder + 4221 Trefferkarten/0; RSS 5952/0, Streaming 9852/0, BF6 6439/0, Freunde und Discord jeweils 6360/0, System 1536 Rasterfälle mit 7900 Prüfungen/0, Spotify 4096 Rasterfälle mit 31404 Prüfungen/0. Alle neun vorher versionierten Hashdateien gegenüber HEAD unverändert (Git-Zeilenendennormalisierung berücksichtigt); nur zwei neue Rasterdateien hinzugefügt. Systemvorschauen Material/Cupertino und Spotifyvorschau mit synthetischen Pegeln visuell geprüft. Hardware und interaktive Bedienung offen. Zusätzliche Dateien gegenüber dem Entwurf: App-Vorschau/Laufzeitanbindung, Editor-Tests und DE/EN-Hilfetext wie bei P7-7..10. Keine gespeicherten Konfigurationen oder Gerätezustände geändert.
+
+## P7-8 bis P7-10 – Streaming, BF6, Freunde und Discord (06.11.2026)
+
+Hauptcheckout `feature/zonen-layout`, Basis `c05af6a`; uncommittierte Entwicklung. CMake aus VS Build Tools mit `vcvars64`, bereinigtem PATH und `cpp/build/store`. Kein Netzwerk, kein Audio, kein Port 8765, keine App-/Hardware-Schleife; Companion nur `--offline` (TLS-/Serverintegration ausgelassen).
+
+P7-8 (2026-11-06, Agent Codex CLI 0.166.0): Streaming in der Seitenauswahl; Titel/Pflicht-Zustand aus dem vorhandenen Schnappschuss, seitenbezogenes Quer-/Hoch-Overlay, Blättern und Touch aus einem Rasterplan. Standard/Zurücksetzen behalten den festen Weg; TMDB / JustWatch bleibt im Fuß; kompakte Zeilen ohne Datum. 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, 1.792 neue Rasterbilder/Trefferkarten additiv, 6.267 Prüfungen/0; Hardware offen.
+
+P7-9 (2026-11-06, Agent Codex CLI 0.166.0): BF6 in der Seitenauswahl; Rangliste/Pflicht-Zustand, sortierter Schnappschuss, seitenbezogenes Quer-/Hoch-Overlay. Rasterkapazität steuert Blättern und Spielerlinks; kompakte Zeilen zeigen Name, K/D, Rang oder Fehler. Standard/Zurücksetzen bleiben pixelgleich. 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, 1.024 neue Rasterbilder/Trefferkarten additiv, 4.390 Prüfungen/0; Hardware offen.
+
+P7-10 (2026-11-06, Agent Codex CLI 0.166.0): Freunde und Discord in der Seitenauswahl; gemeinsamer Freunde/Pflicht-Zustand-Katalog und sortierte Schnappschüsse, getrennte Overlays `builtin.friends.layout.json` / `builtin.discord.layout.json`, Backups und Revisionen. Rasterzeilen, Blättern und Profilziele aus einem Plan; schmale kompakte Zeilen ohne Avatar/Marken. Standard/Zurücksetzen bleiben pixelgleich (E2 akzeptiert). 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, je 1.024 Rasterbilder/Trefferkarten additiv, zusammen 8.622 Prüfungen/0; Hardware offen.
+
+
+Abschluss P7-10: `fl-tests` 3470/0; layout-edit 163/0; layout-ui 1056/0 (P7-8: 916/0, P7-9: 956/0); builtin-catalog 217/0; plugins 380/0; store 422/0; zones 462/0; example 124/0; settings 135/0; snapshots 2093/0; builtin 4221 Bilder + 4221 Trefferkarten/0; companion `--offline` 250/0; device-profile 85/0; schedule 845/0. Nach jedem Paket alle 14 Suiten grün. Vier neue Hashdateien: Streaming 1792, BF6 1024, Freunde 1024, Discord 1024 Rasterbilder samt Trefferkarten. Bestehende Hashdateien nicht geschrieben; `core.autocrlf=true` erklärt LF/CRLF zwischen Git und Checkout. Beispieldaten-Vorschauen für alle vier Seiten visuell geprüft; keine physische oder interaktive Maus-/Touch-Abnahme. Erweiterte Dateien gegenüber dem Entwurfsplan: App-Einstiege/Vorschau, Editor-Auswahltests und Hilfetexte. Keine Release-Prüfung, kein Commit/Push/Branchwechsel.
+
+Zusätzlicher normaler Wiederholungsvergleich (`fl-builtin-snapshot-tests`, keine Record-/Update-Option): 4221 Bestandsbilder + Trefferkarten/0; RSS 1024 Fälle, 5952 Prüfungen/0; Streaming 1792 Fälle, 9852 Prüfungen/0; BF6 1024 Fälle, 6439 Prüfungen/0; Freunde und Discord jeweils 1024 Fälle, 6360 Prüfungen/0. Alle vier additiven Dateien damit auch lesend gegen ihre gespeicherten Hashes bestätigt.
+
+## P7-5 bis P7-7 – Katalog, Store und RSS-Editor (06.11.2026)
+
+Branch `feature/zonen-layout`, Hauptcheckout auf `12ca4ed`, uncommittiert. Kein Netzwerk/Port, kein Audio, keine laufende App oder Hardware. Companion ausschließlich `--offline`; TLS-/Serverintegration ausgelassen.
+
+P7-5 (2026-11-06, Agent Codex CLI 0.166.0): Reiner Built-in-Katalog und strikt versionierte Overlays; Standard behält festen Renderweg, HA später. 14 Suiten grün (Companion offline: 250); Built-in 4.221 Bilder/Trefferkarten: 0 Fehler, Plugin 2.093 Prüfungen: 0 Fehler; physische Abnahme offen.
+
+P7-6 (2026-11-06, Agent Codex CLI 0.166.0): Atomare Seitenlayouts mit Backup/Revision, Beispieldatenvorschau, Raster-Touch-Zielen und isoliertem Clip; fester Renderweg unverändert. 14 Suiten grün (Editor 835; Companion offline 250); Built-in 4.221 Bilder/Trefferkarten und Plugin-Baselines unverändert; Hardware offen.
+
+P7-7 (2026-11-06, Agent Codex CLI 0.166.0): RSS-Editor mit Beiträge/Pflicht-Zustand, getrennten Quer-/Hochlayouts in `layouts/builtin.rss.layout.json`; Öffnen/Übernehmen von Standard behält den pixelgleichen festen Weg, echte Änderungen nutzen das Raster (Abstände können sich ändern, E2). Zurücksetzen stellt Standard her; Zeilen, Blättern und Touch teilen einen Plan. Kopf/Fuß fest; Built-in-Wechselfelder und HA später. 14 Suiten grün (Katalog 217, Editor 874, Kern 3.470; Companion offline 250); bestehende Baselines bitgleich, zusätzlich 1.024 RSS-Bilder/Trefferkarten und 5.952 Prüfungen ohne Fehler; Hardware offen.
+
+
+
+
+
+Abschluss P7-7: `fl-tests` 3470/0; layout-edit 163/0; layout-ui 874/0; plugins 380/0; store 422/0; zones 462/0; example 124/0; settings 135/0; snapshots 2093/0; builtin 4221 Bilder + 4221 Trefferkarten/0; companion `--offline` 250/0; device-profile 85/0; schedule 845/0; neuer Katalog 217/0. Neue Datei `tests/layout-snapshots/p7-rss-hashes.txt`: 1024 Rasterbilder/Trefferkarten, 5952 Prüfungen/0. Keine bestehenden Baselines aktualisiert. Abweichungen vom Dateiplan: punktierte Built-in-IDs nur im Overlay-Parser zugelassen (`plugins.cpp`); Editor und Einstiege für RSS ergänzt. Built-in-Wechselfelder bleiben deaktiviert (E6 offen). Keine Release-Prüfung, kein Commit/Push/Branchwechsel; öffentliche Auslieferung nicht erstellt.
+
+## P7-1 bis P7-4 – Drag & Drop im Seiten-Editor (06.11.2026)
+
+Branch `feature/zonen-layout`, uncommittete Änderungen auf HEAD `ccf8eab`. Code gebaut und getestet; kein Commit, kein Push. Umfang: P7-1 `ui_kit` (Mauszeiger je Stelle, Abbruch bei Capture-Verlust und Esc), P7-2 Modell (`place_block`, `remove_block`, `move_block`, `probe`), P7-3 `GridEditor` (Bausteinleiste, Ziehen, Griffe, Ablage, Aufnehmen und Ablegen per Tastatur, MSAA), P7-4 Editor-Seite (Hinweistext, Vorschau nach dem Ablegen).
+
+| Suite | Bestanden / Fehler |
+|---|---|
+| `fl-layout-edit-tests` | 145 / 0 |
+| `fl-layout-ui-tests` | 624 / 0 |
+| `fl-builtin-snapshot-tests` | 4.221 Bilder / 0 Fehler |
+| `fl-plugin-snapshot-tests` | 2.093 / 0 |
+| `fl-tests` | 3.470 / 0 |
+
+**Nicht gelaufen / offen:**
+- `native_mouse_smoke.py` und `native_settings_smoke.py` benötigen eine laufende App; in diesem Lauf nicht ausgeführt.
+- Hardware- und Sichtabnahme durch Basti (Maus, Touchpad, Touch-Bildschirm) steht aus.
+
+## P6-Reviewkorrekturen (06.11.2026)
+
+Im Hauptcheckout `feature/zonen-layout`, auf den uncommitteten P6-3/4/5-Änderungen. Alle sieben Befunde bearbeitet: Body/Undo/Redo/Fehlerwahl bleiben bei busy bedienbar; verzögerte Vorschaujobs und verworfene ältere Bilder geprüft. Zone/Sekunden/Vergleichswert werden bei Fehlern markiert, ohne Fokusentzug aus `on_commit`/WM_KILLFOCUS und ohne wiederholten Toast derselben Eingabe. Pluginwechsel fragt vor dem Verwerfen mit Standard Nein (DE/EN); Nein und Ja automatisiert geprüft. Übernehmen/Reset synchronisieren vorhandene Widgets, setzen den Fokus vom gesperrten Aktionsknopf ins Raster und überschreiben keine während des Jobs entstandenen Änderungen. Null Blöcke sind abgesichert. App-Anordnungsfehler laufen markiert über die vorhandene DE/EN-Meldungstabelle im UI-Thread; bekannte Store-/Verfügbarkeitsmeldungen getestet. Beide Test-Tempordner werden nach App-Abbau entfernt, auch über RAII bei frühem Ende; erfolgreiche Entfernung geprüft.
+
+Build: zusätzlich zu den beiden Editorzielen die unveränderte Vorlage `cpp/build/store/p5-0-validation/build.cmd` ausgeführt, Exit 0. Bekannte `vswhere.exe`-Meldung ohne Abbruch; erster Neuaufbau mit vorhandener `getenv`-Warnung. Endstand der erneut ausgeführten geforderten Suiten:
+
+| Suite | Bestanden / Fehler |
+|---|---|
+| `fl-tests` | 3.470 / 0 |
+| `fl-layout-edit-tests` | 82 / 0 |
+| `fl-layout-ui-tests` (inkl. 11 Editor-Snapshots) | 310 / 0 |
+| `fl-plugin-tests` | 380 / 0 |
+| `fl-plugin-store-tests` | 422 / 0 |
+| `fl-plugin-zones-tests` | 462 / 0 |
+| `fl-plugin-example-tests` | 124 / 0 |
+| `fl-plugin-settings-tests` | 135 / 0 |
+| `fl-plugin-snapshot-tests` (inkl. 21 Temp-Cleanup-Prüfungen) | 2.093 / 0 |
+| `fl-builtin-snapshot-tests` | 4.221 Bilder + 4.221 Trefferkarten / 0 Fehler |
+
+Ohne Sandbox, Roboto über den Schrift-Preflight sichtbar. Built-in-/Plugin-Baselines unverändert; **kein `update`, keine neuen Editor-Hashes** (Editor-Hashdatei SHA-256 weiterhin `B900DCB300DCE3019632AA02C1E8E3D4894DF15E1A38F15A2E353EFC93AED594`). Phase-5-Dateien `render.cpp/.h`, `page_frame.*`, `page_samples.*` unverändert. Kein Netzwerk/Port 8765, keine Töne, kein Fremdcode, Commit, Push, Branchwechsel, Installations- oder Release-Schritt. DE/EN-Referenz/Tutorial und alle drei Changelogs ergänzt; lokale Links und Diff geprüft. Rückfragen über den überschriebenen Host-Dialogweg automatisiert geprüft; sichtbare Dialog-/physische Geräteabnahme bleibt offen.
+
+## P6-3 / P6-4 / P6-5 – nativer Seiten-Editor (06.11.2026)
+
+Hauptcheckout `feature/zonen-layout`, Basis/HEAD weiterhin `f49d559`. Pakete nacheinander umgesetzt; keine Commits, Pushes oder Branchwechsel. Clean-Room: nur Phase-6-Entwurf und ScreenBuddy-Code. Kein Netz (auch kein Loopback-Server), keine Töne, keine Hardware-/Installations-/Release-Aktion und kein Zugriff auf Port 8765. `tests/run_release_checks.py` nur um Suiten ergänzt und syntaktisch geparst, **nicht gestartet**.
+
+- **P6-3 fertig:** `layout_edit.*` mit transaktionalen Rasteroperationen, Teilung/Löschung/Blockzuordnung, DE/EN-Diagnosen und 100-Schritt-Historie. Ganze Modelle, serialisierungsgetreue Gleichheit auch bei `1` gegenüber `1.0`, Undo/Redo und 600-ms-Pfeilgruppen. `ui_layout_grid.*` mit allen Tasten aus §7, getrennter Zell-/Zonenauswahl, MSAA-Liste/Werteänderungen, ID und 2-DIP-Auswahlrahmen. Zellen ≥32 DIP, horizontaler Ausschnitt folgt dem Zellfokus und clippt, vertikaler Bildlauf über Surface.
+- **P6-4 fertig:** `ui_page_layout.cpp`, Registrierung und Einstiege aus Plugins/PagesPage. Aktivierte Plugins, v1 nur Hinweis, keine Built-ins/HA. Rasteranteile, Zonen-ID/Modus/Übergang, Blockliste/Sichtbarkeit/Reihenfolge/Zuordnung, Sekunden und typisierte Bedingungen ohne Secret-Settings. Validierung mit Zone/Block, Taste zur Fehlerstelle, ungültige/unbestätigte Entwürfe sperren Übernehmen. Alle Widgets `track_dirty=false`; Historie überlebt vollständig neu gebaute Widgets. Anwendung/Reset ausschließlich über die P6-2-Job-/Store-Schnittstellen, atomar mit Backup, ohne Konfigurationsspeichern oder Neustart. Reset-Rückfrage im Code, sichtbare Dialogabnahme offen.
+- **P6-5 fertig (automatischer Umfang):** Vorschau ausschließlich `App::plugin_preview` mit demselben Parser, Plugin-Samples und Renderer; 480×320 / 320×480, maximal ein laufender Auftrag, Generation und nachgeholte letzte Änderung. Ungültige Entwürfe behalten das letzte Bild; Verlassen setzt den Override zurück. Nur der neue Editoraufruf wählt feste Beispielzeit/-datum (12:34 / 2026-01-01), bisherige Vorschauaufrufe bleiben unverändert. Freigegebener globaler heller Fokusring samt Textfeldrahmen auf `accent_text` (Glut) abgedunkelt. Kontrastreiche Blockauswahl bleibt lokal im Editor. Native Tastatur-/MSAA-/Storetests, 11 eigene Editor-Raster-Snapshots und Vergleich echter App-Vorschauen mit allen v2-Plugin-Snapshots ergänzt.
+
+Build: VS Build Tools 2022, `vcvars64.bat`, dortiges CMake/Ninja Release, vorhandene lokale vcpkg-Abhängigkeiten mit Manifestmodus aus; Ordner `cpp/build/store`, Vorlage `p5-0-validation/build.cmd`. ScreenBuddy und alle nachstehenden Ziele erfolgreich gebaut. Bekannte `vswhere.exe`-Meldung und vorhandene `getenv`-Warnung verhindern den Build nicht. Kein öffentlicher EXE-Export.
+
+| Suite | Endgültiger automatischer Stand |
+|---|---|
+| `fl-tests` | **3.470 / 0**, davon 80 neue Editor-Kontrastprüfungen |
+| `fl-layout-edit-tests` | **62 / 0** |
+| `fl-layout-ui-tests` | **246 / 0**, einschließlich 11 neuer Raster-Snapshotvergleiche |
+| `native_settings_smoke.py <build> --editor-offline` | **246 / 0**, ruft die isolierte native Editor-Suite auf |
+| `fl-plugin-tests` | **380 / 0** |
+| `fl-plugin-zones-tests` | **462 / 0** |
+| `fl-plugin-example-tests` | **124 / 0** |
+| `fl-plugin-store-tests` | **422 / 0** |
+| `fl-plugin-transport-tests` | **140 / 0**, Testtransport/numerische lokale DNS-Vertragsprüfung ohne Socketverkehr |
+| `fl-plugin-settings-tests` | **135 / 0** |
+| `fl-plugin-sign-tests` | **111 / 0** |
+| `fl-plugin-catalog-tests` | **77 / 0** |
+| `fl-plugin-schedule-tests` | **845 / 0** |
+| `fl-device-profile-tests` | **85 / 0** |
+| `fl-companion-tests --offline` | **250 / 0**, reine Protokoll-/Speicherfälle; Serverfälle ausdrücklich nicht gelaufen |
+| `fl-plugin-snapshot-tests` | **2.072 / 0**, davon 171 zusätzliche Prüfungen für unveränderte v2-Overlays/echte App-Vorschau, sieben Themes, vier Größen |
+| `fl-builtin-snapshot-tests` | **4.221 Bilder + 4.221 Trefferkarten / 0 Fehler** |
+
+Kontrastprüfung am tatsächlichen `ui::Theme` für FuchsLabs hell, Cupertino/Fluent/Material hell (über Inline-Profil) und Windows hell mit festen Einstellungen: Text/Nebentext auf Karte/Hintergrund/Eingabe ≥4,5:1, Fokusring auf diesen Flächen ≥3:1, Rasterrahmen/Auswahl ≥3:1, Primary-/Danger-Texte und ausgewählte Blocklisten-/Hinweisflächen ≥4,5:1. Keine bekannten Kontrastausnahmen. Neue synthetische Rasterbilder (FuchsLabs quer und Material hoch) zusätzlich angesehen; keine echte Geräte-/vollständige sichtbare App-Abnahme daraus abgeleitet.
+
+Native Suite: echte Surface-/MSAA-Abfrage (`ROLE_SYSTEM_LIST`, Name und Wert), WM_KEYDOWN/WM_SYSKEYDOWN mit rein threadlokalen Modifikatoren, Alt+Links/Rechts, Strg+Z und Strg+Shift+Z, Größenänderung, Anlegen/Löschen, Blockreihenfolge/Sichtbarkeit, Validierung/Fehlerfokus, ID-Umbenennung, Tabfolge bei 200 % DPI, zerstörte/neue Widgets mit erhaltener Historie, echte Store-Anwendung und Vorgänger-Backup, unveränderte Manifestdatei, Dirty-Zähler 0, fehlende Secret-Auswahl, v1-Hinweis und verspätete Vorschau nach hidden(). App wird nur mit synthetischer Konfiguration und abgeschalteten Quellen/Updates/Companion konstruiert; keine App-/Server-Schleife.
+
+**Abweichungen / Grenzen des kleinsten Umfangs:**
+
+- Rasteranteile sind begrenzte Zahlen-Schieberegler (Pfeiltasten/Home/End) statt freier Zahlenfelder. Spalten/Zeilen haben +/−. Schmale Raster scrollen automatisch mit dem Zellfokus, ohne eigene horizontale Scrollleiste.
+- Quellenpfade für `show_if` kommen aus Sample-Daten und bestehenden Bedingungen (begrenzte Auswahl), dazu nicht geheime Settings. Kein freies Pfadfeld für sonstige Quellfelder. Operator/Werttyp werden mit „Bedingung bestätigen“ abgeschlossen; Text mit Enter/Fokuswechsel. Kein rohes JSON.
+- Passt der Inhalt einer gelöschten Zone nicht in die erste verbleibende Zone, wird die Löschung mit Meldung abgewiesen statt einen ungültigen Transfer nach einer Rückfrage zu erzwingen. Blöcke zuerst manuell umhängen.
+- Der bestehende allgemeine Python-Smoke-Test startet eine App mit lokalem HTTP-Port. Wegen „kein Netzwerk“ wurde stattdessen dessen neuer `--editor-offline`-Weg mit echter nativer Surface und MSAA verwendet. Kein kompletter sichtbarer Einstellungsfenster-Smoke-Test.
+- Die vollständige Companion-Suite benötigt Loopback-TLS-Server. Der neue `--offline`-Modus meldet die ausgelassenen Server-, Härtungs-, Resize/Swipe- und unabhängigen Serverfälle ausdrücklich. Daher **keine Behauptung, die komplette Companion-Netzwerksuite sei gelaufen**.
+- Physische Handabnahme auf USB 480×320/hochkant, Monitor und Companion sowie der sichtbare Reset-Rückfragedialog bleiben offen. Keine Erststart-Erweiterung (P6-6).
+
+`render.cpp/.h`, `page_frame.*`, `page_samples.*`, `plugin_render.cpp`, `main.cpp` und alle vorhandenen Plugin-/Built-in-Baselines einschließlich beider `hashes.txt` laut Git-Diff unverändert. Nur die neue Datei `tests/layout-snapshots/hashes.txt` wurde als eigene Editor-Baseline angelegt. Neue Suiten in `build.bat` und `tests/run_release_checks.py` eingetragen. DE/EN-Systemreferenz, Tutorial und beide Haupt-Changelogs sowie C++-Changelog/Clean-Room-Nachweis aktualisiert; keine Versions-/Download-/Laufzeitvoraussetzungen geändert. Lokale neue Dokumentationslinks, Python-Syntax und `git diff --check` geprüft.
+
+## P6-1/P6-2 – Overlay, Store und App (06.11.2026)
+
+Basis `ba22173`, Hauptcheckout `feature/zonen-layout`; nur die Paketdateien und die ausdrücklich angeforderten fünf Dokumentationsdateien geändert. Clean-Room: ausschließlich Entwurf und ScreenBuddy-Code, kein libre-panel-Code. Kein Commit/Push/Branchwechsel, Netz, Portzugriff auf 8765, Audio oder `run_release_checks.py`.
+
+Build: vorhandene Vorlage `build/store/p5-0-validation/build.cmd`, VS Build Tools/vcvars64 und CMake/Ninja unter `build/store`; alle Ziele der Vorlage einschließlich ScreenBuddy erfolgreich (Exit 0; bekannte `vswhere.exe`-Meldung ohne Abbruch). Kein Installations-/Release-Artefakt exportiert.
+
+| Einzeln gestartete Suite | Bestanden / Fehler |
+|---|---|
+| Parser `fl-plugin-tests` | 380 / 0; neue Tabelle mit 40 Overlay-Fällen plus ergänzende Prüfungen |
+| Speicher `fl-plugin-store-tests` | 422 / 0 |
+| Transport `fl-plugin-transport-tests` | 140 / 0; Abbruch-/Validierungsfälle und Testtransport, kein Netz |
+| Settings `fl-plugin-settings-tests` | 135 / 0 |
+| Zonen `fl-plugin-zones-tests` | 462 / 0; zusätzlich 2 × 4.000 feste Fuzz-Fälle |
+| Beispiele `fl-plugin-example-tests` | 124 / 0 |
+| Wechselfeld `fl-plugin-schedule-tests` | 845 / 0 |
+| `fl-tests plugin-touch` | 2.093 / 0 |
+| Plugin-Snapshots | 1.901 / 0 |
+| Built-in-Snapshots | 4.221 Bilder + 4.221 Trefferkarten / 0 Fehler |
+
+Prüfungen ohne Sandbox, Roboto sichtbar. Snapshot-Dateien und beide `hashes.txt` unverändert. Neue Fälle belegen unter anderem unveränderte Manifest-/Freigabedateien und `generation`, gültige Host-/Linkfreigaben, eigene Layoutrevision, Laden ohne/mit/veraltetem/beschädigtem Overlay, Basiswechsel nach Plugin-Update, Vorgänger-Backup, Reset/Remove, 32 Plugins mit je sechs Dateien sowie die 256-Einträge-Grenze. Ein offener Windows-Dateihandle erlaubt das Backup-Lesen, verhindert aber den atomaren Austausch: alte Datei, wirksame Anordnung und Revision bleiben erhalten. Zusätzlich Backupfehler, Hard-/Symlinks an aktiver Datei und Backup sowie vier gleichzeitige Store-Aufrufe geprüft; keine übersprungenen Linkfälle.
+
+Entscheidungen: `layout_revision` statt Erhöhen von `generation`; auch ausgeblendete Blöcke müssen gültige Zonen/Bedingungen/Wechselzeiten haben. Beschädigte Overlays erhalten zusätzlich den Zustand `invalid` und führen zu einer Teil-Lademeldung, während die Basis nutzbar bleibt; `stale` bleibt separat und die Datei erhalten. Reset entfernt zuerst das Backup und dann die aktive Datei; ein fehlgeschlagenes Schreiben ändert den Speicherstand nicht. Reine `arrangement_from`-Entwürfe ohne übergebenen SHA tragen einen Null-Fingerabdruck; `Store::arrangement_get` liefert das an die aktuelle Basis gebundene Startmodell. Vorschaugrößen werden vor dem Rendern auf 1..4096 je Achse begrenzt.
+
+App-Anbindung und Vorschauüberladung erfolgreich gebaut; Editoroberfläche (P6-3 ff.), tatsächliche Job-/UI-Bedienung und physische Abnahme auf USB/Monitor/Companion bleiben offen. Kein vollständiger `fl-tests`-Lauf und keine Hardwaretests.
+- P5-5 (06.11.2026, Branch `p5/spotify`, Basis `ba22173`): Nur Spotify mechanisch auf `draw_framed` mit `spotify.cover`, `.text`, `.pegel`, `.fortschritt`, `.tasten`, `.hinweis` umgestellt; feste Vollflächen erhalten die bisherigen absoluten `layout()`-Ausdrücke/Überlappungen. Reiner Fußtext aus Snapshot, `layout()`/`button_at()` unverändert. VS Build Tools/vcvars64, CMake/Ninja Release, lokale vcpkg-Installation und `x64-windows-static`, nur drei angeforderte Ziele unter `build/store` gebaut (Exit 0; bekannte vswhere-/getenv-Warnungen). Aus diesem `cpp`-Ordner ohne Sandbox: Built-in **4.221 Bilder + 4.221 Trefferkarten, 0 Fehler**, Plugin-Snapshots **1.901 bestanden, 0 Fehler**, vollständiger Standardlauf `fl-tests` **3.390 bestanden, 0 fehlgeschlagen**. Erster Built-in-Lauf verwendete eine während des Builds noch unvollständige Tasten-Zwischenfassung (469 Bildabweichungen); nach abgeschlossenem Neuaufbau obiger vollständiger Vergleich grün. Beide Baselines unverändert; Quellvergleich vor/nach Spotify einschließlich HA/Willkommen und aller anderen Seiten identisch. Kein Netz/Portzugriff, keine Töne, kein Release-Prüfskript, keine physischen Tests, kein Push.
+
+- P5-2 (06.11.2026, Branch `p5/streaming`, Basis `b1d9c59`): Nur Streaming mechanisch nach RSS-Muster migriert; gemeinsame feste Anordnung für Zeichnen und `row_at`, Zeilen-/Hinweisblöcke, reine Fußzeilenfunktion, unveränderter Logo-/Kürzel-Zeichenkörper. Release mit VS Build Tools/vcvars64, CMake/Ninja, lokaler vcpkg-Installation und `x64-windows-static` in diesem Worktree unter `build/store` konfiguriert; nur ScreenBuddy, fl-builtin-snapshot-tests, fl-plugin-snapshot-tests und fl-tests gebaut (Exit 0; bekannte vswhere-/getenv-Warnungen). Aus dem `cpp`-Ordner ohne Sandbox, Roboto sichtbar: Built-in **4.221 Bilder + 4.221 Trefferkarten, 0 Fehler**, Plugin-Snapshots **1.901 bestanden, 0 Fehler**, `fl-tests plugin-touch` **2.093 bestanden, 0 Fehler** (einschließlich Streaming-`row_at`). Beide Baselines unverändert; Quellvergleich bestätigt unveränderten Code vor/nach Streaming einschließlich HA. Kein vollständiger fl-tests-Lauf, keine physischen Tests, kein Netz, Port 8765, Audio, Release-Prüfskript, Veröffentlichung oder Push.
+
+- P5-1 (06.11.2026): Alle Ziele mit `vcvars64.bat`/CMake in `build/store` vollständig neu gebaut (`--clean-first`, 149 Schritte, Exit 0; bekannte vswhere-/getenv-Warnungen). Einzeln grün: Plugin-Snapshots 1.901/0, Parser 316/0, `fl-tests plugin-touch` 2.093/0, Zonen 462/0 + 2 × 4.000 Fuzz-Fälle, Beispiele 124/0. Quellvergleich: außerhalb RSS unveränderter Zeichencode; RSS-Kopf → Alter/Quelle/Titel/Trennlinie je Zeile → Fuß → finish, unveränderte Schriften, `floordiv`, `top + i * rh`, Versätze und Trefferdivision; kein `zones::plan`, Clip oder Catch. Beide Snapshot-Baselines unverändert. Built-in-Test wegen in der Sandbox unsichtbarem Roboto ausdrücklich nicht gestartet: sämtliche Built-in-Bild-/Trefferkarten-Hashes und physische Abnahme extern offen. Kein Netzwerk, Port 8765, Audio, Release-Prüfskript, Commit, Push oder Branchwechsel.
+
+## P5-0 – Built-in-Snapshots (06.11.2026)
+
+**Baseline inzwischen erzeugt; Fehlerursache, Korrektur und TZ-/Exportabnahme noch offen.** Branch `feature/zonen-layout`; keine Migration, kein Commit/Push/Branchwechsel. `fl-builtin-snapshot-tests` verwendet ausschließlich die bestehenden Renderer, feste `render::samples`, Wanduhr 1792606500, Spotify-Monotonzeit/Fetched-at 1000 und setzt selbst `TZ=UTC0`/`_tzset()`. 63 Zustände, 7 Designs und 9 Größen DE sowie dunkel/custom-material bei 480×320/320×480 EN ergeben **4.221 Bilder + 4.221 Trefferkarten**. Die Karte hasht die statischen Trefferfunktionen auf 4-px-Raster einschließlich `rows_per_page()`/`pages(n)`; sie belegt keine ausgeführte App-Aktion. HA/Willkommen ausschließlich Kontrollbilder. Details/Modi: [Baseline-Verzeichnis](tests/builtin-snapshots/README.md).
+
+Der folgende ursprüngliche Prüfstand entstand vor der Roboto-Benutzerinstallation; den aktuellen Nachlauf siehe weiter unten.
+
+Release-Build lokal über `vcvars64.bat` und CMake/Ninja in `cpp/build/store` erfolgreich, einschließlich App, neuem Testziel und `fl-tests`. Bekannte `vswhere.exe`-Warnung ohne Buildabbruch und bestehende `getenv`-Compilerwarnung in `tests.cpp`. Die vorhandenen Prüfzahlen sind gegenüber dem älteren Plan gestiegen; unten stehen die tatsächlich ausgeführten aktuellen Suiten, keine übernommenen historischen Zahlen.
+
+| Einzeln gestartete Suite | Ergebnis |
+|---|---|
+| `fl-device-profile-tests` | 85 bestanden |
+| `fl-plugin-tests` (Parser) | 316 bestanden |
+| `fl-plugin-zones-tests` | 462 bestanden; Ausgabe zusätzlich 2 × 4.000 feste Fuzz-Fälle |
+| `fl-plugin-schedule-tests` | 845 bestanden |
+| `fl-plugin-example-tests` | 124 bestanden |
+| `fl-plugin-sign-tests` | 111 bestanden |
+| `fl-plugin-catalog-tests` | 77 bestanden |
+| `fl-plugin-store-tests` (Speicher) | 193 bestanden |
+| `fl-plugin-transport-tests` | 140 bestanden; Ablehnungs-/Mockpfade, numerische Loopback-Adressauflösung ohne Netzverkehr |
+| `fl-plugin-snapshot-tests` | 1.901 bestanden; Baseline nicht aktualisiert |
+| `fl-tmdb-tests` | 119 bestanden |
+| `fl-psn-tests` | 37 bestanden |
+| `fl-key-help-tests` | OK |
+| `fl-amp-tests` | 13 bestanden; reine Logik, keine Töne |
+| `fl-monitor-tests` (ohne `window`) | 11 bestanden |
+| `fl-tests plugin-touch` | 2.093 bestanden (Teilmodus, kein vollständiger Kernlauf) |
+| `fl-plugin-settings-tests` | **Nicht bestanden/DPAPI blockiert**, Exit 2 beim initialen Speichern: `Plugin settings could not be encrypted or saved.` |
+| `fl-builtin-snapshot-tests update` | **Nicht gelaufen bis zum Bildvergleich**, Exit 2 beim vorgeschalteten Schriftcheck: `Schrift fehlt: Roboto.` |
+| `fl-builtin-snapshot-tests` mit äußerem `TZ=NZST-12NZDT` | Ebenfalls vorgeschalteter Schriftabbruch; **kein** Nachweis gleicher Bild-/Trefferkarten-Hashes |
+
+Plugin-`hashes.txt` bleibt byteweise unverändert: SHA-256 `3039AF0D01635BC21F06FE458523014B8929ABC814A9338AD53E67915963ACA2` vor/nach. Mechanischer Quellvergleich bestätigt identische verschobene `demo_*`-Funktionskörper und Snapshot-Hilfen sowie unveränderte `tile_layout`, `compose`, Willkommen, Streaming, HA und Spotify-Treffergeometrie. Das ist Quellnachweis, kein Ersatz für die neue Bildbaseline.
+
+**Damals offen:** Roboto auf dem Referenzrechner verfügbar machen und Baseline erzeugen. Das ist laut Nutzer inzwischen erfolgt (siehe Nachlauf); die drei regulären TZ-Vergleiche und der Export-/Hashvergleich bleiben offen. Keine Ersatzschrift-Baseline erzeugt. Der vollständige `fl-tests`-Lauf wurde wegen bekannter DPAPI-Sandboxgrenze **nicht ausgeführt**. Companion-/App-/Hardwaretests wurden wegen „kein Netzwerk“ nicht gestartet. `--demo --preview` vor/nach wurde nicht ausgeführt: Der vorhandene Modus verwendet Live-Systemmessungen und aktuelle Uhrzeit; zwei reguläre Läufe sind keine deterministische Bitgleichheitsprüfung. `run_demo` behält Live-Systemmessungen, Uhrzeit und die bisherigen zwei Blogbeiträge bei; nur die bestehenden `demo_*`-Aufrufe wechseln auf `samples`, damit das Demo-Verhalten nicht verändert wird. Die neuen eingefrorenen `system()`/`posts(lang)` werden vom Baseline-Test genutzt. Die Umstellung der unveränderten Demo-Daten ist mechanisch belegt, die verlangte Demo-Bildabnahme bleibt offen. Keine Bildgleichheit behauptet, solange dieser Nachweis fehlt.
+
+Keine Töne, Geräteausgabe, Netzwerkverbindungen, Port 8765, Registry-Leseoperationen des neuen Tests, `run_release_checks.py`, Signierung oder Auslieferung. Das Release-Prüfskript und `build.bat` wurden nur um das neue Ziel ergänzt, nicht ausgeführt. Physische/UI-Abnahme bleibt offen. **P5-0 darf noch nicht als vollständig grün oder als Basis für P5-1 abgenommen werden.**
+
+### P5-0-Nachlauf – Baseline vorhanden, Sandbox-Fontgrenze (06.11.2026)
+
+Laut Nutzer mit installierter Benutzerschrift Roboto erzeugt: `cd cpp; $env:TZ='UTC0'; .\build\store\fl-builtin-snapshot-tests.exe update`. Lokal vorhanden und nachgezählt: **4.221 Bildschlüssel + 4.221 Trefferkarten und 567 DE/dunkel-PNGs**. SHA-256 von `hashes.txt`: `1DF980F2623294A34E25B370E02D99C4B1A227BD8580C46E951DF14A357073FA`. Diese Baseline ist an Rechner, Windows-/Schriftstand und DirectWrite-Fallback gebunden, kein portabler Nachweis.
+
+Der gemeldete NZST-Lauf hinterließ 33 Bildabweichungen in `%TEMP%/fl-builtin-snapshot-actual`: **31 System, 2 Streaming; alle 33 Trefferkarten stimmen überein**. Pixelvergleich der verfügbaren dunklen Referenzen: `landscape.system.full`, `landscape.system.null` und `portrait.system.null` jeweils nur ein abweichendes Textpixel; `landscape.streaming.abbreviations` zwei. Kein verschobener Uhrtext in diesen Bildern. Das grenzt die Untersuchung auf Text-Rasterisierung ein, beweist aber noch keine Ursache.
+
+Aktueller regulärer Testprozess sieht Roboto nicht; Lesen von `%LOCALAPPDATA%/Microsoft/Windows/Fonts` wird verweigert. Erneute Aufrufe `update` mit UTC sowie Vergleich mit äußerem UTC, NZST und entfernter TZ endeten jeweils **Exit 2 am Schriftcheck**. Baseline unverändert; kein neuer erfolgreicher Update-, Vergleichs- oder Exportlauf. Die Schriftsperre wurde nicht umgangen.
+
+Isolierte Diagnoseprogramme nur unter `build/store/p5-0-validation`, ohne Baseline-Schreibzugriff: drei dunkle Fälle liefern in allen äußeren TZ-Varianten dieselben Baseline-Hashes; wiederholte Zeichenrunden im selben Prozess bleiben stabil. Eine größere DE-Diagnose ohne Roboto/Material zeigt 69 Abweichungen gegen die vorhandene Baseline. Eine isolierte DirectWrite-Factory erzeugt unter UTC und NZST bytegleiche Diagnoseausgaben, weiterhin 69 Abweichungen. PNG-Kodierung sowie frühes/spätes Einlesen der Soll-Hashes beseitigen diese Unterschiede nicht. **Teiluntersuchungen, keine vollständige 4.221-Bilder-Abnahme und kein bestätigter Fix.** Renderer und regulärer Testcode unverändert.
+
+Build über `cpp/build/store/p5-0-validation/build.cmd` erneut erfolgreich (`vcvars64.bat`, CMake/Ninja, Ordner `cpp/build/store`; bekannte `vswhere.exe`-Warnung, kein Buildfehler). Erneut regulär grün: `fl-plugin-snapshot-tests` **1.901/0**, `fl-tests plugin-touch` **2.093/0**. Plugin-Hashdatei vor/nach unverändert: `3039AF0D01635BC21F06FE458523014B8929ABC814A9338AD53E67915963ACA2`.
+
+**Weiter erforderlich:** Roboto im regulären ausführenden Prozess verfügbar machen; die 33 Abweichungen mit vollständiger Matrix reproduzieren, Ursache beheben, Baseline explizit erneuern, dann UTC/NZST/ohne TZ jeweils 0 Fehler sowie bytegleiche Export-Hashkarten nachweisen. Aufruf mit Wiederherstellung der äußeren TZ: [Snapshot-README](tests/builtin-snapshots/README.md). Kein Netzwerk, Port 8765, Audio, Hardware, Release-Prüfskript, Commit, Push oder Branchwechsel im Nachlauf. Bestehende DPAPI-/physische/UI-Grenzen bleiben offen.
+
+## Phase-4c-Sicherheitsreview M1/M2/N1–N4 (06.11.2026)
+
+Neuer Korrekturlauf auf `feature/zonen-layout`, bestehende uncommittete Phase-4c-Arbeit fortgeführt. Tap-URLs prüfen feste RFC-3986-Zeichen, vollständige Prozentsequenzen und kleine feste Hosts; Prüfung beim Parsen und über dieselbe Funktion bei Touch-Entscheidung und unmittelbar vor dem Browserstart. Punktwerte sowie feste (auch prozentkodierte) Punktpfadsegmente ergeben kein Ziel. Quellen-URLs behalten ihre bisherige Hostnormalisierung. Quellenfreigabe/Aktivzustand bleiben ausschließlich bei geänderter Linkliste und vollständig gleichem übrigen Manifest erhalten; identische Re-Imports und zusätzliche Widget-/Settings-/Tap-Änderungen widerrufen Freigaben. Listen ohne Platz erhalten keine Zeilen; gesammelte Ziele werden auf die Blockfläche begrenzt. Busy-Linkschalter setzt seinen lokalen Zustand zurück.
+
+Release-Build über `vcvars64.bat` und CMake/Ninja in `cpp/build/store` erfolgreich (bekannte `vswhere.exe`-Warnung ohne Abbruch). Einzeln gestartete Suiten mit **0 Fehlern**:
+
+| Suite | Prüfungen |
+|---|---:|
+| `fl-plugin-tests` | 316 |
+| `fl-plugin-store-tests` | 193 |
+| `fl-plugin-snapshot-tests` | 1.901 |
+| `fl-tests plugin-touch` | 2.093 |
+| `fl-plugin-zones-tests` | 462 + zweimal 4.000 feste Fuzz-Fälle |
+| `fl-plugin-schedule-tests` | 845 |
+| `fl-plugin-example-tests` | 124 |
+| `fl-plugin-transport-tests` | 140 |
+| `fl-plugin-sign-tests` | 111 |
+| `fl-plugin-catalog-tests` | 77 |
+| `fl-device-profile-tests` | 85 |
+| `fl-tmdb-tests` | 119 |
+| `fl-psn-tests` | 37 |
+| `fl-key-help-tests` | OK |
+| `fl-amp-tests` | 13, synthetisch ohne Wiedergabe |
+| `fl-monitor-tests` | 11, ohne Fenstermodus |
+| `fl-companion-tests` | 377, isolierter lokaler Testserver |
+
+Neue Regressionen: ungültige feste URL-Zeichen/Prozentsequenzen/Platzhalter und Großschreibung, Punktwerte und -segmente, Update nur der Linkliste versus Links plus Widgets/Settings/Tap sowie identischer Re-Import (auch neu geladen), kaputte `links.json` beim Laden, tatsächlicher `write_links`-Fehler über ein Verzeichnis am Dateipfad (Widerruf, Erteilen und Import), Rasterziele ohne Layout, flache Listenfläche und Rate bei 1,9 s gesperrt / 2,0 s erlaubt. Browserstarts werden ausschließlich durch injizierte Funktionen geprüft. Die zusätzliche Rasterprüfung trennt die größere Löschfläche für Kantenglättung von der eigentlichen Tap-Fläche; vorhandene Snapshot-Vergleiche sind grün.
+
+**Umgebungsblocker:** `fl-plugin-settings-tests` beendet sich beim ersten Speichern mit „Plugin settings could not be encrypted or saved“ (Exit 2). `fl-tests` vollständig bricht im Abschnitt `config` mit „Verschlüsselung fehlgeschlagen“ ab (Exit -1073740791). DPAPI wird nicht ersetzt oder umgangen; beide Suiten sind nicht grün. Prozess-/Installer-/Distributionstests und reale Geräte/UI-Abnahme wurden in diesem Korrekturlauf nicht ausgeführt. Native Busy-Schalter-Sichtprüfung bleibt offen.
+
+Clean-Room: nur eigener Repo-Code und lokale Arbeitsanweisungen, kein Fremdcode gelesen. Keine Töne, keine Hardware/COM-Zugriffe, keine echten Links, kein Port 8765 gestartet, kein `run_release_checks.py`, kein EXE-Export und kein Commit/Push/Branchwechsel. DE/EN-System, Paketformat, Tutorial und drei Changelogs aktualisiert. `git diff --check` und lokale Dateilinks der sechs betroffenen Plugin-Dokumente geprüft. Bestehende Snapshot-Basis unverändert: `cpp/tests/plugin-snapshots/hashes.txt`, SHA-256 `3039AF0D01635BC21F06FE458523014B8929ABC814A9338AD53E67915963ACA2`. Die folgenden Abschnitte dokumentieren frühere Läufe mit ihren damaligen Prüfzahlen.
+
+
+## Phase 4c – P4c-1 bis P4c-4 (06.11.2026)
+
+Implementiert in Paket-Reihenfolge: strenge Schema-2-Felder `links`/`tap` und kodierte Expansion; Ziele im selben Zeichenlauf mit gemeinsamer Listenzeilen-Geometrie; persistente eigene Linkfreigabe (Standard aus) mit DE/EN-Schalter und Hostliste; Snapshot-Treffer, Ruhezeit (Companion 1,0 s / Monitor 0,3 s), Generations-/HTTPS-/Host-Prüfung beim Tipp und unmittelbar vor dem Browserstart, global je Plugin höchstens ein Linkversuch alle zwei Sekunden. Nur `open_link` und `next`; keine geheimen Einstellungen in Linkvorlagen. Feste Logtexte ohne URLs/Daten. Kachel- und Sperrzonenversatz werden über die Kachelbox in die lokale Zielgeometrie eingerechnet.
+
+`next` verwendet die auf acht unterschiedliche Schlüssel begrenzte, per Mutex gesicherte Liste je Ansicht. Nur der Anzeige-Thread übernimmt die Wünsche. Zusätzlich zu den P4c-Dateien wurde `plugin_schedule.h/.cpp` für den ausdrücklich beauftragten 4b-Reviewpunkt geändert: ein wartendes Wechselfeld behält `pending_next` bis zur Ausführung. `first_available` behält eine manuelle Auswahl bis zur nächsten Änderung der verfügbaren Einträge; ohne Tap bleibt die automatische Auswahl erhalten, auch wenn ein anderer Übergang sie verzögert. Reine Regressionen decken diese Fälle ab.
+
+Build: VS Build Tools 2022, `vcvars64.bat`, CMake/Ninja Release in **`cpp/build/store`** mit bestehender vcpkg-Konfiguration. Bekannte `vswhere.exe`-Warnung ohne Abbruch, PATH-Anführungszeichen wie in `build.bat` bereinigt. Ein zwischenzeitlicher Linkversuch traf eine noch laufende Snapshot-Test-EXE (LNK1104); nach ihrem Ende erfolgreich neu gebaut. Kein neuer Testtarget, deshalb keine Änderung an `CMakeLists.txt`, `build.bat` oder `run_release_checks.py`; letzteres wurde **nicht gestartet**.
+
+Einzeln gestartete Suiten, jeweils **0 Fehler**:
+
+| Suite | Prüfungen |
+|---|---:|
+| `fl-plugin-tests` | 292 |
+| `fl-plugin-zones-tests` | 462 + 2 feste Fuzz-Läufe à 4.000 |
+| `fl-plugin-schedule-tests` | 845 |
+| `fl-plugin-example-tests` | 124 |
+| `fl-plugin-store-tests` | 146 |
+| `fl-plugin-transport-tests` | 140 |
+| `fl-plugin-sign-tests` | 111 |
+| `fl-plugin-catalog-tests` | 77 |
+| `fl-plugin-snapshot-tests` | 1.859 |
+| `fl-device-profile-tests` | 85 |
+| `fl-tmdb-tests` | 119 |
+| `fl-psn-tests` | 37 |
+| `fl-key-help-tests` | OK (keine Anzahl ausgegeben) |
+| `fl-amp-tests` | 13 (rein synthetisch, keine Wiedergabe) |
+| `fl-monitor-tests` | 11 (ohne Fenstermodus) |
+| `fl-companion-tests` | 377 (lokaler Testserver, keine Geräte) |
+| `fl-tests plugin-touch` | 2.083 (davon 29 neue Plugin-Touch-Prüfungen) |
+| `installer_preserves_config.py` | 2 isolierte Prüfungen |
+| `fl-distribution-tests standalone` | Exit 0 |
+| `fl-plugin-validate --store cpp/examples/plugins` | 6 Manifeste gültig |
+
+Die sechs Beispielmanifeste und ein aus dem Doku-Ausschnitt vervollständigtes synthetisches Tap-Manifest sind offline gültig. Python-Syntax, lokale Links der betroffenen Doku und `git diff --check` geprüft. Die Codeänderungen benötigen kein neues Testziel.
+
+Die Vollsuiten **`fl-tests` und `fl-plugin-settings-tests` sind nicht gelaufen** (bekannte DPAPI-Sandbox-Grenze). Der neue Modus `fl-tests plugin-touch` führt ausschließlich die vorhandenen Touch-/Systemziel-Regressionen und die neuen reinen Plugin-Touch-Tests aus, ohne DPAPI, Netzabruf oder echte Linkstarts. Er ersetzt die Vollsuite nicht.
+
+Mehrgeräte-Prozessprüfung `app_companion_multi.py cpp/build/store/ScreenBuddy.exe --tap-only`: **blockiert vor Kopplung**, Companion meldet im isolierten Testlog „Verschlüsselung fehlgeschlagen“, anschließend Status-Timeout; Prozess sauber beendet. Damit sind die neuen Prozess-Akzeptanzprüfungen (verweigerter Link ohne Navigation auf A/B, normale Navigation außerhalb der Zielrechtecke) hier **nicht ausgeführt**. `app_companion_integration.py`: Fall mit ausgeschaltetem Companion durchlaufen, aktivierter Companion am gleichen Start-Timeout blockiert; gesamte Suite nicht grün. Die reinen Mehransicht-Tests und die Companion-Suite sind separate Nachweise, kein Ersatz dafür.
+
+Keine Hardware/COM-Ports, keine echten Browserlinks und keine Töne. Linkstarts in Tests ausschließlich injiziert; die Prozessprüfung besitzt keine Linkfreigabe. Alle Prozessprüfungen verwenden isolierte Daten/Instanzen und freie Ports mit Ausschluss von 8765. Installerprüfung ebenfalls nur in isolierten Testordnern mit `--no-lcd`, ohne echten Autostart/Startmenüeingriff. Manifest v1 und alle bestehenden Snapshot-Hashes unverändert: `hashes.txt` SHA-256 **3039AF0D01635BC21F06FE458523014B8929ABC814A9338AD53E67915963ACA2**. Keine neue Snapshot-Basis geschrieben.
+
+Offen: native UI-Sichtprüfung und physische 4c-H1-Abnahme durch Basti (Monitor/Handy, Freigabe, Ruhezeit). Die übrigen bekannten 4b-Punkte (mehrfache Zonengeometrie, Warnung bei absichtlich leerem Eintrag, Seriell-Lockverschachtelung) bleiben offen. Keine Veröffentlichung, kein EXE-Export, Commit, Push oder Branchwechsel; Branch bleibt `feature/zonen-layout`.
+
+
+## Phase-4b-Reviewkorrekturen (06.11.2026)
+
+Serieller Vorhang: Budget umfasst Bandübertragung, 50 ms Ruhe und gemessene Renderzeit; maximal ein Band-Schritt je Aufruf, bei Verspätung wird die Zeitbasis verschoben. Nur Companion darf verspätete Zwischenschritte verwerfen. Monitor bleibt beim erreichten Zwischenbild. Rotation überspringt einen datenlos gewordenen Eintrag vorwärts. Globale Bandaufteilung auch bei Kachelversatz. Reine Tests für first_available-Überblendung, Generations-/Größenreset, Parsergrenzen und altes Skip-Prädikat ergänzt. Der Prozessprüfer verwirft Start-/Größenbilder über eine neue bestätigte Auflösung, nutzt das erste Plugin-JPEG nur als Basis, prüft Navigation während der gesamten Beobachtung und führt zusätzlich ein statisches Plugin ohne cycle als Negativkontrolle aus.
+
+Prüfergebnisse dieses Korrekturlaufs (jeweils eigene Suite, 0 Fehler): Zeitplan **836**, Parser **271**, Snapshots **1.811**, Zonen **462** (plus zwei feste Fuzz-Läufe à 4.000), Beispiele **124**, Speicher **127**, Transport **140**. Release-Build mit `vcvars64.bat`/CMake in `cpp/build/store` erfolgreich; bekannte `vswhere.exe`-Warnung ohne Abbruch nach Bereinigung der PATH-Anführungszeichen wie in `build.bat`. Python-Syntax und `git diff --check` grün.
+
+Prozessprüfung `app_companion_multi.py … --cycle-only`: **blockiert vor Kopplung**, isolierter Companion startet nicht; synthetisches Testlog meldet „Verschlüsselung fehlgeschlagen“ (bestehende DPAPI-Sandbox-Grenze), danach Status-Timeout. Prozess beendet sich sauber. Weder positive JPEG-Prüfung noch Negativkontrolle sind damit hier abgenommen. Reine Suiten ersetzen diesen Prozessnachweis und die physische Abnahme nicht.
+
+`hashes.txt` in diesem Korrekturlauf nicht geändert (SHA-256 `3039AF0D01635BC21F06FE458523014B8929ABC814A9338AD53E67915963ACA2`); alle vorhandenen Snapshot-Vergleiche grün. Keine Töne, keine Hardware, kein Port 8765, kein `run_release_checks.py`, kein Export/Release und kein Commit/Push/Branchwechsel.
+
+## Phase-4b-Review: bekannte offene Punkte (06.11.2026)
+
+Diese Punkte sind dokumentiert und in diesem Korrekturlauf bewusst unverändert:
+- Zonengeometrie wird dreifach berechnet (`app.cpp`: `zone_rows`, sowie Geometrie-/Zeichenpfade in `plugin_render.cpp`). Eine gemeinsame Berechnung bleibt offen.
+- Die Seitenwarnung „Plugin-Daten fehlen“ erscheint auch bei einem absichtlich leeren Eintrag.
+- Ein `next`-Wunsch konnte in einer wartenden Zone verloren gehen; **in Phase 4c behoben**, siehe aktueller Abschnitt oben.
+- Lock-Verschachtelung: `render::mutex` → `SerialDisplay::mu_`; separater Seriell-Thread bleibt außerhalb von Phase 4.
+
+## Phase 4b – P4b-0 bis P4b-4 (06.11.2026)
+
+Implementiert: Bandstatistik und rein simulierte Messstrecke, Schema-2-Parser `cycle`/`seconds` und Fehlend-Kennzeichen je Block, reines `plugin_schedule` mit injizierter Uhr, Auswahl/Überblendung/Band-Vorhang mit Bildcache, Fristen und Zustände je sichtbarer Ansicht. Clean-Room-Zeilen für alle fünf Pakete ergänzt. Ohne Wechselfeld prüft eine feste Referenzliste über 60 simulierte Sekunden die bisherige Frame-/Wartefolge; keine Änderung an Manifest v1 oder den **180 bestehenden Snapshot-Hashes**, **168 neue Snapshots**.
+
+Build: VS Build Tools 2022 + `vcvars64.bat`, CMake/Ninja Release in `cpp/build/store` mit vorhandener vcpkg-Konfiguration. `vswhere.exe`-Warnung ohne Buildabbruch. `build.bat` und `run_release_checks.py` nur um das neue Ziel ergänzt, **nicht gestartet**; kein Export, Signieren, Commit, Push oder Branchwechsel.
+
+| Einzeln ausgeführte Suite | Ergebnis |
+|---|---|
+| `fl-tests transfer-sim` (nur dieser Teilmodus) | **10 grün**, simulierte Strecke 1.000.000 Byte/s; EWMA, unbekannte Rate, keine Änderung, benachbarte Bänder und verkürztes Schlussband. Kein `Output::connect`, kein COM-Port. |
+| `fl-plugin-schedule-tests` | **566 grün**: Rotation, Datenlage, Quantisierung, Verspätung, Idempotenz einschließlich wartender Zone, getrennte Geräte, 600-ms-Wartegrenze, Mindestdauer, Budgets und Frame-/Wartefolge. |
+| Parser / Zonen / Beispiele / Speicher / Transport / Signatur / Katalog | **269 / 462 / 124 / 127 / 140 / 111 / 77 grün**, jeweils 0 Fehler. Zonen zusätzlich zwei feste Fuzz-Läufe à 4.000 Manifesten. Schema 2 verlangt im Store weiterhin mindestens 2.10.0. |
+| `fl-plugin-snapshot-tests` | **1.808 grün**, 0 Fehler; alle vorhandenen Hashes vor Anhängen der neuen Einträge verglichen. Alle Themes, Quer/Hoch, normale/kleine Größen, beide Einträge, leer, fade 1/2, reveal 2/4; reine Pixel-/Bandkostenprüfung. Warnungen stammen aus absichtlich injizierten Zeichenfehlern der bestehenden Isolationstests. |
+| Geräteprofil / Companion / TMDB / PSN / Amplifier / Monitor | **85 / 377 / 119 / 37 / 13 / 11 grün**; Amplifier ausschließlich reine Logik, Monitor ohne Fenstermodus. |
+| Schlüsselhilfe / Distribution (unpackaged) | **OK / Exit 0**, kein Store-Pakettest. |
+| Installer / Navigation-API | **2 / 51 grün**, isolierte temporäre Instanzen mit `--no-lcd`. |
+| `fl-tests` vollständig / `fl-plugin-settings-tests` | **Nicht gelaufen**, bekannte DPAPI-Grenze dieser Sandbox. Teilmodus `transfer-sim` ist kein vollständiger Kernprüflauf. |
+| Neuer Zweigeräte-Prozesstest / bestehende Companion-Integration | **Nicht abgenommen**: isolierte App startet und beendet sich, Companion scheitert vor Kopplung mit „Verschlüsselung fehlgeschlagen“ (DPAPI). Der neue Test prüft zwei geänderte JPEGs binnen `seconds + 2 s` und unveränderte Navigation; diese Kriterien sind hier nicht durchgelaufen. Aufruf: `python cpp/tests/app_companion_multi.py cpp/build/store/ScreenBuddy.exe` (optional `--cycle-only`). |
+| Native Settings Smoke | **Nicht grün**: vorhandene Navigationsliste enthält zusätzliche Einträge gegenüber der Testkonstante `NAV`; Abbruch vor weiteren UI-Prüfungen. Native Mouse-/Pairing-Smokes nicht ausgeführt; keine native Sichtabnahme. |
+
+Release-Messung, ausschließlich reine Zeichnung (nicht der vollständige `render_core`): 480×320 0,47 ms, 1920×720 2,33 ms, 2400×1080 4,24 ms. Übergangsschritt aus Cache (Mittel aus 10): **0,51 / 5,24 / 9,73 ms**. Das erfüllt die Cache-Budgets auf diesem PC; die App-Gesamtzeit und physische Darstellung bleiben wegen der blockierten Prozessabnahme offen. Timing wird berichtet, nicht als harter Debug-Test gewertet.
+
+### Messung serielle Rate (offen, Basti)
+
+**Keine reale serielle Rate gemessen. Kein echtes Display angesprochen, kein COM-Port geöffnet.** Nur simulierte Bandstrecke und Kostenfunktionen geprüft. Die laufende serielle Ausgabe erfasst künftig Payload-Byte/s als EWMA für Teilupdates ab acht Zeilen und die letzte tatsächliche Übertragungsdauer. Leere Diffs überschreiben diese Dauer nicht. Diagnoseformat: „Zeilen, ms, kB/s“ ohne Nutzdaten. Ohne gemessene Rate bleibt der Übergang ein Schnitt.
+
+Basti misst vor Release am echten Gerät die Rate R und trägt sie hier ein; außerdem Monitor, Companion und seriellen Vorhang/Schnitt auf ruhige Darstellung, Flackern und Streifen prüfen. Die Simulation ersetzt diese Abnahme nicht. Keine Töne, keine Hardwarekontakte, keine Tests gegen Port 8765. Physische Tests bleiben offen.
+
+
+## Phase-4a-Reviewkorrekturen (06.11.2026, separater Prüflauf)
+
+Alle fünf Review-Befunde bearbeitet: Teilpatch erhält aktuelle Ränder (beide Konfigurationsabschnitte); DE/EN-Gerätekarte erklärt bei Synchronisierung die unwirksamen eigenen Ränder und die gemeinsame Vorgabe; `tap_at` führt `step_page` nach Freigabe von `tap_mu_` aus; Android-KDoc und Importe bereinigt. `place`/`compose_view` begrenzen auch übergroßen Inhalt auf die Nutzfläche.
+
+Build erneut erfolgreich: `vcvars64.bat`, bereinigter PATH wie `cpp/build.bat`, CMake/Ninja Release in `cpp/build/store`, vorhandene vcpkg-Konfiguration, `VCPKG_MANIFEST_MODE=OFF`. Die `vswhere.exe`-Warnung verhindert den erfolgreichen Build nicht. Kein Export/Signieren gestartet.
+
+| Suite einzeln gestartet | Ergebnis dieses Review-Laufs |
+|---|---|
+| `fl-device-profile-tests` | **85 grün**: Teilpatch/leeres Patch, gemeinsamer Betrieb wählt `companion.keepout` trotz eigenem Gerätewert (produktiver reiner Auswahlhelfer), Orientation 4/255, physisch drehendes Hochformat, h=119 und w=159 getrennt, Kantenbegrenzung, kleinerer/größerer Inhalt mit vollständigem Pixelvergleich. |
+| `fl-companion-tests` | **377 grün**, 0 Fehler; zusätzlich echtes Laden synthetischer `companion.json` mit Keepout als String, Array, negativer Zahl und beschädigten Objekt-Rändern (ignoriert/geklammert). |
+| `fl-plugin-snapshot-tests` | **1.186 grün**, 0 Fehler; unveränderte bestehende Snapshot-Hashes, keine Aktualisierung der Baseline. |
+| Plugin Parser / Zonen / Beispiele / Store / Transport / Signatur / Katalog | **251 / 462 / 119 / 127 / 140 / 111 / 77 grün**, jeweils 0 Fehler; Zonen zusätzlich beide festen Fuzz-Läufe mit je 4.000 Manifesten. |
+| `fl-plugin-settings-tests` | **Nicht grün**, unverändert DPAPI: `initial_save`, „Plugin settings could not be encrypted or saved.“ |
+| `fl-tests` | **Nicht grün**, unverändert DPAPI: Abbruch in `config`, „Verschlüsselung fehlgeschlagen“. |
+| `app_companion_multi.py` | **Nicht abgenommen**: isolierte App startet und beendet sich sauber; Companion scheitert vor der Kopplung an DPAPI. Die neuen Kontrollen (A Inhalt bis zum Rand bei 0, B Versatz 48 ±2 JPEG-Pixel und gleichförmige Streifen ±8, separate Randtipps links/oben/rechts/unten) sind implementiert, aber nicht als App-Test durchgelaufen. |
+
+Die JPEG-Auswertung separat mit zwei synthetischen JPEGs (0/48 Pixel Rand) geprüft: beide Kontrollen grün, erkannter Inhaltsbeginn 0/47 (zulässige JPEG-Toleranz ±2); dies ist **kein** Ersatz für den blockierten App-Prozesstest. Python-Syntax und `git diff --check` erfolgreich geprüft. Kein neuer Android-Build für die rein kosmetischen Kotlin-Änderungen; frühere Android-Prüfstände unten bleiben historisch.
+
+Grenzen eingehalten: Clean-Room, keine Töne/Hardware, kein Port 8765 benutzt, `run_release_checks.py` nicht gestartet; kein Commit, Push oder Branchwechsel. Native UI-Sichtprüfung und physische Geräteabnahme bleiben offen. Die DPAPI-Blocker werden weder umgangen noch als grün ausgewiesen.
+
+## Phase 4a – Geräteprofile (06.11.2026, lokaler Entwicklungsstand)
+
+P4a-1 → P4a-2 → P4a-3 → P4a-4 nacheinander implementiert auf `feature/zonen-layout`; kein Commit, Push oder Branchwechsel. Kein Fremdcode eingesehen oder in die Implementierung übernommen. Keine Hardwareausgabe, Installation, Signierung, Veröffentlichung oder Tonerzeugung. `run_release_checks.py` wurde **nicht gestartet**, nur die neue Suite in dessen Liste registriert. Tests verwenden keine Verbindung zu Port 8765 (vorhandene reine Zahlen-/URL-Validierungen bleiben bestehen).
+
+Build: VS Build Tools 2022, `vcvars64.bat`, CMake aus `Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe`, Ninja Release in `cpp/build/store`. `ScreenBuddy` und alle unten genannten C++-Testziele erfolgreich gebaut. Vorhandener vcpkg-Cache des Build-Verzeichnisses verwendet. Die Meldung zu fehlendem `vswhere.exe` verhinderte weder Compilerinitialisierung noch Build.
+
+| Suite (einzeln gestartet) | Ergebnis dieses Laufs |
+|---|---|
+| `fl-device-profile-tests` | **69 grün**; vier asymmetrische Drehtabellen, Begrenzung/Rückfall, Innen-/Außenkanten, Inhalt-Koordinaten, Drittel-Regel, drei Geräteprofile, Zielversatz, Nullmaske und Konfigurationsvalidierung beider Abschnitte, TOML-Speichern/Laden und alte Konfigurationen ohne Sperrzone. Eine Prüfung vergleicht alle **153.600 Pixel** eines komponierten Bildes. |
+| `fl-companion-tests` | **369 grün**, 0 Fehler; eigener Sperrzonen-Store, ungültige Werte/ID, Persistenz, Rücksetzen und ältere Geräte ohne Feld eingeschlossen. TLS-Prozess-/Mehrgeräte-Simulation der vorhandenen Suite; keine echten Geräte. |
+| `fl-tests` | **Nicht grün**: Abbruch in `config` mit „Verschlüsselung fehlgeschlagen“ (Windows-DPAPI in dieser eingeschränkten Umgebung). Keine vollständige Prüfzahl behauptet. |
+| `fl-plugin-tests` | **251 grün**, 0 Fehler |
+| `fl-plugin-zones-tests` | **462 grün**, 0 Fehler; zusätzlich Ausgabe der beiden festen Fuzz-Läufe mit je 4.000 Manifesten |
+| `fl-plugin-example-tests` | **119 grün**, 0 Fehler |
+| `fl-plugin-store-tests` | **127 grün**, 0 Fehler |
+| `fl-plugin-transport-tests` | **140 grün**, 0 Fehler |
+| `fl-plugin-settings-tests` | **Nicht grün**: `initial_save`, „Plugin settings could not be encrypted or saved.“; gleicher DPAPI-Blocker. |
+| `fl-plugin-sign-tests` | **111 grün**, 0 Fehler; nur kryptografische Testdaten, keine Auslieferung signiert |
+| `fl-plugin-catalog-tests` | **77 grün**, 0 Fehler |
+| `fl-plugin-snapshot-tests` | **1.186 grün**, 0 Fehler; bestehende Hashdatei bytegleich zu `HEAD`, keine Baseline neu geschrieben |
+| Android `:protocol:test` / `ProtocolTest` | **23 grün**, 0 Fehler/übersprungen; TV ignoriert alle gespeicherten Ausrichtungen, Handy reicht sie unverändert weiter. Gradle 8.11.1 offline, lokaler beschreibbarer Cache, `--configure-on-demand`; Kotlin-Daemon fiel auf Kompilierung ohne Daemon zurück. |
+
+**Mehrgeräte-App-Prozesstest nicht abgenommen:** `python cpp/tests/app_companion_multi.py cpp/build/store/ScreenBuddy.exe` wurde mit zufälligen, explizit ausgeschlossenen Standardports, `FUCHSLABS_INSTANCE` und `--no-lcd` gestartet. Die isolierte App beendet sich sauber, der Companion-Start scheitert aber vor der ersten Kopplung an DPAPI („Verschlüsselung fehlgeschlagen“). Daher sind die neu ergänzten 2400 × 1080 / 1920 × 1080-, JPEG-Rand- (±8) und Randtipp-Prüfungen **noch nicht erfolgreich durchlaufen**. Das Skript nutzt frische Testverzeichnisse und Windows-Bilddekodierung ohne zusätzliche Python-Pakete. Keine App-Test-Hooks oder Änderungen an der Verschlüsselung eingebaut.
+
+**Android-Build nicht abgenommen:** Companion bleibt bei der bereits vorhandenen Entwicklungsversion **1.0.4 / Code 8**. `Build-Companion.ps1 -SigningProperties ''` verweigert bestimmungsgemäß ohne private Signierdaten den Start; dieser Auslieferungsweg lässt sich mit der Paketvorgabe „keine Signierung“ nicht erfolgreich verwenden. Als unsignierter Entwicklungscheck wurden `:app:lintRelease :app:assembleRelease` direkt offline versucht. Der vollständige Build scheitert am nicht zugänglichen Android-SDK (`C:/Users/admin/AppData/Local/Android`: Zugriff verweigert; Gradle meldet SDK location not found). Kein neues APK als gebaut, signiert oder installiert ausgegeben. JVM-Protokolltests konnten separat erfolgreich laufen.
+
+**Noch offen:** vollständige grüne Läufe von `fl-tests`, `fl-plugin-settings-tests` und dem App-Mehrgerätetest in einer Umgebung mit funktionsfähigem DPAPI; Android-Lint/APK-Build mit zugänglichem SDK; native UI-Sicht-/Tastaturprüfung einschließlich aktualisierter Vorschau. Physische Abnahme durch Basti: 4a-H1 (Gehäuserand in allen vier Ausrichtungen, Landscape/Gegenrichtung bestätigen) und 4a-H2 (TV bleibt quer, Overscan passt). Automatisierte Geometrie-/Pixelprüfungen ersetzen diese Abnahme nicht.
+
+DE/EN-Dokumentation: Navigation und Companion-Anleitung, Android-Buildhinweise, beide Haupt-Changelogs und C++-Changelog ergänzt; Clean-Room-Tabelle enthält eine Zeile je Paket (Agent `Codex CLI 0.166.0`). Lokale Dateilinks, Python-Syntax und `git diff --check` geprüft. Manifest v1/Plugin-Parser, Protokollschema, Versions-/Downloadlinks und historische Release-/Testeinträge wurden nicht umgeschrieben. Keine Änderung an bebilderten HTML-Anleitungen in diesem Paket.
+
+### English validation status
+
+P4a-1 through P4a-4 are implemented in order, with no commit, push, branch switch, device output, audible sound, signing or distribution. C++ Release builds pass in `cpp/build/store`; the table above records each separately invoked suite. Device profile: **69 checks** (including a full 153,600-pixel comparison), Companion: **369**, Android ProtocolTest: **23**. Eight of the ten requested existing suites pass. Core and plugin settings tests are blocked by Windows-DPAPI encryption failures, as is the application-level multi-device test before pairing. Existing snapshot hashes remain byte-identical. The APK/lint build is blocked by Android SDK access; the delivery script requires signing credentials and was not used to sign anything. Native UI visual/keyboard acceptance and physical orientation/TV overscan checks remain open. This is not a fully accepted release.
+
+## Render-Snapshots (2.10.0)
+
+Testgerüst für das Zonen-Layout (Phase 0): `fl-plugin-snapshot-tests` rendert alle Beispiel-Plugins aus `cpp/examples/plugins` mit `plugins::draw_page` (feste Beispieldaten, Uhr 12:34, Datum 2026-01-01, Theme `dunkel` als Referenz in Querformat 480x320 und Hochformat 320x480 sowie (Phase 1) die Theme-Matrix hell, windows (feste Einstellungen, inline), custom, custom-cupertino, custom-fluent, custom-material nur im Querformat mit Präfix `<theme>.`; bei Plugins mit Quellen zusätzlich die Variante „Daten fehlen“). Offline, ohne Netzwerk, ohne Port 8765, ohne Ton. Basis: `cpp/tests/plugin-snapshots/` (`hashes.txt` = FNV-1a-64 über Größe und Pixel, PNGs zur Sichtprüfung).
+
+- Vergleichen (Standard): `build/store/fl-plugin-snapshot-tests.exe` (Exit 1 bei Abweichung; Ist-Bilder landen in `%TEMP%\fl-plugin-snapshot-actual`).
+- Basis neu schreiben: `build/store/fl-plugin-snapshot-tests.exe update` (danach Diff der PNGs prüfen und bewusst committen).
+- Bauen: `cmake --build build/store --target fl-plugin-snapshot-tests`; ist in `build.bat` und `tests/run_release_checks.py` eingebunden.
+- Stand (Phase 1, Rahmenstil aus `theme::Design`): 32 Snapshots, 185 Prüfungen bestanden, 0 fehlgeschlagen. Die acht dunkel-Hashes wurden bewusst neu erzeugt (Kartenradius 9 → 8). Die Hashes beruhen auf Direct2D/DirectWrite; andere Schriftarten, Treiber oder Skalierung können sie ändern, dann bewusst mit `update` neu erzeugen.
+
+## Phase 2b Zonen-Layout: Zeichnen nach Zonen (2.10.0, Entwicklungsstand, nicht committet)
+
+- Umfang: `draw_page` zeichnet v2-Seiten mit `layout` nach Zonen (Dichtestufen, Clip pro Block, Blöcke ohne Platz entfallen). v1 und v2 ohne `layout` zeichnen pixelidentisch wie bisher: alle bestehenden v1-Snapshot-Hashes unverändert (nur `offline-zonen` ist neu, 28 neue Zeilen in `hashes.txt`; keine bestehende Zeile geändert).
+- Zonen-Snapshots: das Beispiel `offline-zonen` in vier Größen (480×320, 320×480, 240×160, 160×240) und allen sieben Themes (dunkel, hell, windows, custom, custom-cupertino/-fluent/-material) = 28 Bilder; Snapshot-Basis insgesamt 140 Bilder (vorher 112 mit den Phase-1-Beispielen). Die 14 kleinen Bilder (240×160, 160×240) wurden nach den Codex-Korrekturen neu erzeugt (`update`): Bei Skalierung 0,5 wird die Schrift nicht mitskaliert, deshalb werden Schwellen und Zeilenmaße mit 1/Skalierung multipliziert (vorher überlappten/schnitten Zeilen), die 14 großen Bilder blieben bytegleich.
+- Neue Suiten und Prüfungen: `fl-plugin-zones-tests` (Geometrie, Parser, Dichtestufen, Fuzz mit 4000 Manifesten) und Erweiterungen in `fl-plugin-snapshot-tests`: v2-ohne-layout gegen v1 pixelgleich in allen Themes/Größen, Stress-Seite (12 Blöcke, 300-Zeichen-Texte) ohne Pixel in den Seitenrändern, `Canvas::clip_push/clip_pop`, umgekehrte Clip-Grenzen vor der Rundung (Skalierung 0,5/1/2, nur x/nur y umgekehrt, gültiger Clip bleibt sichtbar), Ausnahme-Unwinding der RAII-Klammer, Liste ausführlich ohne Bezeichnung mit 5 langen Einträgen in einer 136×82-Zone („+N“ überlagert den ersten Eintrag nicht; die Prüfung schlägt ohne Korrektur fehl, wurde so gegengeprüft), Ausblenden statt Überlappen bei Skalierung 0,5, Zeilenabstand bei 240×160.
+- Stand einzeln gebaut (cmake/vcvars64, `cpp/build/store`) und gelaufen: `fl-tests` 3327, `fl-plugin-tests` 251, `fl-plugin-zones-tests` 256, `fl-plugin-example-tests` 85, `fl-plugin-store-tests` 127, `fl-plugin-transport-tests` 140, `fl-plugin-settings-tests` 135, `fl-plugin-sign-tests` 111, `fl-plugin-catalog-tests` 77, `fl-plugin-snapshot-tests` 914 Prüfungen; jeweils 0 fehlgeschlagen. Nicht ausgeführt: `run_release_checks.py`, Installer-/Release-Prüfungen, TMDB/Monitor/Companion/Amp/PSN/Key-Hilfe (nicht berührt), Port 8765, Töne.
+- Grenzen: Die Hashes beruhen auf Direct2D/DirectWrite dieses Rechners; andere Schriftarten oder Treiber können sie ändern. Keine physische Display-Abnahme; die kleinen Bilder wurden nur am Bildschirm (zwei PNGs) gesichtet.
+## Phase 3 Zonen-Layout: Bedingte Anzeige und Fehlerisolierung (2.10.0, Entwicklungsstand, nicht committet)
+
+- Umfang: `show_if` an v2-Widgets (Vorhanden-Test oder ein Vergleich gegen ein festes Literal, keine Ausdruckssprache, Secrets verboten), Auswertung pro Block abgesichert (`render_page`), Zeichnen pro Block/Karte abgesichert (`draw_page`, Fläche wird wieder Hintergrund, Clip-Stapel exakt wiederhergestellt), ratenbegrenzter Log-Eintrag ohne Daten. Schema 1 unverändert.
+- Wertzustands-Tabelle (`fl-plugin-zones-tests`, `test_condition_table`): 20 Wertzustände (fehlend, `null`, nicht endlich, `""`, `[]`, `{}`, `false`, `true`, `0`, `-0.0`, 2.5, −1, 2^64−1, `"0"`, `"abc"`, `"ABC"`, `" "`, `"true"`, `[1]`, `{a:1}`) × 11 Bedingungen; dieselbe Tabelle steht in `docs/PLUGIN-SYSTEM.md`.
+- Parser: 10 gültige Formen an den Grenzen (128 Zeichen, 8 Segmente, 256-Zeichen-Literal), 44 abgelehnte Formen jeweils mit exakter fester Meldung, Secrets (3 Formen, eigene Meldung), v1 mit `show_if` abgelehnt, doppelte Schlüssel und `1e999` in `show_if`, ein ungültiges `show_if` lehnt das ganze Manifest ab. Zweiter Fuzz (fester Seed 20261107, 4000 Manifeste, 345 angenommen, 1120 bedingte Blöcke) mit zufälligen Quell- und Einstellungsdaten: keine Ausnahme, kein angenommenes Secret, keine Ausdrücke; der bestehende Fuzz ist unverändert.
+- Vorschau ohne Daten: Beispieldaten (Vorschau), keine Antwort (live, „Plugin-Daten fehlen“), Antwort ohne Felder (ausgeblendet, Fußzeile normal), Quelle ohne `sample`, ganze Quelle als Bedingung, ungültige Einstellungen; Zone ohne sichtbaren Block bleibt leer. Snapshots `bedingt-quelle.sample/missing/partial` in vier Größen.
+- Fehlerinjektion (nur über Test-Hooks `plugins_testing.h`/`plugin_render_testing.h`, App ohne Hook): Daten – jeder Block einzeln, `std::exception`, Nicht-std-Ausnahme, `bad_alloc` für alle Blöcke, v1-Schlüssel `#0`; Zeichnen – vier Blöcke von `offline-zonen` (erster, gestapelter, einzelner, letzter) und alle vier Karten des v1-Rasters `offline-focus`: außerhalb der Blockfläche pixelgleich zur Referenz, innerhalb nur Hintergrund; Block mit offen gelassenen Clips plus Ausnahme = gleiches Bild wie ohne Clips; offen gelassener Clip ohne Ausnahme stört keinen anderen Block; alle Blöcke werfen = Seite ohne Blöcke; Hook ohne Auslösung = pixelgleich. Log: genau ein Eintrag je Block und Stufe bei drei Zeichnungen, kein Ausnahmetext, keine Daten.
+- Codex-Review Phase 3 eingearbeitet: Clip auch im v1-Raster (Karte plus 1 logisches Pixel; alle Hashes unverändert), Fehlerinjektion zusätzlich mit Wurf nach dem gesamten Inhalt (`after_content`) bei Skalierung 0,5, 1 und 2 für alle vier Rasterkarten (beide Zeitpunkte) und alle sichtbaren Zonenblöcke; äußere Fehlergrenze von `render_page` (Fehler außerhalb der Blöcke, `bad_alloc` und Nicht-std-Ausnahme: Seite ohne Blöcke, Daten fehlen, ID/Titel bleiben). Hinweis: Dass der Test ohne Raster-Clip fehlschlägt, wurde nicht per Mutation gegengeprüft (die Beispieltexte ragen bei 0,5 nicht sichtbar über die Karte).
+- Snapshots: alle 140 bestehenden Hashes unverändert (`git diff`: nur 40 hinzugefügte Zeilen in `hashes.txt`, keine bestehende PNG geändert); neu `offline-bedingt` (7 Themes × 4 Größen) und `bedingt-quelle` (3 Varianten × 4 Größen, dunkel).
+- Stand einzeln gebaut (cmake/vcvars64, `cpp/build/store`) und gelaufen: `fl-tests` 3327, `fl-plugin-tests` 251, `fl-plugin-zones-tests` 462, `fl-plugin-example-tests` 119, `fl-plugin-store-tests` 127, `fl-plugin-transport-tests` 140, `fl-plugin-settings-tests` 135, `fl-plugin-sign-tests` 111, `fl-plugin-catalog-tests` 77, `fl-plugin-snapshot-tests` 1186 Prüfungen; jeweils 0 fehlgeschlagen. `fl-plugin-validate --store` für `offline-bedingt`: OK. Nicht ausgeführt: `run_release_checks.py`, Installer-/Release-Prüfungen, TMDB/Monitor/Companion/Amp/PSN/Key-Hilfe (nicht berührt), Port 8765, Töne, Hardware.
+- Grenzen: nur C++-Ausnahmen werden isoliert (keine SEH-Zugriffsverletzungen); keine physische Display-Abnahme; Hashes rechnerabhängig (Direct2D/DirectWrite).
 ## Release 2.9.5 – 01.11.2026
 
 - Basis main nach PR #50; Nutzerkorrektur Farben & Design nach Ansicht in Seitenliste und Material-Zuordnung eingearbeitet. Theme-Store lädt asynchron; sichtbare Überlagerung der Liste mit den Knöpfen reproduziert und durch relayout nach fill_store behoben. Codeprüfung der Änderungen durchgeführt; Signatur-/Hash-/Schema-Schutz unverändert.

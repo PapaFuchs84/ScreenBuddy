@@ -20,6 +20,12 @@ inline constexpr size_t MAX_THEMES = 64;
 inline constexpr size_t MAX_NAME = 40;           // Zeichen (UTF-8-Bytes ≤ 4 × MAX_NAME)
 inline constexpr const char* WINDOWS_ID = "windows";
 inline constexpr const char* CUSTOM_PREFIX = "custom:";
+inline constexpr const char* DEFAULT_ID = "material-orange";
+struct DefaultPrompt {
+    std::wstring title, body, yes, no;
+    bool default_yes = false;
+};
+DefaultPrompt default_prompt(bool english);
 
 // Die neun Farben eines Themes (Reihenfolge = Reihenfolge im JSON und im Editor)
 inline constexpr const char* COLOR_KEYS[9] = {"bg", "card", "line", "header", "accent", "text", "muted", "success", "danger"};

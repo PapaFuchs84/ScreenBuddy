@@ -49,10 +49,25 @@ public:
         form_.number(*base, "companion", "port", T(L"TLS-Port", L"TLS port"),
                      T(L"1024–65535; nie der Port der Einstellungen (8765)", L"1024–65535; never the settings port (8765)"), 1024, 65535);
         form_.toggle(*base, "companion", "sync", T(L"Geräte synchron anzeigen", L"Show the same on all devices"),
-                     T(L"An: alle Handys zeigen dasselbe Bild und wechseln gemeinsam. Aus: jedes Gerät hat eigene Seite, Auflösung, Wischen/Tippen und optional eine eigene Seitenliste (unten). Wirkt nach Speichern und Neustart.",
-                       L"On: all phones show the same picture and switch together. Off: every device has its own page, resolution, swipe/tap and optionally its own page list (below). Applies after saving and restarting."));
+                     T(L"An: Geräte wechseln gemeinsam durch die Companion-Seiten. Auflösung und Anordnung gelten je Display. Aus: eigene Seitenposition, Wischen/Tippen und optional eigene Seitenliste (unten). Wirkt nach Speichern und Neustart.",
+                       L"On: devices switch through Companion pages together. Resolution and arrangement apply per display. Off: own page position, swipe/tap and optionally own page list (below). Applies after saving and restarting."));
         form_.slider(*base, "companion", "page_seconds", T(L"Seitenwechsel", L"Page interval"), T(L"3–600 Sekunden", L"3–600 seconds"),
                      3, 600, Text(L"s"));
+
+        Card* keepout = root.add<Card>(T(L"Sperrzone: gemeinsame Vorgabe", L"Keepout: shared default"),
+            T(L"Volle Bildkoordinaten; Handy-Ausschnitte bleiben in der App. Vorschau nach Speichern.",
+              L"Full frame coordinates; phone cutouts remain client-side. Preview after saving."));
+        const char* edges[] = {"top","right","bottom","left"};
+        const Text labels[] = {T(L"Sperrzone oben",L"Keepout top"),T(L"Sperrzone rechts",L"Keepout right"),
+                               T(L"Sperrzone unten",L"Keepout bottom"),T(L"Sperrzone links",L"Keepout left")};
+        auto values = device::insets_json(device::parse_insets(companion.value("keepout",ojson())));
+        for(int i=0;i<4;++i) {
+            common_keepout_[i] = keepout->row<TextField>(labels[i], T(L"Pixel, physischer Rand (0–1000)",L"Pixels, physical edge (0–1000)"),
+                                                       TextField::Number, std::to_wstring(values[edges[i]].get<int>()));
+            common_keepout_[i]->name = labels[i];
+        }
+        keepout->add<Note>(T(L"Je Rand höchstens ein Drittel der kleineren Bildkante; mindestens 160 × 120 nutzbare Pixel, sonst wird die Sperrzone ignoriert.",
+                            L"Each edge is limited to one third of the smaller frame dimension; at least 160 × 120 usable pixels, otherwise keepout is ignored."));
 
         Card* status = root.add<Card>(T(L"Status", L"Status"), T(L"Wird jede Sekunde aktualisiert.", L"Refreshed every second."));
         auto label = [&](Card* c, Text l) { return c->row<Label>(std::move(l), Text(), Text(L"…"), Font::Small, Label::Muted); };
@@ -107,6 +122,17 @@ public:
         auto own_buttons = own->add<ButtonRow>();
         dev_save_ = own_buttons->add(T(L"Eigene Liste speichern", L"Save own list"), Button::Primary, [this] { save_device_pages(true); });
         dev_reset_ = own_buttons->add(T(L"Gemeinsame Liste verwenden", L"Use shared list"), Button::Secondary, [this] { save_device_pages(false); });
+        Card* profile = root.add<Card>(T(L"Sperrzone für das ausgewählte Gerät",L"Keepout for selected device"),
+            T(L"Bei aktivierter Synchronisierung wirken diese Felder nicht; es gilt die gemeinsame Vorgabe. Nur im unabhängigen Betrieb. Für TV-Overscan am PC einstellen; wird sofort gespeichert, Vorschau folgt dem Gerät.",
+              L"With synchronisation enabled these fields have no effect; the shared default applies. Independent mode only. Set TV overscan here on the PC; saved immediately, preview follows the device."));
+        for(int i=0;i<4;++i) {
+            device_keepout_[i] = profile->row<TextField>(labels[i],T(L"Pixel, physischer Rand (0–1000)",L"Pixels, physical edge (0–1000)"),TextField::Number,L"0");
+            device_keepout_[i]->name = labels[i];
+            device_keepout_[i]->track_dirty = false;
+        }
+        auto profile_buttons = profile->add<ButtonRow>();
+        profile_save_ = profile_buttons->add(T(L"Eigene Sperrzone speichern",L"Save own keepout"),Button::Primary,[this]{ save_keepout(true); });
+        profile_reset_ = profile_buttons->add(T(L"Gemeinsame Vorgabe verwenden",L"Use shared default"),Button::Secondary,[this]{ save_keepout(false); });
         devices_->on_select = [this](int) { dev_items_for_.clear(); load_device_pages(); };
 
         Card* pages = root.add<Card>(T(L"Seiten für Companion", L"Pages for Companion"),
@@ -122,6 +148,7 @@ public:
     }
     void collect(Host&, ojson& patch) override {
         form_.collect(patch);
+        patch["companion"]["keepout"] = read_keepout(common_keepout_);
         auto& pages = patch["companion"]["pages"] = ojson::array();
         for (const auto& item : list_->items) if (item.enabled) pages.push_back(item.key);
     }
@@ -179,11 +206,56 @@ public:
         const bool dev_sel = devices_ && devices_->selected >= 0 && devices_->selected < int(devices_->items.size());
         dev_save_->enabled = running && idle && dev_sel && !dev_list_->items.empty();
         dev_reset_->enabled = running && idle && dev_sel;
+        const bool profile_ready = running && idle && dev_sel && dev_loaded_for_ == dev_items_for_ && !dev_items_for_.empty();
+        profile_save_->enabled = profile_reset_->enabled = profile_ready;
+        for (auto* field : device_keepout_) field->enabled = profile_ready;
         devices_json_ = c.is_object() && c.contains("devices") ? c["devices"] : ojson::array();
         if (dev_sel && dev_loaded_for_ != devices_->items[size_t(devices_->selected)].key) load_device_pages();
     }
 
 private:
+    Button *profile_save_ = nullptr, *profile_reset_ = nullptr;
+    TextField* common_keepout_[4]{};
+    TextField* device_keepout_[4]{};
+    ojson read_keepout(TextField* const* fields) {
+        const char* edges[] = {"top","right","bottom","left"};
+        ojson out = ojson::object();
+        for(int i=0;i<4;++i) {
+            const auto text = trim(narrow(fields[i]->text()));
+            ojson value;
+            try {
+                size_t end = 0;
+                value = std::stoll(text, &end);
+                if (end != text.size()) throw std::invalid_argument("integer");
+                config::merge(host_->config(), {{"companion",{{"keepout",{{edges[i],value}}}}}});
+            }
+            catch(const std::exception&) { throw Invalid(host_->english() ? "Keepout: integer pixels 0–1000 required." : "Sperrzone: ganze Pixel 0–1000 erwartet.",fields[i]); }
+            out[edges[i]] = value;
+        }
+        return out;
+    }
+    void save_keepout(bool own) {
+        if (dev_items_for_.empty() || dev_loaded_for_ != dev_items_for_) return;
+        std::optional<device::Insets> value;
+        if(own) {
+            try { value = device::parse_insets(read_keepout(device_keepout_)); }
+            catch(const Invalid& e) {
+                host_->toast(Text(widen(e.what())),ToastKind::Error);
+                if(e.widget) static_cast<TextField*>(e.widget)->focus_native();
+                return;
+            }
+        }
+        const auto id = dev_items_for_;
+        Host* h = host_;
+        h->run([this,h,id,value]() -> std::function<void()> {
+            auto* c = h->app().companion();
+            bool ok = c && c->set_device_keepout(id,value);
+            return [this,h,ok] {
+                dev_loaded_for_.clear();
+                h->toast(ok ? T(L"Sperrzone gespeichert.",L"Keepout saved.") : T(L"Gerät nicht gefunden.",L"Device not found."), ok ? ToastKind::Success : ToastKind::Error);
+            };
+        });
+    }
     Form form_;
     Host* host_ = nullptr;
     Label *server_ = nullptr, *mdns_ = nullptr, *clients_ = nullptr, *print_ = nullptr;
@@ -287,15 +359,22 @@ private:
         bool custom = false;
         for (const auto& d : devices_json_)
             if (d.value("id", "") == id && d.contains("pages") && d["pages"].is_array()) { order = selected = d["pages"]; custom = true; }
+        ojson insets = host_->config().at("companion").value("keepout",ojson::object());
+        for(const auto& d : devices_json_) if(d.value("id","") == id && d.contains("keepout") && d["keepout"].is_object()) insets = d["keepout"];
+        auto values = device::insets_json(device::parse_insets(insets));
+        const char* edges[] = {"top","right","bottom","left"};
+        for(int i=0;i<4;++i) device_keepout_[i]->set_text(std::to_wstring(values[edges[i]].get<int>()));
         Host* h = host_;
         h->run([this, h, id, order, selected, custom]() -> std::function<void()> {
             std::vector<PluginPageInfo> plugins;
             if (h->plugins().list)
                 for (const auto& e : h->plugins().list())
                     if (e.enabled) plugins.push_back({"plugin:" + e.id, Text(widen(e.name))});
+            for(const auto& view:custom::Store(h->app().cfg_path().parent_path()/L"views").list()) plugins.push_back({"custom:"+view.id,Text(widen(view.name))});
             return [this, id, order, selected, custom, plugins = std::move(plugins)] {
                 if (dev_loaded_for_ != id) return;
                 auto items = page_items(order, selected, plugins);
+                if(custom)for(auto& item:items)if(item.key.starts_with("custom:"))item.enabled=std::any_of(selected.begin(),selected.end(),[&](const auto& k){return k==item.key;});
                 if (!custom)   // gemeinsame Liste: Plugins sind dort wie bisher sichtbar
                     for (auto& i : items) if (i.key.rfind("plugin:", 0) == 0) i.enabled = true;
                 dev_items_for_ = id;

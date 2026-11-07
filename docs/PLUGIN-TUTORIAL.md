@@ -65,6 +65,33 @@ Maßgeblich sind [plugins.h](../cpp/src/plugins.h) und [plugins.cpp](../cpp/src/
 
 Fehlende/null-Werte erscheinen als `—`; Objekt-/Arraywerte in Text als `[Daten]`. Für eine sinnvolle Anzeige auf konkrete skalare Felder zugreifen. Die lokale Uhrzeit wird von ScreenBuddy geliefert; die Zeitzone eines API-Zeitstempels bestimmt der Anbieter.
 
+## Schema 2: Zonen-Layout (ab 2.10.0)
+
+Mit `schema_version: 2` ordnest du bis zu 12 Widgets (Blöcke) in **Zonen** eines Rasters an. Das fertige, vollständig lokale Beispiel ist [offline-zonen.flplugin.json](../cpp/examples/plugins/offline-zonen.flplugin.json) (Uhr, Datum, Motto, Fokus, Fokusblock, Fortschritt und zwei Zähler). Die Regeln stehen im Abschnitt [Manifest v2](PLUGIN-SYSTEM.md#manifest-v2-zonen-layout-2100-in-vorbereitung).
+
+1. Setze `schema_version` auf `2` und gib jedem Widget eine stabile `id` (Kleinbuchstabe am Anfang, dann `a-z`, `0-9`, `_`).
+2. Lege ein `layout` an: `columns` und `rows` sind ganze Anteile 1–12 (`[1, 1]` = zwei gleich breite Spalten, `[3, 2, 2]` = drei Zeilen im Verhältnis 3 : 2 : 2). Jede Zone hat `id`, `column`, `row` und optional `column_span`/`row_span`. Zonen dürfen sich nicht überlappen und enthalten keine weiteren Zonen.
+3. Gib jedem Widget die `zone`, in der es stehen soll. Bis zu vier Blöcke einer Zone stehen in Manifest-Reihenfolge untereinander. Jede Zone braucht mindestens einen Block.
+4. Trage für den Store `min_app_version: "2.10.0"` ein und prüfe mit `fl-plugin-validate --store`.
+
+Auf kleiner Fläche zeigt ein Block weniger Details (kompakt, normal, ausführlich). Passt ein Block gar nicht, blendet ihn ScreenBuddy aus, statt ihn zu überlappen oder abzuschneiden. Plane deshalb die wichtigsten Blöcke in große Zonen. Ohne `layout` bleibt eine v2-Seite im automatischen Raster mit höchstens 6 Widgets, und `zone` ist dann nicht erlaubt.
+
+### Bedingte Anzeige mit `show_if`
+
+Ein Block soll nur erscheinen, wenn es etwas zu zeigen gibt? Gib ihm in Schema 2 ein `show_if`. Das fertige lokale Beispiel ist [offline-bedingt.flplugin.json](../cpp/examples/plugins/offline-bedingt.flplugin.json): Der Hinweis erscheint nur, wenn die Einstellung nicht leer ist, „Pausen“ nur bei mehr als 0 Pausen, und je nach Modus und Fortschritt wechseln die Blöcke.
+
+```json
+{"type": "text", "id": "hinweis", "zone": "hinweis", "text": "{{settings.note}}", "show_if": {"path": "settings.note"}}
+{"type": "metric", "id": "pausen", "zone": "pausen", "value": "{{settings.breaks}}", "show_if": {"path": "settings.breaks", "op": ">", "value": 0}}
+```
+
+- Ohne `op` heißt `show_if` „Wert vorhanden“: fehlend, `null`, `""`, `[]` und `{}` blenden aus; `false` und `0` gelten als vorhanden.
+- Mit `op` (`==`, `!=`, `<`, `<=`, `>`, `>=`) wird gegen genau einen festen Wert verglichen, ohne Typumwandlung: `"42"` ist nicht `42`. Ist der Wert nicht vorhanden oder hat er einen anderen Typ, bleibt der Block aus, auch bei `!=`.
+- Geheime Einstellungen (`secret`) sind in Bedingungen verboten; der Validator lehnt das Manifest dann ab.
+- Für die Vorschau zählen die `sample`-Daten: Wähle sie so, dass die bedingten Blöcke dort sichtbar sind.
+
+Die vollständige Wertetabelle steht unter [Bedingte Anzeige](PLUGIN-SYSTEM.md#bedingte-anzeige-show_if-phase-3). Wirft ein Block beim Auswerten oder Zeichnen einen Fehler, blendet ScreenBuddy nur diesen Block aus und schreibt einen kurzen Log-Eintrag ohne Daten.
+
 ## Zugangsdaten und sichere Weitergabe
 
 Geheimnisse ausschließlich in einem deklarierten Feld vom Typ `secret` über die lokale Plugin-Konfiguration eingeben. Unter Windows werden gespeicherte Pluginwerte mit DPAPI geschützt; das verhindert nicht, dass ausdrücklich referenzierte Werte an freigegebene Hosts gesendet werden. Tokens möglichst in `Authorization` statt URL-Parametern verwenden. Ein leeres Zugangsfeld behält den gespeicherten Wert; zum Entfernen **Gespeicherten Wert löschen** verwenden und speichern.
@@ -125,3 +152,36 @@ Für eigene Dateien akzeptiert das Testprogramm einen alternativen Beispielordne
 | `—` / Daten fehlen | JSON-Pfad, gültige Quellantwort, Verbindung und Zustimmung prüfen; Sample ist kein Live-Fallback. |
 | Balken fehlt | `value` muss nur die Zahl ergeben, `max > min`; Einheit in Label/`unit`. |
 | Lange Texte abgeschnitten | Kurze Labels und Texte verwenden; die Kartengröße begrenzt die Darstellung. |
+
+## Wechselfeld pro Zone (Phase 4b, Entwicklung)
+
+Nur `schema_version: 2` mit `layout` erlaubt an einer Zone `"cycle": {"mode": "rotate", "transition": "fade"}`. `mode` ist `rotate` oder `first_available`; `transition` ist `fade` (Standard) oder `none`. In `rotate`-Zonen darf jeder Block `seconds` als ganze Zahl von 3 bis 600 tragen (Standard 8). Ohne `cycle` bleibt die bisherige Stapelung unverändert; Schema 1 akzeptiert diese Schlüssel nicht. Store-Pakete mit Schema 2 brauchen `min_app_version` mindestens `2.10.0`.
+
+`rotate` zeigt die verfügbaren Blöcke in Manifestreihenfolge; `first_available` zeigt den ersten verfügbaren Block und reagiert auf Datenänderungen. Verfügbar bedeutet sichtbar nach `show_if` und ohne fehlende Referenz im jeweiligen Block. Ohne verfügbare Blöcke bleibt die Zone leer. Beim Verlassen der sichtbaren Kacheln oder Manifestwechsel startet sie neu; Ansichten und unabhängige Geräte haben eigene Zeitpläne.
+
+Das Manifest wählt keinen Effekt je Gerät: Monitor 4 ruhige Überblendungsschritte in 400 ms (bei hoher Renderzeit 2 oder Schnitt), Companion 2 Schritte in 400 ms bei verbundenen Clients, seriell ein Band-Vorhang nur bei ausreichend gemessener Rate (sonst Schnitt). Der serielle Takt berücksichtigt Übertragung, Renderzeit und 50 ms Ruhe; globale 8-Zeilen-Bänder werden der Reihe nach aufgedeckt. Reicht das Zyklusbudget nicht, wird geschnitten. Nur Companion verwirft verspätete Schritte; Monitor zeigt den erreichten Zwischenstand. Daten bleiben während des Übergangs eingefroren. Größenwechsel beendet den Übergang, Themewechsel erneuert den Bildcache. Die Mindestdauer steigt bei langsamer Übertragung auf das Vierfache der letzten Übertragungsdauer. Gleichzeitige Wechsel derselben Kachel warten höchstens 600 ms. Keine Töne oder aufdringlichen Effekte.
+
+Beispiel: [offline-wechselfeld.flplugin.json](../cpp/examples/plugins/offline-wechselfeld.flplugin.json). Zum Ausprobieren lokal importieren; die zwei Texte wechseln nach 3 bzw. 5 Sekunden. Hardware-Abnahme und reale serielle Ratenmessung durch Basti stehen aus; bisher wurden ausschließlich simulierte Übertragungen geprüft. Tap-Aktionen sind in Phase 4c umgesetzt (Entwicklung, siehe unten).
+
+## Tap-Aktionen (Schema 2, Phase 4c in Entwicklung)
+
+Ergänze auf oberster Ebene `"links": ["news.example.org"]` und am Block `"tap": {"action": "open_link", "url": "https://news.example.org/{{settings.city}}"}` mit deklarierter nicht geheimer Einstellung `city`. Bei Listen sind Quellenwerte und `item.*` je Zeile möglich. Werte werden prozentkodiert; fehlende Werte ergeben kein Ziel. Nur HTTPS mit wörtlichem öffentlichem Host aus der Liste ist erlaubt (höchstens vier Hosts, 2048 Bytes nach Expansion, keine Fragmente oder geheimen Einstellungen). Schema 1 lehnt beide Schlüssel ab. Die einzige weitere Aktion `"tap": {"action": "next"}` benötigt eine Zone mit `cycle`. Schema-2-Store-Pakete brauchen `min_app_version` ≥ `2.10.0`.
+
+Wähle das Plugin unter Einstellungen → Plugins und schalte **Links aus diesem Plugin am PC öffnen** ausdrücklich ein (Standard aus). Handy-Tipps öffnen am PC. Diese Freigabe ist von der Quellenfreigabe getrennt; nur eine Änderung allein der Linkliste erhält Quellenfreigaben und Aktivzustand; die Linkfreigabe wird zurückgesetzt. Nach einem neuen Ziel 1,0 s beim Companion bzw. 0,3 s am Monitor warten; während Übergängen sind Ziele gesperrt. Verweigerte oder unruhige Tipps werden ohne Seitenwechsel verschluckt. Höchstens ein Linkversuch je Plugin alle zwei Sekunden. Seiten ohne Ziele navigieren wie bisher. Siehe [vollständiger Vertrag](PLUGIN-SYSTEM.md#tap-ziele-für-plugin-blöcke-phase-4c-entwicklung-für-2100) und [Testprotokoll](../cpp/TESTPROTOKOLL.md); physische Abnahme bleibt offen.
+
+
+Prüfung der Tap-URL beim Parsen und erneut unmittelbar vor dem Browserstart: Der feste Host muss klein geschrieben sein. Fester Pfad-/Query-Text erlaubt nur RFC-3986-Zeichen (unreserved, sub-delimiters, `:`, `@`, `/`, `?`); `%` benötigt genau zwei Hexziffern. Rohes Nicht-ASCII, Leerzeichen, Anführungszeichen, spitze und eckige Klammern, Backslash, Zirkumflex, Backtick, geschweifte Klammern und senkrechter Strich sind verboten. Geschweifte Klammern sind nur als geprüfte Platzhalter `{{referenz}}` erlaubt. Werte `.` und `..` ergeben kein Ziel; feste Punktsegmente im Pfad (auch mit prozentkodierten Punkten) werden abgelehnt. Unicode-Werte bleiben durch Prozentkodierung möglich.
+
+Nur eine tatsächlich geänderte Linkliste bei **ansonsten vollständig identischem Manifest** erhält Quellenfreigaben und Aktivzustand; die Linkfreigabe entfällt. Alle anderen Updates, auch zusätzliche Änderungen an Widgets, Settings oder Tap-Vorlagen, sowie identische Re-Imports setzen alle Freigaben zurück (Quellenplugins werden deaktiviert). Kaputte Linkfreigabe-Dateien werden sicher abgewiesen; fehlgeschlagene Schreibvorgänge erteilen keine Freigabe. Bei Beschäftigung setzt sich der Linkschalter auf den vorigen Zustand zurück. Listenzeilen und Ziele bleiben auch auf flachen Flächen im Block; Ziele funktionieren auch im automatischen Raster ohne Layout.
+
+## Editor: eine Plugin-Seite anordnen
+
+1. Ein Manifest-v2-Plugin lokal installieren und aktivieren. Unter **Einstellungen → App → Eigene Ansichten** in der Seitenliste den Eintrag „Standard / Plugin“ des Plugins auswählen. v1 zeigt nur einen Hinweis.
+2. Raster mit Spalten-/Zeilentasten und Anteilen 1–12 einstellen. Mit Pfeilen die Zelle wählen; Enter erzeugt eine freie Zone. Shift+Pfeil ändert die Spannweite, Alt+Pfeil verschiebt, Entf entfernt eine Zone, sofern ihre Blöcke in die erste verbleibende Zone passen.
+3. In der Blockliste mit Leertaste Blöcke zeigen/ausblenden und mit Alt+Auf/Ab umsortieren. Rechts/unten Zone, bei `rotate` Sekunden und optional eine Bedingung einstellen. Neue Zonen müssen mindestens einen gezeigten Block erhalten. Bedingungen nutzen Sample-/bestehende Quellenpfade und nicht geheime Settings. Operator/Werttyp mit **Bedingung bestätigen** abschließen; Texte mit Enter oder Fokuswechsel.
+4. Quer-/Hochvorschau mit Plugin-Beispieldaten prüfen. Sie verwendet denselben Renderer wie die Ausgabe und feste Beispielzeit/-datum. Ungültige Entwürfe lassen das letzte gültige Bild stehen und sperren **Übernehmen**. Rückgängig/Wiederholen über Tasten oder Strg+Z/Y im Raster/in der Liste.
+5. **Übernehmen** speichert nur die geprüfte Anordnung, atomar mit Vorgänger-Backup, ohne Neustart. Manifest, Inhalte, Quellen, Links, Tap-Aktionen und Geheimnisse bleiben unverändert. **Auf Manifest zurücksetzen** löscht nach Rückfrage Anordnung und Backup. Eingebaute Seiten und HA werden hier nicht bearbeitet.
+
+Während der Vorschau kannst du weiter bearbeiten. Ungültige Eingaben werden markiert, ohne den Fokus zurückzuholen; dieselbe fehlerhafte Eingabe meldet sich nur einmal. Beim Pluginwechsel fragt der Editor vor dem Verwerfen ungesicherter Änderungen (Standard **Nein**). Übernehmen/Zurücksetzen erhalten die Eingabefelder; der Fokus bleibt erhalten oder geht vom gesperrten Aktionsknopf ins Raster. Änderungen während eines Speicherauftrags bleiben als Entwurf erhalten.
+
+Grenzen, MSAA/Tastaturdetails und der Umgang mit veralteten Overlays: [Seiten-Editor](PLUGIN-SYSTEM.md#seiten-editor-p6-3-bis-p6-5-entwicklung-für-2100). Automatisierte Prüfung und offene physische Abnahme: [Testprotokoll](../cpp/TESTPROTOKOLL.md).

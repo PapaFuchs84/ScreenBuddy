@@ -20,10 +20,12 @@ from PIL import Image
 log = logging.getLogger("bf6")
 
 API = "https://api.gametools.network/bf6"
-# Plattform-Kürzel in der Config → Parameter der Stats-API (PC-Konten laufen über "ea")
-STATS_PLATFORM = {"pc": "ea", "ea": "ea", "steam": "ea", "epic": "ea",
-                  "psn": "psn", "ps": "psn", "xbox": "xboxseries", "xbl": "xboxseries"}
-
+# Plattform-Kürzel in der Config → Werte der Stats-API in Reihenfolge der Versuche (wie cpp/src/bf6.cpp).
+# Seit Nov. 2026 antwortet die API für PC-Konten nur noch mit "pc" ("ea" liefert 404); "ea" bleibt als Rückfall.
+_PC, _PSN, _XBOX = ["pc", "ea"], ["psn", "ps5", "ps4"], ["xboxseries", "xboxone", "xbox"]
+SOURCE_DOWN = "Quelle gestört"     # HTTP 5xx der API: sagt nichts darüber, ob der Spieler existiert
+STATS_PLATFORM = {"pc": _PC, "ea": _PC, "steam": _PC, "epic": _PC,
+                  "psn": _PSN, "ps": _PSN, "xbox": _XBOX, "xbl": _XBOX}
 
 @dataclass
 class Bf6Player:
@@ -36,16 +38,74 @@ class Bf6Player:
     kpm: float | None = None
     hours: float | None = None
     rank_icon: Image.Image | None = field(default=None, repr=False)
-    error: str = ""                     # z. B. "nicht gefunden"
+    error: str = ""                     # z. B. "nicht gefunden" bzw. "Quelle gestört" (HTTP 5xx)
+    id: str = ""                        # gefundene Spieler-ID (zum Übernehmen als "Name#id")
+
+
+def parse_entry_full(entry: str) -> tuple[str, str, str]:
+    """"Name", "Name@psn", "Name#id", "Name@psn#id" → (Name, Plattform, ID).
+
+    Als ID gelten nur reine Ziffern ab 6 Stellen (Gamertag-Zahlen wie "Fox#1234" bleiben im Namen)."""
+    e, pid = entry.strip(), ""
+    head, sep, tail = e.rpartition("#")
+    if sep and head and len(tail) >= 6 and tail.isascii() and tail.isdigit():
+        e, pid = head.strip(), tail
+    name, _, plat = e.rpartition("@")
+    if not name or plat.lower() not in STATS_PLATFORM:
+        return e, "pc", pid
+    return name, plat.lower(), pid
 
 
 def parse_entry(entry: str) -> tuple[str, str]:
-    """"Name" oder "Name@psn" → (Name, Plattform)."""
-    name, _, plat = entry.strip().rpartition("@")
-    if not name or plat.lower() not in STATS_PLATFORM:
-        return entry.strip(), "pc"
-    return name, plat.lower()
+    """"Name" oder "Name@psn" (jeweils auch mit "#id") → (Name, Plattform)."""
+    name, plat, _ = parse_entry_full(entry)
+    return name, plat
 
+
+def is_server_error(status: int) -> bool:
+    """HTTP 5xx = Quelle gestört (404 und Netzwerkfehler zählen nicht)."""
+    return 500 <= status <= 599
+
+
+def failure_text(source_down: bool) -> str:
+    return SOURCE_DOWN if source_down else "nicht gefunden"
+
+
+def platform_candidates(plat: str) -> list[str]:
+    return STATS_PLATFORM.get(plat.lower(), _PC)
+
+
+def name_candidates(name: str) -> list[str]:
+    """Original, danach klein geschrieben (die API findet manche Konten nur so)."""
+    return [name] if name.lower() == name else [name, name.lower()]
+
+
+def json_id(v) -> str:
+    """ID aus Zahl oder Text; leer bei None/0/False."""
+    if isinstance(v, bool) or v is None:
+        return ""
+    s = str(v).strip()
+    return "" if s in ("0", "false") else s
+
+
+def pick_search_id(resp, name: str) -> str:
+    """Treffer der Spielersuche (/bf6/player) → ID; nur Treffer mit gleichem Namen (exakt vor ohne Groß/Klein)."""
+    items = resp.get("results") if isinstance(resp, dict) else resp
+    if not isinstance(items, list):
+        return ""
+    ci = ""
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        got = next((it[k] for k in ("name", "userName", "displayName", "platformUserHandle") if it.get(k) is not None), None)
+        pid = json_id(next((it[k] for k in ("id", "playerId", "personaId", "nucleusId") if it.get(k) is not None), None))
+        if not isinstance(got, str) or not pid:
+            continue
+        if got == name:
+            return pid
+        if not ci and got.lower() == name.lower():
+            ci = pid
+    return ci
 
 def _profile(data: dict | None) -> dict | None:
     """Spielerprofil aus /profile – die API liefert zwei Formate (mit und ohne "other")."""
@@ -70,6 +130,8 @@ class Bf6Stats:
         self.players: list[Bf6Player] = [Bf6Player(e, parse_entry(e)[0]) for e in self.entries]
         self.updated: datetime | None = None
         self._icons: dict[str, Image.Image] = {}
+        self._ids: dict[str, str] = {}      # Eintrag → zuletzt gefundene ID (Auto-Heilung im Speicher)
+        self.on_heal: Callable[[str, str], None] | None = None  # (Eintrag, Eintrag#id) – Aufrufer darf in die Config schreiben
 
     async def run(self, on_update: Callable[[], None]) -> None:
         timeout = aiohttp.ClientTimeout(total=45)
@@ -87,9 +149,11 @@ class Bf6Stats:
                 on_update()
                 await asyncio.sleep(self.refresh)
 
-    async def _get(self, s: aiohttp.ClientSession, path: str, **params) -> dict | None:
+    async def _get(self, s: aiohttp.ClientSession, path: str, _outage: list | None = None, **params) -> dict | None:
         try:
             async with s.get(f"{API}/{path}/", params=params) as r:
+                if _outage is not None and is_server_error(r.status):
+                    _outage.append(r.status)
                 if r.status != 200:
                     log.debug("BF6 %s %s → HTTP %s", path, params, r.status)
                     return None
@@ -99,27 +163,65 @@ class Bf6Stats:
             return None
 
     async def _fetch(self, s: aiohttp.ClientSession, entry: str) -> Bf6Player:
-        name, plat = parse_entry(entry)
+        name, plat, pinned = parse_entry_full(entry)
         p = Bf6Player(entry, name)
-        stats = None
-        for _ in range(2):  # die API antwortet gelegentlich sporadisch mit 404/500
-            stats = await self._get(s, "stats", name=name, platform=STATS_PLATFORM[plat],
-                                    format_values="false", categories="multiplayer")
+        pid = pinned or self._ids.get(entry, "")   # mit ID wird per playerid abgefragt, der Name dient nur der Anzeige
+        stats, used_plat, used_name, by_name = None, platform_candidates(plat)[0], name, False
+        outage: list[int] = []   # HTTP-5xx-Antworten: "nicht gefunden" ist dann nicht belegt
+        common = dict(format_values="false", categories="multiplayer", _outage=outage)
+
+        async def by_id(sid: str, pls: list[str]) -> bool:
+            nonlocal stats, used_plat
+            for pl in pls:
+                r = await self._get(s, "stats", playerid=sid, platform=pl, **common)
+                if r and r.get("hasResults", True):
+                    stats, used_plat = r, pl
+                    return True
+            return False
+
+        for i in range(2):  # die API antwortet gelegentlich sporadisch mit 404/500
+            pls, nms = platform_candidates(plat), name_candidates(name)
+            if i:  # Wiederholung nur mit dem ersten Paar, damit die API nicht überlastet wird
+                pls, nms = pls[:1], nms[:1]
+            if pid and await by_id(pid, pls):
+                break
+            for pl in pls:
+                for nm in nms:
+                    r = await self._get(s, "stats", name=nm, platform=pl, **common)
+                    if r and r.get("hasResults", True):
+                        stats, used_plat, used_name, by_name = r, pl, nm, True
+                        break
+                if stats:
+                    break
             if stats:
                 break
-            await asyncio.sleep(2)
-        if stats and not stats.get("hasResults", True):
-            stats = None
+            if not i:
+                await asyncio.sleep(2)
+        if not stats:  # Letzter Ausweg: Spielersuche, nur Treffer mit gleichem Namen
+            for nm in name_candidates(name):
+                sid = pick_search_id(await self._get(s, "player", _outage=outage, name=nm, limit=10), name)
+                if sid and sid != pid and await by_id(sid, platform_candidates(plat)):
+                    by_name = True
+                    break
         if stats:
             p.kd = stats.get("killDeath")
             p.win_pct = stats.get("winPercent")
             p.kpm = stats.get("killsPerMinute")
             secs = stats.get("secondsPlayed")
             p.hours = secs / 3600 if secs else None
+            p.id = json_id(stats.get("id")) or pid
+            # Auto-Heilung: gefundene ID merken und einmalig melden, sofern der Name zur Antwort passt
+            got = stats.get("userName") or stats.get("name")
+            same = not isinstance(got, str) or got.lower() == name.lower()
+            if by_name and not pinned and p.id and same:
+                first = entry not in self._ids
+                self._ids[entry] = p.id
+                if first and self.on_heal:
+                    self.on_heal(entry, f"{entry.strip()}#{p.id}")
         pp = None
-        tries = ([{"playerid": stats["id"]}] if stats and stats.get("id") else []) + [{"name": name}]
+        tries = ([{"playerid": p.id, "platform": used_plat}] if p.id else []) + [{"name": used_name, "platform": used_plat}]
         for params in tries:
-            pp = _profile(await self._get(s, "profile", **params))
+            pp = _profile(await self._get(s, "profile", _outage=outage, **params))
             if pp:
                 break
         if pp:
@@ -128,8 +230,8 @@ class Bf6Stats:
             p.rank_name = pp.get("rankName") or card.get("rankName") or ""
             p.rank_icon = await self._icon(s, (card.get("rankImage") or {}).get("small"))
         if not stats and not pp:
-            p.error = "nicht gefunden"
-            # Bei Netzwerkfehlern lieber die alten Werte behalten
+            p.error = failure_text(bool(outage))
+            # Bei Netzwerkfehlern und gestörter Quelle (5xx) lieber die alten Werte behalten; _ids bleibt unberührt
             old = next((o for o in self.players if o.query == entry and (o.rank or o.kd) is not None), None)
             if old:
                 return old

@@ -20,6 +20,8 @@ std::vector<std::unique_ptr<Page>> create_pages() {
     pages.push_back(make_design_page());
     // Seiten
     pages.push_back(make_system_page());
+    pages.push_back(make_ai_page());
+    pages.push_back(make_game_mode_page());
     pages.push_back(make_friends_page());
     pages.push_back(make_discord_page());
     pages.push_back(make_bf6_page());
@@ -30,6 +32,7 @@ std::vector<std::unique_ptr<Page>> create_pages() {
     // App
     pages.push_back(make_companion_page());
     pages.push_back(make_plugins_page());
+    pages.push_back(make_custom_views_page());
     pages.push_back(make_store_page());
     pages.push_back(make_app_page());
     return pages;
@@ -53,13 +56,13 @@ std::vector<ItemList::Item> page_items(const ojson& order, const ojson& selected
                 continue;
             }
             auto plugin = std::find_if(plugins.begin(), plugins.end(), [&](auto& p) { return p.first == k; });
-            if (plugin != plugins.end()) items.push_back({k, plugin->second, T(L"Plugin", L"Plugin"), chosen(k)});
+            if (plugin != plugins.end()) items.push_back({k, plugin->second, k.starts_with("custom:")?T(L"Eigene Ansicht",L"Custom view"):T(L"Plugin", L"Plugin"), chosen(k)});
         }
     for (const auto& k : config::PAGES)
         if (!has(k)) items.push_back({k, source_text(k), {}, false});
     // Plugins, die noch nicht in der Reihenfolge stehen, sind wie zur Laufzeit zunächst sichtbar (hinten).
     for (const auto& p : plugins)
-        if (!has(p.first)) items.push_back({p.first, p.second, T(L"Plugin", L"Plugin"), true});
+        if (!has(p.first)) items.push_back({p.first, p.second, p.first.starts_with("custom:")?T(L"Eigene Ansicht",L"Custom view"):T(L"Plugin", L"Plugin"), true});
     return items;
 }
 

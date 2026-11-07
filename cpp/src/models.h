@@ -35,6 +35,7 @@ struct Bf6Player {
     std::optional<double> kd, win_pct, kpm, hours;
     ImagePtr rank_icon;
     std::string error;  // z. B. "nicht gefunden"
+    std::string id;     // gefundene Spieler-ID (leer, wenn die Antwort keine enthielt)
 };
 
 struct Post {
@@ -59,6 +60,12 @@ struct HaEntity {
 };
 
 struct SysSnapshot {
+    std::vector<double> cpu_cores;
+    std::optional<double> gpu_mhz, gpu_watts, ping_ms, jitter_ms;
+    std::optional<double> fps, frametime_ms, fps_low;
+    std::deque<double> frametime_hist, fps_hist;
+    std::string fps_reason = "no_game";
+
     std::string cpu_name = "CPU";
     std::optional<double> cpu_pct, cpu_ghz, cpu_temp, cpu_fan;  // Lüfter in RPM
     std::string gpu_name = "GPU";

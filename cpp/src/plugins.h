@@ -1,4 +1,4 @@
-// © 2026 FuchsLabs – declarative plugin v1. Pure data; no I/O or code execution.
+// © 2026 FuchsLabs – declarative plugins (manifest v1, v2 with zone layout). Pure data; no I/O or code execution.
 #pragma once
 #include <cstddef>
 #include <map>
@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include "plugin_zones.h" // header-only Strukturen; plugins.cpp braucht plugin_zones.cpp nicht
 
 namespace fl::plugins {
 using Json = nlohmann::json;
@@ -28,12 +29,34 @@ struct Source {
     // All settings this host can receive (including non-secret settings).
     std::vector<std::string> setting_keys;
 };
+// Manifest v2 only: conditional display (`show_if`). One test per block, no expression language:
+// presence of `path` alone, or presence plus one comparison against a literal. Semantics table:
+// docs/PLUGIN-SYSTEM.md ("Bedingte Anzeige"). Secret settings are rejected by the parser.
+inline constexpr size_t condition_path_limit = 128;   // characters of `path`
+inline constexpr size_t condition_segment_limit = 8;  // dot-separated segments of `path`
+inline constexpr size_t condition_text_limit = 256;   // characters of a text literal
+struct Condition {
+    std::string path; // "<source>[.<field>...]" or "settings.<non-secret key>"
+    std::string op;   // empty = presence only; otherwise "==", "!=", "<", "<=", ">", ">="
+    Json value;       // comparison literal: non-empty text, finite number or boolean; null for presence
+};
+// Value present = not missing, not null, not a non-finite number, not "" and not an empty array/object.
+// false and 0 are present. Every comparison requires a present value of the literal's JSON type (no
+// conversion); otherwise the condition is false, also for "!=". `value` nullptr = path not found.
+bool condition_holds(const Condition& condition, const Json* value);
+struct Tap { std::string action, url; };
 struct Widget {
     std::string type, label, text, value, unit, items, item_template, format;
     double min = 0, max = 100;
     int max_items = 1;
+    int seconds = 8;
+    std::optional<Tap> tap;
+    // Manifest v2 only (empty in v1): stable block ID and, with a layout, the zone the block sits in.
+    std::string id, zone;
+    std::optional<Condition> show_if; // v2 only; absent = always shown
 };
 struct Manifest {
+    int schema_version = 1; // 1 or 2; v2 adds widgets[].id, optional layout and up to 12 widgets
     std::string id, name, description, version;
     // Store metadata (optional for local use, required by store_problems): SPDX license from the
     // whitelist, author display name, category slug and minimum ScreenBuddy version (X.Y.Z).
@@ -41,7 +64,9 @@ struct Manifest {
     int refresh_seconds = 60;
     std::vector<Setting> settings;
     std::vector<Source> sources;
+    std::vector<std::string> links;
     std::vector<Widget> widgets;
+    std::optional<zones::Layout> layout; // v2 only; absent = automatic grid as in v1
     // Validated manifest only: never merge installed settings into this export.
     Json definition;
 };
@@ -50,6 +75,24 @@ struct ParseResult {
     std::string error; // fixed diagnostics; never includes manifest values or secrets
     explicit operator bool() const { return manifest.has_value(); }
 };
+// Getrenntes Layout-Overlay; JSON erhält auch explizit ausgelassene optionale Felder.
+inline constexpr size_t arrangement_limit = 16 * 1024;
+struct Arrangement {
+    std::string manifest_sha256;
+    Json layout, blocks;
+    bool custom_draft = false; // internal editor only; never serialized or accepted by plugin parsers
+};
+struct ArrangementResult {
+    std::optional<Arrangement> arrangement;
+    std::string error;
+    explicit operator bool() const { return arrangement.has_value(); }
+};
+ArrangementResult parse_arrangement(std::string_view utf8);
+ParseResult merge_arrangement(const Manifest& base, const Arrangement& arrangement);
+// Ohne SHA entsteht ein reines Entwurfsmodell (Null-Fingerabdruck); Store::arrangement_get bindet die Basis.
+Arrangement arrangement_from(const Manifest& base, std::string manifest_sha256 = {});
+Json to_json(const Arrangement& arrangement);
+void to_json(Json& json, const Arrangement& arrangement);
 struct DataResult {
     std::optional<Json> data;
     std::string error;
@@ -72,6 +115,9 @@ bool reserved_device_name(std::string_view id);
 // Canonical text over everything that decides where data/secrets may flow: per source
 // ID, URL, host and headers. Different text means previously stored secrets must not be reused.
 std::string source_fingerprint(const Manifest& manifest);
+std::string link_fingerprint(const Manifest& manifest);
+bool tap_url_valid(const std::string& url, bool placeholders = false);
+bool link_allowed(const Manifest& manifest, const std::string& url);
 DataResult parse_source_data(std::string_view utf8);
 
 using SourceData = std::map<std::string, Json>;
@@ -82,15 +128,28 @@ struct RenderContext {
     std::string time, date; // local formatted clock supplied by caller
 };
 struct RenderedWidget {
+    bool missing = false;
     std::string type, label, text, unit;
+    std::string id, zone; // v2 block ID / zone ID; empty for v1
+    size_t index = 0;     // position in manifest.widgets (v1 block key "#<index>")
     std::vector<std::string> items;
+    std::string tap_action, tap_url;
+    std::vector<std::string> item_urls;
     std::optional<double> bar_fraction; // absent for a missing/non-finite number; otherwise 0..1
 };
 struct Page {
     std::string id, title;
-    std::vector<RenderedWidget> widgets;
+    std::vector<RenderedWidget> widgets; // shown blocks only (manifest order); hidden/failed ones are left out
     bool missing_data = false;
+    std::optional<zones::Layout> layout; // copied from a v2 manifest; draw_page lays the blocks out by zone (phase 2b); absent = automatic grid
+    // Block keys (v2: block ID; v1: "#<index>") left out of `widgets`:
+    std::vector<std::string> hidden; // show_if was false (v2 only)
+    std::vector<std::string> failed; // evaluating the block's data threw; draw_page logs these (rate-limited)
+    int density_cap = 2; // transient custom-tile preference; absent from manifest/overlay JSON
 };
+// Does not throw: every block is evaluated separately (a failing block is left out and listed in Page::failed,
+// the rest of the page is unaffected). A failure outside the blocks (e.g. out of memory while copying ID, title
+// or layout) yields a page without blocks and with missing_data set; ID and title are kept if they can be copied.
 Page render_page(const Manifest& manifest, const RenderContext& context);
 
 struct Request {

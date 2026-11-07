@@ -1,11 +1,15 @@
 // © 2026 FuchsLabs
 #include "render.h"
+#include "page_samples.h"
+#include "page_frame.h"
+#include "layout_edit.h"
 #include "theme.h"
 
 #include <windows.h>
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <regex>
 
 #include "amp_logic.h"
@@ -21,6 +25,7 @@ namespace {
 constexpr int HEADER_H = 34, FOOTER_H = 18, AVATAR = 32, LOGO_SIZE = 20;   // LOGO_SIZE: Anbieter-Logo (Streaming)
 constexpr float SYS_GAP = 6, SYS_SMALL = 62;   // Systemansicht: Abstand und Höhe der Karten RAM / Datenträger
 
+static size_t revision = 0;
 Theme g_theme;
 std::mutex g_mutex;
 int row_height() { return g_theme.style == theme::Style::Cupertino ? 48 : g_theme.style == theme::Style::Material ? 52 : 44; }
@@ -96,6 +101,7 @@ double contrast(Color a, Color b) {
 }
 
 void set_theme(const std::string& name, const std::map<std::string, std::string>& custom) {
+    ++revision;
     struct BarSync { Theme& t; ~BarSync() { t.bar = t.orange; } } bar_sync{g_theme};
     Theme& t = g_theme;
     t.style = theme::Style::FuchsLabs;
@@ -110,7 +116,7 @@ void set_theme(const std::string& name, const std::map<std::string, std::string>
         t.bg = brand::CREME; t.card = brand::SAND; t.line = brand::LINE;
         t.accent = brand::GLUT; t.text = brand::NAVY; t.muted = brand::NEBEL;
         t.status = {{"online", {22, 140, 72}}, {"idle", {200, 140, 0}}, {"dnd", {215, 45, 50}}, {"offline", {140, 140, 140}}};
-        t.warn = {190, 120, 0}; t.hot = {215, 45, 50}; t.down = {22, 140, 72};
+        t.warn = {146, 92, 0}; t.hot = {215, 45, 50}; t.down = {22, 140, 72};
     }
     std::map<std::string, Color> c;
     for (auto& [k, v] : custom) {
@@ -125,7 +131,9 @@ void set_theme(const std::string& name, const std::map<std::string, std::string>
         t.head_text = contrast(brand::NAVY, t.orange) >= contrast(brand::WHITE, t.orange) ? brand::NAVY : brand::WHITE;
 }
 
+size_t theme_revision() { return revision; }
 void set_resolved(const theme::Resolved& r) {
+    ++revision;
     Theme& t = g_theme;
     t.style = r.style;
     const theme::Palette& p = r.colors;
@@ -135,7 +143,9 @@ void set_resolved(const theme::Resolved& r) {
     t.bar = r.bar;
     t.status = dark ? std::map<std::string, Color>{{"online", p.success}, {"idle", {240, 178, 50}}, {"dnd", p.danger}, {"offline", {128, 132, 142}}}
                     : std::map<std::string, Color>{{"online", p.success}, {"idle", {180, 126, 0}}, {"dnd", p.danger}, {"offline", {136, 136, 136}}};
-    t.warn = dark ? Color{240, 178, 50} : Color{150, 95, 0};
+    // Warnfarbe nach tatsächlichem Hintergrund (Kontrastdesign: schwarz, aber Basis "hell"): helle Bernsteinfarbe auf dunklem Grund
+    const Color warn_light{240, 178, 50}, warn_dark{150, 95, 0};
+    t.warn = (dark || contrast(warn_light, p.bg) > contrast(warn_dark, p.bg)) ? warn_light : warn_dark;
     t.hot = p.danger; t.down = p.success;
 }
 
@@ -148,7 +158,7 @@ void apply_theme(const ojson& dp) {
         if (auto t = theme::parse(dp["theme_inline"], err)) { set_resolved(theme::resolve_custom(*t)); return; }
     }
     const std::string key = str("theme", "hell");
-    if (key == "windows" || key.rfind("custom:", 0) == 0) {
+    if (key == theme::DEFAULT_ID || key == "cupertino" || key == "fluent" || key == "windows" || key.rfind("custom:", 0) == 0) {
         set_resolved(theme::resolve(key, theme::Store()));
     } else if (key == "eigen") {
         std::map<std::string, std::string> custom;
@@ -351,29 +361,90 @@ std::vector<Friend> sort_friends(std::vector<Friend> friends) {
     return friends;
 }
 
+std::vector<plugins::zones::PlacedBlock> Renderer::friend_layout() const {
+    // Wie Renderer::row_at: dieselbe Kopfkante, Zeilenhöhe und Zeilenzahl.
+    float body_top = HEADER_H + 2;
+    std::vector<plugins::zones::PlacedBlock> rows;
+    for (int i = 0; i < rows_per_page(); ++i)
+        rows.push_back({"freunde.zeile." + std::to_string(i), "freunde",
+                        {0, body_top + i * row_height(), w, (float)row_height()},
+                        plugins::zones::Density::regular});
+    return rows;
+}
+
+class Renderer::FriendRowBlock : public plugins::zones::Block {
+public:
+    FriendRowBlock(Renderer& renderer, const Friend& f, int index)
+        : renderer_(renderer), friend_(f), id_("freunde.zeile." + std::to_string(index)) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        return {renderer_.h > renderer_.w ? 320.f : 480.f, (float)row_height()};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override;
+    void draw_arranged(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density density) const;
+private:
+    float badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) const;
+    void avatar(Canvas& d, const Friend& f, float x, float y, bool faded) const;
+    Renderer& renderer_;
+    const Friend& friend_;
+    std::string id_;
+};
+
+class Renderer::FriendHintBlock : public plugins::zones::Block {
+public:
+    FriendHintBlock(Renderer& renderer, const std::string& text) : renderer_(renderer), text_(text) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect&, plugins::zones::Density) const override {
+        renderer_.message(d, text_);
+    }
+private:
+    Renderer& renderer_;
+    std::string text_;
+    std::string id_ = "freunde.hinweis";
+};
+
 Image Renderer::render_friends(std::vector<Friend> friends, int page, bool connected, const std::string& msg,
                                std::time_t now) {
     const Theme& t = g_theme;
     friends = sort_friends(std::move(friends));
-    Canvas d(W, H, s, t.bg);
     int online = (int)std::count_if(friends.begin(), friends.end(), [](auto& f) { return f.status != "offline"; });
-    header(d, now, std::to_string(online) + " online");
-    float body_top = HEADER_H + 2;
     int n = pages(friends.size());
-    if (!connected) {
-        message(d, msg.empty() ? "Keine Verbindung zu Discord …" : msg);
-    } else if (friends.empty()) {
-        message(d, "Gerade ist niemand online");
+    page = ((page % n) + n) % n;
+    std::vector<FriendRowBlock> rows;
+    std::vector<Platzierung> blocks;
+    FriendHintBlock hint(*this, !connected ? (msg.empty() ? "Keine Verbindung zu Discord …" : msg)
+                                         : "Gerade ist niemand online");
+    if (!connected || friends.empty()) {
+        // message behält seine bisherige mehrzeilige Zentrierung auf der Vollfläche.
+        blocks.push_back({&hint, {hint.id(), "freunde", {0, 0, w, h}, plugins::zones::Density::regular}});
     } else {
         int per = rows_per_page();
-        page = ((page % n) + n) % n;
-        for (int i = 0; i < per && page * per + i < (int)friends.size(); ++i) row(d, friends[page * per + i], body_top + i * row_height());
+        const auto areas = friend_layout();
+        rows.reserve(per);
+        for (int i = 0; i < per && page * per + i < (int)friends.size(); ++i) {
+            rows.emplace_back(*this, friends[page * per + i], i);
+            blocks.push_back({&rows.back(), areas[i]});
+        }
     }
-    footer(d, n > 1 ? strprintf("Seite %d/%d", ((page % n) + n) % n + 1, n) : "");
-    return d.finish();
+    const std::string left = n > 1 ? strprintf("Seite %d/%d", page + 1, n) : "";
+    const std::string info = std::to_string(online) + " online";
+    return draw_framed({W, H, s, t.bg, [this, now, &info](Canvas& d) { header(d, now, info); },
+                        [this, &left](Canvas& d) { footer(d, left); }}, blocks);
 }
 
-float Renderer::badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) {
+float Renderer::FriendRowBlock::badges(Canvas& d, const std::vector<std::string>& platforms, float right, float cy) const {
     // Kleine Plattform-Marken (D/S/X/P) rechts oben in der Zeile; Rückgabe: belegte Breite
     static const std::map<std::string, std::pair<std::string, Color>> BADGE = {
         {"discord", {"D", {88, 101, 242}}}, {"steam", {"S", {35, 98, 148}}}, {"xbox", {"X", {16, 124, 16}}},
@@ -382,33 +453,35 @@ float Renderer::badges(Canvas& d, const std::vector<std::string>& platforms, flo
     for (auto it = platforms.rbegin(); it != platforms.rend(); ++it) {
         auto b = BADGE.count(*it) ? BADGE.at(*it) : std::make_pair(std::string("?"), g_theme.muted);
         d.rounded_rectangle(x - 16, cy - 8, x, cy + 8, 4, b.second);
-        d.text(x - 8, cy, b.first, f_small, brand::WHITE, "mm");
+        d.text(x - 8, cy, b.first, renderer_.f_small, brand::WHITE, "mm");
         x -= 20;
     }
     return right - x + 8;
 }
 
-void Renderer::avatar(Canvas& d, const Friend& f, float x, float y, bool faded) {
+void Renderer::FriendRowBlock::avatar(Canvas& d, const Friend& f, float x, float y, bool faded) const {
     // offline: wie Version 1.x stark ausgeblendet (45 % Deckkraft zweimal überlagert ≈ 20 %)
     const Theme& t = g_theme;
     float op = faded ? 0.45f * 0.45f : 1.f;
-    int size = pyround_i(AVATAR * s);
+    int size = pyround_i(AVATAR * renderer_.s);
     if (f.avatar && !f.avatar->empty()) {
         d.round_image(*f.avatar, x, y, size, op);
         return;
     }
     // Platzhalter: Initiale auf Orange
-    float px = std::nearbyint(x * s), py = std::nearbyint(y * s);
-    d.ellipse(px / s, py / s, (px + size - 1) / s, (py + size - 1) / s, faded ? mix(t.bg, t.orange, op) : t.orange);
+    float px = std::nearbyint(x * renderer_.s), py = std::nearbyint(y * renderer_.s);
+    d.ellipse(px / renderer_.s, py / renderer_.s, (px + size - 1) / renderer_.s, (py + size - 1) / renderer_.s, faded ? mix(t.bg, t.orange, op) : t.orange);
     std::wstring wn = widen(f.name.empty() ? "?" : f.name);
     std::wstring ch = wn.substr(0, (wn.size() > 1 && IS_HIGH_SURROGATE(wn[0])) ? 2 : 1);
     CharUpperBuffW(ch.data(), (DWORD)ch.size());
     Font fi{(float)(int)(size * 0.55), true};
-    d.text((px + size / 2.f) / s, (py + size / 2.f) / s, narrow(ch), fi, faded ? mix(t.bg, t.head_text, op) : t.head_text,
+    d.text((px + size / 2.f) / renderer_.s, (py + size / 2.f) / renderer_.s, narrow(ch), fi, faded ? mix(t.bg, t.head_text, op) : t.head_text,
            "mm");
 }
 
-void Renderer::row(Canvas& d, const Friend& f, float y) {
+void Renderer::FriendRowBlock::draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const {
+    const auto& f = friend_;
+    float y = area.y;
     const Theme& t = g_theme;
     float ax = 10, ay = y + (row_height() - AVATAR) / 2;
     const float l1 = y + row_height() / 2.f - 9, l2 = l1 + 18;   // zwei Zeilen vertikal zentriert (44: 13/31)
@@ -427,20 +500,153 @@ void Renderer::row(Canvas& d, const Friend& f, float y) {
         else if (f.status == "offline") d.ellipse(cx - 3, cy - 3, cx + 3, cy + 3, t.bg);
     }
     float tx = ax + AVATAR + 12;
-    float max_w = w - tx - 10;
+    float max_w = renderer_.w - tx - 10;
     if (f.platforms.size() > 1 || (f.platforms.size() == 1 && f.platforms[0] != "discord"))
-        max_w -= badges(d, f.platforms, w - 10, l1);
+        max_w -= badges(d, f.platforms, renderer_.w - 10, l1);
     Color name_col = f.status != "offline" ? t.text : t.muted;
     std::string line2 = !f.activity.empty() ? f.activity : (STATUS_LABEL.count(f.status) ? STATUS_LABEL.at(f.status) : "");
     if (!line2.empty()) {
-        d.text(tx, l1, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
+        d.text(tx, l1, renderer_.fit(d, f.name, renderer_.f_name, max_w), renderer_.f_name, name_col, "lm");
         Color act_col = starts_with_any(f.activity, {"Spielt", "Streamt"}) ? t.accent : t.muted;
-        d.text(tx, l2, fit(d, line2, f_act, max_w), f_act, act_col, "lm");
+        d.text(tx, l2, renderer_.fit(d, line2, renderer_.f_act, max_w), renderer_.f_act, act_col, "lm");
     } else {
-        d.text(tx, y + row_height() / 2, fit(d, f.name, f_name, max_w), f_name, name_col, "lm");
+        d.text(tx, y + row_height() / 2, renderer_.fit(d, f.name, renderer_.f_name, max_w), renderer_.f_name, name_col, "lm");
     }
-    d.line({{tx, y + row_height() - 1}, {w - 10, y + row_height() - 1}}, t.line, 1);
+    d.line({{tx, y + row_height() - 1}, {renderer_.w - 10, y + row_height() - 1}}, t.line, 1);
 }
+
+void Renderer::FriendRowBlock::draw_arranged(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density density) const {
+    const auto& f = friend_;
+    float x=area.x, y=area.y;
+    const Theme& t = g_theme;
+    float ax=x+10, ay=y+(area.height-AVATAR)/2;
+    const float l1 = y + area.height / 2.f - 9, l2 = l1 + 18;   // zwei Zeilen vertikal zentriert (44: 13/31)
+    // Kompakt in schmalen Zonen: Statusfarbe, Name und Aktivität ohne Avatar.
+    if(density==plugins::zones::Density::compact && area.width<240) {
+        const Color status=g_theme.status.count(f.status)?g_theme.status.at(f.status):g_theme.status.at("offline");
+        d.ellipse(x+8,y+8,x+16,y+16,status);
+        d.text(x+22,y+13,renderer_.fit(d,f.name,renderer_.f_name,area.width-30),renderer_.f_name,t.text,"lm");
+        const auto detail=f.activity.empty()?(STATUS_LABEL.count(f.status)?STATUS_LABEL.at(f.status):f.status):f.activity;
+        d.text(x+8,y+31,renderer_.fit(d,detail,renderer_.f_act,area.width-16),renderer_.f_act,t.muted,"lm");
+        d.line({{x+8,y+area.height-1},{x+area.width-8,y+area.height-1}},t.line,1);
+        return;
+    }
+    avatar(d, f, ax, ay, f.status == "offline");
+    // Statuspunkt unten rechts am Avatar, wie in Discord
+    float r = 6, cx = ax + AVATAR - 4, cy = ay + AVATAR - 4;
+    d.ellipse(cx - r - 2, cy - r - 2, cx + r + 2, cy + r + 2, t.bg);
+    Color col = t.status.count(f.status) ? t.status.at(f.status) : t.status.at("offline");
+    if (f.mobile && f.status != "offline") {  // Handy-Symbol statt Punkt
+        d.rounded_rectangle(cx - 4, cy - r, cx + 4, cy + r, 2, col);
+        d.rectangle(cx - 2, cy - r + 2, cx + 2, cy + r - 4, t.bg);
+    } else {
+        d.ellipse(cx - r, cy - r, cx + r, cy + r, col);
+        if (f.status == "idle") d.ellipse(cx - r - 1, cy - r - 1, cx + 1, cy + 1, t.bg);
+        else if (f.status == "dnd") d.rectangle(cx - 4, cy - 1, cx + 4, cy + 1, t.bg);
+        else if (f.status == "offline") d.ellipse(cx - 3, cy - 3, cx + 3, cy + 3, t.bg);
+    }
+    float tx = ax + AVATAR + 12;
+    float max_w = x+area.width-tx-10;
+    if (f.platforms.size() > 1 || (f.platforms.size() == 1 && f.platforms[0] != "discord"))
+        max_w -= badges(d, f.platforms, x+area.width-10, l1);
+    Color name_col = f.status != "offline" ? t.text : t.muted;
+    std::string line2 = !f.activity.empty() ? f.activity : (STATUS_LABEL.count(f.status) ? STATUS_LABEL.at(f.status) : "");
+    if (!line2.empty()) {
+        d.text(tx, l1, renderer_.fit(d, f.name, renderer_.f_name, max_w), renderer_.f_name, name_col, "lm");
+        Color act_col = starts_with_any(f.activity, {"Spielt", "Streamt"}) ? t.accent : t.muted;
+        d.text(tx, l2, renderer_.fit(d, line2, renderer_.f_act, max_w), renderer_.f_act, act_col, "lm");
+    } else {
+        d.text(tx, y + area.height / 2, renderer_.fit(d, f.name, renderer_.f_name, max_w), renderer_.f_name, name_col, "lm");
+    }
+    d.line({{tx, y + area.height - 1}, {x+area.width-10, y + area.height - 1}}, t.line, 1);
+}
+
+// Rasterweg ausschließlich nach einer echten Änderung; Standard bleibt oben unverändert.
+plugins::zones::Plan Renderer::friend_arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    const auto layout=plugins::edit::geometry(model);
+    if(!layout) return {};
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("friends"),model),6),overlay);
+}
+bool Renderer::uses_friends_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("friends"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+int Renderer::friend_arranged_rows(const builtin::Overlay& overlay) const {
+    if(!uses_friends_arrangement(overlay)) return rows_per_page();
+    for(const auto& b:friend_arrangement(overlay).blocks) if(b.id=="freunde.liste" && b.visible())
+        return std::clamp(int(b.area.height/(*b.density==plugins::zones::Density::compact?44.f:66.f)),1,rows_per_page());
+    return 0;
+}
+int Renderer::friend_pages(size_t items,const builtin::Overlay& overlay) const {
+    const int per=friend_arranged_rows(overlay);
+    return per?std::max(1,int((items+per-1)/per)):1;
+}
+class Renderer::FriendListBlock : public plugins::zones::Block {
+public:
+    FriendListBlock(Renderer& r,const std::vector<Friend>& friends,int page,int per,std::time_t now)
+        :r_(r),friends_(friends),page_(page),per_(per),now_(now) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("friends")->blocks.front().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density density) const override {
+        const size_t start=size_t(page_)*per_,count=start<friends_.size()?std::min(size_t(per_),friends_.size()-start):0;
+        for(size_t i=0;i<count;++i) {
+            const float top=area.y+std::floor(area.height*i/per_);
+            const float bottom=area.y+std::floor(area.height*(i+1)/per_);
+            FriendRowBlock row(r_,friends_[start+i],int(i));
+            row.draw_arranged(d,{area.x,top,area.width,bottom-top},density);
+        }
+    }
+private:
+    Renderer& r_;const std::vector<Friend>& friends_;int page_,per_;std::time_t now_;
+    std::string id_="freunde.liste";
+};
+class Renderer::FriendArrangedHintBlock : public plugins::zones::Block {
+public:
+    FriendArrangedHintBlock(Renderer& r,const char* text):r_(r),text_(text) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("friends")->blocks.back().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density) const override {
+        d.text(area.x+area.width/2,area.y+area.height/2,r_.fit(d,text_,r_.f_act,area.width-8),r_.f_act,g_theme.muted,"mm");
+    }
+private:
+    Renderer& r_;const char* text_;std::string id_="freunde.hinweis";
+};
+BuiltinDrawOut Renderer::render_friends_arranged(std::vector<Friend> friends,bool connected,const std::string& message,
+                                           const builtin::Overlay& overlay,int page,std::time_t now) {
+    const auto& c=*builtin::find("friends");
+    if(!builtin::validate(c,overlay).empty() || !uses_friends_arrangement(overlay)) return {render_friends(friends,page,connected,message,now),{}};
+    friends=sort_friends(std::move(friends));
+    const auto plan=friend_arrangement(overlay);
+    const int per=friend_arranged_rows(overlay),count=friend_pages(friends.size(),overlay);
+    page=std::clamp(page,0,count-1);
+    FriendListBlock list(*this,friends,page,per,now);
+    FriendArrangedHintBlock hint(*this,!connected?(message.empty()?"Keine Verbindung zu Discord …":message.c_str()):"Gerade ist niemand online");
+    const bool ready=connected && !friends.empty();
+    std::vector<Platzierung> blocks;
+    for(const auto& b:plan.blocks) if((ready && b.id==list.id()) || (!ready && b.id==hint.id())) blocks.push_back({ready?static_cast<const plugins::zones::Block*>(&list):&hint,b});
+    const auto foot=count>1 && ready?"Seite "+std::to_string(page+1)+"/"+std::to_string(count):"";
+    std::vector<std::string> failed;
+    BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,now,&friends](Canvas& d){header(d,now,std::to_string(std::count_if(friends.begin(),friends.end(),[](const auto& p){return p.status!="offline";}))+" online");},
+                            [this,&foot](Canvas& d){footer(d,foot);}},blocks,&failed);
+    if(ready && per && failed.empty()) for(const auto& b:plan.blocks) if(b.id==list.id() && b.visible()) {
+        const size_t start=size_t(page)*per,n=start<friends.size()?std::min(size_t(per),friends.size()-start):0;
+        for(size_t i=0;i<n;++i) {
+            const int left=pyround_i(b.area.x*s),right=pyround_i((b.area.x+b.area.width)*s);
+            const int top=pyround_i((b.area.y+std::floor(b.area.height*i/per))*s);
+            const int bottom=pyround_i((b.area.y+std::floor(b.area.height*(i+1)/per))*s);
+            out.targets.push_back({{left,top,right-left,bottom-top},start+i});
+        }
+    }
+    return out;
+}
+
+
 
 // ---------- Battlefield 6 ----------
 std::vector<Bf6Player> sort_players(std::vector<Bf6Player> p) {
@@ -460,70 +666,267 @@ Bf6Renderer::Bf6Renderer(int w_, int h_, std::string t) : Renderer(w_, h_, std::
     f_pos = font(14, true);
 }
 
+std::vector<plugins::zones::PlacedBlock> Bf6Renderer::layout() const {
+    // Wie Renderer::row_at: dieselbe Kopfkante, Zeilenhöhe und Zeilenzahl.
+    float body_top = HEADER_H + 2;
+    std::vector<plugins::zones::PlacedBlock> rows;
+    for (int i = 0; i < rows_per_page(); ++i)
+        rows.push_back({"bf6.zeile." + std::to_string(i), "bf6",
+                        {0, body_top + i * row_height(), w, (float)row_height()},
+                        plugins::zones::Density::regular});
+    return rows;
+}
+
+class Bf6Renderer::RowBlock : public plugins::zones::Block {
+public:
+    RowBlock(Bf6Renderer& renderer, const Bf6Player& player, int index, int pos)
+        : renderer_(renderer), player_(player), pos_(pos), id_("bf6.zeile." + std::to_string(index)) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        return {renderer_.h > renderer_.w ? 320.f : 480.f, (float)row_height()};
+    }
+    void draw_arranged(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density density) const {
+        auto& r = renderer_;
+        const auto& p = player_;
+        int pos = pos_;
+        float x=area.x, y=area.y;
+        const Theme& t = g_theme;
+        float cy = y + area.height / 2;
+        const float l1 = cy - 9, l2 = cy + 9;   // zwei Zeilen vertikal zentriert (44: 13/31)
+        // Kompakt: Name und wichtigste Werte auch in schmalen Zonen lesbar halten.
+        if(density==plugins::zones::Density::compact) {
+            d.text(x+8,y+13,r.fit(d,std::to_string(pos)+". "+p.name,r.f_name,area.width-16),r.f_name,t.text,"lm");
+            std::string detail=p.error.empty()?(p.kd?strprintf("K/D %.2f",*p.kd):"K/D –"):p.error;
+            if(p.error.empty() && p.rank) detail+=" · Rang "+std::to_string(*p.rank);
+            d.text(x+8,y+31,r.fit(d,detail,r.f_act,area.width-16),r.f_act,p.error.empty()?t.accent:t.status.at("dnd"),"lm");
+            d.line({{x+8,y+area.height-1},{x+area.width-8,y+area.height-1}},t.line,1);
+            return;
+        }
+        Color pos_col = pos <= 3 && p.error.empty() ? t.accent : t.muted;
+        d.text(x + 24, cy, std::to_string(pos) + ".", r.f_pos, pos_col, "rm");
+        float ix = x + 30;
+        if (p.rank_icon && !p.rank_icon->empty()) {
+            int n = pyround_i((AVATAR + 4) * r.s);
+            Image icon = thumbnail(*p.rank_icon, n, n);
+            float iw = icon.w / r.s, ih = icon.h / r.s;  // logische Größe
+            d.image(icon, ix + (float)floordiv(AVATAR + 4 - iw, 2), cy - (float)floordiv(ih, 2));
+        } else if (p.rank) {
+            d.ellipse_outline(ix + 2, cy - 16, ix + 34, cy + 16, t.orange, 2);
+            d.text(ix + 18, cy, std::to_string(*p.rank), r.f_small, t.text, "mm");
+        }
+        float tx = ix + AVATAR + 12;
+        // Rechte Spalte: K/D groß, Siegquote und Spielstunden klein.
+        std::string detail;
+        if (p.win_pct) detail = tr(strprintf("%.0f %% Siege", *p.win_pct));
+        if (p.hours && std::isfinite(*p.hours) && *p.hours >= 0)
+            detail += (detail.empty() ? "" : " · ") + strprintf("%.0f h", *p.hours);
+        float stat_w = std::max(92.f, d.textlength(tr(detail), r.f_act) + 8), sx = x + area.width - 10;
+        if (p.kd) d.text(sx, l1, strprintf("K/D %.2f", *p.kd), r.f_stat, t.text, "rm");
+        if (!detail.empty()) d.text(sx, l2, detail, r.f_act, t.muted, "rm");
+        float max_w = sx - stat_w - tx;
+        d.text(tx, l1, r.fit(d, p.name, r.f_name, max_w), r.f_name, p.error.empty() ? t.text : t.muted, "lm");
+        std::string line2;
+        Color col;
+        if (!p.error.empty()) {
+            line2 = p.error;
+            col = t.status.at("dnd");
+        } else {
+            line2 = p.rank ? "Rang " + std::to_string(*p.rank) : "Rang unbekannt";
+            if (!p.rank_name.empty()) line2 += " · " + p.rank_name;
+            col = t.accent;
+        }
+        d.text(tx, l2, r.fit(d, line2, r.f_act, max_w), r.f_act, col, "lm");
+        d.line({{tx, y + area.height - 1}, {x + area.width - 10, y + area.height - 1}}, t.line, 1);
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        auto& r = renderer_;
+        const auto& p = player_;
+        int pos = pos_;
+        float y = area.y;
+        const Theme& t = g_theme;
+        float cy = y + row_height() / 2;
+        const float l1 = cy - 9, l2 = cy + 9;   // zwei Zeilen vertikal zentriert (44: 13/31)
+        Color pos_col = pos <= 3 && p.error.empty() ? t.accent : t.muted;
+        d.text(24, cy, std::to_string(pos) + ".", r.f_pos, pos_col, "rm");
+        float ix = 30;
+        if (p.rank_icon && !p.rank_icon->empty()) {
+            int n = pyround_i((AVATAR + 4) * r.s);
+            Image icon = thumbnail(*p.rank_icon, n, n);
+            float iw = icon.w / r.s, ih = icon.h / r.s;  // logische Größe
+            d.image(icon, ix + (float)floordiv(AVATAR + 4 - iw, 2), cy - (float)floordiv(ih, 2));
+        } else if (p.rank) {
+            d.ellipse_outline(ix + 2, cy - 16, ix + 34, cy + 16, t.orange, 2);
+            d.text(ix + 18, cy, std::to_string(*p.rank), r.f_small, t.text, "mm");
+        }
+        float tx = ix + AVATAR + 12;
+        // Rechte Spalte: K/D groß, Siegquote und Spielstunden klein.
+        std::string detail;
+        if (p.win_pct) detail = tr(strprintf("%.0f %% Siege", *p.win_pct));
+        if (p.hours && std::isfinite(*p.hours) && *p.hours >= 0)
+            detail += (detail.empty() ? "" : " · ") + strprintf("%.0f h", *p.hours);
+        float stat_w = std::max(92.f, d.textlength(tr(detail), r.f_act) + 8), sx = r.w - 10;
+        if (p.kd) d.text(sx, l1, strprintf("K/D %.2f", *p.kd), r.f_stat, t.text, "rm");
+        if (!detail.empty()) d.text(sx, l2, detail, r.f_act, t.muted, "rm");
+        float max_w = sx - stat_w - tx;
+        d.text(tx, l1, r.fit(d, p.name, r.f_name, max_w), r.f_name, p.error.empty() ? t.text : t.muted, "lm");
+        std::string line2;
+        Color col;
+        if (!p.error.empty()) {
+            line2 = p.error;
+            col = t.status.at("dnd");
+        } else {
+            line2 = p.rank ? "Rang " + std::to_string(*p.rank) : "Rang unbekannt";
+            if (!p.rank_name.empty()) line2 += " · " + p.rank_name;
+            col = t.accent;
+        }
+        d.text(tx, l2, r.fit(d, line2, r.f_act, max_w), r.f_act, col, "lm");
+        d.line({{tx, y + row_height() - 1}, {r.w - 10, y + row_height() - 1}}, t.line, 1);
+    }
+private:
+    Bf6Renderer& renderer_;
+    const Bf6Player& player_;
+    int pos_;
+    std::string id_;
+};
+
+class Bf6Renderer::HintBlock : public plugins::zones::Block {
+public:
+    HintBlock(Bf6Renderer& renderer, const char* text) : renderer_(renderer), text_(text) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        d.text(area.width / 2, area.height / 2, text_, renderer_.f_big, g_theme.muted, "mm");
+    }
+private:
+    Bf6Renderer& renderer_;
+    const char* text_;
+    std::string id_ = "bf6.hinweis";
+};
+
 Image Bf6Renderer::render(std::vector<Bf6Player> players, int page, std::optional<std::time_t> updated, std::time_t now) {
     const Theme& t = g_theme;
     players = sort_players(std::move(players));
-    Canvas d(W, H, s, t.bg);
     int found = (int)std::count_if(players.begin(), players.end(), [](auto& p) { return p.error.empty(); });
-    header(d, now, std::to_string(found) + " Spieler");
-    float body_top = HEADER_H + 2;
     int n = pages(players.size());
     page = ((page % n) + n) % n;
-    if (players.empty()) {
-        d.text(w / 2, h / 2, "Keine Spieler in config.toml", f_big, t.muted, "mm");
-    } else if (!updated) {
-        d.text(w / 2, h / 2, "Lade Battlefield-Profile …", f_big, t.muted, "mm");
+    std::vector<RowBlock> rows;
+    std::vector<Platzierung> blocks;
+    HintBlock hint(*this, players.empty() ? "Keine Spieler in config.toml" : "Lade Battlefield-Profile …");
+    if (players.empty() || !updated) {
+        // Vollfläche erhält die bisherige Mitte w/2, h/2 wie bei RSS.
+        blocks.push_back({&hint, {hint.id(), "bf6", {0, 0, w, h}, plugins::zones::Density::regular}});
     } else {
         int per = rows_per_page();
-        for (int i = 0; i < per && page * per + i < (int)players.size(); ++i)
-            bf_row(d, players[page * per + i], page * per + i + 1, body_top + i * row_height());
+        const auto areas = layout();
+        rows.reserve(per);
+        for (int i = 0; i < per && page * per + i < (int)players.size(); ++i) {
+            rows.emplace_back(*this, players[page * per + i], i, page * per + i + 1);
+            blocks.push_back({&rows.back(), areas[i]});
+        }
     }
     std::string left = updated ? "Stand " + clock_hhmm(*updated) : "";
     if (n > 1) left = strprintf("Seite %d/%d", page + 1, n) + (left.empty() ? "" : " · " + left);
-    footer(d, left);
-    return d.finish();
+    const std::string info = std::to_string(found) + " Spieler";
+    return draw_framed({W, H, s, t.bg, [this, now, &info](Canvas& d) { header(d, now, info); },
+                        [this, &left](Canvas& d) { footer(d, left); }}, blocks);
 }
 
-void Bf6Renderer::bf_row(Canvas& d, const Bf6Player& p, int pos, float y) {
-    const Theme& t = g_theme;
-    float cy = y + row_height() / 2;
-    const float l1 = cy - 9, l2 = cy + 9;   // zwei Zeilen vertikal zentriert (44: 13/31)
-    Color pos_col = pos <= 3 && p.error.empty() ? t.accent : t.muted;
-    d.text(24, cy, std::to_string(pos) + ".", f_pos, pos_col, "rm");
-    float ix = 30;
-    if (p.rank_icon && !p.rank_icon->empty()) {
-        int n = pyround_i((AVATAR + 4) * s);
-        Image icon = thumbnail(*p.rank_icon, n, n);
-        float iw = icon.w / s, ih = icon.h / s;  // logische Größe
-        d.image(icon, ix + (float)floordiv(AVATAR + 4 - iw, 2), cy - (float)floordiv(ih, 2));
-    } else if (p.rank) {
-        d.ellipse_outline(ix + 2, cy - 16, ix + 34, cy + 16, t.orange, 2);
-        d.text(ix + 18, cy, std::to_string(*p.rank), f_small, t.text, "mm");
-    }
-    float tx = ix + AVATAR + 12;
-    // Rechte Spalte: K/D groß, Siegquote und Spielstunden klein.
-    std::string detail;
-    if (p.win_pct) detail = tr(strprintf("%.0f %% Siege", *p.win_pct));
-    if (p.hours && std::isfinite(*p.hours) && *p.hours >= 0)
-        detail += (detail.empty() ? "" : " · ") + strprintf("%.0f h", *p.hours);
-    float stat_w = std::max(92.f, d.textlength(tr(detail), f_act) + 8), sx = w - 10;
-    if (p.kd) d.text(sx, l1, strprintf("K/D %.2f", *p.kd), f_stat, t.text, "rm");
-    if (!detail.empty()) d.text(sx, l2, detail, f_act, t.muted, "rm");
-    float max_w = sx - stat_w - tx;
-    d.text(tx, l1, fit(d, p.name, f_name, max_w), f_name, p.error.empty() ? t.text : t.muted, "lm");
-    std::string line2;
-    Color col;
-    if (!p.error.empty()) {
-        line2 = p.error;
-        col = t.status.at("dnd");
-    } else {
-        line2 = p.rank ? "Rang " + std::to_string(*p.rank) : "Rang unbekannt";
-        if (!p.rank_name.empty()) line2 += " · " + p.rank_name;
-        col = t.accent;
-    }
-    d.text(tx, l2, fit(d, line2, f_act, max_w), f_act, col, "lm");
-    d.line({{tx, y + row_height() - 1}, {w - 10, y + row_height() - 1}}, t.line, 1);
+// Rasterweg ausschließlich nach einer echten Änderung; Standard bleibt oben unverändert.
+plugins::zones::Plan Bf6Renderer::arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    const auto layout=plugins::edit::geometry(model);
+    if(!layout) return {};
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("bf6"),model),6),overlay);
 }
+bool Bf6Renderer::uses_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("bf6"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+int Bf6Renderer::arranged_rows(const builtin::Overlay& overlay) const {
+    if(!uses_arrangement(overlay)) return rows_per_page();
+    for(const auto& b:arrangement(overlay).blocks) if(b.id=="bf6.rangliste" && b.visible())
+        return std::clamp(int(b.area.height/(*b.density==plugins::zones::Density::compact?44.f:66.f)),1,rows_per_page());
+    return 0;
+}
+int Bf6Renderer::pages(size_t items,const builtin::Overlay& overlay) const {
+    const int per=arranged_rows(overlay);
+    return per?std::max(1,int((items+per-1)/per)):1;
+}
+class Bf6Renderer::ListBlock : public plugins::zones::Block {
+public:
+    ListBlock(Bf6Renderer& r,const std::vector<Bf6Player>& players,int page,int per,std::time_t now)
+        :r_(r),players_(players),page_(page),per_(per),now_(now) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("bf6")->blocks.front().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density density) const override {
+        const size_t start=size_t(page_)*per_,count=start<players_.size()?std::min(size_t(per_),players_.size()-start):0;
+        for(size_t i=0;i<count;++i) {
+            const float top=area.y+std::floor(area.height*i/per_);
+            const float bottom=area.y+std::floor(area.height*(i+1)/per_);
+            RowBlock row(r_,players_[start+i],int(i),int(start+i+1));
+            row.draw_arranged(d,{area.x,top,area.width,bottom-top},density);
+        }
+    }
+private:
+    Bf6Renderer& r_;const std::vector<Bf6Player>& players_;int page_,per_;std::time_t now_;
+    std::string id_="bf6.rangliste";
+};
+class Bf6Renderer::ArrangedHintBlock : public plugins::zones::Block {
+public:
+    ArrangedHintBlock(Bf6Renderer& r,const char* text):r_(r),text_(text) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("bf6")->blocks.back().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density) const override {
+        d.text(area.x+area.width/2,area.y+area.height/2,r_.fit(d,text_,r_.f_act,area.width-8),r_.f_act,g_theme.muted,"mm");
+    }
+private:
+    Bf6Renderer& r_;const char* text_;std::string id_="bf6.hinweis";
+};
+BuiltinDrawOut Bf6Renderer::render_arranged(std::vector<Bf6Player> players,std::optional<std::time_t> updated,
+                                           const builtin::Overlay& overlay,int page,std::time_t now) {
+    const auto& c=*builtin::find("bf6");
+    if(!builtin::validate(c,overlay).empty() || !uses_arrangement(overlay)) return {render(players,page,updated,now),{}};
+    players=sort_players(std::move(players));
+    const auto plan=arrangement(overlay);
+    const int per=arranged_rows(overlay),count=pages(players.size(),overlay);
+    page=std::clamp(page,0,count-1);
+    ListBlock list(*this,players,page,per,now);
+    ArrangedHintBlock hint(*this,players.empty()?"Keine Spieler in config.toml":"Lade Battlefield-Profile …");
+    const bool ready=updated && !players.empty();
+    std::vector<Platzierung> blocks;
+    for(const auto& b:plan.blocks) if((ready && b.id==list.id()) || (!ready && b.id==hint.id())) blocks.push_back({ready?static_cast<const plugins::zones::Block*>(&list):&hint,b});
+    const auto foot=(count>1 && ready?"Seite "+std::to_string(page+1)+"/"+std::to_string(count)+" · ":"")+(updated?"Stand "+clock_hhmm(*updated):"");
+    std::vector<std::string> failed;
+    BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,now,&players](Canvas& d){header(d,now,std::to_string(std::count_if(players.begin(),players.end(),[](const auto& p){return p.error.empty();}))+" Spieler");},
+                            [this,&foot](Canvas& d){footer(d,foot);}},blocks,&failed);
+    if(ready && per && failed.empty()) for(const auto& b:plan.blocks) if(b.id==list.id() && b.visible()) {
+        const size_t start=size_t(page)*per,n=start<players.size()?std::min(size_t(per),players.size()-start):0;
+        for(size_t i=0;i<n;++i) {
+            const int left=pyround_i(b.area.x*s),right=pyround_i((b.area.x+b.area.width)*s);
+            const int top=pyround_i((b.area.y+std::floor(b.area.height*i/per))*s);
+            const int bottom=pyround_i((b.area.y+std::floor(b.area.height*(i+1)/per))*s);
+            out.targets.push_back({{left,top,right-left,bottom-top},start+i});
+        }
+    }
+    return out;
+}
+
 
 // ---------- System ----------
 SysRenderer::SysRenderer(int w_, int h_, std::string t, std::string unit)
@@ -594,41 +997,173 @@ int SysRenderer::zone_at(int w_px, int h_px, int x_px, int y_px) {
     return -1;
 }
 
+class SysRenderer::CardBlock : public plugins::zones::Block {
+public:
+    CardBlock(SysRenderer& renderer, const SysSnapshot& snap, size_t index, bool group = false, float group_bottom = 0)
+        : renderer_(renderer), snap_(snap), index_(index), group_(group), group_bottom_(group_bottom),
+          id_(group ? "system.gruppe" : ids_[index]) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        const auto areas = regions(portrait ? 320.f : 480.f, portrait ? 480.f : 320.f, g_theme.style);
+        return {areas[index_].w, group_ ? areas.back().y + areas.back().h - areas.front().y : areas[index_].h};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        auto& r = renderer_;
+        const Region a{area.x, area.y, area.width, area.height, -1};
+        if (group_) {
+            d.rounded_rectangle(a.x, a.y, a.x + a.w, group_bottom_, 14, g_theme.card);
+        } else if (g_theme.style == theme::Style::Cupertino) {
+            r.grouped_row(d, a, snap_, index_);
+        } else if (g_theme.style == theme::Style::Material) {
+            r.expressive_card(d, a, snap_, index_);
+        } else {
+            r.system_card(d, a, snap_, index_);
+        }
+    }
+private:
+    inline static const std::array<std::string, 5> ids_ = {
+        "system.cpu", "system.gpu", "system.ram", "system.datentraeger", "system.netz"};
+    SysRenderer& renderer_;
+    const SysSnapshot& snap_;
+    size_t index_;
+    bool group_;
+    float group_bottom_;
+    std::string id_;
+};
+
 Image SysRenderer::render(const SysSnapshot& sn, std::time_t now) {
     const Theme& t = g_theme;
-    Canvas d(W, H, s, t.bg);
-    header(d, now, sn.hwinfo ? "" : "ohne HWiNFO");
     const auto areas = regions(w, h, t.style);
+    std::vector<CardBlock> cards;
+    std::vector<Platzierung> blocks;
+    cards.reserve(6);
     if (t.style == theme::Style::Cupertino) {
-        grouped_system(d, areas, sn);
-    } else if (t.style == theme::Style::Material) {
-        expressive_system(d, areas, sn);
-    } else {
-        const auto& cpu = areas[0]; const auto& gpu = areas[1];
-        const auto& ram_area = areas[2]; const auto& disk_area = areas[3]; const auto& net = areas[4];
+        const auto& first = areas.front(); const auto& last = areas.back();
+        cards.emplace_back(*this, sn, 0, true, last.y + last.h);
+        // Endkante unverändert: keine zusätzliche Subtraktion/Addition für die Gruppenhöhe.
+        blocks.push_back({&cards.back(), {cards.back().id(), "system",
+            {first.x, first.y, first.w, last.y + last.h - first.y}, plugins::zones::Density::regular}});
+    }
+    for (size_t i = 0; i < areas.size(); ++i) {
+        cards.emplace_back(*this, sn, i);
+        const auto& a = areas[i];
+        blocks.push_back({&cards.back(), {cards.back().id(), "system",
+            {a.x, a.y, a.w, a.h}, plugins::zones::Density::regular}});
+    }
+    return draw_framed({W, H, s, t.bg,
+        [this, now, &sn](Canvas& d) { header(d, now, sn.hwinfo ? "" : "ohne HWiNFO"); },
+        [this](Canvas& d) { footer(d, ""); }}, blocks);
+}
+
+// Nur geänderte Anordnungen verwenden Raster, Clip und Fehlerisolierung.
+bool SysRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("system"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+plugins::zones::Plan SysRenderer::arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    auto layout=plugins::edit::geometry(model);
+    if(!layout) return {};
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2.f,w-16,h-HEADER_H-FOOTER_H-2.f},*layout,
+                               builtin::inputs(*builtin::find("system"),model),6),overlay);
+}
+class SysRenderer::ArrangedCardBlock : public plugins::zones::Block {
+public:
+    ArrangedCardBlock(SysRenderer& r,const SysSnapshot& snap,size_t index):r_(r),snap_(snap),index_(index) {}
+    const std::string& id() const override {return builtin::find("system")->blocks[index_].id;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("system")->blocks[index_].thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& a,plugins::zones::Density density) const override {
+        const auto& t=g_theme;const auto& sn=snap_;
+        Region region{a.x,a.y,a.width,a.height,-1};
+        if(density==plugins::zones::Density::regular) {
+            if(index_==4) r_.net_card(d,a.x,a.y,a.width,a.height,sn);
+            else if(t.style==theme::Style::Cupertino) r_.grouped_row(d,region,sn,index_);
+            else if(t.style==theme::Style::Material) r_.expressive_card(d,region,sn,index_);
+            else r_.system_card(d,region,sn,index_);
+            return;
+        }
+        if(t.style!=theme::Style::Cupertino)
+            d.rounded_rectangle(a.x,a.y,a.x+a.width,a.y+a.height,theme::design(t.style).card_radius,t.card);
+        const std::array<std::string,5> labels={"CPU","GPU","RAM",tr("Datenträger"),tr("Netzwerk")};
+        const std::array<std::optional<double>,5> values={sn.cpu_pct,sn.gpu_pct,sn.ram_pct,sn.disk_pct,{}};
+        d.text(a.x+8,a.y+12,r_.fit(d,labels[index_],r_.f_lbl,a.width-16),r_.f_lbl,t.accent,"lm");
+        if(index_==4) {
+            d.text(a.x+8,a.y+32,r_.fit(d,fmt_rate(sn.net_down,r_.net_unit),r_.f_lbl,a.width-16),r_.f_lbl,t.down,"lm");
+            d.text(a.x+8,a.y+50,r_.fit(d,fmt_rate(sn.net_up,r_.net_unit),r_.f_lbl,a.width-16),r_.f_lbl,t.bar,"lm");
+        } else {
+            const auto temp=index_==0?sn.cpu_temp:index_==1?sn.gpu_temp:index_==3?sn.disk_temp:std::optional<double>{};
+            d.text(a.x+8,a.y+32,num(values[index_],0,"%"),r_.f_val,t.text,"lm");
+            if(temp) d.text(a.x+a.width-8,a.y+49,r_.fit(d,num(temp,0,"°C"),r_.f_lbl,a.width-16),r_.f_lbl,r_.temp_col(temp),"rm");
+            r_.bar(d,a.x+8,a.y+a.height-7,a.width-16,values[index_],3);
+        }
+    }
+private:
+    SysRenderer& r_;const SysSnapshot& snap_;size_t index_;
+};
+BuiltinDrawOut SysRenderer::render_arranged(const SysSnapshot& snap,const builtin::Overlay& overlay,std::time_t now) {
+    const auto& catalog=*builtin::find("system");
+    if(!builtin::validate(catalog,overlay).empty() || !uses_arrangement(overlay)) return {render(snap,now),{}};
+    const auto plan=arrangement(overlay);
+    std::vector<ArrangedCardBlock> cards;cards.reserve(catalog.blocks.size());
+    for(size_t i=0;i<catalog.blocks.size();++i) cards.emplace_back(*this,snap,i);
+    std::vector<CardBlock> groups;groups.reserve(plan.zones.size());
+    std::vector<Platzierung> blocks;
+    if(g_theme.style==theme::Style::Cupertino) for(const auto& zone:plan.zones) {
+        if(std::none_of(plan.blocks.begin(),plan.blocks.end(),[&](const auto& b){return b.zone==zone.id && b.visible();})) continue;
+        const auto& a=zone.area;groups.emplace_back(*this,snap,0,true,a.y+a.height);
+        blocks.push_back({&groups.back(),{"system.gruppe",zone.id,a,plugins::zones::Density::regular}});
+    }
+    for(const auto& b:plan.blocks) for(const auto& card:cards) if(b.id==card.id()) blocks.push_back({&card,b});
+    std::vector<std::string> failed;BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,now,&snap](Canvas& d){header(d,now,snap.hwinfo?"":"ohne HWiNFO");},
+                            [this](Canvas& d){footer(d,"");}},blocks,&failed);
+    for(const auto& b:plan.blocks) if(b.visible() && std::find(failed.begin(),failed.end(),b.id)==failed.end()) {
+        for(size_t i=2;i<catalog.blocks.size();++i) if(b.id==catalog.blocks[i].id) {
+            const int left=pyround_i(b.area.x*s),right=pyround_i((b.area.x+b.area.width)*s);
+            const int top=pyround_i(b.area.y*s),bottom=pyround_i((b.area.y+b.area.height)*s);
+            out.targets.push_back({{left,top,right-left,bottom-top},i-2});
+        }
+    }
+    return out;
+}
+
+void SysRenderer::system_card(Canvas& d, const Region& area, const SysSnapshot& sn, size_t index) {
+    const Theme& t = g_theme;
+    if (index == 0) {
+        const auto& cpu = area;
         usage_card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name, sn.cpu_pct,
                    {{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
                     {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text},
                     {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}});
+    } else if (index == 1) {
+        const auto& gpu = area;
         std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
                                ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
         usage_card(d, gpu.x, gpu.y, gpu.w, gpu.h, "GPU", sn.gpu_name, sn.gpu_pct,
                    {{"Temp", num(sn.gpu_temp, 0, "°C"), temp_col(sn.gpu_temp)},
                     {"Lüfter", num(sn.gpu_fan, 0, "%"), t.text}, {"VRAM", vram, t.text}});
+    } else if (index == 2) {
+        const auto& ram_area = area;
         std::string ram = sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–";
         bar_card(d, ram_area.x, ram_area.y, ram_area.w, ram_area.h, "RAM", ram, sn.ram_pct);
+    } else if (index == 3) {
+        const auto& disk_area = area;
         std::string disk = sn.disk_label + " " + (sn.disk_temp ? num(sn.disk_temp, 0, "°C") : tr("belegt"));
         bar_card(d, disk_area.x, disk_area.y, disk_area.w, disk_area.h, "Datenträger", disk, sn.disk_pct);
+    } else {
+        const auto& net = area;
         net_card(d, net.x, net.y, net.w, net.h, sn);
     }
-    footer(d, "");
-    return d.finish();
 }
 
-void SysRenderer::grouped_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& sn) {
+void SysRenderer::grouped_row(Canvas& d, const Region& a, const SysSnapshot& sn, size_t i) {
     const Theme& t = g_theme;
-    const auto& first = areas.front(); const auto& last = areas.back();
-    d.rounded_rectangle(first.x, first.y, first.x + first.w, last.y + last.h, 14, t.card);
     const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
         ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
     const std::array<std::string, 5> labels = {"CPU", "GPU", "RAM", "Datenträger", "Netzwerk"};
@@ -643,65 +1178,69 @@ void SysRenderer::grouped_system(Canvas& d, const std::array<Region, 5>& areas, 
         "Download " + fmt_rate(sn.net_down, net_unit) + " · Upload " + fmt_rate(sn.net_up, net_unit)};
     const std::array<std::optional<double>, 5> values = {sn.cpu_pct, sn.gpu_pct, sn.ram_pct, sn.disk_pct, std::nullopt};
     const Font label = font(13, true), detail = font(11), value = font(18, true);
-    for (size_t i = 0; i < areas.size(); ++i) {
-        const auto& a = areas[i];
-        const float right = a.x + a.w - 12;
-        const float label_y = a.y + 14, detail_y = a.y + 33;
-        const std::string reading = i == 4 ? fmt_rate(sn.net_down, net_unit) : num(values[i], 0, "%");
-        const float reading_left = right - d.textlength(reading, value);
-        const float name_x = a.x + 112;
-        d.text(a.x + 12, label_y, labels[i], label, t.text, "lm");
-        d.text(name_x, label_y, fit(d, names[i], detail, std::max(0.f, reading_left - name_x - 12)), detail, t.muted, "lm");
-        d.text(right, label_y, reading, value, i == 0 ? temp_col(sn.cpu_temp) : i == 1 ? temp_col(sn.gpu_temp) : t.text, "rm");
-        d.text(a.x + 12, detail_y, fit(d, details[i], detail, a.w - 24), detail, t.muted, "lm");
-        if (values[i]) bar(d, a.x + 12, a.y + a.h - 7, a.w - 24, values[i], 3);
-        if (i + 1 < areas.size()) d.line({{a.x + 12, a.y + a.h}, {right, a.y + a.h}}, t.line, 1);
-    }
+    const float right = a.x + a.w - 12;
+    const float label_y = a.y + 14, detail_y = a.y + 33;
+    const std::string reading = i == 4 ? fmt_rate(sn.net_down, net_unit) : num(values[i], 0, "%");
+    const float reading_left = right - d.textlength(reading, value);
+    const float name_x = a.x + 112;
+    d.text(a.x + 12, label_y, labels[i], label, t.text, "lm");
+    d.text(name_x, label_y, fit(d, names[i], detail, std::max(0.f, reading_left - name_x - 12)), detail, t.muted, "lm");
+    d.text(right, label_y, reading, value, i == 0 ? temp_col(sn.cpu_temp) : i == 1 ? temp_col(sn.gpu_temp) : t.text, "rm");
+    d.text(a.x + 12, detail_y, fit(d, details[i], detail, a.w - 24), detail, t.muted, "lm");
+    if (values[i]) bar(d, a.x + 12, a.y + a.h - 7, a.w - 24, values[i], 3);
+    if (i + 1 < labels.size()) d.line({{a.x + 12, a.y + a.h}, {right, a.y + a.h}}, t.line, 1);
 }
 
-void SysRenderer::expressive_system(Canvas& d, const std::array<Region, 5>& areas, const SysSnapshot& sn) {
+void SysRenderer::expressive_card(Canvas& d, const Region& area, const SysSnapshot& sn, size_t index) {
     const Theme& t = g_theme;
-    const auto& cpu = areas[0]; const auto& gpu = areas[1];
     const Font tiny = font(11), value = font(14, true), hero = font(32, true);
-    card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name);
-    d.text(cpu.x + 14, cpu.y + 53, num(sn.cpu_pct, 0, "%"), hero, t.text, "lm");
-    bar(d, cpu.x + 14, cpu.y + cpu.h - 14, 98, sn.cpu_pct, 5);
-    const std::array<RowVal, 3> cpu_details = {{{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
-        {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text}, {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}}};
-    const float column = (cpu.w - 142) / 3;
-    for (size_t i = 0; i < cpu_details.size(); ++i) {
-        const float x = cpu.x + 132 + float(i) * column;
-        d.text(x, cpu.y + 42, cpu_details[i].label, tiny, t.muted, "lm");
-        d.text(x, cpu.y + 64, fit(d, cpu_details[i].value, value, column - 8), value, cpu_details[i].col, "lm");
+    if (index == 0) {
+        const auto& cpu = area;
+        card(d, cpu.x, cpu.y, cpu.w, cpu.h, "CPU", sn.cpu_name);
+        d.text(cpu.x + 14, cpu.y + 53, num(sn.cpu_pct, 0, "%"), hero, t.text, "lm");
+        bar(d, cpu.x + 14, cpu.y + cpu.h - 14, 98, sn.cpu_pct, 5);
+        const std::array<RowVal, 3> cpu_details = {{{"Temp", num(sn.cpu_temp, 0, "°C"), temp_col(sn.cpu_temp)},
+            {"Takt", num(sn.cpu_ghz, 2, "GHz"), t.text}, {"Lüfter", num(sn.cpu_fan, 0, "RPM"), t.text}}};
+        const float column = (cpu.w - 142) / 3;
+        for (size_t i = 0; i < cpu_details.size(); ++i) {
+            const float x = cpu.x + 132 + float(i) * column;
+            d.text(x, cpu.y + 42, cpu_details[i].label, tiny, t.muted, "lm");
+            d.text(x, cpu.y + 64, fit(d, cpu_details[i].value, value, column - 8), value, cpu_details[i].col, "lm");
+        }
+    } else if (index == 1) {
+        const auto& gpu = area;
+        d.rounded_rectangle(gpu.x, gpu.y, gpu.x + gpu.w, gpu.y + gpu.h, 20, t.card);
+        d.text(gpu.x + 12, gpu.y + 15, "GPU", f_card, t.accent, "lm");
+        d.text(gpu.x + 12, gpu.y + 35, fit(d, sn.gpu_name, tiny, gpu.w - 24), tiny, t.muted, "lm");
+        d.text(gpu.x + 12, gpu.y + 63, num(sn.gpu_pct, 0, "%"), font(24, true), t.text, "lm");
+        bar(d, gpu.x + 12, gpu.y + 83, gpu.w - 24, sn.gpu_pct, 5);
+        d.text(gpu.x + 12, gpu.y + 105, "Temp " + num(sn.gpu_temp, 0, "°C"), tiny, temp_col(sn.gpu_temp), "lm");
+        d.text(gpu.x + gpu.w - 12, gpu.y + 105, num(sn.gpu_fan, 0, "%") + " " + tr("Lüfter"), tiny, t.muted, "rm");
+        const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
+            ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
+        d.text(gpu.x + 12, gpu.y + 129, fit(d, "VRAM " + vram, tiny, gpu.w - 24), tiny, t.muted, "lm");
+    } else {
+        auto compact = [&](const Region& a, const std::string& title, const std::string& description, std::optional<double> pct) {
+            d.rounded_rectangle(a.x, a.y, a.x + a.w, a.y + a.h, 12, t.card);
+            d.text(a.x + 10, a.y + 12, title, font(12, true), t.accent, "lm");
+            d.text(a.x + a.w - 10, a.y + 12, num(pct, 0, "%"), value, t.text, "rm");
+            d.text(a.x + 10, a.y + 29, fit(d, description, tiny, a.w - 20), tiny, t.muted, "lm");
+            bar(d, a.x + 10, a.y + a.h - 7, a.w - 20, pct, 3);
+        };
+        if (index == 2) compact(area, "RAM", sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–", sn.ram_pct);
+        else if (index == 3) compact(area, "Datenträger", sn.disk_label + (sn.disk_temp ? " · " + num(sn.disk_temp, 0, "°C") : ""), sn.disk_pct);
+        else {
+            const auto& net = area;
+            d.rounded_rectangle(net.x, net.y, net.x + net.w, net.y + net.h, 12, t.card);
+            d.text(net.x + 10, net.y + 12, "Netzwerk", font(12, true), t.accent, "lm");
+            d.text(net.x + net.w - 10, net.y + 12, fit(d, sn.net_name, tiny, net.w - 100), tiny, t.muted, "rm");
+            // The compact network cell prioritizes both live rates over the old chart.
+            arrow(d, net.x + 15, net.y + 32, true, t.down);
+            d.text(net.x + 28, net.y + 32, fit(d, fmt_rate(sn.net_down, net_unit), tiny, net.w / 2 - 36), tiny, t.text, "lm");
+            arrow(d, net.x + net.w / 2 + 10, net.y + 32, false, t.bar);
+            d.text(net.x + net.w - 10, net.y + 32, fit(d, fmt_rate(sn.net_up, net_unit), tiny, net.w / 2 - 30), tiny, t.text, "rm");
+        }
     }
-    d.rounded_rectangle(gpu.x, gpu.y, gpu.x + gpu.w, gpu.y + gpu.h, 20, t.card);
-    d.text(gpu.x + 12, gpu.y + 15, "GPU", f_card, t.accent, "lm");
-    d.text(gpu.x + 12, gpu.y + 35, fit(d, sn.gpu_name, tiny, gpu.w - 24), tiny, t.muted, "lm");
-    d.text(gpu.x + 12, gpu.y + 63, num(sn.gpu_pct, 0, "%"), font(24, true), t.text, "lm");
-    bar(d, gpu.x + 12, gpu.y + 83, gpu.w - 24, sn.gpu_pct, 5);
-    d.text(gpu.x + 12, gpu.y + 105, "Temp " + num(sn.gpu_temp, 0, "°C"), tiny, temp_col(sn.gpu_temp), "lm");
-    d.text(gpu.x + gpu.w - 12, gpu.y + 105, num(sn.gpu_fan, 0, "%") + " " + tr("Lüfter"), tiny, t.muted, "rm");
-    const std::string vram = sn.gpu_mem_used && sn.gpu_mem_total && *sn.gpu_mem_total
-        ? num(*sn.gpu_mem_used / 1024, 1) + "/" + num(*sn.gpu_mem_total / 1024, 0) + " GB" : "–";
-    d.text(gpu.x + 12, gpu.y + 129, fit(d, "VRAM " + vram, tiny, gpu.w - 24), tiny, t.muted, "lm");
-    auto compact = [&](const Region& a, const std::string& title, const std::string& description, std::optional<double> pct) {
-        d.rounded_rectangle(a.x, a.y, a.x + a.w, a.y + a.h, 12, t.card);
-        d.text(a.x + 10, a.y + 12, title, font(12, true), t.accent, "lm");
-        d.text(a.x + a.w - 10, a.y + 12, num(pct, 0, "%"), value, t.text, "rm");
-        d.text(a.x + 10, a.y + 29, fit(d, description, tiny, a.w - 20), tiny, t.muted, "lm");
-        bar(d, a.x + 10, a.y + a.h - 7, a.w - 20, pct, 3);
-    };
-    compact(areas[2], "RAM", sn.ram_used ? num(sn.ram_used, 1) + " / " + num(sn.ram_total, 0) + " GB" : "–", sn.ram_pct);
-    compact(areas[3], "Datenträger", sn.disk_label + (sn.disk_temp ? " · " + num(sn.disk_temp, 0, "°C") : ""), sn.disk_pct);
-    const auto& net = areas[4];
-    d.rounded_rectangle(net.x, net.y, net.x + net.w, net.y + net.h, 12, t.card);
-    d.text(net.x + 10, net.y + 12, "Netzwerk", font(12, true), t.accent, "lm");
-    d.text(net.x + net.w - 10, net.y + 12, fit(d, sn.net_name, tiny, net.w - 100), tiny, t.muted, "rm");
-    // The compact network cell prioritizes both live rates over the old chart.
-    arrow(d, net.x + 15, net.y + 32, true, t.down);
-    d.text(net.x + 28, net.y + 32, fit(d, fmt_rate(sn.net_down, net_unit), tiny, net.w / 2 - 36), tiny, t.text, "lm");
-    arrow(d, net.x + net.w / 2 + 10, net.y + 32, false, t.bar);
-    d.text(net.x + net.w - 10, net.y + 32, fit(d, fmt_rate(sn.net_up, net_unit), tiny, net.w / 2 - 30), tiny, t.text, "rm");
 }
 
 void SysRenderer::card(Canvas& d, float x, float y, float cw, float ch, const std::string& ctitle, const std::string& sub) {
@@ -811,43 +1350,204 @@ std::vector<std::string> RssRenderer::wrap(Canvas& d, const std::string& text, c
     return out;
 }
 
+std::array<plugins::zones::PlacedBlock, RssRenderer::MAX_ROWS> RssRenderer::layout(float w, float h) {
+    float top = HEADER_H + 2, bot = h - FOOTER_H;
+    float rh = (float)floordiv(bot - top, MAX_ROWS);
+    std::array<plugins::zones::PlacedBlock, MAX_ROWS> rows;
+    for (size_t i = 0; i < rows.size(); ++i)
+        rows[i] = {"rss.zeile." + std::to_string(i), "rss", {0, top + i * rh, w, rh},
+                   plugins::zones::Density::regular};
+    return rows;
+}
+
 int RssRenderer::row_at(int w_px, int h_px, int y_px) {
-    // gleiche Aufteilung wie render(): logische Höhe, Zeilen zwischen Kopf- und Fußzeile
+    // Dieselbe feste Anordnung wie beim Zeichnen; Division und Randprüfung bleiben erhalten.
     float sc = scale_for(w_px, h_px);
     float lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
-    float top = HEADER_H + 2, bot = lh - FOOTER_H, ly = y_px / sc;
-    float rh = (float)floordiv(bot - top, MAX_ROWS);
+    float lw = sc == 1 ? (float)w_px : (float)pyround_i(w_px / sc);
+    const auto rows = layout(lw, lh);
+    float top = rows[0].area.y, bot = lh - FOOTER_H, ly = y_px / sc;
+    float rh = rows[0].area.height;
     if (ly < top || ly >= bot || rh <= 0) return -1;
     int row = (int)((ly - top) / rh);
     return row < MAX_ROWS ? row : -1;
 }
 
+class RssRenderer::RowBlock : public plugins::zones::Block {
+public:
+    RowBlock(RssRenderer& renderer, const Post& post, size_t index, size_t count, std::time_t now)
+        : renderer_(renderer), post_(post), index_(index), count_(count), now_(now),
+          id_("rss.zeile." + std::to_string(index)) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 106.f : 66.f};
+    }
+    void draw_arranged(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density density) const {
+        auto& r=renderer_; const auto& t=g_theme;
+        const float x=area.x, y=area.y, right=x+area.width;
+        const auto age=ago(post_.published,now_);
+        d.text(right-10,y+12,age,r.f_act,t.muted,"rm");
+        const float available=area.width-30-d.textlength(age,r.f_act);
+        d.text(x+10,y+12,r.fit(d,post_.source,r.f_src,available),r.f_src,t.accent,"lm");
+        if(density==plugins::zones::Density::compact)
+            d.text(x+10,y+31,r.fit(d,short_title(post_.title),r.f_post,area.width-20),r.f_post,t.text,"lm");
+        else {
+            const auto lines=r.wrap(d,short_title(post_.title),r.f_post,area.width-20);
+            for(size_t j=0;j<lines.size();++j) d.text(x+10,y+32+j*20.f,lines[j],r.f_post,t.text,"lm");
+        }
+        if(index_<count_-1) d.line({{x+10,y+area.height-1},{right-10,y+area.height-1}},t.line,1);
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        auto& r = renderer_;
+        const Theme& t = g_theme;
+        const Post& p = post_;
+        float w = area.width, y = area.y, rh = area.height;
+        std::string age = ago(p.published, now_);
+        d.text(w - 10, y + 12, age, r.f_act, t.muted, "rm");
+        float src_w = w - 30 - d.textlength(age, r.f_act);
+        d.text(10, y + 12, r.fit(d, p.source, r.f_src, src_w), r.f_src, t.accent, "lm");
+        auto ls = r.wrap(d, short_title(p.title), r.f_post, w - 20);
+        for (size_t j = 0; j < ls.size(); ++j) d.text(10, y + 32 + j * 20.f, ls[j], r.f_post, t.text, "lm");
+        if (index_ < count_ - 1) d.line({{10, y + rh - 1}, {w - 10, y + rh - 1}}, t.line, 1);
+    }
+private:
+    RssRenderer& renderer_;
+    const Post& post_;
+    size_t index_, count_;
+    std::time_t now_;
+    std::string id_;
+};
+
+class RssRenderer::HintBlock : public plugins::zones::Block {
+public:
+    HintBlock(RssRenderer& renderer, const char* text) : renderer_(renderer), text_(text) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        d.text(area.width / 2, area.height / 2, text_, renderer_.f_big, g_theme.muted, "mm");
+    }
+private:
+    RssRenderer& renderer_;
+    const char* text_;
+    std::string id_ = "rss.hinweis";
+};
+
 Image RssRenderer::render(const std::vector<Post>& posts, std::optional<std::time_t> updated, std::time_t now) {
     const Theme& t = g_theme;
-    Canvas d(W, H, s, t.bg);
-    header(d, now, "");
-    float top = HEADER_H + 2, bot = h - FOOTER_H;
-    if (!updated) {
-        d.text(w / 2, h / 2, "Lade Feeds …", f_big, t.muted, "mm");
-    } else if (posts.empty()) {
-        d.text(w / 2, h / 2, "Keine Beiträge gefunden", f_big, t.muted, "mm");
+    std::vector<RowBlock> rows;
+    std::vector<Platzierung> blocks;
+    HintBlock hint(*this, !updated ? "Lade Feeds …" : "Keine Beiträge gefunden");
+    if (!updated || posts.empty()) {
+        // Vollfläche erhält die bisherige Mitte w/2, h/2 ohne neue Rechenausdrücke.
+        blocks.push_back({&hint, {hint.id(), "rss", {0, 0, w, h}, plugins::zones::Density::regular}});
     } else {
         size_t n = std::min(posts.size(), (size_t)MAX_ROWS);
-        float rh = (float)floordiv(bot - top, MAX_ROWS);
+        const auto areas = layout(w, h);
+        rows.reserve(n);
         for (size_t i = 0; i < n; ++i) {
-            const Post& p = posts[i];
-            float y = top + i * rh;
-            std::string age = ago(p.published);
-            d.text(w - 10, y + 12, age, f_act, t.muted, "rm");
-            float src_w = w - 30 - d.textlength(age, f_act);
-            d.text(10, y + 12, fit(d, p.source, f_src, src_w), f_src, t.accent, "lm");
-            auto ls = wrap(d, short_title(p.title), f_post, w - 20);
-            for (size_t j = 0; j < ls.size(); ++j) d.text(10, y + 32 + j * 20.f, ls[j], f_post, t.text, "lm");
-            if (i < n - 1) d.line({{10, y + rh - 1}, {w - 10, y + rh - 1}}, t.line, 1);
+            rows.emplace_back(*this, posts[i], i, n, now);
+            blocks.push_back({&rows.back(), areas[i]});
         }
     }
-    footer(d, updated ? "Stand " + clock_hhmm(*updated) : "");
-    return d.finish();
+    const std::string foot = updated ? "Stand " + clock_hhmm(*updated) : "";
+    return draw_framed({W, H, s, t.bg, [this, now](Canvas& d) { header(d, now, ""); },
+                        [this, &foot](Canvas& d) { footer(d, foot); }}, blocks);
+}
+
+// Rasterweg ausschließlich nach einer echten Änderung; Standard bleibt oben unverändert.
+plugins::zones::Plan RssRenderer::arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    const auto layout=plugins::edit::geometry(model);
+    if(!layout) return {};
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("rss"),model),6),overlay);
+}
+bool RssRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("rss"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+int RssRenderer::arranged_rows(const builtin::Overlay& overlay) const {
+    if(!uses_arrangement(overlay)) return MAX_ROWS;
+    for(const auto& b:arrangement(overlay).blocks) if(b.id=="rss.liste" && b.visible())
+        return std::clamp(int(b.area.height/(*b.density==plugins::zones::Density::compact?44.f:66.f)),1,MAX_ROWS);
+    return 0;
+}
+int RssRenderer::pages(size_t items,const builtin::Overlay& overlay) const {
+    const int per=arranged_rows(overlay);
+    return per?std::max(1,int((items+per-1)/per)):1;
+}
+class RssRenderer::ListBlock : public plugins::zones::Block {
+public:
+    ListBlock(RssRenderer& r,const std::vector<Post>& posts,int page,int per,std::time_t now)
+        :r_(r),posts_(posts),page_(page),per_(per),now_(now) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("rss")->blocks.front().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density density) const override {
+        const size_t start=size_t(page_)*per_,count=start<posts_.size()?std::min(size_t(per_),posts_.size()-start):0;
+        for(size_t i=0;i<count;++i) {
+            const float top=area.y+std::floor(area.height*i/per_);
+            const float bottom=area.y+std::floor(area.height*(i+1)/per_);
+            RowBlock row(r_,posts_[start+i],i,count,now_);
+            row.draw_arranged(d,{area.x,top,area.width,bottom-top},density);
+        }
+    }
+private:
+    RssRenderer& r_;const std::vector<Post>& posts_;int page_,per_;std::time_t now_;
+    std::string id_="rss.liste";
+};
+class RssRenderer::ArrangedHintBlock : public plugins::zones::Block {
+public:
+    ArrangedHintBlock(RssRenderer& r,const char* text):r_(r),text_(text) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("rss")->blocks.back().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density) const override {
+        d.text(area.x+area.width/2,area.y+area.height/2,r_.fit(d,text_,r_.f_act,area.width-8),r_.f_act,g_theme.muted,"mm");
+    }
+private:
+    RssRenderer& r_;const char* text_;std::string id_="rss.hinweis";
+};
+BuiltinDrawOut RssRenderer::render_arranged(const std::vector<Post>& posts,std::optional<std::time_t> updated,
+                                           const builtin::Overlay& overlay,int page,std::time_t now) {
+    const auto& c=*builtin::find("rss");
+    if(!builtin::validate(c,overlay).empty() || !uses_arrangement(overlay)) return {render(posts,updated,now),{}};
+    const auto plan=arrangement(overlay);
+    const int per=arranged_rows(overlay),count=pages(posts.size(),overlay);
+    page=std::clamp(page,0,count-1);
+    ListBlock list(*this,posts,page,per,now);
+    ArrangedHintBlock hint(*this,!updated?"Lade Feeds …":"Keine Beiträge gefunden");
+    const bool ready=updated && !posts.empty();
+    std::vector<Platzierung> blocks;
+    for(const auto& b:plan.blocks) if((ready && b.id==list.id()) || (!ready && b.id==hint.id())) blocks.push_back({ready?static_cast<const plugins::zones::Block*>(&list):&hint,b});
+    const auto foot=(count>1 && ready?"Seite "+std::to_string(page+1)+"/"+std::to_string(count)+" · ":"")+(updated?"Stand "+clock_hhmm(*updated):"");
+    std::vector<std::string> failed;
+    BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,now](Canvas& d){header(d,now,"");},
+                            [this,&foot](Canvas& d){footer(d,foot);}},blocks,&failed);
+    if(ready && per && failed.empty()) for(const auto& b:plan.blocks) if(b.id==list.id() && b.visible()) {
+        const size_t start=size_t(page)*per,n=start<posts.size()?std::min(size_t(per),posts.size()-start):0;
+        for(size_t i=0;i<n;++i) {
+            const int left=pyround_i(b.area.x*s),right=pyround_i((b.area.x+b.area.width)*s);
+            const int top=pyround_i((b.area.y+std::floor(b.area.height*i/per))*s);
+            const int bottom=pyround_i((b.area.y+std::floor(b.area.height*(i+1)/per))*s);
+            out.targets.push_back({{left,top,right-left,bottom-top},start+i});
+        }
+    }
+    return out;
 }
 
 // ---------- Streaming-Neustarts ----------
@@ -856,71 +1556,275 @@ StreamRenderer::StreamRenderer(int w_, int h_, std::string t) : Renderer(w_, h_,
     f_kind = font(13, true);
 }
 
+std::array<plugins::zones::PlacedBlock, StreamRenderer::MAX_ROWS> StreamRenderer::layout(float w, float h) {
+    float top = HEADER_H + 2, bot = h - FOOTER_H;
+    float rh = (float)floordiv(bot - top, MAX_ROWS);
+    std::array<plugins::zones::PlacedBlock, MAX_ROWS> rows;
+    for (size_t i = 0; i < rows.size(); ++i)
+        rows[i] = {"streaming.zeile." + std::to_string(i), "streaming", {0, top + i * rh, w, rh},
+                   plugins::zones::Density::regular};
+    return rows;
+}
+
 int StreamRenderer::row_at(int w_px, int h_px, int y_px) {
     float sc = scale_for(w_px, h_px);
     float lh = sc == 1 ? (float)h_px : (float)pyround_i(h_px / sc);
-    float top = HEADER_H + 2, bot = lh - FOOTER_H, y = y_px / sc;
-    float rh = (float)floordiv(bot - top, MAX_ROWS);
+    float lw = sc == 1 ? (float)w_px : (float)pyround_i(w_px / sc);
+    const auto rows = layout(lw, lh);
+    float top = rows[0].area.y, bot = lh - FOOTER_H, y = y_px / sc;
+    float rh = rows[0].area.height;
     if (y < top || y >= bot || rh <= 0) return -1;
     int row = (int)((y - top) / rh);
     return row < MAX_ROWS ? row : -1;
 }
 
+class StreamRenderer::RowBlock : public plugins::zones::Block {
+public:
+    RowBlock(StreamRenderer& renderer, const StreamItem& item, size_t index, size_t count,
+             const StreamLogos* logos, const std::string& lang)
+        : renderer_(renderer), item_(item), index_(index), count_(count), logos_(logos), lang_(lang),
+          id_("streaming.zeile." + std::to_string(index)) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 71.f : 44.f};
+    }
+    void draw_arranged(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density density) const {
+        auto& r = renderer_;
+        const Theme& t = g_theme;
+        const StreamItem& it = item_;
+        const StreamLogos* logos = logos_;
+        const std::string& lang = lang_;
+        const Font& f_act = r.f_act;
+        const Font& f_item = r.f_item;
+        const Font& f_kind = r.f_kind;
+        const float x = area.x, w = area.width, y = area.y, rh = area.height, s = r.s;
+        const std::string date = tmdb::format_date(it.date, lang);
+        const bool compact=density==plugins::zones::Density::compact;
+        if(!compact) d.text(x + w - 10, y + 14, date, f_act, t.muted, "rm");
+        const float title_w = compact?w-20:w-30-d.textlength(date,f_act);
+        d.text(x + 10, y + 14, r.fit(d, it.title, f_item, title_w), f_item, t.text, "lm");
+        const std::string kind = tr(it.series ? "Serie" : "Film");
+        d.text(x + 10, y + 32, kind, f_kind, t.accent, "lm");
+        const float kx = x + 10 + d.textlength(kind, f_kind) + 10;
+        // Anbieter: Logos (höchstens MAX_LOGOS, Rest „+n“); fehlt ein Logo, steht an seiner Stelle das Kürzel
+        const int shown = tmdb::logos_shown(it.providers.size());
+        float lx = kx;
+        for (int k = 0; k < shown; ++k) {
+            const StreamLogos::const_iterator none = logos ? logos->end() : StreamLogos::const_iterator();
+            StreamLogos::const_iterator li = none;
+            if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
+            if (logos && li != none && li->second && !li->second->empty()) {
+                const int px = pyround_i(LOGO_SIZE * s);
+                d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
+                lx += LOGO_SIZE + 4;
+            } else {
+                const std::string& ab = it.providers[k];
+                d.text(lx, y + 32, ab, f_act, t.muted, "lm");
+                lx += d.textlength(ab, f_act) + 8;
+            }
+        }
+        const std::string more = tmdb::logos_overflow(it.providers.size());
+        if (!more.empty()) d.text(lx, y + 32, more, f_act, t.muted, "lm");
+        if (index_ < count_ - 1) d.line({{x + 10, y + rh - 1}, {x + w - 10, y + rh - 1}}, t.line, 1);
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        auto& r = renderer_;
+        const Theme& t = g_theme;
+        const StreamItem& it = item_;
+        const StreamLogos* logos = logos_;
+        const std::string& lang = lang_;
+        const Font& f_act = r.f_act;
+        const Font& f_item = r.f_item;
+        const Font& f_kind = r.f_kind;
+        const float w = area.width, y = area.y, rh = area.height, s = r.s;
+        const std::string date = tmdb::format_date(it.date, lang);
+        d.text(w - 10, y + 14, date, f_act, t.muted, "rm");
+        const float title_w = w - 30 - d.textlength(date, f_act);
+        d.text(10, y + 14, r.fit(d, it.title, f_item, title_w), f_item, t.text, "lm");
+        const std::string kind = tr(it.series ? "Serie" : "Film");
+        d.text(10, y + 32, kind, f_kind, t.accent, "lm");
+        const float kx = 10 + d.textlength(kind, f_kind) + 10;
+        // Anbieter: Logos (höchstens MAX_LOGOS, Rest „+n“); fehlt ein Logo, steht an seiner Stelle das Kürzel
+        const int shown = tmdb::logos_shown(it.providers.size());
+        float lx = kx;
+        for (int k = 0; k < shown; ++k) {
+            const StreamLogos::const_iterator none = logos ? logos->end() : StreamLogos::const_iterator();
+            StreamLogos::const_iterator li = none;
+            if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
+            if (logos && li != none && li->second && !li->second->empty()) {
+                const int px = pyround_i(LOGO_SIZE * s);
+                d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
+                lx += LOGO_SIZE + 4;
+            } else {
+                const std::string& ab = it.providers[k];
+                d.text(lx, y + 32, ab, f_act, t.muted, "lm");
+                lx += d.textlength(ab, f_act) + 8;
+            }
+        }
+        const std::string more = tmdb::logos_overflow(it.providers.size());
+        if (!more.empty()) d.text(lx, y + 32, more, f_act, t.muted, "lm");
+        if (index_ < count_ - 1) d.line({{10, y + rh - 1}, {w - 10, y + rh - 1}}, t.line, 1);
+    }
+private:
+    StreamRenderer& renderer_;
+    const StreamItem& item_;
+    size_t index_, count_;
+    const StreamLogos* logos_;
+    std::string lang_, id_;
+};
+
+class StreamRenderer::HintBlock : public plugins::zones::Block {
+public:
+    HintBlock(StreamRenderer& renderer, StreamState state) : renderer_(renderer), state_(state) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
+        }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density) const override {
+        const Theme& t = g_theme;
+        const float w = area.width, h = area.height;
+        const Font& f_big = renderer_.f_big;
+        const Font& f_act = renderer_.f_act;
+        if (state_ == StreamState::NoKey) {
+            d.text(w / 2, h / 2 - 12, "Kein Key", f_big, t.muted, "mm");
+            d.text(w / 2, h / 2 + 14, "TMDB-Key in den Einstellungen eintragen", f_act, t.muted, "mm");
+        } else if (state_ == StreamState::Loading) {
+            d.text(w / 2, h / 2, "Lade Daten …", f_big, t.muted, "mm");
+        } else if (state_ == StreamState::Error) {
+            d.text(w / 2, h / 2, "Keine Daten", f_big, t.muted, "mm");
+        } else {
+            d.text(w / 2, h / 2, "Keine Neustarts gefunden", f_big, t.muted, "mm");
+        }
+    }
+private:
+    StreamRenderer& renderer_;
+    StreamState state_;
+    std::string id_ = "streaming.hinweis";
+};
+
+std::string StreamRenderer::footer_text(StreamState state, std::optional<std::time_t> updated) {
+    // Pflichtangabe der Datenquellen bleibt unabhängig von den Inhaltsblöcken erhalten.
+    return updated && state == StreamState::Ok ? "TMDB / JustWatch · Stand " + clock_hhmm(*updated) : "TMDB / JustWatch";
+}
+
 Image StreamRenderer::render(StreamState state, const std::vector<StreamItem>& items, std::optional<std::time_t> updated,
                              std::time_t now, const StreamLogos* logos) {
     const Theme& t = g_theme;
-    Canvas d(W, H, s, t.bg);
-    header(d, now, "");
-    const float top = HEADER_H + 2, bot = h - FOOTER_H;
-    if (state == StreamState::NoKey) {
-        d.text(w / 2, h / 2 - 12, "Kein Key", f_big, t.muted, "mm");
-        d.text(w / 2, h / 2 + 14, "TMDB-Key in den Einstellungen eintragen", f_act, t.muted, "mm");
-    } else if (state == StreamState::Loading) {
-        d.text(w / 2, h / 2, "Lade Daten …", f_big, t.muted, "mm");
-    } else if (state == StreamState::Error) {
-        d.text(w / 2, h / 2, "Keine Daten", f_big, t.muted, "mm");
-    } else if (items.empty()) {
-        d.text(w / 2, h / 2, "Keine Neustarts gefunden", f_big, t.muted, "mm");
+    std::vector<RowBlock> rows;
+    std::vector<Platzierung> blocks;
+    HintBlock hint(*this, state);
+    if (state == StreamState::NoKey || state == StreamState::Loading || state == StreamState::Error || items.empty()) {
+        // Vollfläche erhält wie bei RSS die bisherige Mitte und alle Textversätze.
+        blocks.push_back({&hint, {hint.id(), "streaming", {0, 0, w, h}, plugins::zones::Density::regular}});
     } else {
         const size_t n = std::min(items.size(), (size_t)MAX_ROWS);
-        const float rh = (float)floordiv(bot - top, MAX_ROWS);
+        const auto areas = layout(w, h);
         const std::string lang = i18n::lang();
+        rows.reserve(n);
         for (size_t i = 0; i < n; ++i) {
-            const StreamItem& it = items[i];
-            const float y = top + i * rh;
-            const std::string date = tmdb::format_date(it.date, lang);
-            d.text(w - 10, y + 14, date, f_act, t.muted, "rm");
-            const float title_w = w - 30 - d.textlength(date, f_act);
-            d.text(10, y + 14, fit(d, it.title, f_item, title_w), f_item, t.text, "lm");
-            const std::string kind = tr(it.series ? "Serie" : "Film");
-            d.text(10, y + 32, kind, f_kind, t.accent, "lm");
-            const float kx = 10 + d.textlength(kind, f_kind) + 10;
-            // Anbieter: Logos (höchstens MAX_LOGOS, Rest „+n“); fehlt ein Logo, steht an seiner Stelle das Kürzel
-            const int shown = tmdb::logos_shown(it.providers.size());
-            float lx = kx;
-            for (int k = 0; k < shown; ++k) {
-                const StreamLogos::const_iterator none = logos ? logos->end() : StreamLogos::const_iterator();
-                StreamLogos::const_iterator li = none;
-                if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
-                if (logos && li != none && li->second && !li->second->empty()) {
-                    const int px = pyround_i(LOGO_SIZE * s);
-                    d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
-                    lx += LOGO_SIZE + 4;
-                } else {
-                    const std::string& ab = it.providers[k];
-                    d.text(lx, y + 32, ab, f_act, t.muted, "lm");
-                    lx += d.textlength(ab, f_act) + 8;
-                }
-            }
-            const std::string more = tmdb::logos_overflow(it.providers.size());
-            if (!more.empty()) d.text(lx, y + 32, more, f_act, t.muted, "lm");
-            if (i < n - 1) d.line({{10, y + rh - 1}, {w - 10, y + rh - 1}}, t.line, 1);
+            rows.emplace_back(*this, items[i], i, n, logos, lang);
+            blocks.push_back({&rows.back(), areas[i]});
         }
     }
-    // Pflichtangabe der Datenquellen (TMDB, Anbieterdaten JustWatch) steht immer in der Fußzeile
-    footer(d, updated && state == StreamState::Ok ? "TMDB / JustWatch · Stand " + clock_hhmm(*updated) : "TMDB / JustWatch");
-    return d.finish();
+    const std::string foot = footer_text(state, updated);
+    return draw_framed({W, H, s, t.bg, [this, now](Canvas& d) { header(d, now, ""); },
+                        [this, &foot](Canvas& d) { footer(d, foot); }}, blocks);
 }
+
+// Rasterweg ausschließlich nach einer echten Änderung; Standard bleibt oben unverändert.
+plugins::zones::Plan StreamRenderer::arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    const auto layout=plugins::edit::geometry(model);
+    if(!layout) return {};
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("streaming"),model),6),overlay);
+}
+bool StreamRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("streaming"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+int StreamRenderer::arranged_rows(const builtin::Overlay& overlay) const {
+    if(!uses_arrangement(overlay)) return MAX_ROWS;
+    for(const auto& b:arrangement(overlay).blocks) if(b.id=="streaming.liste" && b.visible())
+        return std::clamp(int(b.area.height/(*b.density==plugins::zones::Density::compact?44.f:66.f)),1,MAX_ROWS);
+    return 0;
+}
+int StreamRenderer::pages(size_t items,const builtin::Overlay& overlay) const {
+    const int per=arranged_rows(overlay);
+    return per?std::max(1,int((items+per-1)/per)):1;
+}
+class StreamRenderer::ListBlock : public plugins::zones::Block {
+public:
+    ListBlock(StreamRenderer& r,const std::vector<StreamItem>& items,int page,int per,const StreamLogos* logos)
+        :r_(r),items_(items),page_(page),per_(per),logos_(logos) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("streaming")->blocks.front().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density density) const override {
+        const size_t start=size_t(page_)*per_,count=start<items_.size()?std::min(size_t(per_),items_.size()-start):0;
+        for(size_t i=0;i<count;++i) {
+            const float top=area.y+std::floor(area.height*i/per_);
+            const float bottom=area.y+std::floor(area.height*(i+1)/per_);
+            RowBlock row(r_,items_[start+i],i,count,logos_,i18n::lang());
+            row.draw_arranged(d,{area.x,top,area.width,bottom-top},density);
+        }
+    }
+private:
+    StreamRenderer& r_;const std::vector<StreamItem>& items_;int page_,per_;const StreamLogos* logos_;
+    std::string id_="streaming.liste";
+};
+class StreamRenderer::ArrangedHintBlock : public plugins::zones::Block {
+public:
+    ArrangedHintBlock(StreamRenderer& r,const char* text):r_(r),text_(text) {}
+    const std::string& id() const override{return id_;}
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        return builtin::find("streaming")->blocks.back().thresholds.min[size_t(density)];
+    }
+    void draw(Canvas& d,const plugins::zones::Rect& area,plugins::zones::Density) const override {
+        d.text(area.x+area.width/2,area.y+area.height/2,r_.fit(d,text_,r_.f_act,area.width-8),r_.f_act,g_theme.muted,"mm");
+    }
+private:
+    StreamRenderer& r_;const char* text_;std::string id_="streaming.hinweis";
+};
+BuiltinDrawOut StreamRenderer::render_arranged(StreamState state,const std::vector<StreamItem>& items,std::optional<std::time_t> updated,
+                                           const builtin::Overlay& overlay,int page,std::time_t now,const StreamLogos* logos) {
+    const auto& c=*builtin::find("streaming");
+    if(!builtin::validate(c,overlay).empty() || !uses_arrangement(overlay)) return {render(state,items,updated,now,logos),{}};
+    const auto plan=arrangement(overlay);
+    const int per=arranged_rows(overlay),count=pages(items.size(),overlay);
+    page=std::clamp(page,0,count-1);
+    ListBlock list(*this,items,page,per,logos);
+    ArrangedHintBlock hint(*this,state==StreamState::NoKey?"Kein Key":state==StreamState::Loading?"Lade Daten …":state==StreamState::Error?"Keine Daten":"Keine Neustarts gefunden");
+    const bool ready=state==StreamState::Ok && !items.empty();
+    std::vector<Platzierung> blocks;
+    for(const auto& b:plan.blocks) if((ready && b.id==list.id()) || (!ready && b.id==hint.id())) blocks.push_back({ready?static_cast<const plugins::zones::Block*>(&list):&hint,b});
+    const auto foot=(count>1 && ready?"Seite "+std::to_string(page+1)+"/"+std::to_string(count)+" · ":"")+footer_text(state,updated);
+    std::vector<std::string> failed;
+    BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,now](Canvas& d){header(d,now,"");},
+                            [this,&foot](Canvas& d){footer(d,foot);}},blocks,&failed);
+    if(ready && per && failed.empty()) for(const auto& b:plan.blocks) if(b.id==list.id() && b.visible()) {
+        const size_t start=size_t(page)*per,n=start<items.size()?std::min(size_t(per),items.size()-start):0;
+        for(size_t i=0;i<n;++i) {
+            const int left=pyround_i(b.area.x*s),right=pyround_i((b.area.x+b.area.width)*s);
+            const int top=pyround_i((b.area.y+std::floor(b.area.height*i/per))*s);
+            const int bottom=pyround_i((b.area.y+std::floor(b.area.height*(i+1)/per))*s);
+            out.targets.push_back({{left,top,right-left,bottom-top},start+i});
+        }
+    }
+    return out;
+}
+
 
 // ---------- Home Assistant ----------
 static bool toggle_domain_name(const std::string& id) { return ha::toggle_domain(id); }
@@ -997,6 +1901,15 @@ void HaRenderer::cell(Canvas& d, const Cell& c, const HaEntity& e, bool compact)
         d.text(c.x0 + 10 + d.textlength(v, vf) + 5, cy + (compact ? 4 : 6), fit(d, e.unit, f_unit, std::max(10.f, cw - 30 - d.textlength(v, vf))), f_unit, t.muted, "lm");
 }
 
+Image HaRenderer::render_entity(const HaEntity& entity,const plugins::zones::Rect& area,int density_cap) {
+    Canvas canvas(W,H,s,g_theme.bg);
+    if(area.width>=100 && area.height>=64 && area.x>=0 && area.y>=0 &&
+       area.x+area.width<=w && area.y+area.height<=h)
+        cell(canvas,{area.x,area.y,area.x+area.width,area.y+area.height},entity,
+             density_cap==0 || area.width<220 || area.height<120);
+    return canvas.finish();
+}
+
 Image HaRenderer::render(const std::vector<HaEntity>& entities, bool has_data, const std::string& error,
                          std::optional<std::time_t> updated, std::time_t now) {
     const Theme& t = g_theme;
@@ -1069,189 +1982,290 @@ int SpotifyRenderer::button_at(int w_px, int h_px, int x_px, int y_px) {
     return -1;
 }
 
-Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const std::vector<float>* levels, int color, bool simulated) {
+// Fußtext ausschließlich aus dem Snapshot; dieselbe Priorität wie im bisherigen Zeichenweg.
+static std::string spotify_footer(const spotify::Snapshot& snap) {
     using spotify::State;
-    const Theme& t = g_theme;
-    Canvas d(W, H, s, t.bg);
-    header(d, 0, "");
-    std::string footer_left = "Spotify";
     switch (snap.state) {
     case State::NotSetUp:
-        message(d, "Spotify ist nicht fertig eingerichtet");
-        break;
     case State::LoggedOut:
-        message(d, "Bei Spotify anmelden: Einstellungen › Spotify");
-        break;
     case State::Connecting:
-        message(d, snap.error.empty() ? "Verbinde mit Spotify …" : snap.error);
-        break;
     case State::Error:
-        message(d, snap.error.empty() ? "Spotify nicht erreichbar" : snap.error);
-        break;
+        return "Spotify";
     case State::Idle:
-        message(d, "Es läuft gerade nichts – Wiedergabe in Spotify starten");
-        break;
-    default: {
-        Layout l = layout(w, h);
-        // Cover (oder dezenter Platzhalter)
-        d.rounded_rectangle(l.cover_x, l.cover_y, l.cover_x + l.cover_size, l.cover_y + l.cover_size, 8, t.card);
-        if (snap.cover && !snap.cover->empty()) {
-            int px = std::max(1, pyround_i(l.cover_size * s));
-            d.image(resize(*snap.cover, px, px), l.cover_x, l.cover_y);
-        } else {
-            d.text(l.cover_x + l.cover_size / 2, l.cover_y + l.cover_size / 2, "♪", font(40, true), t.muted, "mm");
+        if (!snap.last_played) return snap.error.empty() ? "Spotify" : snap.error;
+        [[fallthrough]];
+    default:
+        if (snap.last_played) return tr("Zuletzt gespielt");
+        return snap.error.empty() ? "Spotify" : snap.error;
+    }
+}
+
+// Rechtecke für Zeichnen und Fingerziele: drei getrennte Flächen von je 48 Punkten.
+static std::array<plugins::zones::Rect,3> spotify_controls(const plugins::zones::Rect& area) {
+    std::array<plugins::zones::Rect,3> out;
+    for(size_t i=0;i<out.size();++i) out[i]={area.x+(float(i)+.5f)*area.width/3-24,area.y+area.height/2-24,48,48};
+    return out;
+}
+
+class SpotifyRenderer::ContentBlock : public plugins::zones::Block {
+public:
+    enum Kind { Cover, Text, Levels, Progress, Buttons, Hint };
+    ContentBlock(SpotifyRenderer& renderer, Kind kind, const spotify::Snapshot& snap, double now,
+                 const std::vector<float>* levels, int color, bool simulated, bool arranged = false)
+        : renderer_(renderer), kind_(kind), snap_(snap), now_(now), levels_(levels), color_(color), simulated_(simulated),
+          id_(std::string("spotify.") + names_[kind]), arranged_(arranged) {}
+    const std::string& id() const override { return id_; }
+    plugins::zones::Size min_size(plugins::zones::Density density) const override {
+        if(arranged_) return builtin::find("spotify")->blocks[size_t(kind_)].thresholds.min[size_t(density)];
+        if (density != plugins::zones::Density::regular) {
+            float inf = std::numeric_limits<float>::infinity();
+            return {inf, inf};
         }
+        bool portrait = renderer_.h > renderer_.w;
+        return {portrait ? 320.f : 480.f, portrait ? 480.f : 320.f};
+    }
+    void draw(Canvas& d, const plugins::zones::Rect& area, plugins::zones::Density density) const override {
+        using spotify::State;
+        auto& r = renderer_;
+        const auto& snap = snap_;
+        const auto* levels = levels_;
+        const double now = now_;
+        const int color = color_;
+        const bool simulated = simulated_;
+        const Theme& t = g_theme;
+        const float w = area.width, h = area.height, s = r.s;
+        // Vollfläche hält alle bisherigen absoluten Ausdrücke und Überlappungen bitgleich.
+        // Zeichnen und Treffer beziehen ihre Geometrie weiterhin aus layout().
+        Layout l = layout(w, h);
         bool wide = w >= h;
         float ty = l.title_y;
-        d.text(l.text_x, ty, fit(d, snap.title, f_track, l.text_w), f_track, t.text, "lm");
-        d.text(l.text_x, ty + 28, fit(d, snap.artist, f_artist, l.text_w), f_artist, t.accent, "lm");
-        if (!snap.album.empty() && (wide || ty + 52 < l.bar_y - 10))
-            d.text(l.text_x, ty + 50, fit(d, snap.album, f_time, l.text_w), f_time, t.muted, "lm");
-        // Amplifier: Balken im freien Bereich zwischen Albumzeile und Fortschritt (nur Querformat, nur bei Wiedergabe)
-        if (levels && !levels->empty() && wide && snap.playing) {
-            const float ax = l.text_x, aw = l.text_w, ay0 = ty + 66, ay1 = l.bar_y - 14;
-            const float ah = ay1 - ay0;
-            if (ah >= 28) {
-                const int n = (int)levels->size();
-                const float gap = 3.f, bw = (aw - gap * (n - 1)) / n;
-                for (int i = 0; i < n; ++i) {
-                    float v = std::clamp((*levels)[(size_t)i], 0.f, 1.f);
-                    float bh = std::max(2.f, v * ah);
-                    float x0 = ax + i * (bw + gap);
-                    Color c = v > 0.85f ? t.accent : t.bar;
-                    if (color == 1) {
-                        uint8_t rgb[3];
-                        audio::level_rgb(v, rgb);
-                        c = Color{rgb[0], rgb[1], rgb[2]};
-                    } else if (color == 2) {   // Verlauf im Design: Balken → Akzent → Heiß
-                        auto mix = [](Color a, Color b, float k) {
-                            return Color{uint8_t(a.r + (b.r - a.r) * k), uint8_t(a.g + (b.g - a.g) * k), uint8_t(a.b + (b.b - a.b) * k)};
-                        };
-                        c = v < 0.6f ? mix(t.bar, t.accent, v / 0.6f) : mix(t.accent, t.hot, (v - 0.6f) / 0.4f);
+        if(arranged_) {
+            l.text_x=area.x+6;l.text_w=area.width-12;l.title_y=area.y+18;ty=l.title_y;wide=true;
+            l.cover_size=std::min(area.width,area.height);
+            l.cover_x=area.x+(area.width-l.cover_size)/2;l.cover_y=area.y+(area.height-l.cover_size)/2;
+            l.bar_y=area.y+7;l.times_y=area.y+24;
+            const auto controls=spotify_controls(area);
+            for(size_t i=0;i<controls.size();++i) {l.btn_x[i]=controls[i].x+24;l.btn_r[i]=i==PLAY_PAUSE?24.f:18.f;}
+            l.btn_y=area.y+area.height/2;
+            if(kind_==Text && density==plugins::zones::Density::compact) {
+                d.text(l.text_x,area.y+area.height/2,r.fit(d,snap.title+" · "+snap.artist,r.f_artist,l.text_w),r.f_artist,snap.last_played?t.muted:t.text,"lm");
+                return;
+            }
+            if(kind_==Levels) {ty=area.y-66;l.bar_y=area.y+area.height+14;}
+            if(kind_==Hint) {
+                std::string text;
+                switch(snap.state) {
+                case State::NotSetUp:text="Spotify ist nicht fertig eingerichtet";break;
+                case State::LoggedOut:text="Bei Spotify anmelden: Einstellungen › Spotify";break;
+                case State::Connecting:text=snap.error.empty()?"Verbinde mit Spotify …":snap.error;break;
+                case State::Error:text=snap.error.empty()?"Spotify nicht erreichbar":snap.error;break;
+                default:text="Es läuft gerade nichts – Wiedergabe in Spotify starten";break;
+                }
+                d.text(area.x+6,area.y+area.height/2,r.fit(d,text,r.f_time,area.width-12),r.f_time,t.muted,"lm");return;
+            }
+        }
+        switch (kind_) {
+        case Cover: {
+            // Cover (oder dezenter Platzhalter)
+            d.rounded_rectangle(l.cover_x, l.cover_y, l.cover_x + l.cover_size, l.cover_y + l.cover_size, 8, t.card);
+            if (snap.cover && !snap.cover->empty()) {
+                int px = std::max(1, pyround_i(l.cover_size * s));
+                d.image(resize(*snap.cover, px, px), l.cover_x, l.cover_y);
+            } else {
+                d.text(l.cover_x + l.cover_size / 2, l.cover_y + l.cover_size / 2, "♪", r.font(40, true), t.muted, "mm");
+            }
+            break;
+        }
+        case Text: {
+            d.text(l.text_x, ty, r.fit(d, snap.title, r.f_track, l.text_w), r.f_track, snap.last_played ? t.muted : t.text, "lm");
+            d.text(l.text_x, ty + 28, r.fit(d, snap.artist, r.f_artist, l.text_w), r.f_artist, t.accent, "lm");
+            if (!snap.album.empty() && (wide || ty + 52 < l.bar_y - 10))
+                d.text(l.text_x, ty + 50, r.fit(d, snap.album, r.f_time, l.text_w), r.f_time, t.muted, "lm");
+            break;
+        }
+        case Levels: {
+            // Amplifier: Balken im freien Bereich zwischen Albumzeile und Fortschritt (nur Querformat, nur bei Wiedergabe)
+            if (levels && !levels->empty() && wide && snap.playing) {
+                const float ax = l.text_x, aw = l.text_w, ay0 = ty + 66, ay1 = l.bar_y - 14;
+                const float ah = ay1 - ay0;
+                if (ah >= 28) {
+                    const int n = (int)levels->size();
+                    const float gap = 3.f, bw = (aw - gap * (n - 1)) / n;
+                    for (int i = 0; i < n; ++i) {
+                        float v = std::clamp((*levels)[(size_t)i], 0.f, 1.f);
+                        float bh = std::max(2.f, v * ah);
+                        float x0 = ax + i * (bw + gap);
+                        Color c = v > 0.85f ? t.accent : t.bar;
+                        if (color == 1) {
+                            uint8_t rgb[3];
+                            audio::level_rgb(v, rgb);
+                            c = Color{rgb[0], rgb[1], rgb[2]};
+                        } else if (color == 2) {   // Verlauf im Design: Balken → Akzent → Heiß
+                            auto mix = [](Color a, Color b, float k) {
+                                return Color{uint8_t(a.r + (b.r - a.r) * k), uint8_t(a.g + (b.g - a.g) * k), uint8_t(a.b + (b.b - a.b) * k)};
+                            };
+                            c = v < 0.6f ? mix(t.bar, t.accent, v / 0.6f) : mix(t.accent, t.hot, (v - 0.6f) / 0.4f);
+                        }
+                        d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), c);
                     }
-                    d.rounded_rectangle(x0, ay1 - bh, x0 + bw, ay1, std::min(2.f, bw / 2), c);
-                }
-                if (simulated) d.text(ax + aw, ay0 + 6, tr("simuliert"), font(11), t.muted, "rm");
-            }
-        }
-        // Fortschritt
-        long long pos = spotify::live_progress(snap, now ? now : mono());
-        float frac = snap.duration_ms > 0 ? std::min(1.f, (float)pos / snap.duration_ms) : 0.f;
-        d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + l.text_w, l.bar_y + 6, 3, t.line);
-        if (frac > 0) d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + std::max(6.f, l.text_w * frac), l.bar_y + 6, 3, t.bar);
-        d.text(l.text_x, l.times_y, spotify::format_time(pos), f_time, t.muted, "lm");
-        d.text(l.text_x + l.text_w, l.times_y, spotify::format_time(snap.duration_ms), f_time, t.muted, "rm");
-        if (snap.controls) {   // Tasten nur, wenn Touch an ist – sonst wäre ein Tipp ohne Wirkung
-            for (int i = 0; i < 3; ++i) {
-                float cx = l.btn_x[i], cy = l.btn_y, r = l.btn_r[i];
-                bool main = i == PLAY_PAUSE;
-                d.ellipse(cx - r, cy - r, cx + r, cy + r, main ? t.bar : t.card);
-                Color ink = main ? t.head_text : t.text;
-                float k = r * 0.42f;
-                if (i == PLAY_PAUSE && snap.playing) {
-                    d.rectangle(cx - k * 0.8f, cy - k, cx - k * 0.2f, cy + k, ink);
-                    d.rectangle(cx + k * 0.2f, cy - k, cx + k * 0.8f, cy + k, ink);
-                } else if (i == PLAY_PAUSE) {
-                    d.polygon({{cx - k * 0.6f, cy - k}, {cx - k * 0.6f, cy + k}, {cx + k, cy}}, ink);
-                } else if (i == NEXT) {
-                    d.polygon({{cx - k, cy - k}, {cx - k, cy + k}, {cx + k * 0.6f, cy}}, ink);
-                    d.rectangle(cx + k * 0.7f, cy - k, cx + k, cy + k, ink);
-                } else {
-                    d.polygon({{cx + k, cy - k}, {cx + k, cy + k}, {cx - k * 0.6f, cy}}, ink);
-                    d.rectangle(cx - k, cy - k, cx - k * 0.7f, cy + k, ink);
+                    if (simulated) d.text(ax + aw, ay0 + 6, tr("simuliert"), r.font(11), t.muted, "rm");
                 }
             }
+            break;
         }
-        if (!snap.error.empty()) footer_left = snap.error;
+        case Progress: {
+            // Fortschritt
+            long long pos = spotify::live_progress(snap, now ? now : mono());
+            float frac = snap.duration_ms > 0 ? std::min(1.f, (float)pos / snap.duration_ms) : 0.f;
+            d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + l.text_w, l.bar_y + 6, 3, t.line);
+            if (frac > 0) d.rounded_rectangle(l.text_x, l.bar_y, l.text_x + std::max(6.f, l.text_w * frac), l.bar_y + 6, 3, t.bar);
+            d.text(l.text_x, l.times_y, spotify::format_time(pos), r.f_time, t.muted, "lm");
+            d.text(l.text_x + l.text_w, l.times_y, spotify::format_time(snap.duration_ms), r.f_time, t.muted, "rm");
+            break;
+        }
+        case Buttons: {
+            if (snap.controls) {   // Tasten nur, wenn Touch an ist – sonst wäre ein Tipp ohne Wirkung
+                for (int i = 0; i < 3; ++i) {
+                    float cx = l.btn_x[i], cy = l.btn_y, r = l.btn_r[i];
+                    bool main = i == PLAY_PAUSE;
+                    d.ellipse(cx - r, cy - r, cx + r, cy + r, main ? t.bar : t.card);
+                    Color ink = main ? t.head_text : t.text;
+                    float k = r * 0.42f;
+                    if (i == PLAY_PAUSE && snap.playing) {
+                        d.rectangle(cx - k * 0.8f, cy - k, cx - k * 0.2f, cy + k, ink);
+                        d.rectangle(cx + k * 0.2f, cy - k, cx + k * 0.8f, cy + k, ink);
+                    } else if (i == PLAY_PAUSE) {
+                        d.polygon({{cx - k * 0.6f, cy - k}, {cx - k * 0.6f, cy + k}, {cx + k, cy}}, ink);
+                    } else if (i == NEXT) {
+                        d.polygon({{cx - k, cy - k}, {cx - k, cy + k}, {cx + k * 0.6f, cy}}, ink);
+                        d.rectangle(cx + k * 0.7f, cy - k, cx + k, cy + k, ink);
+                    } else {
+                        d.polygon({{cx + k, cy - k}, {cx + k, cy + k}, {cx - k * 0.6f, cy}}, ink);
+                        d.rectangle(cx - k, cy - k, cx - k * 0.7f, cy + k, ink);
+                    }
+                }
+            }
+            break;
+        }
+        case Hint: {
+            switch (snap.state) {
+            case State::NotSetUp: r.message(d, "Spotify ist nicht fertig eingerichtet"); break;
+            case State::LoggedOut: r.message(d, "Bei Spotify anmelden: Einstellungen › Spotify"); break;
+            case State::Connecting: r.message(d, snap.error.empty() ? "Verbinde mit Spotify …" : snap.error); break;
+            case State::Error: r.message(d, snap.error.empty() ? "Spotify nicht erreichbar" : snap.error); break;
+            default: r.message(d, "Es läuft gerade nichts – Wiedergabe in Spotify starten"); break;
+            }
+            break;
+        }
+        }
+    }
+
+private:
+    inline static constexpr const char* names_[] = {"cover", "text", "pegel", "fortschritt", "tasten", "hinweis"};
+    SpotifyRenderer& renderer_;
+    Kind kind_;
+    const spotify::Snapshot& snap_;
+    double now_;
+    const std::vector<float>* levels_;
+    int color_;
+    bool simulated_;
+    std::string id_;
+    bool arranged_;
+};
+
+Image SpotifyRenderer::render(const spotify::Snapshot& snap, double now, const std::vector<float>* levels, int color, bool simulated, std::time_t clock) {
+    using spotify::State;
+    const Theme& t = g_theme;
+    std::vector<ContentBlock> content;
+    std::vector<Platzierung> blocks;
+    content.reserve(6);
+    auto add = [&](ContentBlock::Kind kind) {
+        content.emplace_back(*this, kind, snap, now, levels, color, simulated);
+        const auto& block = content.back();
+        blocks.push_back({&block, {block.id(), "spotify", {0, 0, w, h}, plugins::zones::Density::regular}});
+    };
+    switch (snap.state) {
+    case State::NotSetUp:
+    case State::LoggedOut:
+    case State::Connecting:
+    case State::Error:
+        add(ContentBlock::Hint);
+        break;
+    case State::Idle:
+        if (!snap.last_played) {
+            add(ContentBlock::Hint);
+            break;
+        }
+        [[fallthrough]];
+    default:
+        add(ContentBlock::Cover);
+        add(ContentBlock::Text);
+        add(ContentBlock::Levels);
+        if (!snap.last_played) {
+            add(ContentBlock::Progress);
+            add(ContentBlock::Buttons);
+        }
         break;
     }
+    const std::string foot = spotify_footer(snap);
+    return draw_framed({W, H, s, t.bg, [this, clock](Canvas& d) { header(d, clock, ""); },
+                        [this, &foot](Canvas& d) { footer(d, fit(d, foot, f_small, w - 110)); }}, blocks);
+}
+
+bool SpotifyRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
+    return !builtin::is_standard(*builtin::find("spotify"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
+}
+plugins::zones::Plan SpotifyRenderer::arrangement(const builtin::Overlay& overlay) const {
+    const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
+    auto layout=plugins::edit::geometry(model);if(!layout) return {};
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2.f,w-16,h-HEADER_H-FOOTER_H-2.f},*layout,builtin::inputs(*builtin::find("spotify"),model),6),overlay);
+}
+BuiltinDrawOut SpotifyRenderer::render_arranged(const spotify::Snapshot& snap,const builtin::Overlay& overlay,
+                                               double now,const std::vector<float>* levels,int color,bool simulated,std::time_t clock) {
+    const auto& c=*builtin::find("spotify");
+    if(!builtin::validate(c,overlay).empty() || !uses_arrangement(overlay)) return {render(snap,now,levels,color,simulated,clock),{}};
+    const auto plan=arrangement(overlay);
+    const bool live=snap.state==spotify::State::Playing || snap.state==spotify::State::Paused;
+    const bool ready=live || (snap.state==spotify::State::Idle && snap.last_played);
+    std::vector<ContentBlock> content;content.reserve(c.blocks.size());std::vector<Platzierung> blocks;
+    // Zu viele Eingangsbalken werden nur im Raster auf die verfügbare Breite begrenzt.
+    std::vector<float> bounded;
+    for(const auto& b:plan.blocks) if(b.id=="spotify.pegel" && b.visible() && levels) {
+        const auto n=std::min(levels->size(),size_t(std::max(1.f,std::floor((b.area.width-12+3)/5))));
+        bounded.assign(levels->begin(),levels->begin()+n);
     }
-    footer(d, fit(d, footer_left, f_small, w - 110));
-    return d.finish();
-}
-
-spotify::Snapshot demo_spotify() {
-    spotify::Snapshot s;
-    s.state = spotify::State::Playing;
-    s.title = "Numb";
-    s.artist = "Linkin Park";
-    s.album = "Meteora";
-    s.progress_ms = 83000;
-    s.duration_ms = 187000;
-    s.playing = true;
-    s.controls = true;
-    return s;
-}
-// ---------- Beispieldaten ----------
-std::vector<Friend> demo_friends() {
-    auto f = [](uint64_t id, const char* name, const char* st, const char* act = "", bool mobile = false) {
-        Friend x;
-        x.user_id = id; x.name = name; x.status = st; x.activity = clean_text(act); x.mobile = mobile;
-        return x;
+    for(const auto& b:plan.blocks) for(size_t i=0;i<c.blocks.size();++i) if(b.id==c.blocks[i].id) {
+        const auto kind=ContentBlock::Kind(i);
+        if((!ready && kind!=ContentBlock::Hint) || (ready && kind==ContentBlock::Hint) ||
+           (snap.last_played && (kind==ContentBlock::Progress || kind==ContentBlock::Buttons))) continue;
+        content.emplace_back(*this,kind,snap,now,bounded.empty()?nullptr:&bounded,color,simulated,true);
+        blocks.push_back({&content.back(),b});
+    }
+    const auto foot=spotify_footer(snap);std::vector<std::string> failed;BuiltinDrawOut out;
+    out.image=draw_arranged({W,H,s,g_theme.bg,[this,clock](Canvas& d){header(d,clock,"");},
+                            [this,&foot](Canvas& d){footer(d,fit(d,foot,f_small,w-110));}},blocks,&failed);
+    auto add=[&](const plugins::zones::Rect& a,size_t item) {
+        const int left=pyround_i(a.x*s),right=pyround_i((a.x+a.width)*s);
+        const int top=pyround_i(a.y*s),bottom=pyround_i((a.y+a.height)*s);
+        out.targets.push_back({{left,top,right-left,bottom-top},item});
     };
-    return {f(1, "Fuchs", "online", "Spielt Battlefield 6 · 42 min"), f(2, "Basti", "dnd", "Streamt Battlefield 6"),
-            f(3, "Lena", "idle", "🌙 gleich zurück"),                 f(4, "Kevin", "online", "Hört Numb – Linkin Park", true),
-            f(5, "Mara", "online", ""),                                f(6, "Tom", "offline"),
-            f(7, "Jonas", "online", "Spielt Counter-Strike 2 · 1 h 05 min"), f(8, "Sven", "idle", "")};
-}
-
-std::vector<StreamItem> demo_stream() {
-    // Frei erfundene Beispieltitel für Vorschau und Tests
-    auto mk = [](int id, const char* title, const char* date, bool series, std::vector<std::string> prov) {
-        StreamItem it;
-        it.id = id; it.title = title; it.date = date; it.series = series; it.providers = std::move(prov);
-        static const std::map<std::string, int> ids = {{"NF", 8}, {"PV", 9}, {"D+", 337}, {"ATV+", 350}, {"WOW", 30}, {"RTL+", 2750}};
-        for (auto& ab : it.providers) it.provider_ids.push_back(ids.at(ab));
-        return it;
-    };
-    return {mk(1, "Der Leuchtturm am Ende der Welt", "2026-10-30", false, {"NF"}),
-            mk(2, "Nordlicht – Staffel 2", "2026-10-28", true, {"PV", "D+"}),
-            mk(3, "Fuchsbau", "2026-10-24", false, {"ATV+"}),
-            mk(4, "Die Ersatzspieler von Hinterdorf", "2026-10-21", true, {"RTL+"}),
-            mk(5, "Mitternachtsexpress", "2026-10-15", false, {"WOW", "NF"})};
-}
-
-StreamLogos demo_stream_logos() {
-    // Platzhalter für Vorschau und Tests: einfarbige, abgerundete Kacheln mit dem Kürzel; kein Netz, keine Marken-Logos
-    struct Spec { int id; const char* ab; Color c; };
-    const Spec specs[] = {{8, "NF", {150, 30, 40}}, {9, "PV", {30, 110, 160}}, {337, "D+", {40, 60, 140}},
-                          {350, "TV", {60, 60, 60}}, {30, "WOW", {170, 70, 30}}, {2750, "RTL", {130, 40, 130}}};
-    StreamLogos out;
-    for (const auto& sp : specs) {
-        Canvas c(64, 64, 1.f, sp.c);
-        c.text(32, 32, sp.ab, Font{22, true}, Color{255, 255, 255}, "mm");
-        Image img = c.finish();
-        tmdb::round_corners(img.px, img.w, img.h, 64 * 0.2f);
-        out[sp.id] = std::make_shared<const Image>(std::move(img));
+    for(const auto& b:plan.blocks) if(b.visible() && ready && std::find(failed.begin(),failed.end(),b.id)==failed.end()) {
+        if(b.id=="spotify.cover" && snap.cover && !snap.cover->empty()) {
+            const float side=std::min(b.area.width,b.area.height);
+            add({b.area.x+(b.area.width-side)/2,b.area.y+(b.area.height-side)/2,side,side},COVER);
+        }
+        if(b.id=="spotify.tasten" && snap.controls && !snap.last_played) {
+            const auto controls=spotify_controls(b.area);for(size_t i=0;i<controls.size();++i) add(controls[i],i);
+        }
     }
     return out;
 }
 
-std::vector<HaEntity> demo_ha() {
-    auto mk = [](const char* id, const char* name, const char* state, const char* unit, bool toggle) {
-        HaEntity e;
-        e.id = id; e.name = name; e.state = state; e.unit = unit; e.available = true;
-        e.toggle = toggle; e.on = std::string(state) == "on";
-        return e;
-    };
-    return {mk("sensor.wohnzimmer_temperatur", "Wohnzimmer", "21.53", "°C", false),
-            mk("sensor.solar_leistung", "Solar", "2840", "W", false),
-            mk("light.schreibtisch", "Schreibtischlampe", "on", "", true),
-            mk("switch.kaffeemaschine", "Kaffeemaschine", "off", "", true)};
-}
-
-std::vector<Bf6Player> demo_players() {
-    auto p = [](const char* n, int rank, const char* rn, double kd, double win, double kpm, double hrs) {
-        Bf6Player x;
-        x.query = x.name = n; x.rank = rank; x.rank_name = rn; x.kd = kd; x.win_pct = win; x.kpm = kpm; x.hours = hrs;
-        return x;
-    };
-    Bf6Player typo;
-    typo.query = typo.name = "Tippfehler";
-    typo.error = "nicht gefunden";
-    return {p("Fuchs", 174, "First Lieutenant III", 3.02, 51.6, 0.74, 189.9), p("Basti", 121, "Captain I", 1.48, 54.2, 0.61, 96.3),
-            p("Lena", 88, "Sergeant Major II", 1.12, 49.0, 0.52, 61.0),       p("Kevin", 57, "Staff Sergeant III", 0.94, 47.5, 0.44, 40.2),
-            p("Mara", 33, "Corporal II", 0.81, 50.3, 0.39, 18.7),             typo};
-}
+spotify::Snapshot demo_spotify() { return samples::spotify(); }
+std::vector<Friend> demo_friends() { return samples::friends(); }
+std::vector<StreamItem> demo_stream() { return samples::stream(); }
+StreamLogos demo_stream_logos() { return samples::stream_logos(); }
+std::vector<HaEntity> demo_ha() { return samples::ha(); }
+std::vector<Bf6Player> demo_players() { return samples::players(); }
 
 }  // namespace fl::render

@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "id": "offline-wechselfeld",
+  "name": "Wechselfeld",
+  "version": "1.0.0",
+  "description": "Ruhiger Wechsel mit Beispieldaten",
+  "license": "MIT",
+  "author": "FuchsLabs",
+  "category": "info",
+  "min_app_version": "2.10.0",
+  "layout": {
+    "columns": [
+      1
+    ],
+    "rows": [
+      1
+    ],
+    "zones": [
+      {
+        "id": "main",
+        "column": 0,
+        "row": 0,
+        "cycle": {
+          "mode": "rotate",
+          "transition": "fade"
+        }
+      }
+    ]
+  },
+  "widgets": [
+    {
+      "id": "eins",
+      "zone": "main",
+      "type": "text",
+      "text": "Erster Eintrag",
+      "seconds": 3
+    },
+    {
+      "id": "zwei",
+      "zone": "main",
+      "type": "text",
+      "text": "Zweiter Eintrag",
+      "seconds": 5
+    }
+  ]
+}

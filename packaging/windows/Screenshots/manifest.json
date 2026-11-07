@@ -1,0 +1,43 @@
+{
+  "appVersion": "2.9.6",
+  "packageIdentity": "local-test",
+  "capture": "Native window screenshots exported losslessly to PNG; isolated sample configuration; no connected hardware. Connection badge is from no-LCD test mode.",
+  "images": [
+    {
+      "file": "de-overview.png",
+      "width": 3440,
+      "height": 1392,
+      "sha256": "f7d15e72ecb032acb6e5ba4ae1bf6e3cb92a7730c177b7c15f0b3f607a218b5a",
+      "language": "de",
+      "sampleDataOnly": true,
+      "hardwareEvidence": false
+    },
+    {
+      "file": "de-updates.png",
+      "width": 3440,
+      "height": 1392,
+      "sha256": "2794ddc21054f98af425487448225bbf5fed70c06efad27703e13260fcc9ef8f",
+      "language": "de",
+      "sampleDataOnly": true,
+      "hardwareEvidence": false
+    },
+    {
+      "file": "en-overview.png",
+      "width": 3440,
+      "height": 1392,
+      "sha256": "d7c7c9e70f489e9dde09bca43b7f37ace16f1b60fe1d4650c98ea1a128b1679e",
+      "language": "en",
+      "sampleDataOnly": true,
+      "hardwareEvidence": false
+    },
+    {
+      "file": "en-updates.png",
+      "width": 3440,
+      "height": 1392,
+      "sha256": "512b7cb3dc24e3cdceba86fd96b17af90d1e1f5eaed9d07fe9851e5b6c14d207",
+      "language": "en",
+      "sampleDataOnly": true,
+      "hardwareEvidence": false
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+# Plan Game-Mode (feature/game-mode, Basis d0c279f)
+
+Ziel: Spielstart erkennen, Spiellogo animiert auf dem gewählten Display zeigen, dann in die Game-Mode-Ansicht (`custom:<id>`, per Editor eingerichtet) wechseln, nach Spielende zurück zur normalen Rotation.
+
+## Regeln
+- Nur legale, dokumentierte Wege. Kein Einhaken in Spielprozesse, keine DLL-Injection, kein Speicherlesen fremder Prozesse (Anti-Cheat).
+- libre-panel nur Ideenquelle (Clean-Room, siehe docs/CLEAN-ROOM-LAYOUT.md).
+- Tests nie gegen Port 8765; nur isolierte Testinstanz (UI 18766, KI 18765, eigenes Datenverzeichnis). Keine hörbaren Töne.
+
+## P9-1 Spielerkennung (`game_detect.h/.cpp`)
+- Steam: `HKCU\Software\Valve\Steam\RunningAppID`, appmanifest_*.acf aus libraryfolders.vdf (Name, appid).
+- Epic: `%ProgramData%\Epic\EpicGamesLauncher\Data\Manifests\*.item` (Install-Pfad, Name, AppName). Xbox/Game Pass: Install-Pfade `XboxGames`, Prozess unter diesem Pfad.
+- Generisch: Vordergrundfenster im Vollbild/Borderless (`SHQueryUserNotificationState` = D3D-Fullscreen, Fenster = Monitorgröße) plus Prozess aus bekannter Bibliothek; Ausschlussliste (Browser, Explorer, Player). Benutzerliste „zusätzliche Spiele“ in den Einstellungen.
+- Entprellung (Start nach 3 s stabil, Ende nach 5 s), Zustandsautomat idle → starting → running → ending.
+- Nur Prozessliste/Fensterinfo/Registry/Dateien lesen.
+
+## P9-2 Logo (`game_logo.h/.cpp`)
+- Steam: öffentliches CDN (`shared.fastly.steamstatic.com/store_item_assets/steam/apps/<appid>/logo.png`, Fallback `header.jpg`/`library_hero`). Lokaler Cache im Datenverzeichnis. Fallback: TMDB-Zugang nicht nötig; sonst Exe-Icon + Name als Text.
+- Kein Scraping, nur offizielle Asset-URLs; Cache mit Ablauf.
+
+## P9-3 Animation (`game_intro.h/.cpp`)
+- Intro ~2,5 s auf dem gewählten Display: Hintergrund abdunkeln, Logo skaliert/blendet ein mit Glanzlauf (Easing), Fade in die Game-Mode-Ansicht. Reduzierte Variante bei „Animationen reduzieren“. Nutzt vorhandenes Fade/FadeCache aus app.cpp.
+
+## P9-4 Neue Systemquellen (Tiles, in Katalog und Palette)
+Nur dokumentierte APIs:
+| Kachel | Quelle |
+|---|---|
+| FPS, Frametime (1 % Low, Verlauf) | ETW `Microsoft-Windows-DxgKrnl`/`DXGI` Present-Events (wie PresentMon, MIT); Prozess = erkanntes Spiel; Rechtefall (Gruppe „Performance Log Users“/Admin) erklären, bei Fehlen Kachel „n/a“ |
+| GPU-Last, Temperatur, Takt, Lüfter, Leistung | NVML (`nvml.dll` dynamisch geladen), AMD ADLX/ADL dynamisch, Fallback PDH „GPU Engine“ |
+| VRAM belegt/gesamt | DXGI `QueryVideoMemoryInfo`, PDH „GPU Adapter Memory“ |
+| CPU-Takt, CPU-Last pro Kern, CPU-Temp | PDH „Processor Information“, `CallNtPowerInformation`; Temp wie bisher über HWiNFO |
+| Ping | ICMP `IcmpSendEcho` auf konfigurierbares Ziel (Standard Router/1.1.1.1), Jitter |
+| Spielzeit, Spielname, Logo | aus P9-1/P9-2 |
+| RAM, Netz | vorhanden |
+
+## P9-5 Einstellungen und Editor
+- Neue Seite „Game-Mode“: Aktiv, Ziel-Display, Ansicht (`custom:<id>`), Intro an/aus, Ping-Ziel, zusätzliche Spiele, Ausschlüsse.
+- Kachel-Palette um neue Kacheln erweitern, Vorlage „Game-Mode“ im Editor.
+- Rückkehr zur vorherigen Rotation beim Spielende.
+
+## P9-6 Tests und Doku
+- Unit-Tests: Zustandsautomat, ACF/Epic-Parser, Entprellung, Logo-Cache, Kachel-Katalog.
+- Isolierter Testlauf über `ScreenBuddy-2.10.0-test\Start-ScreenBuddy-Test.ps1` (separates Datenverzeichnis, Port 18766), Screenshot; Spielstart per Dummy-Prozess simulieren.
+- Doku DE/EN (document-specialist).
+
+## Umsetzungsstand (2026-11-07)
+
+| Phase | Ergebnis |
+|---|---|
+| P9-1 | `game_detect.*`: begrenzte Steam-VDF/ACF- und Epic-Parser (einschließlich leerer VDF-Felder), Bibliotheks-/EXE-Zuordnung, XboxGames auf festen Laufwerken, Vollbild-/Fensterprüfung, Ausschlüsse, 3-s-Start/5-s-Ende-Zustandsautomat. Nur `PROCESS_QUERY_LIMITED_INFORMATION`; Alt-Tab beendet ein bestätigtes, weiter laufendes Spiel nicht. |
+| P9-2 | `game_logo.*`: feste Steam-CDN-URLs, PNG/Header/Hero-Fallback, begrenzte Antworten/Bildgrößen, lokaler Cache mit 7-Tage-Ablauf und Reparse-Abweisung, lokales EXE-Icon plus Name. Laden asynchron, sofortiger lokaler Icon-Ersatz. Kein Scraping/TMDB. |
+| P9-3 | `game_intro.*` und `app.cpp`: 2,5 s mit Abdunklung/Easing/Glanz und vorhandenem `FadeCache`/`blend_rect`; reduziert 0,35 s ohne Skalierung/Glanz. Displaysperrzonen berücksichtigt, Touch-Ziele während des Intros gesperrt. Größenwechsel beendet die laufende Animation. |
+| P9-4 | 16 additive System-Einzelkacheln, bestehende RAM-/Netz-/GPU-/CPU-Karten bleiben verfügbar. Eigene DXGI-ETW-Sitzung mit PID-/Swapchain-Filter und TEST-Ausschluss, aktivste Kette nach ungekapptem Intervallzähler, 10-s-/1.200-Intervall-Fenster, 1%-Low erst ab 100 Intervallen, n/a nach 2 s ohne Present. NVML und AMD-ADL aus System32, PDH-Fallback, CPU-Kernlast/Takt, ICMP/VRAM. Standardseiten unverändert. |
+| P9-5 | `game_runtime.*`, `config.cpp`, native Game-Mode-Seite und Editor: Aktivierung, Ziel, `custom:<id>`, Intro/reduziert, IPv4-Ping, mehrzeilige zusätzliche EXE-Pfade/Ausschlüsse. Vorlage **+ Game-Mode** und Palettenfilter. Worker und Logos blockieren den Render-Thread nicht. Display-Override erhält normale Seitenliste/Position/Restlaufzeit, Rückkehr beim Spielende; fehlende Ansicht lässt normale Rotation bestehen. |
+| P9-6 | Neue Unit-/UI-Prüfungen, wiederholbare isolierte Start-/Testskripte, Dummy-Prozess-Simulation und Vorschaubilder; DE/EN-Dokumentation, Referenzlinks, Changelogs und Anleitungsvorlagen/Ressourcen synchronisiert. |
+
+Bedienung und Quellenbeschreibung: [Deutsch](GAME-MODE.md), [English](GAME-MODE.en.md). Einstellungen gelten nach Speichern/Neustart. Zusätzliche Spiele/Ausschlüsse: maximal 128 Zeilen/32 KiB; zusätzliche Spiele verlangen absolute EXE-Pfade, keine Befehle/Platzhalter. Cacheablauf betrifft die Wiederverwendung von Dateien, keine automatische Komplettbereinigung des Cacheverzeichnisses.
+
+## Nicht umgesetzt
+
+- Vollständige PresentMon-/DxgKrnl-Auswertung für Scanout-/Display-FPS sowie D3D9/OpenGL/Vulkan ohne DXGI: der Sammler misst ausdrücklich **DXGI-Present-Aufrufrate**, keine angezeigten Frames. Nicht unterstützte Ereignisse bleiben n/a. Ohne passende ETW-Rechte ebenfalls n/a; keine automatische Rechteerhöhung. Gegebenenfalls Mitgliedschaft in Performance Log Users administrativ einrichten, dann neu starten.
+- ADLX ist nicht zusätzlich integriert: AMD verwendet dokumentierte ADL-OD5-/OD6-Leseaufrufe, soweit der Treiber diese anbietet. Nicht unterstützte Sensoren bleiben n/a. Keine automatische Auswahl der vom Spiel benutzten GPU; NVML nutzt den ersten verfügbaren NVIDIA-Adapter, AMD den ersten aktiven ADL-Adapter. PDH-Last ist der höchste gemeldete Engine-Wert.
+- `QueryVideoMemoryInfo` wird nicht als globaler VRAM-Verbrauch ausgegeben: sie meldet Prozessbudget/-verbrauch des Aufrufers. Ersatz: NVML für ersten NVIDIA-Adapter, sonst PDH Dedicated Usage plus DXGI DedicatedVideoMemory über Adapter aggregiert. Keine Zuordnung dieser VRAM-Werte zum Spielprozess.
+- Kein Nachweis realer Steam-/Epic-/Xbox-Spielstarts, geschützter Spielprozesse oder vollständiger Hersteller-/Treiberabdeckung. Kein physischer Display-/Touch-/Mehrgeräte-Test und keine reale ETW-FPS-/GPU-Sensor-Abnahme. Fehlende Bibliotheks-/Prozessrechte können Erkennung verhindern; zusätzliche EXE-Pfade sind der manuelle Rückfall.
+
+## P9-6 Prüfstand (2026-11-07)
+
+| Prüfung | Ergebnis und Grenze |
+|---|---|
+| CMake/vcpkg, MSVC x64 Release | Gesamter vorhandener CMake-Baum gebaut, inklusive ScreenBuddy und Testprogrammen. Bestehender vcpkg-Abhängigkeitscache nur lesend verwendet. Lokaler Entwicklungsbuild, keine Auslieferung/Signierung, kein Push. |
+| Automatisierte Suiten | **26/26 bestanden** über `python cpp/tests/game_mode_checks.py`: 24 C++-Prüfprogramme einschließlich Game-/Custom-View-/Katalog-/UI-/Companion-/Snapshot-Prüfungen, Standalone-Distribution und synthetischer KI-Adapter. `fl-game-tests`: **114**; Custom views **2.101**; Katalog **313**; Layout-UI **1.866**; `fl-tests` **3.531**, jeweils ohne Fehler. |
+| Bildreferenzen | Bestehende Standardseiten-/Plugin-Snapshots grün. Historische P8-Hashdateien unverändert, beabsichtigte Editoränderungen und neue Game-Mode-Form/Palette als eigene `p9-*-hashes.txt`. DE/EN-Widgetbilder mit Beispieldaten; keine reale Desktop-/Hardware-Abnahme. |
+| Isolierte App-Simulation | `python cpp/tests/game_mode_integration.py`: App ausschließlich über `cpp/tests/Start-GameMode-Test.ps1`, `FUCHSLABS_INSTANCE`, eigenes Datenverzeichnis, `--run --no-lcd`, UI **18766**. Stummer eigener Dummy-Prozess: Start-/Ende-Entprellung, Logo-Intro/EXE-Icon, Game-Ansicht und Rückkehr zur vorherigen Rotation bestanden. |
+| Portgrenze | Kein Testzugriff auf **8765**. KI-Port **18765** war belegt; der für Game-Mode nicht benötigte KI-Empfänger blieb in der App-Simulation ausgeschaltet. Keine fremde Instanz beendet oder umkonfiguriert. Das Startskript erlaubt KI nur mit explizitem `-AiReceiver` und freiem 18765. |
+| Dokumentation | Lokale Links der betroffenen READMEs/Referenzen/Bedienungsdokumente geprüft; JavaScript-Syntax aller vier DE/EN-Anleitungsvorlagen/Ressourcen mit `node --check` bestanden. Geprüfte eingebettete Bilder unverändert. `git diff --check` sauber. |
+| Nicht ausgeführte Abläufe | Bestehende Installer-/App-Skripte, die die EXE direkt starten oder installieren, wurden gemäß Aufgabenregel nicht ausgeführt. Keine Veröffentlichung, kein Store-/Installer-/Upgrade-Test; physische Prüfungen siehe oben. |
+
+Lokale, nicht eingecheckte Artefakte: `cpp/build/game-mode-checks/results.json` und einzelne Prüfausgaben; `cpp/build/game-mode-test/result.json`, `intro.png`, `active.png`, `restored.png`; synthetische native Widgetbilder unter `cpp/build/screenbuddy-release/p9-ui-snapshots/`. Konfigurationen, DPAPI-Daten und Logs bleiben lokal/ignoriert. Keine hörbaren Testtöne.
+
+## Schnittstellenbelege
+
+- [Windows Prozessrechte](https://learn.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights), [Vollbildstatus](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shqueryusernotificationstate).
+- [NVML Device Queries](https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html), [AMD ADL OD5](https://gpuopen-librariesandsdks.github.io/adl/group__OVERDRIVE5API.html), [ADL AdapterInfo](https://gpuopen-librariesandsdks.github.io/adl/structAdapterInfo.html).
+- [DXGI-Eventmetadaten, PresentMon/MIT](https://github.com/GameTechDev/PresentMon/blob/main/PresentData/ETW/Microsoft_Windows_DXGI.h), [ICMP](https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpsendecho). Keine libre-panel-Quellen eingesehen/verwendet.
+
+
+## P9-7 Weitere Spielebibliotheken
+
+Lokale Umsetzung auf `feature/game-mode` (Basis `2cb5918`), kein Release. `Discovery::refresh()` ergänzt GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard und Rockstar. Die genauen Registry-Pfade, Namens-/Ordner-Fallbacks und Grenzen stehen gemeinsam gepflegt in [DE](GAME-MODE.md#spielerkennung) und [EN](GAME-MODE.en.md#game-detection).
+
+- Austauschbare `Registry`-Schnittstelle für die neuen HKLM-Quellen; produktiv ausschließlich `RegOpenKeyExW`/`RegEnumKeyExW`/`RegGetValueW` mit lesenden Rechten, explizit native und WOW6432Node-Ansicht. Fehlende Werte/Leserechte liefern keine Einträge. Höchstens 10.000 Unterschlüssel pro Abfrage; keine Registry-Schreibzugriffe.
+- Installationspfade müssen absolut sein und dürfen kein Laufwerkswurzelverzeichnis sein. Doppelte Installationspfade werden zusammengeführt. GOG-EXE-Metadaten außerhalb des Spielordners werden verworfen; die Pfaderkennung bleibt nutzbar. Battle.net prüft ausschließlich zehn fest benannte Spielordner unter/neben dem registrierten Launcherpfad; keine rekursive Suche oder proprietäre Datenbank.
+- Neue Bibliotheken: Prozess im Installationspfad plus Vordergrund/Vollbild oder Borderless zum Start; eine exakte GOG-EXE umgeht die Fensterprüfung nicht. Der bisherige exakte Epic-EXE-Sonderweg verwendet jetzt ebenfalls die Fensterprüfung. Steam-RunningAppID und manuelle EXE-Treffer behalten ihre bisherigen Sonderwege; bestätigte Prozesse bleiben beim Alt-Tab aktiv.
+- Standardfilter: bekannte Launcher, Origin, Agent, BlizzardError/CrashHandler, EXE-Namen mit `Launcher`, EAAntiCheat.GameServiceLauncher, BEService und EasyAntiCheat*. Der Filter gilt auch für manuelle Einträge und bereits bestätigte Prozesse. Keine Prozessrechte über `PROCESS_QUERY_LIMITED_INFORMATION`, keine Hooks/Injektion, keine Prozessspeicherabfragen. Nicht-Steam nutzt den vorhandenen EXE-Icon-/Namens-Fallback ohne Launcher-Netzabfragen.
+- Grenzen: Erkennung hängt von lokalen HKLM-Einträgen/Publisher-Schreibweisen ab; reine Benutzerinstallationen, abweichende Ordner und unbekannte Hilfsprogramme sind nicht vollständig abgedeckt. Pfade werden lexikalisch verglichen, Junctions/Symlinks nicht aufgelöst. Eine manuelle Spiel-EXE beziehungsweise ein zusätzlicher Ausschluss bleibt der Rückfall.
+
+Prüfstand am 07.11.2026:
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Build | Bestehender CMake/Ninja-MSVC-Release-Build erfolgreich. Ausschließlich lokale Entwicklungsartefakte, keine Auslieferung. |
+| Game-Unit-Tests | **196 Prüfungen bestanden**, davon **82 neue** mit synthetischer Registry/Dateisystem-Prüffunktion unter `cpp/tests/game_tests/registry_tests.h`: alle fünf Quellen, native/WOW-Daten, fehlende/ungültige Pfade und Werte, Dubletten, Ubisoft-Namen, Publisher, Battle.net-Ordner, EXE-Ausbruch, Launcher/Anti-Cheat, Vordergrundbedingung einschließlich Epic sowie bestehende Steam-/manuelle Sonderwege. Keine echte Registry oder Spielprozesse für diese neuen Tests. |
+| Gesamtsuiten | **26/26 bestanden** über `python cpp/tests/game_mode_checks.py`, ohne App-Integration. Der erste Lauf stoppte beim bestehenden Custom-View-Test mit `Dynamic receiver failed: 0`; ein unabhängiger dynamischer Loopback-Bind und der unveränderte vollständige Wiederholungslauf bestanden. Ursache des einmaligen Empfänger-Startfehlers nicht geklärt, kein Fix behauptet. Nach zwei zusätzlichen Epic-Regressionstests nur `fl-game-tests` erneut gebaut und mit **196/196** bestanden. |
+| Dokumentation | 227 lokale Links aus README DE/EN, C++-README, Referenz DE/EN und Game-Mode-Dokumenten auf existierende Ziele geprüft. JavaScript-Syntax aller vier Anleitungsvorlagen/-ressourcen grün, Game-Mode-Hilfe zwischen Vorlage/Ressource je Sprache identisch. Versions-/Download-/Laufzeitangaben bleiben beim bisherigen Release; kein Versionswechsel. |
+| Nicht ausgeführt | Keine neue App-/Dummy-Integration, keine echten Launcher-/Spielstarts, kein physischer Display-/Touch-/Sensor-/Anti-Cheat-Abnahmetest, kein Installer/Upgrade/Release. Keine App-EXE gestartet, keine Tests gegen 8765, keine hörbaren Töne, kein Push. Der historische P9-6-Integrationsnachweis oben bleibt unverändert. |
+
+Ergebnisdateien bleiben lokal unter `cpp/build/game-mode-checks/`; keine Konfigurationen, Logs oder privaten Screenshots werden eingecheckt.
+
+## P9-8 Rotation, Logos und Spielkacheln
+
+Lokale Entwicklung auf `feature/game-mode`, Basis `8822084`; kein Release. `active_pages()` reserviert die konfigurierte Game-Ansicht bei aktiviertem Game-Mode für alle Ausgaben einschließlich Companion-Gerätelisten und Tap-Freigaben. Der Game-Mode-/Intro-Pfad bleibt unverändert. Bei deaktiviertem Game-Mode ist die Ansicht wieder normal verfügbar.
+
+Direkte EXE-Icon-Extraktion bis 256 px vor Shell-Fallback; passende AppxManifest-Logos mit Größenvarianten vor EXE-Fallback. Keine zusätzliche UWP-Spielerkennung. Einheitlicher Spielkachel-Renderer einschließlich CPU/GPU, adaptive größere Typografie, Vorlage mit Kopfzeile und 3×3 Metriken, FPS-/Frametime-Sparklines aus bis zu 60 Sekundenwerten (Lücken bei fehlenden Daten, Reset bei Prozesswechsel). Bestehende gespeicherte Ansichten bleiben erhalten.
+
+Prüfstand am 07.11.2026:
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Build | MSVC/CMake/Ninja-Release-Build erfolgreich; lokale Entwicklungsartefakte, keine Auslieferung. |
+| Automatisierte Suiten | **26/26 bestanden** über `python cpp/tests/game_mode_checks.py`; darunter **207 Game-Mode**, **2143 Custom-View** und **1874 Layout-/UI-Prüfungen**. Reservation bei expliziten/automatisch ergänzten Ansichten, Companion-Gerätelisten, Tap-Freigaben und deaktiviertem Game-Mode geprüft. Synthetische Paket-Assets mit größter Größenvariante, EXE-Icon-/GOG-/Ubisoft-Codepfad und 60-Sekunden-Verlauf einschließlich Lücken/Prozesswechsel geprüft. |
+| App-Integration | `python cpp/tests/game_mode_integration.py` über `Start-GameMode-Test.ps1`, ausschließlich UI **18766**, KI deaktiviert. Je acht Seitenwechsel vor/nach Dummy-Spiel ohne Game-Ansicht; erkannter Dummy zeigt die Game-Ansicht; nach Spielende Rückkehr, bei deaktiviertem Game-Mode normale Rotation. Drei unterschiedliche Intro-Frames aus `/api/preview.png` und anschließender Ansichtsframe bestätigt. |
+| Bildreferenzen | P9-Custom-Editor-/Game-Mode-Hashes bewusst aktualisiert; zusätzliche gerenderte Vorlagen in DE/EN bei 480×320 und 1520×720. Die deutschen Renderbilder beider Größen sowie Intro/Rückkehr angesehen. Andere Referenzdateien unverändert. |
+| Dokumentation | Game-Mode DE/EN und drei Changelogs aktualisiert; lokale Ziele ihrer Markdown-Links und `git diff --check` geprüft. README-/Versions-/Download-/Laufzeitangaben bleiben beim bisherigen Entwicklungs-/Release-Stand. |
+| Nicht ausgeführt | Keine echten GOG-/Ubisoft-/Xbox-/UWP-Spielstarts oder deren Logoabnahme; keine physischen Display-/Touch-/Sensor-/Anti-Cheat-Tests. Der gleiche komponierte Intro-Frame geht an Ausgabe und `last_frame()`, der Software-Test ersetzt keine physische Bestätigung. Kein Installer/Upgrade/Release, keine Tests auf 8765, keine Töne, kein Push. |
+
+Ergebnisse und anonyme Testbilder bleiben lokal unter `cpp/build/game-mode-checks/`, `cpp/build/game-mode-test/` und `cpp/build/screenbuddy-release/p9-ui-snapshots/`. Keine Konfigurationen, Logs oder privaten Screenshots eingecheckt.
+
+## P9-9 Prozesse ohne lesbaren Image-Pfad
+
+Lokale Entwicklung auf `feature/game-mode`, Basis `ec3795b`; kein Release. Toolhelp erhält PID und `szExeFile` auch bei verweigertem Prozesshandle oder Image-Pfad. Nur bei fehlendem Pfad greift der EXE-Dateinamen-Fallback mit Bibliothekscache und Vordergrund-/Vollbildfenster desselben Prozesses. Der Fenstertitel wird nicht zur Identifikation benötigt. Steam-Appmanifest/Steam-ID liefern weiterhin Name und Logoquelle, auch wenn die EA-App startet und Steam-RunningAppID `0` bleibt.
+
+Refresh-Cache je Installation: maximal 2.000 besuchte Einträge, drei Unterordnerebenen, nur EXE-Dateien, keine Reparse Points/Junctions. Manuelle Pfade liefern nur die ausdrücklich konfigurierte EXE. Xbox-Spielordner werden beim Refresh auf festen lokalen Laufwerken erfasst. Doppelte Bibliothekseinträge derselben Installation oder EXE sind zulässig; unterschiedliche Installationen mit gleichem Dateinamen bleiben ohne Zuordnung. Launcher-/Anti-Cheat-/Installer-/Crash-/Hilfsprozesse sowie benutzerdefinierte Namen-/Pfadausschlüsse gelten weiterhin. PID und EXE-Name erhalten die aktive Zuordnung bei Alt-Tab und wechselnder Pfadlesbarkeit; ETW benötigt weiterhin die PID, keinen Image-Pfad.
+
+Prüfstand am 07.11.2026:
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Build | MSVC/CMake/Ninja-Entwicklungsbuild erfolgreich. Nur lokale Entwicklungsartefakte, keine öffentliche EXE-Auslieferung. |
+| Automatisierte Suiten | **26/26 bestanden** über `python cpp/tests/game_mode_checks.py`, darunter **267 Game-Mode-Prüfungen** (60 zusätzliche Prüfungen gegenüber P9-8). Bestehende Custom-View-/Katalog-/UI-/Companion-/Snapshot-Suiten ebenfalls grün; kein App-EXE-Start. |
+| Neue Simulationen | Battlefield-6-Appmanifest `2807960`, leere Prozesspfade, RunningAppID `0`, Vordergrund-/Vollbildbindung, gleichnamige unterschiedliche Installationen, doppelte Steam-/manuelle Einträge, Launcher-/Anti-Cheat-/Hilfsprozessfilter, Namen-/Pfadausschlüsse, alle Bibliotheksarten, 3/5-Sekunden-Entprellung, Alt-Tab, PID-/Namenswechsel und wechselnde Pfadlesbarkeit. Dateisystem-Fixtures prüfen EXE-Filter, Tiefe 3 und 2.000-Einträge-Limit. |
+| Dokumentation | Game-Mode DE/EN und drei Changelogs aktualisiert; 75 lokale Markdown-Linkziele und die neuen P9-9-Sprungmarken sowie `git diff --check` geprüft. README-/Versions-/Download-/Laufzeitangaben auf Konsistenz geprüft; bisherige Prüfnachweise unverändert. |
+| Nicht ausgeführt | Keine Live-Abnahme mit Battlefield 6/Javelin, keine tatsächlichen Launcher-/Spielstarts, kein realer FPS-/ETW-Nachweis, keine physischen Display-/Touch-/Sensorprüfungen. Keine App-/Installer-EXE ausgeführt, kein Zugriff auf Port 8765, keine Töne, kein Push/Release. |
+
+Testergebnisse bleiben lokal unter `cpp/build/game-mode-checks/`; keine Konfigurationen, Logs oder privaten Screenshots werden eingecheckt.

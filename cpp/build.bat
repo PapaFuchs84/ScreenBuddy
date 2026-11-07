@@ -22,18 +22,26 @@ if errorlevel 1 set "CMAKE=C:\Program Files (x86)\Microsoft Visual Studio\2022\B
   -DVCPKG_TARGET_TRIPLET=x64-windows-static -DVCPKG_INSTALLED_DIR="%~dp0vcpkg_installed" ^
   -DVCPKG_MANIFEST_MODE=OFF -DCMAKE_TRY_COMPILE_CONFIGURATION=Release || goto :fail
 "%CMAKE%" --build "%BUILD_DIR%" || goto :fail
+"%BUILD_DIR%\fl-device-profile-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-tmdb-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-tests.exe" || goto :fail
+"%BUILD_DIR%\fl-plugin-zones-tests.exe" || goto :fail
+"%BUILD_DIR%\fl-builtin-catalog-tests.exe" || goto :fail
+"%BUILD_DIR%\fl-layout-edit-tests.exe" || goto :fail
+"%BUILD_DIR%\fl-layout-ui-tests.exe" || goto :fail
+rem Editor-Offline-Pruefung ist fl-layout-ui-tests.exe (oben); die --editor-offline-Skripte starten nur dieselbe Exe und brauchen hier kein Python.
+"%BUILD_DIR%\fl-plugin-schedule-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-example-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-store-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-transport-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-plugin-settings-tests.exe" || goto :fail
+"%BUILD_DIR%\fl-plugin-snapshot-tests.exe" || goto :fail
+"%BUILD_DIR%\fl-builtin-snapshot-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-monitor-tests.exe" || goto :fail
 "%BUILD_DIR%\fl-companion-tests.exe" || goto :fail
 python tests\installer_preserves_config.py "%BUILD_DIR%\ScreenBuddy.exe" || goto :fail
-if not exist dist mkdir dist
-copy /y "%BUILD_DIR%\ScreenBuddy.exe" dist\ >nul || goto :fail
+powershell -NoProfile -File "..\packaging\windows\Export-WindowsRelease.ps1" -BuildDirectory "%~dp0%BUILD_DIR%" -OutputDirectory "%~dp0dist" || goto :fail
 echo.
 echo Fertig: dist\ScreenBuddy.exe
 if /i not "%~1"=="nopause" pause

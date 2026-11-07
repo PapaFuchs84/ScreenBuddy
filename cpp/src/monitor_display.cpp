@@ -179,6 +179,13 @@ MonitorDisplay::MonitorDisplay(std::string device, bool touch) : device_(std::mo
     mouse_gesture_ = Gesture{w, h, {}};
 }
 
+std::string MonitorDisplay::layout_id() const {
+    if(!mon_) return {};
+    DISPLAY_DEVICEW device{};device.cb=sizeof device;
+    if(!EnumDisplayDevicesW(widen(mon_->device).c_str(),0,&device,EDD_GET_DEVICE_INTERFACE_NAME) || !device.DeviceID[0]) return {};
+    return "monitor:"+narrow(device.DeviceID);
+}
+
 MonitorDisplay::~MonitorDisplay() { close(); }
 
 std::pair<int, int> MonitorDisplay::size() const {

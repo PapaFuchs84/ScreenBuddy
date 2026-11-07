@@ -539,6 +539,13 @@ ${help([['The store says “not reachable”.', 'Check your internet connection 
   ['The store says “not available”.', 'This version has no signing key for the store. Use the current version from the download page.'],
   ['I cannot find a plugin.', 'Choose the category <b>All</b> and clear the search text.']])}`},
 
+{t: 'Game-Mode (development)', html: () => `
+<p class="kicker">P9 · Not released yet</p><h1>The right view while gaming</h1>
+<ol class="do"><li>Under <b>App → Custom views</b>, create a template with <b>+ Game-Mode</b>, edit and apply it.</li><li>Under <b>Game-Mode</b>, enable the feature and select a target display and custom view. Configure the intro, reduced animations and IPv4 ping target.</li><li>Enter additional games as absolute EXE paths, one per line. Exclusions accept EXE paths or filenames. Save and restart.</li></ol>
+<p>Libraries: Steam, Epic, Xbox plus GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard and Rockstar using local registry/manifest data. New registry sources require a game process in the installation folder with a foreground fullscreen/borderless window; launchers, launcher helpers and known anti-cheat services are excluded. Add the game EXE manually if entries are missing. Non-Steam: EXE icon and name. Real launcher acceptance tests remain open.</p>
+<p>After 3 seconds of stable detection, the optional logo intro leads to your custom view. After 5 seconds without the game, the previous rotation resumes. A missing custom view leaves normal rotation running.</p>
+<p>Missing readings remain <b>n/a</b>. FPS measure DXGI Present calls, not displayed frames; ETW may require administrator or Performance Log Users rights. CPU temperature requires HWiNFO. No game process modification, DLL injection or process memory reading. Real games, devices and sensors require separate acceptance testing.</p>`},
+
 {t: 'Save', html: () => `
 <p class="kicker">Very important</p><h1>Don't forget to save!</h1>
 <p class="lead">When you've changed something, a bar appears at the bottom of the settings page.</p>

@@ -2,6 +2,7 @@
 // Natives Einstellungsfenster (Shell): Kopfzeile, Navigation, Inhaltsbereich, Live-Vorschau und Fußleiste.
 // Die Seiten selbst liegen in ui_page_*.cpp (Schnittstelle: ui_kit.h), das UI-Kit in ui_kit.cpp.
 #include "native_settings.h"
+#include "layout_edit.h"
 #include "ui_shell_material.h"
 
 #include <windows.h>
@@ -163,7 +164,10 @@ struct NativeSettings::Impl : ui::Host {
             catch (...) { error = L"?"; }
             deliver([this, next = std::move(next), error] {
                 --busy_count;
-                if (!error.empty()) toast(ui::Text(error == L"?" ? std::wstring(english() ? L"The action failed." : L"Die Aktion ist fehlgeschlagen.") : error),
+                auto message=narrow(error);
+                auto localized=message.starts_with("layout:")
+                    ? widen(plugins::edit::diagnostic(message.substr(7),english())) : error;
+                if (!error.empty()) toast(ui::Text(error == L"?" ? std::wstring(english() ? L"The action failed." : L"Die Aktion ist fehlgeschlagen.") : localized),
                                           ui::ToastKind::Error);
                 else if (next) next();
                 recount();
@@ -376,6 +380,13 @@ struct NativeSettings::Impl : ui::Host {
             if (override_frame) preview(std::nullopt);
         }
         current = index;
+        if(slot.page->info().id=="custom_views") {
+            RECT window{};GetWindowRect(frame->hwnd(),&window);
+            MONITORINFO monitor{sizeof(monitor)};GetMonitorInfoW(MonitorFromWindow(frame->hwnd(),MONITOR_DEFAULTTONEAREST),&monitor);
+            const int width=std::min(frame->px(1520.f),int(monitor.rcWork.right-monitor.rcWork.left)),height=std::min(frame->px(940.f),int(monitor.rcWork.bottom-monitor.rcWork.top));
+            if(window.right-window.left<width || window.bottom-window.top<height)
+                SetWindowPos(frame->hwnd(),nullptr,monitor.rcWork.left,monitor.rcWork.top,width,height,SWP_NOZORDER|SWP_NOACTIVATE);
+        }
         update_material_tabs();
         slot.nav->active = true;
         content->set_root(slot.root.get());
@@ -521,7 +532,8 @@ struct NativeSettings::Impl : ui::Host {
         kit->use_design(initial_["display"]);
         kit->use_windows(windows);
         inspector_open = !cupertino() && !material();
-        const bool dark = windows ? kit->dark : (settings_theme == "dunkel" || (settings_theme != "hell" && ui::system_prefers_dark()));
+        const bool default_dark = settings_theme == "auto" && initial_["display"].value("theme",std::string()) == theme::DEFAULT_ID;
+        const bool dark = windows ? kit->dark : (default_dark || settings_theme == "dunkel" || (settings_theme != "hell" && ui::system_prefers_dark()));
         kit->dark = dark;
         kit->english = initial_.at("ui").value("language", "de") == "en";
         lang = own<ui::Segment>(std::vector<ui::Text>{ui::Text(L"DE"), ui::Text(L"EN")}, kit->english ? 1 : 0);
@@ -649,7 +661,7 @@ struct NativeSettings::Impl : ui::Host {
             std::max(1, frame->px(r.right - r.left)), std::max(1, frame->px(r.bottom - r.top)), SWP_NOZORDER | SWP_NOACTIVATE);
     }
     void material_frame(ui::Ctx& c, D2D1_SIZE_F sz) {
-        material_layout = ui::shell::layout_material(sz.width, sz.height, inspector_open, dirty_count > 0,
+        material_layout = ui::shell::layout_material(sz.width, sz.height, inspector_open && !(current>=0 && slots[current].page->info().id=="custom_views"), dirty_count > 0,
             theme->pref_width(c), lang->pref_width(c));
         if (material_tab_slots.size() <= 1) { material_layout.tabs = {}; material_layout.body.top = 152; }
         const auto& m = material_layout;

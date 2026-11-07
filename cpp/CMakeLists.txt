@@ -1,6 +1,6 @@
 # © 2026 FuchsLabs – ScreenBuddy (C++)
 cmake_minimum_required(VERSION 3.24)
-project(ScreenBuddy VERSION 2.9.5 LANGUAGES CXX RC)
+project(ScreenBuddy VERSION 2.10.0 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,14 +26,21 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
-    src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp
+    src/game_detect.cpp src/game_logo.cpp src/game_intro.cpp src/render_game.cpp src/game_runtime.cpp src/ui_page_game_mode.cpp
+    src/custom_view.cpp
+    src/custom_view_editor.cpp
+    src/ui_page_custom_views.cpp
+    src/ai_status.cpp src/ai_usage.cpp src/render_ai.cpp src/ui_page_ai.cpp
+    src/builtin_catalog.cpp src/layout_edit.cpp src/ui_layout_grid.cpp src/ui_editor.cpp src/ui_tile_palette.cpp
+    src/ui_page_layout.cpp
+    src/plugin_schedule.cpp src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp src/page_samples.cpp src/page_frame.cpp
     src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/key_help.cpp src/psn_logic.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/amp_logic.cpp src/audio_levels.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/native_settings.cpp src/ui_shell_material.cpp src/touch.cpp src/update.cpp
     src/ui_kit.cpp src/ui_logic.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
     src/ui_page_bf6.cpp src/ui_page_rss.cpp src/ui_page_streaming.cpp src/ui_page_homeassistant.cpp src/ui_page_spotify.cpp src/ui_page_companion.cpp src/ui_page_plugins.cpp src/ui_page_store.cpp src/ui_page_app.cpp src/ui_page_design.cpp
     src/companion.cpp src/companion_server.cpp src/network_display.cpp
-    src/plugins.cpp src/plugin_sign.cpp src/plugin_catalog.cpp src/plugin_catalog_net.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp third_party/qrcodegen/qrcodegen.cpp)
+    src/plugins.cpp src/plugin_sign.cpp src/plugin_catalog.cpp src/plugin_catalog_net.cpp src/plugin_store.cpp src/plugin_transport.cpp src/plugin_settings.cpp src/plugin_render.cpp src/plugin_zones.cpp third_party/qrcodegen/qrcodegen.cpp)
 
 add_library(flcore STATIC ${CORE_SOURCES})
 target_include_directories(flcore PUBLIC src third_party/qrcodegen)
@@ -41,8 +48,8 @@ target_compile_definitions(flcore PUBLIC UNICODE _UNICODE NOMINMAX WIN32_LEAN_AN
 target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EHsc /MP /GF)
 target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL OpenSSL::Crypto Opus::opus ZLIB::ZLIB
                                     nlohmann_json::nlohmann_json tomlplusplus::tomlplusplus pugixml::pugixml httplib::httplib
-                                    d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
-                                    comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 oleaut32 oleacc uuid uxtheme shell32)
+                                    dxgi powrprof tdh d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
+                                    windowsapp comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 oleaut32 oleacc uuid uxtheme shell32)
 
 # Eingebettete Dateien: bei Änderungen die Ressourcen neu bauen (CMake erkennt RCDATA-Abhängigkeiten nicht selbst)
 set_source_files_properties(res/app.rc PROPERTIES OBJECT_DEPENDS
@@ -53,7 +60,7 @@ target_link_libraries(ScreenBuddy PRIVATE flcore)
 target_link_options(ScreenBuddy PRIVATE /MANIFEST:NO /OPT:REF /OPT:ICF /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA)
 
 # Tests (Konsole): Parser, Konfiguration, Zeichnen
-add_executable(fl-tests tests/tests.cpp res/app.rc)
+add_executable(fl-tests tests/tests.cpp tests/ai_status_tests.cpp res/app.rc)
 target_link_libraries(fl-tests PRIVATE flcore)
 target_compile_definitions(fl-tests PRIVATE FL_THEME_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/themes")
 target_link_options(fl-tests PRIVATE /MANIFEST:NO)
@@ -82,7 +89,22 @@ add_executable(fl-plugin-tests tests/plugins_tests.cpp src/plugins.cpp)
 target_include_directories(fl-plugin-tests PRIVATE src)
 target_link_libraries(fl-plugin-tests PRIVATE nlohmann_json::nlohmann_json)
 
-add_executable(fl-plugin-example-tests tests/plugin_examples_tests.cpp src/plugins.cpp)
+# Manifest v2 (Zonen-Layout), Zonen-Geometrie und Dichtestufen: rein, ohne Grafik und Netz
+add_executable(fl-plugin-zones-tests tests/plugin_zones_tests.cpp src/plugins.cpp src/plugin_zones.cpp)
+target_include_directories(fl-plugin-zones-tests PRIVATE src)
+target_link_libraries(fl-plugin-zones-tests PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(fl-layout-edit-tests tests/layout_edit_tests.cpp src/plugins.cpp src/plugin_zones.cpp src/layout_edit.cpp)
+target_include_directories(fl-layout-edit-tests PRIVATE src)
+target_compile_options(fl-layout-edit-tests PRIVATE /utf-8)
+target_link_libraries(fl-layout-edit-tests PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(fl-layout-ui-tests tests/layout_ui_tests.cpp)
+target_link_libraries(fl-layout-ui-tests PRIVATE flcore)
+target_link_options(fl-layout-ui-tests PRIVATE /MANIFEST:NO)
+target_compile_definitions(fl-layout-ui-tests PRIVATE FL_LAYOUT_SNAPSHOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/layout-snapshots")
+
+add_executable(fl-plugin-example-tests tests/plugin_examples_tests.cpp src/plugins.cpp src/plugin_zones.cpp)
 target_include_directories(fl-plugin-example-tests PRIVATE src)
 target_link_libraries(fl-plugin-example-tests PRIVATE nlohmann_json::nlohmann_json)
 target_compile_definitions(fl-plugin-example-tests PRIVATE FL_PLUGIN_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/plugins")
@@ -103,6 +125,21 @@ target_link_libraries(fl-plugin-catalog-tests PRIVATE nlohmann_json::nlohmann_js
 add_executable(fl-plugin-preview tools/plugin_preview.cpp)
 target_link_libraries(fl-plugin-preview PRIVATE flcore)
 target_link_options(fl-plugin-preview PRIVATE /MANIFEST:NO)
+
+# Render snapshots der Beispiel-Plugins: Standard vergleicht mit tests/plugin-snapshots, "update" schreibt die Basis neu
+add_executable(fl-plugin-snapshot-tests tests/plugin_snapshot_tests.cpp)
+target_link_libraries(fl-plugin-snapshot-tests PRIVATE flcore)
+target_link_options(fl-plugin-snapshot-tests PRIVATE /MANIFEST:NO)
+target_compile_definitions(fl-plugin-snapshot-tests PRIVATE
+    FL_PLUGIN_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/plugins"
+    FL_PLUGIN_SNAPSHOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/plugin-snapshots")
+
+# Bitgleiche Baseline eingebauter Seiten; update und export sind ausdrücklich gewählte Modi.
+add_executable(fl-builtin-snapshot-tests tests/builtin_snapshot_tests.cpp)
+target_link_libraries(fl-builtin-snapshot-tests PRIVATE flcore)
+target_link_options(fl-builtin-snapshot-tests PRIVATE /MANIFEST:NO)
+target_compile_definitions(fl-builtin-snapshot-tests PRIVATE
+    FL_BUILTIN_SNAPSHOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/builtin-snapshots")
 
 add_executable(fl-plugin-sign tools/plugin_sign.cpp src/plugins.cpp src/plugin_sign.cpp)
 target_include_directories(fl-plugin-sign PRIVATE src)
@@ -127,3 +164,33 @@ target_link_libraries(fl-plugin-settings-tests PRIVATE nlohmann_json::nlohmann_j
 add_executable(fl-companion-tests tests/companion_tests.cpp)
 target_link_libraries(fl-companion-tests PRIVATE flcore)
 target_link_options(fl-companion-tests PRIVATE /MANIFEST:NO)
+
+# Stable startup entry point: Store updates move the package directory.
+add_executable(ScreenBuddyStartup WIN32 tools/store_startup.cpp)
+target_compile_definitions(ScreenBuddyStartup PRIVATE UNICODE _UNICODE)
+
+add_executable(fl-distribution-tests tests/distribution_tests.cpp)
+target_link_libraries(fl-distribution-tests PRIVATE flcore)
+
+add_executable(fl-device-profile-tests tests/device_profile_tests.cpp)
+target_link_libraries(fl-device-profile-tests PRIVATE flcore)
+target_link_options(fl-device-profile-tests PRIVATE /MANIFEST:NO)
+
+add_executable(fl-plugin-schedule-tests tests/plugin_schedule_tests.cpp src/plugin_schedule.cpp)
+target_include_directories(fl-plugin-schedule-tests PRIVATE src)
+
+# Reiner Katalog und Overlay-Prüfung, ohne App und Netzwerk.
+add_executable(fl-builtin-catalog-tests tests/builtin_catalog_tests.cpp src/builtin_catalog.cpp src/plugins.cpp src/plugin_zones.cpp src/layout_edit.cpp)
+target_include_directories(fl-builtin-catalog-tests PRIVATE src)
+target_compile_options(fl-builtin-catalog-tests PRIVATE /utf-8)
+target_link_libraries(fl-builtin-catalog-tests PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(fl-custom-view-tests tests/custom_view_tests.cpp)
+target_link_libraries(fl-custom-view-tests PRIVATE flcore)
+target_link_options(fl-custom-view-tests PRIVATE /MANIFEST:NO)
+
+add_executable(fl-game-tests tests/game_tests.cpp)
+target_link_libraries(fl-game-tests PRIVATE flcore)
+
+# Silent test process, excluded from public release exports.
+add_executable(fl-game-dummy WIN32 tests/game_dummy.cpp)

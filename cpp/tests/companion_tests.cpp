@@ -387,6 +387,27 @@ static void test_store() {
     fs::remove(path);
 }
 
+static void test_corrupt_keepout() {
+    auto path = tmpfile("fl-companion-corrupt-keepout.json");
+    Store initial(path, enc, dec, [] { return 1.0; });
+    std::string id;
+    initial.add_device("Synthetic", &id);
+    nlohmann::json original;
+    { std::ifstream f(path); f >> original; }
+    for (auto bad : {nlohmann::json("broken"), nlohmann::json::array({1,2}), nlohmann::json(-5),
+                    nlohmann::json{{"top",-5},{"right",1200},{"bottom","bad"},{"left",nlohmann::json::array()}}}) {
+        auto data = original;
+        data["devices"][0]["keepout"] = bad;
+        { std::ofstream f(path); f << data; }
+        Store loaded(path, enc, dec, [] { return 1.0; });
+        loaded.load();
+        CHECK(loaded.list().size() == 1);
+        if (bad.is_object()) CHECK(loaded.device_keepout(id) == std::optional(fl::device::Insets{0,1000,0,0}));
+        else CHECK(!loaded.device_keepout(id).has_value());
+    }
+    fs::remove(path);
+}
+
 static void test_identity() {
     Identity id = generate_identity("FuchsLabs USB-Display");
     CHECK(id.cert_pem.find("BEGIN CERTIFICATE") != std::string::npos);
@@ -1095,7 +1116,7 @@ static void test_resize_swipe() {
 }
 
 // ---------- Unabhängiger Betrieb: eigene Bilder, Größen, Gesten und Seitenlisten je Gerät ----------
-static void test_independent() {
+static void test_independent(bool offline = false) {
 #ifdef _WIN32
     WSADATA d;
     WSAStartup(MAKEWORD(2, 2), &d);
@@ -1107,6 +1128,21 @@ static void test_independent() {
     std::string a_id, b_id;
     store.add_device("A", &a_id);
     store.add_device("B", &b_id);
+    CHECK(store.set_device_size(a_id,1080,2400));
+    CHECK(store.set_device_tv(b_id,true));
+    CHECK(!store.set_device_size(a_id,-1,2400));CHECK(!store.set_device_size("unknown",480,320));
+    CHECK(!store.set_device_tv("unknown",true));
+    {
+        Store offline_profile(path,enc,dec,[]{return 2.0;});offline_profile.load();
+        for(const auto& d:offline_profile.list()) {
+            if(d["id"]==a_id) {CHECK(d["width"]==1080);CHECK(d["height"]==2400);CHECK(d["tv"]==false);}
+            if(d["id"]==b_id) CHECK(d["tv"]==true);
+        }
+    }
+    CHECK(!store.device_keepout(a_id).has_value());
+    CHECK(!store.set_device_keepout("unknown", fl::device::Insets{}));
+    CHECK(!store.set_device_keepout(a_id, fl::device::Insets{-1,0,0,0}));
+    CHECK(store.set_device_keepout(a_id, fl::device::Insets{10,20,30,40}));
     CHECK(!store.device_pages(a_id).has_value());
     CHECK(store.set_device_pages(a_id, std::vector<std::string>{"system", "plugin:wetter", "system", "", "bad\nkey"}));
     CHECK(store.device_pages(a_id) == std::optional(std::vector<std::string>{"system", "plugin:wetter"}));
@@ -1118,6 +1154,10 @@ static void test_independent() {
         again.load();
         CHECK(again.device_pages(a_id) == std::optional(std::vector<std::string>{"system", "plugin:wetter"}));
         CHECK(again.device_pages(b_id).has_value());
+        CHECK(again.device_keepout(a_id) == std::optional(fl::device::Insets{10,20,30,40}));
+        CHECK(!again.device_keepout(b_id).has_value());
+        CHECK(again.set_device_keepout(a_id, std::nullopt));
+        CHECK(!again.device_keepout(a_id).has_value());
         bool listed = false;
         for (auto& dev : again.list()) if (dev["id"] == a_id) listed = dev["pages"].is_array() && dev["pages"].size() == 2;
         CHECK(listed);
@@ -1130,6 +1170,7 @@ static void test_independent() {
     store.remove(a_id);
     store.remove(b_id);
 
+    if (offline) return;
     // Server: zwei Geräte, jedes mit eigenem Bild, eigener Größe und eigenen Gesten
     std::mutex mu;
     std::map<std::string, std::string> swipes, resizes;
@@ -1211,7 +1252,8 @@ static void test_independent() {
     for (int i = 0; i < 4 && last != "SHARED"; ++i) last = frame_of(b);
     CHECK_EQ(last, "SHARED");
 }
-int main() {
+int main(int argc, char** argv) {
+    const bool offline = argc == 2 && std::string(argv[1]) == "--offline";
     test_crypto();
     test_net();
     test_handshake();
@@ -1221,11 +1263,11 @@ int main() {
     test_pairing();
     test_gate();
     test_store();
+    test_corrupt_keepout();
     test_identity();
-    test_server();
-    test_server_hardening();
-    test_independent();
-    test_resize_swipe();
+    if (!offline) { test_server(); test_server_hardening(); test_resize_swipe(); }
+    test_independent(offline);
+    if (offline) std::printf("OFFLINE: TLS server, server hardening, resize/swipe and independent server integration NOT RUN (network forbidden).\n");
     std::printf("%d Prüfungen ok, %d Fehler\n", g_ok, g_fail);
     return g_fail ? 1 : 0;
 }

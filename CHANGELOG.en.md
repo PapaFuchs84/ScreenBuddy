@@ -6,6 +6,58 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-11-07
+
+The Companion app remains 1.0.3. Release notes: [docs/RELEASE-NOTES-2.10.0.md](docs/RELEASE-NOTES-2.10.0.md) (German).
+
+### Added
+
+- **Plugin zones and editor:** Manifest v2 (`schema_version: 2`) describes a flat grid with zones and blocks with stable block IDs (6 × 6 grid, 8 zones, at most 4 blocks per zone, up to 12 widgets with a layout). Also density levels (compact, regular, detailed; a block that does not fit is hidden), conditional display (`show_if`), fault isolation per block, cycling zones (`rotate` with 3–600 s or `first_available`) and tap targets that open HTTPS links on the PC (consent per plugin, off by default). New editor with a tile palette (search, filters, mini previews), a canvas in the display's aspect ratio, layer and page lists, drag and drop, undo/redo and keyboard operation. Plugin cards take radius and spacing from the theme. Built-in pages (System, Friends, Discord, Battlefield 6, Blogs, Streaming, Spotify) draw through the same frame and can be edited in the editor; Home Assistant stays native.
+- **Custom views:** Dedicated editor under **App → Custom views** with a strictly bounded JSON model, backup and atomic saving. Single tiles for system, lists, Spotify and native Home Assistant entities; management, palette, grid, properties, undo/redo, device inheritance and a `custom:` page cycle. Only active displays appear as tabs; saved offline layouts are kept. Touch target per tile (default or custom: switch page, link only with consent, next entry for plugin cycling zones). The "Arrange page" entry is gone; standard and plugin pages are edited through the page list of Custom views. [Usage and validation](docs/PHASE8-EIGENE-ANSICHTEN.md) (German).
+- **Game-Mode:** Read-only game detection (Steam, Epic, Xbox, GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net, Rockstar; full-screen check, anti-cheat-protected games via PID/EXE name, additional games and exclusions). When a game starts, a 2.5-second intro with the logo (reduced variant with "reduce animations"), then a dedicated game view on the selected display with 16 new single system tiles (including FPS, frametime, 1% low, GPU, VRAM, ping) and 60-second sparklines. Normal rotation pauses and resumes after the game ends; while Game-Mode is on, the game view is reserved from rotation, Companion navigation and tap targets. Missing sources show `n/a`. [Plan and validation](docs/PLAN-GAME-MODE.md) (German).
+- **AI Status:** Claude Code and Codex cards, status and session animations, local hook events (loopback, port 18765, configurable with fallback) with preview, one-time backup and selective removal, local `ai.*` tile data and tiles in Custom views. Limits use the existing account consent and read the Windows login files (unofficial HTTPS interfaces, polled every 3/15 minutes, no token refresh). An expired token is checked again every 60 seconds. Values without a measurement stay `n/a`. [Validation and open work](cpp/ai-status-report.md) (German).
+- **Default theme `material-orange`:** Dark Material with an orange accent (text/surface and accent/surface at least 4.5:1, bar at least 3:1). New installations start with it; existing installations are asked once "Set new default?" (default: No). Cupertino, Fluent, Light, Dark, Windows and custom themes remain selectable.
+- **Keepout per device:** Whole-pixel edges for the USB display and monitor (under **Display**) plus a shared default and an individual keepout per paired Companion device in independent mode. Android TV always runs in landscape.
+
+### Changed
+
+- **Spotify:** When nothing is playing, the page shows the **last played track** with cover ("Last played", dimmed, no buttons) instead of "Nothing is playing". This needs the extra Spotify permission "recently played": sign in once more under Settings › Spotify. Without it the previous message stays. Tapping the cover opens the Spotify app on the PC, also when tapped from a Companion device; Spotify is not started on the phone.
+- **Contrast:** Warning colour in the light theme, Windows high-contrast design and the Cupertino dark header raised; the focus ring in the light FuchsLabs theme is darkened to Glut. Text contrast of at least 4.5:1 is checked in a theme matrix.
+
+### Fixed
+
+- **BF6 leaderboard, ID lookup:** Players can be entered by ID (`Name#ID`, `Name@psn#ID`; existing entries stay valid). Queried by `playerid`; the name is for display only. After a successful name lookup the app remembers the ID; on failure it falls back to player search and lowercase. "Check" shows the ID found (web UI with "Use ID"). A player's link with an ID goes to `tracker.gg/bf6/profile/<ID>/overview`.
+- **BF6 leaderboard, source unavailable:** When the source (gametools) answers with HTTP 5xx, the app shows "source unavailable" instead of "not found"; last good values and remembered IDs are kept. Network errors and 404 behave as before.
+- **BF6 platform:** gametools rejects `platform=ea` and only finds players with `pc`. PC accounts are queried with `pc`, falling back to `ea` and the lowercase name if needed; PSN and Xbox try several platform values.
+
+### Security
+
+- **Tap URLs:** HTTPS only, strict characters and percent escapes, lowercase hosts, no dot segments. The address is checked again at tap time before the browser starts.
+- **Link consent:** Off by default; revoked on any plugin change except a pure change of the link list. At most one link attempt per plugin every two seconds. Denied taps do not switch the page.
+- **`show_if`:** Secret settings are forbidden in conditions; an invalid condition rejects the whole manifest.
+- **Logging:** Warnings name only the plugin ID, block ID and stage, never data, setting values or exception texts.
+
+### Compatibility
+
+- Manifest v1, protocol v1 and the existing snapshot hashes are unchanged. Without `layout`, v1 and v2 draw in the automatic grid as before.
+- Schema 2 requires `min_app_version` 2.10.0 or newer in the store; older apps reject it.
+- Keepout: whole pixels 0–1000; each edge at most one third of the smaller frame edge. If fewer than 160 × 120 usable pixels remain, the keepout is ignored.
+- Android TV always runs in landscape. A stored portrait choice is kept but ignored.
+- Home Assistant stays native and is not part of the zone system.
+- The Companion app remains 1.0.3. Version 1.0.4 (versionCode 8) is a development state without signing or distribution.
+
+### Validation status
+
+- Automated checks green (details and figures: `cpp/TESTPROTOKOLL.md`, [Game-Mode](docs/PLAN-GAME-MODE.md), [AI Status](cpp/ai-status-report.md)).
+- Hardware and device acceptance only partly live (Redmi 8, Android TV, Pixel 10 Pro): Game-Mode intro on the Redmi 8, BF6 detection on the PC, leaderboard on Android TV, AI Status. Not accepted: further real games and launchers, USB display including the portrait enclosure, monitor, measured serial frame rate for cycling zones.
+- Built-in pages: the baseline is machine-bound (Roboto as a user font is required); 0 differences on the reference machine.
+
+### 2.9.6 – in preparation
+
+Public Windows EXE releases now require trusted, timestamped Authenticode signing; without a certificate the export is blocked.
+
+Microsoft Store preparation: MSIX packaging, separate user data, Store updates and package-stable autostart. Companion 1.0.4 (code 8): Android API 36 and setup-window insets. No Store publication has taken place.
+
 ## [2.9.5] – 2026-11-01
 
 ### Changed

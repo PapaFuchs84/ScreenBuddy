@@ -6,6 +6,58 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-11-07
+
+Companion-App bleibt 1.0.3. Release-Notizen: [docs/RELEASE-NOTES-2.10.0.md](docs/RELEASE-NOTES-2.10.0.md).
+
+### Hinzugefügt
+
+- **Plugin-Zonen und Editor:** Manifest v2 (`schema_version: 2`) beschreibt ein flaches Raster mit Zonen und Blöcken mit stabilen Block-IDs (6 × 6 Raster, 8 Zonen, höchstens 4 Blöcke je Zone, bis zu 12 Widgets mit Layout). Dazu Dichtestufen (kompakt, normal, ausführlich; passt ein Block nicht, wird er ausgeblendet), bedingte Anzeige (`show_if`), Fehlerisolierung je Block, Wechselfeld (`rotate` mit 3–600 s oder `first_available`) und Tap-Ziele, die HTTPS-Links am PC öffnen (Freigabe je Plugin standardmäßig aus). Neuer Editor mit Kachelpalette (Suche, Filter, Mini-Vorschauen), Fläche im Seitenverhältnis des Displays, Ebenen- und Seitenliste, Drag & Drop, Rückgängig/Wiederholen und Tastaturbedienung. Plugin-Karten übernehmen Radius und Abstände aus dem Theme. Eingebaute Seiten (System, Freunde, Discord, Battlefield 6, Blogs, Streaming, Spotify) zeichnen über denselben Rahmen und sind im Editor bearbeitbar; Home Assistant bleibt nativ.
+- **Eigene Ansichten:** Eigener Editor unter **App → Eigene Ansichten** mit streng begrenztem JSON-Modell, Sicherung und atomarem Speichern. Einzelkacheln für System, Listen, Spotify und native Home-Assistant-Entitäten; Verwaltung, Palette, Raster, Eigenschaften, Rückgängig/Wiederholen, Geräte-Vererbung und `custom:`-Seitenzyklus. Nur aktive Displays erscheinen als Tabs, gespeicherte Offline-Layouts bleiben erhalten. Touch-Ziel je Kachel (Standard oder individuell: Seite wechseln, Link nur mit Freigabe, nächster Eintrag für Plugin-Wechselfelder). Der Eintrag „Seite anordnen“ entfällt; Standard- und Plugin-Seiten werden über die Seitenliste von Eigene Ansichten bearbeitet. [Bedienung und Prüfstand](docs/PHASE8-EIGENE-ANSICHTEN.md).
+- **Game-Mode:** Lesende Spielerkennung (Steam, Epic, Xbox, GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net, Rockstar; Vollbildprüfung, Anti-Cheat-geschützte Spiele über PID/EXE-Namen, zusätzliche Spiele und Ausschlüsse). Beim Spielstart ein 2,5-Sekunden-Intro mit Logo (reduzierte Variante bei „Animationen reduzieren“), danach eine eigene Game-Ansicht auf dem gewählten Display mit 16 neuen System-Einzelkacheln (u. a. FPS, Frametime, 1%-Low, GPU, VRAM, Ping) und 60-Sekunden-Sparklines. Die normale Rotation pausiert und läuft nach Spielende weiter; die Game-Ansicht ist bei aktivem Game-Mode aus Rotation, Companion-Navigation und Tap-Zielen reserviert. Fehlende Messquellen zeigen `n/a`. [Plan und Prüfstand](docs/PLAN-GAME-MODE.md).
+- **KI-Status:** Claude-Code- und Codex-Karten, Status- und Sitzungsanimationen, lokale Hook-Ereignisse (Loopback, Port 18765 mit Fallback konfigurierbar) mit Vorschau, einmaliger Sicherung und selektiver Entfernung, lokale `ai.*`-Kacheldaten sowie Kacheln in Eigene Ansichten. Limits über die bestehende Konto-Einwilligung aus den Windows-Login-Dateien (inoffizielle HTTPS-Schnittstellen, Abfrage im 3-/15-Minuten-Takt, kein Token-Refresh). Ein abgelaufenes Token wird alle 60 Sekunden neu geprüft. Werte ohne Messwert bleiben `n/a`. [Prüfstand und offene Arbeiten](cpp/ai-status-report.md).
+- **Standard-Theme `material-orange`:** Dunkles Material mit Orange-Akzent (Text/Fläche und Akzent/Fläche mindestens 4,5:1, Leiste mindestens 3:1). Neuinstallationen starten damit; bestehende Installationen fragen einmalig per Dialog „Neuen Standard setzen?“ (Voreinstellung Nein). Cupertino, Fluent, Hell, Dunkel, Windows und eigene Themes bleiben wählbar.
+- **Sperrzone pro Gerät:** Ränder in ganzen Pixeln für USB-Display und Monitor (unter **Anzeige**) sowie gemeinsame Vorgabe und eigene Sperrzone je gekoppeltem Companion-Gerät im unabhängigen Betrieb. Android-TV läuft immer im Querformat.
+
+### Geändert
+
+- **Spotify:** Läuft nichts, zeigt die Seite den **zuletzt gespielten Titel** samt Cover („Zuletzt gespielt“, gedimmt, ohne Tasten) statt „Es läuft gerade nichts“. Dafür braucht die Anmeldung den zusätzlichen Spotify-Zugriff „zuletzt gespielt“: einmal unter Einstellungen › Spotify neu anmelden. Ohne diesen Zugriff bleibt es bei der bisherigen Meldung. Ein Tipp auf das Cover öffnet die Spotify-App am PC, auch bei einem Tipp von einem Companion-Gerät; auf dem Handy wird Spotify nicht gestartet.
+- **Kontrast:** Warnfarbe im hellen Theme, Windows-Kontrastdesign und Kopfzeile des Cupertino-Dunkelprofils angehoben; der Fokusring im hellen FuchsLabs-Theme ist auf Glut abgedunkelt. Textkontraste ≥ 4,5:1 werden in einer Themenmatrix geprüft.
+
+### Behoben
+
+- **BF6-Rangliste, ID-Suche:** Spieler lassen sich per ID eintragen (`Name#ID`, `Name@psn#ID`; alte Einträge bleiben gültig). Abfrage per `playerid`, der Name dient nur der Anzeige. Nach erfolgreicher Namenssuche merkt sich die App die ID; bei Fehlschlag Rückfall über Spielersuche und Kleinschreibung. „Prüfen“ zeigt die gefundene ID (Web-Oberfläche mit „ID übernehmen“). Der Link eines Spielers mit ID führt auf `tracker.gg/bf6/profile/<ID>/overview`.
+- **BF6-Rangliste, Quelle gestört:** Antwortet die Quelle (gametools) mit HTTP 5xx, zeigt die App „Quelle gestört“ statt „nicht gefunden“; zuletzt gute Werte und gemerkte IDs bleiben erhalten. Netzwerkfehler und 404 verhalten sich wie bisher.
+- **BF6-Plattform:** gametools lehnt `platform=ea` ab und liefert Spieler nur noch mit `pc`. PC-Konten werden mit `pc` abgefragt, bei Bedarf mit Rückfall auf `ea` und den kleingeschriebenen Namen; PSN und Xbox probieren mehrere Plattformwerte.
+
+### Sicherheit
+
+- **Tap-URLs:** nur HTTPS, strenge Zeichen und Prozentsequenzen, Hosts kleingeschrieben, keine Punktsegmente. Die Adresse wird beim Tipp erneut geprüft, bevor der Browser startet.
+- **Link-Freigabe:** standardmäßig aus; wird bei jeder Plugin-Änderung widerrufen, außer bei einer reinen Änderung der Linkliste. Je Plugin höchstens ein Linkversuch alle zwei Sekunden. Verweigerte Tipps wechseln die Seite nicht.
+- **`show_if`:** Geheime Einstellungen sind in Bedingungen verboten; eine ungültige Bedingung lehnt das ganze Manifest ab.
+- **Protokoll:** Warnungen nennen nur Plugin-ID, Block-ID und Stufe, nie Daten, Einstellungswerte oder Ausnahmetexte.
+
+### Kompatibilität
+
+- Manifest v1, Protokoll v1 und die bestehenden Snapshot-Hashes bleiben unverändert. Ohne `layout` zeichnen v1 und v2 wie bisher im automatischen Raster.
+- Schema 2 braucht im Store `min_app_version` 2.10.0 oder neuer; ältere Apps lehnen es ab.
+- Sperrzone: ganze Pixel 0–1000; je Rand höchstens ein Drittel der kleineren Bildkante. Bleiben weniger als 160 × 120 nutzbare Pixel, wird die Sperrzone ignoriert.
+- Android-TV läuft immer im Querformat. Eine gespeicherte Hochformat-Auswahl bleibt erhalten, wird aber ignoriert.
+- Home Assistant bleibt nativ und gehört nicht zum Zonen-System.
+- Die Companion-App bleibt 1.0.3. Version 1.0.4 (versionCode 8) ist ein Entwicklungsstand ohne Signierung und Auslieferung.
+
+### Prüfstand
+
+- Automatische Prüfungen grün (Details und Zahlen: `cpp/TESTPROTOKOLL.md`, [Game-Mode](docs/PLAN-GAME-MODE.md), [KI-Status](cpp/ai-status-report.md)).
+- Hardware- und Geräteabnahme nur teilweise live (Redmi 8, Android-TV, Pixel 10 Pro): Game-Mode-Intro am Redmi 8, BF6-Erkennung am PC, Rangliste am Android-TV, KI-Status. Nicht abgenommen: weitere echte Spiele und Launcher, USB-Display auch im Hochformat-Gehäuse, Monitor, gemessene serielle Bildrate für das Wechselfeld.
+- Eingebaute Seiten: Die Basislinie ist rechnergebunden (Roboto als Benutzerschrift nötig); auf dem Referenzrechner 0 Abweichungen.
+
+### 2.9.6 – in Vorbereitung
+
+Öffentliche Windows-EXE-Auslieferungen verlangen jetzt vertrauenswürdige Authenticode-Signierung mit Zeitstempel; ohne Zertifikat wird der Export gesperrt.
+
+Microsoft-Store-Vorbereitung: MSIX-Paketierung, getrennte Benutzerdaten, Store-Updates und paketfester Autostart. Companion 1.0.4 (Code 8): Android API 36 und Insets für die Einrichtung. Keine Store-Veröffentlichung erfolgt.
+
 ## [2.9.5] – 2026-11-01
 
 ### Geändert

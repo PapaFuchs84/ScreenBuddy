@@ -18,7 +18,25 @@
 
 namespace fl::bf6 {
 
-std::pair<std::string, std::string> parse_entry(const std::string& entry);  // "Name@psn" → (Name, psn)
+std::pair<std::string, std::string> parse_entry(const std::string& entry);  // "Name@psn" bzw. "Name@psn#id" → (Name, psn)
+// Eintrag mit optionaler Spieler-ID: "Name", "Name@psn", "Name#id", "Name@psn#id" (id = mind. 6 Ziffern, damit
+// Gamertags wie "Fox#1234" Namen bleiben)
+struct Entry {
+    std::string name, platform, id;
+};
+Entry parse_entry_full(const std::string& entry);
+// ID aus einem JSON-Wert (Zahl oder Text); leer bei null/0/false
+std::string json_id(const nlohmann::json& v);
+// Treffer der Spielersuche (/bf6/player) → ID; nur Treffer mit gleichem Namen (exakt vor ohne Groß/Klein), sonst leer
+std::string pick_search_id(const nlohmann::json& response, const std::string& name);
+// Plattform-Werte der Stats-API in Reihenfolge der Versuche (die API hat "ea" durch "pc" ersetzt, alte Werte als Fallback)
+std::vector<std::string> platform_candidates(const std::string& plat);
+// Namensvarianten: Original, danach klein geschrieben (die API findet manche Konten nur so)
+std::vector<std::string> name_candidates(const std::string& name);
+// HTTP 5xx der API = Quelle gestört (sagt nichts darüber, ob der Spieler existiert); 404 und Netzwerkfehler (Status 0) nicht
+bool is_server_error(int status);
+// Fehlertext eines Spielers ohne Werte: "Quelle gestört" bei 5xx, sonst "nicht gefunden"
+std::string failure_text(bool source_down);
 
 class Bf6Stats {
 public:
@@ -29,9 +47,13 @@ public:
     Bf6Player fetch(const std::string& entry);  // auch für die Prüfung in den Einstellungen
     std::vector<Bf6Player> players();
     std::optional<std::time_t> updated();
+    // Auto-Heilung: wird einmal je Eintrag mit dem um "#id" ergänzten Eintrag aufgerufen (Aufrufer speichert ihn in der Config)
+    void set_on_heal(std::function<void(const std::string& entry, const std::string& healed)> f) { on_heal_ = std::move(f); }
 
 private:
-    std::optional<nlohmann::json> get(const std::string& path, const std::vector<std::pair<std::string, std::string>>& params);
+    // server_error (optional) wird bei HTTP 5xx auf true gesetzt (sonst unverändert)
+    std::optional<nlohmann::json> get(const std::string& path, const std::vector<std::pair<std::string, std::string>>& params,
+                                      bool* server_error = nullptr);
     ImagePtr icon(const std::string& url);
     bool sleep_for(double seconds);
 
@@ -40,6 +62,8 @@ private:
     std::vector<Bf6Player> players_;
     std::optional<std::time_t> updated_;
     std::map<std::string, ImagePtr> icons_;
+    std::map<std::string, std::string> ids_;  // Eintrag → zuletzt gefundene ID (Speicher-Cache)
+    std::function<void(const std::string&, const std::string&)> on_heal_;
     std::mutex mu_;
     std::thread th_;
     std::atomic<bool> stop_{false};

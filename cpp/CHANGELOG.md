@@ -2,6 +2,96 @@
 
 ## Unreleased
 
+BF6: Spieler-ID im Eintrag (`Name#ID`, `Name@psn#ID`, ab 6 Ziffern), Abfrage per `playerid`, Auto-Heilung (ID aus Namenssuche im Speicher und in `config.toml`), Rückfall über `/bf6/player`-Suche und Namensvarianten; „Prüfen“ liefert `id`, Web-Link nutzt `/playerid/`. Neue Tests für `parse_entry_full`, `pick_search_id` und Touch-Ziele.
+
+P9-9: Toolhelp-Einträge auch bei verweigertem Prozesshandle/Image-Pfad erhalten; begrenzter EXE-Cache je Bibliothek, eindeutiger Dateinamen-Fallback mit Vordergrund/Vollbild und PID-/Namensbindung. EAAntiCheat.GameService*.exe sowie Installer/Crash-/Hilfsprogramme ausschließen. Simulierte BF6-/Entprellungs-/Filtertests, DE/EN-Dokumentation; echte Javelin-/FPS-/Displayabnahme offen.
+
+P9-8: Reservierte Game-Ansicht aus normalen Seiten-/Tap-Listen filtern; Intro im Preview-Frame nachweisen. EXE-Icons bis 256 px, passende AppxManifest-Assets, gemeinsame CPU-/GPU-/Spielkacheln, neue Vorlage und 60-Sekunden-Messwertverlauf. Synthetische und isolierte Tests; keine reale Launcher-/Displayabnahme.
+
+P9-7: Fünf weitere lesende Spielebibliotheken, austauschbare HKLM-Registry-Abfragen, begrenzter Battle.net-Ordner-Fallback, Launcher-/Anti-Cheat-Filter und Vordergrund-/Vollbildprüfung für Registry- und Epic-EXE-Treffer. Synthetische Tests unter `tests/game_tests/`; DE/EN-Dokumentation und eingebettete Hilfen. Echte Launcher-/Hardwareabnahme bleibt offen; [Prüfstand](../docs/PLAN-GAME-MODE.md#p9-7-weitere-spielebibliotheken).
+
+BF6: HTTP 5xx der API ergibt den Status „Quelle gestört“ (`bf6::is_server_error`, `bf6::failure_text`; EN „source unavailable“) statt „nicht gefunden“, auch in „Prüfen“ (`ui_page_bf6.cpp`, `webui.cpp`); alte Werte und `ids_` bleiben unberührt, Netzwerkfehler/404 unverändert. Touch-Link mit ID: `https://tracker.gg/bf6/profile/<ID>/overview`. Tests: `test_bf6_platforms`, `test_touch_targets`.
+
+P9-6: 26/26 Prüfsuiten und isolierter Dummy-Test bestanden; reproduzierbare Start-/Prüfskripte, lokaler Bildnachweis und ehrlicher Prüfstatus im [Game-Mode-Plan](../docs/PLAN-GAME-MODE.md). Keine EXE direkt gestartet/installiert, kein Test auf 8765, keine hörbaren Töne, kein Push/Release.
+
+P9-5: Runtime/Display-Override, native Einstellungen, Editor-Vorlage, Konfigurationsvalidierung und DE/EN-Hilfen. Historische Editor-Snapshots bleiben erhalten; neue P9-Referenzen. Steam-VDF unterstützt leere Felder. 114 Game-Unit-Prüfungen und isolierte Dummy-Simulation bestanden; Gesamtlauf siehe Plan.
+
+P9-4: Dokumentierte, dynamisch geladene GPU-APIs und eigene ETW-Sitzung; Frame-Statistik und Katalog/Renderer mit Offline-Prüfungen. Kein vollständiger PresentMon-/Scanout-Ersatz.
+
+P9-3: Intro-Renderer und deterministische Zeit-/Fade-Prüfungen; App-Integration folgt in P9-5.
+
+P9-2: Logo-Cache mit Ablauf-, Beschädigungs- und URL-Prüfung; dynamisches EXE-Icon ohne Ausführung.
+
+P9-1: Spielerkennung und Parser als getrennte, testbare Komponenten; keine Prozessspeicherzugriffe.
+
+P8-4 (2026-11-07): KI-Status gemergt; Claude-/Codex-/Limits-Kacheln in eigenen Ansichten, vorhandener Renderer/Render-Takt, öffentliche Bedingungen und Seiten-Touch-Ziele, additive Editor-Snapshots DE/EN. Standardseiten-Baselines unverändert. Portkonflikt 18765 dokumentiert; keine Portänderung oder Veröffentlichung. [P8-4](../docs/PHASE8-EIGENE-ANSICHTEN.md).
+
+P8-2 (2026-11-07): Native Einzelkacheln aller eingebauten Quellen (einschließlich HA-Entität, Listen und Spotify), separater Ansichts-Editor und aktive Display-Tabs mit Standard-Rückfall. Bestehende Renderer und Standardseiten-Verträge erhalten. [Bedienung, Grenzen und Prüfstand](../docs/PHASE8-EIGENE-ANSICHTEN.md).
+
+P8-1 (2026-11-07): Eigene Ansichten: `custom_view.*`, strikter Store mit Backup, Geräte-Vererbung und `custom:`-Seitenzyklus; bestehende Renderer für System/Plugin-v2/Quellstatus. Grenzen (HA, Listen-/Spotify-Inhalte, Editor, Touch) und Prüfstand: [Phase 8](../docs/PHASE8-EIGENE-ANSICHTEN.md).
+
+- KI-Status: vorhandene Konto-Einwilligung nutzt Windows-Login-Dateien für inoffizielle Claude-/Codex-HTTPS-Limits; überschriebene Tokenpuffer, kein Refresh, unabhängiger 3-/15-Minuten-Takt, konfigurierbarer Empfängerport mit Fallback. Synthetische Offline-Prüfung; kein Release.
+- KI-Status-Korrekturen / AI Status fixes: feste Seitenzahltests, AI aus Layout-Katalog entfernt, Temp-Dateien bei Fehlern aufgeräumt und verwaiste reguläre Dateien ersetzt (Symlinks abgewiesen), Nummer beim Ausblenden erhalten, nur eigene Hook-Einträge in Vorschau, dynamischer Testport. Prüfstand: `ai-status-report.md`.
+- KI-Status / AI Status (`ai`): lokale Claude-Code-/Codex-Karten und Sitzungsanimationen, DPAPI-geschützter Loopback-Empfänger (18765), Hook-Vorschau/Backup/selektive Entfernung, DE/EN-Texte und `ai.*`-Kachelquelle. Fehlende Messwerte `n/a`; optionale lesende Konto-/Limitabfragen siehe `AI-STATUS.md`. Neue fl-tests-Prüfungen, siehe `ai-status-report.md` für ausgeführte Tests und offene Abnahme. Kein Release.
+
+P7b-0 (2026-11-06, Claude Sonnet 5.5 im Auftrag): Neuer Standard dunkles Material mit Orange-Akzent (`material-orange`; Text/Fläche und Akzent/Fläche mindestens 4,5:1, Leiste mindestens 3:1, Kontrasttests in fl-tests und fl-layout-ui-tests). Neuinstallation startet damit; bestehende Installationen fragen einmalig per Dialog DE/EN „Neuen Standard setzen?“ (Voreinstellung Nein, Antwort in `ui.standard_theme_choice` gespeichert, Schließen ändert nichts). Cupertino, Fluent, Hell, Dunkel, Windows und eigene Themes bleiben wählbar. Bestehende Built-in-/Plugin-Hashdateien unverändert, neue Basis additiv in `p7b0-material-orange-hashes.txt` (768 Hashes).
+
+P7b-6 (2026-11-06, Agent Codex CLI 0.166.0): Geräte-Overlays für Built-ins/Plugins mit Standard-Vererbung (höchstens 16 je Seite, 16 KiB je Overlay, 256 KiB gesamt), atomarer Speicherung/Backup und gemeinsamer Geräteauswahl für Bild/Touch; Display-Tabs mit Größe/Ausrichtung, Offline-Profil und Rückfrage beim Verwerfen. Android-TV am PC markieren (Protokoll v1 meldet keinen Gerätetyp), dann nur Querformat. 14 Suiten grün (Companion offline), elf bestehende Hashdateien unverändert; physische Mehrgeräte-Abnahme offen.
+
+P7b-1 (2026-11-06, Agent Claude Sonnet 5.5): Editor-Fensteraufbau: Kopfleiste (Seitenauswahl, Gerätegröße-Chip, Rückgängig/Wiederholen/Übernehmen/Zurücksetzen), linke Schiene mit Kacheln/Ebenen/Seiten, Fläche und Eigenschaften als Drei-Spalten-Hülle (breit ab 900 DIP; mittel: Eigenschaften unter der Fläche; schmal: untereinander, Palette eingeklappt, Bereichswahl bleibt beim Seitenwechsel); Display-Tab-Leiste unverändert. Neu `ui_editor.*`. 14 Suiten grün, Baselines bitgleich; Handabnahme offen.
+
+P7b-2 (2026-11-06, Agent Claude Sonnet 5.5): Kachelpalette mit Suche, Filter-Chips (Alle/System/Zeit/Medien/Spiele/Sonstiges) und Raster lebender Mini-Vorschauen (derselbe Seitenrenderer mit Beispieldaten: Ausschnitt der Standardseite bzw. Einzelzone bei Plugins; Cache je Seite/Kachel/Größe/Anzeige-Theme, Laden nur beim Seitenwechsel, Kacheln ohne Daten als „keine Daten“). Ziehen auf die Fläche, Klick fügt an der ersten freien Stelle ein (ein Rückgängig-Schritt), Tastatur (Pfeile, Leertaste, Enter, Entf, F6), MSAA „Kachelpalette“. Neu `ui_tile_palette.*`. 14 Suiten grün, Baselines bitgleich.
+
+P7b-3 (2026-11-06, Agent Claude Sonnet 5.5): Fläche im Seitenverhältnis des Display-Tabs: Gerätegrößen-Rahmen, dezentes Zellraster, gestrichelte Ablageplätze „hier ablegen“, Geist mit Einrasten (ungültig: gestrichelt rot und Text „passt nicht“), Griffe, Papierkorb, Zoom −/+/Passend. Opt-in `GridEditor::canvas`; das bisherige Raster bleibt bitgleich. Editor-Snapshots additiv (`p7b-editor-hashes.txt`), Kontrast Text ≥ 4,5:1 und Fokusring/Rahmen ≥ 3:1 in allen Themes geprüft. 14 Suiten grün.
+
+P7b-4 (2026-11-06, Agent Claude Sonnet 5.5): Ebenenliste (Reihenfolge, Sichtbarkeit; Auswahl wirkt in Liste und Fläche), Seitenliste (Wechsel mit Rückfrage bei ungesicherten Änderungen) und Einsteigerkarte „In drei Schritten“ (einmal wegklickbar, gemerkt in `layouts/editor-intro.done`). 14 Suiten grün (fl-layout-ui-tests 1.615), Baselines bitgleich; Handabnahme offen.
+
+P7-5 (2026-11-06, Agent Codex CLI 0.166.0): Reiner Built-in-Katalog und strikt versionierte Overlays; Standard behält festen Renderweg, HA später. 14 Suiten grün (Companion offline: 250); Built-in 4.221 Bilder/Trefferkarten: 0 Fehler, Plugin 2.093 Prüfungen: 0 Fehler; physische Abnahme offen.
+
+P7-6 (2026-11-06, Agent Codex CLI 0.166.0): Atomare Seitenlayouts mit Backup/Revision, Beispieldatenvorschau, Raster-Touch-Zielen und isoliertem Clip; fester Renderweg unverändert. 14 Suiten grün (Editor 835; Companion offline 250); Built-in 4.221 Bilder/Trefferkarten und Plugin-Baselines unverändert; Hardware offen.
+
+P7-7 (2026-11-06, Agent Codex CLI 0.166.0): RSS-Editor mit Beiträge/Pflicht-Zustand, getrennten Quer-/Hochlayouts in `layouts/builtin.rss.layout.json`; Öffnen/Übernehmen von Standard behält den pixelgleichen festen Weg, echte Änderungen nutzen das Raster (Abstände können sich ändern, E2). Zurücksetzen stellt Standard her; Zeilen, Blättern und Touch teilen einen Plan. Kopf/Fuß fest; Built-in-Wechselfelder und HA später. 14 Suiten grün (Katalog 217, Editor 874, Kern 3.470; Companion offline 250); bestehende Baselines bitgleich, zusätzlich 1.024 RSS-Bilder/Trefferkarten und 5.952 Prüfungen ohne Fehler; Hardware offen.
+
+P7-8 (2026-11-06, Agent Codex CLI 0.166.0): Streaming in der Seitenauswahl; Titel/Pflicht-Zustand aus dem vorhandenen Schnappschuss, seitenbezogenes Quer-/Hoch-Overlay, Blättern und Touch aus einem Rasterplan. Standard/Zurücksetzen behalten den festen Weg; TMDB / JustWatch bleibt im Fuß; kompakte Zeilen ohne Datum. 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, 1.792 neue Rasterbilder/Trefferkarten additiv, 6.267 Prüfungen/0; Hardware offen.
+
+P7-9 (2026-11-06, Agent Codex CLI 0.166.0): BF6 in der Seitenauswahl; Rangliste/Pflicht-Zustand, sortierter Schnappschuss, seitenbezogenes Quer-/Hoch-Overlay. Rasterkapazität steuert Blättern und Spielerlinks; kompakte Zeilen zeigen Name, K/D, Rang oder Fehler. Standard/Zurücksetzen bleiben pixelgleich. 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, 1.024 neue Rasterbilder/Trefferkarten additiv, 4.390 Prüfungen/0; Hardware offen.
+
+P7-10 (2026-11-06, Agent Codex CLI 0.166.0): Freunde und Discord in der Seitenauswahl; gemeinsamer Freunde/Pflicht-Zustand-Katalog und sortierte Schnappschüsse, getrennte Overlays `builtin.friends.layout.json` / `builtin.discord.layout.json`, Backups und Revisionen. Rasterzeilen, Blättern und Profilziele aus einem Plan; schmale kompakte Zeilen ohne Avatar/Marken. Standard/Zurücksetzen bleiben pixelgleich (E2 akzeptiert). 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, je 1.024 Rasterbilder/Trefferkarten additiv, zusammen 8.622 Prüfungen/0; Hardware offen.
+
+P7-11 (2026-11-06, Agent Codex CLI 0.166.0): System im Editor mit CPU/GPU/RAM/Datenträger/Netz aus dem vorhandenen Schnappschuss; Temperaturen mit heutigen Schwellenfarben, Netzverlauf in normaler Dichte, kompakt Wert/Balken bzw. Raten. Eigenes Quer-/Hoch-Overlay, Cupertino-Gruppe je Zone, Werkzeugziele aus demselben Rasterplan. Standard/Reset bleiben pixelgleich; E2 bestätigt. 14 Suiten grün (Companion offline); bestehende Baselines unverändert, 1536 System-Rasterbilder/Trefferkarten additiv. Physische Abnahme offen.
+
+P7-12 (2026-11-06, Agent Codex CLI 0.166.0): Spotify im Editor mit Cover, Titel/Interpret/Album, Fortschritt, Tasten, Pegel und Pflicht-Zustand aus vorhandenem Snapshot/Meter; „zuletzt gespielt“ bleibt ohne Fortschritt/Tasten. Quer-/Hoch-Overlay je Seite, kompakter einzeiliger Text, alle drei Pegelfarbmodi, getrennte 48-Punkte-Tastenziele aus derselben Anordnung. Standard/Reset pixelgleich; 14 Suiten grün (Companion offline); bestehende Baselines unverändert, 4096 Spotify-Rasterbilder/Trefferkarten additiv. Physische Abnahme offen.
+
+
+### 2.10.0 – preparation (unreleased)
+
+Technical changelog for the development line. Highlights and the open items are in `CHANGELOG.md`; test figures are in `TESTPROTOKOLL.md`.
+- **P8-3:** `ui_pages.cpp` no longer registers the layout page; `make_layout_page(selected)` is embedded by `ui_page_custom_views.cpp` (page list entries `builtin:`/`plugin:`). `custom::Tile::tap` (`parse_tap`/`tap_json`, strict, invalid becomes Default), `custom::draw_out` returns hit targets mapped with the composition transform, `custom::tap_override`/`TapEnv` resolve page/link targets against the active cycle and link grants; `App::queue_custom_page` + `ViewState::page_request` apply a page switch in `render_core`. Test seam `App::render_primary_for_test`.
+
+- **Zone layout (manifest v2):** `schema_version: 2`, stable block IDs, optional `layout` (flat grid of integer shares, zones with column/row/span, no overlap, no nesting). Limits: 6×6 grid, 8 zones, 4 blocks per zone, 12 widgets with a layout (6 without). Pure geometry in `plugin_zones.h/.cpp`; drawing by zones in `plugin_render.cpp` (`draw_zoned`). `store_problems`: schema 2 needs `min_app_version` ≥ 2.10.0.
+- **Density levels:** compact, regular, detailed per block type (`text`, `metric`, `bar`, `list`, `clock`) via `zones::DensityTable`; thresholds are central in the app, not in the manifest. Blocks that do not fit are hidden instead of overlapping.
+- **Conditional display (`show_if`, phase 3):** `Widget::show_if` with `path`, `op`, `value`; presence first, then strict same-type comparison (`condition_holds()`), fail closed. Secret settings are rejected in conditions; an invalid condition rejects the manifest.
+- **Fault isolation (phase 3):** per-block try/catch in `render_page` (`Page::failed`) and in `draw_page` (`draw_zoned` and the v1 grid); the clip stack is unwound to the block's own depth and the area is refilled with the theme background. Logging via `LOGW("plugins", …)` with fixed text (IDs and stage only), rate-limited (`plugin_isolation.h`).
+- **Device profile and keepout (phase 4a):** `companion.keepout` shared default and per-device keepout (`device_profile.h/.cpp`, `companion.cpp`, `ui_page_companion.cpp`); `display.keepout` on the Display page; whole pixels 0–1000; fallback below 160 × 120 usable pixels. Android TV forced to `SENSOR_LANDSCAPE`.
+- **Cycling zones (phase 4b):** schema-2 `cycle` (`rotate`, `first_available`) and `seconds` (3–600); pure scheduling with injected clock (`zones::Cycle`, `layout_edit.cpp`, `app.cpp`); quiet transitions with per-view image cache. Serial rate not measured.
+- **Tap targets (phase 4c):** schema-2 `tap` and `links`, percent-encoded non-secret values, HTTPS/host/generation check at tap time, one launch attempt per plugin every two seconds, link consent off by default (`ui_page_plugins.cpp`: "Links aus diesem Plugin am PC öffnen"). Companion rest time 1.0 s, monitor 0.3 s.
+- **Built-in pages (P5-0 to P5-6):** sample inputs moved to `render::samples`; System, Friends, Discord, BF6, RSS, Streaming and Spotify migrated mechanically to `draw_framed`. Bit-exact against the baselines on the reference machine (4221 images and hit maps, 0 differences, machine-bound baseline needing Roboto as a user font). Home Assistant stays native.
+- **Page editor (P6-1 to P6-5, incl. review):** strictly validated arrangement overlay with predecessor backup and manifest fingerprint binding (`layout_edit.cpp`), app callbacks, native editor under **App → Arrange plugin page** (`ui_page_layout.cpp`): grid, block list, conditions, 100-step history, keyboard paths, MSAA. The manifest is not changed. Global light focus ring darkened to `accent_text`; high-contrast selection only in the editor.
+- **Drag-and-drop page editor (P7-1 to P7-4):** `ui_kit`: `Widget::cursor` (pointer per position) and `Widget::cancel` on capture loss and Esc. `layout_edit`: `place_block`, `remove_block`, `move_block`, `probe` (transactional; `probe` never changes the model). `GridEditor`: block palette, drag/resize/trash, keyboard pick-up/drop, MSAA, `pointer()` shared by UI and tests, one undo step per gesture. Overlay and manifest format unchanged. Native mouse/settings smoke tests not run (need a running app).
+- **Contrast (≥ 4.5:1):** light theme warning colour (190,120,0) → (146,92,0); Windows high contrast warning colour (240,178,50); Cupertino dark header (10,132,255) → (17,136,255). `g_known_findings` empty; theme matrix in `fl-plugin-snapshot-tests`.
+- **Frame style:** plugin cards take radius and spacing from `theme::Design` (FuchsLabs radius 9 → 8).
+
+### Fixed
+
+- **BF6 leaderboard:** `platform=ea` is rejected by gametools; PC accounts are queried with `pc`, falling back to `ea` and the lower-case name; PSN and Xbox try several platform values (`bf6.cpp`, `bf6.h`).
+- **Spotify:** idle state shows the last played track via `/me/player/recently-played` (scope `user-read-recently-played`, `parse_recent`, 60 s cache, 403 → old message); `Snapshot::last_played`, dimmed rendering without controls (`spotify.cpp/.h`, `render.cpp`, `i18n.cpp`); tests in `tests/tests.cpp`.
+
+### 2.9.6 – preparation
+
+Mandatory signing and verification step before public EXE export; local development builds remain possible.
+
+MSIX runtime detection, own data path, Microsoft Store update path and a StartupTask instead of version-bound registry autostart. The standalone installation remains available.
+
 ## 2.9.5 – 1 November 2026
 
 - Settings navigation regrouped: View, Pages, App (Companion, Plugins, Plugin store moved to App; Colors & design belongs to View); store themes are installed on Colors & design instead of the Plugin store page (`ui_page_design.cpp`, `ui_page_store.cpp`, `ui_pages.cpp`, `ui_kit.h`).

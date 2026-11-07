@@ -15,6 +15,7 @@
 #include "ui_logic.h"
 #include "update.h"
 #include "util.h"
+#include "distribution.h"
 #include "winsetup.h"
 
 namespace fl::ui {
@@ -41,14 +42,14 @@ public:
         return {"app", Group::App, T(L"Updates & Autostart", L"Updates & startup"),
                 T(L"Programmversion, Update-Prüfung und Start mit Windows", L"Program version, update check and starting with Windows")};
     }
-    bool active(const ojson& cfg) const override { return flag(cfg, "ui", "update_check"); }
+    bool active(const ojson& cfg) const override { return distribution::packaged() || flag(cfg, "ui", "update_check"); }
     void build(Host& host, Column& root) override {
         host_ = &host;
         form_ = Form(host);
         autostart_loaded_ = manual_ = false;
         Card* upd = root.add<Card>(T(L"Updates", L"Updates"));
         upd->row<Label>(T(L"Installierte Version", L"Installed version"), Text(), Text(widen(VERSION)), Font::Strong);
-        form_.toggle(*upd, "ui", "update_check", T(L"Automatisch nach Updates suchen", L"Automatically check for updates"),
+        if (!distribution::packaged()) form_.toggle(*upd, "ui", "update_check", T(L"Automatisch nach Updates suchen", L"Automatically check for updates"),
                      T(L"Wirkt nach „Speichern & anwenden“", L"Takes effect after “Save & apply”"));
         update_label_ = upd->row<Label>(T(L"Stand", L"State"), Text(), T(L"Wird geladen …", L"Loading …"), Font::Small, Label::Muted);
         auto row = upd->add<ButtonRow>();
@@ -99,7 +100,7 @@ public:
             autostart_loaded_ = true;
         }
         autostart_->enabled = autostart_loaded_ && !test_instance() && !host_->busy();
-        check_->enabled = !host_->busy() && host_->config().at("ui").value("update_check", true);
+        check_->enabled = !host_->busy() && (distribution::packaged() || host_->config().at("ui").value("update_check", true));
         release_->enabled = !host_->busy() && !release_url_.empty();
     }
 private:
@@ -162,6 +163,12 @@ private:
     }
 
     void show_update(const ojson& info) {
+        if (distribution::packaged()) {
+            update_label_->text = T(L"Updates werden vom Microsoft Store verwaltet.", L"Updates are managed by Microsoft Store.");
+            check_->text = T(L"Microsoft Store öffnen", L"Open Microsoft Store");
+            release_->enabled = false;
+            return;
+        }
         release_url_.clear();
         if (info.is_object() && info.value("available", false)) {
             const std::string url = info.value("url", std::string());
@@ -187,6 +194,7 @@ private:
             host_->toast(T(L"Die Release-Seite konnte nicht geöffnet werden.", L"Could not open the release page."), ToastKind::Error);
     }
     void check_now() {
+        if (distribution::packaged()) { distribution::open_updates(); return; }
         if (host_->busy()) return;
         Host* h = host_;
         h->run([this, h]() -> std::function<void()> {

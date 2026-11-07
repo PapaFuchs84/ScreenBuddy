@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "plugins.h"
+#include "plugins_testing.h"
 #include <algorithm>
 #include <charconv>
 #include <cmath>
@@ -66,11 +67,17 @@ std::string bounded(std::string s) {
     s.resize(n);
     return s;
 }
-void fields(const Json& j, std::initializer_list<const char*> allowed) {
+void fields(const Json& j, const std::vector<const char*>& allowed) {
     require(j.is_object(), "Expected an object.");
     for (auto it = j.begin(); it != j.end(); ++it)
         require(std::any_of(allowed.begin(), allowed.end(), [&](const char* x) { return it.key() == x; }),
                 "Unknown or misplaced field.");
+}
+// Field list for v1, plus the v2-only extras when `extra` is true (v1 lists stay exactly as before).
+std::vector<const char*> with(std::initializer_list<const char*> base, bool extra, std::initializer_list<const char*> more) {
+    std::vector<const char*> out(base);
+    if (extra) out.insert(out.end(), more);
+    return out;
 }
 std::string str(const Json& j, const char* key, size_t min = 0, size_t max = manifest_limit) {
     require(j.contains(key) && j[key].is_string(), "Missing or invalid string field.");
@@ -119,9 +126,10 @@ const Setting* setting(const Manifest& m, const std::string& key) {
     return nullptr;
 }
 bool source_exists(const Manifest& m, const std::string& id) {
+    if(id=="ai") return true; // built-in, local, read-only tile source; no HTTP declaration
     return std::any_of(m.sources.begin(), m.sources.end(), [&](const Source& s) { return s.id == id; });
 }
-enum class Usage { display, item, request };
+enum class Usage { display, item, request, link, link_item };
 void reference(const Manifest& m, const std::string& ref, Usage usage, std::set<std::string>* used) {
     auto path = split(ref);
     require(std::all_of(path.begin(), path.end(), [](const auto& p) { return path_segment(p); }), "Invalid template path.");
@@ -134,8 +142,9 @@ void reference(const Manifest& m, const std::string& ref, Usage usage, std::set<
         return;
     }
     require(usage != Usage::request, "Requests may only reference settings.");
-    if ((path[0] == "time" || path[0] == "date") && path.size() == 1) return;
-    if (path[0] == "item" && usage == Usage::item) return;
+    require(path[0]!="ai" || (usage!=Usage::link && usage!=Usage::link_item), "Local AI data cannot be used in links.");
+    if ((path[0] == "time" || path[0] == "date") && path.size() == 1 && usage != Usage::link && usage != Usage::link_item) return;
+    if (path[0] == "item" && (usage == Usage::item || usage == Usage::link_item)) return;
     require(path.size() >= 2 && source_exists(m, path[0]), "Unknown source or invalid template reference.");
 }
 template<class F> std::string expand(std::string_view s, F resolve, bool cap) {
@@ -216,9 +225,9 @@ std::string scalar(const Json* value, bool& missing) {
     if (value->is_number() && !std::isfinite(value->get<double>())) { missing = true; return "—"; }
     return value->dump();
 }
-std::string encode_component(std::string_view value) {
+std::string encode_component(std::string_view value, bool source_path = true) {
     // "." and ".." would become dot segments in a URL path (traversal after server/proxy normalization).
-    require(value != "." && value != "..", "Setting value is not allowed as a URL path segment.");
+    require(!source_path || (value != "." && value != ".."), "Setting value is not allowed as a URL path segment.");
     const char* hex = "0123456789ABCDEF";
     std::string out;
     for (unsigned char c : value) {
@@ -231,6 +240,89 @@ std::string checked_text(const Json& j, const char* key, size_t min = 0, size_t 
     auto s = str(j, key, min, max);
     require(display_clean(s), "Control, bidirectional or zero-width characters are not allowed in display text.");
     return s;
+}
+// Manifest v2 layout: flat grid of integer shares, non-overlapping zones, no nesting. Mirrors zones::valid().
+std::vector<int> shares(const Json& j, const char* key, int limit) {
+    require(j.contains(key) && j[key].is_array() && !j[key].empty() && j[key].size() <= static_cast<size_t>(limit),
+            "Layout needs 1 to 6 columns and 1 to 6 rows.");
+    std::vector<int> out;
+    for (const auto& v : j[key]) {
+        require(v.is_number_integer(), "Layout shares must be integers.");
+        const auto n = v.get<double>();
+        require(n >= 1 && n <= zones::max_weight, "Layout shares must be 1 to 12.");
+        out.push_back(static_cast<int>(n));
+    }
+    return out;
+}
+// Manifest v2 `show_if`: object {path[, op, value]}; no expression syntax at all. Secret settings never allowed.
+bool ordering(const std::string& op) { return op == "<" || op == "<=" || op == ">" || op == ">="; }
+Condition condition(const Manifest& m, const Json& j) {
+    fields(j, {"path", "op", "value"});
+    Condition c;
+    c.path = str(j, "path", 1, condition_path_limit);
+    const auto path = split(c.path);
+    require(path.size() <= condition_segment_limit &&
+            std::all_of(path.begin(), path.end(), [](const auto& p) { return path_segment(p); }), "Invalid condition path.");
+    if (path[0] == "settings") {
+        require(path.size() == 2, "Setting reference must have exactly one key.");
+        const auto* s = setting(m, path[1]);
+        require(s != nullptr, "Unknown setting reference.");
+        require(s->type != "secret", "Secret settings cannot appear in conditions.");
+    } else require(source_exists(m, path[0]), "Condition must reference a source or a setting."); // time/date/item are no sources
+    if (!j.contains("op")) {
+        require(!j.contains("value"), "A condition value needs an operator.");
+        return c;
+    }
+    c.op = str(j, "op", 1, 2);
+    require(c.op == "==" || c.op == "!=" || ordering(c.op), "Unsupported condition operator.");
+    require(path.size() >= 2, "Comparisons need a field path.");
+    require(j.contains("value"), "A comparison needs a value.");
+    const auto& v = j["value"];
+    if (v.is_number()) c.value = number(j, "value");
+    else if (v.is_string()) c.value = checked_text(j, "value", 1, condition_text_limit);
+    else if (v.is_boolean()) c.value = v.get<bool>();
+    else throw Invalid("Condition value must be text, a number or a boolean.");
+    require(v.is_number() || !ordering(c.op), "Only numbers can be compared with <, <=, > or >=.");
+    return c;
+}
+zones::Layout layout(const Json& j) {
+    fields(j, {"columns", "rows", "zones"});
+    zones::Layout l;
+    l.columns = shares(j, "columns", zones::max_columns);
+    l.rows = shares(j, "rows", zones::max_rows);
+    require(j.contains("zones") && j["zones"].is_array() && !j["zones"].empty() &&
+            j["zones"].size() <= static_cast<size_t>(zones::max_zones), "Layout needs 1 to 8 zones.");
+    const int columns = static_cast<int>(l.columns.size()), rows = static_cast<int>(l.rows.size());
+    std::set<std::string> ids;
+    std::vector<char> used(static_cast<size_t>(columns * rows), 0);
+    for (const auto& v : j["zones"]) {
+        fields(v, {"id", "column", "row", "column_span", "row_span", "cycle"});
+        zones::Zone z;
+        if (v.contains("cycle")) {
+            const auto& c = v["cycle"];
+            fields(c, {"mode", "transition"});
+            zones::Cycle cycle;
+            cycle.mode = str(c, "mode");
+            if (c.contains("transition")) cycle.transition = str(c, "transition");
+            require(cycle.mode == "rotate" || cycle.mode == "first_available", "Unsupported cycle mode.");
+            require(cycle.transition == "fade" || cycle.transition == "none", "Unsupported cycle transition.");
+            z.cycle = cycle;
+        }
+        z.id = str(v, "id");
+        require(identifier(z.id) && ids.insert(z.id).second, "Invalid or duplicate zone ID.");
+        z.column = integer(v, "column", 0, columns - 1);
+        z.row = integer(v, "row", 0, rows - 1);
+        if (v.contains("column_span")) z.column_span = integer(v, "column_span", 1, columns - z.column);
+        if (v.contains("row_span")) z.row_span = integer(v, "row_span", 1, rows - z.row);
+        for (int r = z.row; r < z.row + z.row_span; ++r)
+            for (int c = z.column; c < z.column + z.column_span; ++c) {
+                auto& cell = used[static_cast<size_t>(r * columns + c)];
+                require(!cell, "Zones must not overlap.");
+                cell = 1;
+            }
+        l.zones.push_back(std::move(z));
+    }
+    return l;
 }
 } // namespace
 
@@ -246,6 +338,59 @@ std::string source_fingerprint(const Manifest& manifest) {
     return sources.dump(); // std::map keeps headers in a stable order
 }
 
+std::string link_fingerprint(const Manifest& m) {
+    auto hosts = m.links; std::sort(hosts.begin(), hosts.end()); return Json(hosts).dump();
+}
+bool tap_url_valid(const std::string& url, bool placeholders) {
+    try {
+        if (url.size()>2048) return false;
+        auto host=url_host(url);
+        auto authority_end=url.find_first_of("/?",8);
+        auto authority=url.substr(8,authority_end==url.npos ? url.size()-8 : authority_end-8);
+        if(authority.ends_with(":443")) authority.resize(authority.size()-4);
+        if(authority!=host) return false;
+        auto start=url.find_first_of("/?",8);
+        if(start==url.npos) return true;
+        auto hex=[](unsigned char c) { return (c>='0' && c<='9') || (c>='a' && c<='f') || (c>='A' && c<='F'); };
+        std::string path;
+        bool query=false;
+        for(size_t i=start;i<url.size();++i) {
+            unsigned char c=url[i];
+            if(placeholders && url.compare(i,2,"{{")==0) {
+                auto end=url.find("}}",i+2);
+                if(end==url.npos || end==i+2) return false;
+                for(size_t j=i+2;j<end;++j) if(!alpha(url[j]) && !digit(url[j]) && url[j]!='_' && url[j]!='.') return false;
+                if(!query) path+='x';
+                i=end+1; continue;
+            }
+            if(!alpha(c) && !digit(c) && std::string_view("-._~!$&'()*+,;=:@/?%").find(c)==std::string_view::npos) return false;
+            if(c=='%') {
+                if(i+2>=url.size() || !hex(url[i+1]) || !hex(url[i+2])) return false;
+                if(!query) {
+                    if(url[i+1]=='2' && (url[i+2]=='e' || url[i+2]=='E')) path+='.';
+                    else path+=url.substr(i,3);
+                }
+                i+=2; continue;
+            }
+            if(c=='?') query=true;
+            if(!query) path+=char(c);
+        }
+        size_t begin=0;
+        while(begin<=path.size()) {
+            auto end=path.find('/',begin);
+            auto segment=path.substr(begin,end==path.npos ? path.size()-begin : end-begin);
+            if(segment=="." || segment=="..") return false;
+            if(end==path.npos) break;
+            begin=end+1;
+        }
+        return true;
+    } catch(...) { return false; }
+}
+bool link_allowed(const Manifest& m, const std::string& url) {
+    try { auto host = url_host(url); return std::find(m.links.begin(), m.links.end(), host) != m.links.end(); }
+    catch (...) { return false; }
+}
+
 std::optional<Json> parse_strict_json(std::string_view utf8, size_t limit) {
     try { return parse_bounded(utf8, limit); }
     catch (const Invalid&) { return std::nullopt; }
@@ -255,10 +400,15 @@ std::optional<Json> parse_strict_json(std::string_view utf8, size_t limit) {
 ParseResult parse_manifest(std::string_view utf8) {
     try {
         Json j = parse_bounded(utf8, manifest_limit);
-        fields(j, {"schema_version", "id", "name", "description", "version", "license", "author", "category", "min_app_version",
-                   "refresh_seconds", "settings", "sources", "widgets"});
-        require(integer(j, "schema_version", 1, 1) == 1, "Unsupported schema version.");
+        // v2 is recognized only by an exact integer 2; everything else keeps the unchanged v1 rules.
+        const bool v2 = j.is_object() && j.contains("schema_version") && j["schema_version"].is_number_integer() &&
+                        j["schema_version"].get<double>() == 2;
+        fields(j, with({"schema_version", "id", "name", "description", "version", "license", "author", "category", "min_app_version",
+                        "refresh_seconds", "settings", "sources", "widgets"}, v2, {"layout", "links"}));
+        const int schema = integer(j, "schema_version", 1, 2);
+        require(schema == 1 || v2, "Unsupported schema version.");
         Manifest m;
+        m.schema_version = schema;
         m.id = str(j, "id", 1, 48);
         require(lower(m.id[0]) && m.id.back() != '-' && m.id.find("--") == m.id.npos &&
                 std::all_of(m.id.begin(), m.id.end(), [](char c) { return lower(c) || digit(c) || c == '-'; }) &&
@@ -310,7 +460,7 @@ ParseResult parse_manifest(std::string_view utf8) {
             Source s;
             s.id = str(v, "id");
             require(identifier(s.id) && source_ids.insert(s.id).second && s.id != "settings" && s.id != "time" &&
-                    s.id != "date" && s.id != "item", "Invalid, reserved or duplicate source ID.");
+                    s.id != "date" && s.id != "item" && s.id != "ai", "Invalid, reserved or duplicate source ID.");
             s.url = str(v, "url");
             s.host = url_host(s.url);
             std::set<std::string> used, headers;
@@ -333,19 +483,43 @@ ParseResult parse_manifest(std::string_view utf8) {
             s.setting_keys.assign(used.begin(), used.end());
             m.sources.push_back(std::move(s));
         }
-        require(j.contains("widgets") && j["widgets"].is_array() && !j["widgets"].empty() && j["widgets"].size() <= 6,
-                "A plugin needs 1 to 6 widgets.");
+        if (v2 && j.contains("links")) {
+            require(j["links"].is_array() && j["links"].size() <= 4, "At most four link hosts allowed.");
+            for (const auto& v : j["links"]) {
+                require(v.is_string(), "Link host must be a string.");
+                auto host = v.get<std::string>();
+                require(url_host("https://" + host) == host && host.find_first_of("/:?#") == host.npos,
+                        "Link host must be a literal public hostname.");
+                require(std::find(m.links.begin(), m.links.end(), host) == m.links.end(), "Duplicate link host.");
+                m.links.push_back(host);
+            }
+        }
+        if (v2 && j.contains("layout")) m.layout = layout(j["layout"]);
+        const bool zoned = m.layout.has_value();
+        // Without a layout (v1, or v2 without layout) the automatic grid places at most 6 widgets.
+        if (!zoned) require(j.contains("widgets") && j["widgets"].is_array() && !j["widgets"].empty() && j["widgets"].size() <= 6,
+                            "A plugin needs 1 to 6 widgets.");
+        else require(j.contains("widgets") && j["widgets"].is_array() && !j["widgets"].empty() &&
+                     j["widgets"].size() <= static_cast<size_t>(zones::max_blocks), "A plugin with a layout needs 1 to 12 widgets.");
+        std::set<std::string> block_ids;
+        std::map<std::string, int> per_zone;
         for (const auto& v : j["widgets"]) {
             Widget w;
             w.type = str(v, "type");
-            if (w.type == "text") { fields(v, {"type", "label", "text"}); w.text = checked_text(v, "text"); }
-            else if (w.type == "metric") { fields(v, {"type", "label", "value", "unit"}); w.value = checked_text(v, "value"); }
+            // v2 widgets carry a stable block ID and, with a layout, their zone.
+            auto allowed = [&](std::initializer_list<const char*> base) {
+                auto list = with(base, v2, {"id", "show_if", "tap"});
+                if (zoned) { list.push_back("zone"); list.push_back("seconds"); }
+                return list;
+            };
+            if (w.type == "text") { fields(v, allowed({"type", "label", "text"})); w.text = checked_text(v, "text"); }
+            else if (w.type == "metric") { fields(v, allowed({"type", "label", "value", "unit"})); w.value = checked_text(v, "value"); }
             else if (w.type == "bar") {
-                fields(v, {"type", "label", "value", "unit", "min", "max"});
+                fields(v, allowed({"type", "label", "value", "unit", "min", "max"}));
                 w.value = checked_text(v, "value"); w.min = number(v, "min"); w.max = number(v, "max");
                 require(w.max > w.min, "Bar maximum must exceed minimum.");
             } else if (w.type == "list") {
-                fields(v, {"type", "label", "items", "item_template", "max_items"});
+                fields(v, allowed({"type", "label", "items", "item_template", "max_items"}));
                 w.items = str(v, "items"); w.item_template = checked_text(v, "item_template");
                 w.max_items = integer(v, "max_items", 1, 5);
                 auto path = split(w.items);
@@ -353,19 +527,157 @@ ParseResult parse_manifest(std::string_view utf8) {
                 reference(m, w.items, Usage::display, nullptr);
                 validate_template(m, w.item_template, Usage::item);
             } else if (w.type == "clock") {
-                fields(v, {"type", "label", "format"}); w.format = str(v, "format");
+                fields(v, allowed({"type", "label", "format"})); w.format = str(v, "format");
                 require(w.format == "time" || w.format == "date" || w.format == "datetime", "Unsupported clock format.");
             } else throw Invalid("Unsupported widget type.");
             if (v.contains("label")) w.label = checked_text(v, "label");
             if (v.contains("unit")) w.unit = checked_text(v, "unit");
             for (const auto* text : {&w.label, &w.unit, &w.text, &w.value}) validate_template(m, *text, Usage::display);
+            if (v2) {
+                w.id = str(v, "id");
+                require(identifier(w.id) && block_ids.insert(w.id).second, "Invalid or duplicate block ID.");
+                if (v.contains("show_if")) w.show_if = condition(m, v["show_if"]);
+            }
+            if (zoned) {
+                w.zone = str(v, "zone");
+                require(std::any_of(m.layout->zones.begin(), m.layout->zones.end(), [&](const auto& z) { return z.id == w.zone; }),
+                        "Block references an unknown zone.");
+                if (v.contains("seconds")) {
+                    auto z = std::find_if(m.layout->zones.begin(), m.layout->zones.end(), [&](const auto& z) { return z.id == w.zone; });
+                    require(z->cycle && z->cycle->mode == "rotate", "Seconds requires a rotate zone.");
+                    w.seconds = integer(v, "seconds", 3, 600);
+                }
+                require(++per_zone[w.zone] <= zones::max_blocks_per_zone, "At most 4 blocks per zone allowed.");
+            }
+            if (v2 && v.contains("tap")) {
+                const auto& t = v["tap"];
+                fields(t, {"action", "url"});
+                Tap tap; tap.action = str(t, "action");
+                require(tap.action == "open_link" || tap.action == "next", "Unsupported tap action.");
+                if (tap.action == "open_link") {
+                    tap.url = str(t, "url", 1, 2048);
+                    require(tap_url_valid(tap.url, true) && link_allowed(m, tap.url), "Link requires a declared literal HTTPS host.");
+                    validate_template(m, tap.url, w.type == "list" ? Usage::link_item : Usage::link);
+                } else {
+                    require(!t.contains("url"), "Next cannot contain a URL.");
+                    require(zoned && std::any_of(m.layout->zones.begin(), m.layout->zones.end(),
+                        [&](const auto& z) { return z.id == w.zone && z.cycle.has_value(); }), "Next requires a cycle zone.");
+                }
+                w.tap = std::move(tap);
+            }
             m.widgets.push_back(std::move(w));
         }
+        if (zoned)
+            for (const auto& z : m.layout->zones) require(per_zone.count(z.id) != 0, "Every zone needs at least one block.");
         j["description"] = m.description; j["refresh_seconds"] = m.refresh_seconds;
         m.definition = std::move(j);
         return {std::move(m), {}};
     } catch (const Invalid& e) { return {std::nullopt, e.what()}; }
       catch (const Json::exception&) { return {std::nullopt, "Invalid JSON or JSON value."}; }
+}
+
+Json to_json(const Arrangement& a) {
+    return {{"schema_version", 1}, {"manifest_sha256", a.manifest_sha256},
+        {"layout", a.layout}, {"blocks", a.blocks}};
+}
+void to_json(Json& json, const Arrangement& a) { json = to_json(a); }
+ArrangementResult parse_arrangement(std::string_view utf8) {
+    try {
+        auto parsed = parse_strict_json(utf8, arrangement_limit);
+        require(parsed.has_value(), "Invalid arrangement JSON.");
+        const auto& j = *parsed;
+        fields(j, {"schema_version", "manifest_sha256", "layout", "blocks"});
+        integer(j, "schema_version", 1, 1);
+        auto sha = str(j, "manifest_sha256", 64, 64);
+        require(std::all_of(sha.begin(), sha.end(), [](char c) { return digit(c) || (c >= 'a' && c <= 'f'); }),
+            "Invalid manifest fingerprint.");
+        require(j.contains("layout"), "Missing arrangement layout.");
+        layout(j["layout"]);
+        require(j.contains("blocks") && j["blocks"].is_array() && !j["blocks"].empty() &&
+            j["blocks"].size() <= zones::max_blocks, "Arrangement needs 1 to 12 blocks.");
+        std::set<std::string> ids;
+        for (const auto& b : j["blocks"]) {
+            fields(b, {"id", "zone", "shown", "seconds", "show_if"});
+            auto id = str(b, "id");
+            auto block_id = id;
+            std::replace(block_id.begin(), block_id.end(), '.', '_');
+            require(identifier(block_id) && ids.insert(id).second, "Invalid or duplicate block ID.");
+            require(identifier(str(b, "zone")), "Invalid block zone.");
+            require(b.contains("shown") && b["shown"].is_boolean(), "Missing or invalid shown flag.");
+            if (b.contains("seconds")) integer(b, "seconds", 3, 600);
+            if (b.contains("show_if")) fields(b["show_if"], {"path", "op", "value"});
+        }
+        return {Arrangement{sha, j["layout"], j["blocks"]}, {}};
+    } catch (const Invalid& e) { return {std::nullopt, e.what()}; }
+      catch (const Json::exception&) { return {std::nullopt, "Invalid arrangement value."}; }
+}
+Arrangement arrangement_from(const Manifest& base, std::string sha) {
+    // Ohne Store-Bindung nur ein Entwurfsmodell; der Store liefert den echten Fingerabdruck.
+    if (sha.empty()) sha.assign(64, '0');
+    Arrangement a{std::move(sha), Json(), Json::array()};
+    if (base.schema_version != 2) return a;
+    if (base.layout) a.layout = base.definition.at("layout");
+    else {
+        a.layout = {{"columns", {1}}, {"rows", Json::array()}, {"zones", Json::array()}};
+        for (size_t i = 0; i < base.widgets.size(); ++i) {
+            a.layout["rows"].push_back(1);
+            a.layout["zones"].push_back({{"id", "zone_" + std::to_string(i)}, {"column", 0}, {"row", i}});
+        }
+    }
+    for (size_t i = 0; i < base.widgets.size(); ++i) {
+        const auto& w = base.definition.at("widgets").at(i);
+        Json b = {{"id", w.at("id")}, {"zone", base.layout ? w.at("zone") : Json("zone_" + std::to_string(i))}, {"shown", true}};
+        for (auto key : {"seconds", "show_if"}) if (w.contains(key)) b[key] = w[key];
+        a.blocks.push_back(std::move(b));
+    }
+    return a;
+}
+ParseResult merge_arrangement(const Manifest& base, const Arrangement& input) {
+    try {
+        require(base.schema_version == 2, "Arrangement requires manifest v2.");
+        // Auch programmatisch erstellte Modelle passieren die strikte Feld- und Größenprüfung.
+        auto checked = parse_arrangement(to_json(input).dump());
+        require(bool(checked), "Invalid arrangement.");
+        const auto& a = *checked.arrangement;
+        auto l = layout(a.layout);
+        require(a.blocks.size() == base.widgets.size(), "Arrangement must contain every block exactly once.");
+        Json merged = base.definition;
+        merged["layout"] = a.layout;
+        merged["widgets"] = Json::array();
+        for (const auto& b : a.blocks) {
+            auto original = std::find_if(base.definition.at("widgets").begin(), base.definition.at("widgets").end(),
+                [&](const Json& w) { return w.at("id") == b.at("id"); });
+            require(original != base.definition.at("widgets").end(), "Unknown arrangement block.");
+            auto z = std::find_if(l.zones.begin(), l.zones.end(), [&](const auto& z) { return z.id == b.at("zone").get_ref<const std::string&>(); });
+            require(z != l.zones.end(), "Block references an unknown zone.");
+            if (b.contains("show_if")) condition(base, b["show_if"]);
+            if (b.contains("seconds")) require(z->cycle && z->cycle->mode == "rotate", "Seconds requires a rotate zone.");
+            if (!b.at("shown").get<bool>()) continue;
+            auto w = *original;
+            for (auto key : {"zone", "seconds", "show_if"}) {
+                w.erase(key);
+                if (b.contains(key)) w[key] = b[key];
+            }
+            merged["widgets"].push_back(std::move(w));
+        }
+        auto result = parse_manifest(merged.dump());
+        if (!result) return result;
+        const auto& effective = *result.manifest;
+        require(source_fingerprint(effective) == source_fingerprint(base) &&
+            link_fingerprint(effective) == link_fingerprint(base), "Arrangement changed permissions.");
+        auto before = base.definition, after = effective.definition;
+        for (auto key : {"layout", "widgets"}) { before.erase(key); after.erase(key); }
+        require(before == after, "Arrangement changed manifest contents.");
+        for (const auto& w : effective.definition.at("widgets")) {
+            auto original = std::find_if(base.definition.at("widgets").begin(), base.definition.at("widgets").end(),
+                [&](const Json& b) { return b.at("id") == w.at("id"); });
+            auto b = *original, e = w;
+            for (auto key : {"zone", "seconds", "show_if"}) { b.erase(key); e.erase(key); }
+            require(b == e, "Arrangement changed block contents.");
+        }
+        return result;
+    } catch (const Invalid& e) { return {std::nullopt, e.what()}; }
+      catch (const Json::exception&) { return {std::nullopt, "Invalid arrangement value."}; }
 }
 
 DataResult parse_source_data(std::string_view utf8) {
@@ -381,11 +693,42 @@ SourceData sample_data(const Manifest& manifest) {
     for (const auto& source : manifest.sources) result.emplace(source.id, source.sample);
     return result;
 }
-Page render_page(const Manifest& m, const RenderContext& context) {
-    Page page{m.id, bounded(m.name), {}, false};
-    Json values;
+bool condition_holds(const Condition& c, const Json* v) {
+    // Presence first (the same rule for every operator): missing, null, non-finite, "" , [] and {} never pass.
+    if (!v || v->is_null()) return false;
+    if (v->is_number() && !std::isfinite(v->get<double>())) return false;
+    if (v->is_string() && v->get_ref<const std::string&>().empty()) return false;
+    if (v->is_structured() && v->empty()) return false;
+    if (c.op.empty()) return true;
+    const Json& literal = c.value;
+    const bool equal_op = c.op == "==", unequal_op = c.op == "!=";
+    if (literal.is_number()) {
+        if (!v->is_number()) return false; // no conversion: "42" is not 42, true is not 1
+        const double a = v->get<double>(), b = literal.get<double>();
+        if (!std::isfinite(b)) return false;
+        if (equal_op) return a == b;
+        if (unequal_op) return a != b;
+        if (c.op == "<") return a < b;
+        if (c.op == "<=") return a <= b;
+        if (c.op == ">") return a > b;
+        if (c.op == ">=") return a >= b;
+        return false;
+    }
+    if (literal.is_string() || literal.is_boolean()) {
+        if (literal.type() != v->type()) return false;
+        if (equal_op) return *v == literal;
+        if (unequal_op) return *v != literal;
+    }
+    return false; // unknown operator or literal type (the parser never produces one): fail closed
+}
+namespace {
+std::string block_key(const Widget& w, size_t index) { return w.id.empty() ? "#" + std::to_string(index) : w.id; }
+Page render_page_unguarded(const Manifest& m, const RenderContext& context, const testing::DataHooks* hooks) {
+    Page page{m.id, bounded(m.name), {}, false, m.layout};
+    Json values; // null without valid settings: every settings path is then missing (null needs no allocation)
     try { values = settings_values(m, context.settings, false); }
-    catch (const Invalid&) { values = Json::object(); page.missing_data = true; }
+    catch (...) { values = Json(); page.missing_data = true; }
+    if (hooks && hooks->outside_blocks) hooks->outside_blocks();
     auto data = [&](const std::string& ref, const Json* item) -> const Json* {
         auto path = split(ref);
         if (path[0] == "settings") return walk(&values, path, 1);
@@ -393,24 +736,44 @@ Page render_page(const Manifest& m, const RenderContext& context) {
         auto it = context.sources.find(path[0]);
         return it == context.sources.end() ? nullptr : walk(&it->second, path, 1);
     };
+    bool block_missing = false;
     auto text = [&](const std::string& source, const Json* item = nullptr) {
         return expand(source, [&](const std::string& ref) {
             if (ref == "time") return bounded(context.time);
             if (ref == "date") return bounded(context.date);
-            return scalar(data(ref, item), page.missing_data);
+            return scalar(data(ref, item), block_missing);
         }, true);
     };
-    for (const auto& w : m.widgets) {
+    auto link = [&](const Widget& w, const Json* item = nullptr) -> std::string {
+        if (!w.tap || w.tap->action != "open_link") return {};
+        try {
+            auto url = expand(w.tap->url, [&](const std::string& ref) {
+                const auto* v = data(ref, item);
+                require(v && !v->is_structured(), "Link value missing.");
+                require(!v->is_null() && (!v->is_string() || !v->get_ref<const std::string&>().empty()) &&
+                    (!v->is_number() || std::isfinite(v->get<double>())), "Link value missing.");
+                auto raw=v->is_string() ? v->get<std::string>() : v->dump();
+                require(raw!="." && raw!="..", "Dot link value is not allowed.");
+                return encode_component(raw, false);
+            }, false);
+            return tap_url_valid(url) && link_allowed(m, url) ? url : std::string();
+        } catch (...) { return {}; }
+    };
+    auto render_block = [&](const Widget& w) {
+        block_missing = false;
         RenderedWidget rendered;
         rendered.type = w.type; rendered.label = text(w.label); rendered.unit = text(w.unit);
+        rendered.id = w.id; rendered.zone = w.zone;
+        if (w.tap) { rendered.tap_action = w.tap->action; if (w.type != "list") rendered.tap_url = link(w); }
         if (w.type == "text") rendered.text = text(w.text);
         else if (w.type == "clock") rendered.text = bounded(w.format == "time" ? context.time :
             w.format == "date" ? context.date : context.date + " " + context.time);
         else if (w.type == "list") {
             const Json* array = data(w.items, nullptr);
-            if (!array || !array->is_array()) { rendered.items.push_back("—"); page.missing_data = true; }
+            if (!array || !array->is_array()) { rendered.items.push_back("—"); block_missing = true; }
             else for (size_t i = 0; i < array->size() && i < static_cast<size_t>(w.max_items); ++i)
-                rendered.items.push_back(text(w.item_template, &(*array)[i]));
+                { rendered.items.push_back(text(w.item_template, &(*array)[i]));
+                  rendered.item_urls.push_back(link(w, &(*array)[i])); }
         } else {
             rendered.text = text(w.value);
             if (w.type == "bar") {
@@ -422,13 +785,60 @@ Page render_page(const Manifest& m, const RenderContext& context) {
                     double scale = std::max({std::abs(w.min), std::abs(w.max), 1.0});
                     rendered.bar_fraction = std::clamp((std::clamp(n, w.min, w.max) / scale - w.min / scale) /
                         (w.max / scale - w.min / scale), 0.0, 1.0);
-                } else page.missing_data = true;
+                } else block_missing = true;
             }
         }
-        page.widgets.push_back(std::move(rendered));
+        rendered.missing = block_missing;
+        page.missing_data = page.missing_data || block_missing;
+        return rendered;
+    };
+    // false = block hidden by show_if. A source that delivered nothing at all (live mode before or without a
+    // response) counts as missing data even if every block using it is conditional; a missing field in a
+    // delivered response does not (that is what show_if is for).
+    auto shown = [&](const Widget& w) {
+        if (!w.show_if) return true;
+        const auto& path = w.show_if->path;
+        const auto head = path.substr(0, path.find('.'));
+        if (head != "settings" && !context.sources.contains(head)) page.missing_data = true;
+        return condition_holds(*w.show_if, data(path, nullptr));
+    };
+    for (size_t index = 0; index < m.widgets.size(); ++index) {
+        const auto& w = m.widgets[index];
+        // Isolation per block: a failure while evaluating this block's condition or data leaves only this block out.
+        try {
+            if (hooks && hooks->before_block) hooks->before_block(block_key(w, index));
+            if (shown(w)) {
+                page.widgets.push_back(render_block(w));
+                page.widgets.back().index = index;
+            }
+            else page.hidden.push_back(block_key(w, index));
+        } catch (...) {
+            page.missing_data = true;
+            try { page.failed.push_back(block_key(w, index)); } catch (...) {} // out of memory: the block stays out anyway
+        }
     }
     return page;
 }
+// Outer boundary: a failure outside the per-block isolation (e.g. out of memory while copying ID, title or layout)
+// gives a page without blocks and with missing_data. The fallback only uses non-throwing default construction;
+// ID and title are kept when they can still be copied.
+Page render_page_with(const Manifest& m, const RenderContext& context, const testing::DataHooks* hooks) {
+    try { return render_page_unguarded(m, context, hooks); }
+    catch (...) {
+        Page fallback;
+        fallback.missing_data = true;
+        try { fallback.id = m.id; fallback.title = bounded(m.name); } catch (...) { fallback.id.clear(); fallback.title.clear(); }
+        return fallback;
+    }
+}
+} // namespace
+
+Page render_page(const Manifest& m, const RenderContext& context) { return render_page_with(m, context, nullptr); }
+namespace testing {
+Page render_page(const Manifest& m, const RenderContext& context, const DataHooks& hooks) {
+    return render_page_with(m, context, &hooks);
+}
+} // namespace testing
 RequestResult prepare_request(const Manifest& m, const Source& source, const Json& supplied) {
     try {
         const auto values = settings_values(m, supplied, true);
@@ -479,6 +889,11 @@ std::vector<std::string> store_problems(const Manifest& m) {
     if (!m.sources.empty() && m.refresh_seconds < 60) p.push_back("Store: plugins with sources need refresh_seconds of at least 60.");
     for (const auto& s : m.sources)
         if (s.sample.empty()) { p.push_back("Store: every source needs a sample for the preview."); break; }
+    // Older apps reject schema 2 at install time; the index must mark them "needs newer ScreenBuddy" first.
+    if (m.schema_version == 2 && !m.min_app_version.empty()) {
+        Manifest first; first.min_app_version = "2.10.0";
+        if (!app_compatible(first, m.min_app_version)) p.push_back("Store: schema_version 2 needs min_app_version 2.10.0 or newer.");
+    }
     return p;
 }
 

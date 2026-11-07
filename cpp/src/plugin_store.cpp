@@ -51,7 +51,7 @@ bool ready_directory(const fs::path& path, bool create) {
     if (ec) return false;
     return fs::is_directory(path, ec) && !ec && plain_path(path);
 }
-bool read_bounded(const fs::path& path, std::string& out) {
+bool read_bounded(const fs::path& path, std::string& out, size_t limit = manifest_limit) {
     if (!regular_or_missing(path)) return false;
 #ifdef _WIN32
     HANDLE handle = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
@@ -60,7 +60,7 @@ bool read_bounded(const fs::path& path, std::string& out) {
     BY_HANDLE_FILE_INFORMATION info{};
     bool ok = GetFileInformationByHandle(handle, &info) &&
         !(info.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY)) &&
-        info.nFileSizeHigh == 0 && info.nFileSizeLow <= manifest_limit;
+        info.nFileSizeHigh == 0 && info.nFileSizeLow <= limit;
     if (ok) {
         out.resize(info.nFileSizeLow);
         DWORD bytes = 0;
@@ -73,7 +73,7 @@ bool read_bounded(const fs::path& path, std::string& out) {
     if (fd < 0) return false;
     struct stat info{};
     bool ok = fstat(fd, &info) == 0 && S_ISREG(info.st_mode) && info.st_size >= 0 &&
-        static_cast<uint64_t>(info.st_size) <= manifest_limit;
+        static_cast<uint64_t>(info.st_size) <= limit;
     if (ok) {
         out.resize(static_cast<size_t>(info.st_size));
         size_t total = 0;
@@ -141,6 +141,50 @@ std::string fingerprint(const Manifest& manifest) {
     for (auto b : digest) { out += "0123456789abcdef"[b >> 4]; out += "0123456789abcdef"[b & 15]; }
     return out;
 }
+// Ungültige/veraltete Anordnungen sperren nie die gültige Basis.
+bool read_arrangement(const fs::path& path, Installed& entry) {
+    if (!regular_or_missing(path)) { entry.arrangement_state = "invalid"; return false; }
+    std::error_code ec;
+    if (!fs::exists(path, ec) && !ec) return true;
+    std::string text;
+    if (ec || !read_bounded(path, text, arrangement_limit)) { entry.arrangement_state = "invalid"; return false; }
+    auto parsed = parse_arrangement(text);
+    if (!parsed) { entry.arrangement_state = "invalid"; return false; }
+    entry.arrangement = std::move(parsed.arrangement);
+    if (entry.arrangement->manifest_sha256 != fingerprint(entry.manifest)) {
+        entry.arrangement_state = "stale";
+        return true;
+    }
+    auto merged = merge_arrangement(entry.manifest, *entry.arrangement);
+    if (!merged) { entry.arrangement_state = "invalid"; return false; }
+    entry.arranged = std::move(merged.manifest);
+    entry.arrangement_state = "ok";
+    return true;
+}
+
+std::string write_devices(const fs::path& path,const device::OverlayMap& next,bool reset=false) {
+    const auto backup=fs::path(path.wstring()+L".bak");
+    if(!regular_or_missing(path) || !regular_or_missing(backup) || !ready_directory(path.parent_path(),false)) return "Unsafe device arrangement path.";
+    std::error_code ec;
+    if(reset) {fs::remove(backup,ec);if(ec) return "Device backup removal failed.";}
+    else if(fs::exists(path,ec)) {std::string old;if(!read_bounded(path,old,device::overlay_bytes_limit) || !atomic_write(backup,old)) return "Device backup failed.";}
+    if(ec || !atomic_write(path,device::overlays_json(next).dump())) return "Device arrangement write failed.";
+    return {};
+}
+bool read_devices(const fs::path& path,Installed& entry) {
+    if(!regular_or_missing(path)) return false;
+    std::error_code ec;if(!fs::exists(path,ec)) return !ec;
+    std::string text;device::OverlayMap map;
+    if(!read_bounded(path,text,device::overlay_bytes_limit) ||
+       !device::parse_overlays(text,map,[&](const auto& bytes){return bool(parse_arrangement(bytes));})) return false;
+    for(auto it=map.begin();it!=map.end();) {
+        auto parsed=parse_arrangement(it->second.dump());
+        auto merged=merge_arrangement(entry.manifest,*parsed.arrangement);
+        if(parsed.arrangement->manifest_sha256!=fingerprint(entry.manifest) || !merged) {it=map.erase(it);continue;}
+        entry.device_arranged.emplace(it->first,std::move(*merged.manifest));++it;
+    }
+    entry.device_overlays=std::move(map);return true;
+}
 bool all_hosts_allowed(const Installed& entry) {
     for (const auto& source : entry.manifest.sources)
         if (!entry.consented_hosts.contains(source.host)) return false;
@@ -174,6 +218,19 @@ bool write_consent(const fs::path& path, const Installed& entry) {
     return atomic_write(path, Json({{"schema_version", 1}, {"manifest_sha256", fingerprint(entry.manifest)},
         {"hosts", entry.consented_hosts}}).dump());
 }
+bool write_links(const fs::path& path, const Installed& entry) {
+    return atomic_write(path, Json({{"fingerprint",link_fingerprint(entry.manifest)}, {"allowed",entry.links_allowed}}).dump());
+}
+bool read_links(const fs::path& path, Installed& entry) {
+    if (!regular_or_missing(path)) return false;
+    std::error_code ec; if (!fs::exists(path,ec)) return !ec;
+    std::string text; if(!read_bounded(path,text)) return false;
+    auto j=parse_strict_json(text,manifest_limit);
+    if(!j || !j->is_object() || j->size()!=2 || !j->contains("fingerprint") || !(*j)["fingerprint"].is_string() ||
+       !j->contains("allowed") || !(*j)["allowed"].is_boolean()) return false;
+    entry.links_allowed=(*j)["fingerprint"]==link_fingerprint(entry.manifest) && (*j)["allowed"].get<bool>();
+    return true;
+}
 } // namespace
 
 Store::Store(std::filesystem::path directory) : directory_(fs::absolute(std::move(directory)).lexically_normal()) {}
@@ -204,8 +261,11 @@ StoreResult Store::load() {
                     auto id = parsed.manifest->id;
                     // Missing/stale host grants always leave source plugins disabled.
                     Installed entry{std::move(*parsed.manifest), false, {}, ++generation_};
-                    if (!read_consent(directory_ / (id + ".consent.json"), entry)) invalid = true;
+                    if (!read_consent(directory_ / (id + ".consent.json"), entry) || !read_links(directory_ / (id + ".links.json"), entry)) invalid = true;
                     else {
+                        if (!read_arrangement(directory_ / (id + ".layout.json"), entry)) invalid = true;
+                        if (!read_devices(directory_ / (id + ".devices.json"), entry)) invalid = true;
+                        entry.layout_revision = ++layout_revision_;
                         entry.enabled = !disabled && all_hosts_allowed(entry);
                         if (!installed_.emplace(id, std::move(entry)).second) invalid = true;
                     }
@@ -226,16 +286,29 @@ StoreResult Store::import_manifest(std::string_view utf8, bool force_disabled) {
     auto& manifest = *parsed.manifest;
     auto existing = installed_.find(manifest.id);
     if (existing == installed_.end() && installed_.size() >= installation_limit) return failure("At most 32 plugins may be installed.");
+    // Only a changed link list with an otherwise identical manifest retains source grants and activation.
+    // Identical reimports and all other updates revoke every grant.
+    std::set<std::string> retained_hosts;
+    bool retain_enabled=false;
+    if(existing!=installed_.end()) {
+        auto before=existing->second.manifest.definition, after=manifest.definition;
+        before.erase("links"); after.erase("links");
+        if(before==after && link_fingerprint(existing->second.manifest)!=link_fingerprint(manifest)) {
+            retained_hosts=existing->second.consented_hosts;
+            retain_enabled=existing->second.enabled;
+        }
+    }
     // An update invalidates in-flight work and grants even when persistence fails.
     if (existing != installed_.end()) {
         existing->second.enabled = false;
         existing->second.consented_hosts.clear();
+        existing->second.links_allowed = false;
         existing->second.generation = ++generation_;
     }
     if (!ready_directory(directory_, true)) return failure("Plugin directory cannot be created safely.");
     bool disabled = false;
     if (!marker_state(directory_ / (manifest.id + ".disabled"), disabled)) return failure("Plugin state file is invalid.");
-    if ((force_disabled || !manifest.sources.empty()) && !disabled) {
+    if ((force_disabled || (!manifest.sources.empty() && !retain_enabled)) && !disabled) {
         if (!atomic_write(directory_ / (manifest.id + ".disabled"), "")) return failure("Plugin could not be disabled safely.");
         disabled = true;
         // The marker is already committed. Keep in-memory state consistent even
@@ -243,9 +316,11 @@ StoreResult Store::import_manifest(std::string_view utf8, bool force_disabled) {
         if (existing != installed_.end()) { existing->second.enabled = false; existing->second.generation = ++generation_; }
     }
     auto id = manifest.id;
-    // Persist an empty grant before replacing a source manifest, including exact
-    // reimports. A failed invalidation must never leave a reusable old grant.
-    Installed replacement{manifest, !disabled, {}, ++generation_};
+    // Persist revoked grants before replacement, except source grants for link-list-only updates.
+    // A failed invalidation must never leave a reusable old grant.
+    Installed replacement{manifest, !disabled, retained_hosts, ++generation_};
+    replacement.links_allowed=false;
+    if(!write_links(directory_ / (id + ".links.json"),replacement)) return failure("Plugin link consent could not be saved.");
     if (!write_consent(directory_ / (id + ".consent.json"), replacement)) {
         if (existing != installed_.end()) { existing->second.enabled = false; existing->second.generation = ++generation_; }
         return failure("Plugin consent could not be reset safely.");
@@ -253,6 +328,9 @@ StoreResult Store::import_manifest(std::string_view utf8, bool force_disabled) {
     // Persist original validated bytes only after revoking any old grant. Even an
     // exact reimport interrupted between writes must require fresh consent.
     if (!atomic_write(directory_ / (manifest.id + suffix), utf8)) return failure("Plugin could not be saved atomically.");
+    read_arrangement(directory_ / (id + ".layout.json"), replacement);
+    read_devices(directory_ / (id + ".devices.json"), replacement);
+    replacement.layout_revision = ++layout_revision_;
     installed_.insert_or_assign(id, std::move(replacement));
     return {true, {}};
 }
@@ -277,23 +355,112 @@ StoreResult Store::set_enabled(const std::string& id, bool enabled) {
     it->second.generation = ++generation_;
     return {true, {}};
 }
+StoreResult Store::set_arrangement(const std::string& id, std::string_view utf8, const std::string& device) {
+    auto parsed = parse_arrangement(utf8);
+    if (!parsed) return {false, parsed.error};
+    std::lock_guard lock(mutex_);
+    auto it = installed_.find(id);
+    if (it == installed_.end()) return failure("Plugin is not installed.");
+    if (parsed.arrangement->manifest_sha256 != fingerprint(it->second.manifest))
+        return failure("Arrangement does not match the plugin version.");
+    auto merged = merge_arrangement(it->second.manifest, *parsed.arrangement);
+    if (!merged) return {false, merged.error};
+    if(!device.empty()) {
+        if(!device::valid_layout_id(device)) return failure("Invalid device ID.");
+        auto next=it->second;
+        next.device_overlays[device]=to_json(*parsed.arrangement);
+        if(!device::overlay_fits(next.device_overlays)) return failure("Device overlay limit exceeded.");
+        next.device_arranged.insert_or_assign(device,std::move(*merged.manifest));
+        auto error=write_devices(directory_/(id+".devices.json"),next.device_overlays);
+        if(!error.empty()) return {false,error};
+        next.layout_revision=++layout_revision_;it->second=std::move(next);return {true,{}};
+    }
+    // Alle speicherintensiven Kopien vor dem Dateitausch vorbereiten.
+    auto next = it->second;
+    next.arranged = std::move(merged.manifest);
+    next.arrangement = std::move(parsed.arrangement);
+    next.arrangement_state = "ok";
+    const auto text = to_json(*next.arrangement).dump();
+    const auto path = directory_ / (id + ".layout.json"), backup = directory_ / (id + ".layout.json.bak");
+    if (!ready_directory(directory_, false) || !regular_or_missing(path) || !regular_or_missing(backup))
+        return failure("Arrangement files contain an unsafe link.");
+    std::error_code ec;
+    const bool exists = fs::exists(path, ec);
+    if (ec) return failure("Arrangement file is unavailable.");
+    if (exists) {
+        std::string previous;
+        if (!read_bounded(path, previous, arrangement_limit) || !atomic_write(backup, previous))
+            return failure("Arrangement backup could not be saved.");
+    }
+    if (!atomic_write(path, text)) return failure("Arrangement could not be saved atomically.");
+    next.layout_revision = ++layout_revision_;
+    it->second = std::move(next);
+    return {true, {}};
+}
+StoreResult Store::clear_arrangement(const std::string& id, const std::string& device) {
+    std::lock_guard lock(mutex_);
+    auto it = installed_.find(id);
+    if (it == installed_.end()) return failure("Plugin is not installed.");
+    if(!device.empty()) {
+        if(!device::valid_layout_id(device)) return failure("Invalid device ID.");
+        auto next=it->second;next.device_overlays.erase(device);next.device_arranged.erase(device);
+        auto error=write_devices(directory_/(id+".devices.json"),next.device_overlays,true);
+        if(!error.empty()) return {false,error};
+        next.layout_revision=++layout_revision_;it->second=std::move(next);return {true,{}};
+    }
+    const auto path = directory_ / (id + ".layout.json"), backup = directory_ / (id + ".layout.json.bak");
+    if (!ready_directory(directory_, false) || !regular_or_missing(path) || !regular_or_missing(backup))
+        return failure("Arrangement files contain an unsafe link.");
+    // Backup zuerst entfernen: schlägt dies fehl, bleibt die aktive Anordnung erhalten.
+    std::error_code ec;
+    fs::remove(backup, ec);
+    if (ec) return failure("Arrangement backup could not be removed.");
+    fs::remove(path, ec);
+    if (ec) return failure("Arrangement could not be removed.");
+    it->second.arranged.reset();
+    it->second.arrangement.reset();
+    it->second.arrangement_state = "none";
+    it->second.layout_revision = ++layout_revision_;
+    return {true, {}};
+}
+Json Store::arrangement_get(const std::string& id, const std::string& device) const {
+    std::lock_guard lock(mutex_);
+    const auto it = installed_.find(id);
+    if (it == installed_.end()) return Json();
+    const auto& e = it->second;
+    // Ausschließlich die validierte Basis, niemals installierte Einstellungswerte.
+    auto own=e.device_overlays.find(device);
+    return {{"definition", e.manifest.definition}, {"state", own!=e.device_overlays.end()?"ok":e.arrangement_state},
+        {"inherited",!device.empty() && own==e.device_overlays.end()},
+        {"overlay", own!=e.device_overlays.end()?own->second:to_json(e.arrangement.value_or(arrangement_from(e.manifest, fingerprint(e.manifest))))}};
+}
 StoreResult Store::remove(const std::string& id) {
     std::lock_guard lock(mutex_);
     auto it = installed_.find(id);
     if (it == installed_.end()) return failure("Plugin is not installed.");
     const auto path = directory_ / (it->first + suffix), marker = directory_ / (it->first + ".disabled");
-    if (!ready_directory(directory_, false) || !regular_or_missing(path) || !regular_or_missing(marker))
+    if (!ready_directory(directory_, false) || !regular_or_missing(path) || !regular_or_missing(marker) ||
+        !regular_or_missing(directory_ / (id + ".layout.json")) || !regular_or_missing(directory_ / (id + ".layout.json.bak")))
         return failure("Plugin files contain an unsafe link.");
     std::error_code ec;
+    for(const auto& ext:{".devices.json",".devices.json.bak"})
+        if(!regular_or_missing(directory_/(id+ext))) return failure("Unsafe device arrangement path.");
     fs::remove(path, ec);
     if (ec) return failure("Plugin manifest could not be removed.");
     // Removing the manifest is the committed uninstall; a failed marker cleanup
     // must not keep this plugin alive in memory.
     installed_.erase(it);
+    for(const auto& ext:{".devices.json",".devices.json.bak"}) {fs::remove(directory_/(id+ext),ec);if(ec) return failure("Device arrangement cleanup failed.");}
     fs::remove(marker, ec);
     if (ec) return failure("Plugin was removed but its disabled marker could not be cleaned up.");
     fs::remove(directory_ / (id + ".consent.json"), ec);
     if (ec) return failure("Plugin was removed but its consent could not be cleaned up.");
+    fs::remove(directory_ / (id + ".links.json"), ec);
+    if (ec) return failure("Plugin link consent could not be cleaned up.");
+    fs::remove(directory_ / (id + ".layout.json"), ec);
+    if (ec) return failure("Plugin arrangement could not be cleaned up.");
+    fs::remove(directory_ / (id + ".layout.json.bak"), ec);
+    if (ec) return failure("Plugin arrangement backup could not be cleaned up.");
     return {true, {}};
 }
 StoreResult Store::set_host_consent(const std::string& id, const std::string& host, bool allowed) {
@@ -319,6 +486,17 @@ StoreResult Store::set_host_consent(const std::string& id, const std::string& ho
     next.generation = ++generation_;
     it->second = std::move(next);
     return {true, {}};
+}
+StoreResult Store::set_link_consent(const std::string& id, bool allowed) {
+    std::lock_guard lock(mutex_);
+    auto it=installed_.find(id);
+    if(it==installed_.end()) return failure("Plugin is not installed.");
+    if(allowed && it->second.manifest.links.empty()) return failure("Plugin has no declared link hosts.");
+    if(!allowed) { it->second.links_allowed=false; it->second.generation=++generation_; }
+    auto next=it->second; next.links_allowed=allowed;
+    if(!ready_directory(directory_,false) || !write_links(directory_/(id+".links.json"),next))
+        return failure("Plugin link consent could not be saved.");
+    next.generation=++generation_; it->second=std::move(next);return {true,{}};
 }
 bool Store::source_authorized(const std::string& id, const std::string& source_id, uint64_t generation) const {
     std::lock_guard lock(mutex_);

@@ -15,7 +15,7 @@ import time
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
-BUILD = ROOT / 'cpp/build/screenbuddy-release'
+BUILD = Path(os.environ.get('SCREENBUDDY_TEST_BUILD_DIR', ROOT / 'cpp/build/screenbuddy-release'))
 checks = []
 
 def check(ok, label):

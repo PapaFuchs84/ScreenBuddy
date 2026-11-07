@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <winhttp.h>
 #include <shellapi.h>
+#include <commctrl.h>
 
 #include <filesystem>
 #include <fstream>
@@ -16,9 +17,11 @@
 #include "installer.h"
 #include "output.h"
 #include "render.h"
+#include "page_samples.h"
 #include "sysinfo.h"
 #include "theme.h"
 #include "util.h"
+#include "distribution.h"
 #include "winsetup.h"
 
 namespace fs = std::filesystem;
@@ -62,6 +65,7 @@ Args parse(int argc, wchar_t** argv) {
 }
 
 fs::path data_dir() {
+    if (distribution::packaged()) return distribution::data_dir();
     // Liegt das Programm in einem Ordner ohne Schreibrecht, wandern Einstellungen und Protokoll ins Benutzerprofil
     fs::path here = exe_path().parent_path();
     fs::path probe = here / L".fl-write-test";
@@ -157,17 +161,17 @@ void run_demo(Output* lcd, const ojson& cfg, const std::optional<fs::path>& prev
     std::vector<Post> posts = {{tr("Beispiel-Blog"), tr("Ein kurzer Titel für die Vorschau"), now, ""},
                                {tr("Noch ein Blog"), tr("Zweiter Beitrag mit etwas längerem Titel, der umbricht"), now, ""}};
     std::vector<Image> frames = {sr.render(mon.raw())};
-    auto friends = render::demo_friends();
-    auto players = render::demo_players();
+    auto friends = render::samples::friends();
+    auto players = render::samples::players();
     for (int p = 0; p < r.pages(friends.size()); ++p) frames.push_back(r.render_friends(friends, p));
     for (int p = 0; p < br.pages(players.size()); ++p) frames.push_back(br.render(players, p, now));
     frames.push_back(rr.render(posts, now));
     render::SpotifyRenderer spr(w, h, cfg["spotify"].value("title", "Spotify"));
     std::vector<float> demo_levels = {.35f, .55f, .8f, .65f, .9f, .7f, .5f, .75f, .85f, .6f, .45f, .7f, .55f, .35f, .25f, .15f};
-    frames.push_back(spr.render(render::demo_spotify(), 0, &demo_levels));
-    const StreamLogos stream_logos = render::demo_stream_logos();
+    frames.push_back(spr.render(render::samples::spotify(), 0, &demo_levels));
+    const StreamLogos stream_logos = render::samples::stream_logos();
     render::StreamRenderer str(w, h, cfg["streaming"].value("title", "Neu bei Streaming"));
-    frames.push_back(str.render(StreamState::Ok, render::demo_stream(), now, now, &stream_logos));
+    frames.push_back(str.render(StreamState::Ok, render::samples::stream(), now, now, &stream_logos));
     if (lcd) lcd->connect();
     double secs = cfg["display"].value("page_seconds", 15);
     for (size_t i = 0; i < frames.size(); ++i) {
@@ -195,9 +199,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     i18n::set_lang((GetUserDefaultUILanguage() & 0x3FF) == 0x07 ? "de" : "en");
 
     // ---------- Installer / Deinstaller ----------
+    if (distribution::packaged() && (args.install || args.uninstall || args.finish_dir)) return ERROR_NOT_SUPPORTED;
     if (args.finish_dir) return installer::finish_uninstall(*args.finish_dir, args.finish_pid);
     if (args.uninstall) return installer::run_uninstall(args.silent);
-    bool from_elsewhere = !installer::running_installed() && !args.run && !args.demo && !args.config && !test_instance();
+    bool from_elsewhere = !distribution::packaged() && !installer::running_installed() && !args.run && !args.demo && !args.config && !test_instance();
     if (args.install || from_elsewhere) {
         std::error_code ec;
         fs::create_directories(install_dir(), ec);
@@ -233,7 +238,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
             if (!args.autostart) open_settings(port);
             return 0;
         }
-        if (installer::running_installed() && !test_instance()) winsetup::upgrade_autostart();
+        if (!distribution::packaged() && installer::running_installed() && !test_instance()) winsetup::upgrade_autostart();
         try {
             if (config::token_is_plaintext(cfg_path)) {
                 config::save(cfg_path, cfg);  // alten Klartext-Token verschlüsseln
@@ -244,6 +249,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         }
     }
 
+    // Einmalige Entscheidung bei Bestandskonfigurationen; Schließen/Esc ist keine Antwort.
+    if(!test_instance() && !args.demo && !args.preview && cfg["ui"].value("enabled",true) && config::standard_theme_pending(cfg)) {
+        const auto prompt=theme::default_prompt(cfg["ui"].value("language","de")=="en");
+        const TASKDIALOG_BUTTON buttons[]={{IDYES,prompt.yes.c_str()},{IDNO,prompt.no.c_str()}};
+        TASKDIALOGCONFIG dialog{};dialog.cbSize=sizeof dialog;
+        dialog.dwFlags=TDF_ALLOW_DIALOG_CANCELLATION|TDF_SIZE_TO_CONTENT;
+        dialog.pszWindowTitle=L"ScreenBuddy";dialog.pszMainInstruction=prompt.title.c_str();dialog.pszContent=prompt.body.c_str();
+        dialog.cButtons=2;dialog.pButtons=buttons;dialog.nDefaultButton=prompt.default_yes?IDYES:IDNO;
+        int answer=IDCANCEL;
+        if(SUCCEEDED(TaskDialogIndirect(&dialog,&answer,nullptr,nullptr))) {
+            try {config::save_standard_theme_answer(cfg_path,cfg,answer==IDYES?std::optional(true):answer==IDNO?std::optional(false):std::nullopt);}
+            catch(const std::exception&) {LOGW("app","Theme-Entscheidung konnte nicht gespeichert werden; bisheriges Theme bleibt aktiv");}
+        }
+    }
     const ojson& dp = cfg["display"];
     if (args.preview) fs::create_directories(*args.preview, ec);
     std::unique_ptr<Output> lcd;

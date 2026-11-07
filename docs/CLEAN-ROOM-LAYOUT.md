@@ -1,0 +1,98 @@
+# ScreenBuddy · Clean-Room-Herkunft Zonen-Layout
+
+Stand: 2026-11-06. Diese Datei dokumentiert die Herkunft der Ideen und die Arbeitsweise für das Zonen-Layout-System. Sie wird pro Phase fortgeschrieben.
+
+## 1. Zweck
+
+Das Zonen-Layout-System erlaubt, Seiten in benannte Zonen mit Blöcken aufzuteilen, Blöcke in Dichtestufen darzustellen und Rahmenstile über das Theme zu steuern. Es ist für ScreenBuddy 2.10.0 (vorgeschlagen) geplant und führt das Manifest `schema_version: 2` ein. Manifest v1 bleibt unverändert lauffähig.
+
+## 2. Quelle der Idee
+
+- Grundlage sind Konzeptvorschläge aus einer externen Recherche zu libre-panel.
+- libre-panel steht unter GPL-3.0-or-later. ScreenBuddy steht unter MIT.
+- Übernommen werden ausschließlich Ideen und Konzepte. Kein Code, keine Dateien, Themes, Assets, Texte, Namen oder Schlüssellisten aus libre-panel.
+
+## 3. Regeln
+
+1. Implementierende Agenten erhalten nur den Umsetzungsplan `PLAN-screenbuddy-zonen-layout.md` ohne den Abschnitt zur Fremdumsetzung sowie den ScreenBuddy-Code.
+2. Implementierende Agenten erhalten keinen libre-panel-Quellcode.
+3. Eigene Begriffe: Zone, Block, Dichtestufe, Wechselfeld, Rahmenstil, Geräteprofil.
+4. Eigenes Manifest-Schema mit `schema_version: 2`.
+5. Der Codex-Review prüft jede Phase auf auffällige Ähnlichkeit in Namen, Schlüsseln und Struktur.
+
+## 4. Beteiligte
+
+- Auftraggeber: Basti
+- Autoren: Claude-Agenten (Sonnet, Opus, Haiku)
+- Review: Codex CLI 0.166.0
+
+## 5. Erklärung
+
+Die Umsetzung erfolgt ohne Einsicht in Fremdcode implementiert.
+
+## 6. Fortschreibung pro Phase
+
+| Phase | Datum | Agent | Bestätigung | Codex-Ähnlichkeitsprüfung |
+|---|---|---|---|---|
+| 0 Vorbereitung | 2026-11-06 | Claude Haiku 5.5 | ohne Einsicht in Fremdcode implementiert | ausstehend |
+| 1 Rahmenstil an Theme anbinden | 2026-11-06 | Claude Sonnet 5.5 | ohne Einsicht in Fremdcode implementiert | ausstehend |
+| 2 Plugin-Fundament: Zonen, Block-Schnittstelle, Dichtestufen (Teil a: Schema, Parser, Geometrie, Dichtestufen-Modell) | 2026-11-06 | Claude Opus 5.5 | ohne Einsicht in Fremdcode implementiert. Gelesen: Plan-Zeilen 1–50 (Kopf, Leitplanken, Clean-Room-Notiz, Phasen 0–2, Überschrift Phase 3) und ScreenBuddy-Code; nicht gelesen: Abschnitt „Wie libre-panel es macht“, `REA-libre-panel-vorschlaege.md`, libre-panel-Code. Schlüssel (`layout`, `columns`, `rows`, `zones`, `column_span`, `row_span`, `zone`, `id`) selbst gewählt ohne Abgleich mit Fremdcode | ausstehend |
+| 2 Plugin-Fundament (Teil b: Zeichnen nach Zonen, Beispiel, Doku) | 2026-11-06 | Claude Sonnet 5.5 | ohne Einsicht in Fremdcode implementiert. Gelesen: der gesamte Plan PLAN-screenbuddy-zonen-layout.md (Zeilen 1-131), und zwar die bereinigte Fassung: Das Plan-File enthält den Abschnitt „Wie libre-panel es macht“ nicht (Zeile 20 verweist nur darauf); es wurde kein libre-panel-Quellcode und kein Fremdabschnitt gelesen. Außerdem ScreenBuddy-Code (plugin_zones.*, plugin_render.cpp, gfx.*, plugins.*, Tests, Doku); kein libre-panel-Code, keine Fremddateien. Zeichenlogik, Dichtestufen-Schwellen und Beispiel selbst aus der ScreenBuddy-Zeichengeometrie abgeleitet | ausstehend |
+| 3 Bedingte Anzeige und Fehlerisolierung | 2026-11-06 | Claude Opus 5.5 | ohne libre-panel-Einsicht implementiert. Gelesen: PLAN-screenbuddy-zonen-layout.md (bereinigte Fassung ohne Abschnitt „Wie libre-panel es macht“) und ScreenBuddy-Code (plugins.*, plugin_render.*, plugin_zones.*, gfx.*, util.*, Aufrufstellen in app.cpp, Tests, Doku); kein libre-panel-Code, keine Fremddateien, nicht `REA-libre-panel-vorschlaege.md`. Schlüssel (`show_if`, `path`, `op`, `value`), Wertsemantik, Grenzen und Fehlerisolierung selbst gewählt ohne Abgleich mit Fremdcode | ausstehend |
+| P4a-1 | 2026-11-06 | Codex CLI 0.166.0 | Geräteprofil ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4a-2 | 2026-11-06 | Codex CLI 0.166.0 | Gerätemaske und gerätegebundene Touch-Koordinaten ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4a-3 | 2026-11-06 | Codex CLI 0.166.0 | Einstellungen Sperrzone DE/EN ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4a-4 | 2026-11-06 | Codex CLI 0.166.0 | Android-TV nur Querformat ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4b-0 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
+| P4b-1 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
+| P4b-2 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
+| P4b-3 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
+| P4b-4 | 2026-11-06 | Codex CLI 0.166.0 | ohne Einsicht in Fremdcode implementiert; nur Entwurf und ScreenBuddy-Code. | ausstehend |
+| Phase-4b-Reviewkorrekturen | 2026-11-06 | Codex | ohne Einsicht in Fremdcode implementiert; nur ScreenBuddy-Code und Phase-4-Entwurf gelesen. | ausstehend |
+| P4c-1 | 2026-11-06 | Codex CLI 0.166.0 | Parser und kodierte Tap-Expansion ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4c-2 | 2026-11-06 | Codex CLI 0.166.0 | Ziele im Zeichenaufruf und gemeinsame Listenzeilen ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4c-3 | 2026-11-06 | Codex CLI 0.166.0 | Separate persistente Linkfreigabe und DE/EN-Schalter ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| P4c-4 | 2026-11-06 | Codex CLI 0.166.0 | Snapshot-Entscheidung, Ruhezeit, Rate und gesicherte Next-Liste ohne Einsicht in Fremdcode implementiert. | ausstehend |
+| 4 Geräteprofile, Wechselfeld, Tap-Ziele | | | | |
+| P5-0 Baseline-Gerüst | 2026-11-06 | Codex CLI 0.166.0 | Vollständigen PHASE5-MIGRATIONSPLAN.md und ScreenBuddy-Code gelesen; keine Einsicht in libre-panel-Code oder andere Fremdimplementierungen. Snapshot-Matrix, Zeitnahtstellen und Beispieldatenmodul aus eigener Repo-Geometrie abgeleitet. Noch keine Migration. | ausstehend |
+| 5 Eingebaute Seiten und gemeinsamer Renderer | | | | |
+| P5-1 Seitenrahmen + RSS | 2026-11-06 | Codex CLI 0.166.0 | Vollständigen PHASE5-MIGRATIONSPLAN.md und ScreenBuddy-Code gelesen; RSS mechanisch auf eigenen Seitenrahmen und Block-Schnittstelle umgestellt, ohne Einsicht in libre-panel-Code oder andere Fremdimplementierungen. | ausstehend |
+| P5-2 Streaming | 2026-11-06 | Codex | Nur P5-Migrationsplan, RSS-Commit b1d9c59 und eigenen ScreenBuddy-Code gelesen; Streaming mechanisch nach RSS-Muster migriert, ohne Einsicht in libre-panel-Code oder andere Fremdimplementierungen. | ausstehend |
+| P5-3 BF6 | 2026-11-06 | Codex | Nur PHASE5-MIGRATIONSPLAN.md, RSS-Commit b1d9c59 und ScreenBuddy-Code gelesen; BF6 mechanisch auf eigenen Seitenrahmen und Block-Schnittstelle umgestellt, ohne Einsicht in libre-panel-Code oder andere Fremdimplementierungen. | ausstehend |
+| P5-4 Freunde + Discord | 2026-11-06 | Codex | Nur PHASE5-MIGRATIONSPLAN.md, bisherige P5-Migrationen und ScreenBuddy-Code gelesen; Freunde/Discord mechanisch auf eigenen Seitenrahmen und Block-Schnittstelle umgestellt, ohne Einsicht in libre-panel-Code oder andere Fremdimplementierungen. | ausstehend |
+| P5-5 Spotify | 2026-11-06 | Codex | Nur PHASE5-MIGRATIONSPLAN.md, eigene RSS-/Streaming-/BF6-Migrationen und ScreenBuddy-Code gelesen; sechs feste Spotify-Blöcke über draw_framed, ohne Einsicht in libre-panel-Code oder andere Fremdimplementierungen. Vollflächige Platzierungen erhalten die absoluten layout()-Ausdrücke und Überlappungen. | ausstehend |
+| P5-6 System | 2026-11-06 | Codex | Nur PHASE5-MIGRATIONSPLAN.md, die bisherigen Rahmen-Migrationen und ScreenBuddy-Code gelesen; System mechanisch auf eigenen Seitenrahmen und Block-Schnittstelle umgestellt, ohne Einsicht in libre-panel-Code oder andere Fremdimplementierungen. | ausstehend |
+| 6 Editor und Erststart | | | | |
+| P6-1 Overlay-Modell | 2026-11-06 | Codex CLI 0.166.0 | PHASE6-ENTWURF.md und eigenen ScreenBuddy-Code gelesen; strikten Overlay-Parser, reines Zusammenführen und Grenz-/Inhaltsprüfungen ohne Einsicht in libre-panel-Code implementiert. | ausstehend |
+| P6-2 Store und App | 2026-11-06 | Codex CLI 0.166.0 | Fingerabdruckbindung, atomare Overlay-/Backup-Dateien, eigene Layoutrevision und App-Rückrufe ausschließlich aus Entwurf und ScreenBuddy-Code implementiert; keine Fremdimplementierung gelesen. | ausstehend |
+| P6-3 Raster und Historie | 2026-11-06 | Codex CLI 0.166.0 | Reine Modelloperationen, Schnappschusshistorie und natives Raster selbst implementiert; nur PHASE6-ENTWURF und ScreenBuddy-Code gelesen, keine Einsicht in libre-panel-Code oder Fremdimplementierungen. | ausstehend |
+| P6-4 Editor-Seite | 2026-11-06 | Codex CLI 0.166.0 | Editor mit bestehenden UI-Kit-/Store-Schnittstellen selbst implementiert; nur PHASE6-ENTWURF und ScreenBuddy-Code gelesen, keine Einsicht in libre-panel-Code oder Fremdimplementierungen. | ausstehend |
+| P6-5 Vorschau und Barrierefreiheit | 2026-11-06 | Codex CLI 0.166.0 | Bestehenden App-Renderer angebunden, native MSAA-/Tastatur-, Kontrast- und Snapshotprüfungen selbst implementiert; nur PHASE6-ENTWURF und ScreenBuddy-Code gelesen, keine Einsicht in libre-panel-Code oder Fremdimplementierungen. | ausstehend |
+| 7 Drag & Drop im Editor | | | | |
+| P7-1 ui_kit: Zeiger und Abbruch | 2026-11-06 | Codex CLI 0.166.0 | Nur PHASE7-DRAGDROP-ENTWURF.md und ScreenBuddy-Code gelesen; keine Einsicht in libre-panel-Code, GIF oder URL. Bedienkonzept nur aus Bastis Beschreibung. | ausstehend |
+| P7-2 Modell: zusammengesetzte Operationen und Probe | 2026-11-06 | Codex CLI 0.166.0 | Nur PHASE7-DRAGDROP-ENTWURF.md und ScreenBuddy-Code gelesen; keine Einsicht in libre-panel-Code, GIF oder URL. Bedienkonzept nur aus Bastis Beschreibung. | ausstehend |
+| P7-3 GridEditor: Leiste, Raster, Ablage, Ziehen | 2026-11-06 | Codex CLI 0.166.0 | Nur PHASE7-DRAGDROP-ENTWURF.md und ScreenBuddy-Code gelesen; keine Einsicht in libre-panel-Code, GIF oder URL. Bedienkonzept nur aus Bastis Beschreibung. | ausstehend |
+| P7-4 Editor-Seite und Abnahme | 2026-11-06 | Codex CLI 0.166.0 | Nur PHASE7-DRAGDROP-ENTWURF.md und ScreenBuddy-Code gelesen; keine Einsicht in libre-panel-Code, GIF oder URL. Bedienkonzept nur aus Bastis Beschreibung. | ausstehend |
+| P7-5 Katalog/Overlay/Prüfung | 2026-11-06 | Agent Codex CLI 0.166.0 | Nur vollständigen Phase-7-Entwurf und eigenen ScreenBuddy-Code verwendet; keine Fremdquellen, kein Netzwerk. | 14 Suiten grün; Companion offline, Hardware offen |
+| P7-6 Store/App/Vorschau/Touch | 2026-11-06 | Agent Codex CLI 0.166.0 | Nur Phase-5/6/7-Entwürfe und eigenen ScreenBuddy-Code gelesen; keine Fremdquellen oder Netzwerkzugriffe. | 14 Suiten grün; Companion offline, Hardware offen |
+| P7-7 RSS im Editor | 2026-11-06 | Agent Codex CLI 0.166.0 | Eigene Datenquellen, Blöcke, Rastergeometrie und eingefrorene Beispieldaten; nur Phase-5/6/7-Entwürfe und ScreenBuddy-Code. Kein Fremdcode, keine URL/GIF abgerufen; kein Netzwerk. | 14 Suiten grün; alte Baselines bitgleich, neue RSS-Basis additiv; Companion offline, Hardware offen |
+| P7-8 Streaming im Editor | 2026-11-06 | Agent Codex CLI 0.166.0 | Nur vollständiger Phase-7-Entwurf, vorhandener ScreenBuddy-Code und eingefrorene Beispieldaten; keine Fremdquellen/URL/GIF, kein Netzwerk, kein Audio. | 14 Suiten grün (Companion offline); alte Baselines bitgleich, 1.792 neue Rasterbilder/Trefferkarten additiv; Hardware offen |
+| P7-9 BF6 im Editor | 2026-11-06 | Agent Codex CLI 0.166.0 | Nur vollständiger Phase-7-Entwurf, vorhandener ScreenBuddy-Code und eingefrorene Beispieldaten; keine Fremdquellen/URL/GIF, kein Netzwerk, kein Audio. | 14 Suiten grün (Companion offline); alte Baselines bitgleich, 1.024 neue Rasterbilder/Trefferkarten additiv; Hardware offen |
+| P7-10 Freunde + Discord im Editor | 2026-11-06 | Agent Codex CLI 0.166.0 | Nur vollständiger Phase-7-Entwurf, vorhandener ScreenBuddy-Code und eingefrorene Beispieldaten; keine Fremdquellen/URL/GIF, kein Netzwerk, kein Audio. | 14 Suiten grün (Companion offline); alte Baselines bitgleich, je 1.024 neue Rasterbilder/Trefferkarten additiv; Hardware offen |
+
+Phase-4c-Sicherheitsreview M1/M2/N1–N4 (06.11.2026, Codex): ausschließlich eigenen Repo-Code und lokale Arbeitsanweisungen gelesen; URL-, Freigabe-, Geometrie- und Busy-Schalter-Korrekturen ohne Einsicht in Fremdcode. Automatischer Prüfstand und offene physische/UI-Abnahme: [Testprotokoll](../cpp/TESTPROTOKOLL.md).
+| P7-11 System im Editor | 2026-11-06 | Agent Codex CLI 0.166.0 | Nur vollständiger Phase-7-Entwurf, Phase-5-Plan und eigener ScreenBuddy-Code; Daten, Karten und Raster selbst umgesetzt. Keine Fremdimplementierung, keine URL/GIF abgerufen, kein Netzwerk. | 14 Suiten grün, bestehende Baselines bitgleich, 1536 System-Rasterfälle additiv; Companion offline, Hardware offen |
+| P7-12 Spotify im Editor | 2026-11-06 | Agent Codex CLI 0.166.0 | Nur vollständiger Phase-7-Entwurf, Phase-5-Plan und eigener ScreenBuddy-Code; vorhandene Snapshot-/Meter-Daten, keine Fremdimplementierung, keine URL/GIF abgerufen, kein Netzwerk oder Ton. | 14 Suiten grün, bestehende Baselines bitgleich, 4096 Spotify-Rasterfälle additiv; Companion offline, Hardware offen |
+
+| P7b-0 Standard-Theme dunkles Material mit Orange | 2026-11-06 | Claude Sonnet 5.5 (Implementierer nach Codex-Abbruch) | Nur Phase-7b-Entwurf, eigener Theme-/Kontrastcode und FuchsLabs-Markenfarben; libre-panel nicht angesehen, keine Fremdquelle, kein Netzwerk. | Suiten grün, bestehende Baselines unverändert, neue Hashdatei additiv; Handabnahme offen |
+| P7b-6 Display-Tabs und Geräte-Overlays | 2026-11-06 | Agent Codex CLI 0.166.0 | Nur vollständige Phase-7/7b-Entwürfe und eigener ScreenBuddy-Code; keine Fremdquelle abgerufen, kein Netzwerk, kein Ton. | 14 Suiten grün (Companion offline), elf bestehende Hashdateien unverändert; bestehende Baselines unverändert; physische Mehrgeräte-Abnahme offen |
+| P7b-1 Editor-Fensteraufbau | 2026-11-06 | Agent Claude Sonnet 5.5 | Nur docs/PHASE7B-EDITOR-OBERFLAECHE.md (eigene Beschreibung) und eigener ScreenBuddy-Code; libre-panel nicht angesehen und nicht abgerufen, keine Fremdquelle, kein Netzwerk. | 14 Suiten grün, Baselines bitgleich; Handabnahme offen |
+| P7b-2 Kachelpalette | 2026-11-06 | Agent Claude Sonnet 5.5 | Nur docs/PHASE7B-EDITOR-OBERFLAECHE.md (eigene Beschreibung) und eigener ScreenBuddy-Code; libre-panel nicht angesehen und nicht abgerufen, keine Fremdquelle, kein Netzwerk. | 14 Suiten grün, Baselines bitgleich; Handabnahme offen |
+| P7b-3 Fläche | 2026-11-06 | Agent Claude Sonnet 5.5 | Nur docs/PHASE7B-EDITOR-OBERFLAECHE.md (eigene Beschreibung) und eigener ScreenBuddy-Code; libre-panel nicht angesehen und nicht abgerufen, keine Fremdquelle, kein Netzwerk. | 14 Suiten grün, bestehende Baselines bitgleich, Editor-Snapshots additiv; Handabnahme offen |
+| P7b-4 Ebenen, Seiten, Einsteigerkarte | 2026-11-06 | Agent Claude Sonnet 5.5 | Nur docs/PHASE7B-EDITOR-OBERFLAECHE.md (eigene Beschreibung) und eigener ScreenBuddy-Code; libre-panel nicht angesehen und nicht abgerufen, keine Fremdquelle, kein Netzwerk. | 14 Suiten grün, Baselines bitgleich; Handabnahme offen |
+
+| P8-1 Eigene Ansichten: Datenmodell und Seitenzyklus | 2026-11-07 | Codex | Nur P8-1-Auftrag, Clean-Room-/Phase-7b-Dokumente und eigener ScreenBuddy-Code; keine Fremdimplementierung gelesen/abgerufen, kein externes Quellnetzwerk, kein Ton; lokale TLS-Testserver ohne Port 8765. | 24 Testziele grün (Companion vollständig lokal: 386; neue Suite: 229), bestehende Baselines unverändert; HA und weitere Inhaltskacheln sowie Editor/Touch offen; physische Abnahme offen, siehe PHASE8-EIGENE-ANSICHTEN.md. |
+
+| P8-2 Mini-Kacheln und eigener Ansichts-Editor | 2026-11-07 | Codex | Nur P8-1-Auftrag, Phase-8-/Phase-7b-Dokumente, Projektregeln und eigener ScreenBuddy-Code; keine Einsicht in libre-panel-Code oder fremde Assets. Wiederverwendete native Renderer, ui_kit und bestehende Rastergesten. | Kein Fremdcodevergleich; Ähnlichkeitsfreiheit nicht behauptet. |
+
+| P8-4 KI-Status-Kacheln | 2026-11-07 | Codex | Nur P8-Aufträge, ScreenBuddy-Code, KI-Schnittstellendokument und Projektregeln gelesen; kein Fremdcode, keine fremden Assets oder externen Quellen. Bestehenden KI-Renderer wiederverwendet; kein Ton. | Kein Fremdcodevergleich; physische Abnahme offen. |
