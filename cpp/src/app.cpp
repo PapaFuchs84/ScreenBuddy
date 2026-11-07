@@ -1298,7 +1298,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             }
             pe.actions.resize(4);
             if (snap.cover && !snap.cover->empty() &&
-                (snap.state == spotify::State::Playing || snap.state == spotify::State::Paused)) {
+                (snap.state == spotify::State::Playing || snap.state == spotify::State::Paused ||
+                 (snap.state == spotify::State::Idle && snap.last_played))) {
                 pe.actions[render::SpotifyRenderer::COVER] = [] {
                     if (!touch::open({{"spotify:", "spotify"}}))
                         LOGW("app", "Spotify-App konnte nicht geöffnet werden");

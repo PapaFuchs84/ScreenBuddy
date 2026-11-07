@@ -2249,12 +2249,12 @@ BuiltinDrawOut SpotifyRenderer::render_arranged(const spotify::Snapshot& snap,co
         const int top=pyround_i(a.y*s),bottom=pyround_i((a.y+a.height)*s);
         out.targets.push_back({{left,top,right-left,bottom-top},item});
     };
-    for(const auto& b:plan.blocks) if(b.visible() && live && !snap.last_played && std::find(failed.begin(),failed.end(),b.id)==failed.end()) {
+    for(const auto& b:plan.blocks) if(b.visible() && ready && std::find(failed.begin(),failed.end(),b.id)==failed.end()) {
         if(b.id=="spotify.cover" && snap.cover && !snap.cover->empty()) {
             const float side=std::min(b.area.width,b.area.height);
             add({b.area.x+(b.area.width-side)/2,b.area.y+(b.area.height-side)/2,side,side},COVER);
         }
-        if(b.id=="spotify.tasten" && snap.controls) {
+        if(b.id=="spotify.tasten" && snap.controls && !snap.last_played) {
             const auto controls=spotify_controls(b.area);for(size_t i=0;i<controls.size();++i) add(controls[i],i);
         }
     }

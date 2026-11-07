@@ -750,7 +750,8 @@ static int spotify_layout_snapshots(bool record,const fs::path& output) {
                     if(variant==0) require(hash_image(r.render(snap,progress_time,&levels,color,simulated,clock_value))==hash_image(r.render_arranged(snap,defaults,progress_time,&levels,color,simulated,clock_value).image),key+" standard");
                     auto drawn=r.render_arranged(snap,overlay,progress_time,&levels,color,simulated,clock_value);
                     require(drawn.image.w==size.w && drawn.image.h==size.h,key+" dimensions");actual[key]=hash_image(drawn.image);
-                    const bool live=(snap.state==spotify::State::Playing || snap.state==spotify::State::Paused) && !snap.last_played;
+                    const bool live=(snap.state==spotify::State::Playing || snap.state==spotify::State::Paused) ||
+                                    (snap.state==spotify::State::Idle && snap.last_played);
                     std::vector<BuiltinTarget> expected_targets;
                     auto add=[&](float x,float y,float width,float height,size_t item) {
                         const int left=int(std::nearbyint(x*scale)),right=int(std::nearbyint((x+width)*scale));
@@ -762,7 +763,7 @@ static int spotify_layout_snapshots(bool record,const fs::path& output) {
                         if(b.id=="spotify.cover" && snap.cover && !snap.cover->empty()) {
                             const float side=std::min(a.width,a.height);add(a.x+(a.width-side)/2,a.y+(a.height-side)/2,side,side,3);
                         }
-                        if(b.id=="spotify.tasten" && snap.controls)
+                        if(b.id=="spotify.tasten" && snap.controls && !snap.last_played)
                             for(size_t i=0;i<3;++i) add(a.x+(float(i)+.5f)*a.width/3-24,a.y+a.height/2-24,48,48,i);
                     }
                     require(drawn.targets.size()==expected_targets.size(),key+" visible actions");
