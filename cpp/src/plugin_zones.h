@@ -124,5 +124,5 @@ struct Plan {
 // Ungültige Eingaben (nicht endlich, <= 0, > max_area, Layout außerhalb der Grenzen) → alle Blöcke aus.
 Plan plan(const Rect& area, const Layout& layout, const std::vector<BlockInput>& blocks, float gap);
 // Prüft dieselben Strukturregeln wie der Parser (Grenzen, Raster, keine Überlappung, eindeutige IDs).
-bool valid(const Layout& layout);
+bool valid(const Layout& layout, size_t zone_limit = max_zones, bool allow_empty = false);
 } // namespace fl::plugins::zones

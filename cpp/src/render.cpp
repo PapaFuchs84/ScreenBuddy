@@ -566,8 +566,8 @@ plugins::zones::Plan Renderer::friend_arrangement(const builtin::Overlay& overla
     const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
     const auto layout=plugins::edit::geometry(model);
     if(!layout) return {};
-    return plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
-                               builtin::inputs(*builtin::find("friends"),model),6);
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("friends"),model),6),overlay);
 }
 bool Renderer::uses_friends_arrangement(const builtin::Overlay& overlay) const {
     return !builtin::is_standard(*builtin::find("friends"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
@@ -847,8 +847,8 @@ plugins::zones::Plan Bf6Renderer::arrangement(const builtin::Overlay& overlay) c
     const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
     const auto layout=plugins::edit::geometry(model);
     if(!layout) return {};
-    return plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
-                               builtin::inputs(*builtin::find("bf6"),model),6);
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("bf6"),model),6),overlay);
 }
 bool Bf6Renderer::uses_arrangement(const builtin::Overlay& overlay) const {
     return !builtin::is_standard(*builtin::find("bf6"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
@@ -1068,8 +1068,8 @@ plugins::zones::Plan SysRenderer::arrangement(const builtin::Overlay& overlay) c
     const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
     auto layout=plugins::edit::geometry(model);
     if(!layout) return {};
-    return plugins::zones::plan({8,HEADER_H+2.f,w-16,h-HEADER_H-FOOTER_H-2.f},*layout,
-                               builtin::inputs(*builtin::find("system"),model),6);
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2.f,w-16,h-HEADER_H-FOOTER_H-2.f},*layout,
+                               builtin::inputs(*builtin::find("system"),model),6),overlay);
 }
 class SysRenderer::ArrangedCardBlock : public plugins::zones::Block {
 public:
@@ -1471,8 +1471,8 @@ plugins::zones::Plan RssRenderer::arrangement(const builtin::Overlay& overlay) c
     const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
     const auto layout=plugins::edit::geometry(model);
     if(!layout) return {};
-    return plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
-                               builtin::inputs(*builtin::find("rss"),model),6);
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("rss"),model),6),overlay);
 }
 bool RssRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
     return !builtin::is_standard(*builtin::find("rss"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
@@ -1746,8 +1746,8 @@ plugins::zones::Plan StreamRenderer::arrangement(const builtin::Overlay& overlay
     const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
     const auto layout=plugins::edit::geometry(model);
     if(!layout) return {};
-    return plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
-                               builtin::inputs(*builtin::find("streaming"),model),6);
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2,w-16,h-FOOTER_H-HEADER_H-2},*layout,
+                               builtin::inputs(*builtin::find("streaming"),model),6),overlay);
 }
 bool StreamRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
     return !builtin::is_standard(*builtin::find("streaming"),h>w?overlay.portrait.value_or(overlay.model):overlay.model,h>w);
@@ -1899,6 +1899,15 @@ void HaRenderer::cell(Canvas& d, const Cell& c, const HaEntity& e, bool compact)
     d.text(c.x0 + 10, cy, v, vf, t.text, "lm");
     if (!e.unit.empty())
         d.text(c.x0 + 10 + d.textlength(v, vf) + 5, cy + (compact ? 4 : 6), fit(d, e.unit, f_unit, std::max(10.f, cw - 30 - d.textlength(v, vf))), f_unit, t.muted, "lm");
+}
+
+Image HaRenderer::render_entity(const HaEntity& entity,const plugins::zones::Rect& area,int density_cap) {
+    Canvas canvas(W,H,s,g_theme.bg);
+    if(area.width>=100 && area.height>=64 && area.x>=0 && area.y>=0 &&
+       area.x+area.width<=w && area.y+area.height<=h)
+        cell(canvas,{area.x,area.y,area.x+area.width,area.y+area.height},entity,
+             density_cap==0 || area.width<220 || area.height<120);
+    return canvas.finish();
 }
 
 Image HaRenderer::render(const std::vector<HaEntity>& entities, bool has_data, const std::string& error,
@@ -2209,7 +2218,7 @@ bool SpotifyRenderer::uses_arrangement(const builtin::Overlay& overlay) const {
 plugins::zones::Plan SpotifyRenderer::arrangement(const builtin::Overlay& overlay) const {
     const auto& model=h>w?overlay.portrait.value_or(overlay.model):overlay.model;
     auto layout=plugins::edit::geometry(model);if(!layout) return {};
-    return plugins::zones::plan({8,HEADER_H+2.f,w-16,h-HEADER_H-FOOTER_H-2.f},*layout,builtin::inputs(*builtin::find("spotify"),model),6);
+    return builtin::tile_plan(plugins::zones::plan({8,HEADER_H+2.f,w-16,h-HEADER_H-FOOTER_H-2.f},*layout,builtin::inputs(*builtin::find("spotify"),model),6),overlay);
 }
 BuiltinDrawOut SpotifyRenderer::render_arranged(const spotify::Snapshot& snap,const builtin::Overlay& overlay,
                                                double now,const std::vector<float>* levels,int color,bool simulated,std::time_t clock) {

@@ -514,6 +514,69 @@ std::optional<Image> App::page_preview(const std::string& key,const nlohmann::js
     error="Unknown built-in page.";return {};
 }
 
+std::vector<custom::Tile> App::custom_palette() {
+    std::vector<custom::Tile> result;
+    for(const auto& c:builtin::catalogs()) for(const auto& b:c.blocks) {
+        custom::Tile tile;tile.source=c.key;tile.block=b.id;tile.zone={"tile",0,0,1,1};result.push_back(tile);
+    }
+    for(const auto& entry:cfg_["homeassistant"]["entities"]) if(entry.is_string()) {
+        if(auto spec=ha::parse_spec(entry.get<std::string>())) {
+            custom::Tile tile;tile.source="homeassistant";tile.block=spec->id;tile.zone={"tile",0,0,1,1};result.push_back(tile);
+        }
+    }
+    if(plugins_) for(const auto& entry:plugins_->entries()) if(entry.enabled && entry.manifest.schema_version==2)
+        for(const auto& widget:entry.manifest.widgets) {
+            if(result.size()>=256) return result;
+            custom::Tile tile;tile.source="plugin:"+entry.manifest.id;tile.block=widget.id;tile.zone={"tile",0,0,1,1};result.push_back(tile);
+        }
+    return result;
+}
+std::optional<Image> App::custom_preview(const custom::View& view,const std::string& device,std::pair<int,int> dimensions) {
+    auto [width,height]=dimensions;
+    if(width<1 || height<1 || width>4096 || height>4096 || !custom::parse(custom::to_json(view).dump())) return {};
+    std::lock_guard lock(render::mutex());render::apply_theme(dp_);
+    RendererSet rs(width,height,cfg_);using namespace render::samples;
+    return custom::draw(view,device,width,height,[&](const custom::Tile& tile,const custom::Layout& layout,int w,int h)->std::optional<Image> {
+        if(tile.source=="homeassistant") {
+            HaEntity entity{tile.block,"Beispiel / Sample","21.5","°C",false,false,true};
+            const float scale=render::scale_for(w,h);
+            auto plan=plugins::zones::plan({8,36,std::round(w/scale)-16,std::round(h/scale)-54},custom::tile_layout(tile,layout),{},6);
+            if(!custom::visible(tile,{{"state",entity.state},{"available",true},{"on",false}}) || plan.zones.empty()) return {};
+            return rs.ha.render_entity(entity,plan.zones[0].area,tile.density);
+        }
+        if(tile.source.starts_with("plugin:")) {
+            auto entry=plugins_?plugins_->find(tile.source.substr(7)):std::nullopt;
+            if(!entry || !entry->enabled) return {};
+            auto manifest=entry->effective(device);plugins::RenderContext context;context.time="12:34";context.date="2026-11-07";
+            for(const auto& source:manifest.sources) context.sources[source.id]=source.sample;
+            for(const auto& setting:manifest.settings) if(setting.type!="secret") context.settings[setting.key]=setting.default_value;
+            return custom::draw_plugin(tile,layout,std::move(manifest),context,w,h);
+        }
+        auto overlay=custom::single_builtin(tile,layout);if(!overlay) return {};
+        plugins::Json data={{"ready",true}};
+        if(tile.source=="system") {
+            const auto snapshot=system();data=plugins::Json::object();
+            auto add=[&](const char* key,const auto& value){if(value)data[key]=*value;};
+            add("cpu_pct",snapshot.cpu_pct);add("gpu_pct",snapshot.gpu_pct);add("ram_pct",snapshot.ram_pct);
+            add("disk_pct",snapshot.disk_pct);add("net_down",snapshot.net_down);add("net_up",snapshot.net_up);
+        }
+        if(tile.source=="rss") data["count"]=posts(i18n::lang()).size();
+        if(tile.source=="streaming") data["count"]=stream().size();
+        if(tile.source=="bf6") data["count"]=players().size();
+        if(tile.source=="friends" || tile.source=="discord") data["count"]=render::samples::friends().size();
+        if(tile.source=="spotify") {auto snap=render::samples::spotify();data={{"playing",snap.playing},{"title",snap.title},{"artist",snap.artist}};}
+        if(!custom::visible(tile,data)) return {};
+        if(tile.source=="system") return rs.system.render_arranged(system(),*overlay,CLOCK).image;
+        if(tile.source=="rss") return rs.rss.render_arranged(posts(i18n::lang()),CLOCK,*overlay,0,CLOCK).image;
+        if(tile.source=="streaming") {auto logos=stream_logos();return rs.stream.render_arranged(tmdb::State::Ok,stream(),CLOCK,*overlay,0,CLOCK,&logos).image;}
+        if(tile.source=="bf6") return rs.bf6.render_arranged(players(),CLOCK,*overlay,0,CLOCK).image;
+        if(tile.source=="friends") return rs.friends.render_friends_arranged(render::samples::friends(),true,"",*overlay,0,CLOCK).image;
+        if(tile.source=="discord") return rs.discord.render_friends_arranged(render::samples::friends(),true,"",*overlay,0,CLOCK).image;
+        if(tile.source=="spotify") {const std::vector<float> levels={.2f,.4f,.8f,.6f,.9f,.5f};return rs.spotify.render_arranged(render::samples::spotify(),*overlay,1000,&levels,1,true,CLOCK).image;}
+        return {};
+    });
+}
+
 bool App::touch_enabled() const {
     // Schalter brauchen Touch: nur bei Ausgabe auf einen Bildschirm, mit eingeschaltetem Touch und erkanntem Touchscreen
     // Die Companion-App meldet Tipps immer (Touchscreen des Handys/Tablets)
@@ -647,6 +710,10 @@ std::vector<std::string> App::active_pages(bool companion, const std::vector<std
     // Eine eigene Geräteliste ist dagegen verbindlich: was dort fehlt, wird auf dem Gerät nicht gezeigt.
     if (!pages_override) for (const auto& key : plugin_keys)
         if (std::find(listed.begin(), listed.end(), key) == listed.end()) out.push_back(key);
+    if(!pages_override) for(const auto& view:custom::Store(cfg_path_.parent_path()/L"views").list()) {
+        auto key="custom:"+view.id;
+        if(std::none_of(order.begin(),order.end(),[&](const auto& p){return p==key;})) out.push_back(key);
+    }
     return out;
 }
 
@@ -821,6 +888,15 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         char date[32]={};std::strftime(date,sizeof date,"%Y-%m-%d",&local);context.date=date;
                         return custom::draw_plugin(tile,layout,std::move(manifest),context,w,h);
                     }
+                    if(tile.source=="homeassistant" && ha_ && ha_->has_data()) {
+                        for(const auto& entity:ha_->entities()) if(entity.id==tile.block) {
+                            if(!custom::visible(tile,{{"state",entity.state},{"available",entity.available},{"on",entity.on}})) return {};
+                            const auto scale=render::scale_for(w,h);
+                            auto plan=plugins::zones::plan({8,36,std::round(w/scale)-16,std::round(h/scale)-54},custom::tile_layout(tile,layout),{},6);
+                            if(!plan.zones.empty()) return rs.ha.render_entity(entity,plan.zones[0].area,tile.density);
+                        }
+                        return {};
+                    }
                     auto arrangement=custom::single_builtin(tile,layout);
                     if(!arrangement) return {};
                     using Json=plugins::Json;
@@ -838,7 +914,13 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                     if(tile.source=="spotify" && spotify_) {
                         auto snap=spotify_->snapshot();
                         if(!custom::visible(tile,{{"playing",snap.playing},{"title",snap.title},{"artist",snap.artist}})) return {};
-                        return rs.spotify.render_arranged(snap,*arrangement).image;
+                        std::vector<float> levels;bool simulated=false;
+                        if(tile.block=="spotify.pegel" && meter_ && snap.playing) {
+                            meter_->touch(audio::amp_seed(snap.title,snap.artist));levels=meter_->levels();simulated=meter_->simulated();
+                        }
+                        const auto mode=audio::parse_amp_color(cfg_["spotify"].value("amp_color",std::string("level")));
+                        return rs.spotify.render_arranged(snap,*arrangement,0,levels.empty()?nullptr:&levels,
+                            mode==audio::AmpColor::Theme?0:mode==audio::AmpColor::Level?1:2,simulated).image;
                     }
                     if(tile.source=="rss" && rss_) {
                         auto posts=rss_->posts();auto updated=rss_->updated();
@@ -865,7 +947,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         if(!custom::visible(tile,{{"count",friends.size()},{"ready",status.empty()}})) return {};
                         return rs.discord.render_friends_arranged(friends,status.empty(),status,*arrangement).image;
                     }
-                    return {}; // No native HA block renderer; unsupported tiles stay blank.
+                    return {}; // Missing or disabled sources stay blank.
                 });
             }});
         } else if (key.rfind("plugin:", 0) == 0) {
@@ -1254,7 +1336,8 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
             explicit PlaybackTransfer(audio::LevelMeter* m) : meter(m) { if (meter) meter->visible_transfer(true); }
             ~PlaybackTransfer() { if (meter) { meter->touch(); meter->visible_transfer(false); } }
         } playback_transfer(meter_ && spotify_ && spotify_->snapshot().playing &&
-                            std::count(primary_view_.current.begin(), primary_view_.current.end(), "spotify")
+                            (std::count(primary_view_.current.begin(), primary_view_.current.end(), "spotify") ||
+                             (meter_->active() && std::any_of(primary_view_.current.begin(),primary_view_.current.end(),[](const auto& key){return key.starts_with("custom:");})))
                             ? meter_.get() : nullptr);
         int rows = out_->show(frame);
         auto transfer = out_->transfer();
@@ -1297,8 +1380,9 @@ nlohmann::json App::layout_displays() {
     auto cache=result;for(auto& d:cache)d["online"]=false;
     if(cache.dump()!=previous && cache.dump().size()<=16384) builtin::atomic_write(cache_path,cache.dump());
     if(companion_) {
-        add("network","Netzwerk / Network",companion_->size(),companion_->running(),false,profile_for(true));
-        auto status=companion_->status();const auto clients=companion_->client_ids();
+        const auto clients=companion_->client_ids();
+        add("network","Netzwerk / Network",companion_->size(),companion_->running() && !clients.empty(),false,profile_for(true));
+        auto status=companion_->status();
         for(const auto& d:status["devices"]) {
             const auto id=d.value("id",std::string());
             add(id,d.value("name",id),{d.value("width",480),d.value("height",320)},
@@ -1344,7 +1428,8 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     // Keep visible playback alive even when silent capture publishes no changes.
     // Otherwise the 3 s activity lease expires before the 4 s simulation delay.
     live = live || (meter_ && spotify_ && spotify_->snapshot().playing &&
-                    std::count(view.current.begin(), view.current.end(), "spotify") > 0);
+                    (std::count(view.current.begin(), view.current.end(), "spotify") > 0 ||
+                     (meter_->active() && std::any_of(view.current.begin(),view.current.end(),[](const auto& key){return key.starts_with("custom:");}))));
     if (!plugins::schedule::should_render(dirty,due,live,view.step,view.size!=size || view.area!=area,view.minute!=minute,now,view.next_deadline)) return out;
     if (view.size!=size || view.area!=area) { for (auto& [plugin,zones]:view.cycles) plugins::schedule::reset(zones,false,true); view.fade_caches.clear(); }
     { std::lock_guard lk(view.next_mu); view.frame_next_requests.clear(); view.frame_next_requests.swap(view.next_requests); }

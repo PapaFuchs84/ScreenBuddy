@@ -1,6 +1,7 @@
 // © 2026 FuchsLabs – Clean-Room-Editorbausteine.
 #include "layout_edit.h"
 #include <algorithm>
+#include <set>
 
 namespace fl::plugins::edit {
 bool equal(const Model& a, const Model& b) { return to_json(a).dump() == to_json(b).dump(); }
@@ -16,14 +17,25 @@ std::optional<zones::Layout> geometry(const Model& m) {
             if (j.contains("cycle")) z.cycle = zones::Cycle{j["cycle"].at("mode"), j["cycle"].value("transition", "fade")};
             l.zones.push_back(z);
         }
-        if (zones::valid(l)) return l;
+        if (zones::valid(l,m.custom_draft?24:zones::max_zones,m.custom_draft)) return l;
     } catch (const Json::exception&) {}
     return {};
 }
 bool change(Model& m, const std::function<void(Model&)>& action) {
     auto next = m;
     try { action(next); } catch (const Json::exception&) { return false; }
-    if (!geometry(next) || !parse_arrangement(to_json(next).dump())) return false;
+    if (!geometry(next)) return false;
+    if(next.custom_draft) {
+        if(!next.blocks.is_array() || next.blocks.size()>256) return false;
+        std::set<std::string> ids,occupied;
+        for(const auto& b:next.blocks) {
+            if(!b.is_object() || !b.contains("id") || !b["id"].is_string() || !ids.insert(b["id"].get<std::string>()).second ||
+               !b.contains("shown") || !b["shown"].is_boolean() || !b.contains("zone") || !b["zone"].is_string()) return false;
+            if(b["shown"].get<bool>() && (!occupied.insert(b["zone"].get<std::string>()).second ||
+                std::none_of(next.layout["zones"].begin(),next.layout["zones"].end(),[&](const auto& z){return z["id"]==b["zone"];}))) return false;
+        }
+        if(occupied.size()>24) return false;
+    } else if (!parse_arrangement(to_json(next).dump())) return false;
     m = std::move(next); return true;
 }
 bool move_zone(Model& m, size_t i, int dx, int dy) {
@@ -72,12 +84,12 @@ namespace {
 bool inventory_valid(const Model& m) {
     auto l = geometry(m); if (!l) return false;
     for (const auto& b : m.blocks) {
-        if (std::none_of(l->zones.begin(), l->zones.end(), [&](const auto& z) { return b["zone"] == z.id; })) return false;
+        if ((!m.custom_draft || b.value("shown",false)) && std::none_of(l->zones.begin(), l->zones.end(), [&](const auto& z) { return b["zone"] == z.id; })) return false;
     }
     for (const auto& z : l->zones) {
         int count = 0;
         for (const auto& b : m.blocks) if (b["zone"] == z.id && b.value("shown", true)) ++count;
-        if (count > zones::max_blocks_per_zone) return false;
+        if (count > (m.custom_draft?1:zones::max_blocks_per_zone)) return false;
     }
     return true; // Leere Zonen bleiben wie bisher bearbeitbare, noch nicht anwendbare Entwürfe.
 }
@@ -118,6 +130,7 @@ bool remove_block(Model& m, size_t b) {
     return change(m, [=](Model& n) { n.blocks.at(b)["shown"] = false; });
 }
 bool leaves_empty_zone(const Model& before, const Model& after) {
+    if(after.custom_draft) return false;
     auto shown = [](const Model& m, const std::string& zone) {
         int count = 0;
         for (const auto& b : m.blocks) if (b.value("zone", "") == zone && b.value("shown", true)) ++count;

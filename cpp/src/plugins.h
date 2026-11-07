@@ -80,6 +80,7 @@ inline constexpr size_t arrangement_limit = 16 * 1024;
 struct Arrangement {
     std::string manifest_sha256;
     Json layout, blocks;
+    bool custom_draft = false; // internal editor only; never serialized or accepted by plugin parsers
 };
 struct ArrangementResult {
     std::optional<Arrangement> arrangement;
@@ -144,6 +145,7 @@ struct Page {
     // Block keys (v2: block ID; v1: "#<index>") left out of `widgets`:
     std::vector<std::string> hidden; // show_if was false (v2 only)
     std::vector<std::string> failed; // evaluating the block's data threw; draw_page logs these (rate-limited)
+    int density_cap = 2; // transient custom-tile preference; absent from manifest/overlay JSON
 };
 // Does not throw: every block is evaluated separately (a failing block is left out and listed in Page::failed,
 // the rest of the page is unaffected). A failure outside the blocks (e.g. out of memory while copying ID, title

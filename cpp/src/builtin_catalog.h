@@ -25,6 +25,9 @@ struct Overlay {
     int catalog_version = 1;
     plugins::Arrangement model;
     std::optional<plugins::Arrangement> portrait;
+    // Internal single-tile contract; never accepted from serialized page overlays.
+    bool single_tile = false;
+    int tile_density = 2;
 };
 struct Result {
     std::optional<Overlay> overlay;
@@ -40,5 +43,6 @@ std::string validate(const Catalog& c, const Overlay& overlay);
 // Semantische Gleichheit: explizite Standard-Spannweiten zählen ebenfalls als Standard.
 bool is_standard(const Catalog& c, const Overlay& overlay);
 bool is_standard(const Catalog& c, const plugins::Arrangement& model, bool portrait);
+zones::Plan tile_plan(zones::Plan plan, const Overlay& overlay);
 std::vector<zones::BlockInput> inputs(const Catalog& c, const plugins::Arrangement& model);
 } // namespace fl::builtin

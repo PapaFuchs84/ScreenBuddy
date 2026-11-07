@@ -13,6 +13,7 @@ struct Tile {
     std::string source, block;
     plugins::zones::Zone zone;
     std::optional<plugins::Condition> show_if;
+    int density = 2; // maximum: 0 compact, 1 regular, 2 automatic
 };
 struct Layout { std::vector<int> columns{1}, rows{1}; std::vector<Tile> tiles; };
 struct View {
@@ -30,12 +31,13 @@ public:
     explicit Store(std::filesystem::path directory): directory_(std::move(directory)) {}
     std::optional<View> get(const std::string& id) const;
     std::string save(const View& view);
+    std::vector<View> list() const;
+    std::string erase(const std::string& id);
 private:
     std::filesystem::path directory_;
     mutable std::mutex mutex_;
 };
-// Built-in inventory currently requires status blocks to stay visible.
-// Reject an individual content block if doing so would require additional blocks.
+// Validated single-block contract; complete-page status requirements stay unchanged.
 std::optional<builtin::Overlay> single_builtin(const Tile& tile, const Layout& layout);
 plugins::zones::Layout tile_layout(const Tile& tile, const Layout& layout);
 bool visible(const Tile& tile, const Json& public_data);

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+P8-2 (2026-11-07), Quellen-Fundament: Listen-/Spotify-Inhalte und native HA-Entitäten einzeln über vorhandene Renderer; strikter Einzelkachel-Vertrag, Dichte-Obergrenzen, lokale Ansichtsverwaltung und Editor-Adapter. Standardseiten behalten Pflicht-Statusprüfung. Kein Release/Push. [Phase 8](../docs/PHASE8-EIGENE-ANSICHTEN.md).
+
 P8-1 (2026-11-07): Eigene Ansichten: `custom_view.*`, strikter Store mit Backup, Geräte-Vererbung und `custom:`-Seitenzyklus; bestehende Renderer für System/Plugin-v2/Quellstatus. Grenzen (HA, Listen-/Spotify-Inhalte, Editor, Touch) und Prüfstand: [Phase 8](../docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P7b-0 (2026-11-06, Claude Sonnet 5.5 im Auftrag): Neuer Standard dunkles Material mit Orange-Akzent (`material-orange`; Text/Fläche und Akzent/Fläche mindestens 4,5:1, Leiste mindestens 3:1, Kontrasttests in fl-tests und fl-layout-ui-tests). Neuinstallation startet damit; bestehende Installationen fragen einmalig per Dialog DE/EN „Neuen Standard setzen?“ (Voreinstellung Nein, Antwort in `ui.standard_theme_choice` gespeichert, Schließen ändert nichts). Cupertino, Fluent, Hell, Dunkel, Windows und eigene Themes bleiben wählbar. Bestehende Built-in-/Plugin-Hashdateien unverändert, neue Basis additiv in `p7b0-material-orange-hashes.txt` (768 Hashes).

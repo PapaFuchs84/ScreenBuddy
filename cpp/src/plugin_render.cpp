@@ -378,7 +378,7 @@ void draw_zoned(Canvas& canvas, const Page& page, const Look& look, const zones:
         const auto& placed = plan.blocks[i];
         if (!placed.visible() || !blocks[i]) continue;  // zu wenig Fläche: ausgeblendet statt überlappt
         isolated(canvas, page, page.widgets[i], placed.area, look.colors.bg,
-                 [&] { blocks[i]->draw(canvas, placed.area, *placed.density); },look.targets);
+                 [&] { blocks[i]->draw(canvas, placed.area, static_cast<zones::Density>(std::min(int(*placed.density),std::clamp(page.density_cap,0,2)))); },look.targets);
     }
 }
 

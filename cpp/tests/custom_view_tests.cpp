@@ -1,5 +1,7 @@
 // © 2026 FuchsLabs
 #include "custom_view.h"
+#include "custom_view_editor.h"
+#include "page_samples.h"
 #include "app.h"
 #include "render.h"
 #include <fstream>
@@ -88,14 +90,55 @@ int main() try {
     CHECK(custom::draw(two,"unknown",480,320,solid).px!=blank.px);
     CHECK(custom::draw(two,"",0,320,solid).px.empty());
     CHECK(custom::draw(two,"",480,320,[](const auto&,const auto&,int,int)->std::optional<Image>{return Image(1,1);}).px==blank.px);
-    // Required status inventory is never bypassed to simulate unsupported content.
+    // Single-tile contract never weakens complete-page parsing.
     for(const auto& catalog:builtin::catalogs()) for(const auto& block:catalog.blocks) {
         auto t=v.standard.tiles.front();t.source=catalog.key;t.block=block.id;
         auto single=custom::single_builtin(t,v.standard);
-        bool other_required=std::any_of(catalog.blocks.begin(),catalog.blocks.end(),[&](const auto& b){return b.required && b.id!=t.block;});
-        CHECK(bool(single)==!other_required);
-        if(single) CHECK(builtin::validate(catalog,*single).empty());
+        CHECK(single);
+        if(single) {
+            CHECK(builtin::validate(catalog,*single).empty());
+            CHECK(!builtin::parse(catalog,builtin::to_json(*single).dump()));
+            auto invalid=*single;invalid.model.blocks[0]["id"]="unknown";CHECK(!builtin::validate(catalog,invalid).empty());
+        }
     }
+    // Native entity renderer shares the exact cell painting with the standard HA page.
+    render::HaRenderer ha_renderer(480,320,"HA");auto entity=render::samples::ha().front();
+    auto native=ha_renderer.render({entity},true,"",1700000000,1700000000);
+    auto cell=render::HaRenderer::cells(1,480,320).front();
+    auto entity_image=ha_renderer.render_entity(entity,{cell.x0,cell.y0,cell.x1-cell.x0,cell.y1-cell.y0});
+    CHECK(entity_image.px!=blank.px);
+    bool same_entity=true;for(int y=int(cell.y0);y<int(cell.y1);++y)for(int x=int(cell.x0);x<int(cell.x1);++x) same_entity=same_entity && entity_image.at(x,y)==native.at(x,y);
+    CHECK(same_entity);CHECK(ha_renderer.render_entity(entity,{cell.x0,cell.y0,cell.x1-cell.x0,cell.y1-cell.y0},0).px!=entity_image.px);CHECK(ha_renderer.render_entity(entity,{8,36,20,20}).px==blank.px);
+    // Every content source uses the real source renderer, with additive view composition.
+    for(const auto& c:builtin::catalogs()) for(const auto& b:c.blocks) {
+        custom::View sample;sample.id="sample";sample.name="Sample";auto t=tile;t.source=c.key;t.block=b.id;t.zone={"tile",0,0,1,1};t.show_if.reset();sample.standard.tiles={t};
+        auto picture=app.custom_preview(sample,"",{480,320});CHECK(picture);
+        if(picture && !b.required) CHECK(picture->px!=blank.px);
+        auto before=builtin::to_json(builtin::standard(c));
+        for(int d=0;d<3;++d){sample.standard.tiles[0].density=d;CHECK(custom::parse(custom::to_json(sample).dump()));CHECK(app.custom_preview(sample,"",{480,320}));}
+        CHECK(builtin::to_json(builtin::standard(c))==before);
+    }
+    custom::View conditional;conditional.id="conditions";conditional.name="Conditions";
+    auto sample_tile=tile;sample_tile.zone={"cpu",0,0,1,1};sample_tile.show_if=plugins::Condition{"data.cpu_pct","==",*render::samples::system().cpu_pct};conditional.standard.tiles={sample_tile};
+    CHECK(app.custom_preview(conditional,"",{480,320})->px!=blank.px);
+    conditional.standard.tiles[0].show_if->value=*render::samples::system().cpu_pct+1;
+    CHECK(app.custom_preview(conditional,"",{480,320})->px==blank.px);
+    auto invalid_density=j;invalid_density["layout"]["tiles"][0]["density"]=3;CHECK(!custom::parse(invalid_density.dump()));
+    invalid_density["layout"]["tiles"][0]["density"]=1.5;CHECK(!custom::parse(invalid_density.dump()));
+    // A custom draft can hold 24 tiles; plugin documents still keep their 12-block/8-zone limits.
+    custom::Layout twentyfour;twentyfour.columns=twentyfour.rows={1,1,1,1,1,1};
+    for(int i=0;i<24;++i){auto t=tile;t.show_if.reset();t.zone={"cell_"+std::to_string(i),i%6,i/6,1,1};twentyfour.tiles.push_back(t);}
+    auto draft=custom::editor_model(twentyfour,app.custom_palette());CHECK(plugins::edit::geometry(draft));CHECK(custom::editor_layout(draft)->tiles.size()==24);
+    CHECK(!plugins::parse_arrangement(plugins::to_json(draft).dump()));
+    CHECK(plugins::edit::remove_block(draft,0));custom::prune_editor_zones(draft);CHECK(custom::editor_layout(draft)->tiles.size()==23);
+    CHECK(plugins::edit::place_block(draft,0,0,0));CHECK(custom::editor_layout(draft)->tiles.size()==24);
+    auto overlap=draft;overlap.blocks[0]["zone"]=overlap.blocks[1]["zone"];CHECK(!custom::editor_layout(overlap));
+    auto empty=custom::editor_model(custom::Layout{},app.custom_palette());CHECK(custom::editor_layout(empty));CHECK(plugins::edit::geometry(empty));
+    CHECK(plugins::edit::place_block(empty,0,0,0));CHECK(custom::editor_layout(empty)->tiles.size()==1);
+    plugins::edit::EditHistory edits;edits.reset(empty);auto removed=empty;size_t shown=0;for(size_t i=0;i<removed.blocks.size();++i)if(removed.blocks[i].value("shown",false))shown=i;CHECK(plugins::edit::remove_block(removed,shown));custom::prune_editor_zones(removed);CHECK(edits.push(removed));CHECK(edits.undo());CHECK(custom::editor_layout(edits.current())->tiles.size()==1);CHECK(edits.redo());CHECK(custom::editor_layout(edits.current())->tiles.empty());
+    auto listed=store.list();CHECK(!listed.empty());CHECK(std::none_of(listed.begin(),listed.end(),[](const auto& view){return view.id=="broken" || view.id=="wrong" || view.id=="huge";}));
+    CHECK(!store.erase("../bad").empty());CHECK(store.erase("overview").empty());CHECK(!store.get("overview"));CHECK(!fs::exists(root/"views/overview.view.json.bak"));CHECK(store.save(v).empty());
+    auto active=custom::active_displays(plugins::Json::array({{{"id","a"},{"online",true}},{{"id","b"},{"online",false}}}));CHECK(active.size()==1 && active[0]["id"]=="a");
     // Real plugin renderer: stable block selection, source conditions and missing data.
     auto parsed=plugins::parse_manifest(R"({"schema_version":2,"id":"fixture","name":"Fixture","version":"1.0.0",
       "sources":[{"id":"reading","url":"https://example.com/data"}],
@@ -108,6 +151,7 @@ int main() try {
     CHECK(custom::draw(pv,"",480,320,plugin_draw).px==blank.px);
     context.sources["reading"]={{"value",42}};
     auto plugin_image=custom::draw(pv,"",480,320,plugin_draw);CHECK(plugin_image.px!=blank.px);
+    pv.standard.tiles[0].density=0;CHECK(custom::draw(pv,"",480,320,plugin_draw).px!=plugin_image.px);pv.standard.tiles[0].density=2;
     CHECK(plugin_image.at(0,0)==blank.at(0,0));CHECK(plugin_image.at(100,319)==blank.at(100,319));
     pv.standard.tiles[0].show_if=plugins::Condition{"data.reading.value",">",99};
     CHECK(custom::draw(pv,"",480,320,plugin_draw).px==blank.px);

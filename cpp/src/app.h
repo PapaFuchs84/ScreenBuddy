@@ -2,6 +2,7 @@
 // Die App: Datenquellen, Seitenwechsel und Ausgabe. Die Einstellungsseite (webui) und das Tray-Symbol greifen
 // über die öffentlichen Methoden zu (alle threadsicher).
 #pragma once
+#include "custom_view.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -118,6 +119,8 @@ public:
     void builtin_layout_reset(const std::string& key, const std::string& device = {});
     std::optional<Image> page_preview(const std::string& key, const nlohmann::json& overlay,
                                     std::pair<int,int> dimensions, std::string& error);
+    std::optional<Image> custom_preview(const custom::View& view, const std::string& device, std::pair<int,int> dimensions);
+    std::vector<custom::Tile> custom_palette();
     spotify::SpotifyClient* spotify() { return spotify_.get(); }   // nullptr = Seite aus oder keine Client-ID
     NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 

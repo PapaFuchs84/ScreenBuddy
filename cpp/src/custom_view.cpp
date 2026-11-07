@@ -139,6 +139,7 @@ Json layout_json(const Layout& l) {
     for(const auto& t:l.tiles) {
         Json j={{"source",t.source},{"block",t.block},{"zone",{{"id",t.zone.id},{"column",t.zone.column},{"row",t.zone.row}}},
             {"column_span",t.zone.column_span},{"row_span",t.zone.row_span}};
+        if(t.density!=2) j["density"]=t.density;
         if(t.show_if) {j["show_if"]={{"path",t.show_if->path}};if(!t.show_if->op.empty()) {j["show_if"]["op"]=t.show_if->op;j["show_if"]["value"]=t.show_if->value;}}
         tiles.push_back(std::move(j));
     }
@@ -154,7 +155,8 @@ Layout read_layout(const Json& j) {
     const auto& tiles=j.at("tiles");require(tiles.is_array() && tiles.size()<=tile_limit);
     std::set<std::string> ids;bool occupied[6][6]={};
     for(const auto& item:tiles) {
-        fields(item,{"source","block","zone","column_span","row_span","show_if"});Tile t;
+        fields(item,{"source","block","zone","column_span","row_span","show_if","density"});Tile t;
+        if(item.contains("density")) t.density=integer(item["density"],0,2);
         t.source=text(item,"source",100);t.block=text(item,"block",100);
         require(builtin::find(t.source) || t.source=="homeassistant" ||
             (t.source.starts_with("plugin:") && valid_id(t.source.substr(7))));
@@ -237,15 +239,41 @@ std::string Store::save(const View& v) {
     }
     return atomic_write(path,bytes)?"":"Atomic view write failed.";
 }
+std::vector<View> Store::list() const {
+    std::vector<std::string> ids;
+    { std::lock_guard lock(mutex_);
+      if(!ready_directory(directory_,false)) return {};
+      std::error_code ec;
+      for(fs::directory_iterator it(directory_,ec),end;!ec && it!=end && ids.size()<view_limit;it.increment(ec)) {
+          auto name=it->path().filename().string();
+          if(name.ends_with(".view.json") && valid_id(name.substr(0,name.size()-10))) ids.push_back(name.substr(0,name.size()-10));
+      }
+    }
+    std::sort(ids.begin(),ids.end());std::vector<View> result;
+    for(const auto& id:ids) if(auto view=get(id)) result.push_back(std::move(*view));
+    return result;
+}
+std::string Store::erase(const std::string& id) {
+    std::lock_guard lock(mutex_);
+    if(!valid_id(id) || !plain_path(directory_)) return "Unsafe view path.";
+    std::error_code exists_error;if(!fs::exists(directory_,exists_error) && !exists_error)return "";
+    if(!ready_directory(directory_,false)) return "Unsafe view path.";
+    const auto path=directory_/(id+".view.json"),backup=directory_/(id+".view.json.bak");
+    if(!regular_or_missing(path) || !regular_or_missing(backup)) return "Unsafe view path.";
+    std::error_code ec;
+    fs::remove(backup,ec);if(ec) return "Could not remove view backup.";
+    fs::remove(path,ec);return ec?"Could not remove view.":"";
+}
 plugins::zones::Layout tile_layout(const Tile& t,const Layout& l) {return {l.columns,l.rows,{t.zone}};}
 std::optional<builtin::Overlay> single_builtin(const Tile& t,const Layout& l) {
     auto c=builtin::find(t.source);if(!c) return {};
-    bool found=false;for(const auto& b:c->blocks) {if(b.id==t.block) found=true;else if(b.required) return {};}
+    bool found=false;for(const auto& b:c->blocks) if(b.id==t.block) found=true;
     if(!found) return {};
     builtin::Overlay a;a.catalog_version=c->version;a.model.manifest_sha256.assign(64,'0');
     a.model.layout={{"columns",l.columns},{"rows",l.rows},{"zones",Json::array({{{"id",t.zone.id},{"column",t.zone.column},{"row",t.zone.row},{"column_span",t.zone.column_span},{"row_span",t.zone.row_span}}})}};
-    a.model.blocks=Json::array();for(const auto& b:c->blocks) a.model.blocks.push_back({{"id",b.id},{"zone",t.zone.id},{"shown",b.id==t.block}});
-    // Required status blocks may be too small in the existing reference-size validator.
+    a.single_tile=true;a.tile_density=t.density;
+    a.model.blocks=Json::array({{{"id",t.block},{"zone",t.zone.id},{"shown",true}}});
+    // Single-tile validation is separate from the complete-page status contract.
     if(!builtin::validate(*c,a).empty()) return {};
     return a;
 }
@@ -269,7 +297,7 @@ std::optional<Image> draw_plugin(const Tile& tile,const Layout& layout,plugins::
     if(!visible(tile,data)) return {};
     auto selected=*widget;selected.zone=tile.zone.id;
     manifest.widgets={selected};manifest.layout=tile_layout(tile,layout);
-    auto page=plugins::render_page(manifest,context);
+    auto page=plugins::render_page(manifest,context);page.density_cap=tile.density;
     if(page.widgets.empty() || page.widgets.front().missing) return {};
     return plugins::draw_page(page,width,height);
 }

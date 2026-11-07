@@ -1,8 +1,18 @@
 # Phase 8: Eigene Ansichten
 
-Stand: 2026-11-07 · P8-1 Datenmodell und Seitenzyklus; P8-2/3 Editor noch offen.
+Stand: 2026-11-07 · P8-2 Quellen-Fundament; Editor im anschließenden lokalen Commit.
 
 Diese Phase ist ein lokaler Entwicklungsstand für das Zonen-Layout. Kein Release, keine neue EXE-Auslieferung und keine Versionsanhebung. Grundlage: eigener ScreenBuddy-Code und [Clean-Room-Regeln](CLEAN-ROOM-LAYOUT.md).
+
+## P8-2: Quellen-Fundament / source foundation
+
+Einzelkacheln für alle Katalogblöcke (System, Listen, Spotify) verwenden den vorhandenen Renderer über einen eigenen, strikt geprüften Einzelkachel-Vertrag. Vollständige Seiten behalten Inventar und Pflicht-Statusblock. HA zeichnet einzelne Entitäten über die native Zellfunktion. Optionale Dichte-Obergrenzen gelten auch für HA und Plugins; Live-Spotify nutzt den vorhandenen Pegeldienst. Standard-Renderpfade bleiben unverändert. Vorschau-Bedingungen prüfen die tatsächlich gezeichneten Beispieldaten.
+
+`Store::list/erase` ergänzen lokale Verwaltung. Gespeicherte Ansichten erscheinen automatisch im regulären Seitenzyklus; explizite Gerätelisten bleiben verbindlich. Der interne Editor-Adapter unterstützt 24 Kacheln, ohne Plugin-Parserlimits zu erweitern. Editor-Oberfläche und aktive Tabs folgen im anschließenden Commit. Kein Release oder Push, keine Töne/Port 8765, physische Abnahme offen.
+
+Individual catalog blocks and native HA entity cells reuse existing painters through a strictly validated single-tile contract; full-page requirements remain unchanged. Density caps apply to built-ins, HA and plugins. Spotify reuses the existing meter; previews evaluate conditions against their rendered sample values. Local list/delete management, automatic cycle discovery and a 24-tile internal editor adapter are added without widening plugin document limits. Editor UI follows in the next commit. No release/push, audible output or port 8765; physical acceptance is pending.
+
+## P8-1: historischer Stand / historical state
 
 ## Deutsch: umgesetzt
 

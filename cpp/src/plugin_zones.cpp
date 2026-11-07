@@ -113,9 +113,9 @@ BlockInput describe(std::string id, std::string_view type, const DensityTable& t
     return input;
 }
 
-bool valid(const Layout& layout) {
+bool valid(const Layout& layout,size_t zone_limit,bool allow_empty) {
     if (!weights(layout.columns, max_columns) || !weights(layout.rows, max_rows)) return false;
-    if (layout.zones.empty() || static_cast<int>(layout.zones.size()) > max_zones) return false;
+    if ((!allow_empty && layout.zones.empty()) || layout.zones.size() > zone_limit) return false;
     const int columns = static_cast<int>(layout.columns.size()), rows = static_cast<int>(layout.rows.size());
     std::set<std::string> ids;
     std::vector<char> used(static_cast<size_t>(columns * rows), 0);

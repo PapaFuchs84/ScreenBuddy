@@ -213,6 +213,7 @@ private:
 class HaRenderer : public Renderer {
 public:
     HaRenderer(int w, int h, std::string title);
+    Image render_entity(const HaEntity& entity, const plugins::zones::Rect& area, int density_cap = 2);
     Image render(const std::vector<HaEntity>& entities, bool has_data, const std::string& error,
                  std::optional<std::time_t> updated, std::time_t now = 0);
     struct Cell {

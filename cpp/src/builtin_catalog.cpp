@@ -59,15 +59,16 @@ Json canonical(const plugins::Arrangement& model) {
     for(auto& z:j["layout"]["zones"]) { if(!z.contains("column_span")) z["column_span"]=1; if(!z.contains("row_span")) z["row_span"]=1; }
     return j;
 }
-std::string check(const Catalog& c,const plugins::Arrangement& m) {
+std::string check(const Catalog& c,const plugins::Arrangement& m,bool single=false) {
     auto parsed=plugins::parse_arrangement(plugins::to_json(m).dump());
     if(!parsed || !plugins::edit::geometry(m)) return "Invalid built-in arrangement.";
-    if(m.blocks.size()!=c.blocks.size()) return "Every catalog block is required in the inventory.";
+    if(single && (m.blocks.size()!=1 || m.layout["zones"].size()!=1 || !m.blocks[0].value("shown",false))) return "A tile needs exactly one visible block and zone.";
+    if(!single && m.blocks.size()!=c.blocks.size()) return "Every catalog block is required in the inventory.";
     std::set<std::string> seen;
     for(const auto& b:m.blocks) {
         auto it=std::find_if(c.blocks.begin(),c.blocks.end(),[&](const auto& s){return b["id"]==s.id;});
         if(it==c.blocks.end() || !seen.insert(it->id).second) return "Unknown catalog block.";
-        if(it->required && !b.at("shown").get<bool>()) return "Required block must remain visible.";
+        if(!single && it->required && !b.at("shown").get<bool>()) return "Required block must remain visible.";
         if(b.contains("show_if") || b.contains("seconds")) return "Built-in conditions and cycles are not enabled.";
         if(std::none_of(m.layout["zones"].begin(),m.layout["zones"].end(),[&](const auto& z){return b["zone"]==z["id"];})) return "Unknown block zone.";
     }
@@ -100,8 +101,11 @@ Json to_json(const Overlay& a) {
 }
 std::string validate(const Catalog& c,const Overlay& a) {
     if(a.catalog_version!=c.version) return "Catalog version is stale.";
-    auto error=check(c,a.model); if(!error.empty()) return error;
+    if(a.single_tile && (a.tile_density<0 || a.tile_density>2)) return "Invalid tile density.";
+    if(a.single_tile && a.portrait) return "A tile cannot contain a portrait page.";
+    auto error=check(c,a.model,a.single_tile); if(!error.empty()) return error;
     if(a.portrait) { error=check(c,*a.portrait); if(!error.empty()) return error; }
+    if(a.single_tile) return {}; // Geometry, identity, inventory and visibility checked above.
     for(bool portrait:{false,true}) {
         const auto& model=portrait?a.portrait.value_or(a.model):a.model;
         const auto layout=plugins::edit::geometry(model);
@@ -134,6 +138,11 @@ bool is_standard(const Catalog& c,const plugins::Arrangement& model,bool portrai
 bool is_standard(const Catalog& c,const Overlay& a) {
     return validate(c,a).empty() && canonical(a.model)==canonical(c.standard) &&
         canonical(a.portrait.value_or(a.model))==canonical(c.portrait);
+}
+zones::Plan tile_plan(zones::Plan plan,const Overlay& overlay) {
+    if(overlay.single_tile) for(auto& block:plan.blocks) if(block.density)
+        block.density=static_cast<zones::Density>(std::min(int(*block.density),overlay.tile_density));
+    return plan;
 }
 std::vector<zones::BlockInput> inputs(const Catalog& c,const plugins::Arrangement& m) {
     std::vector<zones::BlockInput> out;
