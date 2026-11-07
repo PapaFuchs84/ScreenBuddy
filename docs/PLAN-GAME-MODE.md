@@ -124,3 +124,21 @@ Prüfstand am 07.11.2026:
 | Nicht ausgeführt | Keine echten GOG-/Ubisoft-/Xbox-/UWP-Spielstarts oder deren Logoabnahme; keine physischen Display-/Touch-/Sensor-/Anti-Cheat-Tests. Der gleiche komponierte Intro-Frame geht an Ausgabe und `last_frame()`, der Software-Test ersetzt keine physische Bestätigung. Kein Installer/Upgrade/Release, keine Tests auf 8765, keine Töne, kein Push. |
 
 Ergebnisse und anonyme Testbilder bleiben lokal unter `cpp/build/game-mode-checks/`, `cpp/build/game-mode-test/` und `cpp/build/screenbuddy-release/p9-ui-snapshots/`. Keine Konfigurationen, Logs oder privaten Screenshots eingecheckt.
+
+## P9-9 Prozesse ohne lesbaren Image-Pfad
+
+Lokale Entwicklung auf `feature/game-mode`, Basis `ec3795b`; kein Release. Toolhelp erhält PID und `szExeFile` auch bei verweigertem Prozesshandle oder Image-Pfad. Nur bei fehlendem Pfad greift der EXE-Dateinamen-Fallback mit Bibliothekscache und Vordergrund-/Vollbildfenster desselben Prozesses. Der Fenstertitel wird nicht zur Identifikation benötigt. Steam-Appmanifest/Steam-ID liefern weiterhin Name und Logoquelle, auch wenn die EA-App startet und Steam-RunningAppID `0` bleibt.
+
+Refresh-Cache je Installation: maximal 2.000 besuchte Einträge, drei Unterordnerebenen, nur EXE-Dateien, keine Reparse Points/Junctions. Manuelle Pfade liefern nur die ausdrücklich konfigurierte EXE. Xbox-Spielordner werden beim Refresh auf festen lokalen Laufwerken erfasst. Doppelte Bibliothekseinträge derselben Installation oder EXE sind zulässig; unterschiedliche Installationen mit gleichem Dateinamen bleiben ohne Zuordnung. Launcher-/Anti-Cheat-/Installer-/Crash-/Hilfsprozesse sowie benutzerdefinierte Namen-/Pfadausschlüsse gelten weiterhin. PID und EXE-Name erhalten die aktive Zuordnung bei Alt-Tab und wechselnder Pfadlesbarkeit; ETW benötigt weiterhin die PID, keinen Image-Pfad.
+
+Prüfstand am 07.11.2026:
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Build | MSVC/CMake/Ninja-Entwicklungsbuild erfolgreich. Nur lokale Entwicklungsartefakte, keine öffentliche EXE-Auslieferung. |
+| Automatisierte Suiten | **26/26 bestanden** über `python cpp/tests/game_mode_checks.py`, darunter **267 Game-Mode-Prüfungen** (60 zusätzliche Prüfungen gegenüber P9-8). Bestehende Custom-View-/Katalog-/UI-/Companion-/Snapshot-Suiten ebenfalls grün; kein App-EXE-Start. |
+| Neue Simulationen | Battlefield-6-Appmanifest `2807960`, leere Prozesspfade, RunningAppID `0`, Vordergrund-/Vollbildbindung, gleichnamige unterschiedliche Installationen, doppelte Steam-/manuelle Einträge, Launcher-/Anti-Cheat-/Hilfsprozessfilter, Namen-/Pfadausschlüsse, alle Bibliotheksarten, 3/5-Sekunden-Entprellung, Alt-Tab, PID-/Namenswechsel und wechselnde Pfadlesbarkeit. Dateisystem-Fixtures prüfen EXE-Filter, Tiefe 3 und 2.000-Einträge-Limit. |
+| Dokumentation | Game-Mode DE/EN und drei Changelogs aktualisiert; 75 lokale Markdown-Linkziele und die neuen P9-9-Sprungmarken sowie `git diff --check` geprüft. README-/Versions-/Download-/Laufzeitangaben auf Konsistenz geprüft; bisherige Prüfnachweise unverändert. |
+| Nicht ausgeführt | Keine Live-Abnahme mit Battlefield 6/Javelin, keine tatsächlichen Launcher-/Spielstarts, kein realer FPS-/ETW-Nachweis, keine physischen Display-/Touch-/Sensorprüfungen. Keine App-/Installer-EXE ausgeführt, kein Zugriff auf Port 8765, keine Töne, kein Push/Release. |
+
+Testergebnisse bleiben lokal unter `cpp/build/game-mode-checks/`; keine Konfigurationen, Logs oder privaten Screenshots werden eingecheckt.

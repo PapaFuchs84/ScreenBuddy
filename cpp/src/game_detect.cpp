@@ -46,12 +46,13 @@ std::string read(const std::filesystem::path& p) {
 std::string norm(const std::filesystem::path& p){return casefold(narrow(p.lexically_normal().wstring()));}
 bool digits(const std::string& s){return !s.empty() && s.size()<16 && std::all_of(s.begin(),s.end(),[](char c){return c>='0' && c<='9';});}
 std::vector<std::string> lines(const std::string& s){std::vector<std::string> out;for(auto& x:split(s,"\n"))if(!trim(x).empty())out.push_back(trim(x));return out;}
-struct Process {DWORD pid;std::filesystem::path path;};
 std::vector<Process> processes() {
     std::vector<Process> out;HANDLE h=CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,0);if(h==INVALID_HANDLE_VALUE)return out;
     PROCESSENTRY32W e{sizeof e};if(Process32FirstW(h,&e))do {
-        HANDLE p=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,e.th32ProcessID);if(!p)continue;
-        wchar_t path[32768];DWORD n=32768;if(QueryFullProcessImageNameW(p,0,path,&n))out.push_back({e.th32ProcessID,std::filesystem::path(std::wstring(path,n))});CloseHandle(p);
+        Process entry{e.th32ProcessID,{},narrow(e.szExeFile)};
+        HANDLE p=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,e.th32ProcessID);
+        if(p){wchar_t path[32768];DWORD n=32768;if(QueryFullProcessImageNameW(p,0,path,&n))entry.path=std::wstring(path,n);CloseHandle(p);}
+        out.push_back(std::move(entry));
     }while(Process32NextW(h,&e));CloseHandle(h);return out;
 }
 std::filesystem::path steam_root(){wchar_t path[32768]{};DWORD n=sizeof path;return RegGetValueW(HKEY_CURRENT_USER,L"Software\\Valve\\Steam",L"SteamPath",RRF_RT_REG_SZ,nullptr,path,&n)==ERROR_SUCCESS?std::filesystem::path(path):std::filesystem::path();}
@@ -88,7 +89,11 @@ bool default_excluded(const std::filesystem::path& executable) {
     static const std::vector<std::string> defaults={"explorer.exe","chrome.exe","msedge.exe","firefox.exe","vlc.exe","wmplayer.exe","steam.exe","epicgameslauncher.exe","applicationframehost.exe",
         "battle.net.exe","eadesktop.exe","eabackgroundservice.exe","origin.exe","ubisoftconnect.exe","upc.exe","galaxyclient.exe","galaxyclientservice.exe","rockstargameslauncher.exe","agent.exe","beservice.exe"};
     return std::find(defaults.begin(),defaults.end(),name)!=defaults.end() || name.find("launcher")!=std::string::npos ||
-        name.starts_with("easyanticheat") || name.starts_with("blizzarderror") || name.find("crashhandler")!=std::string::npos;
+        name.starts_with("easyanticheat") || name.starts_with("eaanticheat.gameservice") ||
+        name.find("anticheat")!=std::string::npos || name.starts_with("blizzarderror") ||
+        (name.find("crashhandler")!=std::string::npos || name.find("crashreport")!=std::string::npos || name.starts_with("crashpad") || name.starts_with("crashsender")) || name.find("installer")!=std::string::npos ||
+        (name.starts_with("unins") || name.find("_uninstall")!=std::string::npos) || name.find("setup")!=std::string::npos ||
+        name.find("helper")!=std::string::npos || name=="install.exe" || name=="vc_redist.x64.exe" || name=="vc_redist.x86.exe";
 }
 bool matches_game(const Game& g,const std::filesystem::path& executable,bool foreground_fullscreen,const std::string& app) {
     if(default_excluded(executable))return false;
@@ -96,6 +101,69 @@ bool matches_game(const Game& g,const std::filesystem::path& executable,bool for
     bool known=!g.install.empty() && beneath(executable,g.install);
     // Only the user-supplied EXE list bypasses the window gate. Steam keeps its RunningAppID shortcut.
     return (exact && g.id.starts_with("exe:")) || (known && (foreground_fullscreen || (!g.steam_id.empty() && g.steam_id==app && app!="0")));
+}
+void cache_executables(Game& game) {
+    game.cached_executables.clear();
+    auto add=[&](const std::filesystem::path& path){
+        if(casefold(narrow(path.extension().wstring()))==".exe" && !default_excluded(path))game.cached_executables.push_back(path);
+    };
+    if(game.id.starts_with("exe:")){add(game.executable);return;}
+    if(game.install.empty())return;
+    // Do not follow directory junctions/symlinks, including a reparse-point install root.
+    auto attributes=GetFileAttributesW(game.install.c_str());
+    if(attributes==INVALID_FILE_ATTRIBUTES || (attributes&FILE_ATTRIBUTE_REPARSE_POINT))return;
+    std::error_code ec;
+    size_t visited=0;
+    for(std::filesystem::recursive_directory_iterator it(game.install,std::filesystem::directory_options::skip_permission_denied,ec),end;
+        !ec && it!=end && visited++<2000;it.increment(ec)) {
+        auto attr=GetFileAttributesW(it->path().c_str());
+        if(attr==INVALID_FILE_ATTRIBUTES || (attr&FILE_ATTRIBUTE_REPARSE_POINT)){it.disable_recursion_pending();continue;}
+        if(it.depth()>=3)it.disable_recursion_pending();
+        if(it->is_regular_file(ec))add(it->path());
+    }
+}
+std::optional<Game> select_game(const std::vector<Game>& library,const std::vector<Process>& ps,
+    ProcessWindow window,const std::string& app,const std::optional<Game>& active,const std::vector<std::string>& exclusions) {
+    auto basename=[](const Process& p){return casefold(p.name.empty()?narrow(p.path.filename().wstring()):p.name);};
+    auto excluded_path=[&](const std::filesystem::path& path){
+        for(const auto& x:exclusions)if(norm(widen(x))==norm(path))return true;return false;
+    };
+    auto excluded=[&](const Process& p){
+        auto name=basename(p);if(default_excluded(widen(name)) || (!p.path.empty() && (default_excluded(p.path) || excluded_path(p.path))))return true;
+        for(const auto& x:exclusions)if(casefold(x)==name)return true;
+        // A full-path exclusion also applies when that cached path supplies the basename evidence.
+        if(p.path.empty())for(const auto& g:library)for(const auto& path:g.cached_executables)
+            if(casefold(narrow(path.filename().wstring()))==name && excluded_path(path))return true;
+        return false;
+    };
+    // Retain a confirmed PID + basename through Alt-Tab and changing path availability.
+    if(active)for(const auto& p:ps)if(p.pid==active->pid && !excluded(p)) {
+        auto name=active->process_name.empty()?casefold(narrow(active->executable.filename().wstring())):casefold(active->process_name);
+        bool same_path=p.path.empty() || (!active->executable.empty() && norm(p.path)==norm(active->executable));
+        if(!same_path && active->executable.empty())for(const auto& g:library)if(g.id==active->id)
+            same_path=matches_game(g,p.path,true,"0");
+        if(!name.empty() && name==basename(p) && same_path)return active;
+    }
+    // Prefer path evidence across all processes before considering basename evidence.
+    for(const auto& p:ps)if(!p.path.empty() && !excluded(p))for(const auto& entry:library)
+        if(matches_game(entry,p.path,p.pid==window.foreground_pid && window.fullscreen,app)){
+            auto g=entry;g.pid=p.pid;g.executable=p.path;g.process_name=basename(p);return g;
+        }
+    for(const auto& p:ps)if(p.path.empty() && p.pid==window.foreground_pid && window.fullscreen && !excluded(p)) {
+        std::optional<Game> candidate;bool ambiguous=false;
+        for(const auto& g:library)if(std::any_of(g.cached_executables.begin(),g.cached_executables.end(),[&](const auto& path){return casefold(narrow(path.filename().wstring()))==basename(p);})) {
+            if(candidate && candidate->id!=g.id) {
+                bool same_install=!candidate->install.empty() && !g.install.empty() && norm(candidate->install)==norm(g.install);
+                bool same_exe=false;
+                for(const auto& a:candidate->cached_executables)if(casefold(narrow(a.filename().wstring()))==basename(p))
+                    for(const auto& b:g.cached_executables)if(norm(a)==norm(b))same_exe=true;
+                if(!same_install && !same_exe){ambiguous=true;break;}
+            }
+            if(!candidate || (!g.steam_id.empty() && candidate->steam_id.empty()))candidate=g;
+        }
+        if(candidate && !ambiguous){candidate->pid=p.pid;candidate->process_name=basename(p);candidate->executable.clear();return candidate;}
+    }
+    return {};
 }
 std::vector<Game> registry_games(const Registry& registry,const DirectoryExists& exists) {
     std::vector<Game> out;
@@ -189,7 +257,17 @@ void Discovery::refresh(){
     wchar_t data[32768]{};DWORD n=GetEnvironmentVariableW(L"ProgramData",data,32768);if(n && n<32768){std::error_code ec;size_t count=0;for(std::filesystem::directory_iterator it(std::filesystem::path(data)/L"Epic/EpicGamesLauncher/Data/Manifests",ec),end;!ec && it!=end && count++<10000;it.increment(ec))if(it->path().extension()==L".item")if(auto g=parse_epic(read(it->path())))library_.push_back(*g);}
     auto extra=registry_games(*registry_,[](const std::filesystem::path& path){std::error_code ec;return std::filesystem::is_directory(path,ec);});
     library_.insert(library_.end(),extra.begin(),extra.end());
+    // Xbox roots are local fixed drives; enumerate game directories once per refresh.
+    for(wchar_t drive=L'A';drive<=L'Z';++drive){std::wstring root{drive,L':',L'\\'};
+        if(GetDriveTypeW(root.c_str())!=DRIVE_FIXED)continue;
+        std::error_code ec;size_t count=0;
+        for(std::filesystem::directory_iterator it(std::filesystem::path(root)/L"XboxGames",std::filesystem::directory_options::skip_permission_denied,ec),end;
+            !ec && it!=end && count++<2000;it.increment(ec))if(it->is_directory(ec)){
+                Game g;g.install=it->path();g.id="xbox:"+norm(g.install);g.name=narrow(g.install.filename().wstring());library_.push_back(g);
+            }
+    }
     for(const auto& path:additional_){Game g;g.executable=widen(path);if(!g.executable.is_absolute())continue;g.id="exe:"+norm(g.executable);g.name=narrow(g.executable.stem().wstring());library_.push_back(g);}
+    for(auto& g:library_)cache_executables(g);
 }
 std::optional<Game> Discovery::poll(const std::optional<Game>& active,double now){
     if(now>=refresh_at_){refresh();refresh_at_=now+60;}
@@ -197,19 +275,6 @@ std::optional<Game> Discovery::poll(const std::optional<Game>& active,double now
     if(hwnd && !IsIconic(hwnd) && GetWindowRect(hwnd,&wr) && GetMonitorInfoW(MonitorFromWindow(hwnd,MONITOR_DEFAULTTONULL),&mi))full=wr.left<=mi.rcMonitor.left && wr.top<=mi.rcMonitor.top && wr.right>=mi.rcMonitor.right && wr.bottom>=mi.rcMonitor.bottom;
     QUERY_USER_NOTIFICATION_STATE state{};if(SUCCEEDED(SHQueryUserNotificationState(&state)) && state==QUNS_RUNNING_D3D_FULL_SCREEN)full=true;
     auto ps=processes();auto app=std::to_string(running_app());
-    auto excluded=[&](const Process& p){auto name=casefold(narrow(p.path.filename().wstring()));
-        if(default_excluded(p.path))return true;
-        for(auto& x:excluded_)if(casefold(x)==name || casefold(x)==norm(p.path))return true;return false;};
-    // Keep a confirmed process through Alt-Tab, never extend it using only RunningAppID.
-    if(active)for(const auto& p:ps)if(p.pid==active->pid && norm(p.path)==norm(active->executable) && !excluded(p))return active;
-    for(const auto& p:ps) {if(excluded(p))continue;
-        for(auto g:library_) {
-            if(!matches_game(g,p.path,p.pid==fg && full,app))continue;
-            g.pid=p.pid;g.executable=p.path;return g;
-        }
-        // Xbox installs are discovered on fixed drives, with a foreground full-screen gate.
-        if(p.pid==fg && full)for(wchar_t drive=L'A';drive<=L'Z';++drive){std::wstring root{drive,L':',L'\\'};if(GetDriveTypeW(root.c_str())!=DRIVE_FIXED)continue;auto base=std::filesystem::path(root)/L"XboxGames";if(beneath(p.path,base)){Game g;g.id="xbox:"+norm(p.path);g.name=narrow(p.path.stem().wstring());g.executable=p.path;g.pid=p.pid;return g;}}
-    }
-    return {};
+    return select_game(library_,ps,{fg,full},app,active,excluded_);
 }
 }

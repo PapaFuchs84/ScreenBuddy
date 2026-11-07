@@ -4,6 +4,8 @@
 
 BF6: Spieler-ID im Eintrag (`Name#ID`, `Name@psn#ID`, ab 6 Ziffern), Abfrage per `playerid`, Auto-Heilung (ID aus Namenssuche im Speicher und in `config.toml`), Rückfall über `/bf6/player`-Suche und Namensvarianten; „Prüfen“ liefert `id`, Web-Link nutzt `/playerid/`. Neue Tests für `parse_entry_full`, `pick_search_id` und Touch-Ziele.
 
+P9-9: Toolhelp-Einträge auch bei verweigertem Prozesshandle/Image-Pfad erhalten; begrenzter EXE-Cache je Bibliothek, eindeutiger Dateinamen-Fallback mit Vordergrund/Vollbild und PID-/Namensbindung. EAAntiCheat.GameService*.exe sowie Installer/Crash-/Hilfsprogramme ausschließen. Simulierte BF6-/Entprellungs-/Filtertests, DE/EN-Dokumentation; echte Javelin-/FPS-/Displayabnahme offen.
+
 P9-8: Reservierte Game-Ansicht aus normalen Seiten-/Tap-Listen filtern; Intro im Preview-Frame nachweisen. EXE-Icons bis 256 px, passende AppxManifest-Assets, gemeinsame CPU-/GPU-/Spielkacheln, neue Vorlage und 60-Sekunden-Messwertverlauf. Synthetische und isolierte Tests; keine reale Launcher-/Displayabnahme.
 
 P9-7: Fünf weitere lesende Spielebibliotheken, austauschbare HKLM-Registry-Abfragen, begrenzter Battle.net-Ordner-Fallback, Launcher-/Anti-Cheat-Filter und Vordergrund-/Vollbildprüfung für Registry- und Epic-EXE-Treffer. Synthetische Tests unter `tests/game_tests/`; DE/EN-Dokumentation und eingebettete Hilfen. Echte Launcher-/Hardwareabnahme bleibt offen; [Prüfstand](../docs/PLAN-GAME-MODE.md#p9-7-weitere-spielebibliotheken).

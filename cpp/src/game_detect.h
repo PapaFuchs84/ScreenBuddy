@@ -11,6 +11,8 @@ struct Game {
     std::string id, name, steam_id;
     std::filesystem::path install, executable;
     uint32_t pid = 0;
+    std::string process_name; // Toolhelp basename, also available for protected processes.
+    std::vector<std::filesystem::path> cached_executables;
     bool operator==(const Game& rhs) const { return id==rhs.id && pid==rhs.pid; }
 };
 std::optional<Game> parse_acf(std::string_view text, const std::filesystem::path& steamapps);
@@ -29,6 +31,14 @@ std::vector<Game> registry_games(const Registry& registry, const DirectoryExists
 bool default_excluded(const std::filesystem::path& executable);
 bool matches_game(const Game& game, const std::filesystem::path& executable,
                   bool foreground_fullscreen, const std::string& running_steam_app);
+// Cache at refresh only: at most 2,000 entries, three nested directories, no reparse points.
+void cache_executables(Game& game);
+struct Process { uint32_t pid; std::filesystem::path path; std::string name; };
+struct ProcessWindow { uint32_t foreground_pid=0; bool fullscreen=false; };
+// Pure selection used by poll and synthetic tests. A title alone never identifies a game.
+std::optional<Game> select_game(const std::vector<Game>& library, const std::vector<Process>& processes,
+    ProcessWindow window, const std::string& running_steam_app, const std::optional<Game>& active={},
+    const std::vector<std::string>& exclusions={});
 enum class State { idle, starting, running, ending };
 class Detector {
 public:

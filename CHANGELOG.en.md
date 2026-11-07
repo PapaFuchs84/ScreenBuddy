@@ -8,6 +8,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 BF6 leaderboard: players can now be entered by ID (`Name#ID`, `Name@psn#ID`; existing entries keep working). Lookups use `playerid`, the name is display-only. After a successful name lookup the app remembers the ID and writes it to the configuration; on failure it falls back to the player search and lowercase names. "Check" shows the ID found (web UI with "Use ID" and an optional ID field); the web link points to the ID page when an ID is known. The Python variant now uses the `pc, ea` platform order.
 
+P9-9: Detect anti-cheat-protected games with unavailable image paths using Toolhelp PID/basename, a bounded library cache and foreground/fullscreen evidence; Battlefield 6 uses its Steam appmanifest even with RunningAppID 0. EA anti-cheat/helper exclusions, stable PID/basename identity and synthetic regression tests. Live game/hardware acceptance pending; no release.
+
 P9-8: Reserve the selected Game-Mode view from normal rotation, Companion navigation and tap destinations while enabled. Direct EXE icons/package logos, consistent game cards, larger values, updated template and 60-second FPS/frametime sparklines. Isolated rotation/intro checks and synthetic regression tests; real games and physical displays remain pending.
 
 P9-7: Read-only library discovery for GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard and Rockstar. Replaceable registry access, synthetic parser/filter tests, fullscreen gate also for GOG/Epic EXE matches; extended launcher/anti-cheat exclusions. DE/EN docs and help updated; validation and pending real launcher acceptance in the [plan](docs/PLAN-GAME-MODE.md).

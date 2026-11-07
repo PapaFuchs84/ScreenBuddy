@@ -32,7 +32,7 @@ The following local HKLM registry entries are also read (both `SOFTWARE\WOW6432N
 
 Uninstall means `Microsoft\Windows\CurrentVersion\Uninstall\<entry>` in those HKLM views. Battle.net's folder list covers World of Warcraft, Diablo III/IV, StarCraft/II, Hearthstone, Heroes of the Storm, Overwatch and Warcraft III/Warcraft III Reforged. There is no recursive drive search, launcher account query or undocumented database access.
 
-Starting detection for each new library requires a process beneath its registered installation path whose foreground window is fullscreen/borderless. Even an explicit GOG EXE cannot bypass this gate; Epic EXE matches now also use the window check. Steam keeps its existing `RunningAppID` shortcut; manually entered EXEs still match exactly without a window check. A previously confirmed, unchanged running game process stays active through Alt-Tab. Libraries are refreshed approximately every 60 seconds.
+Starting detection for each new library requires a process beneath its registered installation path whose foreground window is fullscreen/borderless. Even an explicit GOG EXE cannot bypass this gate; Epic EXE matches now also use the window check. Steam keeps its existing `RunningAppID` shortcut; manually entered EXEs still match exactly without a window check when the process path is readable. When that path is unavailable, they also require the basename fallback with foreground/fullscreen evidence. A previously confirmed, unchanged running game process stays active through Alt-Tab. Libraries are refreshed approximately every 60 seconds.
 
 Limits: missing/stale registry entries, per-user installations without a matching HKLM entry, other publisher names or different Battle.net game folders may prevent detection. Add the actual game EXE manually in that case. An unknown helper inside a game folder can count as a game if it has its own fullscreen foreground window; exclude it if needed. Path membership is lexical, without resolving junctions/symlinks. Non-Steam games use the EXE icon plus game name; if the icon is unavailable, the name remains. Real acceptance tests for these five launchers remain open.
 
@@ -40,7 +40,17 @@ Limits: missing/stale registry entries, per-user installations without a matchin
 
 Detection debounces changes: a game must remain detected for at least three seconds before Game Mode starts. Game Mode ends after five seconds without the previous game. Brief appearances or disappearances therefore do not immediately change the display. Playtime means the detected session, not total account playtime.
 
-The states are `idle → starting → running → ending`. Missing read permissions and unmapped processes result in missing data. ScreenBuddy does not request elevated access to game processes.
+The states are `idle → starting → running → ending`. Unmapped processes result in missing data; an unavailable image path may be handled by the filename fallback below. ScreenBuddy does not request elevated access to game processes.
+
+## Anti-cheat-protected games: detection by filename (P9-9)
+
+Protection drivers such as EA Anti-Cheat/Javelin may hide a running game's image path. The Toolhelp process list still provides its PID and EXE basename without requiring a process handle. When the path is unavailable, ScreenBuddy matches that basename against the local library cache and requires the same process to own the foreground fullscreen window. A window title alone is insufficient. Ambiguous basenames across different installations are not assigned automatically.
+
+Each library refresh (every 60 seconds) reads at most 2,000 entries per installation, through three nested directory levels, caching EXE files only. Reparse points/junctions are not followed; manual entries supply only the explicitly configured executable basename. This covers Steam, Epic, registry libraries and local `XboxGames` folders on fixed drives. Launchers, anti-cheat, installer, crash and helper processes stay excluded, especially `EAAntiCheat.GameService*.exe`. Both basename and full-path exclusions also apply to the fallback.
+
+Example: **Battlefield 6**, Steam app **2807960**, can match `bf6.exe` with an unavailable image path and Steam RunningAppID `0` when started through the EA app. Its name and Steam app ID still come from the local appmanifest; the logo uses that Steam app ID. PID and basename retain the confirmed association through Alt-Tab. The 3/5-second debounce and PID-based ETW attribution remain in place; detection does not guarantee FPS data. No game-process permissions are changed, no process memory is read and no elevation is requested.
+
+P9-9 validation: 26/26 suites passed, including 267 Game-Mode checks with simulated process lists and local filesystem fixtures. Live Battlefield 6/Javelin acceptance, physical display output and FPS validation remain pending. Results: [P9-9 validation](PLAN-GAME-MODE.md#p9-9-prozesse-ohne-lesbaren-image-pfad).
 
 ## Logos and intro
 
@@ -79,6 +89,7 @@ Steam CDN requests transmit the requested app ID and, like ordinary HTTPS reques
 ## Troubleshooting
 
 - **No switch:** Check activation, view and target display; save changes and restart. Allow at least three seconds of stable detection. Check the EXE path and exclusions.
+- **Protected game not detected:** Bring the game to the foreground in fullscreen/borderless mode, check its library entry and exclusions, and allow the next library refresh (approximately 60 seconds). Multiple installations sharing an EXE basename may remain ambiguous.
 - **Wrong program detected:** Configure the actual game path rather than its launcher and exclude helper processes.
 - **Missing logo:** Check internet/CDN availability; the EXE icon/name remain the fallback. A missing logo does not block the view.
 - **One metric is `n/a`:** Check source support, driver and HWiNFO where applicable. Use a reachable IPv4 ping target. Never substitute invented measurements.
