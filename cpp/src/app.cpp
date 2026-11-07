@@ -860,9 +860,11 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
         if (key.starts_with("custom:")) {
             auto custom_view=custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7));
             if(!custom_view) continue;
-            out.push_back({key,1,[this,custom_view=*custom_view,device,friends,people](int,RendererSet& rs) {
-                return custom::draw(custom_view,device,rs.width,rs.height,
-                    [&](const custom::Tile& tile,const custom::Layout& layout,int w,int h)->std::optional<Image> {
+            PageEntry entry{key,1,{}};
+            const auto allowed_pages=active_pages(phone,pages_override);
+            entry.custom_draw=[this,custom_view=*custom_view,device,friends,people,phone,allowed_pages,view,tick](RendererSet& rs) {
+                return custom::draw_out(custom_view,device,rs.width,rs.height,
+                    [&](const custom::Tile& tile,const custom::Layout& layout,int w,int h)->std::optional<custom::TileDraw> {
                     if(tile.source.starts_with("plugin:")) {
                         auto installed=plugins_?plugins_->find(tile.source.substr(7)):std::nullopt;
                         if(!installed || !installed->enabled) return {};
@@ -886,14 +888,61 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         context.time=clock_hhmm();
                         std::time_t now=std::time(nullptr);std::tm local{};localtime_s(&local,&now);
                         char date[32]={};std::strftime(date,sizeof date,"%Y-%m-%d",&local);context.date=date;
-                        return custom::draw_plugin(tile,layout,std::move(manifest),context,w,h);
+                        auto widget=std::find_if(manifest.widgets.begin(),manifest.widgets.end(),[&](const auto& w){return w.id==tile.block;});
+                        if(widget==manifest.widgets.end() || manifest.schema_version!=2)return {};
+                        plugins::Json data=plugins::Json::object();for(const auto& [id,value]:context.sources)data[id]=value;
+                        if(!custom::visible(tile,data))return {};
+                        auto original_zone=manifest.layout?std::find_if(manifest.layout->zones.begin(),manifest.layout->zones.end(),[&](const auto& z){return z.id==widget->zone;}):std::vector<plugins::zones::Zone>::iterator{};
+                        const bool cycling=view && manifest.layout && original_zone!=manifest.layout->zones.end() && original_zone->cycle.has_value();
+                        const auto cycle_key="custom:"+custom_view.id+"/"+tile.zone.id+"/"+tile.block;
+                        const auto cycle=cycling?original_zone->cycle:std::nullopt;
+                        auto selected=*widget;selected.zone=tile.zone.id;
+                        if(!cycling && selected.tap && selected.tap->action=="next")selected.tap.reset();
+                        std::vector<plugins::Widget> widgets{selected};
+                        if(cycling)for(const auto& candidate:manifest.widgets)if(candidate.zone==widget->zone && candidate.id!=widget->id) {auto next=candidate;next.zone=tile.zone.id;widgets.push_back(next);}
+                        manifest.widgets=widgets;manifest.layout=custom::tile_layout(tile,layout);
+                        if(cycling)manifest.layout->zones.front().cycle=cycle;
+                        auto page=plugins::render_page(manifest,context);page.density_cap=tile.density;
+                        if(page.widgets.empty())return {};
+                        plugins::DrawOut drawn;
+                        if(cycling) {
+                            using namespace plugins::schedule;
+                            auto& state=view->cycles[cycle_key];
+                            if(view->cycle_generations[cycle_key]!=std::pair{installed->generation,installed->layout_revision}) {reset(state,true,false);view->fade_caches.erase(cycle_key);}
+                            view->cycle_generations[cycle_key]={installed->generation,installed->layout_revision};
+                            ZoneInput input{tile.zone.id,Mode::first_available,cycle->transition=="fade",{}};
+                            for(const auto& widget:widgets) {auto found=std::find_if(page.widgets.begin(),page.widgets.end(),[&](const auto& w){return w.id==widget.id;});input.entries.push_back({widget.id,widget.seconds,found!=page.widgets.end() && !found->missing});}
+                            std::vector<std::string> requests;
+                            if(std::find(view->frame_next_requests.begin(),view->frame_next_requests.end(),installed->manifest.id+"/"+cycle_key)!=view->frame_next_requests.end())requests.push_back(tile.zone.id);
+                            auto kind=phone?OutputKind::companion:!out_?OutputKind::none:out_->is_monitor()?OutputKind::monitor:OutputKind::serial;
+                            auto transfer=phone || !out_?TransferStats{}:out_->transfer();
+                            auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,view->render_ms.value_or(0),h,w,companion_?companion_->client_ids().size():0);
+                            auto choices=advance({input},state,tick,budget,requests);
+                            view->next_deadline=std::min(view->next_deadline,choices.next_deadline);view->animating=view->animating || choices.animating;
+                            auto& cache=view->fade_caches[cycle_key];if(!cache)cache=std::make_shared<plugins::FadeCache>();
+                            std::map<std::string,std::shared_ptr<plugins::FadeCache>> caches{{manifest.id,cache}};
+                            drawn=plugins::draw_choices_out(page,w,h,choices.zones,caches);
+                            // An explicit next override covers the same published zone, including transition guards.
+                            if(tile.tap && tile.tap->action=="next") {
+                                const float scale=render::scale_for(w,h),spacing=theme::design(render::theme().style).spacing/12.f,margin=10*spacing;
+                                auto plan=plugins::zones::plan({margin,39,w/scale-2*margin,h/scale-58-margin},*manifest.layout,{},7*spacing);
+                                if(!plan.zones.empty() && choices.zones.front().block) {const auto& a=plan.zones.front().area;
+                                    drawn.targets={{{int(std::round(a.x*scale)),int(std::round(a.y*scale)),int(std::round((a.x+a.width)*scale))-int(std::round(a.x*scale)),int(std::round((a.y+a.height)*scale))-int(std::round(a.y*scale))},manifest.id,tile.block,cycle_key,"next","",installed->generation,0,choices.animating}};
+                                }
+                            }
+                        } else {
+                            if(page.widgets.front().missing)return {};
+                            drawn=plugins::draw_page_out(page,w,h);
+                        }
+                        for(auto& target:drawn.targets) {target.generation=installed->generation;if(target.action=="next")target.zone=cycle_key;}
+                        return custom::TileDraw{std::move(drawn.image),{},std::move(drawn.targets)};
                     }
                     if(tile.source=="homeassistant" && ha_ && ha_->has_data()) {
                         for(const auto& entity:ha_->entities()) if(entity.id==tile.block) {
                             if(!custom::visible(tile,{{"state",entity.state},{"available",entity.available},{"on",entity.on}})) return {};
                             const auto scale=render::scale_for(w,h);
                             auto plan=plugins::zones::plan({8,36,std::round(w/scale)-16,std::round(h/scale)-54},custom::tile_layout(tile,layout),{},6);
-                            if(!plan.zones.empty()) return rs.ha.render_entity(entity,plan.zones[0].area,tile.density);
+                            if(!plan.zones.empty()) return custom::TileDraw{rs.ha.render_entity(entity,plan.zones[0].area,tile.density),{}, {}};
                         }
                         return {};
                     }
@@ -909,7 +958,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                             tile.block=="system.ram"?snap.ram_pct.has_value():tile.block=="system.datentraeger"?snap.disk_pct.has_value():
                             snap.net_down.has_value() || snap.net_up.has_value();
                         if(!present || !custom::visible(tile,data)) return {};
-                        return rs.system.render_arranged(snap,*arrangement).image;
+                        auto drawn=rs.system.render_arranged(snap,*arrangement);custom::TileDraw out{std::move(drawn.image)};
+                        for(const auto& target:drawn.targets)out.targets.push_back({target.rect_px,{},[zone=int(target.item)]{touch::open_system(zone);}});return out;
                     }
                     if(tile.source=="spotify" && spotify_) {
                         auto snap=spotify_->snapshot();
@@ -919,37 +969,50 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                             meter_->touch(audio::amp_seed(snap.title,snap.artist));levels=meter_->levels();simulated=meter_->simulated();
                         }
                         const auto mode=audio::parse_amp_color(cfg_["spotify"].value("amp_color",std::string("level")));
-                        return rs.spotify.render_arranged(snap,*arrangement,0,levels.empty()?nullptr:&levels,
-                            mode==audio::AmpColor::Theme?0:mode==audio::AmpColor::Level?1:2,simulated).image;
+                        auto drawn=rs.spotify.render_arranged(snap,*arrangement,0,levels.empty()?nullptr:&levels,
+                            mode==audio::AmpColor::Theme?0:mode==audio::AmpColor::Level?1:2,simulated);
+                        return custom::TileDraw{std::move(drawn.image)};
                     }
                     if(tile.source=="rss" && rss_) {
                         auto posts=rss_->posts();auto updated=rss_->updated();
                         if(!custom::visible(tile,{{"count",posts.size()},{"ready",updated.has_value()}})) return {};
-                        return rs.rss.render_arranged(posts,updated,*arrangement).image;
+                        auto drawn=rs.rss.render_arranged(posts,updated,*arrangement);custom::TileDraw out{std::move(drawn.image)};auto rows=touch::post_rows(posts);
+                        for(const auto& target:drawn.targets)if(target.item<rows.size())out.targets.push_back({target.rect_px,rows[target.item],{}});return out;
                     }
                     if(tile.source=="streaming" && streaming_) {
                         auto snap=streaming_->snapshot();
                         if(!custom::visible(tile,{{"count",snap.items.size()},{"ready",snap.state==tmdb::State::Ok}})) return {};
-                        return rs.stream.render_arranged(snap.state,snap.items,snap.updated,*arrangement,0,0,&snap.logos).image;
+                        auto drawn=rs.stream.render_arranged(snap.state,snap.items,snap.updated,*arrangement,0,0,&snap.logos);custom::TileDraw out{std::move(drawn.image)};auto rows=touch::stream_rows(snap.items);
+                        for(const auto& target:drawn.targets)if(target.item<rows.size())out.targets.push_back({target.rect_px,rows[target.item],{}});return out;
                     }
                     if(tile.source=="bf6" && bf6_) {
                         auto players=bf6_->players();auto updated=bf6_->updated();
                         if(!custom::visible(tile,{{"count",players.size()},{"ready",updated.has_value()}})) return {};
-                        return rs.bf6.render_arranged(players,updated,*arrangement).image;
+                        auto drawn=rs.bf6.render_arranged(players,updated,*arrangement);custom::TileDraw out{std::move(drawn.image)};auto rows=touch::player_rows(players,0,int(players.size()));
+                        for(const auto& target:drawn.targets)if(target.item<rows.size())out.targets.push_back({target.rect_px,rows[target.item],{}});return out;
                     }
                     if(tile.source=="friends" && friends_) {
                         auto message=friends_message();bool connected=message.empty() || !people.empty();
                         if(!custom::visible(tile,{{"count",people.size()},{"ready",connected}})) return {};
-                        return rs.friends.render_friends_arranged(people,connected,message,*arrangement).image;
+                        auto drawn=rs.friends.render_friends_arranged(people,connected,message,*arrangement);custom::TileDraw out{std::move(drawn.image)};auto rows=touch::friend_rows(people,0,1000);
+                        for(const auto& target:drawn.targets)if(target.item<rows.size())out.targets.push_back({target.rect_px,rows[target.item],{}});return out;
                     }
                     if(tile.source=="discord" && discord_) {
                         auto status=discord_->status();
                         if(!custom::visible(tile,{{"count",friends.size()},{"ready",status.empty()}})) return {};
-                        return rs.discord.render_friends_arranged(friends,status.empty(),status,*arrangement).image;
+                        auto drawn=rs.discord.render_friends_arranged(friends,status.empty(),status,*arrangement);custom::TileDraw out{std::move(drawn.image)};auto rows=touch::friend_rows(friends,0,1000);
+                        for(const auto& target:drawn.targets)if(target.item<rows.size())out.targets.push_back({target.rect_px,rows[target.item],{}});return out;
                     }
                     return {}; // Missing or disabled sources stay blank.
-                });
-            }});
+                },custom::tap_override(custom_view.id,custom::TapEnv{allowed_pages,
+                    [this](const std::string& id)->std::optional<custom::LinkGrant> {
+                        auto installed=plugins_?plugins_->find(id):std::nullopt;
+                        if(!installed || !installed->enabled || !installed->links_allowed)return {};
+                        return custom::LinkGrant{installed->manifest.id,installed->generation,[manifest=installed->manifest](const std::string& url){return plugins::link_allowed(manifest,url);}};
+                    },
+                    [this,phone,device](const std::string& page){queue_custom_page(page,phone,device);}}));
+            };
+            out.push_back(std::move(entry));
         } else if (key.rfind("plugin:", 0) == 0) {
             auto installed = plugins_ ? plugins_->find(key.substr(7)) : std::nullopt;
             if (!installed || !installed->enabled) continue;
@@ -1253,7 +1316,9 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
                 plugins::DrawOut plugin_out;
                 std::vector<touch::ArrangedTarget> arranged_targets;
                 auto& renderer=renderers_for(boxes[k].w,boxes[k].h);
-                if(p.builtin_draw) { auto out=p.builtin_draw(idx,renderer); frames.push_back(std::move(out.first)); arranged_targets=std::move(out.second); }
+                custom::DrawOut custom_out;
+                if(p.custom_draw) {custom_out=p.custom_draw(renderer);frames.push_back(std::move(custom_out.image));arranged_targets=std::move(custom_out.targets);plugin_out.targets=std::move(custom_out.plugin);}
+                else if(p.builtin_draw) { auto out=p.builtin_draw(idx,renderer); frames.push_back(std::move(out.first)); arranged_targets=std::move(out.second); }
                 else if(p.plugin_draw) { plugin_out=p.plugin_draw(renderer);frames.push_back(std::move(plugin_out.image)); }
                 else frames.push_back(p.fn(idx,renderer));
                 keys.push_back(p.key);
@@ -1263,7 +1328,7 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
                 tile.spotify = p.key == "spotify";
                 tile.streaming = p.key == "streaming";
                 tile.cells = p.actions;
-                tile.arranged=bool(p.builtin_draw); tile.arranged_targets=std::move(arranged_targets);
+                tile.arranged=bool(p.builtin_draw) || bool(p.custom_draw); tile.arranged_targets=std::move(arranged_targets);
                 tile.plugin=std::move(plugin_out.targets);
                 taps.push_back(std::move(tile));
                 break;
@@ -1456,7 +1521,12 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone, phone ? (id.empty()?"network":id) : primary_layout_id());
             total = 0; for (auto& p : pages) total += p.n;
         }
+        std::string requested;
+        {std::lock_guard lk(view.next_mu);requested.swap(view.page_request);}
+        int requested_index=-1,offset_requested=0;
+        for(const auto& page:pages) {if(page.key==requested)requested_index=offset_requested;offset_requested+=page.n;}
         int step = view.step.exchange(0);
+        if(requested_index>=0) {view.page=requested_index;view.switched=mono();step=0;due=false;}
         if (!total) {
             out.frame = device::compose_view(welcome({area.w, area.h}), size, area, render::theme().bg); view.current.clear(); view.cycles.clear(); view.fade_caches.clear();
             if (register_redraw) { std::lock_guard lk(mu_); redraw_ = [this, size, area] { return device::compose_view(welcome({area.w, area.h}), size, area, render::theme().bg); }; }
@@ -1477,10 +1547,11 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                 bool visible=false;
                 for (int i=0;i<cols;++i) { int index=(start+i)%total; if (index>=offset && index<offset+entry.n) visible=true; }
                 if (visible && entry.prepare) { entry.prepare(entry); visible_plugins.insert(entry.key.substr(7)); }
+                if(visible && entry.custom_draw)visible_plugins.insert(entry.key+"/");
                 offset+=entry.n;
             }
-            std::erase_if(view.cycles,[&](const auto& pair){return !visible_plugins.contains(pair.first);});
-            std::erase_if(view.fade_caches,[&](const auto& pair){return !visible_plugins.contains(pair.first);});
+            std::erase_if(view.cycles,[&](const auto& pair){return !visible_plugins.contains(pair.first) && std::none_of(visible_plugins.begin(),visible_plugins.end(),[&](const auto& key){return key.starts_with("custom:") && pair.first.starts_with(key);});});
+            std::erase_if(view.fade_caches,[&](const auto& pair){return !visible_plugins.contains(pair.first) && std::none_of(visible_plugins.begin(),visible_plugins.end(),[&](const auto& key){return key.starts_with("custom:") && pair.first.starts_with(key);});});
             // Wechselfeld-Frames setzen nie out.switched; nur die bestehende Seitennavigation tut das.
 
             if (register_redraw) {
@@ -1578,6 +1649,14 @@ touch::PluginAccess App::plugin_access(const std::string& id) {
     auto installed=plugins_ ? plugins_->find(id) : std::nullopt;
     if(!installed) return {};
     return {installed->enabled,installed->links_allowed,installed->generation,installed->manifest.links};
+}
+void App::queue_custom_page(const std::string& page,bool phone,const std::string& device) {
+    auto queue=[&](ViewState& view){std::lock_guard lk(view.next_mu);view.page_request=page;};
+    if(phone && !device.empty() && device!="network") {
+        std::lock_guard lk(dev_mu_);auto it=devices_.find(device);if(it==devices_.end())return;
+        queue(independent()?it->second->view:(companion_output_?companion_view_:primary_view_));
+    } else queue(phone?companion_view_:primary_view_);
+    mark_dirty();
 }
 void App::queue_plugin_next(ViewState& view,const touch::PluginDecision& decision) {
     std::lock_guard lk(view.next_mu);

@@ -181,7 +181,7 @@ Nur eine tatsächlich geänderte Linkliste bei **ansonsten vollständig identisc
 
 ## Seiten-Editor (P6-3 bis P7-10, Entwicklung für 2.10.0)
 
-Unter **Einstellungen → Seite anordnen** werden aktivierte lokale Plugins sowie RSS, Streaming, BF6, Freunde und Discord in den Gruppen Plugins/Eingebaut angeboten. Weitere Einstiege stehen unter **Plugins → Anordnen …** und **Seiten & Reihenfolge**. Manifest v1 zeigt nur „Anordnung braucht Manifest v2“. RSS, Streaming, BF6, Freunde und Discord werden als eingebaute Seiten angeboten; weitere Seiten und Home Assistant folgen später.
+Unter **Einstellungen → App → Eigene Ansichten** (Seitenliste, Einträge „Standard / Plugin“) werden aktivierte lokale Plugins sowie RSS, Streaming, BF6, Freunde und Discord in den Gruppen Plugins/Eingebaut angeboten. Ein weiterer Einstieg ist der Button „Eigene Ansichten …“ unter **Seiten & Reihenfolge**; „Seite anordnen“ und „Anordnen …“ gibt es nicht mehr. Manifest v1 zeigt nur „Anordnung braucht Manifest v2“. RSS, Streaming, BF6, Freunde und Discord werden als eingebaute Seiten angeboten; weitere Seiten und Home Assistant folgen später.
 
 Für Plugins speichert der Editor ausschließlich `<id>.layout.json`; die Manifestdatei bleibt unverändert. Rasteranteile (1–12), bis zu 6×6 Zellen, acht Zonen und zwölf Blöcke mit höchstens vier gezeigten Blöcken je Zone entsprechen dem Parser. Bearbeitbar sind Zonen-ID, Lage, Spannweite, Teilung, Wechselmodus/Übergang, Blockreihenfolge, Sichtbarkeit, Zonenzuordnung, Wechselzeit (3–600 Sekunden bei `rotate`) und `show_if`. Quellen, Inhalte, Links, Tap-Aktionen, Settings-Werte und Geheimnisse sind nicht bearbeitbar. Ein ausgeblendeter Block bleibt im Overlay erhalten.
 

@@ -1,2 +1,4 @@
-custom-editor.de 3a3296c882c881a7
-custom-editor.en da49c2e66fa0e000
+custom-editor-touch.de 731742294013d0ce
+custom-editor-touch.en cb3c4b374df37977
+custom-editor.de 575b972eb2a6fa0d
+custom-editor.en ecaec0f9cf7a113d

@@ -14,6 +14,7 @@
 #include <wincodec.h>
 #include <deque>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <cmath>
 using namespace fl;
@@ -911,16 +912,61 @@ static void custom_editor_tests(const fs::path& root,const fs::path& images,bool
     fs::create_directories(images);
     grid->selected=0;grid->focused_block=0;grid->on_select();
     TreeCanvas custom_canvas(h.kit,1440,1100);
-    for(bool en:{false,true}){
-        h.kit.english=en;h.kit.use_design({{"theme",theme::DEFAULT_ID}});h.kit.use_windows(false);h.kit.dark=true;
-        layout_tree(h.kit,custom_canvas,h.root);auto image=paint_tree(h.kit,custom_canvas,h.root,true);
-        const std::string key=en?"custom-editor.en":"custom-editor.de";actual[key]=snapshot::hash_image(image);if(!record)CHECK(expected[key]==actual[key]);
-        snapshot::write_png(images/(key+".png"),image);
-        CHECK(fs::file_size(images/(en?"custom-editor.en.png":"custom-editor.de.png"))>1000);
+    auto capture=[&](const std::string& stem){
+        for(bool en:{false,true}){
+            h.kit.english=en;h.kit.use_design({{"theme",theme::DEFAULT_ID}});h.kit.use_windows(false);h.kit.dark=true;
+            layout_tree(h.kit,custom_canvas,h.root);auto image=paint_tree(h.kit,custom_canvas,h.root,true);
+            const std::string key=stem+(en?".en":".de");actual[key]=snapshot::hash_image(image);if(!record)CHECK(expected[key]==actual[key]);
+            snapshot::write_png(images/(key+".png"),image);
+            CHECK(fs::file_size(images/(key+".png"))>1000);
+        }
+        h.kit.english=false;
+    };
+    capture("custom-editor");
+    // P8-3: touch target per tile and per display overlay (Standard / Individual).
+    {
+        auto mode=h.find<Combo>(L"Touch-Ziel");auto action=h.find<Combo>(L"Aktion");auto target=h.find<Combo>(L"Zielseite");auto link=h.find<TextField>(L"HTTPS-Link");
+        CHECK(mode && action && target && link);
+        if(mode && action && target && link) {
+            auto tapped=[&]{size_t n=0;auto layout=custom::editor_layout(grid->model);if(layout)for(const auto& t:layout->tiles)if(t.tap)++n;return n;};
+            auto tap_page=[&]()->std::string{auto layout=custom::editor_layout(grid->model);if(layout)for(const auto& t:layout->tiles)if(t.tap)return t.tap->page;return {};};
+            auto select_first=[&]{grid=h.find<GridEditor>();grid->selected=0;grid->focused_block=0;grid->on_select();settle(h,*page);};
+            CHECK(mode->options.size()==2 && mode->options[0].de==L"Standard" && mode->options[1].de==L"Individuell");
+            CHECK(target->options.size()>=config::PAGES.size() + 1);   // fixed pages plus custom views
+            CHECK(mode->enabled && mode->index==0 && !action->enabled && !target->enabled && !link->enabled && tapped()==0);
+            mode->index=1;mode->on_change();settle(h,*page);
+            CHECK(action->enabled && target->enabled && !link->enabled);   // page action; link/next only for plugin sources
+            CHECK(tapped()==0);                                              // no page chosen yet: Standard
+            target->index=1;target->on_change();settle(h,*page);CHECK(tapped()==1 && tap_page()=="friends");
+            action->index=2;action->on_change();settle(h,*page);CHECK(tapped()==0);   // next on a system tile: not allowed, falls back to Standard
+            action->index=1;action->on_change();settle(h,*page);CHECK(tapped()==0);   // link on a system tile: same
+            action->index=0;action->on_change();settle(h,*page);CHECK(tapped()==1 && tap_page()=="friends");
+            // Apply persists it in the standard layout only; the stored offline overlay is untouched.
+            h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);
+            auto count_taps=[](const custom::Layout& l){size_t n=0;for(const auto& t:l.tiles)if(t.tap)++n;return n;};
+            auto stored=saved.get(initial.id);CHECK(stored && count_taps(stored->standard)==1 && count_taps(stored->devices.at("offline-phone"))==0);
+            select_first();CHECK(mode->index==1 && action->index==0 && target->index==1);
+            capture("custom-editor-touch");
+            // The same tile gets its own target in the Monitor overlay (own layout); Standard keeps its target.
+            h.find<Button>(L"Monitor · 1920 × 1080")->activate(h.view);settle(h,*page);select_first();
+            CHECK(mode->index==0 && tapped()==0);   // this overlay is its own layout (kept draft from the earlier disconnect): no target yet
+            mode->index=1;mode->on_change();settle(h,*page);
+            target->index=4;target->on_change();settle(h,*page);CHECK(tap_page()=="rss");
+            h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);
+            stored=saved.get(initial.id);CHECK(stored && count_taps(stored->devices.at("monitor:sample"))==1 && count_taps(stored->standard)==1);
+            for(const auto& t:stored->devices.at("monitor:sample").tiles)if(t.tap)CHECK(t.tap->page=="rss");
+            for(const auto& t:stored->standard.tiles)if(t.tap)CHECK(t.tap->page=="friends");
+            // Back to Standard in the Standard tab removes the key from the file again.
+            h.find<Button>(L"Standard")->activate(h.view);settle(h,*page);select_first();
+            mode->index=0;mode->on_change();settle(h,*page);CHECK(tapped()==0);
+            h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);
+            stored=saved.get(initial.id);CHECK(stored && count_taps(stored->standard)==0 && count_taps(stored->devices.at("monitor:sample"))==1);
+            select_first();
+        }
     }
     if(record){std::ofstream out(baseline);for(const auto& [key,hash]:actual)out<<key<<' '<<hash<<'\n';CHECK(bool(out));}else CHECK(expected.size()==actual.size());
     h.kit.english=false;
-    h.find<Button>(L"+ Neue Ansicht")->activate(h.view);settle(h,*page);CHECK(h.find<ItemList>(L"Ansichten")->items.size()==2);
+    const auto views_before=h.find<ItemList>(L"Ansichten")->items.size();h.find<Button>(L"+ Neue Ansicht")->activate(h.view);settle(h,*page);CHECK(h.find<ItemList>(L"Ansichten")->items.size()==views_before+1);
     auto keyboard=h.find<GridEditor>();keyboard->column=1;keyboard->row=0;const auto cpu=h.find<TilePalette>()->visible().front();
     CHECK(keyboard->pickup(cpu,h.view));CHECK(keyboard->carrying());CHECK(keyboard->value(false).find(L"System · CPU")!=std::wstring::npos);CHECK(keyboard->input(VK_ESCAPE));CHECK(custom::editor_layout(keyboard->model)->tiles.empty());
     CHECK(keyboard->pickup(cpu,h.view));CHECK(keyboard->input(VK_RETURN));settle(h,*page);CHECK(custom::editor_layout(keyboard->model)->tiles.size()==1);
@@ -929,6 +975,30 @@ static void custom_editor_tests(const fs::path& root,const fs::path& images,bool
     CHECK(keyboard->input(VK_F6));CHECK(keyboard->area==2);CHECK(keyboard->input(VK_F6));CHECK(keyboard->area==0);
     h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==2);
     h.find<Button>(L"Löschen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==1);CHECK(saved.get(initial.id));
+    h.view.set_root(nullptr);
+}
+// P8-3: "Arrange page" is gone as a settings entry; its editor stays reachable from the page list of Custom views.
+static void custom_standard_pages_tests(const fs::path& root) {
+    for(const auto& info_page:create_pages()) CHECK(info_page->info().id!="layout");
+    TestHost h(root/"custom-standard");pin_window(h);builtin_actions(h);h.actions.editor_intro_seen=[]{return true;};h.confirm_answer=true;
+    auto page=make_custom_views_page();page->build(h,h.root);page->shown(h);settle(h,*page);
+    auto list=h.find<ItemList>(L"Ansichten");CHECK(list);if(!list)return;
+    CHECK(!h.find<Combo>(L"Seite"));
+    std::vector<size_t> standard;for(size_t i=0;i<list->items.size();++i)if(list->items[i].detail.de==L"Standard / Plugin")standard.push_back(i);
+    size_t enabled_builtin=0;for(const auto& c:builtin::catalogs())if(c.enabled)++enabled_builtin;
+    CHECK(enabled_builtin>0 && standard.size()>=enabled_builtin);   // nothing lost: every enabled built-in page is listed
+    // The old page editor opens for each entry, preselected, and returns to the custom view list.
+    for(auto index:standard) {
+        const auto key=list->items[index].key;const auto title=list->items[index].title.de;
+        list->on_select(int(index));settle(h,*page);
+        auto choice=h.find<Combo>(L"Seite");CHECK(choice);
+        if(choice) {CHECK(choice->index>=0 && choice->index<int(choice->options.size()));if(choice->index>=0 && choice->index<int(choice->options.size()))CHECK(choice->options[choice->index].de==(key.starts_with("builtin:")?L"Eingebaut · ":L"Plugins · ")+title);}
+        auto back=h.find<Button>(L"Zurück zu Eigene Ansichten");CHECK(back);
+        if(!back)return;
+        back->activate(h.view);settle(h,*page);
+        CHECK(!h.find<Combo>(L"Seite"));CHECK(h.find<Button>(L"+ Neue Ansicht"));CHECK(h.find<ItemList>(L"Ansichten"));
+        list=h.find<ItemList>(L"Ansichten");if(!list)return;
+    }
     h.view.set_root(nullptr);
 }
 int main(int argc,char** argv) {
@@ -1160,6 +1230,7 @@ int main(int argc,char** argv) {
     else CHECK(expected.size()==actual.size());
     editor_snapshot_tests(dir,baseline,fs::path(argv[0]).parent_path()/"p7b-ui-snapshots",argc==2 && std::string(argv[1])=="record-editor");
     custom_editor_tests(dir,fs::path(argv[0]).parent_path()/"p8-ui-snapshots",argc==2 && std::string(argv[1])=="record-custom-editor");
+    custom_standard_pages_tests(dir);
     std::error_code ec; fs::remove_all(dir,ec); CHECK(!ec && !fs::exists(dir));
     std::printf("Layout UI: %d passed, %d failed\n",passed,failed); return failed?1:0;
 }

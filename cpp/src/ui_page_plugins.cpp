@@ -46,7 +46,6 @@ public:
         revoke_ = row->add(T(L"Freigaben widerrufen", L"Revoke host consent"), Button::Secondary, [this] { revoke(); });
         remove_ = row->add(T(L"Entfernen", L"Remove"), Button::Danger, [this] { remove(); });
         refresh_ = row->add(T(L"Aktualisieren", L"Refresh"), Button::Ghost, [this] { refresh(); });
-        row->add(T(L"Anordnen …", L"Arrange …"), Button::Secondary, [this] { host_->navigate("layout"); });
         config_ = root.add<Card>(T(L"Plugin-Konfiguration", L"Plugin settings"),
                                  T(L"Zuerst oben ein Plugin auswählen.", L"Select a plugin above first."));
         if (loaded_) fill();

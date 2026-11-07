@@ -121,6 +121,7 @@ public:
                                     std::pair<int,int> dimensions, std::string& error);
     std::optional<Image> custom_preview(const custom::View& view, const std::string& device, std::pair<int,int> dimensions);
     std::vector<custom::Tile> custom_palette();
+    void render_primary_for_test() { render_view(false, true); }   // Testnaht: ein synchroner Zeichendurchlauf ohne Anzeige-Thread
     spotify::SpotifyClient* spotify() { return spotify_.get(); }   // nullptr = Seite aus oder keine Client-ID
     NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 
@@ -137,6 +138,7 @@ private:
         std::vector<std::string> next_requests;
         std::vector<std::string> frame_next_requests; // nur Anzeige-Thread
         std::mutex next_mu;
+        std::string page_request;
         device::Area area;
         double keepout_warning = -60;
         int page = 0;
@@ -172,6 +174,7 @@ private:
         std::vector<std::function<void()>> actions;   // Home Assistant: Schalt-Aktion je Kachel
         std::function<void(PageEntry&)> prepare;
         std::function<plugins::DrawOut(RendererSet&)> plugin_draw;
+        std::function<custom::DrawOut(RendererSet&)> custom_draw;
         std::function<std::pair<Image,std::vector<touch::ArrangedTarget>>(int,RendererSet&)> builtin_draw;
     };
     struct DrawResult {
@@ -216,6 +219,7 @@ private:
     bool was_independent_ = false;
     touch::PluginAccess plugin_access(const std::string& id);
     void execute_plugin(const touch::PluginDecision& decision);
+    void queue_custom_page(const std::string& page, bool phone, const std::string& device);
     static void queue_plugin_next(ViewState& view, const touch::PluginDecision& decision);
     std::mutex plugin_tap_mu_;
     std::map<std::string,double> plugin_last_open_;

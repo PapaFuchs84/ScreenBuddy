@@ -44,6 +44,7 @@ P7-12 (2026-11-06, Agent Codex CLI 0.166.0): Spotify editor blocks use the exist
 No release yet, no tag, no EXE distribution. Hardware, native UI and Companion acceptance and the APK build are still pending; see "Development status" below.
 
 #### Highlights
+- **Phase 8 P8-3 (2026-11-07):** The "Arrange page" entry is gone; standard and plugin pages are edited through the page list of **Custom views**. New: **touch target per tile** (Default or Custom: switch page, link only with consent, next item for plugin cycles only), stored per display overlay, falling back to Default when invalid.
 
 - **Zone layout for plugin pages (manifest v2):** `schema_version: 2` describes a flat grid with zones and blocks that have stable block IDs. Manifest v1 is unchanged. Limits: 6 × 6 grid, 8 zones, at most 4 blocks per zone, up to 12 widgets with a layout.
 - **Density levels:** Each block type (text, metric, clock, bar, list) has compact, regular and detailed drawing. If a block does not fit its area, it is hidden instead of overlapping.

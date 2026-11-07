@@ -176,7 +176,7 @@ Nur eine tatsächlich geänderte Linkliste bei **ansonsten vollständig identisc
 
 ## Editor: eine Plugin-Seite anordnen
 
-1. Ein Manifest-v2-Plugin lokal installieren und aktivieren. Unter **Einstellungen → Plugins → Anordnen …** zur Editor-Seite wechseln und das Plugin auswählen. v1 zeigt nur einen Hinweis.
+1. Ein Manifest-v2-Plugin lokal installieren und aktivieren. Unter **Einstellungen → App → Eigene Ansichten** in der Seitenliste den Eintrag „Standard / Plugin“ des Plugins auswählen. v1 zeigt nur einen Hinweis.
 2. Raster mit Spalten-/Zeilentasten und Anteilen 1–12 einstellen. Mit Pfeilen die Zelle wählen; Enter erzeugt eine freie Zone. Shift+Pfeil ändert die Spannweite, Alt+Pfeil verschiebt, Entf entfernt eine Zone, sofern ihre Blöcke in die erste verbleibende Zone passen.
 3. In der Blockliste mit Leertaste Blöcke zeigen/ausblenden und mit Alt+Auf/Ab umsortieren. Rechts/unten Zone, bei `rotate` Sekunden und optional eine Bedingung einstellen. Neue Zonen müssen mindestens einen gezeigten Block erhalten. Bedingungen nutzen Sample-/bestehende Quellenpfade und nicht geheime Settings. Operator/Werttyp mit **Bedingung bestätigen** abschließen; Texte mit Enter oder Fokuswechsel.
 4. Quer-/Hochvorschau mit Plugin-Beispieldaten prüfen. Sie verwendet denselben Renderer wie die Ausgabe und feste Beispielzeit/-datum. Ungültige Entwürfe lassen das letzte gültige Bild stehen und sperren **Übernehmen**. Rückgängig/Wiederholen über Tasten oder Strg+Z/Y im Raster/in der Liste.

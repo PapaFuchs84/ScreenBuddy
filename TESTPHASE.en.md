@@ -1,5 +1,7 @@
 # Test phase – giving feedback
 
+**P8-3 (local development, 2026-11-07):** "Arrange page" is gone; the page editor now lives in the page list of **Custom views**. New: touch target per tile (Default or Custom: switch page, link only with consent). Physical touch acceptance on devices is pending; please test tapping tiles on several displays.
+
 **P8-2 (local development, 2026-11-07):** Custom source-tile views with active device tabs. [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md) records automated checks and synthetic editor PNGs; physical multi-device, touch and manual screenreader acceptance remain open. No release.
 
 **Unreleased Companion prototype:** simultaneous USB/HDMI and Android output with separate pages, timers and touch; native phone resolution including rotation. Extra controls are visible only while Companion is enabled. [Setup and current limits](docs/COMPANION.en.md).

@@ -6,7 +6,7 @@ Die Seiten heißen in allen Themes gleich. Das Design bestimmt, wie du sie errei
 | --- | --- |
 | Ansicht | Übersicht, Anzeige, Seiten & Reihenfolge, Farben & Design |
 | Seiten | System, Freunde, Discord, Battlefield 6, Blogs (RSS), Streaming-Neustarts, Home Assistant, Spotify |
-| App | Companion, Plugins, Plugin-Store, Seite anordnen und Eigene Ansichten (ab 2.10.0, in Vorbereitung), Updates & Autostart |
+| App | Companion, Plugins, Plugin-Store, Eigene Ansichten mit Seiten-Editor (ab 2.10.0, in Vorbereitung; der frühere Eintrag „Seite anordnen“ ist entfallen), Updates & Autostart |
 
 ## Je nach Theme navigieren
 
@@ -36,9 +36,9 @@ Unter **Companion → Sperrzone: gemeinsame Vorgabe** gelten die Ränder für de
 
 Erlaubt sind ganze Pixel 0–1000; ungültige Eingaben werden mit Meldung abgelehnt. Beim Zeichnen wird jeder Rand auf ein Drittel der kleineren Bildkante begrenzt. Bleiben weniger als 160 × 120 Pixel nutzbar, wird die gesamte Sperrzone ignoriert (ratenbegrenzte Warnung). Ein Tipp im Rand bewirkt nichts; die Drittel-Navigation bezieht sich auf den nutzbaren Inhalt. Veraltete Companion-Bildgrößen werden verworfen.
 
-## Seite anordnen (Entwicklung für 2.10.0)
+## Seiten-Editor in „Eigene Ansichten“ (Entwicklung für 2.10.0)
 
-Unter **App → Seite anordnen** ordnest du die Blöcke eines aktivierten Plugins mit Manifest v2 im Raster an: Zonen festlegen, Blöcke zuweisen, Bedingungen (`show_if`) setzen und die Vorschau in Quer- und Hochformat prüfen. Rückgängig und Wiederholen (100 Schritte) sowie die Tastaturbedienung sind verfügbar. **Übernehmen** speichert nur die Anordnung, mit Sicherungskopie. Inhalte, Linkfreigaben und das Manifest bleiben unverändert. Manifest-v1-Plugins zeigen dort nur den Hinweis „Anordnung braucht Manifest v2“. RSS, Streaming, BF6, Freunde, Discord, System und Spotify sind als eingebaute Seiten enthalten. Home Assistant bleibt im Standard nativ; einzelne Entitäten stehen im separaten Editor „Eigene Ansichten“ bereit. Weitere Einstiege: **Seiten & Reihenfolge** und **Plugins → Anordnen …**. Blöcke lassen sich auch per Maus ziehen (Bausteinleiste, Griffe, Ablage); Tastatur: F6 wechselt den Bereich, Leertaste nimmt auf, Enter legt ab, Esc bricht ab; Strg+Auf/Ab wählt Block-Chips in einer Zone (Leertaste nimmt auf, Entf zurück in die Leiste). Loslassen außerhalb des Rasters bricht still ab. Details: [Plugin-System](PLUGIN-SYSTEM.md#seiten-editor-p6-3-bis-p7-10-entwicklung-für-2100). Maus-, Touchpad- und Touch-Bedienung sind noch nicht abgenommen.
+Der frühere Eintrag „Seite anordnen“ ist entfallen. Unter **App → Eigene Ansichten** wählst du in der Seitenliste einen Eintrag „Standard / Plugin“ und ordnest dort die Blöcke eines aktivierten Plugins mit Manifest v2 im Raster an: Zonen festlegen, Blöcke zuweisen, Bedingungen (`show_if`) setzen und die Vorschau in Quer- und Hochformat prüfen. Rückgängig und Wiederholen (100 Schritte) sowie die Tastaturbedienung sind verfügbar. **Übernehmen** speichert nur die Anordnung, mit Sicherungskopie. Inhalte, Linkfreigaben und das Manifest bleiben unverändert. Manifest-v1-Plugins zeigen dort nur den Hinweis „Anordnung braucht Manifest v2“. RSS, Streaming, BF6, Freunde, Discord, System und Spotify sind als eingebaute Seiten enthalten. Home Assistant bleibt im Standard nativ; einzelne Entitäten stehen im separaten Editor „Eigene Ansichten“ bereit. Weiterer Einstieg: der Button „Eigene Ansichten …“ unter **Seiten & Reihenfolge**; die Schaltfläche „Anordnen …“ unter Plugins entfällt. Blöcke lassen sich auch per Maus ziehen (Bausteinleiste, Griffe, Ablage); Tastatur: F6 wechselt den Bereich, Leertaste nimmt auf, Enter legt ab, Esc bricht ab; Strg+Auf/Ab wählt Block-Chips in einer Zone (Leertaste nimmt auf, Entf zurück in die Leiste). Loslassen außerhalb des Rasters bricht still ab. Details: [Plugin-System](PLUGIN-SYSTEM.md#seiten-editor-p6-3-bis-p7-10-entwicklung-für-2100). Maus-, Touchpad- und Touch-Bedienung sind noch nicht abgenommen.
 
 ## Plugin-Tipps (Phase 4c, Entwicklung)
 
@@ -75,3 +75,5 @@ P7b-4 (2026-11-06, Agent Claude Sonnet 5.5): Ebenenliste (Reihenfolge, Sichtbark
 ## Eigene Ansichten (P8-2, Entwicklung)
 
 Unter **App → Eigene Ansichten** eigene Seiten aus Quellen-Kacheln anlegen, umbenennen, löschen und je aktivem Display anordnen. **Übernehmen** speichert; die Ansicht erscheint als `custom:<id>` im Seitenzyklus. Tabs zeigen nur aktive Geräte; Offline-Layouts bleiben erhalten. Papierkorb, Rastergröße, Bedingungen, Dichte und Rückgängig/Wiederholen: [Bedienung und Grenzen](PHASE8-EIGENE-ANSICHTEN.md).
+
+Im Eigenschaften-Panel steht je Kachel **Touch-Ziel**: **Standard** (Verhalten der Quelle wie bisher) oder **Individuell** mit **Seite wechseln zu …** (jede Seite im aktuellen Seitenzyklus: Standard-, `custom:`- und Plugin-Seite), **Link am PC öffnen** und **Nächster Eintrag**. Link und Nächster Eintrag gelten nur für Plugin-Kacheln (Link nur mit Freigabe „Links öffnen“ und deklariertem Host). Ungültige, unvollständige oder nicht erlaubte Ziele und Seiten außerhalb des Zyklus fallen auf Standard zurück. Das Ziel wird je Layout gespeichert, also getrennt für Standard und jedes Display-Overlay.

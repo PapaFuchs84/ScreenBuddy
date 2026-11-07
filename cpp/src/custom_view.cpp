@@ -2,6 +2,7 @@
 #include "custom_view.h"
 #include "render.h"
 #include "plugin_render.h"
+#include "config.h"
 #include <windows.h>
 #include <algorithm>
 #include <atomic>
@@ -139,6 +140,7 @@ Json layout_json(const Layout& l) {
     for(const auto& t:l.tiles) {
         Json j={{"source",t.source},{"block",t.block},{"zone",{{"id",t.zone.id},{"column",t.zone.column},{"row",t.zone.row}}},
             {"column_span",t.zone.column_span},{"row_span",t.zone.row_span}};
+        if(t.tap) j["tap"]=tap_json(*t.tap);
         if(t.density!=2) j["density"]=t.density;
         if(t.show_if) {j["show_if"]={{"path",t.show_if->path}};if(!t.show_if->op.empty()) {j["show_if"]["op"]=t.show_if->op;j["show_if"]["value"]=t.show_if->value;}}
         tiles.push_back(std::move(j));
@@ -155,9 +157,10 @@ Layout read_layout(const Json& j) {
     const auto& tiles=j.at("tiles");require(tiles.is_array() && tiles.size()<=tile_limit);
     std::set<std::string> ids;bool occupied[6][6]={};
     for(const auto& item:tiles) {
-        fields(item,{"source","block","zone","column_span","row_span","show_if","density"});Tile t;
+        fields(item,{"source","block","zone","column_span","row_span","show_if","density","tap"});Tile t;
         if(item.contains("density")) t.density=integer(item["density"],0,2);
         t.source=text(item,"source",100);t.block=text(item,"block",100);
+        if(item.contains("tap")) t.tap=parse_tap(item["tap"],t.source);
         require(builtin::find(t.source) || t.source=="homeassistant" ||
             (t.source.starts_with("plugin:") && valid_id(t.source.substr(7))));
         if(auto c=builtin::find(t.source)) require(std::any_of(c->blocks.begin(),c->blocks.end(),[&](const auto& b){return b.id==t.block;}));
@@ -191,6 +194,20 @@ Layout read_layout(const Json& j) {
     }
     return l;
 }
+}
+std::optional<Tap> parse_tap(const Json& j,const std::string& source) {
+    try {
+        const auto action=text(j,"action",16);Tap t;t.action=action;
+        if(action=="page") {fields(j,{"action","page"});t.page=text(j,"page",100);require(config::is_page_key(t.page));}
+        else if(action=="open_link") {fields(j,{"action","url"});t.url=text(j,"url",2048);require(source.starts_with("plugin:") && plugins::tap_url_valid(t.url));}
+        else if(action=="next") {fields(j,{"action"});require(source.starts_with("plugin:"));}
+        else return {};
+        return t;
+    } catch(...) {return {};}
+}
+Json tap_json(const Tap& t) {
+    Json j={{"action",t.action}};if(t.action=="page")j["page"]=t.page;
+    if(t.action=="open_link")j["url"]=t.url;return j;
 }
 bool valid_id(std::string_view id) {
     if(id.empty() || id.size()>48 || plugins::reserved_device_name(id)) return false;
@@ -301,9 +318,9 @@ std::optional<Image> draw_plugin(const Tile& tile,const Layout& layout,plugins::
     if(page.widgets.empty() || page.widgets.front().missing) return {};
     return plugins::draw_page(page,width,height);
 }
-Image draw(const View& v,const std::string& device,int w,int h,const DrawTile& source) {
+DrawOut draw_out(const View& v,const std::string& device,int w,int h,const DrawTileOut& source,const Override& override_target) {
     if(w<=0 || h<=0 || w>8192 || h>8192) return {};
-    Image result(w,h,render::theme().bg);const auto& l=v.effective(device);const float s=render::scale_for(w,h);
+    DrawOut out;out.image=Image(w,h,render::theme().bg);auto& result=out.image;const auto& l=v.effective(device);const float s=render::scale_for(w,h);
     const float lw=std::round(w/s),lh=std::round(h/s);
     for(const auto& t:l.tiles) try {
         // Built-ins share this content rectangle. Plugin callbacks use a matching
@@ -319,9 +336,27 @@ Image draw(const View& v,const std::string& device,int w,int h,const DrawTile& s
         const auto target_plan=plugins::zones::plan({8,36,lw-16,lh-54},tile_layout(t,l),{},6);
         if(target_plan.zones.empty()) continue;
         const auto a=target_plan.zones.front().area;
-        auto image=source(t,l,w,h);if(!image || image->w!=w || image->h!=h) continue;
+        auto drawn=source(t,l,w,h);if(!drawn || drawn->image.w!=w || drawn->image.h!=h) continue;auto image=&drawn->image;
         int x0=std::clamp(int(std::round(a.x*s)),0,w),x1=std::clamp(int(std::round((a.x+a.width)*s)),0,w);
         int y0=std::clamp(int(std::round(a.y*s)),0,h),y1=std::clamp(int(std::round((a.y+a.height)*s)),0,h);
+        // Use precisely the composition transform for all source hit rectangles.
+        const int sx0=plugin?std::clamp(int(std::round(source_area.x*s)),0,w):x0;
+        const int sy0=plugin?std::clamp(int(std::round(source_area.y*s)),0,h):y0;
+        const int sx1=plugin?std::clamp(int(std::round((source_area.x+source_area.width)*s)),0,w):x1;
+        const int sy1=plugin?std::clamp(int(std::round((source_area.y+source_area.height)*s)),0,h):y1;
+        if(x1<=x0 || y1<=y0 || sx1<=sx0 || sy1<=sy0)continue;
+        if(!override_target || !override_target(t,{x0,y0,x1-x0,y1-y0},out)) {
+            auto map=[&](render::Box r) {
+                int left=std::clamp(r.x,sx0,sx1),right=std::clamp(r.x+r.w,sx0,sx1);
+                int top=std::clamp(r.y,sy0,sy1),bottom=std::clamp(r.y+r.h,sy0,sy1);
+                // ceil division matches the nearest-neighbour pixel ownership above.
+                auto mx=[&](int x){return x0+((x-sx0)*(x1-x0)+sx1-sx0-1)/(sx1-sx0);};
+                auto my=[&](int y){return y0+((y-sy0)*(y1-y0)+sy1-sy0-1)/(sy1-sy0);};
+                return render::Box{mx(left),my(top),mx(right)-mx(left),my(bottom)-my(top)};
+            };
+            for(auto target:drawn->targets) {target.rect_px=map(target.rect_px);if(target.rect_px.w>0 && target.rect_px.h>0)out.targets.push_back(std::move(target));}
+            for(auto target:drawn->plugin) {target.rect_px=map(target.rect_px);if(target.rect_px.w>0 && target.rect_px.h>0) {target.block=v.id+"/"+t.zone.id+"/"+target.block;out.plugin.push_back(std::move(target));}}
+        }
         if(!plugin) {
             for(int y=y0;y<y1;++y) std::copy(image->px.begin()+size_t(y)*w+x0,image->px.begin()+size_t(y)*w+x1,result.px.begin()+size_t(y)*w+x0);
         } else {
@@ -333,6 +368,28 @@ Image draw(const View& v,const std::string& device,int w,int h,const DrawTile& s
                 result.px[size_t(y)*w+x]=image->at(sx0+(x-x0)*(sx1-sx0)/(x1-x0),sy0+(y-y0)*(sy1-sy0)/(y1-y0));
         }
     } catch(...) {} // Each failing source leaves only its own tile blank.
-    return result;
+    return out;
+}
+Override tap_override(std::string view_id,TapEnv env) {
+    return [view_id=std::move(view_id),env=std::move(env)](const Tile& tile,render::Box rect,DrawOut& out)->bool {
+        if(!tile.tap || rect.w<=0 || rect.h<=0) return false;
+        const auto valid=parse_tap(tap_json(*tile.tap),tile.source);if(!valid) return false;
+        if(valid->action=="page") {
+            if(!env.go || std::find(env.pages.begin(),env.pages.end(),valid->page)==env.pages.end()) return false;
+            out.targets.push_back({rect,{},[go=env.go,page=valid->page]{go(page);}});return true;
+        }
+        if(valid->action=="open_link") {
+            if(!env.grant || !tile.source.starts_with("plugin:")) return false;
+            const auto grant=env.grant(tile.source.substr(7));
+            if(!grant || !grant->allowed || !grant->allowed(valid->url)) return false;
+            out.plugin.push_back({rect,grant->plugin,view_id+"/"+tile.zone.id+"/override",tile.zone.id,"open_link",valid->url,grant->generation});return true;
+        }
+        return false; // next is resolved by the source's own cycle, otherwise Standard.
+    };
+}
+Image draw(const View& v,const std::string& device,int w,int h,const DrawTile& source) {
+    return draw_out(v,device,w,h,[&](const Tile& t,const Layout& l,int width,int height)->std::optional<TileDraw> {
+        auto image=source(t,l,width,height);if(!image)return {};return TileDraw{std::move(*image),{}, {}};
+    }).image;
 }
 } // namespace fl::custom

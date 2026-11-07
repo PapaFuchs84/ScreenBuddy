@@ -8,6 +8,7 @@ plugins::Arrangement editor_model(const Layout& layout,const std::vector<Tile>& 
     auto add=[&](const Tile& tile,bool shown) {
         Json b={{"id","tile_"+std::to_string(model.blocks.size())},{"source",tile.source},{"block",tile.block},
                 {"zone",tile.zone.id},{"shown",shown},{"density",tile.density}};
+        if(tile.tap)b["tap"]=tap_json(*tile.tap);
         if(tile.show_if) {b["show_if"]={{"path",tile.show_if->path}};if(!tile.show_if->op.empty()) {b["show_if"]["op"]=tile.show_if->op;b["show_if"]["value"]=tile.show_if->value;}}
         model.blocks.push_back(b);
     };
@@ -32,6 +33,7 @@ std::optional<Layout> editor_layout(const plugins::Arrangement& model) {
             if(zone==model.layout["zones"].end()) return {};
             Json tile={{"source",b.at("source")},{"block",b.at("block")},{"zone",{{"id",zone->at("id")},{"column",zone->at("column")},{"row",zone->at("row")}}},
                 {"column_span",zone->value("column_span",1)},{"row_span",zone->value("row_span",1)},{"density",b.value("density",2)}};
+            if(b.contains("tap")) tile["tap"]=b["tap"];
             if(b.contains("show_if")) tile["show_if"]=b["show_if"];
             j["layout"]["tiles"].push_back(tile);
         }

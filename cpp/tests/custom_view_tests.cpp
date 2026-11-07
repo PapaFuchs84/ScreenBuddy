@@ -182,7 +182,199 @@ int main() try {
     if(CreateSymbolicLinkW(link.c_str(),(root/"outside").c_str(),SYMBOLIC_LINK_FLAG_DIRECTORY|SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE)) {
         custom::Store unsafe(link);CHECK(!unsafe.save(v).empty());CHECK(!unsafe.get(v.id));fs::remove(link);
     } else {std::cerr<<"Symlink creation unavailable; reparse test not run\n";}
-    fs::remove_all(root);
+    // ---- P8-3: individual touch targets per tile and per display overlay ----
+    {
+        using plugins::Json;
+        auto plugin_tile=[&](const char* zone,int c,int r){custom::Tile t;t.source="plugin:fixture";t.block="value";t.zone={zone,c,r,1,1};return t;};
+        custom::View tv;tv.id="touch";tv.name="Touch";tv.standard.tiles={plugin_tile("a",0,0)};
+        auto parse_tap_doc=[&](const std::string& source,const Json& tap)->std::optional<custom::View>{
+            auto doc=custom::to_json(tv);doc["layout"]["tiles"][0]["source"]=source;doc["layout"]["tiles"][0]["tap"]=tap;
+            return custom::parse(doc.dump());
+        };
+        // Default stays byte-identical: no tap key unless a tile has an individual target.
+        CHECK(!custom::to_json(tv)["layout"]["tiles"][0].contains("tap"));
+        for(const Json& good:{Json{{"action","page"},{"page","system"}},Json{{"action","page"},{"page","custom:other"}},Json{{"action","page"},{"page","plugin:fixture"}},
+                              Json{{"action","open_link"},{"url","https://example.com/a?b=1"}},Json{{"action","next"}}}) {
+            auto parsed=parse_tap_doc("plugin:fixture",good);CHECK(parsed && parsed->standard.tiles[0].tap);
+            if(parsed && parsed->standard.tiles[0].tap) {
+                CHECK(custom::tap_json(*parsed->standard.tiles[0].tap)==good);
+                auto again=custom::parse(custom::to_json(*parsed).dump());CHECK(again && again->standard.tiles[0].tap && custom::tap_json(*again->standard.tiles[0].tap)==good);
+            }
+        }
+        // Anything invalid falls back to Standard; the document itself stays usable and is saved without the tap.
+        const std::string long_link="https://example.com/"+std::string(2040,'a');
+        for(const Json& bad:{Json{{"action","page"},{"page","custom:../x"}},Json{{"action","page"},{"page",""}},Json{{"action","page"},{"page","unknown"}},Json{{"action","page"},{"page",7}},
+                             Json{{"action","page"}},Json{{"action","page"},{"page","system"},{"extra",1}},Json{{"action","open_link"},{"url","http://example.com/"}},
+                             Json{{"action","open_link"},{"url",long_link}},Json{{"action","open_link"},{"url","https://example.com/../x"}},Json{{"action","open_link"}},
+                             Json{{"action","next"},{"page","system"}},Json{{"action","run"}},Json{{"action",1}},Json::object(),Json::array(),Json("page"),Json(nullptr),Json(1)}) {
+            auto parsed=parse_tap_doc("plugin:fixture",bad);CHECK(parsed);
+            if(parsed) {CHECK(!parsed->standard.tiles[0].tap);CHECK(!custom::to_json(*parsed)["layout"]["tiles"][0].contains("tap"));}
+        }
+        // Link and next are only for plugin sources (Phase 4c); page works for every source.
+        for(const char* source:{"system","spotify","homeassistant"}) {
+            auto doc=custom::to_json(tv);doc["layout"]["tiles"][0]["source"]=source;doc["layout"]["tiles"][0]["block"]=std::string(source)=="system"?"system.cpu":std::string(source)=="spotify"?"spotify.text":"sensor.x";
+            for(const Json& tap:{Json{{"action","open_link"},{"url","https://example.com/"}},Json{{"action","next"}}}) {
+                doc["layout"]["tiles"][0]["tap"]=tap;auto parsed=custom::parse(doc.dump());CHECK(parsed && !parsed->standard.tiles[0].tap);
+            }
+            doc["layout"]["tiles"][0]["tap"]={{"action","page"},{"page","friends"}};auto page=custom::parse(doc.dump());CHECK(page && page->standard.tiles[0].tap);
+        }
+        // Per display overlay: each layout stores its own targets; unknown devices inherit Standard.
+        custom::View own=tv;own.standard.tiles[0].tap=custom::Tap{"page","rss",""};
+        own.devices["serial:COM7"]=own.standard;own.devices["serial:COM7"].tiles[0].tap=custom::Tap{"page","bf6",""};
+        own.devices["monitor:sample"]=own.standard;own.devices["monitor:sample"].tiles[0].tap.reset();
+        CHECK(store.save(own).empty());
+        auto stored=store.get("touch");CHECK(stored);
+        if(stored) {
+            CHECK(stored->effective("").tiles[0].tap && stored->effective("").tiles[0].tap->page=="rss");
+            CHECK(stored->effective("serial:COM7").tiles[0].tap && stored->effective("serial:COM7").tiles[0].tap->page=="bf6");
+            CHECK(!stored->effective("monitor:sample").tiles[0].tap);
+            CHECK(stored->effective("unknown-phone").tiles[0].tap && stored->effective("unknown-phone").tiles[0].tap->page=="rss");
+        }
+        // The editor draft keeps the target through its model and back (and drops nothing on re-layout).
+        auto draft=custom::editor_model(own.standard,app.custom_palette());auto relayout=custom::editor_layout(draft);
+        CHECK(relayout && relayout->tiles.size()==1 && relayout->tiles[0].tap && relayout->tiles[0].tap->page=="rss");
+
+        // Touch hit mapping: each tile's target equals the pixels the tile paints, on every device geometry.
+        const std::vector<std::string> cycle={"system","friends","rss","bf6","streaming","discord"};
+        custom::View grid;grid.id="grid";grid.name="Grid";grid.standard.columns={1,2,1};grid.standard.rows={1,1};
+        for(int i=0;i<6;++i) {custom::Tile t;t.source="system";t.block="system.cpu";t.zone={"z"+std::to_string(i),i%3,i/3,1,1};
+            if(i!=4) t.tap=custom::Tap{"page",cycle[(i+1)%cycle.size()],""};   // tile 4 stays Default
+            grid.standard.tiles.push_back(t);}
+        grid.devices["serial:COM7"]=grid.standard;grid.devices["serial:COM7"].columns={1,1};grid.devices["serial:COM7"].rows={1};
+        grid.devices["serial:COM7"].tiles={grid.standard.tiles[0],grid.standard.tiles[1]};grid.devices["serial:COM7"].tiles[0].zone={"z0",0,0,1,1};grid.devices["serial:COM7"].tiles[1].zone={"z1",1,0,1,1};
+        grid.devices["serial:COM7"].tiles[0].tap=custom::Tap{"page","spotify",""};
+        CHECK(custom::parse(custom::to_json(grid).dump()));
+        auto tint=[](int i){return Color{uint8_t(30+i*31),uint8_t(220-i*17),uint8_t(60+i*9)};};
+        auto index_of=[](const custom::Tile& t){return std::stoi(t.zone.id.substr(1));};
+        auto tint_px=[&](int i){return Image(1,1,tint(i)).at(0,0);};
+        auto source_draw=[&](const custom::Tile& t,const custom::Layout&,int w,int h)->std::optional<custom::TileDraw> {
+            custom::TileDraw d{Image(w,h,tint(index_of(t))),{},{}};
+            d.targets.push_back({{0,0,w,h},{{"https://example.org/standard",""}},{}});   // the source's own Standard behaviour
+            return d;
+        };
+        struct Geometry {int w,h;};
+        for(const std::string device:{std::string(),std::string("serial:COM7"),std::string("unknown-phone")})
+            for(auto g:{Geometry{480,320},Geometry{800,480},Geometry{320,480},Geometry{1920,1080},Geometry{1280,720},Geometry{240,320}}) {
+                std::vector<std::string> requested;
+                custom::TapEnv env;env.pages=cycle;env.pages.push_back("spotify");env.go=[&](const std::string& page){requested.push_back(page);};
+                auto out=custom::draw_out(grid,device,g.w,g.h,source_draw,custom::tap_override(grid.id,env));
+                const auto& layout=grid.effective(device);
+                CHECK(out.image.w==g.w && out.image.h==g.h);
+                CHECK(out.targets.size()==layout.tiles.size());
+                std::vector<touch::Tile> taps;touch::Tile page_tile;page_tile.box={0,0,g.w,g.h};page_tile.arranged=true;page_tile.arranged_targets=out.targets;taps.push_back(page_tile);
+                for(size_t a=0;a<out.targets.size();++a) {
+                    const auto r=out.targets[a].rect_px;
+                    CHECK(r.w>0 && r.h>0 && r.x>=0 && r.y>=0 && r.x+r.w<=g.w && r.y+r.h<=g.h);
+                    for(size_t b=a+1;b<out.targets.size();++b) {const auto q=out.targets[b].rect_px;CHECK(r.x+r.w<=q.x || q.x+q.w<=r.x || r.y+r.h<=q.y || q.y+q.h<=r.y);}
+                }
+                for(const auto& tile:layout.tiles) {
+                    const int i=index_of(tile);bool matched=false;
+                    // The target belongs to the tile exactly when its corner and centre pixels carry that tile's colour.
+                    for(const auto& target:out.targets) {
+                        const auto r=target.rect_px;const int cx=r.x+r.w/2,cy=r.y+r.h/2;
+                        if(!(out.image.at(cx,cy)==tint_px(i))) continue;
+                        matched=true;
+                        CHECK(out.image.at(r.x,r.y)==tint_px(i) && out.image.at(r.x+r.w-1,r.y+r.h-1)==tint_px(i));
+                        if(r.x>0) CHECK(!(out.image.at(r.x-1,cy)==tint_px(i)));
+                        if(r.x+r.w<g.w) CHECK(!(out.image.at(r.x+r.w,cy)==tint_px(i)));
+                        requested.clear();
+                        const auto* action=touch::action_at(taps,cx,cy);
+                        if(tile.tap) {CHECK(action);if(action)(*action)();CHECK(requested==std::vector<std::string>{tile.tap->page});CHECK(!touch::at(taps,cx,cy));}
+                        else {CHECK(!action);auto links=touch::at(taps,cx,cy);CHECK(links && links->size()==1 && links->front().url=="https://example.org/standard");CHECK(requested.empty());}
+                        if(tile.tap) CHECK(touch::action_at(taps,r.x,r.y) && touch::action_at(taps,r.x+r.w-1,r.y+r.h-1));   // whole tile responds, edge to edge
+                    }
+                    CHECK(matched);
+                }
+                CHECK(!touch::action_at(taps,1,1));CHECK(!touch::at(taps,g.w-1,g.h-1));   // header and footer are outside every tile
+            }
+        // Pages outside the current cycle, missing context or a missing go callback resolve to Standard.
+        {
+            custom::View one;one.id="one";one.name="One";custom::Tile t;t.source="system";t.block="system.cpu";t.zone={"z0",0,0,1,1};t.tap=custom::Tap{"page","friends",""};one.standard.tiles={t};
+            auto run=[&](custom::TapEnv env){return custom::draw_out(one,"",480,320,source_draw,custom::tap_override("one",env));};
+            custom::TapEnv env;env.pages={"friends"};env.go=[](const std::string&){};
+            auto allowed=run(env);CHECK(allowed.targets.size()==1 && allowed.targets[0].action && allowed.targets[0].links.empty());
+            auto not_in_cycle=env;not_in_cycle.pages={"system"};auto fallback=run(not_in_cycle);CHECK(fallback.targets.size()==1 && !fallback.targets[0].action && !fallback.targets[0].links.empty());
+            auto no_go=env;no_go.go=nullptr;CHECK(!run(no_go).targets[0].action);
+            CHECK(!run(custom::TapEnv{}).targets[0].action);
+            CHECK(run(env).plugin.empty());
+        }
+        // Link targets: need an enabled plugin with Open links consent, a declared host and the current generation.
+        {
+            custom::View link;link.id="link";link.name="Link";auto t=plugin_tile("l",0,0);t.tap=custom::Tap{"open_link","","https://news.example.org/a"};link.standard.tiles={t};
+            auto plugin_draw=[&](const custom::Tile& tile,const custom::Layout&,int w,int h)->std::optional<custom::TileDraw>{(void)tile;return custom::TileDraw{Image(w,h,Color{9,9,9}),{},{}};};
+            bool consent=true;uint64_t generation=3;std::vector<std::string> hosts={"news.example.org"};
+            custom::TapEnv env;env.pages={"system"};env.go=[](const std::string&){};
+            env.grant=[&](const std::string& id)->std::optional<custom::LinkGrant>{
+                if(id!="fixture" || !consent) return {};
+                return custom::LinkGrant{"fixture",generation,[&](const std::string& url){plugins::Manifest m;m.links=hosts;return plugins::link_allowed(m,url);}};
+            };
+            auto run=[&]{return custom::draw_out(link,"",480,320,plugin_draw,custom::tap_override("link",env));};
+            auto granted=run();CHECK(granted.plugin.size()==1 && granted.targets.empty());
+            if(granted.plugin.size()==1) {
+                const auto& target=granted.plugin[0];CHECK(target.action=="open_link" && target.url=="https://news.example.org/a" && target.plugin=="fixture" && target.generation==3 && target.block=="link/l/override");
+                touch::Tile tile;tile.box={0,0,480,320};tile.plugin=granted.plugin;tile.plugin[0].stable_since=0;
+                touch::PluginAccess access{true,true,3,hosts};
+                auto decide=[&](touch::PluginAccess a,double now=10){return touch::plugin_decide({tile},tile.plugin[0].rect_px.x+3,tile.plugin[0].rect_px.y+3,now,1.0,[&](const std::string&){return a;});};
+                CHECK(decide(access).kind==touch::PluginDecision::open_link && decide(access).url=="https://news.example.org/a");
+                auto no_consent=access;no_consent.consent=false;CHECK(decide(no_consent).kind==touch::PluginDecision::swallow);
+                auto stale=access;stale.generation=4;CHECK(decide(stale).kind==touch::PluginDecision::swallow);
+                auto other_host=access;other_host.hosts={"other.example.org"};CHECK(decide(other_host).kind==touch::PluginDecision::swallow);
+                auto disabled=access;disabled.enabled=false;CHECK(decide(disabled).kind==touch::PluginDecision::swallow);
+                CHECK(decide(access,.5).kind==touch::PluginDecision::swallow);   // not yet stable
+            }
+            consent=false;auto denied=run();CHECK(denied.plugin.empty());       // no consent: Standard
+            consent=true;hosts={"other.example.org"};CHECK(run().plugin.empty()); // host not declared: Standard
+            hosts={"news.example.org"};env.grant=nullptr;CHECK(run().plugin.empty());
+        }
+    }
+    // ---- P8-3: end to end through the real App (draw, tap, page request, next render) ----
+    {
+        auto root2=root/"touch-app";custom::Store views(root2/"views");
+        auto make_tile=[&](const char*,const char* zone){custom::Tile t;t.source="plugin:fixture";t.block="static";t.zone={zone,0,0,1,1};return t;};
+        const std::string fixture_manifest=R"({"schema_version":2,"id":"fixture","name":"Fixture","version":"1.0.0","widgets":[{"id":"static","type":"text","text":"Static"}]})";
+        custom::View first,second,third;first.id="first";first.name="First";second.id="second";second.name="Second";third.id="third";third.name="Third";
+        first.standard.tiles={make_tile("system.cpu","cpu")};second.standard.tiles={make_tile("system.ram","ram")};third.standard.tiles={make_tile("system.gpu","gpu")};
+        auto config_for=[&](const std::vector<std::string>& pages){
+            auto c=config::defaults();for(auto s:{"system","discord","friends","bf6","rss","streaming","homeassistant","spotify","companion"}) c[s]["enabled"]=false;
+            c["ui"]["port"]=18866;c["ui"]["update_check"]=false;
+            return config::merge(c,{{"display",{{"pages",pages},{"visible_pages",pages}}}});};
+        auto current=[&](App& a){auto n=a.page_navigation();return n["current"].empty()?std::string():n["current"][0].get<std::string>();};
+        // Standard behaviour: a tap in the right half steps forward, in the left half back. Fractions locate the tap on the frame.
+        auto tap=[&](App& a,double fx,double fy){auto frame=a.last_frame();CHECK(frame);if(frame)a.open_item_at(int(frame->w*fx),int(frame->h*fy));a.render_primary_for_test();};
+        const std::vector<std::string> all={"custom:first","custom:second","custom:third"};
+        auto reset_views=[&](std::optional<custom::Tap> tap_on_first){first.standard.tiles[0].tap=tap_on_first;CHECK(views.save(first).empty());CHECK(views.save(second).empty());CHECK(views.save(third).empty());};
+        // Without an individual target a right-half tap steps to the next page (Standard) ...
+        reset_views(std::nullopt);
+        {
+            App app(config_for(all),root2/"config.toml",nullptr,root2/"preview");{std::string error;CHECK(app.plugin_import(fixture_manifest,error));}
+            app.render_primary_for_test();CHECK(current(app)=="custom:first");
+            tap(app,.75,.5);CHECK(current(app)=="custom:second");
+            tap(app,.25,.5);CHECK(current(app)=="custom:first");
+        }
+        // ... with a target the whole tile jumps there, in either half, and does not step.
+        reset_views(custom::Tap{"page","custom:third",""});
+        {
+            App app(config_for(all),root2/"config.toml",nullptr,root2/"preview");{std::string error;CHECK(app.plugin_import(fixture_manifest,error));}
+            app.render_primary_for_test();CHECK(current(app)=="custom:first");
+            tap(app,.75,.5);CHECK(current(app)=="custom:third");
+        }
+        {
+            App app(config_for(all),root2/"config.toml",nullptr,root2/"preview");{std::string error;CHECK(app.plugin_import(fixture_manifest,error));}
+            app.render_primary_for_test();tap(app,.25,.5);CHECK(current(app)=="custom:third");   // left half: Standard would also wrap to third, so check the right half above
+            tap(app,.75,.5);CHECK(current(app)=="plugin:fixture");   // third has Standard behaviour: forward steps on to the (auto-listed) plugin page
+        }
+        reset_views(custom::Tap{"page","custom:second",""});
+        {
+            App app(config_for(all),root2/"config.toml",nullptr,root2/"preview");{std::string error;CHECK(app.plugin_import(fixture_manifest,error));}
+            app.render_primary_for_test();tap(app,.25,.5);CHECK(current(app)=="custom:second");  // Standard left tap would have gone to third
+        }
+        // A target outside the active cycle (here: the disabled Friends page) resolves to Standard.
+        reset_views(custom::Tap{"page","friends",""});
+        {
+            App app(config_for(all),root2/"config.toml",nullptr,root2/"preview");{std::string error;CHECK(app.plugin_import(fixture_manifest,error));}
+            app.render_primary_for_test();tap(app,.75,.5);CHECK(current(app)=="custom:second");
+        }
+    }    fs::remove_all(root);
     std::cout<<checks-failures<<" passed, "<<failures<<" failed\n";return failures?1:0;
 }
 

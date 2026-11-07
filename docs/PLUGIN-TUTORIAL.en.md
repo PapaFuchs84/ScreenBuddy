@@ -178,7 +178,7 @@ Only an actual link-list change with **every other manifest field identical** re
 
 ## Editor: arrange a plugin page
 
-1. Install and enable a manifest-v2 plugin locally. Open **Settings → Plugins → Arrange …** and select it. v1 only shows a notice.
+1. Install and enable a manifest-v2 plugin locally. Open **Settings → App → Custom views** and select the plugin's "Standard / plugin" entry in the page list. v1 only shows a notice.
 2. Set grid columns/rows and weights 1–12. Arrows choose a cell; Enter creates a free zone. Shift+arrow resizes, Alt+arrow moves and Delete removes a zone if its blocks fit the first remaining zone.
 3. In the block list, Space shows/hides blocks and Alt+Up/Down reorders. Choose the zone, duration for `rotate`, and an optional condition. New zones need at least one shown block. Conditions offer sample/existing source paths and non-secret settings. Use **Confirm condition** after operator/type changes; commit text with Enter or focus change.
 4. Check landscape/portrait preview using plugin samples, the same output renderer and fixed sample time/date. Invalid drafts keep the last valid image and disable **Apply**. Use Undo/Redo buttons or Ctrl+Z/Y in the grid/list.

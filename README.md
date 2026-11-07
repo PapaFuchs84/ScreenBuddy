@@ -27,7 +27,7 @@ Store-Ausgabe in Vorbereitung: [Microsoft Store / Companion-Build](docs/STORE-DI
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
 
-**In Vorbereitung 2.10.0 (nicht veröffentlicht):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor unter **App → Seite anordnen**. Es gibt noch keine Veröffentlichung; Hardware-, Companion- und Oberflächenabnahme stehen aus. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
+**In Vorbereitung 2.10.0 (nicht veröffentlicht):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **App → Eigene Ansichten**. Es gibt noch keine Veröffentlichung; Hardware-, Companion- und Oberflächenabnahme stehen aus. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
 
 **P8-2 (lokale Entwicklung):** Unter **App → Eigene Ansichten** lassen sich Quellen als Mini-Kacheln kombinieren, speichern und je aktivem Display anordnen. Offline-Geräte erscheinen nicht als Editor-Tab; ihre Layouts bleiben erhalten. [Bedienung, Grenzen und Prüfstatus](docs/PHASE8-EIGENE-ANSICHTEN.md).
 

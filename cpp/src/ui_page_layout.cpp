@@ -42,7 +42,9 @@ public:
 };
 std::wstring lowered(std::wstring s) { for(auto& c:s) c=wchar_t(std::towlower(c)); return s; }
 class LayoutPage : public Page {
+    std::string initial_;
 public:
+    explicit LayoutPage(std::string initial):initial_(std::move(initial)) {}
     PageInfo info() const override {
         return {"layout", Group::App, T(L"Seite anordnen",L"Arrange page"),
             T(L"Blöcke im Raster anordnen · Vorschau mit Beispieldaten",L"Arrange blocks in a grid · preview with sample data")};
@@ -210,6 +212,7 @@ private:
                 intro_seen_=seen; if(intro_) intro_->visible=!seen;
                 displays_=displays;if(display().value("tv",false)) portrait_=false;rebuild_tabs();
                 std::string selected=chosen_>=0 && chosen_<int(entries_.size()) ? (entries_[chosen_].builtin?"builtin:":"plugin:")+entries_[chosen_].id : "";
+                if(!initial_.empty()) {selected=std::move(initial_);initial_.clear();}
                 entries_=entries; chosen_=0;
                 for(size_t i=0;i<entries_.size();++i) if((entries_[i].builtin?"builtin:":"plugin:")+entries_[i].id==selected) chosen_=int(i);
                 const bool preserve=!switch_pending_;switch_pending_=false;
@@ -745,5 +748,5 @@ private:
     }
 };
 }
-std::unique_ptr<Page> make_layout_page() { return std::make_unique<LayoutPage>(); }
+std::unique_ptr<Page> make_layout_page(std::string selected) { return std::make_unique<LayoutPage>(std::move(selected)); }
 }

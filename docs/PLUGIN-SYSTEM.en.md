@@ -183,7 +183,7 @@ Only an actual link-list change with **every other manifest field identical** re
 
 ## Page editor (P6-3 to P7-10, development for 2.10.0)
 
-Open **Settings → Arrange page** for enabled local plugins, RSS, Streaming, BF6, Friends and Discord (Plugins/Built-in groups), or use **Plugins → Arrange …** / **Pages & order**. Manifest v1 only displays “Arrangement requires manifest v2”. RSS, Streaming, BF6, Friends and Discord are offered as built-in pages; other pages and Home Assistant follow later.
+Open **Settings → App → Custom views** (page list, "Standard / plugin" entries) for enabled local plugins, RSS, Streaming, BF6, Friends and Discord (Plugins/Built-in groups), or use the "Custom views …" button under **Pages & order**; "Arrange page" and "Arrange …" no longer exist. Manifest v1 only displays “Arrangement requires manifest v2”. RSS, Streaming, BF6, Friends and Discord are offered as built-in pages; other pages and Home Assistant follow later.
 
 For plugins, only `<id>.layout.json` is saved; the manifest file remains unchanged. Grid weights (1–12), up to 6×6 cells, eight zones and twelve blocks with at most four shown blocks per zone follow the parser. Editable properties are zone ID, position, span, splitting, cycle/transition, block order, visibility, zone assignment, duration (3–600 seconds for `rotate`) and `show_if`. Sources, content, links, tap actions, setting values and secrets cannot be edited. Hidden blocks remain in the overlay.
 

@@ -32,10 +32,10 @@ public:
         shell_=root.add<EditorShell>();shell_->set_open(EditorShell::Layers,false);shell_->set_open(EditorShell::PageList,true);
         shell_->on_toggle=[this]{host_->relayout();};
         std::swap(shell_->left.items[0],shell_->left.items[2]);
-        auto& views=*shell_->section[EditorShell::PageList];views.title=T(L"Eigene Ansichten",L"Custom views");
+        auto& views=*shell_->section[EditorShell::PageList];views.title=T(L"Seiten",L"Pages");
         views.add<ButtonRow>()->add(T(L"+ Neue Ansicht",L"+ New view"),Button::Primary,[this]{create();});
         views_=views.add<ItemList>(std::vector<ItemList::Item>{});views_->name=T(L"Ansichten",L"Views");views_->checkable=false;views_->reorder=false;
-        views_->on_select=[this](int i){choose(i);};
+        views_->on_select=[this](int i){if(i>=int(documents_.size()))open_standard(i-int(documents_.size()));else choose(i);};
         auto management=views.add<ButtonRow>();management->add(T(L"Umbenennen",L"Rename"),Button::Secondary,[this]{if(name_) host_->surface().focus(name_,true);});
         management->add(T(L"Löschen",L"Delete"),Button::Danger,[this]{erase();});
         auto& palette=*shell_->section[EditorShell::Palette];
@@ -70,6 +70,13 @@ public:
         columns_->on_change=rows_->on_change=[this]{resize();};
         density_=props->wide_row<Combo>(T(L"Dichte (höchstens)",L"Density (maximum)"),Text(),std::vector<Text>{T(L"Kompakt",L"Compact"),T(L"Normal",L"Regular"),T(L"Automatisch",L"Automatic")},2);
         density_->on_change=[this]{properties();};
+        tap_mode_=props->wide_row<Combo>(T(L"Touch-Ziel",L"Touch target"),Text(),std::vector<Text>{T(L"Standard",L"Default"),T(L"Individuell",L"Custom")},0);
+        tap_action_=props->wide_row<Combo>(T(L"Aktion",L"Action"),Text(),std::vector<Text>{T(L"Seite wechseln zu …",L"Switch to page …"),T(L"Link am PC öffnen",L"Open link on PC"),T(L"Nächster Eintrag (Plugin-Wechselfeld)",L"Next item (plugin cycle)")},0);
+        tap_page_=props->wide_row<Combo>(T(L"Zielseite",L"Target page"),Text(),std::vector<Text>{},-1);
+        tap_url_=props->wide_row<TextField>(T(L"HTTPS-Link",L"HTTPS link"),T(L"Nur Plugin-Hosts mit Freigabe „Links öffnen“; sonst Standard.",L"Only plugin hosts with Open links consent; otherwise Default."),TextField::Single,L"");tap_url_->limit=2048;
+        tap_mode_->on_change=tap_action_->on_change=tap_page_->on_change=[this]{touch_properties();};
+        tap_url_->on_change=[this]{if(!syncing_){property_pending_=true;update_buttons();}};
+        tap_url_->on_commit=[this]{touch_properties();};
         path_=props->wide_row<TextField>(T(L"Anzeigen wenn: data.…",L"Show if: data.…"),T(L"Leer = immer. Nur öffentliche Quelldaten.",L"Empty = always. Public source data only."),TextField::Single,L"");path_->limit=128;
         op_=props->wide_row<Combo>(T(L"Vergleich",L"Comparison"),Text(),std::vector<Text>{T(L"Vorhanden",L"Present"),Text(L"=="),Text(L"!="),Text(L"<"),Text(L"<="),Text(L">"),Text(L">=")},0);
         literal_=props->wide_row<TextField>(T(L"Wert (JSON)",L"Value (JSON)"),T(L"Zahl, true/false oder Text in Anführungszeichen",L"Number, true/false or quoted text"),TextField::Single,L"");literal_->limit=256;
@@ -77,19 +84,25 @@ public:
         props->add<ButtonRow>()->add(T(L"Bedingung bestätigen",L"Confirm condition"),Button::Secondary,[this]{properties();});
         auto raster=shell_->props.add<Card>(T(L"Raster der Ansicht",L"View grid"));
         for(bool col:{true,false}) {auto buttons=raster->add<ButtonRow>();for(int delta:{1,-1}) buttons->add(col?(delta>0?T(L"Spalte +",L"Column +"):T(L"Spalte −",L"Column −")):(delta>0?T(L"Zeile +",L"Row +"):T(L"Zeile −",L"Row −")),Button::Secondary,[this,col,delta]{if(!loaded_)return;auto n=history_.current();if(edit::resize_axis(n,col,delta))accept(n);});}
+        legacy_root_=root.add<Column>();legacy_root_->visible=false;
         clear_dirty(root);loaded_=false;
     }
     void shown(Host&) override {visible_=true;if(!loaded_)load();}
-    void hidden(Host& host) override {visible_=false;if(grid_)grid_->cancel(host.surface());host.preview(std::nullopt);}
+    void hidden(Host& host) override {if(legacy_)legacy_->hidden(host);visible_=false;if(grid_)grid_->cancel(host.surface());host.preview(std::nullopt);}
     void tick(Host&,const Status&) override {
         if(!visible_ || host_->busy())return;
+        if(legacy_){legacy_->tick(*host_,host_->status());return;}
         if(GetTickCount64()-poll_>2000) {poll_=GetTickCount64();refresh_displays();return;}
         if(pending_ && loaded_ && !grid_->carrying())render_preview();
         update_buttons();
     }
 private:
+    std::unique_ptr<Page> legacy_;Column* legacy_root_=nullptr;
+    std::vector<std::pair<std::string,Text>> standard_pages_;
     Host* host_=nullptr;Column* root_=nullptr;Flow *tabs_=nullptr,*header_=nullptr;EditorShell* shell_=nullptr;
     ItemList* views_=nullptr;TilePalette* palette_=nullptr;GridEditor* grid_=nullptr;ImageView* preview_=nullptr;
+    Combo *tap_mode_=nullptr,*tap_action_=nullptr,*tap_page_=nullptr;TextField* tap_url_=nullptr;
+    std::vector<std::string> page_keys_;
     Combo *filter_=nullptr,*columns_=nullptr,*rows_=nullptr,*density_=nullptr,*op_=nullptr;
     TextField *name_=nullptr,*path_=nullptr,*literal_=nullptr;Label *status_=nullptr,*selection_=nullptr;Chip* size_=nullptr;
     Button *undo_=nullptr,*redo_=nullptr,*apply_=nullptr;
@@ -114,7 +127,24 @@ private:
         host_->run([this]()->std::function<void()>{auto docs=store().list();auto palette=host_->app().custom_palette();auto displays=host_->plugins().layout_displays?custom::active_displays(host_->plugins().layout_displays()):Json::array();
             return [this,docs=std::move(docs),palette=std::move(palette),displays]{documents_=docs;inventory_=palette;displays_=displays;refresh_list();if(!documents_.empty())choose(0,true);else {tabs();status_->text=T(L"Mit + Neue Ansicht beginnen.",L"Start with + New view.");}thumbnails();};});
     }
-    void refresh_list(){views_->items.clear();for(const auto& v:documents_)views_->items.push_back({v.id,Text(widen(v.name)),Text(),false});views_->selected=chosen_;host_->relayout();}
+    void refresh_list(){views_->items.clear();for(const auto& v:documents_)views_->items.push_back({v.id,Text(widen(v.name)),Text(),false});
+        standard_pages_.clear();for(const auto& c:builtin::catalogs())if(c.enabled)standard_pages_.push_back({"builtin:"+c.key,Text(widen(c.label.de),widen(c.label.en))});
+        if(host_->plugins().list)for(const auto& e:host_->plugins().list())if(e.enabled)standard_pages_.push_back({"plugin:"+e.id,Text(widen(e.name))});
+        for(const auto& [id,label]:standard_pages_)views_->items.push_back({id,label,T(L"Standard / Plugin",L"Standard / plugin"),false});
+        tap_page_->options.clear();page_keys_.clear();for(const auto& key:config::PAGES){page_keys_.push_back(key);tap_page_->options.push_back(source_text(key));}
+        for(const auto& v:documents_){page_keys_.push_back("custom:"+v.id);tap_page_->options.push_back(Text(widen(v.name)));}
+        if(host_->plugins().list)for(const auto& e:host_->plugins().list())if(e.enabled) {page_keys_.push_back("plugin:"+e.id);tap_page_->options.push_back(Text(widen(e.name)));}views_->selected=chosen_;host_->relayout();}
+    void open_standard(int index) {
+        if(index<0 || index>=int(standard_pages_.size()) || host_->busy() || !discard())return;
+        host_->preview(std::nullopt);
+        for(auto& child:root_->items)child->visible=false;
+        legacy_root_->items.clear();legacy_root_->visible=true;
+        legacy_root_->add<ButtonRow>()->add(T(L"Zurück zu Eigene Ansichten",L"Back to Custom views"),Button::Secondary,[this]{
+            if(!host_->confirm(T(L"Zurück zur Seitenliste? Ungesicherte Änderungen im Seiteneditor werden verworfen.",L"Back to the page list? Unsaved page editor changes will be discarded.")))return;
+            host_->run([this]()->std::function<void()>{return [this]{legacy_->hidden(*host_);legacy_.reset();legacy_root_->items.clear();for(auto& child:root_->items)child->visible=true;legacy_root_->visible=false;host_->relayout();};});
+        });
+        legacy_=make_layout_page(standard_pages_[index].first);legacy_->build(*host_,*legacy_root_);legacy_->shown(*host_);host_->relayout();
+    }
     void choose(int index,bool force=false){
         if(index<0 || index>=int(documents_.size()))return;
         if(!force && !discard()){views_->selected=chosen_;return;}
@@ -173,7 +203,30 @@ private:
         if(selected){const auto& b=history_.current().blocks[i];density_->index=b.value("density",2);
             const auto& zones=history_.current().layout["zones"];for(const auto& z:zones)if(z["id"]==b["zone"]){columns_->index=z.value("column_span",1)-1;rows_->index=z.value("row_span",1)-1;}
             path_->set_text(L"");literal_->set_text(L"");op_->index=0;if(b.contains("show_if")){const auto& c=b["show_if"];path_->set_text(widen(c.value("path",std::string())));const std::vector<std::string> ops={"","==","!=","<","<=",">",">="};auto it=std::find(ops.begin(),ops.end(),c.value("op",std::string()));op_->index=it==ops.end()?0:int(it-ops.begin());if(c.contains("value"))literal_->set_text(widen(c["value"].dump()));}}
+        tap_mode_->enabled=selected;tap_action_->enabled=tap_page_->enabled=tap_url_->enabled=false;
+        tap_mode_->index=0;tap_action_->index=0;tap_page_->index=-1;tap_url_->set_text(L"");
+        if(selected) {const auto& b=history_.current().blocks[i];
+            if(b.contains("tap")) {const auto& t=b["tap"];tap_mode_->index=1;tap_action_->index=t.value("action",std::string())=="open_link"?1:t.value("action",std::string())=="next"?2:0;tap_url_->set_text(widen(t.value("url",std::string())));auto it=std::find(page_keys_.begin(),page_keys_.end(),t.value("page",std::string()));if(it!=page_keys_.end())tap_page_->index=int(it-page_keys_.begin());}
+            tap_action_->enabled=tap_mode_->index==1;tap_page_->enabled=tap_action_->enabled && tap_action_->index==0;
+            tap_url_->enabled=tap_action_->enabled && tap_action_->index==1 && b.value("source",std::string()).starts_with("plugin:");
+        }
         syncing_=false;
+    }
+    void touch_properties() {
+        if(syncing_ || !loaded_)return;const int i=selected_block();if(i<0)return;auto n=history_.current();auto& b=n.blocks[i];b.erase("tap");
+        if(tap_mode_->index==1) {Json t={{"action",tap_action_->index==0?"page":tap_action_->index==1?"open_link":"next"}};
+            if(tap_action_->index==0 && tap_page_->index>=0 && tap_page_->index<int(page_keys_.size()))t["page"]=page_keys_[tap_page_->index];
+            if(tap_action_->index==1)t["url"]=narrow(tap_url_->text());
+            if(auto valid=custom::parse_tap(t,b.value("source",std::string())))b["tap"]=custom::tap_json(*valid);
+            else { // Keep the controls editable while choosing a target; Apply stores Default.
+                tap_action_->enabled=true;tap_page_->enabled=tap_action_->index==0;tap_url_->enabled=tap_action_->index==1 && b.value("source",std::string()).starts_with("plugin:");
+                history_.push(n,{},GetTickCount64());grid_->model=history_.current();property_pending_=false;++generation_;pending_=true;
+                status_->text=tap_action_->index==0?T(L"Touch-Ziel unvollständig: Zielseite wählen, sonst gilt Standard.",L"Touch target incomplete: choose a target page, otherwise Default applies.")
+                    :T(L"Touch-Ziel ungültig oder für diese Quelle nicht erlaubt: es gilt Standard.",L"Touch target invalid or not allowed for this source: Default applies.");
+                update_buttons();host_->relayout();return;
+            }
+        }
+        property_pending_=false;accept(n);
     }
     void sync(){grid_->model=history_.current();grid_->selected=std::clamp(grid_->selected,-1,int(grid_->model.layout["zones"].size())-1);auto [w,h]=dimensions();grid_->display_aspect=float(w)/h;size_->text=Text(std::to_wstring(w)+L" × "+std::to_wstring(h));sync_palette();sync_properties();
         status_->text=device_.empty()?T(L"Standard für alle Displays · Quellen müssen eingerichtet und aktiv sein.",L"Standard for all displays · sources must be configured and enabled."):working_.devices.contains(device_)?T(L"Eigene Anordnung für dieses Display.",L"Own layout for this display."):T(L"Erbt Standard · Übernehmen legt ein Geräte-Layout an.",L"Inherits standard · Apply creates a device layout.");update_buttons();host_->relayout();}

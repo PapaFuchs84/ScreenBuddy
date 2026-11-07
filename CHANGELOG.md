@@ -44,6 +44,7 @@ P7-12 (2026-11-06, Agent Codex CLI 0.166.0): Spotify im Editor mit Cover, Titel/
 Noch kein Release, kein Tag, keine EXE-Auslieferung. Hardware-, Oberflächen- und Companion-Abnahmen sowie der APK-Build stehen aus; siehe „Entwicklungsstand“ unten.
 
 #### Highlights
+- **Phase 8 P8-3 (2026-11-07):** Der Eintrag „Seite anordnen“ entfällt; Standard- und Plugin-Seiten werden über die Seitenliste von **Eigene Ansichten** bearbeitet. Neu: **Touch-Ziel je Kachel** (Standard oder Individuell: Seite wechseln, Link nur mit Freigabe, Nächster Eintrag nur für Plugin-Wechselfelder), je Display-Overlay gespeichert, mit Rückfall auf Standard bei ungültigen Zielen.
 
 - **Zonen-Layout für Plugin-Seiten (Manifest v2):** `schema_version: 2` beschreibt ein flaches Raster mit Zonen und Blöcken mit stabilen Block-IDs. Manifest v1 bleibt unverändert. Grenzen: 6 × 6 Raster, 8 Zonen, höchstens 4 Blöcke je Zone, bis zu 12 Widgets mit Layout.
 - **Dichtestufen:** Jeder Bausteintyp (Text, Kennzahl, Uhr, Balken, Liste) hat kompakt, normal und ausführlich. Passt ein Block nicht in seine Fläche, wird er ausgeblendet statt überlappt.

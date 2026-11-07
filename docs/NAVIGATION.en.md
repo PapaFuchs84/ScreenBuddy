@@ -6,7 +6,7 @@ Page names remain the same across themes; the design determines how you reach th
 | --- | --- |
 | View | Overview, Display, Pages & order, Colors & design |
 | Pages | System, Friends, Discord, Battlefield 6, Blogs (RSS), New on streaming, Home Assistant, Spotify |
-| App | Companion, Plugins, Plugin store, Arrange page and Custom views (from 2.10.0, in preparation), Updates & startup |
+| App | Companion, Plugins, Plugin store, Custom views with the page editor (from 2.10.0, in preparation; the former "Arrange page" entry is gone), Updates & startup |
 
 ## Navigation by theme
 
@@ -36,9 +36,9 @@ New menu images were captured during release testing and anonymized afterwards. 
 
 Only integer pixels 0–1000 are accepted; invalid input produces a message. Rendering limits each edge to one third of the smaller frame dimension. If less than 160 × 120 usable pixels remain, the entire keepout is ignored (rate-limited warning). Border taps do nothing; navigation thirds use the usable content width. Stale Companion frame sizes are rejected.
 
-## Arrange page (development for 2.10.0)
+## Page editor inside Custom views (development for 2.10.0)
 
-Under **App → Arrange page** you arrange the blocks of an enabled plugin with manifest v2 on a grid: define zones, assign blocks, set conditions (`show_if`) and check the preview in landscape and portrait. Undo and redo (100 steps) and keyboard operation are available. **Apply** saves only the arrangement, with a backup copy; plugin content, link consents and the manifest stay unchanged. Manifest v1 plugins only show "Arrangement needs manifest v2" there. RSS, Streaming, BF6, Friends, Discord, System and Spotify are included as built-in pages. Standard Home Assistant remains native; individual entities are available in the separate Custom views editor. Other entry points: **Pages & order** and **Plugins → Arrange …**. Blocks can also be dragged with the mouse (block palette, handles, trash); keyboard: F6 switches the area, Space picks up, Enter drops, Esc cancels; Ctrl+Up/Down selects block chips in a zone (Space picks up, Delete returns to the palette). Releasing outside the grid cancels silently. Details: [Plugin system](PLUGIN-SYSTEM.en.md#page-editor-p6-3-to-p7-10-development-for-2100). Mouse, touchpad and touch operation are not yet accepted.
+The former "Arrange page" entry is gone. Under **App → Custom views** pick a "Standard / plugin" entry in the page list and arrange the blocks of an enabled plugin with manifest v2 on a grid: define zones, assign blocks, set conditions (`show_if`) and check the preview in landscape and portrait. Undo and redo (100 steps) and keyboard operation are available. **Apply** saves only the arrangement, with a backup copy; plugin content, link consents and the manifest stay unchanged. Manifest v1 plugins only show "Arrangement needs manifest v2" there. RSS, Streaming, BF6, Friends, Discord, System and Spotify are included as built-in pages. Standard Home Assistant remains native; individual entities are available in the separate Custom views editor. Other entry point: the "Custom views …" button under **Pages & order**; the "Arrange …" button under Plugins is removed. Blocks can also be dragged with the mouse (block palette, handles, trash); keyboard: F6 switches the area, Space picks up, Enter drops, Esc cancels; Ctrl+Up/Down selects block chips in a zone (Space picks up, Delete returns to the palette). Releasing outside the grid cancels silently. Details: [Plugin system](PLUGIN-SYSTEM.en.md#page-editor-p6-3-to-p7-10-development-for-2100). Mouse, touchpad and touch operation are not yet accepted.
 
 ## Plugin taps (Phase 4c, development)
 
@@ -75,3 +75,5 @@ P7b-4 (2026-11-06, Agent Claude Sonnet 5.5): Layer list (order, visibility; sele
 ## Custom views (P8-2, development)
 
 Use **App → Custom views** to create, rename, delete and arrange source tiles per active display. **Apply** saves; the view appears as `custom:<id>` in the page cycle. Only active devices get tabs; offline layouts remain stored. Trash, grid sizes, conditions, density and undo/redo: [Usage and limits](PHASE8-EIGENE-ANSICHTEN.md).
+
+The properties panel has a **Touch target** per tile: **Default** (the source behaves as before) or **Custom** with **Switch to page …** (any page in the current page cycle: standard, `custom:` or plugin page), **Open link on PC** and **Next item**. Link and Next item apply to plugin tiles only (links need the "Open links" consent and a declared host). Invalid, incomplete or disallowed targets and pages outside the cycle fall back to Default. The target is stored per layout, i.e. separately for Standard and each display overlay.

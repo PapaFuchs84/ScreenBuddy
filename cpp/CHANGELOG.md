@@ -38,6 +38,7 @@ P7-12 (2026-11-06, Agent Codex CLI 0.166.0): Spotify im Editor mit Cover, Titel/
 ### 2.10.0 – preparation (unreleased)
 
 Technical changelog for the development line. Highlights and the open items are in `CHANGELOG.md`; test figures are in `TESTPROTOKOLL.md`.
+- **P8-3:** `ui_pages.cpp` no longer registers the layout page; `make_layout_page(selected)` is embedded by `ui_page_custom_views.cpp` (page list entries `builtin:`/`plugin:`). `custom::Tile::tap` (`parse_tap`/`tap_json`, strict, invalid becomes Default), `custom::draw_out` returns hit targets mapped with the composition transform, `custom::tap_override`/`TapEnv` resolve page/link targets against the active cycle and link grants; `App::queue_custom_page` + `ViewState::page_request` apply a page switch in `render_core`. Test seam `App::render_primary_for_test`.
 
 - **Zone layout (manifest v2):** `schema_version: 2`, stable block IDs, optional `layout` (flat grid of integer shares, zones with column/row/span, no overlap, no nesting). Limits: 6×6 grid, 8 zones, 4 blocks per zone, 12 widgets with a layout (6 without). Pure geometry in `plugin_zones.h/.cpp`; drawing by zones in `plugin_render.cpp` (`draw_zoned`). `store_problems`: schema 2 needs `min_app_version` ≥ 2.10.0.
 - **Density levels:** compact, regular, detailed per block type (`text`, `metric`, `bar`, `list`, `clock`) via `zones::DensityTable`; thresholds are central in the app, not in the manifest. Blocks that do not fit are hidden instead of overlapping.
