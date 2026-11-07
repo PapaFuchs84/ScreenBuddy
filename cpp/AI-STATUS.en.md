@@ -51,7 +51,7 @@ The built-in read-only `ai` source is available to declarative plugin/zone templ
 | `cost_today`, `tokens_today` | Reported daily total or `null` |
 | `s1`, `s2`, `s3` | Up to three active sessions per provider, with state/tool/model/state_seconds, otherwise `null`; no private session IDs |
 
-The dedicated standard page has a fixed arrangement. Its data source is prepared for the zone editor; the AI page is excluded from the layout catalog until a built-in arrangement renderer exists. New palette controls and rearranging the AI standard page are not implemented here. Excluded editor files were left untouched.
+The standard page and its existing overlays retain their geometry. Custom views reuse its renderer for provider/limits tiles; see [Phase 8 P8-4](../docs/PHASE8-EIGENE-ANSICHTEN.md). The AI source is enabled separately.
 
 ## Validation and references
 
@@ -67,6 +67,6 @@ Optional and switchable (AI Status settings page). A background worker queries a
 - **Claude Code:** limits, cost and context come through the status line (per the Claude Code docs: `rate_limits`, `cost`, `context_window` on stdin; Pro/Max/Ultra only, after the first API response). The adapter is registered as `statusLine` only if you have none of your own. Whether the desktop app/IDE run the status line is not documented; there it stays **n/a**. No separate CLI usage command without a model message is verified.
 - The page shows where values came from and why there are none. Real CLI runs are not yet accepted.
 
-## Editor tile (interface)
+## Editor tiles (P8-4)
 
-Data: template source `ai` (see above). A tile in the zone editor only lacks the palette entry and its own built-in render path in the editor files (`ui_tile_palette.*`, `ui_page_layout.*`), which belong to the editor thread. Until then `ai` is not offered in the layout catalog.
+Custom views offer `ai.claude`, `ai.codex`, `ai.limits` and individual metrics. Public conditions, density, per-device layouts and page touch targets use the existing tile contract. Missing data stays blank; missing limits stay `n/a`. See [usage, validation and port collision](../docs/PHASE8-EIGENE-ANSICHTEN.md).

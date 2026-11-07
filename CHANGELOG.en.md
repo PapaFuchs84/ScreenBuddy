@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+P8-4 (2026-11-07): Merge AI Status; Claude/Codex/limits tiles in Custom views, existing renderer/frame schedule, public conditions and page touch targets, additive DE/EN editor snapshots. Standard page baselines unchanged. Port 18765 collision documented; no port change or release. [P8-4](docs/PHASE8-EIGENE-ANSICHTEN.md).
+
 P8-2 (2026-11-07): Individual list, Spotify and native HA entity tiles reuse existing painters. Dedicated view editor with management, palette, grid, properties, undo/redo and device inheritance. Only active display tabs, fallback to Standard on disconnect, saved offline layouts retained. Complete-page contracts unchanged; no release/push. [Usage and validation](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-1 (2026-11-07): Custom views with a bounded JSON model, backup/atomic persistence, device inheritance and `custom:` page-cycle integration. System cards, plugin v2 blocks and source status use existing renderers; HA, list/Spotify content tiles, editor and touch actions remain open. Scope and validation: [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md).

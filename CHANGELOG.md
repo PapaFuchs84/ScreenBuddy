@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+P8-4 (2026-11-07): KI-Status gemergt; Claude-/Codex-/Limits-Kacheln in eigenen Ansichten, vorhandener Renderer/Render-Takt, öffentliche Bedingungen und Seiten-Touch-Ziele, additive Editor-Snapshots DE/EN. Standardseiten-Baselines unverändert. Portkonflikt 18765 dokumentiert; keine Portänderung oder Veröffentlichung. [P8-4](docs/PHASE8-EIGENE-ANSICHTEN.md).
+
 P8-2 (2026-11-07): Einzelkacheln für Listen, Spotify und native HA-Entitäten über bestehende Zeichenfunktionen; eigener Editor mit Verwaltung, Palette, Raster, Eigenschaften, Rückgängig/Wiederholen und Geräte-Vererbung. Nur aktive Displays als Tabs, Rückfall auf Standard beim Trennen; gespeicherte Offline-Layouts bleiben erhalten. Standardseiten-Verträge unverändert. Kein Release/Push. [Bedienung und Prüfstand](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-1 (2026-11-07): Eigene Ansichten mit streng begrenztem JSON-Modell, Backup/atomarem Speichern, Geräte-Vererbung und `custom:`-Seitenzyklus. Systemkarten, Plugin-v2-Blöcke und Quellstatus über bestehende Renderer; HA, Listen-/Spotify-Inhaltskacheln, Editor und Touch-Aktionen offen. Umfang und Prüfstand: [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md).

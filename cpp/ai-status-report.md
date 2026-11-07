@@ -1,3 +1,5 @@
+> P8-4 integration (2026-11-07): current Custom views tiles, complete suite counts and the test-UI port collision are documented in [Phase 8](../docs/PHASE8-EIGENE-ANSICHTEN.md). The report below records the earlier KI-Status branch work. / Aktueller Integrationsprüfstand in Phase 8; nachfolgend historischer Branchbericht.
+
 # KI-Status – Abschlussbericht
 
 Stand: 2026-11-07. Lokaler Entwicklungsstand; kein Commit, Push oder Release.

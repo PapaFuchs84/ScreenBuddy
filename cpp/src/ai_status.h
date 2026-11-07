@@ -30,6 +30,9 @@ struct Snapshot {
     std::map<std::string, Session> representatives; // includes last known off state
     std::time_t updated = 0;
 };
+// Public tile data and presence use the same immutable frame snapshot.
+Json tile_values(const Snapshot& snapshot, std::time_t now);
+bool tile_present(const Snapshot& snapshot, const std::string& block);
 class Model {
 public:
     bool ingest(std::string_view body, std::time_t now);

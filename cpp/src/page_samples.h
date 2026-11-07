@@ -10,5 +10,6 @@ std::vector<StreamItem> stream();
 StreamLogos stream_logos();
 std::vector<HaEntity> ha();
 SysSnapshot system();
+ai::Snapshot ai_status();
 std::vector<Post> posts(const std::string& lang = "de");
 }  // namespace fl::render::samples

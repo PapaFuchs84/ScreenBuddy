@@ -13,6 +13,9 @@ zones::Thresholds thresholds(bool hint) {
 }
 Catalog make(std::string key, Label label, std::vector<BlockSpec> blocks) {
     Catalog c; c.key=std::move(key); c.label=std::move(label); c.blocks=std::move(blocks);
+    std::vector<BlockSpec> tiles;
+    for(const auto& block:c.blocks) if(block.tile_only) tiles.push_back(block);
+    std::erase_if(c.blocks,[](const auto& block){return block.tile_only;});
     c.standard.manifest_sha256.assign(64,'0');
     c.standard.layout={{"columns",{1}}, {"rows",Json::array()}, {"zones",Json::array()}};
     c.standard.blocks=Json::array();
@@ -45,10 +48,17 @@ Catalog make(std::string key, Label label, std::vector<BlockSpec> blocks) {
     if(c.key=="ai") for(auto& b:c.blocks) b.thresholds={{{{64,24},{100,42},{zones::max_area,zones::max_area}}}};
     c.portrait=c.standard;
     c.enabled=(c.key=="ai" || c.key=="rss" || c.key=="streaming" || c.key=="bf6" || c.key=="friends" || c.key=="discord" || c.key=="system" || c.key=="spotify");
+    c.blocks.insert(c.blocks.end(),tiles.begin(),tiles.end());
     return c;
 }
 BlockSpec spec(std::string id, Label label, bool required=false, std::string action={}) {
     return {std::move(id),std::move(label),thresholds(required),1,required,std::move(action)};
+}
+BlockSpec tile_spec(std::string id,Label label,bool limits=false) {
+    auto b=spec(std::move(id),std::move(label));b.tile_only=true;
+    b.thresholds=limits?zones::Thresholds{{{{220,70},{280,80},{zones::max_area,zones::max_area}}}}:
+        zones::Thresholds{{{{100,86},{160,150},{zones::max_area,zones::max_area}}}};
+    return b;
 }
 Json canonical(const plugins::Arrangement& model) {
     auto j=plugins::to_json(model); j.erase("manifest_sha256");
@@ -64,11 +74,11 @@ std::string check(const Catalog& c,const plugins::Arrangement& m,bool single=fal
     auto parsed=plugins::parse_arrangement(plugins::to_json(m).dump());
     if(!parsed || !plugins::edit::geometry(m)) return "Invalid built-in arrangement.";
     if(single && (m.blocks.size()!=1 || m.layout["zones"].size()!=1 || !m.blocks[0].value("shown",false))) return "A tile needs exactly one visible block and zone.";
-    if(!single && m.blocks.size()!=c.blocks.size()) return "Every catalog block is required in the inventory.";
+    if(!single && m.blocks.size()!=std::count_if(c.blocks.begin(),c.blocks.end(),[](const auto& b){return !b.tile_only;})) return "Every catalog block is required in the inventory.";
     std::set<std::string> seen;
     for(const auto& b:m.blocks) {
         auto it=std::find_if(c.blocks.begin(),c.blocks.end(),[&](const auto& s){return b["id"]==s.id;});
-        if(it==c.blocks.end() || !seen.insert(it->id).second) return "Unknown catalog block.";
+        if(it==c.blocks.end() || (!single && it->tile_only) || !seen.insert(it->id).second) return "Unknown catalog block.";
         if(!single && it->required && !b.at("shown").get<bool>()) return "Required block must remain visible.";
         if(b.contains("show_if") || b.contains("seconds")) return "Built-in conditions and cycles are not enabled.";
         if(std::none_of(m.layout["zones"].begin(),m.layout["zones"].end(),[&](const auto& z){return b["zone"]==z["id"];})) return "Unknown block zone.";
@@ -84,6 +94,8 @@ std::string check(const Catalog& c,const plugins::Arrangement& m,bool single=fal
 const std::vector<Catalog>& catalogs() {
     static const std::vector<Catalog> all={
         make("ai",{"KI-Status","AI Status"},{
+            tile_spec("ai.claude",{"KI · Claude","AI · Claude"}),tile_spec("ai.codex",{"KI · Codex","AI · Codex"}),
+            tile_spec("ai.limits",{"KI · Limits","AI · Limits"},true),
             spec("ai.claude.state",{"Claude · Zustand","Claude · State"}),spec("ai.codex.state",{"Codex · Zustand","Codex · State"}),
             spec("ai.claude.five_hour",{"Claude · 5 Stunden","Claude · 5 hours"}),spec("ai.codex.five_hour",{"Codex · 5 Stunden","Codex · 5 hours"}),
             spec("ai.claude.week",{"Claude · Woche","Claude · Week"}),spec("ai.codex.week",{"Codex · Woche","Codex · Week"}),

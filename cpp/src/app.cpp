@@ -541,6 +541,11 @@ std::optional<Image> App::custom_preview(const custom::View& view,const std::str
     std::lock_guard lock(render::mutex());render::apply_theme(dp_);
     RendererSet rs(width,height,cfg_);using namespace render::samples;
     return custom::draw(view,device,width,height,[&](const custom::Tile& tile,const custom::Layout& layout,int w,int h)->std::optional<Image> {
+        if(tile.source=="ai") {
+            auto overlay=custom::single_builtin(tile,layout);const auto snap=render::samples::ai_status();
+            if(!overlay || !custom::visible(tile,ai::tile_values(snap,CLOCK))) return {};
+            return rs.ai.render_arranged(snap,*overlay,0,CLOCK).image;
+        }
         if(tile.source=="homeassistant") {
             HaEntity entity{tile.block,"Beispiel / Sample","21.5","°C",false,false,true};
             const float scale=render::scale_for(w,h);
@@ -951,6 +956,14 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         }
                         for(auto& target:drawn.targets) {target.generation=installed->generation;if(target.action=="next")target.zone=cycle_key;}
                         return custom::TileDraw{std::move(drawn.image),{},std::move(drawn.targets)};
+                    }
+                    if(tile.source=="ai") {
+                        if(!b(cfg_["ai"],"enabled")) return {};
+                        const auto now=std::time(nullptr);const auto snap=ai_->model().snapshot(now);
+                        auto overlay=custom::single_builtin(tile,layout);
+                        if(!overlay || !ai::tile_present(snap,tile.block) || !custom::visible(tile,ai::tile_values(snap,now))) return {};
+                        if(view) {view->animating=true;view->next_deadline=std::min(view->next_deadline,tick+.1);}
+                        return custom::TileDraw{rs.ai.render_arranged(snap,*overlay,tick,now).image};
                     }
                     if(tile.source=="homeassistant" && ha_ && ha_->has_data()) {
                         for(const auto& entity:ha_->entities()) if(entity.id==tile.block) {
@@ -1509,6 +1522,9 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     auto minute = clock_hhmm();
     bool live = std::count(view.current.begin(), view.current.end(), "system") > 0;
     live = live || std::count(view.current.begin(),view.current.end(),"ai") > 0;
+    if(b(cfg_["ai"],"enabled")) for(const auto& key:view.current) if(key.starts_with("custom:")) {
+        if(auto doc=custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7))) for(const auto& tile:doc->effective(id).tiles) if(tile.source=="ai") live=true;
+    }
     // Keep visible playback alive even when silent capture publishes no changes.
     // Otherwise the 3 s activity lease expires before the 4 s simulation delay.
     live = live || (meter_ && spotify_ && spotify_->snapshot().playing &&

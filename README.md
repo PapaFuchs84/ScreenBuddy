@@ -31,6 +31,8 @@ Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C
 
 **In Vorbereitung 2.10.0 (nicht veröffentlicht):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **App → Eigene Ansichten**. Es gibt noch keine Veröffentlichung; Hardware-, Companion- und Oberflächenabnahme stehen aus. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
 
+**P8-4 (lokale Entwicklung):** Eigene Ansichten bieten Claude-, Codex- und Limits-Kacheln über den vorhandenen KI-Renderer. Unbekannte Limits bleiben `n/a`; KI separat aktivieren. [Bedienung und Portkonflikt](docs/PHASE8-EIGENE-ANSICHTEN.md).
+
 **P8-2 (lokale Entwicklung):** Unter **App → Eigene Ansichten** lassen sich Quellen als Mini-Kacheln kombinieren, speichern und je aktivem Display anordnen. Offline-Geräte erscheinen nicht als Editor-Tab; ihre Layouts bleiben erhalten. [Bedienung, Grenzen und Prüfstatus](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 **Neu in 2.9.5:** Menü mit Ansicht, Seiten und App; **Farben & Design unter Ansicht**, inklusive direkter Installation signierter Store-Themes. [Menü und Theme-Anleitung](docs/NAVIGATION.md).

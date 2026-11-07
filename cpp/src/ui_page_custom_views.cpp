@@ -39,7 +39,7 @@ public:
         auto management=views.add<ButtonRow>();management->add(T(L"Umbenennen",L"Rename"),Button::Secondary,[this]{if(name_) host_->surface().focus(name_,true);});
         management->add(T(L"Löschen",L"Delete"),Button::Danger,[this]{erase();});
         auto& palette=*shell_->section[EditorShell::Palette];
-        filter_=palette.add<Combo>(std::vector<Text>{T(L"Alle Quellen",L"All sources"),Text(L"System"),Text(L"Spotify"),Text(L"RSS"),Text(L"Streaming"),Text(L"BF6"),T(L"Freunde",L"Friends"),Text(L"Discord"),Text(L"Home Assistant"),Text(L"Plugins")},1);
+        filter_=palette.add<Combo>(std::vector<Text>{T(L"Alle Quellen",L"All sources"),Text(L"System"),Text(L"Spotify"),Text(L"RSS"),Text(L"Streaming"),Text(L"BF6"),T(L"Freunde",L"Friends"),Text(L"Discord"),Text(L"Home Assistant"),Text(L"Plugins"),T(L"KI-Status",L"AI Status")},1);
         filter_->name=T(L"Quelle",L"Source");filter_->on_change=[this]{sync_palette();host_->relayout();};
         auto search=palette.add<TextField>(TextField::Single,L"");search->hint=T(L"Kacheln suchen",L"Search tiles");search->name=search->hint;search->limit=64;
         search->on_change=[this,search]{palette_->query=search->text();for(auto& c:palette_->query)c=wchar_t(std::towlower(c));palette_->current=0;host_->relayout();};
@@ -128,7 +128,7 @@ private:
             return [this,docs=std::move(docs),palette=std::move(palette),displays]{documents_=docs;inventory_=palette;displays_=displays;refresh_list();if(!documents_.empty())choose(0,true);else {tabs();status_->text=T(L"Mit + Neue Ansicht beginnen.",L"Start with + New view.");}thumbnails();};});
     }
     void refresh_list(){views_->items.clear();for(const auto& v:documents_)views_->items.push_back({v.id,Text(widen(v.name)),Text(),false});
-        standard_pages_.clear();for(const auto& c:builtin::catalogs())if(c.enabled)standard_pages_.push_back({"builtin:"+c.key,Text(widen(c.label.de),widen(c.label.en))});
+        standard_pages_.clear();for(const auto& c:builtin::catalogs())if(c.enabled && (c.key!="ai" || host_->config()["ai"].value("enabled",false)))standard_pages_.push_back({"builtin:"+c.key,Text(widen(c.label.de),widen(c.label.en))});
         if(host_->plugins().list)for(const auto& e:host_->plugins().list())if(e.enabled)standard_pages_.push_back({"plugin:"+e.id,Text(widen(e.name))});
         for(const auto& [id,label]:standard_pages_)views_->items.push_back({id,label,T(L"Standard / Plugin",L"Standard / plugin"),false});
         tap_page_->options.clear();page_keys_.clear();for(const auto& key:config::PAGES){page_keys_.push_back(key);tap_page_->options.push_back(source_text(key));}
@@ -192,7 +192,7 @@ private:
             }tabs();};});
     }
     void sync_palette(){
-        if(!loaded_)return;palette_->tiles.clear();static const char* sources[]={"","system","spotify","rss","streaming","bf6","friends","discord","homeassistant","plugin:"};
+        if(!loaded_)return;palette_->tiles.clear();static const char* sources[]={"","system","spotify","rss","streaming","bf6","friends","discord","homeassistant","plugin:","ai"};
         palette_->category=sources[filter_->index];for(const auto& b:history_.current().blocks){auto source=b.value("source",std::string());palette_->tiles.push_back({b["id"],label(b),source.starts_with("plugin:")?"plugin:":source,b.value("shown",false),false});}palette_->current=0;
     }
     int selected_block()const{if(!loaded_ || !grid_)return -1;if(grid_->focused_block>=0 && grid_->focused_block<int(history_.current().blocks.size()))return grid_->focused_block;

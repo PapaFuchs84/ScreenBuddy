@@ -147,9 +147,22 @@ Snapshot Model::snapshot(std::time_t now) const {
     return out;
 }
 Json Model::tiles(std::time_t now) const {
-    auto snap=snapshot(now);Json out=Json::object();
+    return tile_values(snapshot(now),now);
+}
+bool tile_present(const Snapshot& snap,const std::string& block) {
+    auto present=[&](const std::string& provider) {
+        auto it=snap.providers.find(provider);
+        return snap.representatives.contains(provider) || (it!=snap.providers.end() && it->second.contains("updated_at") && it->second["updated_at"].is_number());
+    };
+    if(block=="ai.limits") return present("claude") || present("codex");
+    if(block=="ai.claude" || block.starts_with("ai.claude.")) return present("claude");
+    if(block=="ai.codex" || block.starts_with("ai.codex.")) return present("codex");
+    return false;
+}
+Json tile_values(const Snapshot& snap,std::time_t now) {
+    Json out=Json::object();
     for(auto p:{"claude","codex"}) {
-        auto& j=out[p]; j=snap.providers[p];j["state"]="off";j["tool"]=nullptr;j["model"]=nullptr;j["state_seconds"]=nullptr;
+        auto& j=out[p]; j=snap.providers.at(p);j["state"]="off";j["tool"]=nullptr;j["model"]=nullptr;j["state_seconds"]=nullptr;
         if(auto it=snap.representatives.find(p);it!=snap.representatives.end()) {
             const auto& s=it->second;
             j["state"]=s.state;j["state_seconds"]=std::max<std::time_t>(0,now-s.since);

@@ -12,6 +12,7 @@ struct BlockSpec {
     int maximum = 1;
     bool required = false;
     std::string action;
+    bool tile_only = false; // Custom-view palette; never part of a standard page inventory.
 };
 struct Catalog {
     std::string key;

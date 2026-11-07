@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+P8-4 (2026-11-07): KI-Status gemergt; Claude-/Codex-/Limits-Kacheln in eigenen Ansichten, vorhandener Renderer/Render-Takt, öffentliche Bedingungen und Seiten-Touch-Ziele, additive Editor-Snapshots DE/EN. Standardseiten-Baselines unverändert. Portkonflikt 18765 dokumentiert; keine Portänderung oder Veröffentlichung. [P8-4](../docs/PHASE8-EIGENE-ANSICHTEN.md).
+
 P8-2 (2026-11-07): Native Einzelkacheln aller eingebauten Quellen (einschließlich HA-Entität, Listen und Spotify), separater Ansichts-Editor und aktive Display-Tabs mit Standard-Rückfall. Bestehende Renderer und Standardseiten-Verträge erhalten. [Bedienung, Grenzen und Prüfstand](../docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-1 (2026-11-07): Eigene Ansichten: `custom_view.*`, strikter Store mit Backup, Geräte-Vererbung und `custom:`-Seitenzyklus; bestehende Renderer für System/Plugin-v2/Quellstatus. Grenzen (HA, Listen-/Spotify-Inhalte, Editor, Touch) und Prüfstand: [Phase 8](../docs/PHASE8-EIGENE-ANSICHTEN.md).

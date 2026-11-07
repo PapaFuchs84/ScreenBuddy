@@ -491,7 +491,7 @@ static void builtin_editor_tests(const fs::path& root, const builtin::Catalog& c
     const auto file=h.dir/"layouts"/("builtin."+key+".layout.json");
     CHECK(!fs::exists(file));auto apply=h.find<Button>(L"Übernehmen");CHECK(apply && apply->enabled);
     apply->on_click();h.drain();CHECK(!fs::exists(file));CHECK(h.application.builtin_layout_get(key)["layout_revision"]==0);
-    if(key=="system" || key=="spotify") {
+    if(key=="system" || key=="spotify" || key=="ai") {
         if(key=="spotify") {
             auto invalid=grid->model;invalid.blocks[5]["shown"]=false;grid->on_edit(invalid,{});
             CHECK(plugins::edit::equal(grid->model,original));CHECK(h.toast_text==L"Pflichtblock kann nicht entfernt werden.");
@@ -605,7 +605,7 @@ static void tile_palette_tests(const fs::path& root) {
     // Mini-Vorschauen aus dem echten Seitenrenderer: jede Kachel jeder Seite hat ein Bild oder ist als „keine Daten“ markiert.
     for(const auto& catalog:builtin::catalogs()) if(catalog.enabled) {
         CHECK(choose_page(h,*page,catalog.key));
-        auto palette=h.find<TilePalette>(); CHECK(palette && palette->tiles.size()==catalog.blocks.size()); if(!palette) continue;
+        auto palette=h.find<TilePalette>(); CHECK(palette && palette->tiles.size()==std::count_if(catalog.blocks.begin(),catalog.blocks.end(),[](const auto& b){return !b.tile_only;})); if(!palette) continue;
         for(const auto& tile:palette->tiles) {
             auto thumb=palette->thumb_of(tile.id);
             CHECK(thumb && ((thumb->image && !thumb->image->empty()) || thumb->no_data));
@@ -985,7 +985,7 @@ static void custom_standard_pages_tests(const fs::path& root) {
     auto list=h.find<ItemList>(L"Ansichten");CHECK(list);if(!list)return;
     CHECK(!h.find<Combo>(L"Seite"));
     std::vector<size_t> standard;for(size_t i=0;i<list->items.size();++i)if(list->items[i].detail.de==L"Standard / Plugin")standard.push_back(i);
-    size_t enabled_builtin=0;for(const auto& c:builtin::catalogs())if(c.enabled)++enabled_builtin;
+    size_t enabled_builtin=0;for(const auto& c:builtin::catalogs())if(c.enabled && c.key!="ai")++enabled_builtin;
     CHECK(enabled_builtin>0 && standard.size()>=enabled_builtin);   // nothing lost: every enabled built-in page is listed
     // The old page editor opens for each entry, preselected, and returns to the custom view list.
     for(auto index:standard) {
@@ -999,6 +999,37 @@ static void custom_standard_pages_tests(const fs::path& root) {
         CHECK(!h.find<Combo>(L"Seite"));CHECK(h.find<Button>(L"+ Neue Ansicht"));CHECK(h.find<ItemList>(L"Ansichten"));
         list=h.find<ItemList>(L"Ansichten");if(!list)return;
     }
+    h.view.set_root(nullptr);
+}
+static void ai_custom_editor_tests(const fs::path& root,const fs::path& images,bool record) {
+    const auto baseline=fs::path(FL_LAYOUT_SNAPSHOT_DIR)/"p8-ai-editor-hashes.txt";
+    std::map<std::string,std::string> expected,actual;
+    if(record) {CHECK(!fs::exists(baseline));if(fs::exists(baseline))return;}
+    else {std::ifstream in(baseline);CHECK(bool(in));for(std::string key,hash;in>>key>>hash;)expected[key]=hash;}
+    TestHost h(root/"ai-editor");h.confirm_answer=true;
+    h.actions.layout_displays=[] {return Json::array({
+        {{"id","serial:COM7"},{"name","COM7"},{"width",480},{"height",320},{"usable_width",480},{"usable_height",320},{"online",true}},
+        {{"id","monitor:sample"},{"name","Monitor"},{"width",1920},{"height",1080},{"usable_width",1920},{"usable_height",1080},{"online",true}}});};
+    custom::View view;view.id="sample-ai";view.name="KI / AI";view.standard.columns={1,1};view.standard.rows={2,1};
+    view.standard.tiles={custom::Tile{"ai","ai.claude",{"claude",0,0,1,1}},custom::Tile{"ai","ai.codex",{"codex",1,0,1,1}},custom::Tile{"ai","ai.limits",{"limits",0,1,2,1}}};
+    view.standard.tiles[0].tap=custom::Tap{"page","custom:sample-ai",""};
+    custom::Store store(h.dir/"views");CHECK(store.save(view).empty());
+    auto page=make_custom_views_page();page->build(h,h.root);page->shown(h);settle(h,*page);
+    auto grid=h.find<GridEditor>();auto palette=h.find<TilePalette>();auto filter=h.find<Combo>(L"Quelle");CHECK(grid && palette && filter);if(!grid || !palette || !filter)return;
+    CHECK(filter->options.back().de==L"KI-Status");filter->index=int(filter->options.size())-1;filter->on_change();settle(h,*page);
+    CHECK(palette->category=="ai");CHECK(palette->tiles.size()>=11);
+    grid->selected=0;grid->focused_block=0;grid->on_select();settle(h,*page);
+    CHECK(custom::editor_layout(grid->model)->tiles.size()==3);CHECK(h.find<Combo>(L"Touch-Ziel")->index==1);
+    CHECK(h.find<Button>(L"COM7 · 480 × 320"));CHECK(h.find<Button>(L"Monitor · 1920 × 1080"));
+    fs::create_directories(images);TreeCanvas canvas(h.kit,1440,1100);
+    for(bool en:{false,true}) {
+        h.kit.english=en;h.kit.use_design({{"theme",theme::DEFAULT_ID}});h.kit.use_windows(false);h.kit.dark=true;
+        layout_tree(h.kit,canvas,h.root);auto image=paint_tree(h.kit,canvas,h.root,true);
+        const std::string key=en?"custom-editor-ai.en":"custom-editor-ai.de";actual[key]=snapshot::hash_image(image);
+        if(!record)CHECK(expected[key]==actual[key]);snapshot::write_png(images/(key+".png"),image);
+        CHECK(fs::file_size(images/(key+".png"))>1000);
+    }
+    if(record){std::ofstream out(baseline);for(const auto& [key,hash]:actual)out<<key<<' '<<hash<<'\n';CHECK(bool(out));}else CHECK(expected.size()==actual.size());
     h.view.set_root(nullptr);
 }
 int main(int argc,char** argv) {
@@ -1230,6 +1261,7 @@ int main(int argc,char** argv) {
     else CHECK(expected.size()==actual.size());
     editor_snapshot_tests(dir,baseline,fs::path(argv[0]).parent_path()/"p7b-ui-snapshots",argc==2 && std::string(argv[1])=="record-editor");
     custom_editor_tests(dir,fs::path(argv[0]).parent_path()/"p8-ui-snapshots",argc==2 && std::string(argv[1])=="record-custom-editor");
+    ai_custom_editor_tests(dir,fs::path(argv[0]).parent_path()/"p8-ui-snapshots",argc==2 && std::string(argv[1])=="record-ai-editor");
     custom_standard_pages_tests(dir);
     std::error_code ec; fs::remove_all(dir,ec); CHECK(!ec && !fs::exists(dir));
     std::printf("Layout UI: %d passed, %d failed\n",passed,failed); return failed?1:0;

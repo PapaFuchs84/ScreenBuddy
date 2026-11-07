@@ -104,9 +104,9 @@ public:
     AiRenderer(int w, int h) : Renderer(w,h,"KI-Status") {}
     Image render(const ai::Snapshot& snapshot, double tick, std::time_t now);
     BuiltinDrawOut render_arranged(const ai::Snapshot& snapshot, const builtin::Overlay& overlay, double tick, std::time_t now);
-    Image render_tile(const std::string& source, const ai::Snapshot& snapshot, std::time_t now);
+    Image render_tile(const std::string& source, const ai::Snapshot& snapshot, std::time_t now, double tick=0);
 private:
-    void draw_tile(Canvas& canvas, const plugins::zones::Rect& area, const std::string& source, const ai::Snapshot& snapshot, std::time_t now);
+    void draw_tile(Canvas& canvas, const plugins::zones::Rect& area, const std::string& source, const ai::Snapshot& snapshot, std::time_t now, double tick=0);
     struct Row { ai::Session session; float y=0, opacity=0; bool present=false; double changed=0; size_t ordinal=1; };
     std::map<std::string,Row> rows_;
     double previous_ = 0;

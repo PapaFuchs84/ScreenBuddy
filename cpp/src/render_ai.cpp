@@ -115,11 +115,45 @@ Image AiRenderer::render(const ai::Snapshot& snap,double tick,std::time_t now) {
     }
     return d.finish();
 }
-void AiRenderer::draw_tile(Canvas& d,const plugins::zones::Rect& area,const std::string& source,const ai::Snapshot& snap,std::time_t now) {
+void AiRenderer::draw_tile(Canvas& d,const plugins::zones::Rect& area,const std::string& source,const ai::Snapshot& snap,std::time_t now,double tick) {
     const auto& t=theme();
     const auto catalog=builtin::find("ai");
     const auto spec=std::find_if(catalog->blocks.begin(),catalog->blocks.end(),[&](const auto& b){return b.id==source;});
     if(spec==catalog->blocks.end()) return;
+    if(source=="ai.claude" || source=="ai.codex" || source=="ai.limits") {
+        if(!ai::tile_present(snap,source)) return;
+        d.clip_push(area.x,area.y,area.x+area.width,area.y+area.height);
+        d.rounded_rectangle(area.x,area.y,area.x+area.width,area.y+area.height,5,t.card);
+        const auto small=font(10);float y=area.y+5;
+        auto line=[&](const std::string& text,Color color) {
+            if(y+12<=area.y+area.height) d.text(area.x+7,y,fit(d,text,small,area.width-14),small,color);
+            y+=16;
+        };
+        line(i18n::lang()=="en"?spec->label.en:spec->label.de,t.text);
+        if(source=="ai.limits") {
+            for(auto key:{"five_hour","week","context"}) {
+                const std::string label=key==std::string("five_hour")?"5h":key==std::string("week")?tr("Woche"):tr("Kontext");
+                auto metric=[&](const char* provider) {const auto& m=snap.providers.at(provider);return value(m,key)+(m[key].is_number()?"%":"");};
+                line(label+" · Claude "+metric("claude")+" / Codex "+metric("codex"),t.muted);
+            }
+        } else {
+            const auto provider=source.substr(3);auto it=snap.representatives.find(provider);
+            const auto* session=it==snap.representatives.end()?nullptr:&it->second;
+            const auto state=session?session->state:"off";
+            auto col=state_color(state,t);
+            if(state=="working" || state=="waiting") col=blend(t.card,col,float(.65+.35*std::sin(tick*(state=="working"?4.5:2.6))));
+            if(area.width>=100 && area.height>=24) d.ellipse(area.x+area.width-16,area.y+7,area.x+area.width-10,area.y+13,col);
+            line(state_label(state)+" · "+(session?duration(now-session->since):"n/a"),state_color(state,t));
+            line(tr("Tool")+": "+(session && !session->tool.empty()?session->tool:"n/a"),t.text);
+            line(tr("Modell")+": "+(session && !session->model.empty()?session->model:"n/a"),t.muted);
+            size_t count=0;for(const auto& ss:snap.sessions) if(ss.provider==provider) ++count;
+            line(tr("Sitzungen")+": "+std::to_string(count),t.muted);
+            size_t n=0;for(const auto& ss:snap.sessions) if(ss.provider==provider && n<3) {
+                line(std::to_string(++n)+" · "+state_label(ss.state)+" · "+duration(now-ss.since),state_color(ss.state,t));
+            }
+        }
+        d.clip_pop();return;
+    }
     const auto end=source.rfind('.');const auto provider=source.substr(3,end-3),field=source.substr(end+1);
     const auto& m=snap.providers.at(provider);std::string text="n/a";
     if(field=="state") {const auto it=snap.representatives.find(provider);if(it!=snap.representatives.end()) text=state_label(it->second.state);}
@@ -143,8 +177,8 @@ void AiRenderer::draw_tile(Canvas& d,const plugins::zones::Rect& area,const std:
     }
     d.clip_pop();
 }
-Image AiRenderer::render_tile(const std::string& source,const ai::Snapshot& snap,std::time_t now) {
-    Canvas d(W,H,s,theme().bg);draw_tile(d,{0,0,w,h},source,snap,now);return d.finish();
+Image AiRenderer::render_tile(const std::string& source,const ai::Snapshot& snap,std::time_t now,double tick) {
+    Canvas d(W,H,s,theme().bg);draw_tile(d,{0,0,w,h},source,snap,now,tick);return d.finish();
 }
 BuiltinDrawOut AiRenderer::render_arranged(const ai::Snapshot& snap,const builtin::Overlay& overlay,double tick,std::time_t now) {
     const auto& c=*builtin::find("ai");
@@ -152,9 +186,10 @@ BuiltinDrawOut AiRenderer::render_arranged(const ai::Snapshot& snap,const builti
     const bool portrait=H>W;const auto& model=portrait?overlay.portrait.value_or(overlay.model):overlay.model;
     const auto layout=plugins::edit::geometry(model);
     if(!layout) return {render(snap,tick,now),{}};
-    const auto plan=plugins::zones::plan({8,36,w-16,h-54},*layout,builtin::inputs(c,model),6);
-    Canvas d(W,H,s,theme().bg);header(d,now,"KI-Status");
-    for(const auto& block:plan.blocks) if(block.visible()) draw_tile(d,block.area,block.id,snap,now);
-    footer(d,tr("Daten nur lokal"));return {d.finish(),{}};
+    auto plan=plugins::zones::plan({8,36,w-16,h-54},*layout,builtin::inputs(c,model),6);
+    plan=builtin::tile_plan(std::move(plan),overlay);
+    Canvas d(W,H,s,theme().bg);if(!overlay.single_tile) header(d,now,"KI-Status");
+    for(const auto& block:plan.blocks) if(block.visible()) draw_tile(d,block.area,block.id,snap,now,tick);
+    if(!overlay.single_tile) footer(d,tr("Daten nur lokal"));return {d.finish(),{}};
 }
 } // namespace fl::render

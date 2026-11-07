@@ -1,8 +1,67 @@
 # Phase 8: Eigene Ansichten
 
-Stand: 2026-11-07 · P8-3 Touch-Ziel je Kachel, P8-2 Einzelkacheln und nativer Editor; lokale Entwicklung, keine Veröffentlichung.
+Stand: 2026-11-07 · P8-4 KI-Kacheln, P8-3 Touch-Ziel je Kachel, P8-2 Einzelkacheln und nativer Editor; lokale Entwicklung, keine Veröffentlichung.
 
 Diese Phase ist ein lokaler Entwicklungsstand für das Zonen-Layout. Kein Release, keine neue EXE-Auslieferung und keine Versionsanhebung. Grundlage: eigener ScreenBuddy-Code und [Clean-Room-Regeln](CLEAN-ROOM-LAYOUT.md).
+
+## P8-4: KI-Kacheln / AI tiles
+
+Stand: 2026-11-07 · lokale Entwicklung, kein Release, keine Versionsanhebung.
+
+Unter **App → Eigene Ansichten → Quelle: KI-Status** stehen **KI · Claude** (`ai.claude`), **KI · Codex** (`ai.codex`) und **KI · Limits** (`ai.limits`) sowie die acht bisherigen einzelnen KI-Messwertblöcke bereit. Anbieter-Kacheln zeigen Zustand und Dauer, Tool, Modell, Sitzungszahl und bei genügend Platz bis zu drei Sitzungszeilen. Limits zeigt pro Zeile 5h, Woche und Kontext für Claude / Codex; nicht gemeldete Werte bleiben `n/a`. Anbieter benötigen mindestens 100 × 86, Limits 220 × 70 logische Pixel: auf kleinen Rastern bei Bedarf mehrere Zellen belegen. Zu kleine Kacheln bleiben leer.
+
+Live-Daten benötigen die aktivierte KI-Quelle und mindestens eine beobachtete Sitzung oder erfolgreiche Messwertmeldung für den jeweiligen Anbieter. Ohne Daten bleibt die Kachel leer; ein beobachteter beendeter Zustand ist weiterhin gültige Information. Ein erfolgloser Abfrageversuch allein erzeugt keine Kachel. Die Limits-Kachel tritt zurück, wenn beide Anbieter ohne Daten sind. `show_if` verwendet dieselben öffentlichen Daten wie die Template-Quelle: z. B. `data.claude.state == "working"`, Anwesenheit von `data.codex.five_hour` oder `data.claude.context >= 50`. Unbekannte Limits sind null und erfüllen keine Anwesenheitsbedingung; 0 ist vorhanden. Private Sitzungs-IDs werden nicht als Bedingungsdaten angeboten. `ai` bleibt als Plugin-Quell-ID reserviert; Links/Nächster bleiben Plugin-Quellen vorbehalten. Das individuelle Touch-Ziel „Seite“ und Geräte-Overlays funktionieren wie bei anderen Kacheln.
+
+Die Komposition verwendet `AiRenderer::render_arranged`/`draw_tile` in `render_ai.cpp`; Zustandspunkte pulsieren im vorhandenen Render-Takt. Keine neuen Threads oder Timer für Kacheln. Die drei Sammelkacheln sind als `tile_only` markiert: Sie verändern weder Inventar noch Geometrie bestehender KI-Seiten-Overlays. Die separate KI-Standardseite bleibt unverändert. Im Seitenbereich wird sie erst bei aktivierter KI-Quelle angeboten; die Kachelpalette bleibt zur Vorbereitung verfügbar. Vorschauen verwenden ausschließlich feste erfundene Daten, keine lokalen Sitzungen, Hooks oder Kontoabfragen.
+
+**Portkonflikt:** KI-Empfänger und `Start-ScreenBuddy-Test.ps1` verwenden beide `127.0.0.1:18765`. Der Empfänger startet nur bei aktivierter KI-Quelle (nicht im Vorschaumodus), vor dem UI-Server. In derselben Testinstanz startet deshalb die App, aber der UI-Server kann bei aktivem Empfänger nicht binden; belegt die UI den Port zuerst, scheitert der Empfänger. Zwei Apps können sich ebenso gegenseitig blockieren. Die installierte ScreenBuddy-Instanz belegte bei dieser Prüfung bereits 18765 und wurde nicht verändert. Reproduziert mit den echten Empfänger-/SettingsServer-Klassen auf einem freien dynamischen Loopback-Port in beiden Startreihenfolgen. **Vorschlag:** Test-UI dauerhaft auf einen getrennten freien Port legen und ihre isolierte Konfiguration ausdrücklich anpassen; der Skriptparameter `-UiPort` allein ändert eine bereits vorhandene Konfiguration nicht. Alternativ KI-Empfängerport künftig konfigurierbar machen und Hook-Adapter konsistent neu erzeugen. In P8-4 wurde kein Standardport, Startskript oder bestehende Konfiguration geändert.
+
+### English
+
+**App → Custom views → Source: AI Status** offers **AI · Claude** (`ai.claude`), **AI · Codex** (`ai.codex`), **AI · Limits** (`ai.limits`) and the eight existing individual AI metrics. Provider tiles show state/duration, tool, model, session count and up to three session rows when space permits. Minimum logical sizes: provider 100 × 86; limits 220 × 70 (span cells as needed). Limits lists 5h/week/context for Claude / Codex, with `n/a` for unreported values. Missing source data or insufficient size leaves a tile blank; a known off state remains valid data. Failed collection alone is not data. Enable AI separately for live rendering. Preview uses frozen invented data only.
+
+Conditions use public `data.claude.…` / `data.codex.…` values (e.g. state equals `"working"`, context at least 50); unknown metrics are null, zero is present, private session IDs are excluded. Per-tile page targets and device overlays reuse existing behavior; link/next remain plugin-only. The reserved `ai` source cannot be overwritten by plugins. Existing `render_ai.cpp` painters and frame scheduling handle composition and pulsing. The three aggregate blocks are `tile_only`, preserving the standard AI page and its existing overlay inventory/geometry. The standard AI page is listed only when AI is enabled; the preparation palette remains available.
+
+**Port collision:** both the AI receiver and the isolated test UI default to `127.0.0.1:18765`. AI starts before the settings server when enabled, so the process can start while its UI fails to bind. Reversing ownership prevents AI reception. The installed instance already occupied this port during validation and was left untouched. Real Receiver/SettingsServer tests reproduce both orders on an available dynamic loopback port. Proposed solution: assign the test UI a separate free port and explicitly update its isolated configuration (the launcher parameter alone does not replace existing configuration); alternatively add a configurable AI port and regenerate adapters consistently. No default port, launcher or existing configuration was changed.
+
+### P8-4 Prüfstand / validation (2026-11-07)
+
+VS 2022 BuildTools, MSVC **14.44.35207**, Ninja Release, `cpp/build/store`: ScreenBuddy und alle 24 Testziele gebaut. Alle **24 Suiten Exit 0**. Abschließend nur die um zusätzliche App-/Katalogfälle erweiterten beiden Testziele erneut gebaut/geprüft (keine weitere Produktcodeänderung). Roboto wie zuvor über `AddFontResourceW` verfügbar gemacht; keine Installation/Auslieferung, kein Push, keine Töne, kein Zugriff auf Port 8765.
+
+| Suite | Bestanden / passed |
+| --- | ---: |
+| fl-tests | 3531; zusätzlich integrierte KI-Prüfungen / plus integrated AI checks: 292 |
+| fl-custom-view-tests | 1893 |
+| fl-layout-ui-tests | 1836 |
+| fl-builtin-catalog-tests | 297 |
+| fl-plugin-tests | 380 |
+| fl-plugin-zones-tests | 462 + 8000 Fuzz-Manifeste / manifests |
+| fl-layout-edit-tests | 163 |
+| fl-plugin-example-tests | 124 |
+| fl-plugin-sign-tests | 111 |
+| fl-plugin-catalog-tests | 77 |
+| fl-plugin-store-tests | 453 |
+| fl-plugin-transport-tests | 140 |
+| fl-plugin-settings-tests | 135 |
+| fl-plugin-schedule-tests | 845 |
+| fl-plugin-snapshot-tests | 2101 |
+| fl-companion-tests | 386, vollständige lokale TLS-/Server-Integration / full local TLS/server integration |
+| fl-device-profile-tests | 88 |
+| fl-monitor-tests | 11, ohne sichtbaren Fenstermodus / no visible window mode |
+| fl-tmdb-tests | 119 |
+| fl-psn-tests | 37 |
+| fl-amp-tests | 13, lautlos / silent |
+| fl-key-help-tests | OK, keine Anzahl / no count |
+| fl-distribution-tests | unpackaged Exit 0, keine MSIX-Prüfung / no packaged MSIX probe |
+| fl-builtin-snapshot-tests | 4221 Bilder + 4221 Trefferkarten, 0 Fehler / images + hit maps, zero errors |
+
+Built-in-Zusatzmatrizen / additional matrices: RSS 1024 (5952 Prüfungen/checks), Streaming 1792 (9852), BF6 1024 (6439), Freunde/Friends 1024 (6360), Discord 1024 (6360), System 1536 (7900), Spotify 4096 (31404), Material Orange 768 Hashes; jeweils **0 Fehler / zero errors**. **930 vorhandene Snapshot-Artefakte gegen `d5986c5` unverändert** (Git-Inhaltshashes); keine vorhandene Baseline neu aufgezeichnet. Additiv: `cpp/tests/layout-snapshots/p8-ai-editor-hashes.txt`, Bilder `cpp/build/store/p8-ui-snapshots/custom-editor-ai.de.png` und `.en.png`. Beide wurden als Widgetbaum mit synthetischen KI-Daten und zwei aktiven Beispieldisplays erzeugt und visuell geprüft; keine Aufnahme eines sichtbaren Fensters oder physischer Geräte.
+
+Zusätzlich / additional: `fl-tests ai-cli-test`: **11** synthetische Prüfungen; `ai_adapter_tests.ps1`: **15**, einschließlich PowerShell-AST-Prüfung, ohne DPAPI-/HTTP-Aufruf. Keine echten CLI- oder Kontoabfragen. Portregression verwendet echte Receiver-/SettingsServer-Sockets auf dynamischem Loopback-Port (beide Startreihenfolgen); ein isolierter neuer App-Prozess mit deaktivierter KI auf UI-Port 64150 startete und lieferte `/api/pages` HTTP 200. Die vorhandene Testinstallation auf 18765 wurde wegen des dort bereits lauschenden installierten ScreenBuddy-Prozesses nicht gestartet oder verändert. Der Importtest hinterließ ein Material-Theme für alte Geometrietests; deren ursprüngliches helles Theme wird jetzt wiederhergestellt. / No real CLI/account queries; the existing installation was left untouched. Tests restore the legacy light theme after the imported AI test.
+
+Neue Abdeckung: Parser/Store-Rundlauf, genau ein Palette-Eintrag pro Block, Dichte-/Geometrievalidierung, Bedingungen einschließlich null/0, leere Daten und bekannter off-Zustand, Animation, Kachel-Seitenziel auf drei Geometrien, unverändertes achtteiliges KI-Standardinventar. App-End-to-End mit synthetischer Modelleinspeisung: leerer Frame → KI-Ereignis → gezeichnete Kachel → Touch-Zielseite → ausgeblendete Kachel nach Stop bei `state == "working"`. / New coverage includes the real App render and touch route with synthetic model events.
+
+**Nicht umgesetzt / not implemented:** Keine Portumstellung und keine Reparatur des Teststartskripts (bewusst nur Vorschlag). Keine echten Hook-/CLI-Läufe oder Mehrgeräte-/USB-/Handy-/Android-TV-/Screenreader-Handabnahme. Keine physische Touch-Abnahme. Keine Veröffentlichung, kein Release und keine neue öffentliche EXE. Die Bilder und App-Tests belegen synthetisches Rendering und Logik, keine Client- oder Hardwareintegration.
 
 ## P8-3: Seite anordnen entfällt, Touch-Ziel pro Kachel
 

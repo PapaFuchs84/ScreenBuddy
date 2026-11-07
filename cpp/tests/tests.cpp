@@ -1346,6 +1346,8 @@ int main(int argc, char** argv) {
         catch(const std::exception& e) {std::printf("AI exception: %s\n",e.what());return 1;}
     }
     CHECK(test_ai_status()==0);
+    // AI rendering uses Material; legacy geometry probes start in their original light theme.
+    render::set_theme("hell");
     test_editor_contrast();
     test_transfer_simulated();
     test_plugin_taps();

@@ -51,7 +51,7 @@ Die integrierte, nur lesbare Quelle `ai` steht in deklarativen Plugin-/Zonen-Tem
 | `cost_today`, `tokens_today` | Gemeldeter Tageswert oder `null` |
 | `s1`, `s2`, `s3` | Je Anbieter bis zu drei aktive Sitzungen mit state/tool/model/state_seconds, sonst `null`; keine privaten Sitzungs-IDs |
 
-Die separate Standardseite ist fest angeordnet. Die Datenquelle ist für den Zonen-Editor vorbereitet; die KI-Seite wird bis zu einem eigenen Builtin-Renderpfad nicht im Layout-Katalog angeboten. Eine neue Palette oder eine freie Anordnung der KI-Standardseite ist hier nicht implementiert. Die ausgeschlossenen Editor-Dateien wurden nicht bearbeitet.
+Die Standardseite und ihre bestehenden Overlays behalten ihre Geometrie. Eigene Ansichten verwenden denselben Renderer für Anbieter-/Limits-Kacheln; siehe [Phase 8 P8-4](../docs/PHASE8-EIGENE-ANSICHTEN.md). Die KI-Quelle wird separat aktiviert.
 
 ## Prüfstatus und Quellen
 
@@ -67,6 +67,6 @@ Optional und abschaltbar (Seite „KI-Status“ in den Einstellungen). Ein Hinte
 - **Claude Code:** Limits, Kosten und Kontext kommen über die Statuszeile (laut Claude-Code-Doku: `rate_limits`, `cost`, `context_window` per stdin; nur Pro/Max/Ultra und erst nach der ersten API-Antwort). Der Adapter wird nur dann als `statusLine` eingetragen, wenn keine eigene existiert. Ob Desktop-App/IDE die Statuszeile ausführen, ist nicht belegt; dort bleibt es **n/a**. Einen separaten CLI-Nutzungsbefehl ohne Modellnachricht gibt es nach Doku nicht belegt.
 - Die Seite zeigt, woher die Werte stammen und warum ggf. keine vorliegen. Echte CLI-Läufe sind noch nicht abgenommen.
 
-## Editor-Kachel (Schnittstelle)
+## Editor-Kacheln (P8-4)
 
-Daten: Template-Quelle `ai` (siehe oben). Für eine Kachel im Zonen-Editor fehlt nur der Palette-Eintrag samt eigenem Builtin-Renderpfad in den Editor-Dateien (`ui_tile_palette.*`, `ui_page_layout.*`); diese gehören dem Editor-Thread. Bis dahin wird `ai` nicht im Layout-Katalog angeboten.
+Eigene Ansichten bieten `ai.claude`, `ai.codex`, `ai.limits` und einzelne Messwerte. Öffentliche Bedingungen, Dichte, Geräte-Layouts und Seiten-Touch-Ziele verwenden den bestehenden Kachelvertrag. Fehlende Daten bleiben leer; fehlende Limits bleiben `n/a`. Siehe [Bedienung, Prüfstand und Portkonflikt](../docs/PHASE8-EIGENE-ANSICHTEN.md).

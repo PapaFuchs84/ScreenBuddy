@@ -1,8 +1,12 @@
 // © 2026 FuchsLabs
+#include <winsock2.h>
 #include "custom_view.h"
 #include "custom_view_editor.h"
 #include "page_samples.h"
 #include "app.h"
+#include "webui.h"
+#include "netguard.h"
+#include "http.h"
 #include "render.h"
 #include <fstream>
 #include <iostream>
@@ -57,7 +61,7 @@ int main() try {
     App app(cfg,root/"config.toml",nullptr,root/"preview");
     CHECK(app.active_pages()==std::vector<std::string>{"custom:overview"});CHECK(app.active_pages(true)==std::vector<std::string>{"custom:overview"});
     const std::vector<std::string> own={"custom:missing"};CHECK(app.active_pages(true,&own).empty());
-    CHECK(config::defaults()["display"]["pages"]==ojson(config::PAGES));CHECK(config::PAGES==std::vector<std::string>({"system","friends","discord","bf6","rss","streaming","homeassistant","spotify"}));
+    CHECK(config::defaults()["display"]["pages"]==ojson(config::PAGES));CHECK(config::PAGES==std::vector<std::string>({"system","friends","discord","bf6","rss","streaming","homeassistant","spotify","ai"}));
     gfx_init();SysSnapshot snap;snap.cpu_pct=42;snap.ram_pct=23;
     render::SysRenderer renderer(480,320,"System","bit");
     auto draw=[&](const custom::Layout& layout,std::optional<SysSnapshot> data) {
@@ -100,6 +104,86 @@ int main() try {
             CHECK(!builtin::parse(catalog,builtin::to_json(*single).dump()));
             auto invalid=*single;invalid.model.blocks[0]["id"]="unknown";CHECK(!builtin::validate(catalog,invalid).empty());
         }
+    }
+    // P8-4: one snapshot drives public conditions, missing data, animation and tile targets.
+    {
+        // Real receiver and settings-server sockets cannot share one loopback endpoint.
+        CHECK(!netguard::is_global_ip("127.0.0.1"));
+        ai::Model network;int port=0;
+        {
+            ai::Receiver receiver(network,std::string(64,'a'));const bool started=receiver.start(0);CHECK(started);if(!started)throw std::runtime_error("Dynamic receiver failed: "+std::to_string(WSAGetLastError()));port=receiver.port();
+            auto port_cfg=cfg;port_cfg["ui"]["port"]=port;
+            App isolated(port_cfg,root/"port-config.toml",nullptr,root/"port-preview");
+            SettingsServer ui(isolated,[]{});CHECK(!ui.start());
+        }
+        {
+            auto port_cfg=cfg;port_cfg["ui"]["port"]=port;
+            App isolated(port_cfg,root/"port-config.toml",nullptr,root/"port-preview");
+            SettingsServer ui(isolated,[]{});CHECK(ui.start());
+            CHECK(http::get("http://127.0.0.1:"+std::to_string(port)+"/api/pages",{},1500).status==200);
+            ai::Receiver receiver(network,std::string(64,'b'));CHECK(!receiver.start(port));
+            ui.stop();
+        }
+        const auto now=render::samples::CLOCK;const auto snap=render::samples::ai_status();
+        ai::Model empty;const auto missing=empty.snapshot(now);
+        CHECK(ai::tile_values(snap,now)["claude"]["context"]==42);
+        CHECK(ai::tile_values(snap,now)["codex"]["five_hour"].is_null());
+        for(const auto* id:{"ai.claude","ai.codex","ai.limits"}) {
+            CHECK(ai::tile_present(snap,id));CHECK(!ai::tile_present(missing,id));
+            custom::View av;av.id="ai-test";av.name="AI test";
+            custom::Tile at{"ai",id,{"ai",0,0,1,1}};at.tap=custom::Tap{"page","system",""};av.standard.tiles={at};
+            CHECK(custom::parse(custom::to_json(av).dump()));
+            CHECK(store.save(av).empty());CHECK(store.get(av.id)->standard.tiles[0].tap->page=="system");
+            const auto palette=app.custom_palette();CHECK(std::count_if(palette.begin(),palette.end(),[&](const auto& t){return t.source=="ai" && t.block==id;})==1);
+            for(auto size:{std::pair{480,320},std::pair{320,480},std::pair{1920,1080}}) {
+                render::AiRenderer ar(size.first,size.second);
+                auto overlay=custom::single_builtin(at,av.standard);CHECK(overlay);
+                CHECK(builtin::validate(*builtin::find("ai"),*overlay).empty());
+                auto image=ar.render_arranged(snap,*overlay,0,now).image;
+                CHECK(image.px!=Image(size.first,size.second,render::theme().bg).px);
+                std::string destination;custom::TapEnv env;env.pages={"system"};env.go=[&](const auto& key){destination=key;};
+                auto out=custom::draw_out(av,"",size.first,size.second,[&](const auto&,const auto&,int,int)->std::optional<custom::TileDraw>{return custom::TileDraw{image};},
+                    custom::tap_override("ai-test",env));
+                CHECK(out.targets.size()==1);if(!out.targets.empty()) {CHECK(bool(out.targets[0].action));out.targets[0].action();CHECK(destination=="system");}
+            }
+            CHECK(app.custom_preview(av,"",{480,320})->px!=blank.px);
+            av.standard.tiles[0].show_if=plugins::Condition{"data.claude.context","==",42};
+            CHECK(app.custom_preview(av,"",{480,320})->px!=blank.px);
+            av.standard.tiles[0].show_if->value=43;
+            CHECK(app.custom_preview(av,"",{480,320})->px==blank.px);
+            at.show_if=plugins::Condition{"data.codex.five_hour","",nullptr};CHECK(!custom::visible(at,ai::tile_values(snap,now)));
+            at.show_if=plugins::Condition{"data.claude.state","==","working"};CHECK(custom::visible(at,ai::tile_values(snap,now)));
+        }
+        render::AiRenderer ar(480,320);custom::View av;av.id="ai-live";av.name="AI";
+        av.standard.tiles={custom::Tile{"ai","ai.claude",{"ai",0,0,1,1}}};
+        const auto overlay=*custom::single_builtin(av.standard.tiles[0],av.standard);
+        CHECK(ar.render_arranged(snap,overlay,0,now).image.px!=ar.render_arranged(snap,overlay,.4,now).image.px);
+        CHECK(ar.render_arranged(missing,overlay,0,now).image.px==blank.px);
+        auto bad=custom::to_json(av);bad["layout"]["tiles"][0]["block"]="ai.private-session-id";CHECK(!custom::parse(bad.dump()));
+        // App route, not just the painter: model event -> published frame -> tile page target.
+        {
+            const auto local=root/"ai-app";custom::Store views(local/"views");
+            custom::View first;first.id="ai-first";first.name="AI first";
+            first.standard.tiles={custom::Tile{"ai","ai.claude",{"claude",0,0,1,1}}};
+            first.standard.tiles[0].tap=custom::Tap{"page","custom:ai-second",""};
+            first.standard.tiles[0].show_if=plugins::Condition{"data.claude.state","==","working"};
+            auto second=first;second.id="ai-second";second.name="AI second";second.standard.tiles[0].tap.reset();
+            CHECK(views.save(first).empty());CHECK(views.save(second).empty());
+            auto live_cfg=cfg;live_cfg["ai"]["enabled"]=true;live_cfg["display"]["pages"]={"custom:ai-first","custom:ai-second"};live_cfg["display"]["visible_pages"]=live_cfg["display"]["pages"];
+            App live(live_cfg,local/"config.toml",nullptr,local/"preview"); // suppress receiver and real CLI
+            CHECK(!live.ai_status().running());live.render_primary_for_test();auto before=live.last_frame();CHECK(before);
+            CHECK(live.ai_status().model().ingest(R"({"provider":"claude","session_id":"synthetic","hook_event_name":"PreToolUse","tool_name":"Read","model":"example"})",std::time(nullptr)));
+            live.render_primary_for_test();auto after=live.last_frame();CHECK(after && before && after->px!=before->px);
+            CHECK(live.page_navigation()["current"][0]=="custom:ai-first");
+            if(after) {live.open_item_at(after->w*3/4,after->h/2);live.render_primary_for_test();CHECK(live.page_navigation()["current"][0]=="custom:ai-second");}
+            CHECK(live.ai_status().model().ingest(R"({"provider":"claude","session_id":"synthetic","hook_event_name":"Stop"})",std::time(nullptr)));
+            live.render_primary_for_test();CHECK(live.last_frame()->px==before->px);
+        }
+        ai::Model stopped;CHECK(stopped.ingest(R"({"provider":"claude","session_id":"sample","hook_event_name":"SessionEnd"})",now));
+        CHECK(ai::tile_present(stopped.snapshot(now),"ai.claude")); // observed off is data
+        ai::Model usage;usage.usage("codex",{{"five_hour",0}},"sample","",now);
+        CHECK(ai::tile_present(usage.snapshot(now),"ai.codex"));CHECK(ai::tile_present(usage.snapshot(now),"ai.limits"));
+        CHECK(!ai::tile_present(usage.snapshot(now),"ai.claude"));
     }
     // Native entity renderer shares the exact cell painting with the standard HA page.
     render::HaRenderer ha_renderer(480,320,"HA");auto entity=render::samples::ha().front();

@@ -114,3 +114,12 @@ std::vector<Post> posts(const std::string& lang) {
 }
 
 }  // namespace fl::render::samples
+
+namespace fl::render::samples {
+ai::Snapshot ai_status() {
+    ai::Model model;
+    model.ingest(R"({"provider":"claude","session_id":"sample-claude","hook_event_name":"PreToolUse","tool_name":"Read","model":"example-claude","five_hour":23,"week":41,"context":42})",CLOCK-12);
+    model.ingest(R"({"provider":"codex","session_id":"sample-codex","hook_event_name":"PermissionRequest","tool_name":"ApplyPatch","model":"example-codex"})",CLOCK-5);
+    return model.snapshot(CLOCK);
+}
+}

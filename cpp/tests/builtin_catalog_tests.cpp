@@ -3,6 +3,7 @@
 #include "layout_edit.h"
 #include "device_overlays.h"
 #include <cstdio>
+#include <algorithm>
 using namespace fl::builtin;
 int main() {
     int ok=0,fail=0;
@@ -31,12 +32,26 @@ int main() {
         a=standard(c);a.portrait.reset();CHECK(is_standard(c,a));
         a=standard(c);for(auto* model:{&a.model,&*a.portrait}) for(auto& weight:model->layout["rows"]) weight=weight.get<int>()*2;
         CHECK(is_standard(c,a));
-        CHECK(inputs(c,c.standard).size()==c.blocks.size());
+        CHECK(inputs(c,c.standard).size()==std::count_if(c.blocks.begin(),c.blocks.end(),[](const auto& b){return !b.tile_only;}));
         for(bool portrait:{false,true}) {
             const auto& model=portrait?c.portrait:c.standard;
             auto plan=zones::plan({8,36,portrait?304.f:464.f,portrait?426.f:266.f},*fl::plugins::edit::geometry(model),inputs(c,model),6);
             for(const auto& block:plan.blocks) CHECK(block.visible());
         }
+    }
+    {
+        const auto& ai=*find("ai");auto a=standard(ai);
+        CHECK(a.model.blocks.size()==8);CHECK(a.model.layout["columns"]==Json({1,1}));CHECK(a.model.layout["rows"]==Json({1,1,1,1}));
+        CHECK(a.model.blocks[0]["id"]=="ai.claude.state");CHECK(a.model.blocks[7]["id"]=="ai.codex.tokens_session");
+        a.model.blocks[0]["id"]="ai.claude";CHECK(!validate(ai,a).empty()); // palette-only block never alters full-page inventory
+    }
+    for(const auto* id:{"ai.claude","ai.codex","ai.limits"}) {
+        auto a=standard(*find("ai"));
+        a.single_tile=true;a.portrait.reset();a.model.layout["columns"]={1};a.model.layout["rows"]={1};
+        a.model.layout["zones"]=Json::array({{{"id","tile"},{"column",0},{"row",0}}});
+        a.model.blocks=Json::array({{{"id",id},{"zone","tile"},{"shown",true}}});
+        CHECK(validate(*find("ai"),a).empty());CHECK(!parse(*find("ai"),to_json(a).dump()));
+        a.model.blocks[0]["shown"]=false;CHECK(!validate(*find("ai"),a).empty());
     }
     // Geräte-Container: strikt, begrenzt und bei Fehler transaktional.
     {
