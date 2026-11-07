@@ -2,6 +2,13 @@
 #include "custom_view_editor.h"
 #include <algorithm>
 namespace fl::custom {
+View game_mode_template(std::string id,bool english) {
+    View v;v.id=std::move(id);v.name=english?"Game-Mode":"Game-Mode";v.standard.columns={1,1,1};v.standard.rows={1,1,1};
+    const std::vector<std::string> blocks={"system.game_logo","system.game_name","system.game_time","system.fps","system.frametime","system.gpu","system.cpu","system.vram","system.ping"};
+    for(size_t i=0;i<blocks.size();++i){Tile t;t.source="system";t.block=blocks[i];t.zone={"game_"+std::to_string(i),int(i%3),int(i/3),1,1};v.standard.tiles.push_back(t);}
+    return v;
+}
+
 plugins::Arrangement editor_model(const Layout& layout,const std::vector<Tile>& palette) {
     plugins::Arrangement model;model.custom_draft=true;model.manifest_sha256.assign(64,'0');
     model.layout={{"columns",layout.columns},{"rows",layout.rows},{"zones",Json::array()}};model.blocks=Json::array();

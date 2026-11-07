@@ -15,12 +15,12 @@ using Json=nlohmann::json;
 // Bounded Valve KeyValues parser: quoted/unquoted strings, comments and nested objects.
 class Vdf {
     std::string_view s; size_t p=0, count=0;
-    std::string token() {
+    std::optional<std::string> token() {
         for(;;) {
             while(p<s.size() && isspace(static_cast<unsigned char>(s[p]))) ++p;
             if(p+1<s.size() && s.substr(p,2)=="//") {while(p<s.size() && s[p]!='\n')++p;} else break;
         }
-        if(p==s.size())return {};
+        if(p==s.size())return std::nullopt;
         char c=s[p++];if(c=='{' || c=='}')return std::string(1,c);
         std::string out;
         if(c=='"') {
@@ -32,8 +32,8 @@ class Vdf {
     }
     Json object(int depth,bool nested) {
         if(depth>16)throw 1;Json out=Json::object();
-        for(;;) {auto k=token();if(k.empty()){if(nested)throw 1;return out;}if(k=="}"){if(!nested)throw 1;return out;}if(k=="{" || ++count>20000)throw 1;
-            auto v=token();if(v.empty() || v=="}")throw 1;out[k]=v=="{"?object(depth+1,true):Json(v);}
+        for(;;) {auto k=token();if(!k){if(nested)throw 1;return out;}if(*k=="}"){if(!nested)throw 1;return out;}if(k->empty() || *k=="{" || ++count>20000)throw 1;
+            auto v=token();if(!v || *v=="}")throw 1;out[*k]=*v=="{"?object(depth+1,true):Json(*v);}
     }
 public:
     explicit Vdf(std::string_view text):s(text) {}

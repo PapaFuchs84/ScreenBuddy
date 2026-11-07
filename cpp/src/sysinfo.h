@@ -30,6 +30,7 @@ ojson hwinfo_sensors();    // {"available", "temps", "fans"}
 std::pair<std::string, int> cpu_name();
 
 struct FrameStats {
+    size_t intervals = 0;
     std::optional<double> fps, frametime_ms, low;
     std::deque<double> history;
 };

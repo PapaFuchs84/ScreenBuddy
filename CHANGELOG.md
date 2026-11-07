@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+P9-5: Game-Mode-Einstellungen, Display-/Ansichtsauswahl, zusätzliche Spiele/Ausschlüsse, Editor-Vorlage und Game-Mode-Palette. Hintergrund-Erkennung mit asynchronen Logos, Intro und pausierter normaler Rotation; Rückkehr nach Spielende. DE/EN-Bedienung und eingebettete Hilfen synchronisiert. Lokale Entwicklung, kein Release.
+
 P9-4: 16 neue System-Einzelkacheln für Game-Mode, DXGI-Present-Aufrufrate/Frametime/1%-Low, NVML/AMD-ADL/PDH, CPU-Kernlast/Takt, VRAM und ICMP-Ping/Jitter. Fehlende Quellen n/a; unveränderte Standardseiten.
 
 P9-3: 2,5-Sekunden-Intro mit Abdunklung, Logo-Easing, Glanzlauf und bestehendem FadeCache; reduzierte Überblendung ohne Skalierung/Glanz.

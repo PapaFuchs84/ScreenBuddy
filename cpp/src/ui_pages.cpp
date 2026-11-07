@@ -21,6 +21,7 @@ std::vector<std::unique_ptr<Page>> create_pages() {
     // Seiten
     pages.push_back(make_system_page());
     pages.push_back(make_ai_page());
+    pages.push_back(make_game_mode_page());
     pages.push_back(make_friends_page());
     pages.push_back(make_discord_page());
     pages.push_back(make_bf6_page());

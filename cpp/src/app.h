@@ -3,6 +3,8 @@
 // über die öffentlichen Methoden zu (alle threadsicher).
 #pragma once
 #include "custom_view.h"
+#include "game_runtime.h"
+#include "game_intro.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -129,6 +131,12 @@ public:
 private:
     struct RendererSet;
     struct ViewState {
+        game::Intro game_intro;
+        Image previous_frame;
+        uint64_t game_generation=0;
+        bool game_active=false;
+        double game_entered=0, saved_switched=0;
+        int saved_page=0;
         std::map<std::string,uint64_t> builtin_revisions;
         std::map<std::string,std::map<std::string,plugins::schedule::ZoneState>> cycles;
         std::map<std::string,std::shared_ptr<plugins::FadeCache>> fade_caches;
@@ -185,7 +193,7 @@ private:
     };
     RendererSet& renderers_for(int w, int h);
     std::vector<PageEntry> page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion = false,
-                                    const std::vector<std::string>* pages_override = nullptr, ViewState* view = nullptr, double now = 0, bool phone = false, const std::string& device = {});
+                                    const std::vector<std::string>* pages_override = nullptr, ViewState* view = nullptr, double now = 0, bool phone = false, const std::string& device = {}, const std::string& forced_custom = {});
     DrawResult draw(const std::vector<PageEntry>& pages, const std::vector<render::Box>& boxes, int start, std::pair<int, int> size, device::Area area);
     Image welcome(std::pair<int, int> size);
     void render_view(bool secondary, bool dirty);
@@ -252,6 +260,7 @@ private:
     std::unique_ptr<rss::RssFeeds> rss_;
     std::unique_ptr<tmdb::TmdbFeed> streaming_;
     std::unique_ptr<sysinfo::SysMonitor> sys_;
+    std::unique_ptr<game::Runtime> game_;
     std::unique_ptr<discord::DiscordFeed> discord_;
     std::unique_ptr<friends::FriendsHub> friends_;
     std::unique_ptr<ha::HaClient> ha_;

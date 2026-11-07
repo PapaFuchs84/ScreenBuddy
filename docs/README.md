@@ -1,4 +1,6 @@
 <div align="center">
+
+Game-Mode (Entwicklung P9, noch nicht veröffentlicht): [Deutsch](GAME-MODE.md) · [English](GAME-MODE.en.md) · [Umsetzungsplan und Prüfstand](PLAN-GAME-MODE.md).
 <img src="logo/fuchslabs-logo.png" alt="FuchsLabs" width="72">
 [Menü und Themes / Menu and themes](NAVIGATION.md) · [English](NAVIGATION.en.md)
 

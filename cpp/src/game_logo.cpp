@@ -32,7 +32,7 @@ ImagePtr LogoCache::load(const Game& game){
         if(safe(path) && std::filesystem::is_regular_file(path,ec) && std::filesystem::file_size(path,ec)<=max_asset && !ec) {
             auto written=std::filesystem::last_write_time(path,ec);
             if(!ec && fresh(std::chrono::duration<double>(std::filesystem::file_time_type::clock::now()-written).count())) {
-                std::ifstream f(path,std::ios::binary);if(auto img=image(std::string(std::istreambuf_iterator<char>(f),{})))return img;
+                std::ifstream f(path,std::ios::binary);std::string bytes(max_asset+1,0);f.read(bytes.data(),bytes.size());bytes.resize(size_t(f.gcount()));if(auto img=image(bytes))return img;
             }
         }
         for(const auto& url:sources)if(auto img=image(fetch_(url))) {

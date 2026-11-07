@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+P9-5: Game-Mode settings, display/view selection, additional games/exclusions, editor template and palette. Background discovery with asynchronous logos, intro and paused normal rotation; rotation resumes after the game ends. DE/EN usage and embedded guides synchronized. Local development, no release.
+
 P9-4: 16 additional single system tiles for Game-Mode, DXGI Present-call cadence/frametime/1% low, NVML/AMD ADL/PDH, per-core CPU load/clock, VRAM and ICMP ping/jitter. Missing sources show n/a; standard pages unchanged.
 
 P9-3: 2.5-second intro with dimming, eased logo, shine and existing FadeCache; reduced transition without scaling/shine.

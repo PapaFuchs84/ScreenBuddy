@@ -36,6 +36,7 @@ using Key = std::pair<std::string, std::string>;
 const ojson& defaults() {
     static const ojson d = [] {
         ojson j;
+        j["game_mode"] = {{"enabled",false},{"target_display","primary"},{"view",""},{"intro",true},{"reduce_motion",false},{"ping_target","1.1.1.1"},{"additional_games",""},{"exclusions",""}};
         j["ai"] = {{"enabled",false},{"automatic_usage",false}};
         j["discord"] = {{"enabled", true}, {"token", ""}, {"guild_ids", ojson::array()}, {"friend_ids", ojson::array()},
                         {"ignore_ids", ojson::array()}, {"show_offline", false}};
@@ -293,6 +294,26 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
         if (out.size() > cap) out.resize(cap);
         return out;
     }
+    if(sec=="game_mode") {
+        if(!value.is_string())throw std::invalid_argument("Text erwartet / text required");
+        auto v=trim(value.get<std::string>());
+        if(key=="additional_games" || key=="exclusions") {
+            if(v.size()>32768)throw std::invalid_argument("Maximal 32 KiB / at most 32 KiB");
+            auto lines=split(v,"\n");if(lines.size()>128)throw std::invalid_argument("Maximal 128 Einträge / at most 128 entries");
+            for(auto& line:lines){auto path=trim(line);if(path.empty())continue;
+                if(path.size()>2048 || path.find_first_of("\r\t")!=std::string::npos || (key=="additional_games" && (!std::filesystem::path(widen(path)).is_absolute() || casefold(narrow(std::filesystem::path(widen(path)).extension().wstring()))!=".exe")))throw std::invalid_argument("Absolute EXE-Pfade zeilenweise erwartet / absolute EXE paths required, one per line");}
+            return v;
+        }
+        if(v.size()>300)throw std::invalid_argument("Text zu lang / text too long");
+        if(key=="view" && !v.empty() && (!v.starts_with("custom:") || !custom::valid_id(v.substr(7))))throw std::invalid_argument("Eigene Ansicht erwartet / custom view required");
+        if(key=="target_display" && v!="primary" && !device::valid_layout_id(v))throw std::invalid_argument("Display-ID ungültig / invalid display ID");
+        if(key=="ping_target") {
+            static const std::regex ip(R"((?:[0-9]{1,3}\.){3}[0-9]{1,3})");bool valid=std::regex_match(v,ip);
+            if(valid)for(const auto& part:split(v,"."))if(std::stoi(part)>255)valid=false;
+            if(!valid)throw std::invalid_argument("IPv4-Ziel erwartet / IPv4 target required");
+        }
+        return v;
+    }
     std::u32string u = to_u32(trim(py_str(value)));
     if (u.size() > 300) u.resize(300);
     std::string v = from_u32(u);
@@ -398,6 +419,7 @@ static const std::map<std::string, std::string> HEADERS = {
     {"display", "Display und Seitenwechsel (pages = Reihenfolge der Seiten)"},
     {"system", "Systemansicht"},
     {"ai", "KI-Status / AI Status (nur lokal / local only)"},
+    {"game_mode", "Game-Mode (lokal / local)"},
     {"homeassistant", "Home Assistant (Adresse, Zugriffstoken, bis zu 4 Entitäten; Schalter nur mit Touch)"},
     {"spotify", "Spotify (Client-ID deiner Spotify-Developer-App; Anmeldung in den Einstellungen, Tokens in spotify.token; Steuern nur mit Touch und Spotify Premium)"},
     {"friends", "Gemeinsame Freundesliste (Discord, Steam, Xbox, PlayStation); links = manuell verknüpfte Personen"},

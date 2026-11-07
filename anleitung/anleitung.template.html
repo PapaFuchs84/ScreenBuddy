@@ -539,6 +539,12 @@ ${help([['Der Store meldet „nicht erreichbar“.', 'Prüfe deine Internetverbi
   ['Der Store meldet „nicht verfügbar“.', 'Diese Version hat keinen Signaturschlüssel für den Store. Nutze die aktuelle Version von der Download-Seite.'],
   ['Ich finde ein Plugin nicht.', 'Wähle die Kategorie <b>Alle</b> und lösche den Text im Suchfeld.']])}`},
 
+{t: 'Game-Mode (Entwicklung)', html: () => `
+<p class="kicker">P9 · Noch nicht veröffentlicht</p><h1>Beim Spielen die passende Ansicht</h1>
+<ol class="do"><li>Unter <b>App → Eigene Ansichten</b> mit <b>+ Game-Mode</b> eine Vorlage anlegen, bearbeiten und übernehmen.</li><li>Unter <b>Game-Mode</b> Aktivierung, Ziel-Display und eigene Ansicht wählen. Intro, reduzierte Animation und Ping-Ziel (IPv4) einstellen.</li><li>Zusätzliche Spiele als absolute EXE-Pfade eintragen, ein Pfad pro Zeile. Ausschlüsse akzeptieren EXE-Pfade oder Dateinamen. Speichern und neu starten.</li></ol>
+<p>Nach 3 Sekunden stabiler Erkennung erscheint das optionale Logo-Intro, danach die eigene Ansicht. Nach 5 Sekunden ohne Spiel geht die vorherige Rotation weiter. Eine fehlende Ansicht lässt die normale Rotation bestehen.</p>
+<p>Fehlende Messwerte bleiben <b>n/a</b>. FPS messen DXGI-Present-Aufrufe, keine angezeigten Frames; ETW benötigt gegebenenfalls Administratorrechte oder Performance Log Users. CPU-Temperatur benötigt HWiNFO. Keine Eingriffe in Spielprozesse, keine DLL-Injektion oder Speicherabfragen. Echte Spiele, Geräte und Sensoren benötigen gesonderte Abnahme.</p>`},
+
 {t: 'Speichern', html: () => `
 <p class="kicker">Ganz wichtig</p><h1>Speichern nicht vergessen!</h1>
 <p class="lead">Wenn du etwas geändert hast, erscheint unten auf der Einstellungsseite ein Balken.</p>

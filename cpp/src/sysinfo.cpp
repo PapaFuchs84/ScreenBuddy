@@ -213,7 +213,7 @@ FrameStats FrameHistory::stats(double now) const {
     for(size_t i=1;i<times_.size();++i)if(times_[i]>=now-10)durations.push_back((times_[i]-times_[i-1])*1000);
     if(durations.empty())return out;
     const double average=std::accumulate(durations.begin(),durations.end(),0.)/durations.size();
-    if(average<=0)return out;out.fps=1000/average;out.frametime_ms=average;
+    if(average<=0)return out;out.intervals=durations.size();out.fps=1000/average;out.frametime_ms=average;
     for(auto d:durations){out.history.push_back(d);if(out.history.size()>120)out.history.pop_front();}
     // 1% low requires >=100 intervals; never invent it from two frames.
     if(durations.size()>=100){std::sort(durations.rbegin(),durations.rend());size_t n=(durations.size()+99)/100;out.low=1000/(std::accumulate(durations.begin(),durations.begin()+n,0.)/n);}
@@ -273,7 +273,7 @@ struct SysMonitor::PresentTrace {
     FrameStats snapshot(double now){
         if(session && ControlTraceW(session,name.c_str(),props(),EVENT_TRACE_CONTROL_QUERY)==ERROR_SUCCESS && props()->EventsLost!=lost){lost=props()->EventsLost;std::lock_guard lock(mutex);chains.clear();return {};}
         std::lock_guard lock(mutex);FrameStats best;size_t count=0;
-        for(const auto& [key,c]:chains) {auto s=c.frames.stats(now);if(s.history.size()>count){count=s.history.size();best=std::move(s);}}
+        for(const auto& [key,c]:chains) {auto s=c.frames.stats(now);if(s.intervals>count){count=s.intervals;best=std::move(s);}}
         return best;
     }
     std::string reason()const {if(!pid)return "no_game";if(error==ERROR_ACCESS_DENIED)return "etw_access_denied";if(error!=ERROR_SUCCESS)return "etw_unavailable";return "dxgi_present_calls";}
@@ -370,6 +370,7 @@ void SysMonitor::run() {
 
 void SysMonitor::sample() {
     SysSnapshot& s = snap_;
+    s.cpu_pct.reset();s.cpu_ghz.reset();
     if (!pdh_) pdh_ = std::make_unique<Pdh>();  // beim ersten Aufruf anlegen; Werte gibt es ab dem zweiten Aufruf
     if (pdh_->q && PdhCollectQueryData(pdh_->q) == ERROR_SUCCESS) {
         if (auto v = pdh_->value(pdh_->cpu)) s.cpu_pct = std::min(100.0, *v);

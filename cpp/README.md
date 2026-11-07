@@ -1,5 +1,7 @@
 # ScreenBuddy C++
 
+Game-Mode / Game Mode (unpublished development): [Einrichtung und Grenzen (DE)](../docs/GAME-MODE.md) · [Setup and limits (EN)](../docs/GAME-MODE.en.md). [Implementation and validation](../docs/PLAN-GAME-MODE.md). Tests use an isolated launcher, dedicated data, UI 18766 and AI 18765; never start the app EXE directly for these tests.
+
 P8-4 / Entwicklung: **App → Eigene Ansichten** kombiniert Quellen-Kacheln inklusive KI · Claude/Codex/Limits pro aktivem Display. / Development: **App → Custom views** combines source tiles including AI · Claude/Codex/Limits per active display. [Bedienung, Grenzen und Prüfstand / usage, limits and validation](../docs/PHASE8-EIGENE-ANSICHTEN.md). Kein Release / no release.
 
 Unpublished 2.10.0 development source: [MSIX packaging, migration and Companion APK delivery](../docs/STORE-DISTRIBUTION.en.md) · [Deutsch](../docs/STORE-DISTRIBUTION.md). Store installation and updates are package-managed.

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+P9-5: Runtime/Display-Override, native Einstellungen, Editor-Vorlage, Konfigurationsvalidierung und DE/EN-Hilfen. Historische Editor-Snapshots bleiben erhalten; neue P9-Referenzen. Steam-VDF unterstützt leere Felder. 114 Game-Unit-Prüfungen und isolierte Dummy-Simulation bestanden; Gesamtlauf siehe Plan.
+
 P9-4: Dokumentierte, dynamisch geladene GPU-APIs und eigene ETW-Sitzung; Frame-Statistik und Katalog/Renderer mit Offline-Prüfungen. Kein vollständiger PresentMon-/Scanout-Ersatz.
 
 P9-3: Intro-Renderer und deterministische Zeit-/Fade-Prüfungen; App-Integration folgt in P9-5.

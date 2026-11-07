@@ -3,6 +3,8 @@
 #include "game_intro.h"
 #include "sysinfo.h"
 #include "render_game.h"
+#include "custom_view_editor.h"
+#include "config.h"
 #include <windows.h>
 #include <fstream>
 #include <chrono>
@@ -17,7 +19,7 @@ int main(){try {
  check(!parse_acf(R"("AppState" { "appid" "42" "name" "X" "installdir" "../../escape" })",L"C:/Steam/steamapps"));
  check(!parse_acf("broken",L"C:/Steam/steamapps"));
  check(!parse_acf("\"AppState\" { \"name\" \"unterminated",L"C:/Steam"));
- auto libs=parse_libraries(R"("libraryfolders" { "0" { "path" "C:\\Steam" "apps" { "42" "1" } } "1" "D:\\Games" })");check(libs.size()==2);
+ auto libs=parse_libraries(R"("libraryfolders" { "0" { "path" "C:\\Steam" "label" "" "apps" { "42" "1" } } "1" "D:\\Games" })");check(libs.size()==2);
  auto epic=parse_epic(R"({"AppName":"id","DisplayName":"Example","InstallLocation":"C:/Games/Example","LaunchExecutable":"bin/game.exe"})");check(epic && epic->name=="Example");
  check(!parse_epic(R"({"AppName":"id","DisplayName":"Example","InstallLocation":"C:/Games/Example","LaunchExecutable":"../../escape.exe"})"));
  check(!parse_epic("[]"));check(!beneath(L"C:/GamesOther/game.exe",L"C:/Games"));
@@ -58,5 +60,11 @@ int main(){try {
  frames.present(1);check(frames.stats(2).history.size()==120);check(!frames.stats(4.01).fps);frames.present(5);check(!frames.stats(5).fps);frames.present(5.02);check(frames.stats(5.02).fps && !frames.stats(5.02).low);
  for(const auto& block:fl::builtin::find("system")->blocks)if(block.tile_only){check(metric_tile(block.id));fl::custom::Layout layout;fl::custom::Tile tile;tile.source="system";tile.block=block.id;tile.zone={"tile",0,0,1,1};check(bool(fl::custom::single_builtin(tile,layout)));check(!draw_metric(tile,layout,480,320,fl::SysSnapshot{}).empty());}
  check(metric_values(fl::SysSnapshot{}).at("fps").is_null());
+ auto templ=fl::custom::game_mode_template("test-game");check(bool(fl::custom::parse(fl::custom::to_json(templ).dump())));check(templ.standard.tiles.size()==9);
+ auto cfg=fl::config::defaults();check(cfg["game_mode"]["enabled"]==false);
+ auto configured=fl::config::merge(cfg,{{"game_mode",{{"enabled",true},{"view","custom:test-game"},{"ping_target","127.0.0.1"},{"additional_games","C:\\Games\\Example.exe\nD:\\Games\\Other.exe"}}}});
+ check(configured["game_mode"]["view"]=="custom:test-game");check(configured["game_mode"]["additional_games"].get<std::string>().find('\n')!=std::string::npos);
+ for(const auto& patch:std::vector<fl::ojson>{{{"game_mode",{{"view","../bad"}}}},{{"game_mode",{{"ping_target","999.1.1.1"}}}},{{"game_mode",{{"additional_games","relative.exe"}}}}}){bool rejected=false;try{fl::config::merge(cfg,patch);}catch(...){rejected=true;}check(rejected);}
+ check(stats.intervals==120);
  std::cout<<checks<<" game checks passed\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}

@@ -31,6 +31,8 @@ Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C
 
 **In Vorbereitung 2.10.0 (nicht veröffentlicht):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **App → Eigene Ansichten**. Es gibt noch keine Veröffentlichung; Hardware-, Companion- und Oberflächenabnahme stehen aus. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
 
+**Game-Mode (lokale Entwicklung):** Spielerkennung, optionales Logo-Intro und eine eigene Ansicht für das gewählte Display. [Einrichtung, Messwertgrenzen und Prüfstand](docs/GAME-MODE.md). Noch nicht veröffentlicht.
+
 **P8-4 (lokale Entwicklung):** Eigene Ansichten bieten Claude-, Codex- und Limits-Kacheln über den vorhandenen KI-Renderer. Unbekannte Limits bleiben `n/a`; KI separat aktivieren. [Bedienung und Portkonflikt](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 **P8-2 (lokale Entwicklung):** Unter **App → Eigene Ansichten** lassen sich Quellen als Mini-Kacheln kombinieren, speichern und je aktivem Display anordnen. Offline-Geräte erscheinen nicht als Editor-Tab; ihre Layouts bleiben erhalten. [Bedienung, Grenzen und Prüfstatus](docs/PHASE8-EIGENE-ANSICHTEN.md).
@@ -254,6 +256,7 @@ Alle Dokumente nach Zielgruppe: [`docs/README.md`](docs/README.md). Die wichtigs
 | [`DOKUMENTATION.md`](DOKUMENTATION.md) | ausführliche Referenz: Seiten, Einstellungen, `config.toml`, HWiNFO, Fehlerbehebung |
 | [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) | Architektur für Entwickler |
 | [`docs/PLUGIN-SYSTEM.md`](docs/PLUGIN-SYSTEM.md) | Plugin-Anleitung ([English](docs/PLUGIN-SYSTEM.en.md)), [Tutorial](docs/PLUGIN-TUTORIAL.md), [Store-Bedingungen](docs/PLUGIN-STORE-BEDINGUNGEN.md) |
+| [`docs/GAME-MODE.md`](docs/GAME-MODE.md) | Game-Mode im Entwicklungszweig: Einrichtung und Messwertgrenzen ([English](docs/GAME-MODE.en.md)) |
 | [`docs/COMPANION.md`](docs/COMPANION.md) | Companion einrichten ([English](docs/COMPANION.en.md)) |
 | [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | Release-Notizen 2.10.0 (in Vorbereitung, nicht veröffentlicht) |
 | [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | Release-Notizen der aktuellen Version (frühere: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
