@@ -61,6 +61,7 @@ private:
     std::vector<Game> library_;
     std::vector<std::string> additional_, excluded_;
     double refresh_at_=0;
+    std::string diag_;
     const Registry* registry_; // Optional borrowed registry; must outlive Discovery.
 };
 }
