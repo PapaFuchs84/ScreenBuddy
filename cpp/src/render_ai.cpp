@@ -25,6 +25,13 @@ std::string duration(std::time_t n) {
 std::string state_label(const std::string& s) {
     return tr(s=="working"?"Arbeitet":s=="waiting"?"Wartet":s=="idle"?"Inaktiv":"Aus");
 }
+// "Off" means no hook session; with fresh usage data the program is evidently reachable, so say "No session".
+bool fresh_usage(const ai::Json& m,std::time_t now) {
+    return m.contains("updated_at") && m["updated_at"].is_number() && now-m["updated_at"].get<std::time_t>()<=900;
+}
+std::string state_text(const std::string& s,const ai::Json& m,std::time_t now) {
+    return s=="off" && fresh_usage(m,now)?tr("Keine Sitzung"):state_label(s);
+}
 Color state_color(const std::string& s,const Theme& t) {
     return s=="working"?t.orange:s=="waiting"?Color{245,184,66}:t.muted;
 }
@@ -50,7 +57,7 @@ Image AiRenderer::render(const ai::Snapshot& snap,double tick,std::time_t now) {
         if(state=="working" || state=="waiting") col=blend(t.card,col,.4f+.6f*pulse);
         float r=state=="working"?3+1.3f*pulse:3;
         d.ellipse(x+cw-15-r,y+16-r,x+cw-15+r,y+16+r,col);
-        d.text(x+10,y+30,state_label(state),normal,state_color(state,t));
+        d.text(x+10,y+30,state_text(state,m,now),normal,state_color(state,t));
         d.text(x+cw-10,y+31,session?duration(now-session->since):"n/a",small,t.muted,"ra");
         d.text(x+10,y+48,tr("Tool")+": "+fit(d,session && !session->tool.empty()?session->tool:"n/a",small,cw-48),small,t.text);
         d.text(x+10,y+63,tr("Modell")+": "+fit(d,session && !session->model.empty()?session->model:"n/a",small,cw-58),small,t.muted);
@@ -156,7 +163,7 @@ void AiRenderer::draw_tile(Canvas& d,const plugins::zones::Rect& area,const std:
     }
     const auto end=source.rfind('.');const auto provider=source.substr(3,end-3),field=source.substr(end+1);
     const auto& m=snap.providers.at(provider);std::string text="n/a";
-    if(field=="state") {const auto it=snap.representatives.find(provider);if(it!=snap.representatives.end()) text=state_label(it->second.state);}
+    if(field=="state") {const auto it=snap.representatives.find(provider);if(it!=snap.representatives.end()) text=state_text(it->second.state,m,now);}
     else if(m.contains(field) && m[field].is_number()) {
         text=value(m,field.c_str(),field=="cost_session"?2:0);
         if(field=="five_hour" || field=="week") text+=" %";
