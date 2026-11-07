@@ -55,7 +55,7 @@ Unter **App → Eigene Ansichten** Quellen-Kacheln kombinieren, mit Palette/Rast
 
 ## Prüfung und Grenzen
 
-- **Automatische Prüfungen: grün** (Zonen, Bedingungen, Beispiele, Snapshots, Tap-Ziele, Wechselfeld-Planung) laufen gegen feste Daten. Prüfzahlen und Umgebungsgrenzen stehen in [`cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md).
+- **Automatische Prüfungen:** 15 von 17 Suiten grün bei der Freigabe (u. a. 3.556 Kernprüfungen). Die Bildvergleiche der eingebauten Seiten und des Editors (Baseline rechnergebunden, braucht die Schrift Roboto) konnten in der Freigabe-Umgebung nicht ausgewertet werden (Schrift nicht sichtbar, 10 Hash-Abweichungen im Editor-Test); sie liefen zuletzt am 06.11.2026 grün. Geprüft werden (Zonen, Bedingungen, Beispiele, Snapshots, Tap-Ziele, Wechselfeld-Planung) laufen gegen feste Daten. Prüfzahlen und Umgebungsgrenzen stehen in [`cpp/TESTPROTOKOLL.md`](../cpp/TESTPROTOKOLL.md).
 - **Hardware- und Geräteabnahme nur teilweise live** (Redmi 8, Android-TV, Pixel 10 Pro): Game-Mode-Intro am Redmi 8, BF6-Erkennung am PC, Rangliste am Android-TV, KI-Status. **Nicht abgenommen:** weitere echte Spiele und Launcher, USB-Display (auch Hochformat-Gehäuse), Monitor, gemessene serielle Bildrate für das Wechselfeld, Companion-Prozesstests.
 - **Spotify am Handy:** Ein Companion-Gerätestart von Spotify gibt es nicht; der Cover-Tipp öffnet Spotify am PC.
 - Companion 1.0.4 ist ein Entwicklungsstand ohne APK-Auslieferung; ausgeliefert bleibt 1.0.3.
