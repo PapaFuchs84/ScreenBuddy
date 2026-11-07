@@ -35,6 +35,7 @@ struct Bf6Player {
     std::optional<double> kd, win_pct, kpm, hours;
     ImagePtr rank_icon;
     std::string error;  // z. B. "nicht gefunden"
+    std::string id;     // gefundene Spieler-ID (leer, wenn die Antwort keine enthielt)
 };
 
 struct Post {

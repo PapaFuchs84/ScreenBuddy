@@ -215,7 +215,8 @@ const EN = {
   // Battlefield, Blogs
   'Die Rangliste deiner EA-Freunde. Eine Freundesliste gibt EA nicht heraus, deshalb trägst du die Namen hier ein.': 'The leaderboard of your EA friends. EA does not share friend lists, so you add the names here.',
   'Aktualisieren alle': 'Refresh every', 'Wie oft die Werte neu geholt werden': 'How often the stats are fetched', 'Spieler': 'Players',
-  'EA-ID eingeben, mit „Prüfen“ siehst du sofort, ob der Name gefunden wird.': 'Enter an EA ID; “Check” shows right away whether the name is found.',
+  'EA-ID eingeben (optional mit Spieler-ID). Mit „Prüfen“ siehst du, ob der Name gefunden wird und welche ID dazugehört.': 'Enter an EA ID (player ID optional). “Check” shows whether the name is found and which ID belongs to it.',
+  'ID übernehmen': 'Use ID', 'Spieler-ID (optional)': 'Player ID (optional)', 'Die Spieler-ID besteht aus mindestens 6 Ziffern.': 'The player ID has at least 6 digits.',
   'EA-ID, z. B. P4p4F0x': 'EA ID, e.g. P4p4F0x', 'PC (EA)': 'PC (EA)', 'Wo finde ich die EA-ID?': 'Where do I find the EA ID?',
   'Deine eigene: Klicke unten auf ': 'Your own: click ', 'Meine EA-ID ansehen': 'View my EA ID', ' und melde dich an. Bei ': ' below and sign in. Your name is shown at ',
   'EA-ID': 'EA ID', ' steht dein Name.': '.', 'Oder in der ': 'Or in the ', 'EA app': 'EA app', ': oben links auf dein Profilbild klicken.': ': click your profile picture at the top left.',
@@ -456,9 +457,12 @@ function checkList(sec, key, kind, placeholder) {
   const info = {};
   const draw = () => list.replaceChildren(...cfg[sec][key].map((v, i) => {
     const r = info[v], st = r ? (r.ok ? h('span', {class: 'ok'}, kind === 'bf6'
-      ? `${L === 'en' ? 'Rank' : 'Rang'} ${r.rank ?? '?'}${r.rank_name ? ' · ' + r.rank_name : ''} · K/D ${r.kd ?? '–'}` : `${r.source}: ${r.latest}`)
+      ? `${L === 'en' ? 'Rank' : 'Rang'} ${r.rank ?? '?'}${r.rank_name ? ' · ' + r.rank_name : ''} · K/D ${r.kd ?? '–'}` + (r.id ? ` · ID ${r.id}` : '') : `${r.source}: ${r.latest}`)
       : h('span', {class: 'bad'}, r.error)) : h('span', {}, 'Noch nicht geprüft');
-    return h('div', {class: 'item'}, h('div', {class: 't'}, h('b', {}, v), st),
+    // BF6: gefundene Spieler-ID als "Name#ID" in den Eintrag übernehmen (Abfrage per ID bleibt stabil, auch bei Namenswechsel)
+    const take = kind === 'bf6' && r && r.ok && r.id && !/#\d{6,}$/.test(v)
+      ? h('button', {class: 'btn sm', onclick: () => { const nv = v + '#' + r.id; cfg[sec][key][i] = nv; info[nv] = r; touch(); draw(); }}, 'ID übernehmen') : null;
+    return h('div', {class: 'item'}, h('div', {class: 't'}, h('b', {}, v), st), take,
       h('button', {class: 'btn sm', onclick: async e => { e.target.disabled = true; e.target.textContent = '…';
         info[v] = await api(`/api/check/${kind}?${kind === 'bf6' ? 'name' : 'url'}=${encodeURIComponent(v)}`); draw(); }}, 'Prüfen'),
       h('button', {class: 'btn sm', onclick: () => { cfg[sec][key].splice(i, 1); touch(); draw(); renderNav(); }}, 'Entfernen')); }));
@@ -466,10 +470,12 @@ function checkList(sec, key, kind, placeholder) {
   const inp = h('input', {type: 'text', placeholder});
   let plat = null;
   if (kind === 'bf6') plat = h('select', {style: 'min-width:130px'}, [['', 'PC (EA)'], ['@psn', 'PlayStation'], ['@xbox', 'Xbox']].map(([v, l]) => h('option', {value: v}, l)));
+  const idInp = kind === 'bf6' ? h('input', {type: 'text', inputmode: 'numeric', placeholder: T('Spieler-ID (optional)'), style: 'max-width:170px'}) : null;
   const add = () => { let v = inp.value.trim(); if (!v) return; if (plat) v += plat.value;
+    if (idInp && idInp.value.trim()) { const id = idInp.value.replace(/\D/g, ''); if (id.length < 6) return toast(T('Die Spieler-ID besteht aus mindestens 6 Ziffern.')); v += '#' + id; idInp.value = ''; }
     if (!cfg[sec][key].includes(v)) cfg[sec][key].push(v); inp.value = ''; touch(); draw(); renderNav(); };
   inp.addEventListener('keydown', e => e.key === 'Enter' && add());
-  return h('div', {}, list, h('div', {class: 'add'}, inp, plat, h('button', {class: 'btn', onclick: add}, 'Hinzufügen')));
+  return h('div', {}, list, h('div', {class: 'add'}, inp, plat, idInp, h('button', {class: 'btn', onclick: add}, 'Hinzufügen')));
 }
 /* ---------- Dauerhafter Verbindungsstatus (Discord, Steam, Xbox) ---------- */
 let connTimer = null;
@@ -586,7 +592,7 @@ function viewBf6() {
   return [...head('Battlefield 6', 'Die Rangliste deiner EA-Freunde. Eine Freundesliste gibt EA nicht heraus, deshalb trägst du die Namen hier ein.'),
     card('Seite', null, row('Seite anzeigen', null, toggle('bf6', 'enabled')),
       row('Aktualisieren alle', 'Wie oft die Werte neu geholt werden', range('bf6', 'refresh_minutes', 5, 120, 5, '% min'))),
-    card('Spieler', 'EA-ID eingeben, mit „Prüfen“ siehst du sofort, ob der Name gefunden wird.', checkList('bf6', 'players', 'bf6', 'EA-ID, z. B. P4p4F0x'),
+    card('Spieler', 'EA-ID eingeben (optional mit Spieler-ID). Mit „Prüfen“ siehst du, ob der Name gefunden wird und welche ID dazugehört.', checkList('bf6', 'players', 'bf6', 'EA-ID, z. B. P4p4F0x'),
       howto('Wo finde ich die EA-ID?', [
         ['Deine eigene: Klicke unten auf ', B('Meine EA-ID ansehen'), ' und melde dich an. Bei ', B('EA-ID'), ' steht dein Name.'],
         ['Oder in der ', B('EA app'), ': oben links auf dein Profilbild klicken.'],

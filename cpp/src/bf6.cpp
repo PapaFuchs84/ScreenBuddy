@@ -3,6 +3,8 @@
 
 #include <windows.h>
 
+#include <algorithm>
+
 #include "http.h"
 #include "util.h"
 
@@ -29,15 +31,59 @@ std::vector<std::string> name_candidates(const std::string& name) {
     return v;
 }
 
-std::pair<std::string, std::string> parse_entry(const std::string& entry) {
-    std::string e = trim(entry);
+Entry parse_entry_full(const std::string& entry) {
+    std::string e = trim(entry), id;
+    // "#id" am Ende: nur reine Ziffern ab 6 Stellen gelten als Spieler-ID (Gamertag-Zahlen wie "#1234" bleiben im Namen)
+    if (auto h = e.rfind('#'); h != std::string::npos && h > 0) {
+        std::string tail = e.substr(h + 1);
+        if (tail.size() >= 6 && std::all_of(tail.begin(), tail.end(), [](char c) { return c >= '0' && c <= '9'; })) {
+            id = tail;
+            e = trim(e.substr(0, h));
+        }
+    }
     auto at = e.rfind('@');
-    if (at == std::string::npos || at == 0) return {e, "pc"};
+    if (at == std::string::npos || at == 0) return {e, "pc", id};
     std::string name = e.substr(0, at), plat = lower_ascii(e.substr(at + 1));
-    if (!STATS_PLATFORM.count(plat)) return {e, "pc"};
-    return {name, plat};
+    if (!STATS_PLATFORM.count(plat)) return {e, "pc", id};
+    return {name, plat, id};
 }
 
+std::pair<std::string, std::string> parse_entry(const std::string& entry) {
+    Entry e = parse_entry_full(entry);
+    return {e.name, e.platform};
+}
+
+std::string json_id(const json& v) {
+    std::string s;
+    if (v.is_number_integer()) s = std::to_string(v.get<long long>());
+    else if (v.is_string()) s = trim(v.get<std::string>());
+    return s == "0" || s == "false" ? std::string() : s;
+}
+
+// Erstes vorhandenes Feld aus einer Schlüsselliste (die API benennt ID und Name je nach Endpunkt unterschiedlich)
+static const json* first_field(const json& o, std::initializer_list<const char*> keys) {
+    if (!o.is_object()) return nullptr;
+    for (const char* k : keys)
+        if (auto it = o.find(k); it != o.end() && !it->is_null()) return &*it;
+    return nullptr;
+}
+
+std::string pick_search_id(const json& response, const std::string& name) {
+    const json* list = &response;
+    if (response.is_object() && response.contains("results")) list = &response["results"];
+    if (!list->is_array()) return {};
+    std::string lname = lower_ascii(name), ci;
+    for (auto& item : *list) {
+        const json* n = first_field(item, {"name", "userName", "displayName", "platformUserHandle"});
+        const json* i = first_field(item, {"id", "playerId", "personaId", "nucleusId"});
+        if (!n || !n->is_string() || !i) continue;
+        std::string id = json_id(*i), got = n->get<std::string>();
+        if (id.empty()) continue;
+        if (got == name) return id;  // exakter Treffer gewinnt
+        if (ci.empty() && lower_ascii(got) == lname) ci = id;
+    }
+    return ci;
+}
 static std::optional<double> num(const json& j, const char* k) {
     if (!j.is_object() || !j.contains(k) || !j[k].is_number()) return std::nullopt;
     return j[k].get<double>();
@@ -161,26 +207,52 @@ ImagePtr Bf6Stats::icon(const std::string& url) {
 }
 
 Bf6Player Bf6Stats::fetch(const std::string& entry) {
-    auto [name, plat] = parse_entry(entry);
+    Entry en = parse_entry_full(entry);
+    const std::string& name = en.name;
     Bf6Player p;
     p.query = entry;
     p.name = name;
+    // ID aus dem Eintrag, sonst aus dem Speicher (frühere Namenssuche); mit ID wird per playerid abgefragt, der Name dient nur der Anzeige
+    std::string id = en.id;
+    if (id.empty()) {
+        std::lock_guard lk(mu_);
+        if (auto it = ids_.find(entry); it != ids_.end()) id = it->second;
+    }
     std::optional<json> stats;
-    std::string used_name = name, used_plat = platform_candidates(plat).front();  // für /profile
+    std::string used_name = name, used_plat = platform_candidates(en.platform).front();  // für /profile
+    bool by_name = false;  // Treffer kam aus der Namenssuche (nur dann wird die ID zurückgeschrieben)
+    auto usable = [](const std::optional<json>& r) {
+        return r && r->is_object() && !r->empty() &&
+               !(r->contains("hasResults") && (*r)["hasResults"].is_boolean() && !(*r)["hasResults"].get<bool>());
+    };
+    auto stats_by_id = [&](const std::string& sid, const std::vector<std::string>& pls) {
+        for (auto& pl : pls) {
+            if (stop_) return false;
+            auto r = get("stats", {{"playerid", sid}, {"platform", pl}, {"format_values", "false"}, {"categories", "multiplayer"}});
+            if (usable(r)) {
+                stats = std::move(r);
+                used_plat = pl;
+                return true;
+            }
+        }
+        return false;
+    };
     for (int i = 0; i < 2 && !stats; ++i) {  // die API antwortet gelegentlich sporadisch mit 404/500
         // zweite Runde (Wiederholung bei Aussetzern) nur mit dem ersten Paar, damit die API nicht überlastet wird
-        auto pls = platform_candidates(plat);
+        auto pls = platform_candidates(en.platform);
         auto nms = name_candidates(name);
         if (i > 0) { pls.resize(1); nms.resize(1); }
+        if (!id.empty() && stats_by_id(id, pls)) break;
+        if (stop_) return p;
         for (auto& pl : pls) {
             for (auto& nm : nms) {
                 if (stop_) return p;
                 auto r = get("stats", {{"name", nm}, {"platform", pl}, {"format_values", "false"}, {"categories", "multiplayer"}});
-                if (r && r->is_object() && !r->empty() &&
-                    !(r->contains("hasResults") && (*r)["hasResults"].is_boolean() && !(*r)["hasResults"].get<bool>())) {
+                if (usable(r)) {
                     stats = std::move(r);
                     used_name = nm;
                     used_plat = pl;
+                    by_name = true;
                     break;
                 }
             }
@@ -188,18 +260,39 @@ Bf6Player Bf6Stats::fetch(const std::string& entry) {
         }
         if (!stats && i == 0 && !sleep_for(2)) break;
     }
+    // Letzter Ausweg: Spielersuche; nimmt nur Treffer mit gleichem Namen (ohne Groß/Klein) und fragt dann per ID ab
+    if (!stats && !stop_) {
+        for (auto& nm : name_candidates(name)) {
+            auto r = get("player", {{"name", nm}, {"limit", "10"}});
+            std::string sid = r ? pick_search_id(*r, name) : std::string();
+            if (!sid.empty() && sid != id && stats_by_id(sid, platform_candidates(en.platform))) {
+                by_name = true;
+                break;
+            }
+        }
+    }
     if (stats) {
         p.kd = num(*stats, "killDeath");
         p.win_pct = num(*stats, "winPercent");
         p.kpm = num(*stats, "killsPerMinute");
         if (auto secs = num(*stats, "secondsPlayed"); secs && *secs) p.hours = *secs / 3600;
+        if (auto it = stats->find("id"); it != stats->end()) p.id = json_id(*it);
+        if (p.id.empty()) p.id = id;
+        // Auto-Heilung: gefundene ID merken und einmalig an den Aufrufer melden (Config), sofern der Name zur Antwort passt
+        const json* got = first_field(*stats, {"userName", "name"});
+        bool same = !got || !got->is_string() || got->get<std::string>().empty() || lower_ascii(got->get<std::string>()) == lower_ascii(name);
+        if (by_name && en.id.empty() && !p.id.empty() && same) {
+            bool first = false;
+            {
+                std::lock_guard lk(mu_);
+                first = ids_.emplace(entry, p.id).second;
+                if (!first) ids_[entry] = p.id;
+            }
+            if (first && on_heal_) on_heal_(entry, trim(entry) + "#" + p.id);
+        }
     }
     std::vector<std::vector<std::pair<std::string, std::string>>> tries;
-    if (stats && stats->contains("id") && !(*stats)["id"].is_null()) {
-        auto& id = (*stats)["id"];
-        std::string sid = id.is_string() ? id.get<std::string>() : id.dump();
-        if (!sid.empty() && sid != "0" && sid != "false") tries.push_back({{"playerid", sid}, {"platform", used_plat}});
-    }
+    if (!p.id.empty()) tries.push_back({{"playerid", p.id}, {"platform", used_plat}});
     tries.push_back({{"name", used_name}, {"platform", used_plat}});
     std::optional<json> pp;
     for (auto& params : tries) {

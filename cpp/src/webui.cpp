@@ -250,7 +250,7 @@ bool SettingsServer::start() {
         if (!p.error.empty()) return json_reply(res, {{"ok", false}, {"error", "Spieler nicht gefunden"}});
         auto opt = [](const std::optional<double>& v) { return v ? ojson(*v) : ojson(); };
         json_reply(res, {{"ok", true}, {"name", p.name}, {"rank", p.rank ? ojson(*p.rank) : ojson()}, {"rank_name", p.rank_name},
-                         {"kd", opt(p.kd)}, {"win_pct", opt(p.win_pct)}});
+                         {"kd", opt(p.kd)}, {"win_pct", opt(p.win_pct)}, {"id", p.id}});  // id: zum Übernehmen als "Name#id"
     });
     svr.Get("/api/check/rss", [](const httplib::Request& req, httplib::Response& res) {
         std::string url = trim(req.get_param_value("url"));
