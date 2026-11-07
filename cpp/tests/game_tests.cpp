@@ -1,6 +1,8 @@
 #include "game_detect.h"
 #include "game_logo.h"
 #include "game_intro.h"
+#include "sysinfo.h"
+#include "render_game.h"
 #include <windows.h>
 #include <fstream>
 #include <chrono>
@@ -51,5 +53,10 @@ int main(){try {
  fl::Image previous(160,100,{10,20,30}),target(160,100,{40,50,60});Intro intro;intro.begin(previous,10,false);
  check(intro.active(12.49));check(!intro.active(12.5));check(intro.draw(target,{},"Example",12.5).px==target.px);
  intro.begin(previous,20,true);check(intro.draw(target,{},"Example",20).px==previous.px);intro.reset();check(!intro.active(20));
+ fl::sysinfo::FrameHistory frames;check(!frames.stats(0).fps);frames.present(0);check(!frames.stats(0).fps);
+ for(int i=1;i<=120;++i)frames.present(i/60.);auto stats=frames.stats(2);check(stats.fps && std::abs(*stats.fps-60)<.01);check(stats.low && std::abs(*stats.low-60)<.01);check(stats.history.size()==120);
+ frames.present(1);check(frames.stats(2).history.size()==120);check(!frames.stats(4.01).fps);frames.present(5);check(!frames.stats(5).fps);frames.present(5.02);check(frames.stats(5.02).fps && !frames.stats(5.02).low);
+ for(const auto& block:fl::builtin::find("system")->blocks)if(block.tile_only){check(metric_tile(block.id));fl::custom::Layout layout;fl::custom::Tile tile;tile.source="system";tile.block=block.id;tile.zone={"tile",0,0,1,1};check(bool(fl::custom::single_builtin(tile,layout)));check(!draw_metric(tile,layout,480,320,fl::SysSnapshot{}).empty());}
+ check(metric_values(fl::SysSnapshot{}).at("fps").is_null());
  std::cout<<checks<<" game checks passed\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}

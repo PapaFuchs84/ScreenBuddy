@@ -105,7 +105,11 @@ const std::vector<Catalog>& catalogs() {
         make("bf6",{"BF6","BF6"},{spec("bf6.rangliste",{"Rangliste","Ranking"},false,"player"),spec("bf6.hinweis",{"Zustand","Status"},true)}),
         make("friends",{"Freunde","Friends"},{spec("freunde.liste",{"Freunde","Friends"},false,"profile"),spec("freunde.hinweis",{"Zustand","Status"},true)}),
         make("discord",{"Discord","Discord"},{spec("freunde.liste",{"Freunde","Friends"},false,"profile"),spec("freunde.hinweis",{"Zustand","Status"},true)}),
-        make("system",{"System","System"},{spec("system.cpu",{"CPU","CPU"}),spec("system.gpu",{"GPU","GPU"}),spec("system.ram",{"RAM","RAM"},false,"ram"),spec("system.datentraeger",{"Datenträger","Disk"},false,"disk"),spec("system.netz",{"Netzwerk","Network"},false,"network")}),
+        make("system",{"System","System"},{spec("system.cpu",{"CPU","CPU"}),spec("system.gpu",{"GPU","GPU"}),spec("system.ram",{"RAM","RAM"},false,"ram"),spec("system.datentraeger",{"Datenträger","Disk"},false,"disk"),spec("system.netz",{"Netzwerk","Network"},false,"network"),
+            tile_spec("system.fps",{"FPS · DXGI-Aufrufe","FPS · DXGI calls"}),tile_spec("system.frametime",{"Frametime · Verlauf","Frametime · History"}),tile_spec("system.fps_low",{"FPS · 1 % Low","FPS · 1% Low"}),
+            tile_spec("system.gpu_temp",{"GPU · Temperatur","GPU · Temperature"}),tile_spec("system.gpu_clock",{"GPU · Takt","GPU · Clock"}),tile_spec("system.gpu_fan",{"GPU · Lüfter","GPU · Fan"}),tile_spec("system.gpu_power",{"GPU · Leistung","GPU · Power"}),
+            tile_spec("system.vram",{"VRAM","VRAM"}),tile_spec("system.cpu_clock",{"CPU · Takt","CPU · Clock"}),tile_spec("system.cpu_cores",{"CPU · Kernlast","CPU · Per-core load"}),tile_spec("system.cpu_temp",{"CPU · Temperatur","CPU · Temperature"}),
+            tile_spec("system.ping",{"Ping","Ping"}),tile_spec("system.jitter",{"Ping · Jitter","Ping · Jitter"}),tile_spec("system.game_name",{"Spielname","Game name"}),tile_spec("system.game_time",{"Spielzeit","Session time"}),tile_spec("system.game_logo",{"Spiellogo","Game logo"})}),
         make("spotify",{"Spotify","Spotify"},{spec("spotify.cover",{"Cover","Cover"},false,"app"),spec("spotify.text",{"Titel und Interpret","Title and artist"}),spec("spotify.pegel",{"Pegel","Levels"}),spec("spotify.fortschritt",{"Fortschritt","Progress"}),spec("spotify.tasten",{"Tasten","Controls"},false,"command"),spec("spotify.hinweis",{"Zustand","Status"},true)})
     };
     return all;

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+P9-4: Dokumentierte, dynamisch geladene GPU-APIs und eigene ETW-Sitzung; Frame-Statistik und Katalog/Renderer mit Offline-Prüfungen. Kein vollständiger PresentMon-/Scanout-Ersatz.
+
 P9-3: Intro-Renderer und deterministische Zeit-/Fade-Prüfungen; App-Integration folgt in P9-5.
 
 P9-2: Logo-Cache mit Ablauf-, Beschädigungs- und URL-Prüfung; dynamisches EXE-Icon ohne Ausführung.

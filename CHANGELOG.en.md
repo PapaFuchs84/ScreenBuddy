@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+P9-4: 16 additional single system tiles for Game-Mode, DXGI Present-call cadence/frametime/1% low, NVML/AMD ADL/PDH, per-core CPU load/clock, VRAM and ICMP ping/jitter. Missing sources show n/a; standard pages unchanged.
+
 P9-3: 2.5-second intro with dimming, eased logo, shine and existing FadeCache; reduced transition without scaling/shine.
 
 P9-2: Steam logos from fixed public asset URLs, bounded local cache (7 days), executable icon fallback; retrieval reserved for background work.

@@ -29,6 +29,19 @@ ojson list_interfaces();   // [{"name", "description"}]
 ojson hwinfo_sensors();    // {"available", "temps", "fans"}
 std::pair<std::string, int> cpu_name();
 
+struct FrameStats {
+    std::optional<double> fps, frametime_ms, low;
+    std::deque<double> history;
+};
+// DXGI Present-call cadence, not scanout/displayed-frame FPS.
+class FrameHistory {
+public:
+    void present(double timestamp);
+    FrameStats stats(double now) const;
+    void clear() { times_.clear(); }
+private:
+    std::deque<double> times_;
+};
 class SysMonitor {
 public:
     explicit SysMonitor(const ojson& cfg);
@@ -36,6 +49,7 @@ public:
     void start();
     void stop();
     SysSnapshot snapshot();
+    void set_game_pid(uint32_t pid) { game_pid_=pid; }
     void sample();               // eine Messung (auch für --demo)
     const SysSnapshot& raw() const { return snap_; }
 
@@ -44,6 +58,7 @@ private:
     void sample_net();
     void sample_gpu();
     void sample_hwinfo();
+    void sample_ping();
 
     std::string net_adapter_, cpu_temp_sensor_, cpu_fan_sensor_;
     SysSnapshot snap_, published_;
@@ -56,6 +71,13 @@ private:
     uint64_t net_prev_in_ = 0, net_prev_out_ = 0;
     std::optional<uint32_t> net_idx_;
     double gpu_next_ = 0;
+    std::string ping_target_;
+    std::optional<double> ping_previous_;
+    std::atomic<uint32_t> game_pid_{0};
+    struct PresentTrace;
+    std::unique_ptr<PresentTrace> trace_;
+    struct GpuApi;
+    std::unique_ptr<GpuApi> gpu_;
     struct Pdh;
     std::unique_ptr<Pdh> pdh_;
 };

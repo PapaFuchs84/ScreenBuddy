@@ -50,3 +50,17 @@ P9-1: Erkennung und reine Parser implementiert; automatisierte Build-/Testprüfu
 P9-1 geprüft: Release-Build und 25 Offline-Prüfungen bestanden. P9-2: Logo-Cache implementiert; feste Steam-URLs, 7 Tage Ablauf, Größenlimit, Reparse-Punkt-Abweisung, EXE-Icon/Name als Fallback.
 
 P9-2 geprüft: 38 Offline-Prüfungen bestanden. P9-3: Intro-Renderer implementiert (2,5 s; reduziert 0,35 s), bestehender `FadeCache`/`blend_rect`. App-Anbindung in P9-5.
+
+P9-3 geprüft: 47 Offline-Prüfungen bestanden. P9-4 implementiert: 16 additive System-Kacheln, DXGI-ETW mit PID-/Swapchain-Filter, TEST-Ausschluss, begrenztem Verlauf, 1%-Low erst ab 100 Intervallen und n/a nach 2 s ohne Present. NVML/AMD ADL dynamisch aus System32; PDH-Fallback, CPU-Kernlast/Takt, ICMP (200 ms Timeout, IPv4, Jitter = absolute RTT-Differenz), VRAM via NVML bzw. PDH/DXGI-Kapazität. Standardseiten unverändert.
+
+## Nicht umgesetzt
+
+- Vollständige PresentMon-/DxgKrnl-Present-Auswertung für Scanout-/Display-FPS, D3D9/OpenGL/Vulkan ohne DXGI: der vorhandene Sammler misst ausdrücklich **DXGI-Present-Aufrufrate**, keine angezeigten Frames. Nicht unterstützte Ereignisse ergeben n/a. Ohne passende Rechte bleibt ETW n/a; keine automatische Rechteerhöhung. Fehlende Performance-Log-Users-Rechte ggf. administrativ einrichten, dann neu starten.
+- ADLX ist nicht zusätzlich integriert: AMD wird über dokumentierte ADL-OD5-/OD6-Leseaufrufe unterstützt, soweit vom Treiber angeboten. Nicht unterstützte einzelne Sensoren bleiben n/a. Kein Treiber-/Hardwareversprechen ohne physische Prüfung.
+- `QueryVideoMemoryInfo` wird bewusst nicht als globaler VRAM-Verbrauch verwendet: die API meldet Prozessbudget/-verbrauch des Aufrufers. Ersatz: NVML für ersten NVIDIA-Adapter, sonst PDH Dedicated Usage plus DXGI DedicatedVideoMemory (über Adapter aggregiert). Keine Zuordnung dieser Werte zum Spielprozess oder automatische Auswahl der vom Spiel benutzten GPU.
+
+## Schnittstellenbelege
+
+- [Windows Prozessrechte](https://learn.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights), [Vollbildstatus](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shqueryusernotificationstate).
+- [NVML Device Queries](https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html), [AMD ADL OD5](https://gpuopen-librariesandsdks.github.io/adl/group__OVERDRIVE5API.html), [ADL AdapterInfo](https://gpuopen-librariesandsdks.github.io/adl/structAdapterInfo.html).
+- [DXGI-Eventmetadaten, PresentMon/MIT](https://github.com/GameTechDev/PresentMon/blob/main/PresentData/ETW/Microsoft_Windows_DXGI.h), [ICMP](https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpsendecho). Keine libre-panel-Quellen eingesehen/verwendet.

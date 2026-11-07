@@ -1,3 +1,4 @@
+#include "render_game.h"
 // © 2026 FuchsLabs
 #include "app.h"
 #include "custom_view.h"
@@ -541,6 +542,11 @@ std::optional<Image> App::custom_preview(const custom::View& view,const std::str
     std::lock_guard lock(render::mutex());render::apply_theme(dp_);
     RendererSet rs(width,height,cfg_);using namespace render::samples;
     return custom::draw(view,device,width,height,[&](const custom::Tile& tile,const custom::Layout& layout,int w,int h)->std::optional<Image> {
+        if(tile.source=="system" && game::metric_tile(tile.block)) {
+            auto snap=system();snap.fps=120;snap.frametime_ms=8.33;snap.fps_low=90;snap.gpu_mhz=2400;snap.gpu_watts=180;snap.ping_ms=12;snap.jitter_ms=1;snap.cpu_cores={24,50,80,12};snap.frametime_hist={8,9,8,12,7,8};
+            if(!custom::visible(tile,game::metric_values(snap,"Example Game",3600)))return {};
+            return game::draw_metric(tile,layout,w,h,snap,"Example Game",3600);
+        }
         if(tile.source=="ai") {
             auto overlay=custom::single_builtin(tile,layout);const auto snap=render::samples::ai_status();
             if(!overlay || !custom::visible(tile,ai::tile_values(snap,CLOCK))) return {};
@@ -977,6 +983,11 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                     auto arrangement=custom::single_builtin(tile,layout);
                     if(!arrangement) return {};
                     using Json=plugins::Json;
+                    if(tile.source=="system" && game::metric_tile(tile.block)) {
+                        auto snap=sys_?sys_->snapshot():SysSnapshot{};
+                        if(!custom::visible(tile,game::metric_values(snap)))return {};
+                        return custom::TileDraw{game::draw_metric(tile,layout,w,h,snap)};
+                    }
                     if(tile.source=="system" && sys_) {
                         auto snap=sys_->snapshot();Json data=Json::object();
                         auto add=[&](const char* key,const auto& value){if(value) data[key]=*value;};
