@@ -23,6 +23,7 @@ API = "https://api.gametools.network/bf6"
 # Plattform-Kürzel in der Config → Werte der Stats-API in Reihenfolge der Versuche (wie cpp/src/bf6.cpp).
 # Seit Nov. 2026 antwortet die API für PC-Konten nur noch mit "pc" ("ea" liefert 404); "ea" bleibt als Rückfall.
 _PC, _PSN, _XBOX = ["pc", "ea"], ["psn", "ps5", "ps4"], ["xboxseries", "xboxone", "xbox"]
+SOURCE_DOWN = "Quelle gestört"     # HTTP 5xx der API: sagt nichts darüber, ob der Spieler existiert
 STATS_PLATFORM = {"pc": _PC, "ea": _PC, "steam": _PC, "epic": _PC,
                   "psn": _PSN, "ps": _PSN, "xbox": _XBOX, "xbl": _XBOX}
 
@@ -37,7 +38,7 @@ class Bf6Player:
     kpm: float | None = None
     hours: float | None = None
     rank_icon: Image.Image | None = field(default=None, repr=False)
-    error: str = ""                     # z. B. "nicht gefunden"
+    error: str = ""                     # z. B. "nicht gefunden" bzw. "Quelle gestört" (HTTP 5xx)
     id: str = ""                        # gefundene Spieler-ID (zum Übernehmen als "Name#id")
 
 
@@ -59,6 +60,15 @@ def parse_entry(entry: str) -> tuple[str, str]:
     """"Name" oder "Name@psn" (jeweils auch mit "#id") → (Name, Plattform)."""
     name, plat, _ = parse_entry_full(entry)
     return name, plat
+
+
+def is_server_error(status: int) -> bool:
+    """HTTP 5xx = Quelle gestört (404 und Netzwerkfehler zählen nicht)."""
+    return 500 <= status <= 599
+
+
+def failure_text(source_down: bool) -> str:
+    return SOURCE_DOWN if source_down else "nicht gefunden"
 
 
 def platform_candidates(plat: str) -> list[str]:
@@ -139,9 +149,11 @@ class Bf6Stats:
                 on_update()
                 await asyncio.sleep(self.refresh)
 
-    async def _get(self, s: aiohttp.ClientSession, path: str, **params) -> dict | None:
+    async def _get(self, s: aiohttp.ClientSession, path: str, _outage: list | None = None, **params) -> dict | None:
         try:
             async with s.get(f"{API}/{path}/", params=params) as r:
+                if _outage is not None and is_server_error(r.status):
+                    _outage.append(r.status)
                 if r.status != 200:
                     log.debug("BF6 %s %s → HTTP %s", path, params, r.status)
                     return None
@@ -155,7 +167,8 @@ class Bf6Stats:
         p = Bf6Player(entry, name)
         pid = pinned or self._ids.get(entry, "")   # mit ID wird per playerid abgefragt, der Name dient nur der Anzeige
         stats, used_plat, used_name, by_name = None, platform_candidates(plat)[0], name, False
-        common = dict(format_values="false", categories="multiplayer")
+        outage: list[int] = []   # HTTP-5xx-Antworten: "nicht gefunden" ist dann nicht belegt
+        common = dict(format_values="false", categories="multiplayer", _outage=outage)
 
         async def by_id(sid: str, pls: list[str]) -> bool:
             nonlocal stats, used_plat
@@ -186,7 +199,7 @@ class Bf6Stats:
                 await asyncio.sleep(2)
         if not stats:  # Letzter Ausweg: Spielersuche, nur Treffer mit gleichem Namen
             for nm in name_candidates(name):
-                sid = pick_search_id(await self._get(s, "player", name=nm, limit=10), name)
+                sid = pick_search_id(await self._get(s, "player", _outage=outage, name=nm, limit=10), name)
                 if sid and sid != pid and await by_id(sid, platform_candidates(plat)):
                     by_name = True
                     break
@@ -208,7 +221,7 @@ class Bf6Stats:
         pp = None
         tries = ([{"playerid": p.id, "platform": used_plat}] if p.id else []) + [{"name": used_name, "platform": used_plat}]
         for params in tries:
-            pp = _profile(await self._get(s, "profile", **params))
+            pp = _profile(await self._get(s, "profile", _outage=outage, **params))
             if pp:
                 break
         if pp:
@@ -217,8 +230,8 @@ class Bf6Stats:
             p.rank_name = pp.get("rankName") or card.get("rankName") or ""
             p.rank_icon = await self._icon(s, (card.get("rankImage") or {}).get("small"))
         if not stats and not pp:
-            p.error = "nicht gefunden"
-            # Bei Netzwerkfehlern lieber die alten Werte behalten
+            p.error = failure_text(bool(outage))
+            # Bei Netzwerkfehlern und gestörter Quelle (5xx) lieber die alten Werte behalten; _ids bleibt unberührt
             old = next((o for o in self.players if o.query == entry and (o.rank or o.kd) is not None), None)
             if old:
                 return old

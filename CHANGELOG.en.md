@@ -12,6 +12,8 @@ P9-8: Reserve the selected Game-Mode view from normal rotation, Companion naviga
 
 P9-7: Read-only library discovery for GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard and Rockstar. Replaceable registry access, synthetic parser/filter tests, fullscreen gate also for GOG/Epic EXE matches; extended launcher/anti-cheat exclusions. DE/EN docs and help updated; validation and pending real launcher acceptance in the [plan](docs/PLAN-GAME-MODE.md).
 
+BF6 leaderboard: when the source (gametools) answers with HTTP 5xx, the app now shows "source unavailable" instead of "not found" (leaderboard, "Check", web UI); the last good values and remembered IDs are kept. Network errors and 404 behave as before. A player's touch/web link with an ID now opens `tracker.gg/bf6/profile/<ID>/overview` (same ID as gametools).
+
 P9-6: 26 automated suites passed, including 114 Game-Mode checks; isolated dummy simulation on UI 18766 produced intro/active/restored previews and passed. AI receiver disabled because 18765 was occupied. PresentMon/hardware limits and unexecuted installer tests in the [plan](docs/PLAN-GAME-MODE.md).
 
 P9-5: Game-Mode settings, display/view selection, additional games/exclusions, editor template and palette. Background discovery with asynchronous logos, intro and paused normal rotation; rotation resumes after the game ends. DE/EN usage and embedded guides synchronized. Local development, no release.

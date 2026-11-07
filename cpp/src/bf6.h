@@ -33,6 +33,10 @@ std::string pick_search_id(const nlohmann::json& response, const std::string& na
 std::vector<std::string> platform_candidates(const std::string& plat);
 // Namensvarianten: Original, danach klein geschrieben (die API findet manche Konten nur so)
 std::vector<std::string> name_candidates(const std::string& name);
+// HTTP 5xx der API = Quelle gestört (sagt nichts darüber, ob der Spieler existiert); 404 und Netzwerkfehler (Status 0) nicht
+bool is_server_error(int status);
+// Fehlertext eines Spielers ohne Werte: "Quelle gestört" bei 5xx, sonst "nicht gefunden"
+std::string failure_text(bool source_down);
 
 class Bf6Stats {
 public:
@@ -47,7 +51,9 @@ public:
     void set_on_heal(std::function<void(const std::string& entry, const std::string& healed)> f) { on_heal_ = std::move(f); }
 
 private:
-    std::optional<nlohmann::json> get(const std::string& path, const std::vector<std::pair<std::string, std::string>>& params);
+    // server_error (optional) wird bei HTTP 5xx auf true gesetzt (sonst unverändert)
+    std::optional<nlohmann::json> get(const std::string& path, const std::vector<std::pair<std::string, std::string>>& params,
+                                      bool* server_error = nullptr);
     ImagePtr icon(const std::string& url);
     bool sleep_for(double seconds);
 

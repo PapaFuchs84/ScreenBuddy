@@ -58,7 +58,8 @@ private:
             Bf6Player p = stats.fetch(name);
             Text message;
             Label::Tone tone = Label::Danger;
-            if (!p.error.empty()) message = T(L"Spieler nicht gefunden.", L"Player not found.");
+            if (p.error == bf6::failure_text(true)) message = T(L"Quelle gestört – später erneut prüfen.", L"Source unavailable – try again later.");
+            else if (!p.error.empty()) message = T(L"Spieler nicht gefunden.", L"Player not found.");
             else {
                 std::wstring kd = p.kd ? L", K/D " + widen(strprintf("%.2f", *p.kd)) : L"";
                 // Gefundene ID anzeigen: als „Name#ID“ in die Liste übernehmen, dann bleibt die Abfrage stabil

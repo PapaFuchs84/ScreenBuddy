@@ -93,10 +93,10 @@ Targets player_targets(const Bf6Player& player) {
     // Die Webseite kennt andere Plattformkürzel als die Stats-API ("ea" ergibt dort eine leere Seite).
     std::string web_platform = platform == "ps" || platform == "psn" ? "ps4" :
                                platform == "xbox" || platform == "xbl" ? "xboxone" : "pc";
-    // Mit Spieler-ID (aus dem Eintrag oder von der Abfrage) zeigt der Link auf die ID-Seite – unabhängig vom Namen
+    // Mit Spieler-ID (aus dem Eintrag oder von der Abfrage) zeigt der Link auf tracker.gg (gleiche ID) – unabhängig vom Namen
     if (id.empty()) id = player.id;
     if (!id.empty() && std::all_of(id.begin(), id.end(), [](char c) { return c >= '0' && c <= '9'; }))
-        return {{"https://gametools.network/stats/" + web_platform + "/playerid/" + id + "?game=bf6", ""}};
+        return {{"https://tracker.gg/bf6/profile/" + id + "/overview", ""}};
     return {{"https://gametools.network/stats/" + web_platform + "/name/" + http::url_encode(name) + "?game=bf6", ""}};
 }
 

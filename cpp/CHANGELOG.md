@@ -8,6 +8,8 @@ P9-8: Reservierte Game-Ansicht aus normalen Seiten-/Tap-Listen filtern; Intro im
 
 P9-7: Fünf weitere lesende Spielebibliotheken, austauschbare HKLM-Registry-Abfragen, begrenzter Battle.net-Ordner-Fallback, Launcher-/Anti-Cheat-Filter und Vordergrund-/Vollbildprüfung für Registry- und Epic-EXE-Treffer. Synthetische Tests unter `tests/game_tests/`; DE/EN-Dokumentation und eingebettete Hilfen. Echte Launcher-/Hardwareabnahme bleibt offen; [Prüfstand](../docs/PLAN-GAME-MODE.md#p9-7-weitere-spielebibliotheken).
 
+BF6: HTTP 5xx der API ergibt den Status „Quelle gestört“ (`bf6::is_server_error`, `bf6::failure_text`; EN „source unavailable“) statt „nicht gefunden“, auch in „Prüfen“ (`ui_page_bf6.cpp`, `webui.cpp`); alte Werte und `ids_` bleiben unberührt, Netzwerkfehler/404 unverändert. Touch-Link mit ID: `https://tracker.gg/bf6/profile/<ID>/overview`. Tests: `test_bf6_platforms`, `test_touch_targets`.
+
 P9-6: 26/26 Prüfsuiten und isolierter Dummy-Test bestanden; reproduzierbare Start-/Prüfskripte, lokaler Bildnachweis und ehrlicher Prüfstatus im [Game-Mode-Plan](../docs/PLAN-GAME-MODE.md). Keine EXE direkt gestartet/installiert, kein Test auf 8765, keine hörbaren Töne, kein Push/Release.
 
 P9-5: Runtime/Display-Override, native Einstellungen, Editor-Vorlage, Konfigurationsvalidierung und DE/EN-Hilfen. Historische Editor-Snapshots bleiben erhalten; neue P9-Referenzen. Steam-VDF unterstützt leere Felder. 114 Game-Unit-Prüfungen und isolierte Dummy-Simulation bestanden; Gesamtlauf siehe Plan.
