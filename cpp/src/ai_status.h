@@ -58,7 +58,7 @@ UsageResult endpoint_usage(bool claude, const Json& reply);
 // Explicit path and transport allow offline tests; production calls only fixed HTTPS hosts.
 UsageResult login_usage(bool claude, const std::filesystem::path& file, const UsageTransport& transport);
 using UsageQuery = std::function<UsageResult(bool claude)>;
-int usage_delay(bool success); // seconds, per provider
+int usage_delay(bool success, const std::string& reason = {}); // seconds, per provider
 std::string usage_reason(const std::string& reason);
 class UsageWorker {
 public:

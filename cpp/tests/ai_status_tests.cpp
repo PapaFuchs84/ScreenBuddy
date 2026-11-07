@@ -351,7 +351,7 @@ int test_ai_cli(bool real) {
         }
         auto badPercent=codexReply;badPercent["rate_limit"]["primary_window"]["used_percent"]="secret-error";
         AI_CHECK(ai::endpoint_usage(false,badPercent).reason=="invalid_data");
-        AI_CHECK(ai::usage_delay(true)==180);AI_CHECK(ai::usage_delay(false)==900);
+        AI_CHECK(ai::usage_delay(true)==180);AI_CHECK(ai::usage_delay(false)==900);AI_CHECK(ai::usage_delay(false,"expired_claude")==60);
         const auto login=temp.dir/L"synthetic-login.json";
         int requests=0;int responseStatus=200;bool responseMalformed=false,oversize=false;
         ai::UsageTransport transport=[&](bool claude,std::string_view token,std::string_view account) {

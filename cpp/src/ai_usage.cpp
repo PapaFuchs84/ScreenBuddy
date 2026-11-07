@@ -180,7 +180,11 @@ std::optional<int64_t> iso_reset(const std::string& s) {
     auto t=_mkgmtime64(&tm);if(t<0 || tm.tm_mon!=m-1 || tm.tm_mday!=d) return {};return t-offset;
 }
 }
-int usage_delay(bool success){return success?180:900;}
+int usage_delay(bool success,const std::string& reason){
+    // Abgelaufenes Token: Claude/Codex erneuern es selbst beim Start. Lokale Pruefung ist billig, daher schnell erneut lesen.
+    if(!success && (reason=="expired_claude" || reason=="expired_codex")) return 60;
+    return success?180:900;
+}
 UsageResult endpoint_usage(bool claude,const Json& reply) {
     UsageResult out;out.source=claude?"claude-oauth-usage":"codex-wham-usage";
     try {
@@ -410,7 +414,7 @@ struct UsageWorker::Impl {
                     }
                 } catch(...) {result.reason="usage_failed";}
                 if(enabled) model.usage(claude?"claude":"codex",result.metrics,result.source,result.reason,std::time(nullptr));
-                lock.lock();next[i]=std::chrono::steady_clock::now()+std::chrono::seconds(usage_delay(result.ok));
+                lock.lock();next[i]=std::chrono::steady_clock::now()+std::chrono::seconds(usage_delay(result.ok,result.reason));
             }
         }
     }
