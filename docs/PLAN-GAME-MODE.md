@@ -105,3 +105,22 @@ Prüfstand am 07.11.2026:
 | Nicht ausgeführt | Keine neue App-/Dummy-Integration, keine echten Launcher-/Spielstarts, kein physischer Display-/Touch-/Sensor-/Anti-Cheat-Abnahmetest, kein Installer/Upgrade/Release. Keine App-EXE gestartet, keine Tests gegen 8765, keine hörbaren Töne, kein Push. Der historische P9-6-Integrationsnachweis oben bleibt unverändert. |
 
 Ergebnisdateien bleiben lokal unter `cpp/build/game-mode-checks/`; keine Konfigurationen, Logs oder privaten Screenshots werden eingecheckt.
+
+## P9-8 Rotation, Logos und Spielkacheln
+
+Lokale Entwicklung auf `feature/game-mode`, Basis `8822084`; kein Release. `active_pages()` reserviert die konfigurierte Game-Ansicht bei aktiviertem Game-Mode für alle Ausgaben einschließlich Companion-Gerätelisten und Tap-Freigaben. Der Game-Mode-/Intro-Pfad bleibt unverändert. Bei deaktiviertem Game-Mode ist die Ansicht wieder normal verfügbar.
+
+Direkte EXE-Icon-Extraktion bis 256 px vor Shell-Fallback; passende AppxManifest-Logos mit Größenvarianten vor EXE-Fallback. Keine zusätzliche UWP-Spielerkennung. Einheitlicher Spielkachel-Renderer einschließlich CPU/GPU, adaptive größere Typografie, Vorlage mit Kopfzeile und 3×3 Metriken, FPS-/Frametime-Sparklines aus bis zu 60 Sekundenwerten (Lücken bei fehlenden Daten, Reset bei Prozesswechsel). Bestehende gespeicherte Ansichten bleiben erhalten.
+
+Prüfstand am 07.11.2026:
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Build | MSVC/CMake/Ninja-Release-Build erfolgreich; lokale Entwicklungsartefakte, keine Auslieferung. |
+| Automatisierte Suiten | **26/26 bestanden** über `python cpp/tests/game_mode_checks.py`; darunter **207 Game-Mode**, **2143 Custom-View** und **1874 Layout-/UI-Prüfungen**. Reservation bei expliziten/automatisch ergänzten Ansichten, Companion-Gerätelisten, Tap-Freigaben und deaktiviertem Game-Mode geprüft. Synthetische Paket-Assets mit größter Größenvariante, EXE-Icon-/GOG-/Ubisoft-Codepfad und 60-Sekunden-Verlauf einschließlich Lücken/Prozesswechsel geprüft. |
+| App-Integration | `python cpp/tests/game_mode_integration.py` über `Start-GameMode-Test.ps1`, ausschließlich UI **18766**, KI deaktiviert. Je acht Seitenwechsel vor/nach Dummy-Spiel ohne Game-Ansicht; erkannter Dummy zeigt die Game-Ansicht; nach Spielende Rückkehr, bei deaktiviertem Game-Mode normale Rotation. Drei unterschiedliche Intro-Frames aus `/api/preview.png` und anschließender Ansichtsframe bestätigt. |
+| Bildreferenzen | P9-Custom-Editor-/Game-Mode-Hashes bewusst aktualisiert; zusätzliche gerenderte Vorlagen in DE/EN bei 480×320 und 1520×720. Die deutschen Renderbilder beider Größen sowie Intro/Rückkehr angesehen. Andere Referenzdateien unverändert. |
+| Dokumentation | Game-Mode DE/EN und drei Changelogs aktualisiert; lokale Ziele ihrer Markdown-Links und `git diff --check` geprüft. README-/Versions-/Download-/Laufzeitangaben bleiben beim bisherigen Entwicklungs-/Release-Stand. |
+| Nicht ausgeführt | Keine echten GOG-/Ubisoft-/Xbox-/UWP-Spielstarts oder deren Logoabnahme; keine physischen Display-/Touch-/Sensor-/Anti-Cheat-Tests. Der gleiche komponierte Intro-Frame geht an Ausgabe und `last_frame()`, der Software-Test ersetzt keine physische Bestätigung. Kein Installer/Upgrade/Release, keine Tests auf 8765, keine Töne, kein Push. |
+
+Ergebnisse und anonyme Testbilder bleiben lokal unter `cpp/build/game-mode-checks/`, `cpp/build/game-mode-test/` und `cpp/build/screenbuddy-release/p9-ui-snapshots/`. Keine Konfigurationen, Logs oder privaten Screenshots eingecheckt.

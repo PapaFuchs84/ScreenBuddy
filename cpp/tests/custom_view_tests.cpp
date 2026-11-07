@@ -61,6 +61,22 @@ int main() try {
     App app(cfg,root/"config.toml",nullptr,root/"preview");
     CHECK(app.active_pages()==std::vector<std::string>{"custom:overview"});CHECK(app.active_pages(true)==std::vector<std::string>{"custom:overview"});
     const std::vector<std::string> own={"custom:missing"};CHECK(app.active_pages(true,&own).empty());
+    // P9-8: explicit/implicit pages, Companion overrides and tap grants share the reservation.
+    for(bool explicit_page:{false,true})for(bool enabled:{false,true}) {
+        auto game_cfg=cfg;game_cfg["game_mode"]["enabled"]=enabled;game_cfg["game_mode"]["view"]="custom:overview";
+        if(!explicit_page){game_cfg["display"]["pages"]=ojson::array();game_cfg["display"]["visible_pages"]=ojson::array();game_cfg["companion"]["pages"]=ojson::array();}
+        App reserved(game_cfg,root/"config.toml",nullptr,root/"preview");
+        const std::vector<std::string> device_pages={"custom:overview"};
+        for(auto allowed:{reserved.active_pages(),reserved.active_pages(true),reserved.active_pages(true,&device_pages)}) {
+            CHECK((std::find(allowed.begin(),allowed.end(),"custom:overview")==allowed.end())==enabled);
+            custom::Tile target;target.source="system";target.tap=custom::Tap{"page","custom:overview",""};
+            custom::DrawOut drawn;bool switched=false;
+            auto tap=custom::tap_override("other",{allowed,{},[&](const std::string&){switched=true;}});
+            CHECK(tap(target,{0,0,100,100},drawn)==!enabled);
+            CHECK(drawn.targets.empty()==enabled);
+            if(!drawn.targets.empty()){drawn.targets.front().action();CHECK(switched);}
+        }
+    }
     CHECK(config::defaults()["display"]["pages"]==ojson(config::PAGES));CHECK(config::PAGES==std::vector<std::string>({"system","friends","discord","bf6","rss","streaming","homeassistant","spotify","ai"}));
     gfx_init();SysSnapshot snap;snap.cpu_pct=42;snap.ram_pct=23;
     render::SysRenderer renderer(480,320,"System","bit");

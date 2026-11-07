@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+P9-8: Reserve the selected Game-Mode view from normal rotation, Companion navigation and tap destinations while enabled. Direct EXE icons/package logos, consistent game cards, larger values, updated template and 60-second FPS/frametime sparklines. Isolated rotation/intro checks and synthetic regression tests; real games and physical displays remain pending.
+
 P9-7: Read-only library discovery for GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard and Rockstar. Replaceable registry access, synthetic parser/filter tests, fullscreen gate also for GOG/Epic EXE matches; extended launcher/anti-cheat exclusions. DE/EN docs and help updated; validation and pending real launcher acceptance in the [plan](docs/PLAN-GAME-MODE.md).
 
 P9-6: 26 automated suites passed, including 114 Game-Mode checks; isolated dummy simulation on UI 18766 produced intro/active/restored previews and passed. AI receiver disabled because 18765 was occupied. PresentMon/hardware limits and unexecuted installer tests in the [plan](docs/PLAN-GAME-MODE.md).

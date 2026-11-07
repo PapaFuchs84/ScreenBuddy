@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <fstream>
 #include <chrono>
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 using namespace fl::game;
@@ -62,7 +63,27 @@ int main(){try {
  frames.present(1);check(frames.stats(2).history.size()==120);check(!frames.stats(4.01).fps);frames.present(5);check(!frames.stats(5).fps);frames.present(5.02);check(frames.stats(5.02).fps && !frames.stats(5.02).low);
  for(const auto& block:fl::builtin::find("system")->blocks)if(block.tile_only){check(metric_tile(block.id));fl::custom::Layout layout;fl::custom::Tile tile;tile.source="system";tile.block=block.id;tile.zone={"tile",0,0,1,1};check(bool(fl::custom::single_builtin(tile,layout)));check(!draw_metric(tile,layout,480,320,fl::SysSnapshot{}).empty());}
  check(metric_values(fl::SysSnapshot{}).at("fps").is_null());
- auto templ=fl::custom::game_mode_template("test-game");check(bool(fl::custom::parse(fl::custom::to_json(templ).dump())));check(templ.standard.tiles.size()==9);
+ auto templ=fl::custom::game_mode_template("test-game");check(bool(fl::custom::parse(fl::custom::to_json(templ).dump())));check(templ.standard.tiles.size()==12);
+ fl::sysinfo::MetricHistory history;fl::SysSnapshot readings;
+ for(int i=0;i<75;++i){readings.fps=60+i;readings.frametime_ms=1000./(60+i);history.sample(readings,123,i);}
+ check(readings.fps_hist.size()==60 && readings.fps_hist.front()==75 && readings.fps_hist.back()==134);
+ check(readings.frametime_hist.size()==60);
+ readings.fps.reset();readings.frametime_ms.reset();history.sample(readings,123,77);
+ check(std::isnan(readings.fps_hist.back()) && std::isnan(readings.fps_hist[58]));
+ history.sample(readings,124,78);check(readings.fps_hist.size()==1);
+ const auto package=std::filesystem::current_path()/L"cpp/build/game-package-test";
+ std::filesystem::create_directories(package/L"Assets");
+ {std::ofstream f(package/L"AppxManifest.xml");f<<R"(<Package><Applications><Application Executable="game.exe"><uap:VisualElements Square44x44Logo="Assets/logo.png"/></Application></Applications></Package>)";}
+ for(auto size:{44,256}){auto bytes=fl::encode_png(fl::Image(size,size,{20,40,60}));std::ofstream f(package/L"Assets"/(size==44?L"logo.png":L"logo.targetsize-256.png"),std::ios::binary);f.write(bytes.data(),bytes.size());}
+ auto exe_icon=executable_icon(std::filesystem::current_path()/L"cpp/build/screenbuddy-release/ScreenBuddy.exe");check(exe_icon && exe_icon->w==256);
+ for(auto id:{"gog:example","ubisoft:example"}){Game local;local.id=id;local.executable=std::filesystem::current_path()/L"cpp/build/screenbuddy-release/ScreenBuddy.exe";check(bool(cache.load(local)));}
+ Game packaged;packaged.id="xbox:example";packaged.executable=package/L"game.exe";check(bool(cache.load(packaged)));
+ auto asset=package_logo(package/L"game.exe");check(asset && asset->w==256);check(!package_logo(package/L"other.exe"));
+ std::filesystem::remove_all(package);
+ fl::custom::Layout metric_layout;fl::custom::Tile metric;metric.source="system";metric.zone={"metric",0,0,1,1};
+ readings.fps=120;readings.fps_hist={90,120,110};metric.block="system.fps";
+ auto with_history=draw_metric(metric,metric_layout,480,320,readings);readings.fps_hist.clear();
+ check(with_history.px!=draw_metric(metric,metric_layout,480,320,readings).px);
  auto cfg=fl::config::defaults();check(cfg["game_mode"]["enabled"]==false);
  auto configured=fl::config::merge(cfg,{{"game_mode",{{"enabled",true},{"view","custom:test-game"},{"ping_target","127.0.0.1"},{"additional_games","C:\\Games\\Example.exe\nD:\\Games\\Other.exe"}}}});
  check(configured["game_mode"]["view"]=="custom:test-game");check(configured["game_mode"]["additional_games"].get<std::string>().find('\n')!=std::string::npos);

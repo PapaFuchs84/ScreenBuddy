@@ -93,3 +93,15 @@ Unit tests check the logic; a dummy-process simulation checks isolated app integ
 Validation on 2026-11-07: 26 automated suites and the isolated dummy simulation passed. The project launcher is `cpp/tests/Start-GameMode-Test.ps1`; run `python cpp/tests/game_mode_integration.py`. UI 18766; AI stayed disabled because 18765 was occupied. Preview images remain local under `cpp/build/game-mode-test/`. The plan records full validation and pending real-game/hardware acceptance.
 
 P9-7: The five additional registry sources and exclusions are covered by synthetic unit tests (196 Game-Mode checks in total); no real launcher/game or hardware acceptance was performed for this change. Current full-suite result and limits: [P9-7 validation](PLAN-GAME-MODE.md#p9-7-weitere-spielebibliotheken).
+
+## P9-8
+
+While Game-Mode is enabled, its selected view is reserved on all outputs: normal rotation, navigation, Companion page lists and page-tap destinations exclude it. Only the Game-Mode path displays it. Disabling Game-Mode makes it a normal page again.
+
+Non-Steam games (including GOG/Ubisoft) use the running executable's directly extracted icon at up to 256 pixels. A matching `Application Executable` in a nearby `AppxManifest.xml` first supplies package logos, including size variants; fallback order is EXE icon, shell icon and name. Missing permissions or unresolved package resources remain fallback cases; this does not extend game detection.
+
+The new template has logo, name and session time above nine metrics in three columns. Existing saved layouts are preserved; create a new view from the template to adopt it. Game tiles including CPU/GPU share cards, corner radii, orange titles and larger values. FPS/frametime show up to 60 one-second samples when tile height and density above Compact allow it. Invalid samples leave gaps; process changes clear the history. The ten-second ETW statistics window is unchanged.
+
+The intro is composed into the regular output frame, stored in `last_frame()` and visible through `/api/preview.png`. The isolated port-18766 test checks distinct intro frames and the subsequent view frame. This proves the software path, not physical display output.
+
+P9-8 validation: 26/26 suites (207 Game-Mode checks) and isolated dummy/intro integration on 18766 passed. Real launcher logos and physical displays were not tested; see the [validation record](PLAN-GAME-MODE.md#p9-8-rotation-logos-und-spielkacheln).

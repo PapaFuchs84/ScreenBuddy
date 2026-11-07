@@ -22,7 +22,7 @@ TilePalette::TilePalette() {
 }
 
 std::string TilePalette::source_category(const std::string& source,const std::string& block) {
-    if(source=="system" && game::metric_tile(block))return "game";
+    if(source=="system" && block!="system.cpu" && block!="system.gpu" && game::metric_tile(block))return "game";
     return source.starts_with("plugin:")?"plugin:":source;
 }
 

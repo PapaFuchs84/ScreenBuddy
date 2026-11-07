@@ -62,7 +62,7 @@ struct SysSnapshot {
     std::vector<double> cpu_cores;
     std::optional<double> gpu_mhz, gpu_watts, ping_ms, jitter_ms;
     std::optional<double> fps, frametime_ms, fps_low;
-    std::deque<double> frametime_hist;
+    std::deque<double> frametime_hist, fps_hist;
     std::string fps_reason = "no_game";
 
     std::string cpu_name = "CPU";

@@ -93,3 +93,15 @@ Unit-Tests prüfen die Logik; eine Dummy-Prozess-Simulation prüft die isolierte
 Prüfung am 07.11.2026: 26 automatisierte Suiten und die isolierte Dummy-Simulation bestanden. Das Startskript liegt nun im Projekt unter `cpp/tests/Start-GameMode-Test.ps1`; Aufruf mit `python cpp/tests/game_mode_integration.py`. UI 18766; KI blieb wegen belegtem 18765 ausgeschaltet. Aktuelle Vorschaubilder liegen nur lokal unter `cpp/build/game-mode-test/`. Vollständiger Prüfstand und offene echte Spiel-/Hardwareabnahme im Plan.
 
 P9-7: Die fünf zusätzlichen Registry-Quellen und Ausschlüsse sind durch synthetische Unit-Tests abgedeckt (196 Game-Mode-Prüfungen insgesamt); echte Launcher-/Spiel- und Hardwareabnahme wurde dafür nicht ausgeführt. Aktueller Gesamtlauf und Grenzen: [P9-7-Prüfstand](PLAN-GAME-MODE.md#p9-7-weitere-spielebibliotheken).
+
+## P9-8
+
+Solange Game-Mode aktiviert ist, ist die gewählte Ansicht auf allen Ausgaben aus normaler Rotation, Navigation, Companion-Seitenlisten und Seiten-Tap-Zielen reserviert. Sie erscheint nur im Game-Mode-Pfad. Bei deaktiviertem Game-Mode ist sie wieder eine normale Seite.
+
+Nicht-Steam-Spiele (auch GOG/Ubisoft) verwenden das direkt aus der laufenden EXE extrahierte Icon mit bis zu 256 Pixeln. Bei passendem `Application Executable` im benachbarten `AppxManifest.xml` werden zuerst Paket-Logos einschließlich Größenvarianten gelesen; danach EXE-Icon, Shell-Icon und Name. Fehlende Rechte oder nicht auflösbare Paketressourcen bleiben Fallback-Fälle; das erweitert nicht die Spielerkennung.
+
+Die neue Vorlage enthält oben Logo, Name und Spielzeit, darunter neun Metriken in drei Spalten. Bestehende gespeicherte Layouts werden nicht überschrieben; die Vorlage bei Bedarf neu anlegen. Spielkacheln einschließlich CPU/GPU verwenden gemeinsame Karten, Rundungen, orange Titel und größere Werte. FPS/Frametime zeigen bei ausreichender Höhe und Dichte oberhalb „Kompakt“ einen Verlauf aus bis zu 60 Sekundenwerten. Ungültige Messungen bleiben Lücken; ein Prozesswechsel leert den Verlauf. Das zehnsekündige ETW-Statistikfenster bleibt unverändert.
+
+Das Intro wird im normalen Ausgabeframe komponiert, in `last_frame()` gespeichert und ist über `/api/preview.png` sichtbar. Der isolierte Test auf Port 18766 prüft verschiedene Intro-Frames und den anschließenden Ansichtsframe. Das ist ein Software-Nachweis, keine physische Displayabnahme.
+
+P9-8-Prüfstand: 26/26 Suiten (207 Game-Mode-Prüfungen) und isolierte Dummy-/Intro-Integration auf 18766 bestanden. Echte Launcher-Logos und physische Displays nicht getestet; Einzelheiten im [Plan](PLAN-GAME-MODE.md#p9-8-rotation-logos-und-spielkacheln).
