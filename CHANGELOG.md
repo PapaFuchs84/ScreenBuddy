@@ -8,6 +8,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 BF6-Rangliste: Spieler lassen sich jetzt per ID eintragen (`Name#ID`, `Name@psn#ID`; alte Einträge bleiben gültig). Abfrage per `playerid`, der Name dient nur der Anzeige. Nach einer erfolgreichen Namenssuche merkt sich die App die ID und trägt sie in die Konfiguration ein; bei Fehlschlag Rückfall über Spielersuche und Kleinschreibung. „Prüfen“ zeigt die gefundene ID (Web-Oberfläche mit „ID übernehmen“ und optionalem ID-Feld); der Web-Link führt bei vorhandener ID auf die ID-Seite. Python-Variante an die PC-Reihenfolge `pc, ea` angeglichen.
 
+BF6-Rangliste: Antwortet die Quelle (gametools) mit HTTP 5xx, zeigt die App jetzt „Quelle gestört“ statt „nicht gefunden“ (Rangliste, „Prüfen“, Web-Oberfläche); zuletzt gute Werte und gemerkte IDs bleiben erhalten. Netzwerkfehler und 404 verhalten sich wie bisher. Der Touch-/Web-Link eines Spielers mit ID führt jetzt auf `tracker.gg/bf6/profile/<ID>/overview` (gleiche ID wie bei gametools).
+
 P9-6: 26 automatisierte Suiten grün, darunter 114 Game-Mode-Prüfungen; isolierte Dummy-Simulation auf UI 18766 mit Intro-/Aktiv-/Rückkehr-Vorschaubildern bestanden. KI-Empfänger wegen belegtem 18765 aus. Offene PresentMon-/Hardwaregrenzen und nicht ausgeführte Installer-Tests im [Plan](docs/PLAN-GAME-MODE.md).
 
 P9-5: Game-Mode-Einstellungen, Display-/Ansichtsauswahl, zusätzliche Spiele/Ausschlüsse, Editor-Vorlage und Game-Mode-Palette. Hintergrund-Erkennung mit asynchronen Logos, Intro und pausierter normaler Rotation; Rückkehr nach Spielende. DE/EN-Bedienung und eingebettete Hilfen synchronisiert. Lokale Entwicklung, kein Release.

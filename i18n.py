@@ -44,6 +44,7 @@ EN = {
     "Lade Battlefield-Profile …": "Loading Battlefield profiles …",
     "Rang unbekannt": "Rank unknown",
     "nicht gefunden": "not found",
+    "Quelle gestört": "source unavailable",
     "Lade Feeds …": "Loading feeds …",
     "Keine Beiträge gefunden": "No posts found",
     "gerade eben": "just now",

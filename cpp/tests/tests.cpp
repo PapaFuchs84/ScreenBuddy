@@ -391,6 +391,13 @@ static void test_bf6_platforms() {
     CHECK(bf6::pick_search_id(res, "AbC") == "1");
     CHECK(bf6::pick_search_id(res, "xyz").empty() && bf6::pick_search_id(nlohmann::json::parse(R"({"results":[]})"), "abc").empty());
     CHECK(bf6::pick_search_id(nlohmann::json::parse(R"([{"name":"Fox","nucleusId":99}])"), "fox") == "99");
+    // HTTP 5xx = "Quelle gestört", 404 und Netzwerkfehler (Status 0) bleiben "nicht gefunden"
+    CHECK(bf6::is_server_error(500) && bf6::is_server_error(502) && bf6::is_server_error(503) && bf6::is_server_error(599));
+    CHECK(!bf6::is_server_error(0) && !bf6::is_server_error(200) && !bf6::is_server_error(404) && !bf6::is_server_error(429) &&
+          !bf6::is_server_error(499) && !bf6::is_server_error(600));
+    CHECK_EQ(bf6::failure_text(true), std::string("Quelle gestört"));
+    CHECK_EQ(bf6::failure_text(false), std::string("nicht gefunden"));
+    CHECK_EQ(i18n::to_english(bf6::failure_text(true)), std::string("source unavailable"));
 }
 
 static void test_spotify() {
@@ -723,13 +730,17 @@ static void test_touch_targets() {
     CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/ps4/name/%C3%9Cni%2Fcode%3Fx%3D1?game=bf6"));
     p.query = "Fox@steam";
     CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/pc/name/Fox?game=bf6"));
-    // mit Spieler-ID (Eintrag oder Abfrage) zeigt der Link auf die ID-Seite
+    // mit Spieler-ID (Eintrag oder Abfrage) zeigt der Link auf tracker.gg (gleiche ID wie bei gametools)
     p.query = "Fox@psn#1234567890";
-    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/ps4/playerid/1234567890?game=bf6"));
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://tracker.gg/bf6/profile/1234567890/overview"));
+    p.query = "Schmieselbee@psn#1001451188320";
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://tracker.gg/bf6/profile/1001451188320/overview"));
     p.query = "Fox"; p.id = "42424242";
-    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/pc/playerid/42424242?game=bf6"));
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://tracker.gg/bf6/profile/42424242/overview"));
     p.id.clear();
     p.error = "nicht gefunden";
+    CHECK(touch::player_targets(p).empty());
+    p.error = "Quelle gestört";
     CHECK(touch::player_targets(p).empty());
     p.error.clear(); p.query.clear();
     CHECK(touch::player_targets(p).empty());

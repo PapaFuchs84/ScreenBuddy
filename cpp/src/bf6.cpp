@@ -31,6 +31,10 @@ std::vector<std::string> name_candidates(const std::string& name) {
     return v;
 }
 
+bool is_server_error(int status) { return status >= 500 && status <= 599; }
+
+std::string failure_text(bool source_down) { return source_down ? "Quelle gestört" : "nicht gefunden"; }
+
 Entry parse_entry_full(const std::string& entry) {
     std::string e = trim(entry), id;
     // "#id" am Ende: nur reine Ziffern ab 6 Stellen gelten als Spieler-ID (Gamertag-Zahlen wie "#1234" bleiben im Namen)
@@ -172,9 +176,11 @@ void Bf6Stats::start(std::function<void()> on_update) {
     });
 }
 
-std::optional<json> Bf6Stats::get(const std::string& path, const std::vector<std::pair<std::string, std::string>>& params) {
+std::optional<json> Bf6Stats::get(const std::string& path, const std::vector<std::pair<std::string, std::string>>& params,
+                                  bool* server_error) {
     std::string url = std::string(API) + "/" + path + "/?" + http::query(params);
     auto r = http::get(url, {{"User-Agent", UA}}, 45000);
+    if (server_error && is_server_error(r.status)) *server_error = true;
     if (r.status != 200) {
         LOGD("bf6", "BF6 %s → HTTP %d %s", path.c_str(), r.status, r.error.c_str());
         return std::nullopt;
@@ -220,6 +226,7 @@ Bf6Player Bf6Stats::fetch(const std::string& entry) {
     }
     std::optional<json> stats;
     std::string used_name = name, used_plat = platform_candidates(en.platform).front();  // für /profile
+    bool outage = false;   // mind. eine Antwort war HTTP 5xx: "nicht gefunden" ist dann nicht belegt
     bool by_name = false;  // Treffer kam aus der Namenssuche (nur dann wird die ID zurückgeschrieben)
     auto usable = [](const std::optional<json>& r) {
         return r && r->is_object() && !r->empty() &&
@@ -228,7 +235,7 @@ Bf6Player Bf6Stats::fetch(const std::string& entry) {
     auto stats_by_id = [&](const std::string& sid, const std::vector<std::string>& pls) {
         for (auto& pl : pls) {
             if (stop_) return false;
-            auto r = get("stats", {{"playerid", sid}, {"platform", pl}, {"format_values", "false"}, {"categories", "multiplayer"}});
+            auto r = get("stats", {{"playerid", sid}, {"platform", pl}, {"format_values", "false"}, {"categories", "multiplayer"}}, &outage);
             if (usable(r)) {
                 stats = std::move(r);
                 used_plat = pl;
@@ -247,7 +254,7 @@ Bf6Player Bf6Stats::fetch(const std::string& entry) {
         for (auto& pl : pls) {
             for (auto& nm : nms) {
                 if (stop_) return p;
-                auto r = get("stats", {{"name", nm}, {"platform", pl}, {"format_values", "false"}, {"categories", "multiplayer"}});
+                auto r = get("stats", {{"name", nm}, {"platform", pl}, {"format_values", "false"}, {"categories", "multiplayer"}}, &outage);
                 if (usable(r)) {
                     stats = std::move(r);
                     used_name = nm;
@@ -263,7 +270,7 @@ Bf6Player Bf6Stats::fetch(const std::string& entry) {
     // Letzter Ausweg: Spielersuche; nimmt nur Treffer mit gleichem Namen (ohne Groß/Klein) und fragt dann per ID ab
     if (!stats && !stop_) {
         for (auto& nm : name_candidates(name)) {
-            auto r = get("player", {{"name", nm}, {"limit", "10"}});
+            auto r = get("player", {{"name", nm}, {"limit", "10"}}, &outage);
             std::string sid = r ? pick_search_id(*r, name) : std::string();
             if (!sid.empty() && sid != id && stats_by_id(sid, platform_candidates(en.platform))) {
                 by_name = true;
@@ -296,7 +303,7 @@ Bf6Player Bf6Stats::fetch(const std::string& entry) {
     tries.push_back({{"name", used_name}, {"platform", used_plat}});
     std::optional<json> pp;
     for (auto& params : tries) {
-        auto data = get("profile", params);
+        auto data = get("profile", params, &outage);
         if (data)
             if (const json* found = profile(*data)) {
                 pp = *found;
@@ -316,8 +323,8 @@ Bf6Player Bf6Stats::fetch(const std::string& entry) {
         if (card.contains("rankImage") && card["rankImage"].is_object()) p.rank_icon = icon(str(card["rankImage"], "small"));
     }
     if (!stats && !pp) {
-        p.error = "nicht gefunden";
-        // Bei Netzwerkfehlern lieber die alten Werte behalten
+        p.error = failure_text(outage);
+        // Bei Netzwerkfehlern und gestörter Quelle (5xx) lieber die alten Werte behalten; ids_ bleibt unberührt
         std::lock_guard lk(mu_);
         for (auto& o : players_)
             if (o.query == entry && (o.rank || o.kd)) return o;

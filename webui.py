@@ -21,7 +21,7 @@ import appconfig
 import i18n
 import sysinfo
 import winsetup
-from bf6 import Bf6Stats
+from bf6 import SOURCE_DOWN, Bf6Stats
 from i18n import tr
 from rss import UA, RssFeeds, public_url
 
@@ -190,7 +190,7 @@ class SettingsServer:
                                          headers={"User-Agent": "FuchsLabs-USB-Display/1.2"}) as s:
             p = await Bf6Stats({"players": []})._fetch(s, name)
         if p.error:
-            return _json({"ok": False, "error": "Spieler nicht gefunden"})
+            return _json({"ok": False, "error": "Quelle gestört" if p.error == SOURCE_DOWN else "Spieler nicht gefunden"})
         return _json({"ok": True, "name": p.name, "rank": p.rank, "rank_name": p.rank_name,
                       "kd": p.kd, "win_pct": p.win_pct, "id": p.id})  # id: zum Übernehmen als "Name#id"
 
