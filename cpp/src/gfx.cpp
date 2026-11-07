@@ -60,7 +60,7 @@ const FontInfo& font_info(const Font& f) {
     if (auto it = g_fonts.find(key); it != g_fonts.end()) return it->second;
     FontInfo fi;
     ComPtr<IDWriteFontCollection> coll;
-    check(g_dw->GetSystemFontCollection(&coll), "Schriften");
+    check(g_dw->GetSystemFontCollection(&coll, TRUE), "Schriften");
     // CI-Schrift für Titel, Namen, Zahlen: Bahnschrift SemiBold (ab Windows 10 dabei); sonst Segoe UI
     std::wstring family = !f.family.empty() ? f.family : f.bold ? L"Bahnschrift" : L"Segoe UI";
     DWRITE_FONT_WEIGHT weight = f.bold ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
