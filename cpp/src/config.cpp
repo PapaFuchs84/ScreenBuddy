@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "config.h"
+#include "custom_view.h"
 
 #include <windows.h>
 
@@ -24,6 +25,7 @@ const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "
 
 bool is_page_key(const std::string& k) {
     if (std::count(PAGES.begin(), PAGES.end(), k)) return true;
+    if (k.starts_with("custom:")) return custom::valid_id(k.substr(7));
     // Plugin-Seiten: "plugin:<id>"
     if (k.size() <= 7 || k.size() > 100 || k.rfind("plugin:", 0) != 0) return false;
     return std::none_of(k.begin(), k.end(), [](unsigned char ch) { return ch < 0x20 || ch == 0x7F; });

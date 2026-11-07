@@ -18,7 +18,7 @@ using ojson = nlohmann::ordered_json;
 namespace config {
 
 extern const std::vector<std::string> PAGES;
-bool is_page_key(const std::string& key);  // feste Quelle oder "plugin:<id>"
+bool is_page_key(const std::string& key);  // feste Quelle, "plugin:<id>" oder validiertes "custom:<id>"
 const ojson& defaults();
 
 ojson load(const std::filesystem::path& path);         // Standardwerte + Datei, Geheimnisse entschlüsselt

@@ -26,6 +26,7 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
+    src/custom_view.cpp
     src/builtin_catalog.cpp src/layout_edit.cpp src/ui_layout_grid.cpp src/ui_editor.cpp src/ui_tile_palette.cpp
     src/ui_page_layout.cpp
     src/plugin_schedule.cpp src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp src/page_samples.cpp src/page_frame.cpp
@@ -179,3 +180,7 @@ add_executable(fl-builtin-catalog-tests tests/builtin_catalog_tests.cpp src/buil
 target_include_directories(fl-builtin-catalog-tests PRIVATE src)
 target_compile_options(fl-builtin-catalog-tests PRIVATE /utf-8)
 target_link_libraries(fl-builtin-catalog-tests PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(fl-custom-view-tests tests/custom_view_tests.cpp)
+target_link_libraries(fl-custom-view-tests PRIVATE flcore)
+target_link_options(fl-custom-view-tests PRIVATE /MANIFEST:NO)

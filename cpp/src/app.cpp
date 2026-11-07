@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "app.h"
+#include "custom_view.h"
 #include <set>
 #include <cmath>
 
@@ -636,7 +637,9 @@ std::vector<std::string> App::active_pages(bool companion, const std::vector<std
         if (!p.is_string()) continue;
         const std::string key = p.get<std::string>();
         const bool is_plugin = key.rfind("plugin:", 0) == 0;
-        if (is_plugin ? std::find(plugin_keys.begin(), plugin_keys.end(), key) == plugin_keys.end() : !have[key]) continue;
+        if (key.starts_with("custom:")) {
+            if (!custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7))) continue;
+        } else if (is_plugin ? std::find(plugin_keys.begin(), plugin_keys.end(), key) == plugin_keys.end() : !have[key]) continue;
         if (is_plugin) listed.push_back(key);
         if (chosen(key)) out.push_back(key);
     }
@@ -787,7 +790,85 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                 view->builtin_revisions[key]=revision;
             }
         }
-        if (key.rfind("plugin:", 0) == 0) {
+        if (key.starts_with("custom:")) {
+            auto custom_view=custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7));
+            if(!custom_view) continue;
+            out.push_back({key,1,[this,custom_view=*custom_view,device,friends,people](int,RendererSet& rs) {
+                return custom::draw(custom_view,device,rs.width,rs.height,
+                    [&](const custom::Tile& tile,const custom::Layout& layout,int w,int h)->std::optional<Image> {
+                    if(tile.source.starts_with("plugin:")) {
+                        auto installed=plugins_?plugins_->find(tile.source.substr(7)):std::nullopt;
+                        if(!installed || !installed->enabled) return {};
+                        auto manifest=installed->effective(device);
+                        plugins::RenderContext context;
+                        if(plugin_settings_) {
+                            auto settings=plugin_settings_->public_view(manifest);
+                            if(settings.contains("values") && settings["values"].is_object()) context.settings=settings["values"];
+                        }
+                        {
+                            std::lock_guard lock(plugin_data_mu_);
+                            auto snapshot=plugin_data_.find(manifest.id);
+                            if(snapshot!=plugin_data_.end() && snapshot->second.generation==installed->generation &&
+                               snapshot->second.settings_revision==plugin_settings_revision_.load())
+                                for(const auto& source:manifest.sources)
+                                    if(plugins_->source_authorized(manifest.id,source.id,installed->generation)) {
+                                        auto data=snapshot->second.data.find(source.id);
+                                        if(data!=snapshot->second.data.end()) context.sources.emplace(source.id,data->second);
+                                    }
+                        }
+                        context.time=clock_hhmm();
+                        std::time_t now=std::time(nullptr);std::tm local{};localtime_s(&local,&now);
+                        char date[32]={};std::strftime(date,sizeof date,"%Y-%m-%d",&local);context.date=date;
+                        return custom::draw_plugin(tile,layout,std::move(manifest),context,w,h);
+                    }
+                    auto arrangement=custom::single_builtin(tile,layout);
+                    if(!arrangement) return {};
+                    using Json=plugins::Json;
+                    if(tile.source=="system" && sys_) {
+                        auto snap=sys_->snapshot();Json data=Json::object();
+                        auto add=[&](const char* key,const auto& value){if(value) data[key]=*value;};
+                        add("cpu_pct",snap.cpu_pct);add("gpu_pct",snap.gpu_pct);add("ram_pct",snap.ram_pct);
+                        add("disk_pct",snap.disk_pct);add("net_down",snap.net_down);add("net_up",snap.net_up);
+                        bool present=tile.block=="system.cpu"?snap.cpu_pct.has_value():tile.block=="system.gpu"?snap.gpu_pct.has_value():
+                            tile.block=="system.ram"?snap.ram_pct.has_value():tile.block=="system.datentraeger"?snap.disk_pct.has_value():
+                            snap.net_down.has_value() || snap.net_up.has_value();
+                        if(!present || !custom::visible(tile,data)) return {};
+                        return rs.system.render_arranged(snap,*arrangement).image;
+                    }
+                    if(tile.source=="spotify" && spotify_) {
+                        auto snap=spotify_->snapshot();
+                        if(!custom::visible(tile,{{"playing",snap.playing},{"title",snap.title},{"artist",snap.artist}})) return {};
+                        return rs.spotify.render_arranged(snap,*arrangement).image;
+                    }
+                    if(tile.source=="rss" && rss_) {
+                        auto posts=rss_->posts();auto updated=rss_->updated();
+                        if(!custom::visible(tile,{{"count",posts.size()},{"ready",updated.has_value()}})) return {};
+                        return rs.rss.render_arranged(posts,updated,*arrangement).image;
+                    }
+                    if(tile.source=="streaming" && streaming_) {
+                        auto snap=streaming_->snapshot();
+                        if(!custom::visible(tile,{{"count",snap.items.size()},{"ready",snap.state==tmdb::State::Ok}})) return {};
+                        return rs.stream.render_arranged(snap.state,snap.items,snap.updated,*arrangement,0,0,&snap.logos).image;
+                    }
+                    if(tile.source=="bf6" && bf6_) {
+                        auto players=bf6_->players();auto updated=bf6_->updated();
+                        if(!custom::visible(tile,{{"count",players.size()},{"ready",updated.has_value()}})) return {};
+                        return rs.bf6.render_arranged(players,updated,*arrangement).image;
+                    }
+                    if(tile.source=="friends" && friends_) {
+                        auto message=friends_message();bool connected=message.empty() || !people.empty();
+                        if(!custom::visible(tile,{{"count",people.size()},{"ready",connected}})) return {};
+                        return rs.friends.render_friends_arranged(people,connected,message,*arrangement).image;
+                    }
+                    if(tile.source=="discord" && discord_) {
+                        auto status=discord_->status();
+                        if(!custom::visible(tile,{{"count",friends.size()},{"ready",status.empty()}})) return {};
+                        return rs.discord.render_friends_arranged(friends,status.empty(),status,*arrangement).image;
+                    }
+                    return {}; // No native HA block renderer; unsupported tiles stay blank.
+                });
+            }});
+        } else if (key.rfind("plugin:", 0) == 0) {
             auto installed = plugins_ ? plugins_->find(key.substr(7)) : std::nullopt;
             if (!installed || !installed->enabled) continue;
             auto manifest = installed->effective(device);
