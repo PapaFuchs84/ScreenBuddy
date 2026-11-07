@@ -1,5 +1,7 @@
 # ScreenBuddy C++
 
+Development only: [KI-Status / AI Status (DE)](AI-STATUS.md) · [EN](AI-STATUS.en.md). Optional local Claude Code/Codex page, authenticated loopback hooks and read-only `ai.*` tile data. Missing measurements remain `n/a`. See the [implementation and validation report](ai-status-report.md); no public release is created by this change.
+
 Unpublished 2.9.6 candidate: [MSIX packaging, migration and Companion APK delivery](../docs/STORE-DISTRIBUTION.en.md) · [Deutsch](../docs/STORE-DISTRIBUTION.md). Store installation and updates are package-managed.
 
 Companion: preview since 2.3.0 (independent USB/HDMI and Android views, automatic phone dimensions and rotation), Companion app 1.0.0 as a separate download since 2.6.0, several devices at once since 2.7.0. See [DE](../docs/COMPANION.md) / [EN](../docs/COMPANION.en.md). Tests include `python tests/app_companion_integration.py` on Windows (isolated processes with `--no-lcd`, no physical display).

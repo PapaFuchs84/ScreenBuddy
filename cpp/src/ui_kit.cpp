@@ -1890,6 +1890,7 @@ Card* placeholder(Host& host, Column& root, Text title, Text text) {
 }
 
 std::wstring source_title(const std::string& key, bool en) {
+    if (key == "ai") return en ? L"AI Status" : L"KI-Status";
     if (key == "system") return L"System";
     if (key == "friends") return en ? L"Friends" : L"Freunde";
     if (key == "discord") return L"Discord";

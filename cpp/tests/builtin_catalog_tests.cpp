@@ -8,11 +8,11 @@ int main() {
     int ok=0,fail=0;
     auto check=[&](bool value,int line){if(value) ++ok; else {++fail; std::printf("FAIL %d\n",line);}};
 #define CHECK(x) check(bool(x),__LINE__)
-    CHECK(!find("homeassistant")); CHECK(!find("../rss"));
+    CHECK(find("ai")); CHECK(!find("homeassistant")); CHECK(!find("../rss"));
     for(const auto& c:catalogs()) {
         for(const auto& b:c.blocks) CHECK(zones::valid(b.thresholds));
         auto a=standard(c); CHECK(validate(c,a).empty()); CHECK(is_standard(c,a));
-        CHECK(parse(c,to_json(a).dump())); CHECK(c.enabled==((c.key=="rss" || c.key=="streaming" || c.key=="bf6" || c.key=="friends" || c.key=="discord" || c.key=="system" || c.key=="spotify")));
+        CHECK(parse(c,to_json(a).dump())); CHECK(c.enabled==((c.key=="ai" || c.key=="rss" || c.key=="streaming" || c.key=="bf6" || c.key=="friends" || c.key=="discord" || c.key=="system" || c.key=="spotify")));
         for(auto& z:a.model.layout["zones"]) {z["column_span"]=1;z["row_span"]=1;}
         CHECK(is_standard(c,a));
         a.catalog_version++; CHECK(!validate(c,a).empty()); CHECK(!parse(c,to_json(a).dump()));

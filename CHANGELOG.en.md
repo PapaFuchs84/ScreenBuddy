@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+- AI Status (`ai`, C++): Claude Code/Codex cards, frame-driven status/session animations, loopback events on 18765 with a dedicated DPAPI key, hook preview with one-time backup and selective removal, and local `ai.*` tile data. Limits/cost/context/tokens remain `n/a` without explicit measurements. DE/EN guide and new fl-tests checks; executed validation and pending live/hardware acceptance are recorded in `cpp/ai-status-report.md`. No release.
+
 P7b-0 (2026-11-06, Claude Sonnet 5.5 on behalf): New default dark Material with orange accent (`material-orange`; text/surface and accent/surface at least 4.5:1, bar at least 3:1, contrast tests in fl-tests and fl-layout-ui-tests). New installs start with it; existing installs get a one-time DE/EN dialog "Set the new default?" (default No, answer stored in `ui.standard_theme_choice`, closing changes nothing). Cupertino, Fluent, Light, Dark, Windows and custom themes stay selectable. Existing built-in/plugin hash files unchanged, new baseline is additive in `p7b0-material-orange-hashes.txt` (768 hashes).
 
 P7b-6 (2026-11-06, Agent Codex CLI 0.166.0): Per-device built-in/plugin overlays inheriting the standard (up to 16 per page, 16 KiB per overlay, 256 KiB total), atomic persistence/backup and shared device selection for images/touch; display tabs with size/orientation, offline profiles and discard confirmation. Mark Android TV on the PC (protocol v1 has no device type) to enforce landscape. 14 suites passed (Companion offline), eleven existing hash files unchanged; physical multi-device acceptance pending.

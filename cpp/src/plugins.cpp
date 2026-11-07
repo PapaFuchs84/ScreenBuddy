@@ -126,6 +126,7 @@ const Setting* setting(const Manifest& m, const std::string& key) {
     return nullptr;
 }
 bool source_exists(const Manifest& m, const std::string& id) {
+    if(id=="ai") return true; // built-in, local, read-only tile source; no HTTP declaration
     return std::any_of(m.sources.begin(), m.sources.end(), [&](const Source& s) { return s.id == id; });
 }
 enum class Usage { display, item, request, link, link_item };
@@ -141,6 +142,7 @@ void reference(const Manifest& m, const std::string& ref, Usage usage, std::set<
         return;
     }
     require(usage != Usage::request, "Requests may only reference settings.");
+    require(path[0]!="ai" || (usage!=Usage::link && usage!=Usage::link_item), "Local AI data cannot be used in links.");
     if ((path[0] == "time" || path[0] == "date") && path.size() == 1 && usage != Usage::link && usage != Usage::link_item) return;
     if (path[0] == "item" && (usage == Usage::item || usage == Usage::link_item)) return;
     require(path.size() >= 2 && source_exists(m, path[0]), "Unknown source or invalid template reference.");
@@ -458,7 +460,7 @@ ParseResult parse_manifest(std::string_view utf8) {
             Source s;
             s.id = str(v, "id");
             require(identifier(s.id) && source_ids.insert(s.id).second && s.id != "settings" && s.id != "time" &&
-                    s.id != "date" && s.id != "item", "Invalid, reserved or duplicate source ID.");
+                    s.id != "date" && s.id != "item" && s.id != "ai", "Invalid, reserved or duplicate source ID.");
             s.url = str(v, "url");
             s.host = url_host(s.url);
             std::set<std::string> used, headers;

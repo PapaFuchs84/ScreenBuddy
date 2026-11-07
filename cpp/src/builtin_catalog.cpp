@@ -42,8 +42,9 @@ Catalog make(std::string key, Label label, std::vector<BlockSpec> blocks) {
         for(size_t i=0;i<c.blocks.size();++i)
             c.blocks[i].thresholds={{{compact[i],regular[i],{zones::max_area,zones::max_area}}}};
     }
+    if(c.key=="ai") for(auto& b:c.blocks) b.thresholds={{{{64,24},{100,42},{zones::max_area,zones::max_area}}}};
     c.portrait=c.standard;
-    c.enabled=(c.key=="rss" || c.key=="streaming" || c.key=="bf6" || c.key=="friends" || c.key=="discord" || c.key=="system" || c.key=="spotify");
+    c.enabled=(c.key=="ai" || c.key=="rss" || c.key=="streaming" || c.key=="bf6" || c.key=="friends" || c.key=="discord" || c.key=="system" || c.key=="spotify");
     return c;
 }
 BlockSpec spec(std::string id, Label label, bool required=false, std::string action={}) {
@@ -81,6 +82,11 @@ std::string check(const Catalog& c,const plugins::Arrangement& m) {
 }
 const std::vector<Catalog>& catalogs() {
     static const std::vector<Catalog> all={
+        make("ai",{"KI-Status","AI Status"},{
+            spec("ai.claude.state",{"Claude · Zustand","Claude · State"}),spec("ai.codex.state",{"Codex · Zustand","Codex · State"}),
+            spec("ai.claude.five_hour",{"Claude · 5 Stunden","Claude · 5 hours"}),spec("ai.codex.five_hour",{"Codex · 5 Stunden","Codex · 5 hours"}),
+            spec("ai.claude.week",{"Claude · Woche","Claude · Week"}),spec("ai.codex.week",{"Codex · Woche","Codex · Week"}),
+            spec("ai.claude.cost_session",{"Claude · Sitzungskosten","Claude · Session cost"}),spec("ai.codex.tokens_session",{"Codex · Sitzungstokens","Codex · Session tokens"})}),
         make("rss",{"RSS","RSS"},{spec("rss.liste",{"Beiträge","Posts"},false,"post"),spec("rss.hinweis",{"Zustand","Status"},true)}),
         make("streaming",{"Streaming","Streaming"},{spec("streaming.liste",{"Titel","Titles"},false,"title"),spec("streaming.hinweis",{"Zustand","Status"},true)}),
         make("bf6",{"BF6","BF6"},{spec("bf6.rangliste",{"Rangliste","Ranking"},false,"player"),spec("bf6.hinweis",{"Zustand","Status"},true)}),

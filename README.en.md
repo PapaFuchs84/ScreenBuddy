@@ -7,6 +7,8 @@ Store edition in preparation: [Microsoft Store / Companion build](docs/STORE-DIS
 
 # ScreenBuddy
 
+In development: [AI Status for Claude Code and Codex](cpp/AI-STATUS.en.md), local hooks with preview/backup and an `ai.*` tile source. Missing measurements remain `n/a`; see [validation and outstanding work](cpp/ai-status-report.md). Not released yet.
+
 [Deutsch](README.md) · **English**
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**

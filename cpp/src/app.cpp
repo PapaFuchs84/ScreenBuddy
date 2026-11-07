@@ -251,6 +251,7 @@ struct App::RendererSet {
     render::SysRenderer system;
     render::HaRenderer ha;
     render::SpotifyRenderer spotify;
+    render::AiRenderer ai;
     RendererSet(int w, int h, const ojson& cfg)
         : width(w), height(h), discord(w, h, cfg["display"].value("title", "Discord-Freunde")),
           friends(w, h, cfg["friends"].value("title", "Freunde")),
@@ -259,7 +260,7 @@ struct App::RendererSet {
           stream(w, h, cfg["streaming"].value("title", "Neu bei Streaming")),
           system(w, h, cfg["system"].value("title", "System"), cfg["system"].value("net_unit", "bit")),
           ha(w, h, cfg["homeassistant"].value("title", "Home Assistant")),
-          spotify(w, h, cfg["spotify"].value("title", "Spotify")) {}
+          spotify(w, h, cfg["spotify"].value("title", "Spotify")), ai(w,h) {}
 };
 
 static bool b(const ojson& j, const char* k, bool def = false) {
@@ -290,6 +291,8 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
     render::apply_theme(dp_);
     const ojson &bf = cfg_["bf6"], &rs = cfg_["rss"], &sy = cfg_["system"], &dc = cfg_["discord"], &fr = cfg_["friends"];
     auto dirty = [this] { mark_dirty(); };
+    ai_=std::make_unique<ai::Service>(cfg_path_.parent_path()/L"ai-status");
+    if(b(cfg_["ai"],"enabled") && !preview_dir_) {ai_->start();ai_->enable_usage(b(cfg_["ai"],"automatic_usage"));}
     if (b(bf, "enabled") && bf.contains("players") && bf["players"].is_array() && !bf["players"].empty())
         bf6_ = std::make_unique<bf6::Bf6Stats>(bf);
     if (b(rs, "enabled") && rs.contains("feeds") && rs["feeds"].is_array() && !rs["feeds"].empty())
@@ -499,6 +502,7 @@ std::optional<Image> App::page_preview(const std::string& key,const nlohmann::js
     std::lock_guard lock(render::mutex()); render::apply_theme(dp_);
     // Dieselben Renderer und fest eingefrorenen Daten wie im Built-in-Baseline-Test.
     RendererSet rs(width,height,cfg_); using namespace render::samples;
+    if(key=="ai") {ai::Model sample;return rs.ai.render_arranged(sample.snapshot(CLOCK),*parsed.overlay,0,CLOCK).image;}
     if(key=="rss") return rs.rss.render_arranged(posts(i18n::lang()),CLOCK,*parsed.overlay,0,CLOCK).image;
     if(key=="streaming") {auto logos=stream_logos();return rs.stream.render_arranged(tmdb::State::Ok,stream(),CLOCK,*parsed.overlay,0,CLOCK,&logos).image;}
     if(key=="bf6") return rs.bf6.render_arranged(players(),CLOCK,*parsed.overlay,0,CLOCK).image;
@@ -611,7 +615,7 @@ std::vector<std::string> App::active_pages(bool companion, const std::vector<std
     // (sonst stünden dieselben Leute auf zwei Seiten).
     const ojson& fr = cfg_["friends"];
     bool discord_page = b(cfg_["discord"], "enabled", true) && !(friends_ && b(fr, "include_discord", true));
-    std::map<std::string, bool> have = {{"system", sys_ != nullptr},
+    std::map<std::string, bool> have = {{"ai", b(cfg_["ai"],"enabled")}, {"system", sys_ != nullptr},
                                         {"discord", discord_page && discord_ != nullptr},
                                         {"friends", friends_ != nullptr},
                                         {"bf6", bf6_ != nullptr},
@@ -780,6 +784,17 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
     // [(Name, Seitenanzahl, Zeichenfunktion(seite, zeichner))] in der eingestellten Reihenfolge
     std::vector<PageEntry> out;
     for (auto& key : active_pages(companion, pages_override)) {
+        if(key=="ai") {
+            auto snapshot=ai_->model().snapshot(std::time(nullptr));
+            if(view && std::count(view->current.begin(),view->current.end(),"ai")) {
+                view->animating=true;view->next_deadline=std::min(view->next_deadline,tick+.1);
+            }
+            auto selected=builtin_layouts_->get(key,device);
+            auto arrangement=selected.overlay;
+            out.push_back({key,1,[snapshot,arrangement](int,RendererSet& rs){return arrangement?
+                rs.ai.render_arranged(snapshot,*arrangement,mono(),std::time(nullptr)).image:rs.ai.render(snapshot,mono(),std::time(nullptr));}});
+            continue;
+        }
         if(view && builtin::find(key)) {
             const auto revision=builtin_layouts_->get(key,device).revision;
             if(view->builtin_revisions[key]!=revision) {
@@ -791,7 +806,10 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             auto installed = plugins_ ? plugins_->find(key.substr(7)) : std::nullopt;
             if (!installed || !installed->enabled) continue;
             auto manifest = installed->effective(device);
+            if(view && manifest.definition.dump().find("ai.")!=std::string::npos)
+                view->next_deadline=std::min(view->next_deadline,tick+1);
             plugins::RenderContext context;
+            context.sources.emplace("ai",ai_->model().tiles(std::time(nullptr)));
             if (plugin_settings_) {
                 auto public_settings = plugin_settings_->public_view(manifest);
                 if (public_settings.contains("values") && public_settings["values"].is_object())
@@ -1260,6 +1278,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     bool due = now - view.switched >= page_seconds;
     auto minute = clock_hhmm();
     bool live = std::count(view.current.begin(), view.current.end(), "system") > 0;
+    live = live || std::count(view.current.begin(),view.current.end(),"ai") > 0;
     // Keep visible playback alive even when silent capture publishes no changes.
     // Otherwise the 3 s activity lease expires before the 4 s simulation delay.
     live = live || (meter_ && spotify_ && spotify_->snapshot().playing &&

@@ -13,6 +13,7 @@ std::unique_ptr<Page> make_overview_page();
 std::unique_ptr<Page> make_display_page();
 std::unique_ptr<Page> make_pages_page();
 std::unique_ptr<Page> make_system_page();
+std::unique_ptr<Page> make_ai_page();
 std::unique_ptr<Page> make_friends_page();
 std::unique_ptr<Page> make_discord_page();
 std::unique_ptr<Page> make_bf6_page();

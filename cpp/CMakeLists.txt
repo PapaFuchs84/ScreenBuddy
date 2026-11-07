@@ -26,6 +26,7 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
+    src/ai_status.cpp src/ai_usage.cpp src/render_ai.cpp src/ui_page_ai.cpp
     src/builtin_catalog.cpp src/layout_edit.cpp src/ui_layout_grid.cpp src/ui_editor.cpp src/ui_tile_palette.cpp
     src/ui_page_layout.cpp
     src/plugin_schedule.cpp src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp src/page_samples.cpp src/page_frame.cpp
@@ -55,7 +56,7 @@ target_link_libraries(ScreenBuddy PRIVATE flcore)
 target_link_options(ScreenBuddy PRIVATE /MANIFEST:NO /OPT:REF /OPT:ICF /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA)
 
 # Tests (Konsole): Parser, Konfiguration, Zeichnen
-add_executable(fl-tests tests/tests.cpp res/app.rc)
+add_executable(fl-tests tests/tests.cpp tests/ai_status_tests.cpp res/app.rc)
 target_link_libraries(fl-tests PRIVATE flcore)
 target_compile_definitions(fl-tests PRIVATE FL_THEME_EXAMPLE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/themes")
 target_link_options(fl-tests PRIVATE /MANIFEST:NO)
