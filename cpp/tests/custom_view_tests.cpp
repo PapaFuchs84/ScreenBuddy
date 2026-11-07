@@ -121,7 +121,7 @@ int main() try {
             App isolated(port_cfg,root/"port-config.toml",nullptr,root/"port-preview");
             SettingsServer ui(isolated,[]{});CHECK(ui.start());
             CHECK(http::get("http://127.0.0.1:"+std::to_string(port)+"/api/pages",{},1500).status==200);
-            ai::Receiver receiver(network,std::string(64,'b'));CHECK(!receiver.start(port));
+            ai::Receiver receiver(network,std::string(64,'b'));CHECK(receiver.start(port));CHECK(receiver.port()!=port && receiver.port()>=1024); // ki-status: busy port falls back to a free dynamic port
             ui.stop();
         }
         const auto now=render::samples::CLOCK;const auto snap=render::samples::ai_status();
