@@ -1,6 +1,6 @@
 # ScreenBuddy · Features in detail
 
-P9 development: [Game-Mode – usage, sources and limitations](GAME-MODE.en.md). Not released yet; existing version/download information still applies.
+Since 2.10.0: [Game-Mode – usage, sources and limitations](GAME-MODE.en.md).
 
 Moved out of the README (status 2.9.4). German: [FUNKTIONEN.md](FUNKTIONEN.md). Overview of all documents (German): [docs/README.md](README.md).
 
@@ -16,7 +16,7 @@ Moved out of the README (status 2.9.4). German: [FUNKTIONEN.md](FUNKTIONEN.md). 
 - [Colors & design (from 2.9.0)](#colors--design-from-290)
 - [Android Companion app (from 2.3.0, multiple devices from 2.7.0)](#android-companion-app-from-230-multiple-devices-from-270)
 - [Plugin store and plugins (from 2.6.0)](#plugin-store-and-plugins-from-260)
-- [Plugin pages with zone layout and page editor (from 2.10.0, in preparation)](#plugin-pages-with-zone-layout-and-page-editor-from-2100-in-preparation)
+- [Plugin pages with zone layout and page editor (from 2.10.0)](#plugin-pages-with-zone-layout-and-page-editor-from-2100)
 - [Browse views (from 2.0.4)](#browse-views-from-204)
 
 ## System page touch and update notice (from 2.2.0)
@@ -87,9 +87,9 @@ Settings page **Plugin store** (group **App**, next to Companion and Plugins, ca
 
 More: [Plugin system](PLUGIN-SYSTEM.en.md) · [Tutorial](PLUGIN-TUTORIAL.en.md) · [Store terms](PLUGIN-STORE-TERMS.md) · [Examples](../cpp/examples/plugins/README.md). Online plugins and CRL/OCSP checks remain experimental.
 
-## Plugin pages with zone layout and page editor (from 2.10.0, in preparation)
+## Plugin pages with zone layout and page editor (from 2.10.0)
 
-**Not released.** This is the development state; device acceptance is still missing.
+**Released with 2.10.0.** Device acceptance was only partial; see the [release notes 2.10.0](RELEASE-NOTES-2.10.0.md) (German).
 
 - **Zones:** A plugin with `schema_version: 2` divides its page into a grid; blocks sit in zones and are hidden when space runs out. Limits: 6 × 6 grid, 8 zones, 4 blocks per zone. Without `layout` the previous arrangement stays.
 - **Density levels:** Each building block is compact, regular or detailed, chosen by the available area.

@@ -6,120 +6,51 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
-BF6-Rangliste: Spieler lassen sich jetzt per ID eintragen (`Name#ID`, `Name@psn#ID`; alte Einträge bleiben gültig). Abfrage per `playerid`, der Name dient nur der Anzeige. Nach einer erfolgreichen Namenssuche merkt sich die App die ID und trägt sie in die Konfiguration ein; bei Fehlschlag Rückfall über Spielersuche und Kleinschreibung. „Prüfen“ zeigt die gefundene ID (Web-Oberfläche mit „ID übernehmen“ und optionalem ID-Feld); der Web-Link führt bei vorhandener ID auf die ID-Seite. Python-Variante an die PC-Reihenfolge `pc, ea` angeglichen.
+## [2.10.0] - 2026-11-07
 
-P9-9: Anti-Cheat-geschützte Spiele bei fehlendem Image-Pfad über Toolhelp-PID/EXE-Namen, begrenzten Bibliothekscache und Vordergrund/Vollbild erkennen; Battlefield 6 mit Steam-Appmanifest auch bei RunningAppID 0. EA-Anti-Cheat-/Hilfsprozess-Ausschlüsse, stabile PID-/Namenszuordnung und synthetische Regressionstests. Live-Spiel-/Hardwareabnahme offen; kein Release.
+Companion-App bleibt 1.0.3. Release-Notizen: [docs/RELEASE-NOTES-2.10.0.md](docs/RELEASE-NOTES-2.10.0.md).
 
-P9-8: Game-Ansicht bei aktiviertem Game-Mode aus normaler Rotation, Companion-Navigation und Tap-Zielen reserviert. Direkte EXE-Icons/Paket-Logos, einheitliche Spielkacheln, größere Werte, neue Vorlage und 60-Sekunden-Sparklines für FPS/Frametime. Isolierte Rotations-/Intro-Prüfung und synthetische Regressionstests; echte Spiele und physische Displays bleiben offen.
+### Hinzugefügt
 
-P9-7: Lesende Bibliotheksquellen für GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard und Rockstar. Austauschbarer Registry-Zugriff, synthetische Parser-/Filtertests, Vollbildprüfung auch bei GOG-/Epic-EXE-Treffern; Launcher-/Anti-Cheat-Ausschlüsse erweitert. DE/EN-Doku und Hilfen aktualisiert; Prüfstand und offene echte Launcher-Abnahme im [Plan](docs/PLAN-GAME-MODE.md).
+- **Plugin-Zonen und Editor:** Manifest v2 (`schema_version: 2`) beschreibt ein flaches Raster mit Zonen und Blöcken mit stabilen Block-IDs (6 × 6 Raster, 8 Zonen, höchstens 4 Blöcke je Zone, bis zu 12 Widgets mit Layout). Dazu Dichtestufen (kompakt, normal, ausführlich; passt ein Block nicht, wird er ausgeblendet), bedingte Anzeige (`show_if`), Fehlerisolierung je Block, Wechselfeld (`rotate` mit 3–600 s oder `first_available`) und Tap-Ziele, die HTTPS-Links am PC öffnen (Freigabe je Plugin standardmäßig aus). Neuer Editor mit Kachelpalette (Suche, Filter, Mini-Vorschauen), Fläche im Seitenverhältnis des Displays, Ebenen- und Seitenliste, Drag & Drop, Rückgängig/Wiederholen und Tastaturbedienung. Plugin-Karten übernehmen Radius und Abstände aus dem Theme. Eingebaute Seiten (System, Freunde, Discord, Battlefield 6, Blogs, Streaming, Spotify) zeichnen über denselben Rahmen und sind im Editor bearbeitbar; Home Assistant bleibt nativ.
+- **Eigene Ansichten:** Eigener Editor unter **App → Eigene Ansichten** mit streng begrenztem JSON-Modell, Sicherung und atomarem Speichern. Einzelkacheln für System, Listen, Spotify und native Home-Assistant-Entitäten; Verwaltung, Palette, Raster, Eigenschaften, Rückgängig/Wiederholen, Geräte-Vererbung und `custom:`-Seitenzyklus. Nur aktive Displays erscheinen als Tabs, gespeicherte Offline-Layouts bleiben erhalten. Touch-Ziel je Kachel (Standard oder individuell: Seite wechseln, Link nur mit Freigabe, nächster Eintrag für Plugin-Wechselfelder). Der Eintrag „Seite anordnen“ entfällt; Standard- und Plugin-Seiten werden über die Seitenliste von Eigene Ansichten bearbeitet. [Bedienung und Prüfstand](docs/PHASE8-EIGENE-ANSICHTEN.md).
+- **Game-Mode:** Lesende Spielerkennung (Steam, Epic, Xbox, GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net, Rockstar; Vollbildprüfung, Anti-Cheat-geschützte Spiele über PID/EXE-Namen, zusätzliche Spiele und Ausschlüsse). Beim Spielstart ein 2,5-Sekunden-Intro mit Logo (reduzierte Variante bei „Animationen reduzieren“), danach eine eigene Game-Ansicht auf dem gewählten Display mit 16 neuen System-Einzelkacheln (u. a. FPS, Frametime, 1%-Low, GPU, VRAM, Ping) und 60-Sekunden-Sparklines. Die normale Rotation pausiert und läuft nach Spielende weiter; die Game-Ansicht ist bei aktivem Game-Mode aus Rotation, Companion-Navigation und Tap-Zielen reserviert. Fehlende Messquellen zeigen `n/a`. [Plan und Prüfstand](docs/PLAN-GAME-MODE.md).
+- **KI-Status:** Claude-Code- und Codex-Karten, Status- und Sitzungsanimationen, lokale Hook-Ereignisse (Loopback, Port 18765 mit Fallback konfigurierbar) mit Vorschau, einmaliger Sicherung und selektiver Entfernung, lokale `ai.*`-Kacheldaten sowie Kacheln in Eigene Ansichten. Limits über die bestehende Konto-Einwilligung aus den Windows-Login-Dateien (inoffizielle HTTPS-Schnittstellen, Abfrage im 3-/15-Minuten-Takt, kein Token-Refresh). Ein abgelaufenes Token wird alle 60 Sekunden neu geprüft. Werte ohne Messwert bleiben `n/a`. [Prüfstand und offene Arbeiten](cpp/ai-status-report.md).
+- **Standard-Theme `material-orange`:** Dunkles Material mit Orange-Akzent (Text/Fläche und Akzent/Fläche mindestens 4,5:1, Leiste mindestens 3:1). Neuinstallationen starten damit; bestehende Installationen fragen einmalig per Dialog „Neuen Standard setzen?“ (Voreinstellung Nein). Cupertino, Fluent, Hell, Dunkel, Windows und eigene Themes bleiben wählbar.
+- **Sperrzone pro Gerät:** Ränder in ganzen Pixeln für USB-Display und Monitor (unter **Anzeige**) sowie gemeinsame Vorgabe und eigene Sperrzone je gekoppeltem Companion-Gerät im unabhängigen Betrieb. Android-TV läuft immer im Querformat.
 
-BF6-Rangliste: Antwortet die Quelle (gametools) mit HTTP 5xx, zeigt die App jetzt „Quelle gestört“ statt „nicht gefunden“ (Rangliste, „Prüfen“, Web-Oberfläche); zuletzt gute Werte und gemerkte IDs bleiben erhalten. Netzwerkfehler und 404 verhalten sich wie bisher. Der Touch-/Web-Link eines Spielers mit ID führt jetzt auf `tracker.gg/bf6/profile/<ID>/overview` (gleiche ID wie bei gametools).
+### Geändert
 
-P9-6: 26 automatisierte Suiten grün, darunter 114 Game-Mode-Prüfungen; isolierte Dummy-Simulation auf UI 18766 mit Intro-/Aktiv-/Rückkehr-Vorschaubildern bestanden. KI-Empfänger wegen belegtem 18765 aus. Offene PresentMon-/Hardwaregrenzen und nicht ausgeführte Installer-Tests im [Plan](docs/PLAN-GAME-MODE.md).
+- **Spotify:** Läuft nichts, zeigt die Seite den **zuletzt gespielten Titel** samt Cover („Zuletzt gespielt“, gedimmt, ohne Tasten) statt „Es läuft gerade nichts“. Dafür braucht die Anmeldung den zusätzlichen Spotify-Zugriff „zuletzt gespielt“: einmal unter Einstellungen › Spotify neu anmelden. Ohne diesen Zugriff bleibt es bei der bisherigen Meldung. Ein Tipp auf das Cover öffnet die Spotify-App am PC, auch bei einem Tipp von einem Companion-Gerät; auf dem Handy wird Spotify nicht gestartet.
+- **Kontrast:** Warnfarbe im hellen Theme, Windows-Kontrastdesign und Kopfzeile des Cupertino-Dunkelprofils angehoben; der Fokusring im hellen FuchsLabs-Theme ist auf Glut abgedunkelt. Textkontraste ≥ 4,5:1 werden in einer Themenmatrix geprüft.
 
-P9-5: Game-Mode-Einstellungen, Display-/Ansichtsauswahl, zusätzliche Spiele/Ausschlüsse, Editor-Vorlage und Game-Mode-Palette. Hintergrund-Erkennung mit asynchronen Logos, Intro und pausierter normaler Rotation; Rückkehr nach Spielende. DE/EN-Bedienung und eingebettete Hilfen synchronisiert. Lokale Entwicklung, kein Release.
+### Behoben
 
-P9-4: 16 neue System-Einzelkacheln für Game-Mode, DXGI-Present-Aufrufrate/Frametime/1%-Low, NVML/AMD-ADL/PDH, CPU-Kernlast/Takt, VRAM und ICMP-Ping/Jitter. Fehlende Quellen n/a; unveränderte Standardseiten.
+- **BF6-Rangliste, ID-Suche:** Spieler lassen sich per ID eintragen (`Name#ID`, `Name@psn#ID`; alte Einträge bleiben gültig). Abfrage per `playerid`, der Name dient nur der Anzeige. Nach erfolgreicher Namenssuche merkt sich die App die ID; bei Fehlschlag Rückfall über Spielersuche und Kleinschreibung. „Prüfen“ zeigt die gefundene ID (Web-Oberfläche mit „ID übernehmen“). Der Link eines Spielers mit ID führt auf `tracker.gg/bf6/profile/<ID>/overview`.
+- **BF6-Rangliste, Quelle gestört:** Antwortet die Quelle (gametools) mit HTTP 5xx, zeigt die App „Quelle gestört“ statt „nicht gefunden“; zuletzt gute Werte und gemerkte IDs bleiben erhalten. Netzwerkfehler und 404 verhalten sich wie bisher.
+- **BF6-Plattform:** gametools lehnt `platform=ea` ab und liefert Spieler nur noch mit `pc`. PC-Konten werden mit `pc` abgefragt, bei Bedarf mit Rückfall auf `ea` und den kleingeschriebenen Namen; PSN und Xbox probieren mehrere Plattformwerte.
 
-P9-3: 2,5-Sekunden-Intro mit Abdunklung, Logo-Easing, Glanzlauf und bestehendem FadeCache; reduzierte Überblendung ohne Skalierung/Glanz.
-
-P9-2: Steam-Logos über feste öffentliche Asset-URLs, begrenzter lokaler Cache (7 Tage), EXE-Icon als Fallback; Netzwerkzugriff nur im Hintergrund vorgesehen.
-
-P9-1: Read-only Spielerkennung mit Steam-/Epic-Parsern, Xbox-/Vollbildpfaden und 3/5-Sekunden-Entprellung. Neue Offline-Unit-Tests; Integration folgt.
-
-P8-4 (2026-11-07): KI-Status gemergt; Claude-/Codex-/Limits-Kacheln in eigenen Ansichten, vorhandener Renderer/Render-Takt, öffentliche Bedingungen und Seiten-Touch-Ziele, additive Editor-Snapshots DE/EN. Standardseiten-Baselines unverändert. Portkonflikt 18765 dokumentiert; keine Portänderung oder Veröffentlichung. [P8-4](docs/PHASE8-EIGENE-ANSICHTEN.md).
-
-P8-2 (2026-11-07): Einzelkacheln für Listen, Spotify und native HA-Entitäten über bestehende Zeichenfunktionen; eigener Editor mit Verwaltung, Palette, Raster, Eigenschaften, Rückgängig/Wiederholen und Geräte-Vererbung. Nur aktive Displays als Tabs, Rückfall auf Standard beim Trennen; gespeicherte Offline-Layouts bleiben erhalten. Standardseiten-Verträge unverändert. Kein Release/Push. [Bedienung und Prüfstand](docs/PHASE8-EIGENE-ANSICHTEN.md).
-
-P8-1 (2026-11-07): Eigene Ansichten mit streng begrenztem JSON-Modell, Backup/atomarem Speichern, Geräte-Vererbung und `custom:`-Seitenzyklus. Systemkarten, Plugin-v2-Blöcke und Quellstatus über bestehende Renderer; HA, Listen-/Spotify-Inhaltskacheln, Editor und Touch-Aktionen offen. Umfang und Prüfstand: [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md).
-
-- KI-Status: vorhandene Konto-Einwilligung nutzt Windows-Login-Dateien für inoffizielle Claude-/Codex-HTTPS-Limits; überschriebene Tokenpuffer, kein Refresh, unabhängiger 3-/15-Minuten-Takt, konfigurierbarer Empfängerport mit Fallback. Synthetische Offline-Prüfung; kein Release.
-- KI-Status (`ai`, C++): Claude-Code-/Codex-Karten, framebasierte Status-/Sitzungsanimationen, Loopback-Ereignisse auf 18765 mit eigenem DPAPI-Schlüssel, Hook-Vorschau mit einmaliger Sicherung und selektiver Entfernung sowie lokale `ai.*`-Kacheldaten. Limits/Kosten/Kontext/Tokens ohne explizite Messwerte bleiben `n/a`. DE/EN-Anleitung und neue fl-tests-Prüfungen; tatsächlicher Prüfstand und offene Live-/Hardware-Abnahme in `cpp/ai-status-report.md`. Keine Veröffentlichung.
-
-P7b-0 (2026-11-06, Claude Sonnet 5.5 im Auftrag): Neuer Standard dunkles Material mit Orange-Akzent (`material-orange`; Text/Fläche und Akzent/Fläche mindestens 4,5:1, Leiste mindestens 3:1, Kontrasttests in fl-tests und fl-layout-ui-tests). Neuinstallation startet damit; bestehende Installationen fragen einmalig per Dialog DE/EN „Neuen Standard setzen?“ (Voreinstellung Nein, Antwort in `ui.standard_theme_choice` gespeichert, Schließen ändert nichts). Cupertino, Fluent, Hell, Dunkel, Windows und eigene Themes bleiben wählbar. Bestehende Built-in-/Plugin-Hashdateien unverändert, neue Basis additiv in `p7b0-material-orange-hashes.txt` (768 Hashes).
-
-P7b-6 (2026-11-06, Agent Codex CLI 0.166.0): Geräte-Overlays für Built-ins/Plugins mit Standard-Vererbung (höchstens 16 je Seite, 16 KiB je Overlay, 256 KiB gesamt), atomarer Speicherung/Backup und gemeinsamer Geräteauswahl für Bild/Touch; Display-Tabs mit Größe/Ausrichtung, Offline-Profil und Rückfrage beim Verwerfen. Android-TV am PC markieren (Protokoll v1 meldet keinen Gerätetyp), dann nur Querformat. 14 Suiten grün (Companion offline), elf bestehende Hashdateien unverändert; physische Mehrgeräte-Abnahme offen.
-
-P7b-1 (2026-11-06, Agent Claude Sonnet 5.5): Editor-Fensteraufbau: Kopfleiste (Seitenauswahl, Gerätegröße-Chip, Rückgängig/Wiederholen/Übernehmen/Zurücksetzen), linke Schiene mit Kacheln/Ebenen/Seiten, Fläche und Eigenschaften als Drei-Spalten-Hülle (breit ab 900 DIP; mittel: Eigenschaften unter der Fläche; schmal: untereinander, Palette eingeklappt, Bereichswahl bleibt beim Seitenwechsel); Display-Tab-Leiste unverändert. Neu `ui_editor.*`. 14 Suiten grün, Baselines bitgleich; Handabnahme offen.
-
-P7b-2 (2026-11-06, Agent Claude Sonnet 5.5): Kachelpalette mit Suche, Filter-Chips (Alle/System/Zeit/Medien/Spiele/Sonstiges) und Raster lebender Mini-Vorschauen (derselbe Seitenrenderer mit Beispieldaten: Ausschnitt der Standardseite bzw. Einzelzone bei Plugins; Cache je Seite/Kachel/Größe/Anzeige-Theme, Laden nur beim Seitenwechsel, Kacheln ohne Daten als „keine Daten“). Ziehen auf die Fläche, Klick fügt an der ersten freien Stelle ein (ein Rückgängig-Schritt), Tastatur (Pfeile, Leertaste, Enter, Entf, F6), MSAA „Kachelpalette“. Neu `ui_tile_palette.*`. 14 Suiten grün, Baselines bitgleich.
-
-P7b-3 (2026-11-06, Agent Claude Sonnet 5.5): Fläche im Seitenverhältnis des Display-Tabs: Gerätegrößen-Rahmen, dezentes Zellraster, gestrichelte Ablageplätze „hier ablegen“, Geist mit Einrasten (ungültig: gestrichelt rot und Text „passt nicht“), Griffe, Papierkorb, Zoom −/+/Passend. Opt-in `GridEditor::canvas`; das bisherige Raster bleibt bitgleich. Editor-Snapshots additiv (`p7b-editor-hashes.txt`), Kontrast Text ≥ 4,5:1 und Fokusring/Rahmen ≥ 3:1 in allen Themes geprüft. 14 Suiten grün.
-
-P7b-4 (2026-11-06, Agent Claude Sonnet 5.5): Ebenenliste (Reihenfolge, Sichtbarkeit; Auswahl wirkt in Liste und Fläche), Seitenliste (Wechsel mit Rückfrage bei ungesicherten Änderungen) und Einsteigerkarte „In drei Schritten“ (einmal wegklickbar, gemerkt in `layouts/editor-intro.done`). 14 Suiten grün (fl-layout-ui-tests 1.615), Baselines bitgleich; Handabnahme offen.
-
-P7-5 (2026-11-06, Agent Codex CLI 0.166.0): Reiner Built-in-Katalog und strikt versionierte Overlays; Standard behält festen Renderweg, HA später. 14 Suiten grün (Companion offline: 250); Built-in 4.221 Bilder/Trefferkarten: 0 Fehler, Plugin 2.093 Prüfungen: 0 Fehler; physische Abnahme offen.
-
-P7-6 (2026-11-06, Agent Codex CLI 0.166.0): Atomare Seitenlayouts mit Backup/Revision, Beispieldatenvorschau, Raster-Touch-Zielen und isoliertem Clip; fester Renderweg unverändert. 14 Suiten grün (Editor 835; Companion offline 250); Built-in 4.221 Bilder/Trefferkarten und Plugin-Baselines unverändert; Hardware offen.
-
-P7-7 (2026-11-06, Agent Codex CLI 0.166.0): RSS-Editor mit Beiträge/Pflicht-Zustand, getrennten Quer-/Hochlayouts in `layouts/builtin.rss.layout.json`; Öffnen/Übernehmen von Standard behält den pixelgleichen festen Weg, echte Änderungen nutzen das Raster (Abstände können sich ändern, E2). Zurücksetzen stellt Standard her; Zeilen, Blättern und Touch teilen einen Plan. Kopf/Fuß fest; Built-in-Wechselfelder und HA später. 14 Suiten grün (Katalog 217, Editor 874, Kern 3.470; Companion offline 250); bestehende Baselines bitgleich, zusätzlich 1.024 RSS-Bilder/Trefferkarten und 5.952 Prüfungen ohne Fehler; Hardware offen.
-
-P7-8 (2026-11-06, Agent Codex CLI 0.166.0): Streaming in der Seitenauswahl; Titel/Pflicht-Zustand aus dem vorhandenen Schnappschuss, seitenbezogenes Quer-/Hoch-Overlay, Blättern und Touch aus einem Rasterplan. Standard/Zurücksetzen behalten den festen Weg; TMDB / JustWatch bleibt im Fuß; kompakte Zeilen ohne Datum. 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, 1.792 neue Rasterbilder/Trefferkarten additiv, 6.267 Prüfungen/0; Hardware offen.
-
-P7-9 (2026-11-06, Agent Codex CLI 0.166.0): BF6 in der Seitenauswahl; Rangliste/Pflicht-Zustand, sortierter Schnappschuss, seitenbezogenes Quer-/Hoch-Overlay. Rasterkapazität steuert Blättern und Spielerlinks; kompakte Zeilen zeigen Name, K/D, Rang oder Fehler. Standard/Zurücksetzen bleiben pixelgleich. 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, 1.024 neue Rasterbilder/Trefferkarten additiv, 4.390 Prüfungen/0; Hardware offen.
-
-P7-10 (2026-11-06, Agent Codex CLI 0.166.0): Freunde und Discord in der Seitenauswahl; gemeinsamer Freunde/Pflicht-Zustand-Katalog und sortierte Schnappschüsse, getrennte Overlays `builtin.friends.layout.json` / `builtin.discord.layout.json`, Backups und Revisionen. Rasterzeilen, Blättern und Profilziele aus einem Plan; schmale kompakte Zeilen ohne Avatar/Marken. Standard/Zurücksetzen bleiben pixelgleich (E2 akzeptiert). 14 Suiten grün (Companion offline); bestehende Baselines bitgleich, je 1.024 Rasterbilder/Trefferkarten additiv, zusammen 8.622 Prüfungen/0; Hardware offen.
-
-P7-11 (2026-11-06, Agent Codex CLI 0.166.0): System im Editor mit CPU/GPU/RAM/Datenträger/Netz aus dem vorhandenen Schnappschuss; Temperaturen mit heutigen Schwellenfarben, Netzverlauf in normaler Dichte, kompakt Wert/Balken bzw. Raten. Eigenes Quer-/Hoch-Overlay, Cupertino-Gruppe je Zone, Werkzeugziele aus demselben Rasterplan. Standard/Reset bleiben pixelgleich; E2 bestätigt. 14 Suiten grün (Companion offline); bestehende Baselines unverändert, 1536 System-Rasterbilder/Trefferkarten additiv. Physische Abnahme offen.
-
-P7-12 (2026-11-06, Agent Codex CLI 0.166.0): Spotify im Editor mit Cover, Titel/Interpret/Album, Fortschritt, Tasten, Pegel und Pflicht-Zustand aus vorhandenem Snapshot/Meter; „zuletzt gespielt“ bleibt ohne Fortschritt/Tasten. Quer-/Hoch-Overlay je Seite, kompakter einzeiliger Text, alle drei Pegelfarbmodi, getrennte 48-Punkte-Tastenziele aus derselben Anordnung. Standard/Reset pixelgleich; 14 Suiten grün (Companion offline); bestehende Baselines unverändert, 4096 Spotify-Rasterbilder/Trefferkarten additiv. Physische Abnahme offen.
-
-
-### 2.10.0 – in Vorbereitung (nicht veröffentlicht)
-
-Noch kein Release, kein Tag, keine EXE-Auslieferung. Hardware-, Oberflächen- und Companion-Abnahmen sowie der APK-Build stehen aus; siehe „Entwicklungsstand“ unten.
-
-#### Highlights
-- **Phase 8 P8-3 (2026-11-07):** Der Eintrag „Seite anordnen“ entfällt; Standard- und Plugin-Seiten werden über die Seitenliste von **Eigene Ansichten** bearbeitet. Neu: **Touch-Ziel je Kachel** (Standard oder Individuell: Seite wechseln, Link nur mit Freigabe, Nächster Eintrag nur für Plugin-Wechselfelder), je Display-Overlay gespeichert, mit Rückfall auf Standard bei ungültigen Zielen.
-
-- **Zonen-Layout für Plugin-Seiten (Manifest v2):** `schema_version: 2` beschreibt ein flaches Raster mit Zonen und Blöcken mit stabilen Block-IDs. Manifest v1 bleibt unverändert. Grenzen: 6 × 6 Raster, 8 Zonen, höchstens 4 Blöcke je Zone, bis zu 12 Widgets mit Layout.
-- **Dichtestufen:** Jeder Bausteintyp (Text, Kennzahl, Uhr, Balken, Liste) hat kompakt, normal und ausführlich. Passt ein Block nicht in seine Fläche, wird er ausgeblendet statt überlappt.
-- **Bedingte Anzeige (`show_if`):** Ein Block erscheint nur, wenn ein Wert vorhanden ist oder ein einfacher Vergleich zutrifft. Keine Ausdruckssprache, keine Typumwandlung.
-- **Fehlerisolierung:** Schlägt Auswertung oder Zeichnen eines Blocks fehl, fehlt nur dieser Block; ein ratenbegrenzter Protokolleintrag ohne Daten wird geschrieben.
-- **Geräteprofil und Sperrzone pro Gerät:** Ränder in ganzen Pixeln für USB-Display und Monitor (unter **Anzeige**) sowie gemeinsame Vorgabe und eigene Sperrzone je gekoppeltem Companion-Gerät (im unabhängigen Betrieb). Android-TV läuft immer im Querformat.
-- **Wechselfeld mit ruhigem Übergang:** Eine Zone kann zwischen Blöcken wechseln (Modus `rotate` mit Takt 3–600 s oder `first_available`). Zeitplanung ohne unnötige Neuzeichnung. Die reale serielle Bildrate ist noch nicht gemessen.
-- **Tap-Ziele mit Link-Freigabe:** Blöcke können HTTPS-Links öffnen (am PC, auch bei einem Tipp vom Handy). Die Freigabe je Plugin ist standardmäßig **aus** und zeigt die Hosts.
-- **Rahmenstil aus dem Theme:** Plugin-Karten übernehmen Eckenradius und Abstände aus dem Theme (FuchsLabs-Radius 9 → 8).
-- **Kontrastfixes:** Warnfarbe im hellen Theme, Windows-Kontrastdesign und Kopfzeile des Cupertino-Dunkelprofils angehoben; der Fokusring im hellen FuchsLabs-Theme ist auf Glut abgedunkelt. Snapshot-Tests prüfen Textkontraste ≥ 4,5:1 in einer Themenmatrix.
-- **Eingebaute Seiten über gemeinsamen Rahmen:** System, Freunde, Discord, Battlefield 6, Blogs (RSS), Streaming und Spotify zeichnen ihre Karten über denselben Rahmen (`draw_framed`). Home Assistant bleibt nativ. Bitgleich zu den Basislinien (4221 Bilder und Trefferkarten, 0 Abweichungen auf dem Referenzrechner).
-- **Seiten-Editor:** Unter **App → Plugin-Seite anordnen** Blöcke im Raster anordnen, Bedingungen setzen, Vorschau in Quer- und Hochformat, Rückgängig/Wiederholen (100 Schritte), Tastaturbedienung. Gespeichert wird nur die Anordnung, mit Sicherungskopie; das Manifest bleibt unverändert.
-- **Seiten-Editor per Drag & Drop:** Bausteinleiste; Blöcke und Zonen ziehen, ablegen und verschieben; Resize-Griffe; Ablage zum Entfernen; Tastatur-Alternative Aufnehmen/Ablegen (Leertaste, Enter, Esc). Ein Rückgängig-Schritt pro Ziehvorgang. Abbruch stellt die Auswahl wieder her, Loslassen außerhalb des Rasters bricht still ab, Ziele ohne gezeigten Block in der Quellzone gelten als „passt nicht“, Block-Chips sind per Tastatur bedienbar (Strg+Auf/Ab, Leertaste, Entf). Weiterhin Overlay, Manifest unverändert. Maus-, Touchpad- und Touch-Abnahme stehen aus.
-
-#### Behoben
-
-- **BF6-Rangliste:** Die Community-API (gametools) lehnt `platform=ea` ab und liefert Spieler nur noch mit `pc`. ScreenBuddy fragt PC-Konten jetzt mit `pc` ab und fällt bei Bedarf auf `ea` und den kleingeschriebenen Namen zurück; PSN und Xbox probieren mehrere Plattformwerte. Das Rang-Profil nutzt dieselbe Plattform.
-- **Spotify:** Läuft nichts, zeigt die Seite den **zuletzt gespielten Titel** samt Cover („Zuletzt gespielt“, gedimmt, ohne Tasten) statt „Es läuft gerade nichts“. Dafür braucht die Anmeldung den zusätzlichen Spotify-Zugriff „zuletzt gespielt“: einmal unter Einstellungen › Spotify neu anmelden. Ohne diesen Zugriff bleibt es bei der bisherigen Meldung.
-
-#### Sicherheit
+### Sicherheit
 
 - **Tap-URLs:** nur HTTPS, strenge Zeichen und Prozentsequenzen, Hosts kleingeschrieben, keine Punktsegmente. Die Adresse wird beim Tipp erneut geprüft, bevor der Browser startet.
-- **Link-Freigabe:** standardmäßig aus; wird die Freigabe bei jeder Plugin-Änderung widerrufen, außer bei einer reinen Änderung der Linkliste. Je Plugin höchstens ein Linkversuch alle zwei Sekunden. Verweigerte Tipps wechseln die Seite nicht.
+- **Link-Freigabe:** standardmäßig aus; wird bei jeder Plugin-Änderung widerrufen, außer bei einer reinen Änderung der Linkliste. Je Plugin höchstens ein Linkversuch alle zwei Sekunden. Verweigerte Tipps wechseln die Seite nicht.
 - **`show_if`:** Geheime Einstellungen sind in Bedingungen verboten; eine ungültige Bedingung lehnt das ganze Manifest ab.
 - **Protokoll:** Warnungen nennen nur Plugin-ID, Block-ID und Stufe, nie Daten, Einstellungswerte oder Ausnahmetexte.
 
-#### Kompatibilität
+### Kompatibilität
 
 - Manifest v1, Protokoll v1 und die bestehenden Snapshot-Hashes bleiben unverändert. Ohne `layout` zeichnen v1 und v2 wie bisher im automatischen Raster.
 - Schema 2 braucht im Store `min_app_version` 2.10.0 oder neuer; ältere Apps lehnen es ab.
 - Sperrzone: ganze Pixel 0–1000; je Rand höchstens ein Drittel der kleineren Bildkante. Bleiben weniger als 160 × 120 nutzbare Pixel, wird die Sperrzone ignoriert.
 - Android-TV läuft immer im Querformat. Eine gespeicherte Hochformat-Auswahl bleibt erhalten, wird aber ignoriert.
 - Home Assistant bleibt nativ und gehört nicht zum Zonen-System.
-- Die veröffentlichte Companion-App bleibt 1.0.3. Version 1.0.4 (versionCode 8) ist ein Entwicklungsstand ohne Signierung und Auslieferung.
+- Die Companion-App bleibt 1.0.3. Version 1.0.4 (versionCode 8) ist ein Entwicklungsstand ohne Signierung und Auslieferung.
 
-#### Entwicklungsstand (offen)
+### Prüfstand
 
-- Keine Veröffentlichung: kein Tag, keine EXE, keine Companion-APK-Auslieferung.
-- Offen: physische Abnahme an USB-Display (auch Hochformat-Gehäuse), Monitor, Companion und Android-TV; native Sichtprüfung der Oberfläche; gemessene serielle Bildrate für das Wechselfeld; Companion-Prozesstests; APK-Build.
-- Eingebaute Seiten: Die Basislinie ist rechnergebunden (Roboto als Benutzerschrift nötig). Auf dem Referenzrechner sind alle migrierten Seiten bitgleich (0 Abweichungen); die Hardware-Abnahme steht aus.
-- Phasen in Kurzform (Details, Prüfzahlen und Grenzen: `cpp/TESTPROTOKOLL.md`):
-  - Phase 2a/2b: Manifest v2, Zonen-Geometrie, Zonen-Zeichnen, Dichtestufen.
-  - Phase 3: bedingte Anzeige und Fehlerisolierung.
-  - Phase 4a: Geräteprofile, Sperrzone, Android-TV-Querformat.
-  - Phase 4b: Wechselfeld.
-  - Phase 4c: Tap-Ziele mit Link-Freigabe.
-  - P5-0 bis P5-6: Basislinie und Umstellung der eingebauten Seiten auf den gemeinsamen Rahmen.
-  - P6-1 bis P6-5 und Review: Anordnungs-Overlay, Seiten-Editor, Fokusring.
+- Automatische Prüfungen grün (Details und Zahlen: `cpp/TESTPROTOKOLL.md`, [Game-Mode](docs/PLAN-GAME-MODE.md), [KI-Status](cpp/ai-status-report.md)).
+- Hardware- und Geräteabnahme nur teilweise live (Redmi 8, Android-TV, Pixel 10 Pro): Game-Mode-Intro am Redmi 8, BF6-Erkennung am PC, Rangliste am Android-TV, KI-Status. Nicht abgenommen: weitere echte Spiele und Launcher, USB-Display auch im Hochformat-Gehäuse, Monitor, gemessene serielle Bildrate für das Wechselfeld.
+- Eingebaute Seiten: Die Basislinie ist rechnergebunden (Roboto als Benutzerschrift nötig); auf dem Referenzrechner 0 Abweichungen.
 
 ### 2.9.6 – in Vorbereitung
 

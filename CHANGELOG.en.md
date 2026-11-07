@@ -6,120 +6,51 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
-BF6 leaderboard: players can now be entered by ID (`Name#ID`, `Name@psn#ID`; existing entries keep working). Lookups use `playerid`, the name is display-only. After a successful name lookup the app remembers the ID and writes it to the configuration; on failure it falls back to the player search and lowercase names. "Check" shows the ID found (web UI with "Use ID" and an optional ID field); the web link points to the ID page when an ID is known. The Python variant now uses the `pc, ea` platform order.
+## [2.10.0] - 2026-11-07
 
-P9-9: Detect anti-cheat-protected games with unavailable image paths using Toolhelp PID/basename, a bounded library cache and foreground/fullscreen evidence; Battlefield 6 uses its Steam appmanifest even with RunningAppID 0. EA anti-cheat/helper exclusions, stable PID/basename identity and synthetic regression tests. Live game/hardware acceptance pending; no release.
+The Companion app remains 1.0.3. Release notes: [docs/RELEASE-NOTES-2.10.0.md](docs/RELEASE-NOTES-2.10.0.md) (German).
 
-P9-8: Reserve the selected Game-Mode view from normal rotation, Companion navigation and tap destinations while enabled. Direct EXE icons/package logos, consistent game cards, larger values, updated template and 60-second FPS/frametime sparklines. Isolated rotation/intro checks and synthetic regression tests; real games and physical displays remain pending.
+### Added
 
-P9-7: Read-only library discovery for GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard and Rockstar. Replaceable registry access, synthetic parser/filter tests, fullscreen gate also for GOG/Epic EXE matches; extended launcher/anti-cheat exclusions. DE/EN docs and help updated; validation and pending real launcher acceptance in the [plan](docs/PLAN-GAME-MODE.md).
+- **Plugin zones and editor:** Manifest v2 (`schema_version: 2`) describes a flat grid with zones and blocks with stable block IDs (6 × 6 grid, 8 zones, at most 4 blocks per zone, up to 12 widgets with a layout). Also density levels (compact, regular, detailed; a block that does not fit is hidden), conditional display (`show_if`), fault isolation per block, cycling zones (`rotate` with 3–600 s or `first_available`) and tap targets that open HTTPS links on the PC (consent per plugin, off by default). New editor with a tile palette (search, filters, mini previews), a canvas in the display's aspect ratio, layer and page lists, drag and drop, undo/redo and keyboard operation. Plugin cards take radius and spacing from the theme. Built-in pages (System, Friends, Discord, Battlefield 6, Blogs, Streaming, Spotify) draw through the same frame and can be edited in the editor; Home Assistant stays native.
+- **Custom views:** Dedicated editor under **App → Custom views** with a strictly bounded JSON model, backup and atomic saving. Single tiles for system, lists, Spotify and native Home Assistant entities; management, palette, grid, properties, undo/redo, device inheritance and a `custom:` page cycle. Only active displays appear as tabs; saved offline layouts are kept. Touch target per tile (default or custom: switch page, link only with consent, next entry for plugin cycling zones). The "Arrange page" entry is gone; standard and plugin pages are edited through the page list of Custom views. [Usage and validation](docs/PHASE8-EIGENE-ANSICHTEN.md) (German).
+- **Game-Mode:** Read-only game detection (Steam, Epic, Xbox, GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net, Rockstar; full-screen check, anti-cheat-protected games via PID/EXE name, additional games and exclusions). When a game starts, a 2.5-second intro with the logo (reduced variant with "reduce animations"), then a dedicated game view on the selected display with 16 new single system tiles (including FPS, frametime, 1% low, GPU, VRAM, ping) and 60-second sparklines. Normal rotation pauses and resumes after the game ends; while Game-Mode is on, the game view is reserved from rotation, Companion navigation and tap targets. Missing sources show `n/a`. [Plan and validation](docs/PLAN-GAME-MODE.md) (German).
+- **AI Status:** Claude Code and Codex cards, status and session animations, local hook events (loopback, port 18765, configurable with fallback) with preview, one-time backup and selective removal, local `ai.*` tile data and tiles in Custom views. Limits use the existing account consent and read the Windows login files (unofficial HTTPS interfaces, polled every 3/15 minutes, no token refresh). An expired token is checked again every 60 seconds. Values without a measurement stay `n/a`. [Validation and open work](cpp/ai-status-report.md) (German).
+- **Default theme `material-orange`:** Dark Material with an orange accent (text/surface and accent/surface at least 4.5:1, bar at least 3:1). New installations start with it; existing installations are asked once "Set new default?" (default: No). Cupertino, Fluent, Light, Dark, Windows and custom themes remain selectable.
+- **Keepout per device:** Whole-pixel edges for the USB display and monitor (under **Display**) plus a shared default and an individual keepout per paired Companion device in independent mode. Android TV always runs in landscape.
 
-BF6 leaderboard: when the source (gametools) answers with HTTP 5xx, the app now shows "source unavailable" instead of "not found" (leaderboard, "Check", web UI); the last good values and remembered IDs are kept. Network errors and 404 behave as before. A player's touch/web link with an ID now opens `tracker.gg/bf6/profile/<ID>/overview` (same ID as gametools).
+### Changed
 
-P9-6: 26 automated suites passed, including 114 Game-Mode checks; isolated dummy simulation on UI 18766 produced intro/active/restored previews and passed. AI receiver disabled because 18765 was occupied. PresentMon/hardware limits and unexecuted installer tests in the [plan](docs/PLAN-GAME-MODE.md).
+- **Spotify:** When nothing is playing, the page shows the **last played track** with cover ("Last played", dimmed, no buttons) instead of "Nothing is playing". This needs the extra Spotify permission "recently played": sign in once more under Settings › Spotify. Without it the previous message stays. Tapping the cover opens the Spotify app on the PC, also when tapped from a Companion device; Spotify is not started on the phone.
+- **Contrast:** Warning colour in the light theme, Windows high-contrast design and the Cupertino dark header raised; the focus ring in the light FuchsLabs theme is darkened to Glut. Text contrast of at least 4.5:1 is checked in a theme matrix.
 
-P9-5: Game-Mode settings, display/view selection, additional games/exclusions, editor template and palette. Background discovery with asynchronous logos, intro and paused normal rotation; rotation resumes after the game ends. DE/EN usage and embedded guides synchronized. Local development, no release.
+### Fixed
 
-P9-4: 16 additional single system tiles for Game-Mode, DXGI Present-call cadence/frametime/1% low, NVML/AMD ADL/PDH, per-core CPU load/clock, VRAM and ICMP ping/jitter. Missing sources show n/a; standard pages unchanged.
+- **BF6 leaderboard, ID lookup:** Players can be entered by ID (`Name#ID`, `Name@psn#ID`; existing entries stay valid). Queried by `playerid`; the name is for display only. After a successful name lookup the app remembers the ID; on failure it falls back to player search and lowercase. "Check" shows the ID found (web UI with "Use ID"). A player's link with an ID goes to `tracker.gg/bf6/profile/<ID>/overview`.
+- **BF6 leaderboard, source unavailable:** When the source (gametools) answers with HTTP 5xx, the app shows "source unavailable" instead of "not found"; last good values and remembered IDs are kept. Network errors and 404 behave as before.
+- **BF6 platform:** gametools rejects `platform=ea` and only finds players with `pc`. PC accounts are queried with `pc`, falling back to `ea` and the lowercase name if needed; PSN and Xbox try several platform values.
 
-P9-3: 2.5-second intro with dimming, eased logo, shine and existing FadeCache; reduced transition without scaling/shine.
-
-P9-2: Steam logos from fixed public asset URLs, bounded local cache (7 days), executable icon fallback; retrieval reserved for background work.
-
-P9-1: Read-only game discovery with Steam/Epic parsers, Xbox/full-screen paths and 3/5-second debounce. New offline unit tests; integration follows.
-
-P8-4 (2026-11-07): Merge AI Status; Claude/Codex/limits tiles in Custom views, existing renderer/frame schedule, public conditions and page touch targets, additive DE/EN editor snapshots. Standard page baselines unchanged. Port 18765 collision documented; no port change or release. [P8-4](docs/PHASE8-EIGENE-ANSICHTEN.md).
-
-P8-2 (2026-11-07): Individual list, Spotify and native HA entity tiles reuse existing painters. Dedicated view editor with management, palette, grid, properties, undo/redo and device inheritance. Only active display tabs, fallback to Standard on disconnect, saved offline layouts retained. Complete-page contracts unchanged; no release/push. [Usage and validation](docs/PHASE8-EIGENE-ANSICHTEN.md).
-
-P8-1 (2026-11-07): Custom views with a bounded JSON model, backup/atomic persistence, device inheritance and `custom:` page-cycle integration. System cards, plugin v2 blocks and source status use existing renderers; HA, list/Spotify content tiles, editor and touch actions remain open. Scope and validation: [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md).
-
-- AI Status: existing account consent now reads Windows login files for unofficial Claude/Codex HTTPS usage; wiped token buffers, no refresh, independent 3/15-minute scheduling, configurable receiver port with fallback. Offline synthetic validation; no release.
-- AI Status (`ai`, C++): Claude Code/Codex cards, frame-driven status/session animations, loopback events on 18765 with a dedicated DPAPI key, hook preview with one-time backup and selective removal, and local `ai.*` tile data. Limits/cost/context/tokens remain `n/a` without explicit measurements. DE/EN guide and new fl-tests checks; executed validation and pending live/hardware acceptance are recorded in `cpp/ai-status-report.md`. No release.
-
-P7b-0 (2026-11-06, Claude Sonnet 5.5 on behalf): New default dark Material with orange accent (`material-orange`; text/surface and accent/surface at least 4.5:1, bar at least 3:1, contrast tests in fl-tests and fl-layout-ui-tests). New installs start with it; existing installs get a one-time DE/EN dialog "Set the new default?" (default No, answer stored in `ui.standard_theme_choice`, closing changes nothing). Cupertino, Fluent, Light, Dark, Windows and custom themes stay selectable. Existing built-in/plugin hash files unchanged, new baseline is additive in `p7b0-material-orange-hashes.txt` (768 hashes).
-
-P7b-6 (2026-11-06, Agent Codex CLI 0.166.0): Per-device built-in/plugin overlays inheriting the standard (up to 16 per page, 16 KiB per overlay, 256 KiB total), atomic persistence/backup and shared device selection for images/touch; display tabs with size/orientation, offline profiles and discard confirmation. Mark Android TV on the PC (protocol v1 has no device type) to enforce landscape. 14 suites passed (Companion offline), eleven existing hash files unchanged; physical multi-device acceptance pending.
-
-P7b-1 (2026-11-06, Agent Claude Sonnet 5.5): Editor window layout: header bar (page selector, device-size chip, undo/redo/apply/reset), left rail with Tiles/Layers/Pages, canvas and properties as a three-column shell (wide from 900 DIP; medium: properties below the canvas; narrow: stacked, palette collapsed, section choice survives page switches); display tab bar unchanged. New `ui_editor.*`. 14 suites green, baselines bit-identical; hand acceptance open.
-
-P7b-2 (2026-11-06, Agent Claude Sonnet 5.5): Tile palette with search, filter chips (All/System/Time/Media/Games/Other) and a grid of live mini previews (same page renderer with sample data: a crop of the standard page, or a single zone for plugins; cached per page/tile/size/display theme, loaded only on page switch, tiles without data marked "no data"). Drag onto the canvas, click inserts at the first free spot (one undo step), keyboard (arrows, Space, Enter, Delete, F6), MSAA "Tile palette". New `ui_tile_palette.*`. 14 suites green, baselines bit-identical.
-
-P7b-3 (2026-11-06, Agent Claude Sonnet 5.5): Canvas in the aspect ratio of the display tab: device-size frame, subtle cell grid, dashed drop slots "drop here", snapping ghost (invalid: dashed red plus text "does not fit"), handles, trash, zoom -/+/fit. Opt-in `GridEditor::canvas`; the previous grid stays bit-identical. Editor snapshots additive (`p7b-editor-hashes.txt`), text contrast >= 4.5:1 and focus ring/border >= 3:1 verified in all themes. 14 suites green.
-
-P7b-4 (2026-11-06, Agent Claude Sonnet 5.5): Layer list (order, visibility; selection works in list and canvas), page list (switching asks about unsaved changes) and starter card "In three steps" (dismiss once, remembered in `layouts/editor-intro.done`). 14 suites green (fl-layout-ui-tests 1,615), baselines bit-identical; hand acceptance open.
-
-P7-5 (2026-11-06, Agent Codex CLI 0.166.0): Pure built-in catalog and strict versioned overlays; standard keeps the fixed renderer; HA deferred. 14 suites passed (Companion offline: 250); built-in 4,221 images/hit maps unchanged, plugin 2,093 checks passed; physical acceptance pending.
-
-P7-6 (2026-11-06, Agent Codex CLI 0.166.0): Atomic per-page layouts with backup/revision, sample preview, arranged touch targets and isolated clipping; fixed rendering unchanged. 14 suites passed (editor 835; Companion offline 250); built-in 4,221 images/hit maps and plugin baselines unchanged; hardware pending.
-
-P7-7 (2026-11-06, Agent Codex CLI 0.166.0): RSS editor with Posts/required Status, separate landscape/portrait layouts in `layouts/builtin.rss.layout.json`; opening or applying Standard keeps the pixel-identical fixed path, real changes use the grid (spacing may shift, E2). Reset restores Standard; rows, paging and touch share one plan. Header/footer fixed; built-in cycles and HA deferred. 14 suites passed (catalog 217, editor 874, core 3,470; Companion offline 250); existing baselines unchanged, plus 1,024 RSS images/hit maps and 5,952 checks without errors; hardware pending.
-
-P7-8 (2026-11-06, Agent Codex CLI 0.166.0): Streaming in the page selector; Titles/required Status from the existing snapshot, per-page landscape/portrait overlay, paging and touch from one grid plan. Standard/reset keep the fixed path; TMDB / JustWatch stays in the footer; compact rows omit the date. 14 suites passed (Companion offline); existing baselines bit-identical, 1,792 new grid images/hit maps added, 6,267 checks/0; hardware pending.
-
-P7-9 (2026-11-06, Agent Codex CLI 0.166.0): BF6 in the page selector; Ranking/required Status, sorted snapshot, per-page landscape/portrait overlay. Grid capacity controls paging and player links; compact rows show name, K/D, rank or error. Standard/reset remain pixel-identical. 14 suites passed (Companion offline); existing baselines bit-identical, 1,024 new grid images/hit maps added, 4,390 checks/0; hardware pending.
-
-P7-10 (2026-11-06, Agent Codex CLI 0.166.0): Friends and Discord in the page selector; shared Friends/required Status catalog and sorted snapshots, separate `builtin.friends.layout.json` / `builtin.discord.layout.json` overlays, backups and revisions. Grid rows, paging and profile targets share one plan; narrow compact rows omit avatars/badges. Standard/reset stay pixel-identical (E2 accepted). 14 suites passed (Companion offline); existing baselines bit-identical, 1,024 grid images/hit maps added per page, 8,622 checks/0 combined; hardware pending.
-
-P7-11 (2026-11-06, Agent Codex CLI 0.166.0): System editor blocks use the existing CPU/GPU/RAM/disk/network snapshot; temperatures retain threshold colours, regular network includes history, compact shows values/bars or rates. Per-page landscape/portrait overlay, Cupertino groups per zone and tool targets from the drawing plan. Standard/reset remain pixel-identical; E2 confirmed. 14 suites passed (Companion offline); existing baselines unchanged, 1,536 additive system images/hit maps. Physical acceptance pending.
-
-P7-12 (2026-11-06, Agent Codex CLI 0.166.0): Spotify editor blocks use the existing snapshot/meter for cover, title/artist/album, progress, controls, levels and required status; last played keeps progress/controls hidden. Per-page landscape/portrait overlay, compact single-line text, three level colour modes and separate 48-point button targets from the drawing arrangement. Standard/reset remain pixel-identical; 14 suites passed (Companion offline); existing baselines unchanged, 4,096 additive Spotify images/hit maps. Physical acceptance pending.
-
-
-### 2.10.0 – in preparation (unreleased)
-
-No release yet, no tag, no EXE distribution. Hardware, native UI and Companion acceptance and the APK build are still pending; see "Development status" below.
-
-#### Highlights
-- **Phase 8 P8-3 (2026-11-07):** The "Arrange page" entry is gone; standard and plugin pages are edited through the page list of **Custom views**. New: **touch target per tile** (Default or Custom: switch page, link only with consent, next item for plugin cycles only), stored per display overlay, falling back to Default when invalid.
-
-- **Zone layout for plugin pages (manifest v2):** `schema_version: 2` describes a flat grid with zones and blocks that have stable block IDs. Manifest v1 is unchanged. Limits: 6 × 6 grid, 8 zones, at most 4 blocks per zone, up to 12 widgets with a layout.
-- **Density levels:** Each block type (text, metric, clock, bar, list) has compact, regular and detailed drawing. If a block does not fit its area, it is hidden instead of overlapping.
-- **Conditional display (`show_if`):** A block appears only when a value is present or a simple comparison holds. No expression language, no type conversion.
-- **Fault isolation:** If evaluating or drawing one block fails, only that block is hidden; a rate-limited log entry without data is written.
-- **Device profile and keepout per device:** Whole-pixel edges for the USB display and monitor (under **Display**), plus a shared default and an individual keepout per paired Companion device (in independent mode). Android TV always runs in landscape.
-- **Cycling zones with a calm transition:** A zone can alternate between blocks (`rotate` mode with a 3–600 s interval, or `first_available`). Scheduling avoids needless redraws. The real serial frame rate has not been measured yet.
-- **Tap targets with link consent:** Blocks can open HTTPS links (on the PC, including taps from a phone). Consent per plugin is **off** by default and shows the hosts.
-- **Frame style from the theme:** Plugin cards take corner radius and spacing from the theme (FuchsLabs radius 9 → 8).
-- **Contrast fixes:** Warning colour in the light theme, Windows high-contrast design and the Cupertino dark-profile header adjusted; the focus ring in the light FuchsLabs theme is darkened to Glut. Snapshot tests check text contrast ≥ 4.5:1 across a theme matrix.
-- **Built-in pages on the shared frame:** System, Friends, Discord, Battlefield 6, Blogs (RSS), Streaming and Spotify draw their cards through the same frame (`draw_framed`). Home Assistant stays native. Bit-exact against the baselines (4221 images and hit maps, 0 differences on the reference machine).
-- **Page editor:** Under **App → Arrange plugin page**, arrange blocks on a grid, set conditions, preview in landscape and portrait, undo/redo (100 steps), keyboard operation. Only the arrangement is saved, with a backup copy; the manifest stays unchanged.
-- **Page editor with drag & drop:** Block palette; drag, drop and move blocks and zones; resize handles; trash area for removal; keyboard alternative pick up/drop (Space, Enter, Esc). One undo step per drag gesture. Cancelling restores the selection, releasing outside the grid cancels silently, targets that leave a zone without a shown block count as "does not fit", block chips work by keyboard (Ctrl+Up/Down, Space, Delete). Still an overlay, manifest unchanged. Mouse, touchpad and touch acceptance are still pending.
-
-#### Fixed
-
-- **BF6 leaderboard:** The community API (gametools) now rejects `platform=ea` and only finds players with `pc`. ScreenBuddy queries PC accounts with `pc` and falls back to `ea` and the lower-case name; PSN and Xbox try several platform values. The rank profile uses the same platform.
-- **Spotify:** When nothing is playing, the page shows the **last played track** with cover ("Last played", dimmed, no buttons) instead of "Nothing is playing". This needs the extra Spotify permission "recently played": sign in once more under Settings › Spotify. Without it the previous message stays.
-
-#### Security
+### Security
 
 - **Tap URLs:** HTTPS only, strict characters and percent escapes, lowercase hosts, no dot segments. The address is checked again at tap time before the browser starts.
-- **Link consent:** Off by default; any other change to a plugin revokes its consent; only a pure change of the link list keeps it. At most one link attempt per plugin every two seconds. Denied taps do not change the page.
+- **Link consent:** Off by default; revoked on any plugin change except a pure change of the link list. At most one link attempt per plugin every two seconds. Denied taps do not switch the page.
 - **`show_if`:** Secret settings are forbidden in conditions; an invalid condition rejects the whole manifest.
-- **Logging:** Warnings name only the plugin ID, block ID and stage, never data, setting values or exception text.
+- **Logging:** Warnings name only the plugin ID, block ID and stage, never data, setting values or exception texts.
 
-#### Compatibility
+### Compatibility
 
-- Manifest v1, protocol v1 and the existing snapshot hashes are unchanged. Without `layout`, v1 and v2 draw as before in the automatic grid.
+- Manifest v1, protocol v1 and the existing snapshot hashes are unchanged. Without `layout`, v1 and v2 draw in the automatic grid as before.
 - Schema 2 requires `min_app_version` 2.10.0 or newer in the store; older apps reject it.
 - Keepout: whole pixels 0–1000; each edge at most one third of the smaller frame edge. If fewer than 160 × 120 usable pixels remain, the keepout is ignored.
 - Android TV always runs in landscape. A stored portrait choice is kept but ignored.
 - Home Assistant stays native and is not part of the zone system.
-- The published Companion app remains 1.0.3. Version 1.0.4 (versionCode 8) is a development state without signing or distribution.
+- The Companion app remains 1.0.3. Version 1.0.4 (versionCode 8) is a development state without signing or distribution.
 
-#### Development status (open)
+### Validation status
 
-- Not released: no tag, no EXE, no Companion APK distribution.
-- Open: physical acceptance on the USB display (including the portrait enclosure), monitor, Companion and Android TV; native visual check of the UI; measured serial frame rate for cycling zones; Companion process tests; APK build.
-- Built-in pages: the baseline is machine-bound (Roboto as a user font is required). On the reference machine all migrated pages are bit-exact (0 differences); hardware acceptance is still pending.
-- Phases in brief (details, test figures and limits: `cpp/TESTPROTOKOLL.md`):
-  - Phase 2a/2b: manifest v2, zone geometry, zone drawing, density levels.
-  - Phase 3: conditional display and fault isolation.
-  - Phase 4a: device profiles, keepout, Android TV landscape.
-  - Phase 4b: cycling zones.
-  - Phase 4c: tap targets with link consent.
-  - P5-0 to P5-6: baseline and migration of built-in pages to the shared frame.
-  - P6-1 to P6-5 and review: arrangement overlay, page editor, focus ring.
+- Automated checks green (details and figures: `cpp/TESTPROTOKOLL.md`, [Game-Mode](docs/PLAN-GAME-MODE.md), [AI Status](cpp/ai-status-report.md)).
+- Hardware and device acceptance only partly live (Redmi 8, Android TV, Pixel 10 Pro): Game-Mode intro on the Redmi 8, BF6 detection on the PC, leaderboard on Android TV, AI Status. Not accepted: further real games and launchers, USB display including the portrait enclosure, monitor, measured serial frame rate for cycling zones.
+- Built-in pages: the baseline is machine-bound (Roboto as a user font is required); 0 differences on the reference machine.
 
 ### 2.9.6 – in preparation
 

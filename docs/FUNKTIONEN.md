@@ -1,6 +1,6 @@
 # ScreenBuddy · Funktionen im Detail
 
-Entwicklung P9: [Game-Mode – Bedienung, Quellen und Grenzen](GAME-MODE.md). Noch nicht veröffentlicht; bisherige Versions-/Downloadangaben bleiben gültig.
+Seit 2.10.0: [Game-Mode – Bedienung, Quellen und Grenzen](GAME-MODE.md).
 
 Aus dem README ausgelagert (Stand 2.9.4). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
 
@@ -16,7 +16,7 @@ Aus dem README ausgelagert (Stand 2.9.4). Englisch: [FEATURES.en.md](FEATURES.en
 - [Farben & Design (ab 2.9.0)](#farben--design-ab-290)
 - [Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)](#android-companion-app-ab-230-mehrere-geräte-ab-270)
 - [Plugin-Store und Plugins (ab 2.6.0)](#plugin-store-und-plugins-ab-260)
-- [Plugin-Seiten mit Zonen-Layout und Seiten-Editor (ab 2.10.0, in Vorbereitung)](#plugin-seiten-mit-zonen-layout-und-seiten-editor-ab-2100-in-vorbereitung)
+- [Plugin-Seiten mit Zonen-Layout und Seiten-Editor (ab 2.10.0)](#plugin-seiten-mit-zonen-layout-und-seiten-editor-ab-2100)
 - [Ansichten durchblättern (ab 2.0.4)](#ansichten-durchblättern-ab-204)
 
 ## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
@@ -87,9 +87,9 @@ Einstellungsseite **Plugin-Store** (Gruppe **App**, neben Companion und Plugins,
 
 Mehr: [Plugin-System](PLUGIN-SYSTEM.md) · [Tutorial](PLUGIN-TUTORIAL.md) · [Store-Bedingungen](PLUGIN-STORE-BEDINGUNGEN.md) · [Beispiele](../cpp/examples/plugins/README.md). Online-Plugins und CRL/OCSP-Prüfungen bleiben experimentell.
 
-## Plugin-Seiten mit Zonen-Layout und Seiten-Editor (ab 2.10.0, in Vorbereitung)
+## Plugin-Seiten mit Zonen-Layout und Seiten-Editor (ab 2.10.0)
 
-**Nicht veröffentlicht.** Das ist der Entwicklungsstand; Abnahmen am Gerät fehlen.
+**Veröffentlicht mit 2.10.0.** Die Abnahme am Gerät erfolgte nur teilweise; siehe [Release-Notizen 2.10.0](RELEASE-NOTES-2.10.0.md).
 
 - **Zonen:** Ein Plugin mit `schema_version: 2` teilt seine Seite in ein Raster; Blöcke sitzen in Zonen und blenden sich aus, wenn der Platz nicht reicht. Grenzen: 6 × 6 Raster, 8 Zonen, 4 Blöcke je Zone. Ohne `layout` bleibt die bisherige Anordnung.
 - **Dichtestufen:** Je Baustein kompakt, normal oder ausführlich, gewählt nach verfügbarer Fläche.

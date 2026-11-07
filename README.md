@@ -7,7 +7,7 @@ Store-Ausgabe in Vorbereitung: [Microsoft Store / Companion-Build](docs/STORE-DI
 
 # ScreenBuddy
 
-In Entwicklung: [KI-Status für Claude Code und Codex](cpp/AI-STATUS.md), lokale Hooks mit Vorschau/Backup und `ai.*`-Kachelquelle. Fehlende Messwerte bleiben `n/a`; [Prüfstand und offene Arbeiten](cpp/ai-status-report.md). Noch nicht veröffentlicht.
+Neu in 2.10.0: [KI-Status für Claude Code und Codex](cpp/AI-STATUS.md), lokale Hooks mit Vorschau/Backup und `ai.*`-Kachelquelle. Fehlende Messwerte bleiben `n/a`; [Prüfstand und offene Arbeiten](cpp/ai-status-report.md).
 
 KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude und Codex lesen Limits mit Zugriffstoken aus Windows-Login-Dateien über inoffizielle HTTPS-Endpunkte (änderbar, Anbieter-Duldung unklar). Konfigurierbarer Empfängerport mit Fallback. Siehe verlinkte KI-Status-Anleitung.
 
@@ -16,7 +16,7 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.9.5-F77F00)
+![Version](https://img.shields.io/badge/version-2.10.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -32,9 +32,9 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
 
-**In Vorbereitung 2.10.0 (nicht veröffentlicht):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **App → Eigene Ansichten**. Es gibt noch keine Veröffentlichung; Hardware-, Companion- und Oberflächenabnahme stehen aus. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
+**Neu in 2.10.0 (07.11.2026):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **App → Eigene Ansichten**. Dazu Standard-Theme `material-orange`, Spotify „zuletzt gespielt“ und BF6-Eintrag per ID. Die Companion-App bleibt 1.0.3. Hardware- und Geräteabnahme nur teilweise live; Einzelheiten in den Release-Notizen. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
 
-**Game-Mode (lokale Entwicklung):** Spielerkennung, optionales Logo-Intro und eine eigene Ansicht für das gewählte Display. [Einrichtung, Messwertgrenzen und Prüfstand](docs/GAME-MODE.md). Noch nicht veröffentlicht.
+**Game-Mode (neu in 2.10.0):** Spielerkennung, optionales Logo-Intro (2,5 s) und eine eigene Ansicht für das gewählte Display. [Einrichtung, Messwertgrenzen und Prüfstand](docs/GAME-MODE.md).
 
 **P8-4 (lokale Entwicklung):** Eigene Ansichten bieten Claude-, Codex- und Limits-Kacheln über den vorhandenen KI-Renderer. Unbekannte Limits bleiben `n/a`; KI separat aktivieren. [Bedienung und Portkonflikt](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
@@ -122,7 +122,7 @@ Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherige
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus [release 2.9.5](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.5) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
+1. **ScreenBuddy.exe** aus [release 2.10.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.10.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
 2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
@@ -261,8 +261,8 @@ Alle Dokumente nach Zielgruppe: [`docs/README.md`](docs/README.md). Die wichtigs
 | [`docs/PLUGIN-SYSTEM.md`](docs/PLUGIN-SYSTEM.md) | Plugin-Anleitung ([English](docs/PLUGIN-SYSTEM.en.md)), [Tutorial](docs/PLUGIN-TUTORIAL.md), [Store-Bedingungen](docs/PLUGIN-STORE-BEDINGUNGEN.md) |
 | [`docs/GAME-MODE.md`](docs/GAME-MODE.md) | Game-Mode im Entwicklungszweig: Einrichtung und Messwertgrenzen ([English](docs/GAME-MODE.en.md)) |
 | [`docs/COMPANION.md`](docs/COMPANION.md) | Companion einrichten ([English](docs/COMPANION.en.md)) |
-| [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | Release-Notizen 2.10.0 (in Vorbereitung, nicht veröffentlicht) |
-| [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | Release-Notizen der aktuellen Version (frühere: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
+| [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | Release-Notizen der aktuellen Version 2.10.0 |
+| [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | Release-Notizen 2.9.5 (frühere: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
 | [`CHANGELOG.md`](CHANGELOG.md) | Änderungen je Version ([English](CHANGELOG.en.md)) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Mitarbeiten ([English](CONTRIBUTING.en.md)) |
 | [`SECURITY.md`](SECURITY.md) | Sicherheitslücken melden ([English](SECURITY.en.md)) |

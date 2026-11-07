@@ -1,6 +1,6 @@
 <div align="center">
 
-Game-Mode (Entwicklung P9, noch nicht veröffentlicht): [Deutsch](GAME-MODE.md) · [English](GAME-MODE.en.md) · [Umsetzungsplan und Prüfstand](PLAN-GAME-MODE.md).
+Game-Mode (seit 2.10.0): [Deutsch](GAME-MODE.md) · [English](GAME-MODE.en.md) · [Umsetzungsplan und Prüfstand](PLAN-GAME-MODE.md).
 <img src="logo/fuchslabs-logo.png" alt="FuchsLabs" width="72">
 [Menü und Themes / Menu and themes](NAVIGATION.md) · [English](NAVIGATION.en.md)
 
@@ -63,8 +63,8 @@ Die Struktur folgt den Vorgaben des Doku-Skills [document-specialist-skill](http
 | Dokument | Zweck | Status |
 |---|---|---|
 | [`../CHANGELOG.md`](../CHANGELOG.md) · [English](../CHANGELOG.en.md) · [`../cpp/CHANGELOG.md`](../cpp/CHANGELOG.md) | Änderungen je Version | aktuell |
-| [`RELEASE-NOTES-2.10.0.md`](RELEASE-NOTES-2.10.0.md) | Release-Notizen 2.10.0 (in Vorbereitung, nicht veröffentlicht) | in Vorbereitung |
-| [`RELEASE-NOTES-2.9.5.md`](RELEASE-NOTES-2.9.5.md) | Release-Notizen der aktuellen Version | aktuell |
+| [`RELEASE-NOTES-2.10.0.md`](RELEASE-NOTES-2.10.0.md) | Release-Notizen der aktuellen Version 2.10.0 | aktuell |
+| [`RELEASE-NOTES-2.9.5.md`](RELEASE-NOTES-2.9.5.md) | Release-Notizen 2.9.5 | frühere Version |
 | [`RELEASE-NOTES-2.9.4.md`](RELEASE-NOTES-2.9.4.md) | Release-Notizen 2.9.4 | historisch |
 | [`RELEASE-NOTES-2.9.2.md`](RELEASE-NOTES-2.9.2.md), [`RELEASE-NOTES-2.9.1.md`](RELEASE-NOTES-2.9.1.md), [`RELEASE-NOTES-2.9.md`](RELEASE-NOTES-2.9.md) | Release-Notizen 2.9.x | historisch |
 | [`THEMES.md`](THEMES.md) | Farbdesigns: Windows-Farben, Designsysteme, eigene Themes (DE/EN) | aktuell |
