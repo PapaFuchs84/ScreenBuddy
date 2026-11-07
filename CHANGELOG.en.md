@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+P9-3: 2.5-second intro with dimming, eased logo, shine and existing FadeCache; reduced transition without scaling/shine.
+
 P9-2: Steam logos from fixed public asset URLs, bounded local cache (7 days), executable icon fallback; retrieval reserved for background work.
 
 P9-1: Read-only game discovery with Steam/Epic parsers, Xbox/full-screen paths and 3/5-second debounce. New offline unit tests; integration follows.

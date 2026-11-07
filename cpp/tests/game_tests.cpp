@@ -1,5 +1,6 @@
 #include "game_detect.h"
 #include "game_logo.h"
+#include "game_intro.h"
 #include <windows.h>
 #include <fstream>
 #include <chrono>
@@ -43,5 +44,12 @@ int main(){try {
  check(bool(fallback.load(logo)) && calls==5);
  logo.steam_id="../../escape";check(!cache.load(logo) && calls==5);
  std::filesystem::remove(dir/L"42.png");std::filesystem::remove(dir/L"43.png");std::filesystem::remove(dir);
+ check(!intro_phase(0,false).done && intro_phase(0,false).reveal==0);
+ check(intro_phase(2.5,false).done && intro_phase(2.5,false).fade==1);
+ check(!intro_phase(.34,true).done && intro_phase(.35,true).done);
+ check(intro_phase(.1,true).scale==1 && intro_phase(.1,true).shine==-1);
+ fl::Image previous(160,100,{10,20,30}),target(160,100,{40,50,60});Intro intro;intro.begin(previous,10,false);
+ check(intro.active(12.49));check(!intro.active(12.5));check(intro.draw(target,{},"Example",12.5).px==target.px);
+ intro.begin(previous,20,true);check(intro.draw(target,{},"Example",20).px==previous.px);intro.reset();check(!intro.active(20));
  std::cout<<checks<<" game checks passed\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}

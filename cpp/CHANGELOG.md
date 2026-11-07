@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+P9-3: Intro-Renderer und deterministische Zeit-/Fade-Prüfungen; App-Integration folgt in P9-5.
+
 P9-2: Logo-Cache mit Ablauf-, Beschädigungs- und URL-Prüfung; dynamisches EXE-Icon ohne Ausführung.
 
 P9-1: Spielerkennung und Parser als getrennte, testbare Komponenten; keine Prozessspeicherzugriffe.

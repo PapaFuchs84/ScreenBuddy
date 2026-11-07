@@ -48,3 +48,5 @@ Nur dokumentierte APIs:
 P9-1: Erkennung und reine Parser implementiert; automatisierte Build-/Testprüfung läuft im Arbeitsgang. Keine Live-Spiel-/Hardwarebestätigung.
 
 P9-1 geprüft: Release-Build und 25 Offline-Prüfungen bestanden. P9-2: Logo-Cache implementiert; feste Steam-URLs, 7 Tage Ablauf, Größenlimit, Reparse-Punkt-Abweisung, EXE-Icon/Name als Fallback.
+
+P9-2 geprüft: 38 Offline-Prüfungen bestanden. P9-3: Intro-Renderer implementiert (2,5 s; reduziert 0,35 s), bestehender `FadeCache`/`blend_rect`. App-Anbindung in P9-5.

@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+P9-3: 2,5-Sekunden-Intro mit Abdunklung, Logo-Easing, Glanzlauf und bestehendem FadeCache; reduzierte Überblendung ohne Skalierung/Glanz.
+
 P9-2: Steam-Logos über feste öffentliche Asset-URLs, begrenzter lokaler Cache (7 Tage), EXE-Icon als Fallback; Netzwerkzugriff nur im Hintergrund vorgesehen.
 
 P9-1: Read-only Spielerkennung mit Steam-/Epic-Parsern, Xbox-/Vollbildpfaden und 3/5-Sekunden-Entprellung. Neue Offline-Unit-Tests; Integration folgt.
