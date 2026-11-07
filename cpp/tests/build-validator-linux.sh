@@ -19,8 +19,8 @@ $CXX src/plugins.cpp src/plugin_zones.cpp src/plugin_sign.cpp src/plugin_store.c
 "$OUT/plugin-sign-tests"
 "$OUT/plugin-catalog-tests"
 # Validator: Beispiele müssen die Store-Regeln erfüllen, Fixtures müssen scheitern.
-"$OUT/fl-plugin-validate" --store --app-version 2.5.0 examples/plugins
-"$OUT/fl-plugin-validate" --store --app-version 2.5.0 ../store-seed/plugins
+"$OUT/fl-plugin-validate" --store --app-version 2.10.0 examples/plugins
+"$OUT/fl-plugin-validate" --store --app-version 2.10.0 ../store-seed/plugins
 for f in tests/plugin-fixtures/*.flplugin.json; do
     if "$OUT/fl-plugin-validate" --store "$f" >/dev/null; then echo "FAIL: $f wurde akzeptiert"; exit 1; fi
 done
