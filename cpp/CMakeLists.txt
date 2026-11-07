@@ -26,7 +26,7 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
-    src/game_detect.cpp
+    src/game_detect.cpp src/game_logo.cpp
     src/custom_view.cpp
     src/custom_view_editor.cpp
     src/ui_page_custom_views.cpp

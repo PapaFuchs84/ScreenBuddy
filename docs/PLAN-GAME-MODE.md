@@ -46,3 +46,5 @@ Nur dokumentierte APIs:
 ## Umsetzungsstand
 
 P9-1: Erkennung und reine Parser implementiert; automatisierte Build-/Testprüfung läuft im Arbeitsgang. Keine Live-Spiel-/Hardwarebestätigung.
+
+P9-1 geprüft: Release-Build und 25 Offline-Prüfungen bestanden. P9-2: Logo-Cache implementiert; feste Steam-URLs, 7 Tage Ablauf, Größenlimit, Reparse-Punkt-Abweisung, EXE-Icon/Name als Fallback.

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+P9-2: Logo-Cache mit Ablauf-, Beschädigungs- und URL-Prüfung; dynamisches EXE-Icon ohne Ausführung.
+
 P9-1: Spielerkennung und Parser als getrennte, testbare Komponenten; keine Prozessspeicherzugriffe.
 
 P8-4 (2026-11-07): KI-Status gemergt; Claude-/Codex-/Limits-Kacheln in eigenen Ansichten, vorhandener Renderer/Render-Takt, öffentliche Bedingungen und Seiten-Touch-Ziele, additive Editor-Snapshots DE/EN. Standardseiten-Baselines unverändert. Portkonflikt 18765 dokumentiert; keine Portänderung oder Veröffentlichung. [P8-4](../docs/PHASE8-EIGENE-ANSICHTEN.md).
