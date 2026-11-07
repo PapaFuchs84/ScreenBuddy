@@ -13,7 +13,9 @@
 using namespace fl::game;
 int checks=0;
 void check(bool ok){++checks;if(!ok)throw std::runtime_error("game check "+std::to_string(checks));}
+#include "game_tests/registry_tests.h"
 int main(){try {
+ registry_game_checks();
  auto acf=parse_acf(R"("AppState" { "appid" "42" "name" "Example Game" "installdir" "Example" })",L"C:/Steam/steamapps");
  check(acf && acf->steam_id=="42" && acf->name=="Example Game");
  check(!parse_acf(R"("AppState" { "appid" "42" "name" "X" "installdir" "../../escape" })",L"C:/Steam/steamapps"));

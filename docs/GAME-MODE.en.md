@@ -20,7 +20,23 @@ Game Mode detects a running game and shows a custom view on the selected ScreenB
 
 Steam games are mapped using the Steam registry and local library/app manifests. Epic uses local launcher manifests. Xbox/Game Pass games are mapped by their `XboxGames` installation paths. Generic detection checks the foreground/fullscreen window and membership in a known game library. An arbitrary fullscreen window alone does not count as a game.
 
-**Additional games:** one complete game EXE path per line, for example `D:\Games\ExampleGame\Game.exe`. Do not enter commands, wildcards or directories. **Exclusions:** one EXE filename or complete EXE path per line. Browsers, Explorer and media players are excluded by default; add other launchers/helpers as needed.
+The following local HKLM registry entries are also read (both `SOFTWARE\WOW6432Node` and native `SOFTWARE`):
+
+| Library | Source and name |
+| --- | --- |
+| GOG Galaxy | `GOG.com\Games\<id>`: `gameName`, `path`, optional `exe`. |
+| Ubisoft Connect | `Ubisoft\Launcher\Installs\<id>\InstallDir`; name from an uninstall entry with the same installation path, otherwise the folder name. |
+| EA App/Origin | `EA Games\<Name>` or `Electronic Arts\<Name>`: `Install Dir`; also uninstall entries published by `Electronic Arts`/`EA` (including supported `Inc.` spellings) with `InstallLocation`. |
+| Battle.net/Blizzard | Uninstall entries published by `Blizzard Entertainment` (including `Inc.`) with `InstallLocation`. Also `Blizzard Entertainment\Battle.net` or `Battle.net`, value `InstallPath`, or the Battle.net uninstall location: only named game folders inside and directly alongside that location. |
+| Rockstar | `Rockstar Games\<Name>\InstallFolder`. |
+
+Uninstall means `Microsoft\Windows\CurrentVersion\Uninstall\<entry>` in those HKLM views. Battle.net's folder list covers World of Warcraft, Diablo III/IV, StarCraft/II, Hearthstone, Heroes of the Storm, Overwatch and Warcraft III/Warcraft III Reforged. There is no recursive drive search, launcher account query or undocumented database access.
+
+Starting detection for each new library requires a process beneath its registered installation path whose foreground window is fullscreen/borderless. Even an explicit GOG EXE cannot bypass this gate; Epic EXE matches now also use the window check. Steam keeps its existing `RunningAppID` shortcut; manually entered EXEs still match exactly without a window check. A previously confirmed, unchanged running game process stays active through Alt-Tab. Libraries are refreshed approximately every 60 seconds.
+
+Limits: missing/stale registry entries, per-user installations without a matching HKLM entry, other publisher names or different Battle.net game folders may prevent detection. Add the actual game EXE manually in that case. An unknown helper inside a game folder can count as a game if it has its own fullscreen foreground window; exclude it if needed. Path membership is lexical, without resolving junctions/symlinks. Non-Steam games use the EXE icon plus game name; if the icon is unavailable, the name remains. Real acceptance tests for these five launchers remain open.
+
+**Additional games:** one complete game EXE path per line, for example `D:\Games\ExampleGame\Game.exe`. Do not enter commands, wildcards or directories. **Exclusions:** one EXE filename or complete EXE path per line. Browsers, Explorer, media players, known launchers, `Agent.exe`, Blizzard error/crash handlers and EXE names containing `Launcher` are excluded by default (case-insensitive). This also covers `EAAntiCheat.GameServiceLauncher.exe`, `BEService.exe` and `EasyAntiCheat*.exe`; add other helpers as needed.
 
 Detection debounces changes: a game must remain detected for at least three seconds before Game Mode starts. Game Mode ends after five seconds without the previous game. Brief appearances or disappearances therefore do not immediately change the display. Playtime means the detected session, not total account playtime.
 
@@ -75,3 +91,5 @@ The app EXE includes its installer. Start it for tests only through an isolation
 Unit tests check the logic; a dummy-process simulation checks isolated app integration. Such checks do not establish real game detection across all launchers, physical display/touch output or hardware measurements. Executed checks, results, screenshots and pending acceptance are recorded only in the [current validation record](PLAN-GAME-MODE.md#p9-6-tests-und-doku).
 
 Validation on 2026-11-07: 26 automated suites and the isolated dummy simulation passed. The project launcher is `cpp/tests/Start-GameMode-Test.ps1`; run `python cpp/tests/game_mode_integration.py`. UI 18766; AI stayed disabled because 18765 was occupied. Preview images remain local under `cpp/build/game-mode-test/`. The plan records full validation and pending real-game/hardware acceptance.
+
+P9-7: The five additional registry sources and exclusions are covered by synthetic unit tests (196 Game-Mode checks in total); no real launcher/game or hardware acceptance was performed for this change. Current full-suite result and limits: [P9-7 validation](PLAN-GAME-MODE.md#p9-7-weitere-spielebibliotheken).

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <functional>
 namespace fl::game {
 struct Game {
     std::string id, name, steam_id;
@@ -16,6 +17,18 @@ std::optional<Game> parse_acf(std::string_view text, const std::filesystem::path
 std::optional<Game> parse_epic(std::string_view text);
 std::vector<std::filesystem::path> parse_libraries(std::string_view text);
 bool beneath(const std::filesystem::path& child, const std::filesystem::path& root);
+// Read-only HKLM, explicit native/WOW6432Node paths; missing/inaccessible = empty.
+class Registry {
+public:
+    virtual ~Registry() = default;
+    virtual std::vector<std::wstring> subkeys(const std::wstring& key) const = 0;
+    virtual std::wstring value(const std::wstring& key, const wchar_t* name) const = 0;
+};
+using DirectoryExists = std::function<bool(const std::filesystem::path&)>;
+std::vector<Game> registry_games(const Registry& registry, const DirectoryExists& exists);
+bool default_excluded(const std::filesystem::path& executable);
+bool matches_game(const Game& game, const std::filesystem::path& executable,
+                  bool foreground_fullscreen, const std::string& running_steam_app);
 enum class State { idle, starting, running, ending };
 class Detector {
 public:
@@ -31,12 +44,13 @@ private:
 // Paths are exact executables, one per line. Exclusions may also be basenames.
 class Discovery {
 public:
-    Discovery(std::string additional={}, std::string exclusions={});
+    Discovery(std::string additional={}, std::string exclusions={}, const Registry* registry=nullptr);
     std::optional<Game> poll(const std::optional<Game>& active, double now);
 private:
     void refresh();
     std::vector<Game> library_;
     std::vector<std::string> additional_, excluded_;
     double refresh_at_=0;
+    const Registry* registry_; // Optional borrowed registry; must outlive Discovery.
 };
 }
