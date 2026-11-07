@@ -34,7 +34,7 @@ using Key = std::pair<std::string, std::string>;
 const ojson& defaults() {
     static const ojson d = [] {
         ojson j;
-        j["ai"] = {{"enabled",false},{"automatic_usage",false}};
+        j["ai"] = {{"port",18765},{"enabled",false},{"automatic_usage",false},{"codex_real_account",false},{"claude_real_account",false}};
         j["discord"] = {{"enabled", true}, {"token", ""}, {"guild_ids", ojson::array()}, {"friend_ids", ojson::array()},
                         {"ignore_ids", ojson::array()}, {"show_offline", false}};
         j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}, {"brightness", 50}, {"reset_on_start", true},

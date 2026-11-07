@@ -292,7 +292,7 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
     const ojson &bf = cfg_["bf6"], &rs = cfg_["rss"], &sy = cfg_["system"], &dc = cfg_["discord"], &fr = cfg_["friends"];
     auto dirty = [this] { mark_dirty(); };
     ai_=std::make_unique<ai::Service>(cfg_path_.parent_path()/L"ai-status");
-    if(b(cfg_["ai"],"enabled") && !preview_dir_) {ai_->start();ai_->enable_usage(b(cfg_["ai"],"automatic_usage"));}
+    if(b(cfg_["ai"],"enabled") && !preview_dir_) {ai_->start(cfg_["ai"].value("port",ai::PORT));ai_->enable_usage(b(cfg_["ai"],"automatic_usage"),b(cfg_["ai"],"codex_real_account"),b(cfg_["ai"],"claude_real_account"));}
     if (b(bf, "enabled") && bf.contains("players") && bf["players"].is_array() && !bf["players"].empty())
         bf6_ = std::make_unique<bf6::Bf6Stats>(bf);
     if (b(rs, "enabled") && rs.contains("feeds") && rs["feeds"].is_array() && !rs["feeds"].empty())

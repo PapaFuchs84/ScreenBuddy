@@ -4,7 +4,7 @@ $aiSource=Get-Content "$PSScriptRoot/../src/ai_status.cpp" -Raw
 $aiStart=$aiSource.IndexOf('R"PS(param(')+5
 $aiEnd=$aiSource.IndexOf(')PS";', $aiStart)
 $aiScript=$aiSource.Substring($aiStart,$aiEnd-$aiStart)
-$aiScript=$aiScript.Replace(')PS"+std::to_string(d_->port)+R"PS(', '18765')
+$aiScript=$aiScript.Replace(')PS"+std::to_string(port)+R"PS(', '18765')
 $aiTokens=$null; $aiErrors=$null
 [void][Management.Automation.Language.Parser]::ParseInput($aiScript,[ref]$aiTokens,[ref]$aiErrors)
 if($aiErrors.Count) {throw 'Adapter syntax failed'}

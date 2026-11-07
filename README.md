@@ -9,6 +9,9 @@ Store-Ausgabe in Vorbereitung: [Microsoft Store / Companion-Build](docs/STORE-DI
 
 In Entwicklung: [KI-Status für Claude Code und Codex](cpp/AI-STATUS.md), lokale Hooks mit Vorschau/Backup und `ai.*`-Kachelquelle. Fehlende Messwerte bleiben `n/a`; [Prüfstand und offene Arbeiten](cpp/ai-status-report.md). Noch nicht veröffentlicht.
 
+KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude und Codex lesen Limits mit Zugriffstoken aus Windows-Login-Dateien über inoffizielle HTTPS-Endpunkte (änderbar, Anbieter-Duldung unklar). Konfigurierbarer Empfängerport mit Fallback. Siehe verlinkte KI-Status-Anleitung.
+
+
 **Deutsch** · [English](README.en.md)
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**

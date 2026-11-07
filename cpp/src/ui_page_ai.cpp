@@ -3,26 +3,45 @@
 #include "app.h"
 #include "ai_status.h"
 #include "util.h"
+#include "i18n.h"
 #include <cstdlib>
 
 namespace fl::ui {
 namespace {
 class AiPage : public Page {
 public:
-    PageInfo info() const override {return {"ai",Group::Sources,T(L"KI-Status",L"AI Status"),T(L"Claude Code und Codex, nur lokal",L"Claude Code and Codex, local only")};}
+    PageInfo info() const override {return {"ai",Group::Sources,T(L"KI-Status",L"AI Status"),T(L"Sitzungsstatus und Kontolimits",L"Session status and account limits")};}
     bool active(const ojson& cfg) const override {return flag(cfg,"ai","enabled");}
     void build(Host& host,Column& root) override {
         plans_.clear(); form_=Form(host);
         auto c=root.add<Card>(T(L"KI-Status",L"AI Status"));
         auto enabled=form_.toggle(*c,"ai","enabled",T(L"Seite und lokalen Empfänger aktivieren",L"Enable page and local receiver"));
-        auto automatic=form_.toggle(*c,"ai","automatic_usage",T(L"Automatische CLI-Nutzungsabfrage (isoliert, nach Speichern/Neustart)",L"Automatic CLI usage query (isolated, after save/restart)"));
+        auto automatic=form_.toggle(*c,"ai","automatic_usage",T(L"Automatische Nutzungsabfrage (nach Speichern/Neustart)",L"Automatic usage query (after save/restart)"));
         automatic->on_change=[automatic,&host]{if(!automatic->on) host.app().ai_status().enable_usage(false);};
         enabled->on_change=[enabled,&host]{if(!enabled->on) host.app().ai_status().enable_usage(false);};
+        for(const auto provider:{"codex","claude"}) {
+            const bool codex=std::string(provider)=="codex";
+            auto account=root.add<Card>(codex?Text(L"Codex"):Text(L"Claude Code"));
+            auto consent=form_.toggle(*account,"ai",codex?"codex_real_account":"claude_real_account",
+                T(L"Echtes Konto lesend nutzen",L"Use real account read-only"));
+            account->add<Note>(T(
+                L"Einwilligung: Inoffizielle Schnittstelle, kann sich ändern; Anbieter-Duldung unklar. Nur lesend, keine Modellnachricht. ScreenBuddy liest den Zugriffstoken ausschließlich aus deiner Windows-Login-Datei im Arbeitsspeicher. Token verlassen den Rechner nur per HTTPS zum jeweiligen Anbieter (Claude: api.anthropic.com; Codex: chatgpt.com). Keine Speicherung, Anzeige, Protokollierung oder Token-Erneuerung. Jederzeit abschaltbar. Bestätigen, speichern und neu starten.",
+                L"Consent: Unofficial interface, subject to change; provider tolerance is unclear. Read-only, no model message. ScreenBuddy reads the access token only from your Windows login file into memory. Tokens leave this computer only over HTTPS to the respective provider (Claude: api.anthropic.com; Codex: chatgpt.com). No storage, display, logging or token refresh. Disable any time. Confirm, save and restart."));
+            auto confirm=account->add<ButtonRow>()->add(T(L"Gelesen und Aktivierung bestätigen",L"Confirm reading and activation"),Button::Secondary,[]{});
+            confirm->enabled=false;
+            consent->on_change=[consent,confirm,&host] {
+                if(consent->on) {consent->on=false;confirm->enabled=true;}
+                else {confirm->enabled=false;host.app().ai_status().enable_usage(false);}
+                host.relayout();
+            };
+            confirm->on_click=[consent,confirm,&host] {consent->on=true;confirm->enabled=false;host.relayout();};
+        }
+        form_.number(*c,"ai","port",T(L"Empfänger-Port",L"Receiver port"),T(L"Standard 18765; bei Belegung automatisch freier Port. Einstellungsport ausgeschlossen.",L"Default 18765; automatically selects a free port if busy. Settings port excluded."),1024,65535);
         usage_=c->add<Note>(L"");
-        c->add<Note>(T(L"Ein Hintergrundprogramm gleichzeitig; nach Fehler 15 Minuten Pause. Keine Modellnachricht. Isoliertes CLI-Verzeichnis ohne kopierte Anmeldung: ohne verfügbares Konto bleiben Limits n/a.",L"One background program at a time; 15-minute pause on failure. No model message. Isolated CLI home without copied sign-in: limits stay n/a without an available account."));
+        c->add<Note>(T(L"Abfragen im Hintergrund: je Anbieter frühestens alle 3 Minuten, nach Fehler 15 Minuten Pause. Ohne Konto-Einwilligung keine Login-Dateien; bisherige isolierte CLI bleibt möglich.",L"Background queries: at least 3 minutes per provider, 15-minute pause on failure. Without account consent no login files; existing isolated CLI remains available."));
         receiver_=c->add<Note>(T(L"Empfängerstatus wird geprüft.",L"Checking receiver status."));
-        c->add<Note>(T(L"Nach dem Speichern neu starten. Empfänger: 127.0.0.1:18765. Fehlende Werte bleiben n/a. Kosten sind Schätzungen in USD; keine Abrechnungsdaten.",
-                      L"Restart after saving. Receiver: 127.0.0.1:18765. Missing values remain n/a. Costs are estimates in USD, not billing data."));
+        c->add<Note>(T(L"Nach dem Speichern neu starten. Tatsächlicher Port siehe Statuszeile. Fehlende Werte bleiben n/a. Kosten sind Schätzungen in USD; keine Abrechnungsdaten.",
+                      L"Restart after saving. Actual port shown in status line. Missing values remain n/a. Costs are estimates in USD, not billing data."));
         c->add<Note>(T(L"Hooks senden nur Sitzungs-ID, Ereignis, Toolname und Modell, keine Prompts oder Tool-Argumente. Die Claude-Statuszeile liefert Sitzungskosten, Kontext und gegebenenfalls Limits. Tagesgesamtkosten und Codex-Tages-Tokens bleiben ohne belegte Quelle n/a. Cloud-Sitzungen unterstützen lokale Hooks möglicherweise nicht.",
                       L"Hooks send only session ID, event, tool name and model, never prompts or tool arguments. The Claude status line supplies session costs, context and optional limits. Daily cost totals and Codex daily tokens remain n/a without a proven source. Cloud sessions may not support local hooks."));
         auto setup=root.add<Card>(T(L"Hooks einrichten oder entfernen",L"Set up or remove hooks"));
@@ -52,7 +71,7 @@ public:
         }
         if(preview_ && preview_->edit()) SendMessageW(preview_->edit(),EM_SETREADONLY,TRUE,0);
         if(receiver_) receiver_->text=host.app().ai_status().running()?
-            T(L"Empfänger aktiv: 127.0.0.1:18765",L"Receiver active: 127.0.0.1:18765"):
+            Text(std::wstring(i18n::lang()=="en"?L"Receiver active: 127.0.0.1:":L"Empfänger aktiv: 127.0.0.1:")+std::to_wstring(host.app().ai_status().port())):
             T(L"Empfänger nicht aktiv. Aktivierung speichern und neu starten; bei Fehlern Port, DPAPI und Dateizugriff prüfen.",
               L"Receiver inactive. Save activation and restart; on failure check port, DPAPI and file access.");
     }
