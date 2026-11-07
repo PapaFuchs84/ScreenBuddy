@@ -32,7 +32,7 @@ Zusätzlich werden folgende lokale HKLM-Registry-Einträge gelesen (jeweils `SOF
 
 Uninstall bedeutet `Microsoft\Windows\CurrentVersion\Uninstall\<Eintrag>` unter den genannten HKLM-Ansichten. Für Battle.net umfasst die Ordnerliste World of Warcraft, Diablo III/IV, StarCraft/II, Hearthstone, Heroes of the Storm, Overwatch und Warcraft III/Warcraft III Reforged. Es gibt keine rekursive Laufwerkssuche und keine Abfrage von Launcher-Konten oder undokumentierten Datenbanken.
 
-Bei allen neuen Bibliotheken muss zum Start ein Prozess unter dem registrierten Installationspfad laufen und dessen Fenster im Vordergrund Vollbild/Borderless belegen. Auch eine hinterlegte GOG-EXE umgeht diese Prüfung nicht; Epic-EXE-Treffer verwenden jetzt ebenfalls die Fensterprüfung. Steam behält den bisherigen `RunningAppID`-Sonderweg; manuell eingetragene EXEs gelten weiterhin als exakte Treffer ohne Fensterprüfung. Ein bereits bestätigter, unverändert laufender Spielprozess bleibt beim Alt-Tab aktiv. Die Bibliotheken werden ungefähr alle 60 Sekunden neu eingelesen.
+Bei allen neuen Bibliotheken muss zum Start ein Prozess unter dem registrierten Installationspfad laufen und dessen Fenster im Vordergrund Vollbild/Borderless belegen. Auch eine hinterlegte GOG-EXE umgeht diese Prüfung nicht; Epic-EXE-Treffer verwenden jetzt ebenfalls die Fensterprüfung. Steam behält den bisherigen `RunningAppID`-Sonderweg; manuell eingetragene EXEs gelten bei lesbarem Prozesspfad weiterhin als exakte Treffer ohne Fensterprüfung. Bei fehlendem Pfad gilt auch für sie der Dateinamen-Fallback mit Vordergrund/Vollbild. Ein bereits bestätigter, unverändert laufender Spielprozess bleibt beim Alt-Tab aktiv. Die Bibliotheken werden ungefähr alle 60 Sekunden neu eingelesen.
 
 Grenzen: Fehlende/veraltete Registry-Einträge, reine Benutzerinstallationen ohne passenden HKLM-Eintrag, abweichende Publisher-Namen oder andere Battle.net-Spielordner können Erkennung verhindern. Dann den tatsächlichen Spiel-EXE-Pfad manuell ergänzen. Ein unbekanntes Hilfsprogramm im Spielordner kann als Spiel gelten, wenn es selbst im Vordergrund Vollbild läuft; bei Bedarf ausschließen. Pfadzugehörigkeit wird lexikalisch geprüft, ohne Junction-/Symlink-Auflösung. Nicht-Steam-Spiele verwenden das EXE-Icon plus Spielname; fehlt das Icon, bleibt der Name. Echte Abnahme dieser fünf Launcher steht aus.
 
@@ -40,7 +40,17 @@ Grenzen: Fehlende/veraltete Registry-Einträge, reine Benutzerinstallationen ohn
 
 Die Erkennung entprellt Wechsel: Ein Spiel muss mindestens drei Sekunden stabil erkannt werden, bevor Game-Mode startet. Nach fünf Sekunden ohne das bisherige Spiel endet Game-Mode. Kurzzeitiges Erkennen oder Verschwinden löst damit keinen sofortigen Seitenwechsel aus. Die Spielzeit zählt die erkannte Sitzung, keine vom Spielekonto gelieferte Gesamtspielzeit.
 
-Die Zustände sind `idle → starting → running → ending`. Fehlende Leserechte und nicht zuordenbare Prozesse führen zu fehlenden Daten. ScreenBuddy fordert keine erhöhten Spielprozessrechte an.
+Die Zustände sind `idle → starting → running → ending`. Nicht zuordenbare Prozesse führen zu fehlenden Daten; bei fehlendem Image-Pfad kann der unten beschriebene Dateinamen-Fallback greifen. ScreenBuddy fordert keine erhöhten Spielprozessrechte an.
+
+## Anti-Cheat-geschützte Spiele: Erkennung per Dateiname (P9-9)
+
+Schutztreiber wie EA Anti-Cheat/Javelin können den Image-Pfad eines laufenden Spiels verbergen. Die Toolhelp-Prozessliste liefert weiterhin PID und EXE-Dateinamen, ohne einen Prozesshandle zu benötigen. Wenn der Pfad fehlt, vergleicht ScreenBuddy den Dateinamen mit dem lokalen Bibliothekscache und verlangt das Vordergrundfenster desselben Prozesses im Vollbild. Fenstertitel allein reichen nicht aus. Mehrdeutige Dateinamen in unterschiedlichen Installationen werden nicht automatisch zugeordnet.
+
+Beim Bibliotheks-Refresh (alle 60 Sekunden) werden je Installationsordner höchstens 2.000 Einträge bis drei Unterordnerebenen gelesen und nur EXE-Dateien gecacht. Reparse Points/Junctions werden nicht verfolgt; manuelle Einträge liefern nur den ausdrücklich angegebenen EXE-Namen. Das gilt für Steam, Epic, Registry-Bibliotheken und lokale `XboxGames`-Ordner auf festen Laufwerken. Launcher, Anti-Cheat-, Installer-, Crash- und Hilfsprozesse bleiben ausgeschlossen, insbesondere `EAAntiCheat.GameService*.exe`. Dateinamen- und Pfadausschlüsse gelten auch beim Fallback.
+
+Beispiel: Für **Battlefield 6**, Steam-App **2807960**, kann `bf6.exe` trotz leerem Image-Pfad und Steam-RunningAppID `0` (EA-App-Start) zugeordnet werden. Name und Steam-App-ID stammen weiterhin aus dem lokalen Appmanifest; das Logo verwendet die Steam-App-ID. Die Zuordnung bleibt über PID und EXE-Namen bei Alt-Tab erhalten. Die 3/5-Sekunden-Entprellung und PID-basierte ETW-Zuordnung bleiben bestehen; Erkennung garantiert keine verfügbaren FPS-Daten. Es werden keine Prozessrechte verändert, kein Prozessspeicher gelesen und keine erhöhten Rechte angefordert.
+
+P9-9-Prüfstand: 26/26 Suiten bestanden, darunter 267 Game-Mode-Prüfungen mit simulierten Prozesslisten und lokalen Dateisystem-Fixtures. Eine Live-Abnahme mit Battlefield 6/Javelin sowie physische Display- und FPS-Prüfungen stehen aus. Ergebnisse: [P9-9-Prüfstand](PLAN-GAME-MODE.md#p9-9-prozesse-ohne-lesbaren-image-pfad).
 
 ## Logos und Intro
 
@@ -79,6 +89,7 @@ Steam-CDN-Anfragen übermitteln die angeforderte App-ID und wie gewöhnliche HTT
 ## Fehlerbehebung
 
 - **Kein Wechsel:** Aktivierung, gewählte Ansicht und Ziel-Display prüfen; Änderungen speichern und neu starten. Auf mindestens drei Sekunden stabile Erkennung warten. EXE-Pfad und Ausschlüsse kontrollieren.
+- **Geschütztes Spiel nicht erkannt:** Das Spielfenster im Vordergrund auf Vollbild/Borderless stellen, Bibliothekseintrag und Ausschlüsse prüfen und bis zum nächsten Bibliotheks-Refresh (etwa 60 Sekunden) warten. Bei mehreren Installationen mit derselben EXE bleibt die Zuordnung gegebenenfalls offen.
 - **Falsches Programm erkannt:** Den tatsächlichen Spielpfad statt des Launchers hinterlegen und Hilfsprogramme ausschließen.
 - **Logo fehlt:** Internet/CDN-Erreichbarkeit prüfen; EXE-Icon/Name bleiben Rückfall. Ein fehlendes Logo verhindert die Ansicht nicht.
 - **Einzelner Messwert `n/a`:** Unterstützung der konkreten Quelle, Treiber und gegebenenfalls HWiNFO prüfen. Für Ping ein erreichbares IPv4-Ziel verwenden. Fehlende Messwerte nicht durch erfundene Werte ersetzen.

@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+P9-9: Anti-Cheat-geschützte Spiele bei fehlendem Image-Pfad über Toolhelp-PID/EXE-Namen, begrenzten Bibliothekscache und Vordergrund/Vollbild erkennen; Battlefield 6 mit Steam-Appmanifest auch bei RunningAppID 0. EA-Anti-Cheat-/Hilfsprozess-Ausschlüsse, stabile PID-/Namenszuordnung und synthetische Regressionstests. Live-Spiel-/Hardwareabnahme offen; kein Release.
+
 P9-8: Game-Ansicht bei aktiviertem Game-Mode aus normaler Rotation, Companion-Navigation und Tap-Zielen reserviert. Direkte EXE-Icons/Paket-Logos, einheitliche Spielkacheln, größere Werte, neue Vorlage und 60-Sekunden-Sparklines für FPS/Frametime. Isolierte Rotations-/Intro-Prüfung und synthetische Regressionstests; echte Spiele und physische Displays bleiben offen.
 
 P9-7: Lesende Bibliotheksquellen für GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard und Rockstar. Austauschbarer Registry-Zugriff, synthetische Parser-/Filtertests, Vollbildprüfung auch bei GOG-/Epic-EXE-Treffern; Launcher-/Anti-Cheat-Ausschlüsse erweitert. DE/EN-Doku und Hilfen aktualisiert; Prüfstand und offene echte Launcher-Abnahme im [Plan](docs/PLAN-GAME-MODE.md).

@@ -11,12 +11,15 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include <source_location>
 using namespace fl::game;
 int checks=0;
-void check(bool ok){++checks;if(!ok)throw std::runtime_error("game check "+std::to_string(checks));}
+void check(bool ok,std::source_location where=std::source_location::current()){++checks;if(!ok)throw std::runtime_error("game check "+std::to_string(checks)+" at "+where.file_name()+":"+std::to_string(where.line()));}
 #include "game_tests/registry_tests.h"
+#include "game_tests/protected_process_tests.h"
 int main(){try {
  registry_game_checks();
+ protected_process_checks();
  auto acf=parse_acf(R"("AppState" { "appid" "42" "name" "Example Game" "installdir" "Example" })",L"C:/Steam/steamapps");
  check(acf && acf->steam_id=="42" && acf->name=="Example Game");
  check(!parse_acf(R"("AppState" { "appid" "42" "name" "X" "installdir" "../../escape" })",L"C:/Steam/steamapps"));
