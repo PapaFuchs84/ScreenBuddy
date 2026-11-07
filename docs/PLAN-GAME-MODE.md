@@ -42,3 +42,7 @@ Nur dokumentierte APIs:
 - Unit-Tests: Zustandsautomat, ACF/Epic-Parser, Entprellung, Logo-Cache, Kachel-Katalog.
 - Isolierter Testlauf über `ScreenBuddy-2.10.0-test\Start-ScreenBuddy-Test.ps1` (separates Datenverzeichnis, Port 18766), Screenshot; Spielstart per Dummy-Prozess simulieren.
 - Doku DE/EN (document-specialist).
+
+## Umsetzungsstand
+
+P9-1: Erkennung und reine Parser implementiert; automatisierte Build-/Testprüfung läuft im Arbeitsgang. Keine Live-Spiel-/Hardwarebestätigung.

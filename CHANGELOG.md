@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+P9-1: Read-only Spielerkennung mit Steam-/Epic-Parsern, Xbox-/Vollbildpfaden und 3/5-Sekunden-Entprellung. Neue Offline-Unit-Tests; Integration folgt.
+
 P8-4 (2026-11-07): KI-Status gemergt; Claude-/Codex-/Limits-Kacheln in eigenen Ansichten, vorhandener Renderer/Render-Takt, öffentliche Bedingungen und Seiten-Touch-Ziele, additive Editor-Snapshots DE/EN. Standardseiten-Baselines unverändert. Portkonflikt 18765 dokumentiert; keine Portänderung oder Veröffentlichung. [P8-4](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-2 (2026-11-07): Einzelkacheln für Listen, Spotify und native HA-Entitäten über bestehende Zeichenfunktionen; eigener Editor mit Verwaltung, Palette, Raster, Eigenschaften, Rückgängig/Wiederholen und Geräte-Vererbung. Nur aktive Displays als Tabs, Rückfall auf Standard beim Trennen; gespeicherte Offline-Layouts bleiben erhalten. Standardseiten-Verträge unverändert. Kein Release/Push. [Bedienung und Prüfstand](docs/PHASE8-EIGENE-ANSICHTEN.md).

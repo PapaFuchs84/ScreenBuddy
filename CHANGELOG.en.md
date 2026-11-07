@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+P9-1: Read-only game discovery with Steam/Epic parsers, Xbox/full-screen paths and 3/5-second debounce. New offline unit tests; integration follows.
+
 P8-4 (2026-11-07): Merge AI Status; Claude/Codex/limits tiles in Custom views, existing renderer/frame schedule, public conditions and page touch targets, additive DE/EN editor snapshots. Standard page baselines unchanged. Port 18765 collision documented; no port change or release. [P8-4](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-2 (2026-11-07): Individual list, Spotify and native HA entity tiles reuse existing painters. Dedicated view editor with management, palette, grid, properties, undo/redo and device inheritance. Only active display tabs, fallback to Standard on disconnect, saved offline layouts retained. Complete-page contracts unchanged; no release/push. [Usage and validation](docs/PHASE8-EIGENE-ANSICHTEN.md).
