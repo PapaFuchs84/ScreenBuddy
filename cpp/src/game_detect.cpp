@@ -275,6 +275,14 @@ std::optional<Game> Discovery::poll(const std::optional<Game>& active,double now
     if(hwnd && !IsIconic(hwnd) && GetWindowRect(hwnd,&wr) && GetMonitorInfoW(MonitorFromWindow(hwnd,MONITOR_DEFAULTTONULL),&mi))full=wr.left<=mi.rcMonitor.left && wr.top<=mi.rcMonitor.top && wr.right>=mi.rcMonitor.right && wr.bottom>=mi.rcMonitor.bottom;
     QUERY_USER_NOTIFICATION_STATE state{};if(SUCCEEDED(SHQueryUserNotificationState(&state)) && state==QUNS_RUNNING_D3D_FULL_SCREEN)full=true;
     auto ps=processes();auto app=std::to_string(running_app());
-    return select_game(library_,ps,{fg,full},app,active,excluded_);
+    auto result=select_game(library_,ps,{fg,full},app,active,excluded_);
+    // Rate-limited diagnostics: only when the observable state changes.
+    std::string fgname;bool path_ok=false;for(const auto& p:ps)if(p.pid==fg){fgname=p.name;path_ok=!p.path.empty();}
+    size_t cached=0;bool lib_hit=false;for(const auto& g:library_){cached+=g.cached_executables.size();
+        for(const auto& c:g.cached_executables)if(casefold(narrow(c.filename().wstring()))==casefold(fgname))lib_hit=true;}
+    char buf[256];snprintf(buf,sizeof buf,"fg=%lu %s path=%d full=%d rect=%ld,%ld,%ld,%ld lib=%zu cache=%zu hit=%d app=%s sel=%s",
+        (unsigned long)fg,fgname.c_str(),(int)path_ok,(int)full,wr.left,wr.top,wr.right,wr.bottom,library_.size(),cached,(int)lib_hit,app.c_str(),result?result->name.c_str():"-");
+    if(diag_!=buf){diag_=buf;LOGI("game","Erkennung: %s",buf);}
+    return result;
 }
 }

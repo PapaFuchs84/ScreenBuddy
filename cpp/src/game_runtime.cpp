@@ -31,7 +31,8 @@ void Runtime::run(){
                 requested=snap.generation;job_generation=snap.generation;
                 job=std::async(std::launch::async,[cache=cache_,game=*snap.game]{CoInitializeEx(nullptr,COINIT_MULTITHREADED);ImagePtr image;try{image=LogoCache(cache).load(game);}catch(...){}CoUninitialize();return image;});
             }
-        }catch(...){} // unavailable launcher/files/processes never terminate the display
+        }catch(const std::exception& e){LOGW("game","Erkennung fehlgeschlagen: %s",e.what());}
+        catch(...){LOGW("game","Erkennung fehlgeschlagen (unbekannt)");} // unavailable launcher/files/processes never terminate the display
         for(int i=0;i<10 && !stop_;++i)Sleep(50);
     }
     if(job.valid())job.wait();CoUninitialize();
