@@ -1,5 +1,7 @@
 # Test phase – giving feedback
 
+**P8-2 (local development, 2026-11-07):** Custom source-tile views with active device tabs. [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md) records automated checks and synthetic editor PNGs; physical multi-device, touch and manual screenreader acceptance remain open. No release.
+
 **Unreleased Companion prototype:** simultaneous USB/HDMI and Android output with separate pages, timers and touch; native phone resolution including rotation. Extra controls are visible only while Companion is enabled. [Setup and current limits](docs/COMPANION.en.md).
 
 [Deutsch](TESTPHASE.md) · **English**

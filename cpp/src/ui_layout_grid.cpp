@@ -68,7 +68,7 @@ Rect GridEditor::block_rect(size_t b) const {
     for(size_t z=0;z<l->zones.size();++z) if(model.blocks[b]["zone"]==l->zones[z].id) {
         auto r=zone_rect(z); int count=0, index=0;
         for(size_t i=0;i<model.blocks.size();++i) if(model.blocks[i]["zone"]==l->zones[z].id && model.blocks[i].value("shown",true)) { if(i<b) ++index; ++count; }
-        float h=std::min(28.f,std::max(1.f,(r.bottom-r.top-28)/std::max(1,count)));
+        float h=model.custom_draft?std::max(1.f,r.bottom-r.top-28):std::min(28.f,std::max(1.f,(r.bottom-r.top-28)/std::max(1,count)));
         return {r.left+6,r.top+26+index*h,r.right-6,r.top+26+(index+1)*h-2};
     }
     return {};
@@ -320,6 +320,11 @@ void GridEditor::paint_canvas(Ctx& c) {
     }
     for(size_t b=0;b<model.blocks.size();++b) {
         auto r=block_rect(b); if(r.right<=r.left) continue;
+        if(tile_image) {
+            const auto id=model.blocks[b]["id"].get<std::string>();auto image=tile_image(id);
+            if(image) {auto& view=tile_views_[id];if(!view.image || view.version!=tile_version){view.image=*image;view.version=tile_version;}view.rc=r;view.framed=false;view.paint(c);
+                if(int(b)==focused_block)c.frame(r,focus_color(th),5,2.5f);continue;}
+        }
         auto fill=th.accent; fill.a=th.dark?.30f:.20f;
         c.fill(r,fill,5); c.frame(r,int(b)==focused_block?focus_color(th):soft(.5f),5,int(b)==focused_block?2.5f:1.f);
         c.text(label_of(model.blocks[b]["id"].get<std::string>(),en),{r.left+6,r.top,r.right-6,r.bottom},Font::Small,th.text);
@@ -362,15 +367,16 @@ void GridEditor::paint_canvas(Ctx& c) {
     c.text(en?L"Trash · drop a tile here or press Delete":L"Papierkorb · Kachel hier ablegen oder Entf drücken",{t.left+10,t.top,t.right-10,t.bottom},Font::Small,th.text,DWRITE_TEXT_ALIGNMENT_CENTER);
     c.rt->PopAxisAlignedClip();
 }std::wstring GridEditor::value(bool en) const {
+    auto block_name=[&](const std::string& id){return model.custom_draft?label_of(id,en):widen(id);};
     auto l=geometry(model); if(!l) return en?L"Invalid grid":L"Ungültiges Raster";
     if(active_) {
-        std::wstring source=action_==Action::Block ? (en?L"Block ":L"Block ")+widen(model.blocks.at(source_)["id"].get<std::string>()) : L"Zone "+widen(l->zones.at(source_).id);
+        std::wstring source=action_==Action::Block ? (en?L"Block ":L"Block ")+block_name(model.blocks.at(source_)["id"].get<std::string>()) : L"Zone "+widen(l->zones.at(source_).id);
         int z=zone_at();
         return source+(en?L" picked up, target ":L" aufgenommen, Ziel ")+(trash_?(en?L"trash":L"Ablage"):z>=0?L"Zone "+widen(l->zones[z].id):(en?L"free cell ":L"freie Zelle ")+std::to_wstring(column+1)+L", "+std::to_wstring(row+1))+
             (action_==Action::Block?(en?L", stack position ":L", Stapelposition ")+std::to_wstring(stack_+1):L"")+
             (target_valid()?(en?L", valid":L", gültig"):(en?L", does not fit":L", passt nicht"));
     }
-    if(area==0 && palette_block>=0 && palette_block<int(model.blocks.size())) return (en?L"Palette, block ":L"Bausteinleiste, Block ")+widen(model.blocks[palette_block]["id"].get<std::string>())+(en?L", Space to pick up":L", Leertaste zum Aufnehmen");
+    if(area==0 && palette_block>=0 && palette_block<int(model.blocks.size())) return (en?L"Palette, block ":L"Bausteinleiste, Block ")+block_name(model.blocks[palette_block]["id"].get<std::string>())+(en?L", Space to pick up":L", Leertaste zum Aufnehmen");
     if(area==2) return en?L"Trash, Enter to drop":L"Ablage, Enter zum Ablegen";
     if(selected<0 || selected>=int(l->zones.size())) return (en?L"Free cell, column ":L"Freie Zelle, Spalte ")+std::to_wstring(column+1)+(en?L", row ":L", Zeile ")+std::to_wstring(row+1);
     const auto& z=l->zones[selected]; int blocks=0;
@@ -379,7 +385,7 @@ void GridEditor::paint_canvas(Ctx& c) {
     auto v=L"Zone "+widen(z.id)+(en?L", column ":L", Spalte ")+range(z.column,z.column_span)+(en?L", row ":L", Zeile ")+range(z.row,z.row_span)+L", "+
         (z.cycle?widen(z.cycle->mode):(en?L"no cycle":L"kein Wechsel"))+L", "+std::to_wstring(blocks)+(en?L" blocks":L" Blöcke");
     if(column!=z.column || row!=z.row) v+=(en?L", cell focus column ":L", Zellfokus Spalte ")+std::to_wstring(column+1)+(en?L", row ":L", Zeile ")+std::to_wstring(row+1);
-    if(chip_zone()>=0) v+=(en?L", block chip ":L", Block-Chip ")+widen(model.blocks[focused_block]["id"].get<std::string>())+
+    if(chip_zone()>=0) v+=(en?L", block chip ":L", Block-Chip ")+block_name(model.blocks[focused_block]["id"].get<std::string>())+
         (en?L" selected, Space to pick up, Delete to return to palette":L" gewählt, Leertaste zum Aufnehmen, Entf zurück in die Leiste");
     return v;
 }

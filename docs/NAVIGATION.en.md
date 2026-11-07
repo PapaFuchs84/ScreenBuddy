@@ -6,7 +6,7 @@ Page names remain the same across themes; the design determines how you reach th
 | --- | --- |
 | View | Overview, Display, Pages & order, Colors & design |
 | Pages | System, Friends, Discord, Battlefield 6, Blogs (RSS), New on streaming, Home Assistant, Spotify |
-| App | Companion, Plugins, Plugin store, Arrange page (from 2.10.0, in preparation), Updates & startup |
+| App | Companion, Plugins, Plugin store, Arrange page and Custom views (from 2.10.0, in preparation), Updates & startup |
 
 ## Navigation by theme
 
@@ -38,7 +38,7 @@ Only integer pixels 0–1000 are accepted; invalid input produces a message. Ren
 
 ## Arrange page (development for 2.10.0)
 
-Under **App → Arrange page** you arrange the blocks of an enabled plugin with manifest v2 on a grid: define zones, assign blocks, set conditions (`show_if`) and check the preview in landscape and portrait. Undo and redo (100 steps) and keyboard operation are available. **Apply** saves only the arrangement, with a backup copy; plugin content, link consents and the manifest stay unchanged. Manifest v1 plugins only show "Arrangement needs manifest v2" there. RSS, Streaming, BF6, Friends and Discord are included as built-in pages; other pages and Home Assistant follow later. Other entry points: **Pages & order** and **Plugins → Arrange …**. Blocks can also be dragged with the mouse (block palette, handles, trash); keyboard: F6 switches the area, Space picks up, Enter drops, Esc cancels; Ctrl+Up/Down selects block chips in a zone (Space picks up, Delete returns to the palette). Releasing outside the grid cancels silently. Details: [Plugin system](PLUGIN-SYSTEM.en.md#page-editor-p6-3-to-p7-10-development-for-2100). Mouse, touchpad and touch operation are not yet accepted.
+Under **App → Arrange page** you arrange the blocks of an enabled plugin with manifest v2 on a grid: define zones, assign blocks, set conditions (`show_if`) and check the preview in landscape and portrait. Undo and redo (100 steps) and keyboard operation are available. **Apply** saves only the arrangement, with a backup copy; plugin content, link consents and the manifest stay unchanged. Manifest v1 plugins only show "Arrangement needs manifest v2" there. RSS, Streaming, BF6, Friends, Discord, System and Spotify are included as built-in pages. Standard Home Assistant remains native; individual entities are available in the separate Custom views editor. Other entry points: **Pages & order** and **Plugins → Arrange …**. Blocks can also be dragged with the mouse (block palette, handles, trash); keyboard: F6 switches the area, Space picks up, Enter drops, Esc cancels; Ctrl+Up/Down selects block chips in a zone (Space picks up, Delete returns to the palette). Releasing outside the grid cancels silently. Details: [Plugin system](PLUGIN-SYSTEM.en.md#page-editor-p6-3-to-p7-10-development-for-2100). Mouse, touchpad and touch operation are not yet accepted.
 
 ## Plugin taps (Phase 4c, development)
 
@@ -71,3 +71,7 @@ P7b-2 (2026-11-06, Agent Claude Sonnet 5.5): Tile palette with search, filter ch
 P7b-3 (2026-11-06, Agent Claude Sonnet 5.5): Canvas in the aspect ratio of the display tab: device-size frame, subtle cell grid, dashed drop slots "drop here", snapping ghost (invalid: dashed red plus text "does not fit"), handles, trash, zoom -/+/fit. Opt-in `GridEditor::canvas`; the previous grid stays bit-identical. Editor snapshots additive (`p7b-editor-hashes.txt`), text contrast >= 4.5:1 and focus ring/border >= 3:1 verified in all themes. 14 suites green.
 
 P7b-4 (2026-11-06, Agent Claude Sonnet 5.5): Layer list (order, visibility; selection works in list and canvas), page list (switching asks about unsaved changes) and starter card "In three steps" (dismiss once, remembered in `layouts/editor-intro.done`). 14 suites green (fl-layout-ui-tests 1,615), baselines bit-identical; hand acceptance open.
+
+## Custom views (P8-2, development)
+
+Use **App → Custom views** to create, rename, delete and arrange source tiles per active display. **Apply** saves; the view appears as `custom:<id>` in the page cycle. Only active devices get tabs; offline layouts remain stored. Trash, grid sizes, conditions, density and undo/redo: [Usage and limits](PHASE8-EIGENE-ANSICHTEN.md).

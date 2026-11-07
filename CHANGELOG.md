@@ -6,7 +6,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
-P8-2 (2026-11-07), Quellen-Fundament: Listen-/Spotify-Inhalte und native HA-Entitäten einzeln über vorhandene Renderer; strikter Einzelkachel-Vertrag, Dichte-Obergrenzen, lokale Ansichtsverwaltung und Editor-Adapter. Standardseiten behalten Pflicht-Statusprüfung. Kein Release/Push. [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md).
+P8-2 (2026-11-07): Einzelkacheln für Listen, Spotify und native HA-Entitäten über bestehende Zeichenfunktionen; eigener Editor mit Verwaltung, Palette, Raster, Eigenschaften, Rückgängig/Wiederholen und Geräte-Vererbung. Nur aktive Displays als Tabs, Rückfall auf Standard beim Trennen; gespeicherte Offline-Layouts bleiben erhalten. Standardseiten-Verträge unverändert. Kein Release/Push. [Bedienung und Prüfstand](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-1 (2026-11-07): Eigene Ansichten mit streng begrenztem JSON-Modell, Backup/atomarem Speichern, Geräte-Vererbung und `custom:`-Seitenzyklus. Systemkarten, Plugin-v2-Blöcke und Quellstatus über bestehende Renderer; HA, Listen-/Spotify-Inhaltskacheln, Editor und Touch-Aktionen offen. Umfang und Prüfstand: [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md).
 

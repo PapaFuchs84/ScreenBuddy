@@ -28,6 +28,7 @@ endforeach()
 set(CORE_SOURCES
     src/custom_view.cpp
     src/custom_view_editor.cpp
+    src/ui_page_custom_views.cpp
     src/builtin_catalog.cpp src/layout_edit.cpp src/ui_layout_grid.cpp src/ui_editor.cpp src/ui_tile_palette.cpp
     src/ui_page_layout.cpp
     src/plugin_schedule.cpp src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp src/page_samples.cpp src/page_frame.cpp

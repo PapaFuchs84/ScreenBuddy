@@ -3,6 +3,7 @@
 #include "ui_kit.h"
 #include "layout_edit.h"
 #include <array>
+#include <map>
 
 namespace fl::ui {
 class GridEditor : public Widget {
@@ -12,6 +13,8 @@ public:
     // P7b-3 „Fläche“: Gerätegrößen-Rahmen, dezentes Raster, gestrichelte Ablageplätze, Geist, Griffe, Papierkorb.
     // Aus (Standard) bleibt Zeichnung und Trefferfläche des bisherigen Rasters bitgleich.
     bool canvas = false;
+    std::function<std::shared_ptr<const Image>(const std::string&)> tile_image;
+    uint64_t tile_version = 0;
     float zoom = 1.f;         // 1 = Passend (Rahmen füllt die Breite), kleiner = herausgezoomt
     int column = 0, row = 0, selected = 0;
     int first_column = 0; // horizontaler Ausschnitt bei weniger als 32 DIP je Zelle
@@ -56,6 +59,7 @@ public:
     bool shown_block(size_t block) const;
     std::function<std::wstring(const std::string&, bool)> block_label; // lesbarer Name (P7b-3); leer: Block-ID
 private:
+    std::map<std::string,ImageView> tile_views_;
     class PaletteInfo : public Widget {
     public:
         GridEditor* owner = nullptr;

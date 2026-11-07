@@ -357,7 +357,7 @@ public:
             auto copy = [&](const char* key) {
                 if (!cur.contains(key) || !cur.at(key).is_array()) return;
                 for (const auto& k : cur.at(key))
-                    if (k.is_string() && k.get<std::string>().rfind("plugin:", 0) == 0) dp[key].push_back(k);
+                    if (k.is_string() && (k.get<std::string>().starts_with("plugin:") || k.get<std::string>().starts_with("custom:"))) dp[key].push_back(k);
             };
             copy("pages");
             copy("visible_pages");
@@ -372,10 +372,12 @@ private:
         Host* h = host_;
         h->run([this, h]() -> std::function<void()> {
             auto entries = h->plugins().list();
-            return [this, h, entries = std::move(entries)] {
+            auto views=custom::Store(h->app().cfg_path().parent_path()/L"views").list();
+            return [this, h, views=std::move(views), entries = std::move(entries)] {
                 std::vector<PluginPageInfo> plugins;
                 for (const auto& e : entries)
                     if (e.enabled) plugins.push_back({"plugin:" + e.id, Text(widen(e.name))});
+                for(const auto& view:views) plugins.push_back({"custom:"+view.id,Text(widen(view.name))});
                 const ojson& dp = h->config().at("display");
                 const bool edited = plugins_loaded_ || list_->dirty();  // später nur abgleichen: config() zeigt den Stand beim Öffnen
                 std::vector<ItemList::Item> items;
@@ -384,7 +386,7 @@ private:
                 } else {
                     // Der Nutzer hat schon umsortiert: seine Liste behalten, Plugins nur abgleichen
                     for (auto& i : list_->items)
-                        if (i.key.rfind("plugin:", 0) != 0 ||
+                        if ((!i.key.starts_with("plugin:") && !i.key.starts_with("custom:")) ||
                             std::any_of(plugins.begin(), plugins.end(), [&](auto& p) { return p.first == i.key; }))
                             items.push_back(i);
                     for (auto& p : plugins)

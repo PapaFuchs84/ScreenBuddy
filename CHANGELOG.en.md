@@ -6,7 +6,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
-P8-2 (2026-11-07), source foundation: individual list/Spotify content and native HA cells reuse existing renderers; strict tile contract, density caps, local view management and editor adapter. Full pages retain required status validation. No release/push. [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md).
+P8-2 (2026-11-07): Individual list, Spotify and native HA entity tiles reuse existing painters. Dedicated view editor with management, palette, grid, properties, undo/redo and device inheritance. Only active display tabs, fallback to Standard on disconnect, saved offline layouts retained. Complete-page contracts unchanged; no release/push. [Usage and validation](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-1 (2026-11-07): Custom views with a bounded JSON model, backup/atomic persistence, device inheritance and `custom:` page-cycle integration. System cards, plugin v2 blocks and source status use existing renderers; HA, list/Spotify content tiles, editor and touch actions remain open. Scope and validation: [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md).
 

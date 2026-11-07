@@ -1,4 +1,6 @@
-# Testprotokoll – Stand 06.11.2026
+# Testprotokoll – Stand 07.11.2026
+
+P8-2 (2026-11-07): Eigene Quellen-Kacheln und nativer Editor unter App → Eigene Ansichten. / Custom source tiles and native editor under App → Custom views. Aktuelle Zahlen, Bildmatrizen und Grenzen / current counts, image matrices and limits: [Phase 8](../docs/PHASE8-EIGENE-ANSICHTEN.md). Die folgenden Einträge behalten ihren historischen Prüfstand. / Entries below retain their historical validation status.
 
 P7b-0 (2026-11-06, Claude Sonnet 5.5 im Auftrag): Neuer Standard dunkles Material mit Orange-Akzent (`material-orange`; Text/Fläche und Akzent/Fläche mindestens 4,5:1, Leiste mindestens 3:1, Kontrasttests in fl-tests und fl-layout-ui-tests). Neuinstallation startet damit; bestehende Installationen fragen einmalig per Dialog DE/EN „Neuen Standard setzen?“ (Voreinstellung Nein, Antwort in `ui.standard_theme_choice` gespeichert, Schließen ändert nichts). Cupertino, Fluent, Hell, Dunkel, Windows und eigene Themes bleiben wählbar. Bestehende Built-in-/Plugin-Hashdateien unverändert, neue Basis additiv in `p7b0-material-orange-hashes.txt` (768 Hashes).
 

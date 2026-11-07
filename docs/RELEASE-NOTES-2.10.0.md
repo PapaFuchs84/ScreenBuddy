@@ -12,6 +12,10 @@
 - **Seiten-Editor:** unter **App → Seite anordnen**: Raster, Blockliste, Bedingungen, Vorschau in Quer- und Hochformat, Rückgängig/Wiederholen, Tastaturbedienung. Gespeichert wird nur die Anordnung, mit Sicherungskopie.
 - **Rahmenstil:** Plugin-Karten übernehmen Radius und Abstände aus dem Theme.
 
+## Neu: Eigene Ansichten (P8-2)
+
+Unter **App → Eigene Ansichten** Quellen-Kacheln kombinieren, mit Palette/Raster/Eigenschaften bearbeiten und je aktivem Display speichern. HA-Entitäten bleiben nativ gezeichnet; Listen und Spotify-Inhalte sind einzeln verfügbar. Offline-Tabs entfallen, gespeicherte Geräte-Layouts bleiben erhalten. Noch keine eigenen Touch-Aktionen. [Bedienung, Grenzen und aktueller Prüfstand](PHASE8-EIGENE-ANSICHTEN.md).
+
 ## Neu: Geräte und Darstellung
 
 - **Sperrzone pro Gerät:** Ränder in ganzen Pixeln für USB-Display und Monitor (unter **Anzeige**). Companion mit gemeinsamer Vorgabe und eigener Sperrzone je gekoppeltem Gerät im unabhängigen Betrieb. Details: [Navigation](NAVIGATION.md#geräteprofil-und-sperrzone-phase-4a-entwicklung) · [Companion](COMPANION.md).
@@ -43,6 +47,7 @@
 **Status: in preparation, not released.** No tag, no EXE and no Companion APK exist for this version. The current release remains **2.9.5**; the Companion app remains **1.0.3**.
 
 - **Plugin pages:** manifest v2 with a zone grid (up to 8 zones, 4 blocks per zone, 12 widgets with a layout), density levels, conditional display (`show_if`), fault isolation per block, cycling zones (`rotate`, 3–600 s, or `first_available`), and tap targets that open HTTPS links on the PC. Link consent is off by default. The page editor is under **App → Arrange page**. Manifest v1 is unchanged. See [Plugin system](PLUGIN-SYSTEM.en.md).
+- **Custom views (P8-2):** dedicated editor under App, with source palette, grid, properties and layouts per active display; native HA entity/list/Spotify tiles reuse existing painters. Offline tabs are hidden while saved layouts remain. Custom touch actions are pending. [Usage and validation](PHASE8-EIGENE-ANSICHTEN.md).
 - **Devices:** keepout in whole pixels 0–1000 for the USB display and monitor, plus a shared default and an individual keepout per paired Companion device in independent mode. Android TV always runs in landscape.
 - **Built-in pages** draw their cards through the shared frame; Home Assistant stays native.
 - **Fixed:** BF6 leaderboard requests use `platform=pc` with fallbacks; Spotify shows the last played track when nothing is playing (re-sign-in required for the new permission).

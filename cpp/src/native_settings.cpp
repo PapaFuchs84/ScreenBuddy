@@ -380,6 +380,13 @@ struct NativeSettings::Impl : ui::Host {
             if (override_frame) preview(std::nullopt);
         }
         current = index;
+        if(slot.page->info().id=="custom_views") {
+            RECT window{};GetWindowRect(frame->hwnd(),&window);
+            MONITORINFO monitor{sizeof(monitor)};GetMonitorInfoW(MonitorFromWindow(frame->hwnd(),MONITOR_DEFAULTTONEAREST),&monitor);
+            const int width=std::min(frame->px(1520.f),int(monitor.rcWork.right-monitor.rcWork.left)),height=std::min(frame->px(940.f),int(monitor.rcWork.bottom-monitor.rcWork.top));
+            if(window.right-window.left<width || window.bottom-window.top<height)
+                SetWindowPos(frame->hwnd(),nullptr,monitor.rcWork.left,monitor.rcWork.top,width,height,SWP_NOZORDER|SWP_NOACTIVATE);
+        }
         update_material_tabs();
         slot.nav->active = true;
         content->set_root(slot.root.get());
@@ -654,7 +661,7 @@ struct NativeSettings::Impl : ui::Host {
             std::max(1, frame->px(r.right - r.left)), std::max(1, frame->px(r.bottom - r.top)), SWP_NOZORDER | SWP_NOACTIVATE);
     }
     void material_frame(ui::Ctx& c, D2D1_SIZE_F sz) {
-        material_layout = ui::shell::layout_material(sz.width, sz.height, inspector_open, dirty_count > 0,
+        material_layout = ui::shell::layout_material(sz.width, sz.height, inspector_open && !(current>=0 && slots[current].page->info().id=="custom_views"), dirty_count > 0,
             theme->pref_width(c), lang->pref_width(c));
         if (material_tab_slots.size() <= 1) { material_layout.tabs = {}; material_layout.body.top = 152; }
         const auto& m = material_layout;

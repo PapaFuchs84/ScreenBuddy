@@ -29,6 +29,8 @@ A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary sc
 
 **In preparation 2.10.0 (unreleased):** plugin pages with a zone layout (manifest v2), density levels, conditional display, cycling zones, tap targets with link consent (off by default), keepout per device, built-in pages on the shared frame and a page editor under **App → Arrange page**. Nothing has been released yet; hardware, Companion and UI acceptance are pending. [Release notes 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.en.md)
 
+**P8-2 (local development):** **App → Custom views** combines source tiles into saved views with layouts per active display. Offline devices are hidden from editor tabs while their layouts remain stored. [Usage, limits and validation](docs/PHASE8-EIGENE-ANSICHTEN.md).
+
 **New in 2.9.5:** View, Pages and App navigation; **Colors & design under View**, including signed store-theme installation. [Menu and theme guide](docs/NAVIGATION.en.md).
 
 **New in 2.9.4:** tap a streaming movie or series to open its TMDB details in the PC browser; tap Spotify cover art to open the Spotify desktop app. TMDB key application explained with field examples. [Release notes 2.9.4](docs/RELEASE-NOTES-2.9.4.md). New tabs follow browser settings; verified with Chrome on Meanmachine.

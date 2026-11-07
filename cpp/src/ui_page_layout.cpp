@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs – Anordnung installierter v2-Plugins. Keine Manifest-/Konfigurationsschreibwege.
 #include "ui_pages.h"
+#include "custom_view_editor.h"
 #include "ui_layout_grid.h"
 #include "ui_editor.h"
 #include "ui_tile_palette.h"
@@ -77,6 +78,16 @@ public:
         if (!visible_) return;
         if (host_->busy()) { update_buttons(); return; }
         if (reload_) { load(); return; }
+        if(GetTickCount64()-display_poll_>2000 && host_->plugins().layout_displays) {
+            display_poll_=GetTickCount64();auto h=host_;
+            h->run([this,h]() -> std::function<void()> {auto displays=custom::active_displays(h->plugins().layout_displays());return [this,displays] {
+                if(displays==displays_)return;displays_=displays;
+                if(!device_.empty() && std::none_of(displays_.begin(),displays_.end(),[&](const auto& d){return d.value("id",std::string())==device_;})) {
+                    if(grid_)grid_->cancel(host_->surface());device_.clear();history_=pe::EditHistory{};other_history_=pe::EditHistory{};uncommitted_=false;switch_pending_=true;reload_=true;
+                    host_->toast(T(L"Display getrennt: Standard-Tab gewählt. Gespeicherte Anordnung bleibt erhalten.",L"Display disconnected: selected standard tab. Saved layout retained."));
+                }rebuild_tabs();host_->relayout();
+            };});return;
+        }
         if (pending_ && !previewing_ && (!grid_ || !grid_->carrying())) preview();
         update_buttons();
     }
@@ -107,6 +118,7 @@ private:
     Json displays_=Json::array();
     std::string device_;
     bool switch_pending_=false;
+    uint64_t display_poll_=GetTickCount64();
     Json read_layout(bool built,const std::string& id) {
         auto& a=host_->plugins();
         return a.device_layout_get?a.device_layout_get(built,id,device_):built?a.builtin_layout_get(id):a.arrangement_get(id);
@@ -185,7 +197,7 @@ private:
         h->run([this,h,seen_before]() -> std::function<void()> {
             const bool seen=seen_before || (h->plugins().editor_intro_seen && h->plugins().editor_intro_seen());
             std::vector<Entry> entries;
-            auto displays=h->plugins().layout_displays?h->plugins().layout_displays():Json::array();
+            auto displays=h->plugins().layout_displays?custom::active_displays(h->plugins().layout_displays()):Json::array();
             if(h->plugins().list && h->plugins().arrangement_get)
                 for(auto& e:h->plugins().list()) if(e.enabled) entries.push_back({e.id,Text(widen(e.name)),read_layout(false,e.id)});
             if(h->plugins().builtin_layout_get) for(const auto& c:builtin::catalogs()) if(c.enabled)

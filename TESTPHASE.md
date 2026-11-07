@@ -1,5 +1,7 @@
 # Testphase – Rückmeldungen geben
 
+**P8-2 (lokale Entwicklung, 2026-11-07):** Eigene Ansichten mit Quellen-Kacheln und aktivem Geräte-Tab. Automatisierte Prüfungen und synthetische Editor-PNGs sind in [Phase 8](docs/PHASE8-EIGENE-ANSICHTEN.md) dokumentiert; physische Mehrgeräte-, Touch- und Screenreader-Abnahme steht aus. Kein Release.
+
 **Unveröffentlichter Companion-Prototyp:** USB/HDMI und Android gleichzeitig mit eigenen Seiten, Wechselintervallen und Touch-Zielen; automatische Handy-Auflösung einschließlich Rotation. Zusätzliche Einstellungen nur bei aktivem Companion. [Einrichtung und Grenzen](docs/COMPANION.md).
 
 **Deutsch** · [English](TESTPHASE.en.md)

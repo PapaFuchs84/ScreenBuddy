@@ -6,7 +6,7 @@ Die Seiten heißen in allen Themes gleich. Das Design bestimmt, wie du sie errei
 | --- | --- |
 | Ansicht | Übersicht, Anzeige, Seiten & Reihenfolge, Farben & Design |
 | Seiten | System, Freunde, Discord, Battlefield 6, Blogs (RSS), Streaming-Neustarts, Home Assistant, Spotify |
-| App | Companion, Plugins, Plugin-Store, Seite anordnen (ab 2.10.0, in Vorbereitung), Updates & Autostart |
+| App | Companion, Plugins, Plugin-Store, Seite anordnen und Eigene Ansichten (ab 2.10.0, in Vorbereitung), Updates & Autostart |
 
 ## Je nach Theme navigieren
 
@@ -38,7 +38,7 @@ Erlaubt sind ganze Pixel 0–1000; ungültige Eingaben werden mit Meldung abgele
 
 ## Seite anordnen (Entwicklung für 2.10.0)
 
-Unter **App → Seite anordnen** ordnest du die Blöcke eines aktivierten Plugins mit Manifest v2 im Raster an: Zonen festlegen, Blöcke zuweisen, Bedingungen (`show_if`) setzen und die Vorschau in Quer- und Hochformat prüfen. Rückgängig und Wiederholen (100 Schritte) sowie die Tastaturbedienung sind verfügbar. **Übernehmen** speichert nur die Anordnung, mit Sicherungskopie. Inhalte, Linkfreigaben und das Manifest bleiben unverändert. Manifest-v1-Plugins zeigen dort nur den Hinweis „Anordnung braucht Manifest v2“. RSS, Streaming, BF6, Freunde und Discord sind als eingebaute Seiten enthalten; weitere Seiten und Home Assistant folgen später. Weitere Einstiege: **Seiten & Reihenfolge** und **Plugins → Anordnen …**. Blöcke lassen sich auch per Maus ziehen (Bausteinleiste, Griffe, Ablage); Tastatur: F6 wechselt den Bereich, Leertaste nimmt auf, Enter legt ab, Esc bricht ab; Strg+Auf/Ab wählt Block-Chips in einer Zone (Leertaste nimmt auf, Entf zurück in die Leiste). Loslassen außerhalb des Rasters bricht still ab. Details: [Plugin-System](PLUGIN-SYSTEM.md#seiten-editor-p6-3-bis-p7-10-entwicklung-für-2100). Maus-, Touchpad- und Touch-Bedienung sind noch nicht abgenommen.
+Unter **App → Seite anordnen** ordnest du die Blöcke eines aktivierten Plugins mit Manifest v2 im Raster an: Zonen festlegen, Blöcke zuweisen, Bedingungen (`show_if`) setzen und die Vorschau in Quer- und Hochformat prüfen. Rückgängig und Wiederholen (100 Schritte) sowie die Tastaturbedienung sind verfügbar. **Übernehmen** speichert nur die Anordnung, mit Sicherungskopie. Inhalte, Linkfreigaben und das Manifest bleiben unverändert. Manifest-v1-Plugins zeigen dort nur den Hinweis „Anordnung braucht Manifest v2“. RSS, Streaming, BF6, Freunde, Discord, System und Spotify sind als eingebaute Seiten enthalten. Home Assistant bleibt im Standard nativ; einzelne Entitäten stehen im separaten Editor „Eigene Ansichten“ bereit. Weitere Einstiege: **Seiten & Reihenfolge** und **Plugins → Anordnen …**. Blöcke lassen sich auch per Maus ziehen (Bausteinleiste, Griffe, Ablage); Tastatur: F6 wechselt den Bereich, Leertaste nimmt auf, Enter legt ab, Esc bricht ab; Strg+Auf/Ab wählt Block-Chips in einer Zone (Leertaste nimmt auf, Entf zurück in die Leiste). Loslassen außerhalb des Rasters bricht still ab. Details: [Plugin-System](PLUGIN-SYSTEM.md#seiten-editor-p6-3-bis-p7-10-entwicklung-für-2100). Maus-, Touchpad- und Touch-Bedienung sind noch nicht abgenommen.
 
 ## Plugin-Tipps (Phase 4c, Entwicklung)
 
@@ -71,3 +71,7 @@ P7b-2 (2026-11-06, Agent Claude Sonnet 5.5): Kachelpalette mit Suche, Filter-Chi
 P7b-3 (2026-11-06, Agent Claude Sonnet 5.5): Fläche im Seitenverhältnis des Display-Tabs: Gerätegrößen-Rahmen, dezentes Zellraster, gestrichelte Ablageplätze „hier ablegen“, Geist mit Einrasten (ungültig: gestrichelt rot und Text „passt nicht“), Griffe, Papierkorb, Zoom −/+/Passend. Opt-in `GridEditor::canvas`; das bisherige Raster bleibt bitgleich. Editor-Snapshots additiv (`p7b-editor-hashes.txt`), Kontrast Text ≥ 4,5:1 und Fokusring/Rahmen ≥ 3:1 in allen Themes geprüft. 14 Suiten grün.
 
 P7b-4 (2026-11-06, Agent Claude Sonnet 5.5): Ebenenliste (Reihenfolge, Sichtbarkeit; Auswahl wirkt in Liste und Fläche), Seitenliste (Wechsel mit Rückfrage bei ungesicherten Änderungen) und Einsteigerkarte „In drei Schritten“ (einmal wegklickbar, gemerkt in `layouts/editor-intro.done`). 14 Suiten grün (fl-layout-ui-tests 1.615), Baselines bitgleich; Handabnahme offen.
+
+## Eigene Ansichten (P8-2, Entwicklung)
+
+Unter **App → Eigene Ansichten** eigene Seiten aus Quellen-Kacheln anlegen, umbenennen, löschen und je aktivem Display anordnen. **Übernehmen** speichert; die Ansicht erscheint als `custom:<id>` im Seitenzyklus. Tabs zeigen nur aktive Geräte; Offline-Layouts bleiben erhalten. Papierkorb, Rastergröße, Bedingungen, Dichte und Rückgängig/Wiederholen: [Bedienung und Grenzen](PHASE8-EIGENE-ANSICHTEN.md).

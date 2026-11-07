@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs – isolierte native Editorprüfung, keine App-/Netzwerk-Schleife.
 #include "ui_pages.h"
+#include "custom_view_editor.h"
 #include "ui_layout_grid.h"
 #include "ui_editor.h"
 #include "ui_tile_palette.h"
@@ -54,7 +55,7 @@ public:
     Text question;
     std::deque<std::function<void()>> completions;
     std::wstring toast_text;
-    explicit TestHost(fs::path p):dir(p),store(p/"editorplugins"),application(cfg,p/"test.toml",nullptr,p/"preview") {
+    explicit TestHost(fs::path p,ojson settings=offline_config()):cfg(std::move(settings)),dir(p),store(p/"editorplugins"),application(cfg,p/"test.toml",nullptr,p/"preview") {
         view.set_root(&root);
         actions.list=[this] {
             std::vector<NativePluginEntry> result;
@@ -421,8 +422,8 @@ static void device_render_tests(const fs::path& root) {
 static void device_editor_tests(const fs::path& root) {
     TestHost h(root/"device-editor");CHECK(h.store.load());CHECK(h.store.import_manifest(fixture().dump()));
     h.actions.layout_displays=[] {return Json::array({
-        {{"id","phone"},{"name","Phone"},{"width",320},{"height",480},{"usable_width",320},{"usable_height",460},{"online",false},{"tv",false}},
-        {{"id","tv"},{"name","Android TV"},{"width",1920},{"height",1080},{"usable_width",1920},{"usable_height",1080},{"online",false},{"tv",true}}});};
+        {{"id","phone"},{"name","Phone"},{"width",320},{"height",480},{"usable_width",320},{"usable_height",460},{"online",true},{"tv",false}},
+        {{"id","tv"},{"name","Android TV"},{"width",1920},{"height",1080},{"usable_width",1920},{"usable_height",1080},{"online",true},{"tv",true}}});};
     h.actions.device_layout_get=[&](bool,const auto& id,const auto& device){return h.store.arrangement_get(id,device);};
     h.actions.device_layout_apply=[&](bool,const auto& id,const auto& device,const auto& j){CHECK(h.store.set_arrangement(id,j.dump(),device));};
     h.actions.device_layout_reset=[&](bool,const auto& id,const auto& device){CHECK(h.store.clear_arrangement(id,device));};
@@ -430,18 +431,18 @@ static void device_editor_tests(const fs::path& root) {
     auto settle=[&]{page->tick(h,h.state);h.drain();page->tick(h,h.state);h.drain();page->tick(h,h.state);};
     auto grid=h.find<GridEditor>();CHECK(grid);if(!grid)return;
     auto model=grid->model;model.layout["columns"]={2,1,1};grid->on_edit(model,"");
-    auto phone=h.find<Button>(L"Phone · 320 × 480 · Hoch · offline · erbt Standard");CHECK(phone);if(!phone)return;
+    auto phone=h.find<Button>(L"Phone · 320 × 480 · Hoch · erbt Standard");CHECK(phone);if(!phone)return;
     phone->activate(h.view);CHECK(h.confirmations==1);CHECK(h.question.en.find(L"display")!=std::wstring::npos);
     CHECK(h.find<GridEditor>()->model.layout["columns"][0]==2);
     h.confirm_answer=true;phone->activate(h.view);settle();
     auto orientation=h.find<Segment>(L"Ausrichtung");CHECK(orientation && orientation->index==1);
     auto apply=h.find<Button>(L"Übernehmen");CHECK(apply);if(apply)apply->activate(h.view);settle();
     CHECK(h.store.arrangement_get("editor-test","phone")["inherited"]==false);
-    auto own_tab=h.find<Button>(L"Phone · 320 × 480 · Hoch · offline · eigene Anordnung");
+    auto own_tab=h.find<Button>(L"Phone · 320 × 480 · Hoch · eigene Anordnung");
     CHECK(own_tab && own_tab->role()==Role::NavTab && own_tab->checked());
     CHECK(std::abs(h.find<GridEditor>()->display_aspect-320.f/460.f)<.001f);
     CHECK(h.store.arrangement_get("editor-test","tv")["inherited"]==true);
-    auto tv=h.find<Button>(L"Android TV · 1920 × 1080 · Quer · offline · erbt Standard");CHECK(tv);if(tv)tv->activate(h.view);settle();
+    auto tv=h.find<Button>(L"Android TV · 1920 × 1080 · Quer · erbt Standard");CHECK(tv);if(tv)tv->activate(h.view);settle();
     orientation=h.find<Segment>(L"Ausrichtung");CHECK(orientation && !orientation->enabled && orientation->index==0);
 }
 // P7-10: Freunde und Discord teilen den Katalog, niemals Datei, Backup oder Revision.
@@ -701,12 +702,14 @@ struct TreeCanvas {
     Ctx ctx(Kit& kit) { return Ctx{rt.Get(),kit,kit.theme(),brush.Get()}; }
 };
 static void layout_tree(Kit& kit,TreeCanvas& canvas,Widget& root) { auto ctx=canvas.ctx(kit); root.layout(ctx,16,12,float(canvas.width-32)); }
-static Image paint_tree(Kit& kit,TreeCanvas& canvas,Widget& root) {
+static Image paint_tree(Kit& kit,TreeCanvas& canvas,Widget& root,bool native_text=false) {
     auto ctx=canvas.ctx(kit);
-    struct Walk { static void go(Ctx& c,Widget* w) {
+    struct Walk { static void go(Ctx& c,Widget* w,bool native_text) {
         if(!w || !w->visible) return; const float saved=c.dim; if(!w->enabled) c.dim*=.45f;
-        w->paint(c); std::vector<Widget*> kids; w->children(kids); for(auto k:kids) go(c,k); c.dim=saved; } };
-    canvas.rt->BeginDraw(); canvas.rt->Clear(kit.theme().bg); Walk::go(ctx,&root); CHECK(SUCCEEDED(canvas.rt->EndDraw()));
+        w->paint(c);
+        if(native_text) if(auto field=dynamic_cast<TextField*>(w)) {auto text=field->text();if(text.empty())text=field->hint.get(c.kit.english);if(field->kind!=TextField::Secret)c.text(text,{field->rc.left+10,field->rc.top,field->rc.right-10,field->rc.bottom},ui::Font::Body,c.th.text);}
+        std::vector<Widget*> kids; w->children(kids); for(auto k:kids) go(c,k,native_text); c.dim=saved; } };
+    canvas.rt->BeginDraw(); canvas.rt->Clear(kit.theme().bg); Walk::go(ctx,&root,native_text); CHECK(SUCCEEDED(canvas.rt->EndDraw()));
     Image image(canvas.width,canvas.height); canvas.bitmap->CopyPixels(nullptr,canvas.width*4,UINT(image.px.size()*4),reinterpret_cast<BYTE*>(image.px.data())); return image;
 }
 static double contrast_of(Rgba a,Rgba b) {
@@ -861,6 +864,72 @@ static void editor_snapshot_tests(const fs::path& root,const fs::path& baseline,
     }
     if(record) { fs::create_directories(baseline); std::ofstream out(file); for(auto& [key,hash]:actual) out<<key<<' '<<hash<<'\n'; CHECK(bool(out)); }
     else CHECK(expected.size()==actual.size());
+}
+// P8-2: exercise the actual page with isolated files, synthetic devices and real source sample renderers.
+static void custom_editor_tests(const fs::path& root,const fs::path& images,bool record) {
+    const auto baseline=fs::path(FL_LAYOUT_SNAPSHOT_DIR)/"p8-custom-editor-hashes.txt";
+    std::map<std::string,std::string> expected,actual;
+    if(record) {CHECK(!fs::exists(baseline));if(fs::exists(baseline))return;}
+    else {std::ifstream in(baseline);CHECK(bool(in));for(std::string key,hash;in>>key>>hash;)expected[key]=hash;}
+    auto cfg=offline_config();cfg["homeassistant"]["entities"]={"sensor.temperature|Example"};
+    TestHost h(root/"custom-editor",cfg);h.confirm_answer=true;
+    bool connected=true;
+    h.actions.layout_displays=[&]{return Json::array({
+        {{"id","serial:COM7"},{"name","COM7"},{"width",480},{"height",320},{"usable_width",480},{"usable_height",320},{"online",true}},
+        {{"id","monitor:sample"},{"name","Monitor"},{"width",1920},{"height",1080},{"usable_width",1920},{"usable_height",1080},{"online",connected}},
+        {{"id","offline-phone"},{"name","Offline Phone"},{"width",320},{"height",480},{"online",false}}});};
+    custom::View initial;initial.id="dashboard";initial.name="Meine Übersicht";initial.standard.columns={1,1,1};initial.standard.rows={1,1};
+    initial.standard.tiles={custom::Tile{"system","system.cpu",{"cpu",0,0,1,1}},custom::Tile{"spotify","spotify.text",{"song",1,0,2,1}},custom::Tile{"homeassistant","sensor.temperature",{"ha",0,1,1,1}}};
+    initial.devices["offline-phone"]=initial.standard;
+    custom::Store saved(h.dir/"views");CHECK(saved.save(initial).empty());
+    auto page=make_custom_views_page();page->build(h,h.root);page->shown(h);settle(h,*page);
+    auto grid=h.find<GridEditor>();auto palette=h.find<TilePalette>();CHECK(grid && palette);if(!grid || !palette)return;
+    CHECK(grid->model.custom_draft);CHECK(custom::editor_layout(grid->model)->tiles.size()==3);
+    CHECK(palette->visible().size()==5);CHECK(palette->thumb_of(palette->tiles.front().id));
+    CHECK(!h.find<Button>(L"Offline Phone · 320 × 480"));
+    auto monitor=h.find<Button>(L"Monitor · 1920 × 1080");CHECK(monitor && monitor->role()==Role::NavTab);if(!monitor)return;
+    monitor->activate(h.view);settle(h,*page);CHECK(h.find<Button>(L"Monitor · 1920 × 1080")->checked());CHECK(std::abs(grid->display_aspect-1920.f/1080)<.001f);
+    CHECK(grid->insert_first_free(3,h.view));settle(h,*page);CHECK(h.find<Button>(L"Rückgängig")->enabled);
+    const auto placed=custom::editor_layout(grid->model)->tiles.size();CHECK(placed==4);
+    h.find<Button>(L"Rückgängig")->activate(h.view);settle(h,*page);CHECK(custom::editor_layout(grid->model)->tiles.size()==3);
+    h.find<Button>(L"Wiederholen")->activate(h.view);settle(h,*page);CHECK(custom::editor_layout(grid->model)->tiles.size()==4);
+    h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);CHECK(saved.get(initial.id)->devices.at("monitor:sample").tiles.size()==4);
+    CHECK(saved.get(initial.id)->devices.at("offline-phone").tiles.size()==3);
+    CHECK(h.application.active_pages()==std::vector<std::string>{"custom:dashboard"});
+    // Persisted inheritance and a vanished selection return to the standard tab without losing offline overlays.
+    h.find<Button>(L"Von Standard erben")->activate(h.view);settle(h,*page);CHECK(!saved.get(initial.id)->devices.contains("monitor:sample"));
+    connected=false;Sleep(2100);settle(h,*page);
+    CHECK(!h.find<Button>(L"Monitor · 1920 × 1080"));CHECK(h.find<Button>(L"Standard")->checked());CHECK(saved.get(initial.id)->devices.contains("offline-phone"));
+    connected=true;Sleep(2100);settle(h,*page);
+    grid=h.find<GridEditor>();grid->selected=0;grid->focused_block=0;grid->on_select();
+    // Property edits and validation use the strict custom-view parser.
+    auto condition=h.find<TextField>(L"Anzeigen wenn: data.…");CHECK(condition);if(condition){condition->set_text(L"data.cpu_pct");condition->on_change();h.find<Button>(L"Bedingung bestätigen")->activate(h.view);settle(h,*page);CHECK(custom::editor_layout(grid->model)->tiles[0].show_if.has_value());}
+    auto density=h.find<Combo>(L"Dichte (höchstens)");CHECK(density);if(density){density->index=0;density->on_change();settle(h,*page);CHECK(custom::editor_layout(grid->model)->tiles[0].density==0);}
+    auto name=h.find<TextField>(L"Name der Ansicht");CHECK(name);if(name){name->set_text(L"Übersicht P8");name->on_change();name->on_commit();}
+    h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);CHECK(saved.get(initial.id)->name=="Übersicht P8");
+    // Additive DE/EN snapshots of the real page, including palette, grid, properties and two active-device tabs.
+    fs::create_directories(images);
+    grid->selected=0;grid->focused_block=0;grid->on_select();
+    TreeCanvas custom_canvas(h.kit,1440,1100);
+    for(bool en:{false,true}){
+        h.kit.english=en;h.kit.use_design({{"theme",theme::DEFAULT_ID}});h.kit.use_windows(false);h.kit.dark=true;
+        layout_tree(h.kit,custom_canvas,h.root);auto image=paint_tree(h.kit,custom_canvas,h.root,true);
+        const std::string key=en?"custom-editor.en":"custom-editor.de";actual[key]=snapshot::hash_image(image);if(!record)CHECK(expected[key]==actual[key]);
+        snapshot::write_png(images/(key+".png"),image);
+        CHECK(fs::file_size(images/(en?"custom-editor.en.png":"custom-editor.de.png"))>1000);
+    }
+    if(record){std::ofstream out(baseline);for(const auto& [key,hash]:actual)out<<key<<' '<<hash<<'\n';CHECK(bool(out));}else CHECK(expected.size()==actual.size());
+    h.kit.english=false;
+    h.find<Button>(L"+ Neue Ansicht")->activate(h.view);settle(h,*page);CHECK(h.find<ItemList>(L"Ansichten")->items.size()==2);
+    auto keyboard=h.find<GridEditor>();keyboard->column=1;keyboard->row=0;const auto cpu=h.find<TilePalette>()->visible().front();
+    CHECK(keyboard->pickup(cpu,h.view));CHECK(keyboard->carrying());CHECK(keyboard->value(false).find(L"System · CPU")!=std::wstring::npos);CHECK(keyboard->input(VK_ESCAPE));CHECK(custom::editor_layout(keyboard->model)->tiles.empty());
+    CHECK(keyboard->pickup(cpu,h.view));CHECK(keyboard->input(VK_RETURN));settle(h,*page);CHECK(custom::editor_layout(keyboard->model)->tiles.size()==1);
+    CHECK(keyboard->input('Z',false,false,true));settle(h,*page);CHECK(custom::editor_layout(keyboard->model)->tiles.empty());
+    CHECK(keyboard->input('Y',false,false,true));settle(h,*page);CHECK(custom::editor_layout(keyboard->model)->tiles.size()==1);
+    CHECK(keyboard->input(VK_F6));CHECK(keyboard->area==2);CHECK(keyboard->input(VK_F6));CHECK(keyboard->area==0);
+    h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==2);
+    h.find<Button>(L"Löschen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==1);CHECK(saved.get(initial.id));
+    h.view.set_root(nullptr);
 }
 int main(int argc,char** argv) {
     setvbuf(stdout,nullptr,_IONBF,0);
@@ -1090,6 +1159,7 @@ int main(int argc,char** argv) {
     if(update) { fs::create_directories(baseline); std::ofstream out(baseline/"p7-hashes.txt"); for(auto& [key,hash]:actual) out<<key<<' '<<hash<<'\n'; CHECK(bool(out)); }
     else CHECK(expected.size()==actual.size());
     editor_snapshot_tests(dir,baseline,fs::path(argv[0]).parent_path()/"p7b-ui-snapshots",argc==2 && std::string(argv[1])=="record-editor");
+    custom_editor_tests(dir,fs::path(argv[0]).parent_path()/"p8-ui-snapshots",argc==2 && std::string(argv[1])=="record-custom-editor");
     std::error_code ec; fs::remove_all(dir,ec); CHECK(!ec && !fs::exists(dir));
     std::printf("Layout UI: %d passed, %d failed\n",passed,failed); return failed?1:0;
 }

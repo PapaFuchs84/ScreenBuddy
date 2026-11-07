@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-P8-2 (2026-11-07), Quellen-Fundament: Listen-/Spotify-Inhalte und native HA-Entitäten einzeln über vorhandene Renderer; strikter Einzelkachel-Vertrag, Dichte-Obergrenzen, lokale Ansichtsverwaltung und Editor-Adapter. Standardseiten behalten Pflicht-Statusprüfung. Kein Release/Push. [Phase 8](../docs/PHASE8-EIGENE-ANSICHTEN.md).
+P8-2 (2026-11-07): Native Einzelkacheln aller eingebauten Quellen (einschließlich HA-Entität, Listen und Spotify), separater Ansichts-Editor und aktive Display-Tabs mit Standard-Rückfall. Bestehende Renderer und Standardseiten-Verträge erhalten. [Bedienung, Grenzen und Prüfstand](../docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-1 (2026-11-07): Eigene Ansichten: `custom_view.*`, strikter Store mit Backup, Geräte-Vererbung und `custom:`-Seitenzyklus; bestehende Renderer für System/Plugin-v2/Quellstatus. Grenzen (HA, Listen-/Spotify-Inhalte, Editor, Touch) und Prüfstand: [Phase 8](../docs/PHASE8-EIGENE-ANSICHTEN.md).
 

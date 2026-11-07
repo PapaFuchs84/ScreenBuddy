@@ -370,9 +370,11 @@ private:
             if (h->plugins().list)
                 for (const auto& e : h->plugins().list())
                     if (e.enabled) plugins.push_back({"plugin:" + e.id, Text(widen(e.name))});
+            for(const auto& view:custom::Store(h->app().cfg_path().parent_path()/L"views").list()) plugins.push_back({"custom:"+view.id,Text(widen(view.name))});
             return [this, id, order, selected, custom, plugins = std::move(plugins)] {
                 if (dev_loaded_for_ != id) return;
                 auto items = page_items(order, selected, plugins);
+                if(custom)for(auto& item:items)if(item.key.starts_with("custom:"))item.enabled=std::any_of(selected.begin(),selected.end(),[&](const auto& k){return k==item.key;});
                 if (!custom)   // gemeinsame Liste: Plugins sind dort wie bisher sichtbar
                     for (auto& i : items) if (i.key.rfind("plugin:", 0) == 0) i.enabled = true;
                 dev_items_for_ = id;
