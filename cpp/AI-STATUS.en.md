@@ -6,7 +6,7 @@ The optional `ai` page shows Claude Code and Codex cards at 480 × 320, their la
 
 ## Quick start and removal
 
-1. Enable **AI Status** in native settings, select it for the intended display under **Pages**, save and restart ScreenBuddy. Its separate HTTP receiver binds only to `127.0.0.1:18765`; it does not use settings port 8765. An occupied port prevents reception. No firewall exception is needed. Add it to per-device Companion page lists as required.
+1. Enable **AI Status** in native settings, select it for the intended display under **Pages**, save and restart ScreenBuddy. Its separate HTTP receiver binds only to loopback (default 18765, configurable with automatic fallback); it does not use settings port 8765. An occupied port selects a free fallback; the status line shows the actual port. No firewall exception is needed. Add it to per-device Companion page lists as required.
 2. **Preview setup** shows only the owned hook entries before and after the change for `%USERPROFILE%/.claude/settings.json` and `%USERPROFILE%/.codex/hooks.json`, plus the adapter path. Hook files are still untouched. Other settings, environment variables and foreign hook commands are excluded from the preview.
 3. **Apply previewed change** creates the PowerShell adapter and a random 256-bit key in `<configuration directory>/ai-status/`. `key.dpapi` uses the existing Windows DPAPI mechanism, bound to the Windows account. The key is absent from hook commands and JSON and is never logged. Requires Windows PowerShell 5.1; execution policy is not bypassed.
 4. Existing hook files receive a one-time `.bak` before their first change. Other entries are preserved. Files changed after preview are rejected. Orphaned regular `.screenbuddy-ai.tmp` files are replaced; temporary symlinks (including dangling links) are rejected. Failed writes/replacements clean up the temporary file created by this apply. Each replacement is atomic; the pair of files is not a single transaction. Reload the preview after a partial failure.
@@ -16,7 +16,7 @@ The optional `ai` page shows Claude Code and Codex cards at 480 × 320, their la
 
 ## Local event protocol
 
-`POST http://127.0.0.1:18765/events`, header `X-ScreenBuddy-AI-Key: <local key>`, JSON, maximum 8192 bytes. No CORS; requests with `Origin` or `Sec-Fetch-Site` are rejected. No event files or transcripts are stored. Status is lost on app restart; session data remains missing until another hook arrives.
+`POST http://127.0.0.1:<actual-port>/events` (Standard/default 18765), header `X-ScreenBuddy-AI-Key: <local key>`, JSON, maximum 8192 bytes. No CORS; requests with `Origin` or `Sec-Fetch-Site` are rejected. No event files or transcripts are stored. Status is lost on app restart; session data remains missing until another hook arrives.
 
 Example using invented data only (key intentionally omitted):
 
@@ -37,7 +37,7 @@ Providers: `claude` or `codex`. Events: `SessionStart` → idle; `UserPromptSubm
 
 The adapter forwards only session ID, event, tool name and model when present. It does not read transcript or credential files; prompts and tool arguments present on hook stdin are not inspected or forwarded. It waits approximately 1.2 seconds at most for HTTP so work can continue; command hooks have a three-second timeout. Restrictive PowerShell policies or cloud-only Codex sessions may prevent local command hooks from running. Adapter paths containing shell metacharacters are rejected.
 
-Additional authorized local producers must explicitly provide optional measurements: `context`, `five_hour`, `week` as percentages 0–100; `five_hour_reset`, `week_reset` as Unix seconds; `cost_today` as the provider-wide estimated total in USD today; `tokens_today` as the provider-wide integer token total today. Do not send token deltas: values replace previous totals rather than accumulating. Omitted fields retain the latest reported value. Daily values become unknown when the local date changes and are not persisted. Missing measurements display **n/a**, never invented quota usage or prices. Standard hooks do not automatically supply limits or context. No external account APIs, price lists or logs are queried.
+Additional authorized local producers must explicitly provide optional measurements: `context`, `five_hour`, `week` as percentages 0–100; `five_hour_reset`, `week_reset` as Unix seconds; `cost_today` as the provider-wide estimated total in USD today; `tokens_today` as the provider-wide integer token total today. Do not send token deltas: values replace previous totals rather than accumulating. Omitted fields retain the latest reported value. Daily values become unknown when the local date changes and are not persisted. Missing measurements display **n/a**, never invented quota usage or prices. Standard hooks do not automatically supply limits or context. ScreenBuddy does not read sign-in files, price lists or transcripts. Optional account usage through the provider client is described below.
 
 ## Tile sources
 
@@ -51,7 +51,7 @@ The built-in read-only `ai` source is available to declarative plugin/zone templ
 | `cost_today`, `tokens_today` | Reported daily total or `null` |
 | `s1`, `s2`, `s3` | Up to three active sessions per provider, with state/tool/model/state_seconds, otherwise `null`; no private session IDs |
 
-The standard page and its existing overlays retain their geometry. Custom views reuse its renderer for provider/limits tiles; see [Phase 8 P8-4](../docs/PHASE8-EIGENE-ANSICHTEN.md). The AI source is enabled separately.
+The standard page and its existing overlays retain their geometry; the standard page and built-in renderer use the same status data, and the built-in catalog includes AI. Custom views reuse its renderer for provider/limits tiles; see [Phase 8 P8-4](../docs/PHASE8-EIGENE-ANSICHTEN.md). The AI source is enabled separately.
 
 ## Validation and references
 
@@ -59,14 +59,24 @@ The standard page and its existing overlays retain their geometry. Custom views 
 
 Hook formats follow [Anthropic: Hooks reference](https://code.claude.com/docs/en/hooks) and [OpenAI Docs: Hooks](https://learn.chatgpt.com/docs/hooks), checked 2026-11-07. Independent implementation without libre-panel/GPL code.
 
-## Usage query (phase 2)
+## Usage queries and real accounts (opt-in)
 
-Optional and switchable (AI Status settings page). A background worker queries at most one program at a time, sends no model message, uses an isolated home and no API credentials; after a failure it pauses for 15 minutes, and data older than 15 minutes counts as stale.
+Existing separate **Use real account read-only** switches (ai.codex_real_account / ai.claude_real_account), default OFF. Enable automatic usage queries, read consent, confirm activation, save and restart. Switching off pauses the entire worker until restart; in-flight HTTPS requests finish within their time limits and results are discarded. Hook setup requires separate confirmation.
 
-- **Codex:** via `codex app-server` (stdio). The 5-hour and weekly limits come from the reported windows (300 / 10080 minutes).
-- **Claude Code:** limits, cost and context come through the status line (per the Claude Code docs: `rate_limits`, `cost`, `context_window` on stdin; Pro/Max/Ultra only, after the first API response). The adapter is registered as `statusLine` only if you have none of your own. Whether the desktop app/IDE run the status line is not documented; there it stays **n/a**. No separate CLI usage command without a model message is verified.
-- The page shows where values came from and why there are none. Real CLI runs are not yet accepted.
+**Risk:** Unofficial interfaces, subject to change; provider tolerance is unclear. Read-only GET requests without model messages. Tokens leave the computer only over HTTPS to the respective provider. No token storage, display, logging or refresh. Login files are never written; refresh tokens are never used. Windows files only, no Keychain access.
+
+- Claude: only %USERPROFILE%/.claude/.credentials.json, field claudeAiOauth.accessToken; GET https://api.anthropic.com/api/oauth/usage, Bearer and anthropic-beta: oauth-2025-04-20. five_hour/seven_day with utilization and ISO-8601 resets. Optional model windows and extra_usage are tolerated but not presented as overall limits or daily costs.
+- Codex: only %USERPROFILE%/.codex/auth.json, field tokens.access_token, optional tokens.account_id as ChatGPT-Account-Id; GET https://chatgpt.com/backend-api/wham/usage. Windows map by limit_window_seconds: 18000 = 5h, 604800 = week, regardless of primary/secondary. secondary_window may be null, percentages are clamped to 0–100. API keys do not replace login tokens.
+- Missing file: Not signed in. Invalid/incomplete file: readable reason. Expired Claude timestamp, expired Codex JWT or HTTP 401: Token expired: start Claude/Codex once. Errors clear direct limits to n/a.
+
+One background worker schedules providers independently at least 3 minutes apart; every failure (including 401/403/429 or missing login) pauses that provider for 15 minutes. Toggling cannot bypass the pause. Account mode starts no provider programs. Without account consent the existing isolated CLI path remains, without user login files. Hooks/Claude status line still supply context and session costs. No invented daily totals.
+
+Fixed HTTPS hosts/paths, all redirects disabled; Windows certificate/hostname checks enabled. No proxy, cookies or automatic HTTP authentication. Time limits: 3 seconds per resolution/connection/send/receive step, plus a 12-second body-read deadline. Maximum 64 KiB response and 256 KiB login file. Owned credential/parser/header buffers are wiped on release, including failures. Operating system/WinHTTP internal copies are outside owned buffer management.
+
+ai.port is configurable in config and AI settings: default 18765, 1024–65535, settings port excluded. Occupied ports fall back to a free dynamic port. The settings page status line and shared hook/Claude-status-line adapter use the actual port. DPAPI/file failures keep the receiver inactive.
+
+Executed counts and pending account/UI/hardware acceptance: [report](ai-status-report.md). This task uses synthetic responses and temporary files only, no real logins or provider network requests.
 
 ## Editor tiles (P8-4)
 
-Custom views offer `ai.claude`, `ai.codex`, `ai.limits` and individual metrics. Public conditions, density, per-device layouts and page touch targets use the existing tile contract. Missing data stays blank; missing limits stay `n/a`. See [usage, validation and port collision](../docs/PHASE8-EIGENE-ANSICHTEN.md).
+Custom views offer `ai.claude`, `ai.codex`, `ai.limits` and individual metrics. Public conditions, density, per-device layouts and page touch targets use the existing tile contract. Data comes from the template source `ai` (see above); existing AI built-in blocks and their renderer remain available. Missing data stays blank; missing limits stay `n/a`. See [usage, validation and port collision](../docs/PHASE8-EIGENE-ANSICHTEN.md).

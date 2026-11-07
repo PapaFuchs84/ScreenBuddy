@@ -9,6 +9,9 @@ Store edition in preparation: [Microsoft Store / Companion build](docs/STORE-DIS
 
 In development: [AI Status for Claude Code and Codex](cpp/AI-STATUS.en.md), local hooks with preview/backup and an `ai.*` tile source. Missing measurements remain `n/a`; see [validation and outstanding work](cpp/ai-status-report.md). Not released yet.
 
+AI usage: separate confirmed real-account opt-ins default to off. Claude and Codex read limits using access tokens from Windows login files through unofficial HTTPS endpoints (subject to change, provider tolerance unclear). Configurable receiver port with fallback. See the linked AI Status guide.
+
+
 [Deutsch](README.md) · **English**
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**

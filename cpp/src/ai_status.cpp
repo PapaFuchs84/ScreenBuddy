@@ -120,7 +120,11 @@ void Model::usage(const std::string& provider,const Json& values,const std::stri
     // Failed attempts retain last success and its timestamp, but never claim freshness.
     if(reason.empty()) {for(auto k:fields) if(std::string(k)!="cost_today" && std::string(k)!="tokens_today") m[k]=nullptr;
         for(auto& [k,v]:checked->metrics) m[k]=v;
-        m["source"]=source;m["updated_at"]=now;updated_=now;}
+        m["source"]=source;m["reason"]="";m["updated_at"]=now;updated_=now;}
+    if(!reason.empty() && (source=="claude-oauth-usage" || source=="codex-wham-usage")) {
+        for(auto k:{"five_hour","week","five_hour_reset","week_reset"}) m[k]=nullptr;
+        m["source"]=source;m["reason"]=reason;
+    }
     m["attempt_source"]=source;
     if(m["updated_at"].is_null()) m["source"]=source;
     m["cli_reason"]=reason;
@@ -291,7 +295,8 @@ struct Service::Impl {
 Service::Service(std::filesystem::path directory):d_(std::make_unique<Impl>()) {d_->directory=std::move(directory);}
 Service::~Service() = default;
 Model& Service::model(){return d_->model;}
-void Service::enable_usage(bool enabled) {if(!d_->usage) d_->usage=std::make_unique<UsageWorker>(d_->model,d_->directory/L"cli");d_->usage->enable(enabled);}
+void Service::enable_usage(bool enabled,bool codex_account,bool claude_account) {if(!d_->usage) d_->usage=std::make_unique<UsageWorker>(d_->model,d_->directory/L"cli",codex_account,claude_account);d_->usage->enable(enabled);}
+int Service::port() const{return d_->port;}
 bool Service::running() const{return d_->receiver && d_->receiver->running();}
 std::filesystem::path Service::script_path() const{return d_->directory/L"screenbuddy-ai-hook.ps1";}
 void Service::prepare_adapter() {
@@ -316,6 +321,9 @@ void Service::prepare_adapter() {
     if(d_->key.size()!=64 || !std::all_of(d_->key.begin(),d_->key.end(),[](char c){return (c>='0' && c<='9') || (c>='a' && c<='f');})) {
         d_->key.clear();throw std::runtime_error("Cannot unlock AI secret.");
     }
+    write(script_path(),adapter_script(d_->port));
+}
+std::string adapter_script(int port) {
     // Reads only metadata from stdin. Never reads transcripts, prompts or tool arguments.
     const std::string script=R"PS(param([ValidateSet('claude','codex')][string]$Provider)
 $ErrorActionPreference = 'Stop'
@@ -349,20 +357,23 @@ try {
   $client.Headers['X-ScreenBuddy-AI-Key'] = $key
   $client.Headers['Content-Type'] = 'application/json'
   $client.Encoding = [Text.Encoding]::UTF8
-  $request = $client.UploadStringTaskAsync('http://127.0.0.1:)PS"+std::to_string(d_->port)+R"PS(/events',($body | ConvertTo-Json -Compress))
+  $request = $client.UploadStringTaskAsync('http://127.0.0.1:)PS"+std::to_string(port)+R"PS(/events',($body | ConvertTo-Json -Compress))
   if (-not $request.Wait(1200)) { $client.CancelAsync() }
   $client.Dispose()
 } catch { }
 exit 0
 )PS";
-    write(script_path(),script);
+    return script;
 }
 bool Service::start(int port) {
     if(port==RESERVED_PORT || port<1024 || port>65535 || d_->receiver) return false;
     d_->port=port;
     try {prepare_adapter();} catch(...) {return false;}
     d_->receiver=std::make_unique<Receiver>(d_->model,d_->key);
-    return d_->receiver->start(port);
+    if(!d_->receiver->start(port)) {d_->receiver.reset();return false;}
+    d_->port=d_->receiver->port();
+    try {prepare_adapter();} catch(...) {d_->receiver.reset();return false;}
+    return true;
 }
 struct Receiver::Impl {
     Model& model;
@@ -395,16 +406,18 @@ bool Receiver::start(int port) {
         if(diff || req.has_header("Origin") || req.has_header("Sec-Fetch-Site")) {res.status=403;return;}
         res.status=d_->model.ingest(req.body,std::time(nullptr))?204:400;
     });
-    if(port==0) {
+    if(port==0 || !server.bind_to_port("127.0.0.1",port)) {
+        server.stop(); // httplib decommissions itself after a failed bind; reset before retry.
         // Select an available dynamic-range port without ever probing reserved ports.
         bool bound=false;
         const auto seed=GetTickCount64()+uint64_t(GetCurrentProcessId())*2654435761ULL;
         for(int attempt=0;attempt<16384;++attempt) {
             port=49152+static_cast<int>((seed+attempt)%16384);
             if(server.bind_to_port("127.0.0.1",port)) {bound=true;break;}
+            server.stop();
         }
         if(!bound) return false;
-    } else if(!server.bind_to_port("127.0.0.1",port)) return false;
+    }
     d_->port=port;
     d_->thread=std::thread([this]{d_->server.listen_after_bind();});
     server.wait_until_ready();return server.is_running();

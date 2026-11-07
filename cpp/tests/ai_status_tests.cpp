@@ -5,12 +5,14 @@
 #include "secure.h"
 #include "i18n.h"
 #include "plugins.h"
+#include "config.h"
 #include <windows.h>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <atomic>
 
 namespace {
 using namespace fl;
@@ -34,6 +36,12 @@ struct Temp {
 }
 int test_ai_status(const std::filesystem::path& output = {}) {
     passed=failed=0;Temp temp;
+    AI_CHECK(config::defaults()["ai"]["port"]==ai::PORT);
+    AI_CHECK(config::defaults()["ai"]["codex_real_account"]==false);
+    AI_CHECK(config::defaults()["ai"]["claude_real_account"]==false);
+    auto merged=config::merge(config::defaults(),ojson{{"ai",{{"codex_real_account",true},{"claude_real_account",false}}}});
+    AI_CHECK(merged["ai"]["codex_real_account"]==true);
+    AI_CHECK(merged["ai"]["claude_real_account"]==false);
     auto start=event("claude","a","SessionStart");
     AI_CHECK(ai::parse(start.dump()).has_value());
     for(const auto& bad:{"{}","[]","null","{","{\"provider\":\"claude\",\"provider\":\"codex\"}"}) AI_CHECK(!ai::parse(bad));
@@ -203,6 +211,11 @@ int test_ai_status(const std::filesystem::path& output = {}) {
         ai::Receiver receiver(network_model,key);
         bool started=receiver.start(0);AI_CHECK(started);
         if(started) {
+            ai::Receiver fallback(network_model,key);
+            AI_CHECK(fallback.start(receiver.port()));AI_CHECK(fallback.port()!=receiver.port());
+            const auto adapter=ai::adapter_script(fallback.port());
+            AI_CHECK(adapter.find("http://127.0.0.1:"+std::to_string(fallback.port())+"/events")!=std::string::npos);
+
             http::Request req;req.url="http://127.0.0.1:"+std::to_string(receiver.port())+"/events";req.method="POST";req.timeout_ms=1500;req.body=start.dump();
             AI_CHECK(http::fetch(req).status==403);
             req.headers={{"X-ScreenBuddy-AI-Key","wrong"}};AI_CHECK(http::fetch(req).status==403);
@@ -260,16 +273,27 @@ int test_ai_status(const std::filesystem::path& output = {}) {
 
 // A copied test binary acts as a synthetic CLI. It never accepts model turns.
 int ai_cli_fixture(int argc,char** argv) {
-    if(argc>=2 && std::string(argv[argc-1])=="--help") {std::cout<<"synthetic stdio CLI\n";return 0;}
+    if(argc>=2 && std::string(argv[argc-1])=="--help") {
+        wchar_t home[32768];GetEnvironmentVariableW(L"CODEX_HOME",home,32768);
+        write_file("fixture-help-home",std::filesystem::path(home)==std::filesystem::current_path()?"isolated":"account");
+        std::cout<<"synthetic stdio CLI\n";return 0;
+    }
     if(argc<2 || std::string(argv[1])!="app-server") return 91;
     std::string line;int count=0;
     while(std::getline(std::cin,line)) {
         auto j=Json::parse(line);const auto method=j.value("method",std::string());
         if(method=="initialized") continue;
         Json result;
-        if(method=="initialize") result=Json::object();
-        else if(method=="account/read") result={{"account",{{"type","chatgpt"}}}};
-        else if(method=="account/rateLimits/read") result={{"rateLimits",{{"primary",{{"usedPercent",37},{"windowDurationMins",300},{"resetsAt",1800000300}}},{"secondary",nullptr}}}};
+        if(method=="initialize") {
+            wchar_t home[32768];GetEnvironmentVariableW(L"CODEX_HOME",home,32768);
+            write_file("fixture-home",std::filesystem::path(home)==std::filesystem::current_path()?"isolated":"account");
+            result=Json::object();
+        }
+        else if(method=="account/read") {
+            if(j.at("params").at("refreshToken")!=false) return 93;
+            result={{"account",std::filesystem::exists("signed-out")?Json(nullptr):Json{{"type","chatgpt"}}}};
+        }
+        else if(method=="account/rateLimits/read") result={{"rateLimits",{{"primary",{{"usedPercent",37},{"windowDurationMins",300},{"resetsAt",1800000300}}},{"secondary",{{"usedPercent",62},{"windowDurationMins",10080}}}}}};
         else return 92;
         if(method=="account/rateLimits/read" && std::filesystem::exists("fail-limits")) {
             write_file("fixture-count",std::to_string(++count));std::cout<<Json{{"id",j["id"]},{"error",{{"code",-1},{"message","synthetic"}}}}.dump()<<std::endl;continue;
@@ -282,6 +306,16 @@ int ai_cli_fixture(int argc,char** argv) {
 }
 int test_ai_cli(bool real) {
     passed=failed=0;Temp temp;
+    struct Environment {
+        std::vector<std::pair<std::wstring,std::wstring>> saved;
+        Environment(const std::filesystem::path& dir) {
+            for(auto key:{L"CODEX_HOME",L"CLAUDE_CONFIG_DIR",L"HOME",L"USERPROFILE",L"APPDATA",L"LOCALAPPDATA"}) {
+                wchar_t value[32768];auto n=GetEnvironmentVariableW(key,value,32768);
+                saved.emplace_back(key,n && n<32768?value:L"");SetEnvironmentVariableW(key,dir.c_str());
+            }
+        }
+        ~Environment(){for(auto& [key,value]:saved) SetEnvironmentVariableW(key.c_str(),value.empty()?nullptr:value.c_str());}
+    } environment(temp.dir);
     wchar_t oldPath[32768],self[32768];GetEnvironmentVariableW(L"PATH",oldPath,32768);GetModuleFileNameW(nullptr,self,32768);
     if(!real) {
         std::filesystem::copy_file(self,temp.dir/L"codex.exe");std::filesystem::copy_file(self,temp.dir/L"claude.exe");
@@ -295,13 +329,90 @@ int test_ai_cli(bool real) {
         const auto m=model.tiles(std::time(nullptr))["codex"];
         AI_CHECK(!m["checked_at"].is_null());
         if(real) std::printf("Real Codex probe: source=%s reason=%s limits=%s\n",m["source"].get<std::string>().c_str(),m["reason"].get<std::string>().c_str(),m["five_hour"].is_null()?"n/a":"present");
-        else {AI_CHECK(m["five_hour"]==37);AI_CHECK(m["tokens_today"].is_null());AI_CHECK(m["tokens_session"].is_null());
+        else {AI_CHECK(m["five_hour"]==37);AI_CHECK(m["week"]==62);AI_CHECK(read_file(temp.dir/L"isolated/codex/fixture-home")=="isolated");AI_CHECK(m["tokens_today"].is_null());AI_CHECK(m["tokens_session"].is_null());
             AI_CHECK(read_file(temp.dir/L"isolated/codex/fixture-count")=="3");}
         worker.enable(false);worker.enable(true);Sleep(150);
         if(!real) AI_CHECK(read_file(temp.dir/L"isolated/codex/fixture-count")=="3"); // toggling cannot bypass cooldown
         worker.enable(false);
     }
     if(!real) {
+        // Every credential fixture is synthetic and every transport is injected (no HTTPS).
+        auto claudeReply=Json{{"five_hour",{{"utilization",25},{"resets_at","2026-11-07T12:30:00.000Z"}}},{"seven_day",{{"utilization",70},{"resets_at","2026-11-08T13:30:00+01:00"}}},{"seven_day_opus",nullptr},{"extra_usage",{{"is_enabled",false}}}};
+        auto codexReply=Json{{"rate_limit",{{"primary_window",{{"used_percent",120},{"limit_window_seconds",604800},{"reset_at",1800000300}}},{"secondary_window",{{"used_percent",-5},{"limit_window_seconds",18000},{"reset_at",1800000000}}}}}};
+        auto cr=ai::endpoint_usage(true,claudeReply);AI_CHECK(cr.ok);AI_CHECK(cr.metrics["five_hour"]==25);AI_CHECK(cr.metrics["week"]==70);
+        AI_CHECK(cr.metrics["five_hour_reset"]==1794054600);AI_CHECK(cr.metrics["week_reset"]==1794141000);
+        auto xr=ai::endpoint_usage(false,codexReply);AI_CHECK(xr.ok);AI_CHECK(xr.metrics["week"]==100);AI_CHECK(xr.metrics["five_hour"]==0);
+        auto single=codexReply;single["rate_limit"]["secondary_window"]=nullptr;
+        AI_CHECK(!ai::endpoint_usage(false,single).metrics.contains("five_hour"));
+        single["rate_limit"]["primary_window"]["limit_window_seconds"]=60;AI_CHECK(!ai::endpoint_usage(false,single).ok);
+        for(auto invalid:{Json("bad"),Json(nullptr),Json::object()}) AI_CHECK(!ai::endpoint_usage(false,invalid).ok);
+        for(auto bad:{"not-a-date","2026-02-30T00:00:00Z","2026-11-07T25:00:00Z","2026-11-07T12:30:00"}) {
+            auto reply=claudeReply;reply["five_hour"]["resets_at"]=bad;AI_CHECK(!ai::endpoint_usage(true,reply).ok);
+        }
+        auto badPercent=codexReply;badPercent["rate_limit"]["primary_window"]["used_percent"]="secret-error";
+        AI_CHECK(ai::endpoint_usage(false,badPercent).reason=="invalid_data");
+        AI_CHECK(ai::usage_delay(true)==180);AI_CHECK(ai::usage_delay(false)==900);
+        const auto login=temp.dir/L"synthetic-login.json";
+        int requests=0;int responseStatus=200;bool responseMalformed=false,oversize=false;
+        ai::UsageTransport transport=[&](bool claude,std::string_view token,std::string_view account) {
+            ++requests;AI_CHECK(token=="synthetic-access");AI_CHECK(account==(claude?"":"synthetic-account"));
+            return ai::UsageHttpReply{responseStatus,oversize?std::string(65537,'x'):responseMalformed?"bad":(claude?claudeReply:codexReply).dump()};
+        };
+        AI_CHECK(ai::login_usage(true,login,transport).reason=="not_signed_in");AI_CHECK(requests==0);
+        for(auto bytes:{"{}","bad","{\"claudeAiOauth\":{\"accessToken\":5}}","{\"claudeAiOauth\":{\"accessToken\":\"bad\\r\\nheader\"}}",
+            "{\"claudeAiOauth\":{\"accessToken\":\"synthetic-access\",\"accessToken\":\"duplicate\"}}",
+            "{\"claudeAiOauth\":{\"accessToken\":\"unterminated}","{\"unused\":01}","{\"unused\":1e}","{\"unused\":\"\\uD800\"}","{} trailing"}) {
+            write_file(login,bytes);AI_CHECK(!ai::login_usage(true,login,transport).ok);
+        }
+        AI_CHECK(requests==0);
+        // Escapes, unknown nested values and primitive types stay in wiping storage.
+        write_file(login,R"({"claudeAiOauth":{"accessToken":"synthetic-\u0061ccess"},"unused":[null,true,false,-1.25e2,{"unicode":"\uD83D\uDE00"}]})");
+        AI_CHECK(ai::login_usage(true,login,transport).ok);
+        auto claudeLogin=Json{{"claudeAiOauth",{{"accessToken","synthetic-access"},{"refreshToken","never-use"},{"expiresAt",4102444800000LL}}}};
+        auto codexLogin=Json{{"tokens",{{"access_token","synthetic-access"},{"account_id","synthetic-account"},{"refresh_token","never-use"}}}};
+        for(bool claude:{true,false}) {
+            const auto bytes=(claude?claudeLogin:codexLogin).dump();write_file(login,bytes);
+            AI_CHECK(ai::login_usage(claude,login,transport).ok);AI_CHECK(read_file(login)==bytes);
+            for(int status:{401,403,429,302,500,0}) {responseStatus=status;auto result=ai::login_usage(claude,login,transport);AI_CHECK(!result.ok);AI_CHECK(result.metrics.empty());
+                if(status==401) AI_CHECK(result.reason==(claude?"expired_claude":"expired_codex"));}
+            responseStatus=200;responseMalformed=true;AI_CHECK(ai::login_usage(claude,login,transport).reason=="invalid_data");responseMalformed=false;
+            oversize=true;AI_CHECK(!ai::login_usage(claude,login,transport).ok);oversize=false;
+        }
+        auto noAccount=codexLogin;noAccount["tokens"].erase("account_id");write_file(login,noAccount.dump());
+        AI_CHECK(ai::login_usage(false,login,[&](bool claude,std::string_view token,std::string_view account){AI_CHECK(!claude);AI_CHECK(token=="synthetic-access");AI_CHECK(account.empty());return ai::UsageHttpReply{200,codexReply.dump()};}).ok);
+        auto expired=claudeLogin;expired["claudeAiOauth"]["expiresAt"]=1;write_file(login,expired.dump());int beforeRequests=requests;
+        AI_CHECK(ai::login_usage(true,login,transport).reason=="expired_claude");AI_CHECK(requests==beforeRequests);
+        expired=codexLogin;expired["tokens"]["access_token"]="eyJhbGciOiJub25lIn0.eyJleHAiOjF9.synthetic";write_file(login,expired.dump());
+        AI_CHECK(ai::login_usage(false,login,transport).reason=="expired_codex");AI_CHECK(requests==beforeRequests);
+        write_file(login,std::string(262145,'x'));AI_CHECK(!ai::login_usage(false,login,transport).ok);AI_CHECK(requests==beforeRequests);
+        ai::Model recovery;
+        recovery.usage("claude",cr.metrics,cr.source,"",std::time(nullptr));
+        recovery.usage("claude",Json::object(),cr.source,"expired_claude",std::time(nullptr));
+        AI_CHECK(recovery.tiles(std::time(nullptr))["claude"]["five_hour"].is_null());
+        recovery.usage("claude",cr.metrics,cr.source,"",std::time(nullptr));
+        AI_CHECK(recovery.tiles(std::time(nullptr))["claude"]["reason"]=="");
+        // Provider switches and cooldown survive toggles; failures never stop the other provider.
+        for(int mode:{1,2,3}) {
+            std::atomic<int> claudeCalls=0,codexCalls=0;
+            ai::Model accountModel;
+            ai::UsageQuery query=[&](bool claude) {if(claude) {++claudeCalls;return ai::UsageResult{Json::object(),"claude-oauth-usage","usage_rate_limited",false};} ++codexCalls;return ai::endpoint_usage(false,codexReply);};
+            {ai::UsageWorker worker(accountModel,temp.dir/("switch-"+std::to_string(mode)),mode&1,mode&2,query);worker.enable(true);
+                for(int i=0;i<300 && accountModel.tiles(std::time(nullptr))["codex"]["checked_at"].is_null();++i) Sleep(20);
+                AI_CHECK(claudeCalls==((mode&2)?1:0));AI_CHECK(codexCalls==((mode&1)?1:0));
+                worker.enable(false);worker.enable(true);Sleep(100);AI_CHECK(claudeCalls==((mode&2)?1:0));AI_CHECK(codexCalls==((mode&1)?1:0));worker.enable(false);
+            }
+        }
+        // Resolve Claude outside PATH using metadata only, in each supported root.
+        std::filesystem::remove(temp.dir/L"claude.exe");
+        for(auto relative:{L".local/bin/claude.exe",L"npm/claude.exe",L"Programs/Claude/claude.exe",L"Programs/claude-code/claude.exe"}) {
+            auto target=temp.dir/relative;std::filesystem::create_directories(target.parent_path());std::filesystem::copy_file(self,target);
+            ai::Model fallback;
+            {ai::UsageWorker worker(fallback,temp.dir/L"fallback");worker.enable(true);
+                for(int i=0;i<300 && fallback.tiles(std::time(nullptr))["codex"]["checked_at"].is_null();++i) Sleep(20);
+                AI_CHECK(fallback.tiles(std::time(nullptr))["claude"]["cli_reason"]=="no_verified_usage_command");worker.enable(false);
+            }
+            std::filesystem::remove(target);
+        }
         const auto failedDir=temp.dir/L"failure";std::filesystem::create_directories(failedDir/L"codex");write_file(failedDir/L"codex/fail-limits","");
         ai::Model failedModel;
         {ai::UsageWorker worker(failedModel,failedDir);worker.enable(true);

@@ -5,6 +5,7 @@ P8-4 / Entwicklung: **App → Eigene Ansichten** kombiniert Quellen-Kacheln inkl
 Unpublished 2.10.0 development source: [MSIX packaging, migration and Companion APK delivery](../docs/STORE-DISTRIBUTION.en.md) · [Deutsch](../docs/STORE-DISTRIBUTION.md). Store installation and updates are package-managed.
 Development only: [KI-Status / AI Status (DE)](AI-STATUS.md) · [EN](AI-STATUS.en.md). Optional local Claude Code/Codex page, authenticated loopback hooks and read-only `ai.*` tile data. Missing measurements remain `n/a`. See the [implementation and validation report](ai-status-report.md); no public release is created by this change.
 
+AI usage: separate confirmed real-account opt-ins default to off. Claude and Codex read limits using access tokens from Windows login files through unofficial HTTPS endpoints (subject to change, provider tolerance unclear). Configurable receiver port with fallback. See the linked AI Status guide.
 
 Companion: preview since 2.3.0 (independent USB/HDMI and Android views, automatic phone dimensions and rotation), Companion app 1.0.0 as a separate download since 2.6.0, several devices at once since 2.7.0. See [DE](../docs/COMPANION.md) / [EN](../docs/COMPANION.en.md). Tests include `python tests/app_companion_integration.py` on Windows (isolated processes with `--no-lcd`, no physical display).
 

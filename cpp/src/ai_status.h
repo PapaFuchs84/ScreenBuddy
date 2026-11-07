@@ -2,6 +2,7 @@
 #pragma once
 #include <nlohmann/json.hpp>
 #include <ctime>
+#include <functional>
 #include <filesystem>
 #include <map>
 #include <memory>
@@ -48,13 +49,20 @@ private:
     std::time_t updated_ = 0;
     uint64_t revision_ = 0;
 };
-// Read-only CLI collector. One worker, bounded child lifetime; never sends a model turn.
+// Read-only usage collector. One worker; bounded HTTPS/isolated CLI, no model turns.
 struct UsageResult { Json metrics=Json::object(); std::string source, reason; bool ok=false; };
 UsageResult codex_usage(const Json& reply);
+struct UsageHttpReply { int status=0; std::string body; };
+using UsageTransport = std::function<UsageHttpReply(bool claude, std::string_view token, std::string_view account)>;
+UsageResult endpoint_usage(bool claude, const Json& reply);
+// Explicit path and transport allow offline tests; production calls only fixed HTTPS hosts.
+UsageResult login_usage(bool claude, const std::filesystem::path& file, const UsageTransport& transport);
+using UsageQuery = std::function<UsageResult(bool claude)>;
+int usage_delay(bool success); // seconds, per provider
 std::string usage_reason(const std::string& reason);
 class UsageWorker {
 public:
-    UsageWorker(Model& model, std::filesystem::path directory);
+    UsageWorker(Model& model, std::filesystem::path directory, bool codex_account=false, bool claude_account=false, UsageQuery query={});
     ~UsageWorker();
     void enable(bool enabled);
 private:
@@ -83,16 +91,18 @@ private:
     struct Impl;
     std::unique_ptr<Impl> d_;
 };
+std::string adapter_script(int port);
 class Service {
 public:
     explicit Service(std::filesystem::path directory);
     ~Service();
     bool start(int port = PORT); // never accepts port 8765
     bool running() const;
+    int port() const;
     Model& model();
     std::filesystem::path script_path() const;
     void prepare_adapter(); // DPAPI key + fixed script, never called by tests on real home paths
-    void enable_usage(bool enabled);
+    void enable_usage(bool enabled, bool codex_account=false, bool claude_account=false);
 private:
     struct Impl;
     std::unique_ptr<Impl> d_;
