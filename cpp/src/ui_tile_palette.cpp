@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs – Kachelpalette des Anordnungs-Editors (Phase 7b P7b-2). Clean-Room.
 #include "ui_tile_palette.h"
+#include "render_game.h"
 #include <algorithm>
 #include <cmath>
 #include <cwctype>
@@ -18,6 +19,11 @@ std::wstring lower(std::wstring s) { for (auto& c : s) c = wchar_t(std::towlower
 TilePalette::TilePalette() {
     track_dirty = false;
     name = T(L"Kachelpalette", L"Tile palette");
+}
+
+std::string TilePalette::source_category(const std::string& source,const std::string& block) {
+    if(source=="system" && game::metric_tile(block))return "game";
+    return source.starts_with("plugin:")?"plugin:":source;
 }
 
 bool TilePalette::matches(const Tile& tile, const std::string& cat, const std::wstring& q, bool en) {

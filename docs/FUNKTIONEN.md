@@ -1,5 +1,7 @@
 # ScreenBuddy · Funktionen im Detail
 
+Entwicklung P9: [Game-Mode – Bedienung, Quellen und Grenzen](GAME-MODE.md). Noch nicht veröffentlicht; bisherige Versions-/Downloadangaben bleiben gültig.
+
 Aus dem README ausgelagert (Stand 2.9.4). Englisch: [FEATURES.en.md](FEATURES.en.md). Übersicht aller Dokumente: [docs/README.md](README.md).
 
 ## Inhalt

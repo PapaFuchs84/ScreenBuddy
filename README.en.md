@@ -34,6 +34,8 @@ A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary sc
 
 **In preparation 2.10.0 (unreleased):** plugin pages with a zone layout (manifest v2), density levels, conditional display, cycling zones, tap targets with link consent (off by default), keepout per device, built-in pages on the shared frame and a page editor and a touch target per tile under **App → Custom views**. Nothing has been released yet; hardware, Companion and UI acceptance are pending. [Release notes 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.en.md)
 
+**Game Mode (local development):** Game detection, optional logo intro and a custom view on the selected display. [Setup, measurement limits and validation](docs/GAME-MODE.en.md). Not released yet.
+
 **P8-4 (local development):** Custom views now offer Claude, Codex and limits tiles using the existing AI renderer. Unknown limits remain `n/a`; AI must be enabled separately. [Usage and port collision](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 **P8-2 (local development):** **App → Custom views** combines source tiles into saved views with layouts per active display. Offline devices are hidden from editor tabs while their layouts remain stored. [Usage, limits and validation](docs/PHASE8-EIGENE-ANSICHTEN.md).
@@ -257,6 +259,7 @@ All documents by audience (German): [`docs/README.md`](docs/README.md). The most
 | [`README.md`](README.md) | this README in German |
 | [`docs/FEATURES.en.md`](docs/FEATURES.en.md) | features in detail ([Deutsch](docs/FUNKTIONEN.md)) |
 | [`docs/PLUGIN-SYSTEM.en.md`](docs/PLUGIN-SYSTEM.en.md) | plugin guide ([Deutsch](docs/PLUGIN-SYSTEM.md)), [tutorial](docs/PLUGIN-TUTORIAL.en.md), [store terms](docs/PLUGIN-STORE-TERMS.md) |
+| [`docs/GAME-MODE.en.md`](docs/GAME-MODE.en.md) | Development Game Mode: setup and measurement limits ([Deutsch](docs/GAME-MODE.md)) |
 | [`docs/COMPANION.en.md`](docs/COMPANION.en.md) | Companion setup ([Deutsch](docs/COMPANION.md)) |
 | [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | release notes 2.10.0 (in preparation, not released; German/English) |
 | [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | release notes of the current version (German/English; earlier: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |

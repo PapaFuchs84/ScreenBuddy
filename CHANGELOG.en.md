@@ -6,6 +6,18 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+P9-6: 26 automated suites passed, including 114 Game-Mode checks; isolated dummy simulation on UI 18766 produced intro/active/restored previews and passed. AI receiver disabled because 18765 was occupied. PresentMon/hardware limits and unexecuted installer tests in the [plan](docs/PLAN-GAME-MODE.md).
+
+P9-5: Game-Mode settings, display/view selection, additional games/exclusions, editor template and palette. Background discovery with asynchronous logos, intro and paused normal rotation; rotation resumes after the game ends. DE/EN usage and embedded guides synchronized. Local development, no release.
+
+P9-4: 16 additional single system tiles for Game-Mode, DXGI Present-call cadence/frametime/1% low, NVML/AMD ADL/PDH, per-core CPU load/clock, VRAM and ICMP ping/jitter. Missing sources show n/a; standard pages unchanged.
+
+P9-3: 2.5-second intro with dimming, eased logo, shine and existing FadeCache; reduced transition without scaling/shine.
+
+P9-2: Steam logos from fixed public asset URLs, bounded local cache (7 days), executable icon fallback; retrieval reserved for background work.
+
+P9-1: Read-only game discovery with Steam/Epic parsers, Xbox/full-screen paths and 3/5-second debounce. New offline unit tests; integration follows.
+
 P8-4 (2026-11-07): Merge AI Status; Claude/Codex/limits tiles in Custom views, existing renderer/frame schedule, public conditions and page touch targets, additive DE/EN editor snapshots. Standard page baselines unchanged. Port 18765 collision documented; no port change or release. [P8-4](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-2 (2026-11-07): Individual list, Spotify and native HA entity tiles reuse existing painters. Dedicated view editor with management, palette, grid, properties, undo/redo and device inheritance. Only active display tabs, fallback to Standard on disconnect, saved offline layouts retained. Complete-page contracts unchanged; no release/push. [Usage and validation](docs/PHASE8-EIGENE-ANSICHTEN.md).

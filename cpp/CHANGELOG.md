@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+P9-6: 26/26 Prüfsuiten und isolierter Dummy-Test bestanden; reproduzierbare Start-/Prüfskripte, lokaler Bildnachweis und ehrlicher Prüfstatus im [Game-Mode-Plan](../docs/PLAN-GAME-MODE.md). Keine EXE direkt gestartet/installiert, kein Test auf 8765, keine hörbaren Töne, kein Push/Release.
+
+P9-5: Runtime/Display-Override, native Einstellungen, Editor-Vorlage, Konfigurationsvalidierung und DE/EN-Hilfen. Historische Editor-Snapshots bleiben erhalten; neue P9-Referenzen. Steam-VDF unterstützt leere Felder. 114 Game-Unit-Prüfungen und isolierte Dummy-Simulation bestanden; Gesamtlauf siehe Plan.
+
+P9-4: Dokumentierte, dynamisch geladene GPU-APIs und eigene ETW-Sitzung; Frame-Statistik und Katalog/Renderer mit Offline-Prüfungen. Kein vollständiger PresentMon-/Scanout-Ersatz.
+
+P9-3: Intro-Renderer und deterministische Zeit-/Fade-Prüfungen; App-Integration folgt in P9-5.
+
+P9-2: Logo-Cache mit Ablauf-, Beschädigungs- und URL-Prüfung; dynamisches EXE-Icon ohne Ausführung.
+
+P9-1: Spielerkennung und Parser als getrennte, testbare Komponenten; keine Prozessspeicherzugriffe.
+
 P8-4 (2026-11-07): KI-Status gemergt; Claude-/Codex-/Limits-Kacheln in eigenen Ansichten, vorhandener Renderer/Render-Takt, öffentliche Bedingungen und Seiten-Touch-Ziele, additive Editor-Snapshots DE/EN. Standardseiten-Baselines unverändert. Portkonflikt 18765 dokumentiert; keine Portänderung oder Veröffentlichung. [P8-4](../docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-2 (2026-11-07): Native Einzelkacheln aller eingebauten Quellen (einschließlich HA-Entität, Listen und Spotify), separater Ansichts-Editor und aktive Display-Tabs mit Standard-Rückfall. Bestehende Renderer und Standardseiten-Verträge erhalten. [Bedienung, Grenzen und Prüfstand](../docs/PHASE8-EIGENE-ANSICHTEN.md).

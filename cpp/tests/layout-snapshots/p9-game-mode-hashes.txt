@@ -1,0 +1,4 @@
+game-mode-editor.de 5ea3e312a5539aea
+game-mode-editor.en 78dc2e2d23726d79
+game-mode-settings.de ac1772b6062e96c5
+game-mode-settings.en e3df864cb2f5302b

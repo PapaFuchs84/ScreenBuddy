@@ -6,6 +6,18 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+P9-6: 26 automatisierte Suiten grün, darunter 114 Game-Mode-Prüfungen; isolierte Dummy-Simulation auf UI 18766 mit Intro-/Aktiv-/Rückkehr-Vorschaubildern bestanden. KI-Empfänger wegen belegtem 18765 aus. Offene PresentMon-/Hardwaregrenzen und nicht ausgeführte Installer-Tests im [Plan](docs/PLAN-GAME-MODE.md).
+
+P9-5: Game-Mode-Einstellungen, Display-/Ansichtsauswahl, zusätzliche Spiele/Ausschlüsse, Editor-Vorlage und Game-Mode-Palette. Hintergrund-Erkennung mit asynchronen Logos, Intro und pausierter normaler Rotation; Rückkehr nach Spielende. DE/EN-Bedienung und eingebettete Hilfen synchronisiert. Lokale Entwicklung, kein Release.
+
+P9-4: 16 neue System-Einzelkacheln für Game-Mode, DXGI-Present-Aufrufrate/Frametime/1%-Low, NVML/AMD-ADL/PDH, CPU-Kernlast/Takt, VRAM und ICMP-Ping/Jitter. Fehlende Quellen n/a; unveränderte Standardseiten.
+
+P9-3: 2,5-Sekunden-Intro mit Abdunklung, Logo-Easing, Glanzlauf und bestehendem FadeCache; reduzierte Überblendung ohne Skalierung/Glanz.
+
+P9-2: Steam-Logos über feste öffentliche Asset-URLs, begrenzter lokaler Cache (7 Tage), EXE-Icon als Fallback; Netzwerkzugriff nur im Hintergrund vorgesehen.
+
+P9-1: Read-only Spielerkennung mit Steam-/Epic-Parsern, Xbox-/Vollbildpfaden und 3/5-Sekunden-Entprellung. Neue Offline-Unit-Tests; Integration folgt.
+
 P8-4 (2026-11-07): KI-Status gemergt; Claude-/Codex-/Limits-Kacheln in eigenen Ansichten, vorhandener Renderer/Render-Takt, öffentliche Bedingungen und Seiten-Touch-Ziele, additive Editor-Snapshots DE/EN. Standardseiten-Baselines unverändert. Portkonflikt 18765 dokumentiert; keine Portänderung oder Veröffentlichung. [P8-4](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 P8-2 (2026-11-07): Einzelkacheln für Listen, Spotify und native HA-Entitäten über bestehende Zeichenfunktionen; eigener Editor mit Verwaltung, Palette, Raster, Eigenschaften, Rückgängig/Wiederholen und Geräte-Vererbung. Nur aktive Displays als Tabs, Rückfall auf Standard beim Trennen; gespeicherte Offline-Layouts bleiben erhalten. Standardseiten-Verträge unverändert. Kein Release/Push. [Bedienung und Prüfstand](docs/PHASE8-EIGENE-ANSICHTEN.md).

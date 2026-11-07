@@ -868,7 +868,7 @@ static void editor_snapshot_tests(const fs::path& root,const fs::path& baseline,
 }
 // P8-2: exercise the actual page with isolated files, synthetic devices and real source sample renderers.
 static void custom_editor_tests(const fs::path& root,const fs::path& images,bool record) {
-    const auto baseline=fs::path(FL_LAYOUT_SNAPSHOT_DIR)/"p8-custom-editor-hashes.txt";
+    const auto baseline=fs::path(FL_LAYOUT_SNAPSHOT_DIR)/"p9-custom-editor-hashes.txt";
     std::map<std::string,std::string> expected,actual;
     if(record) {CHECK(!fs::exists(baseline));if(fs::exists(baseline))return;}
     else {std::ifstream in(baseline);CHECK(bool(in));for(std::string key,hash;in>>key>>hash;)expected[key]=hash;}
@@ -975,6 +975,13 @@ static void custom_editor_tests(const fs::path& root,const fs::path& images,bool
     CHECK(keyboard->input(VK_F6));CHECK(keyboard->area==2);CHECK(keyboard->input(VK_F6));CHECK(keyboard->area==0);
     h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==2);
     h.find<Button>(L"Löschen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==1);CHECK(saved.get(initial.id));
+    auto game_button=h.find<Button>(L"+ Game-Mode");CHECK(game_button);if(game_button){
+        game_button->activate(h.view);settle(h,*page);auto game_grid=h.find<GridEditor>();CHECK(game_grid);
+        if(game_grid){auto draft=custom::editor_layout(game_grid->model);CHECK(draft && draft->tiles.size()==9);}
+        auto filter=h.find<Combo>(L"Quelle");auto palette=h.find<TilePalette>();CHECK(filter && palette);
+        if(filter && palette){auto option=std::find_if(filter->options.begin(),filter->options.end(),[](const auto& text){return text.de==L"Game-Mode";});CHECK(option!=filter->options.end());if(option!=filter->options.end()){filter->index=int(option-filter->options.begin());filter->on_change();settle(h,*page);CHECK(palette->category=="game");CHECK(palette->visible().size()==16);}}
+        h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==2);
+    }
     h.view.set_root(nullptr);
 }
 // P8-3: "Arrange page" is gone as a settings entry; its editor stays reachable from the page list of Custom views.
@@ -1002,7 +1009,7 @@ static void custom_standard_pages_tests(const fs::path& root) {
     h.view.set_root(nullptr);
 }
 static void ai_custom_editor_tests(const fs::path& root,const fs::path& images,bool record) {
-    const auto baseline=fs::path(FL_LAYOUT_SNAPSHOT_DIR)/"p8-ai-editor-hashes.txt";
+    const auto baseline=fs::path(FL_LAYOUT_SNAPSHOT_DIR)/"p9-ai-editor-hashes.txt";
     std::map<std::string,std::string> expected,actual;
     if(record) {CHECK(!fs::exists(baseline));if(fs::exists(baseline))return;}
     else {std::ifstream in(baseline);CHECK(bool(in));for(std::string key,hash;in>>key>>hash;)expected[key]=hash;}
@@ -1016,7 +1023,8 @@ static void ai_custom_editor_tests(const fs::path& root,const fs::path& images,b
     custom::Store store(h.dir/"views");CHECK(store.save(view).empty());
     auto page=make_custom_views_page();page->build(h,h.root);page->shown(h);settle(h,*page);
     auto grid=h.find<GridEditor>();auto palette=h.find<TilePalette>();auto filter=h.find<Combo>(L"Quelle");CHECK(grid && palette && filter);if(!grid || !palette || !filter)return;
-    CHECK(filter->options.back().de==L"KI-Status");filter->index=int(filter->options.size())-1;filter->on_change();settle(h,*page);
+    auto ai_option=std::find_if(filter->options.begin(),filter->options.end(),[](const auto& option){return option.de==L"KI-Status";});
+    CHECK(ai_option!=filter->options.end());if(ai_option==filter->options.end())return;filter->index=int(ai_option-filter->options.begin());filter->on_change();settle(h,*page);
     CHECK(palette->category=="ai");CHECK(palette->tiles.size()>=11);
     grid->selected=0;grid->focused_block=0;grid->on_select();settle(h,*page);
     CHECK(custom::editor_layout(grid->model)->tiles.size()==3);CHECK(h.find<Combo>(L"Touch-Ziel")->index==1);
@@ -1032,6 +1040,40 @@ static void ai_custom_editor_tests(const fs::path& root,const fs::path& images,b
     if(record){std::ofstream out(baseline);for(const auto& [key,hash]:actual)out<<key<<' '<<hash<<'\n';CHECK(bool(out));}else CHECK(expected.size()==actual.size());
     h.view.set_root(nullptr);
 }
+// P9: actual settings form and Game-Mode palette/template, anonymous sample data.
+static void game_mode_ui_tests(const fs::path& root,const fs::path& images,bool record) {
+    const auto baseline=fs::path(FL_LAYOUT_SNAPSHOT_DIR)/"p9-game-mode-hashes.txt";
+    std::map<std::string,std::string> expected,actual;
+    if(record){CHECK(!fs::exists(baseline));if(fs::exists(baseline))return;}
+    else {std::ifstream in(baseline);CHECK(bool(in));for(std::string key,hash;in>>key>>hash;)expected[key]=hash;}
+    fs::create_directories(images);
+    auto capture=[&](TestHost& host,const std::string& stem){TreeCanvas canvas(host.kit,1440,1100);for(bool en:{false,true}){
+        host.kit.english=en;host.kit.use_design({{"theme",theme::DEFAULT_ID}});host.kit.use_windows(false);host.kit.dark=true;
+        layout_tree(host.kit,canvas,host.root);auto image=paint_tree(host.kit,canvas,host.root,true);auto key=stem+(en?".en":".de");actual[key]=snapshot::hash_image(image);
+        if(!record)CHECK(expected[key]==actual[key]);snapshot::write_png(images/(key+".png"),image);
+    }host.kit.english=false;};
+    {
+        auto cfg=offline_config();cfg["game_mode"]["view"]="custom:example-game";
+        TestHost h(root/"game-settings",cfg);h.actions.layout_displays=[] {return Json::array({{{"id","monitor:sample"},{"name","Example display"},{"online",true}}});};
+        CHECK(custom::Store(h.dir/"views").save(custom::game_mode_template("example-game")).empty());
+        auto page=make_game_mode_page();CHECK(page->info().id=="game_mode");page->build(h,h.root);page->shown(h);settle(h,*page);
+        CHECK(h.find<Combo>(L"Ziel-Display"));CHECK(h.find<Combo>(L"Eigene Ansicht"));
+        auto additional=h.find<TextField>(L"Zusätzliche Spiele");CHECK(additional && additional->kind==TextField::Multi);
+        if(additional)additional->set_text(L"C:\\Example\\game.exe\r\nD:\\Example\\other.exe");
+        ojson patch;page->collect(h,patch);auto merged=config::merge(cfg,patch);CHECK(merged["game_mode"]["view"]=="custom:example-game");
+        CHECK(merged["game_mode"]["additional_games"].get<std::string>().find('\n')!=std::string::npos);
+        capture(h,"game-mode-settings");h.view.set_root(nullptr);
+    }
+    {
+        TestHost h(root/"game-palette");CHECK(custom::Store(h.dir/"views").save(custom::game_mode_template("example-game")).empty());
+        auto page=make_custom_views_page();page->build(h,h.root);page->shown(h);settle(h,*page);
+        auto filter=h.find<Combo>(L"Quelle");auto palette=h.find<TilePalette>();CHECK(filter && palette);
+        if(filter && palette){auto it=std::find_if(filter->options.begin(),filter->options.end(),[](const auto& option){return option.de==L"Game-Mode";});CHECK(it!=filter->options.end());if(it!=filter->options.end()){filter->index=int(it-filter->options.begin());filter->on_change();settle(h,*page);CHECK(palette->visible().size()==16);}}
+        capture(h,"game-mode-editor");h.view.set_root(nullptr);
+    }
+    if(record){std::ofstream out(baseline);for(const auto& [key,hash]:actual)out<<key<<' '<<hash<<'\n';CHECK(bool(out));}else CHECK(expected.size()==actual.size());
+}
+
 int main(int argc,char** argv) {
     setvbuf(stdout,nullptr,_IONBF,0);
     gfx_init(); SetConsoleOutputCP(CP_UTF8); capture_tests();
@@ -1260,9 +1302,10 @@ int main(int argc,char** argv) {
     if(update) { fs::create_directories(baseline); std::ofstream out(baseline/"p7-hashes.txt"); for(auto& [key,hash]:actual) out<<key<<' '<<hash<<'\n'; CHECK(bool(out)); }
     else CHECK(expected.size()==actual.size());
     editor_snapshot_tests(dir,baseline,fs::path(argv[0]).parent_path()/"p7b-ui-snapshots",argc==2 && std::string(argv[1])=="record-editor");
-    custom_editor_tests(dir,fs::path(argv[0]).parent_path()/"p8-ui-snapshots",argc==2 && std::string(argv[1])=="record-custom-editor");
-    ai_custom_editor_tests(dir,fs::path(argv[0]).parent_path()/"p8-ui-snapshots",argc==2 && std::string(argv[1])=="record-ai-editor");
+    custom_editor_tests(dir,fs::path(argv[0]).parent_path()/"p8-ui-snapshots",argc==2 && std::string(argv[1])=="record-game-editor");
+    ai_custom_editor_tests(dir,fs::path(argv[0]).parent_path()/"p8-ui-snapshots",argc==2 && std::string(argv[1])=="record-game-editor");
     custom_standard_pages_tests(dir);
+    game_mode_ui_tests(dir,fs::path(argv[0]).parent_path()/"p9-ui-snapshots",argc==2 && std::string(argv[1])=="record-game-settings");
     std::error_code ec; fs::remove_all(dir,ec); CHECK(!ec && !fs::exists(dir));
     std::printf("Layout UI: %d passed, %d failed\n",passed,failed); return failed?1:0;
 }

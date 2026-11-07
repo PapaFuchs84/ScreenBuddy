@@ -27,6 +27,7 @@ public:
     int current = 0;                       // Cursor: Position in visible()
     Surface* surface = nullptr;            // für Fokusanzeige
     TilePalette();
+    static std::string source_category(const std::string& source, const std::string& block);
 
     std::vector<size_t> visible() const;   // Indizes in tiles nach Suche und Filter
     static bool matches(const Tile& tile, const std::string& category, const std::wstring& query, bool english);

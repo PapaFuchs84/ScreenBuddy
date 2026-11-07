@@ -34,12 +34,13 @@ public:
         std::swap(shell_->left.items[0],shell_->left.items[2]);
         auto& views=*shell_->section[EditorShell::PageList];views.title=T(L"Seiten",L"Pages");
         views.add<ButtonRow>()->add(T(L"+ Neue Ansicht",L"+ New view"),Button::Primary,[this]{create();});
+        views.add<ButtonRow>()->add(Text(L"+ Game-Mode"),Button::Secondary,[this]{create(true);});
         views_=views.add<ItemList>(std::vector<ItemList::Item>{});views_->name=T(L"Ansichten",L"Views");views_->checkable=false;views_->reorder=false;
         views_->on_select=[this](int i){if(i>=int(documents_.size()))open_standard(i-int(documents_.size()));else choose(i);};
         auto management=views.add<ButtonRow>();management->add(T(L"Umbenennen",L"Rename"),Button::Secondary,[this]{if(name_) host_->surface().focus(name_,true);});
         management->add(T(L"Löschen",L"Delete"),Button::Danger,[this]{erase();});
         auto& palette=*shell_->section[EditorShell::Palette];
-        filter_=palette.add<Combo>(std::vector<Text>{T(L"Alle Quellen",L"All sources"),Text(L"System"),Text(L"Spotify"),Text(L"RSS"),Text(L"Streaming"),Text(L"BF6"),T(L"Freunde",L"Friends"),Text(L"Discord"),Text(L"Home Assistant"),Text(L"Plugins"),T(L"KI-Status",L"AI Status")},1);
+        filter_=palette.add<Combo>(std::vector<Text>{T(L"Alle Quellen",L"All sources"),Text(L"System"),Text(L"Spotify"),Text(L"RSS"),Text(L"Streaming"),Text(L"BF6"),T(L"Freunde",L"Friends"),Text(L"Discord"),Text(L"Home Assistant"),Text(L"Plugins"),T(L"KI-Status",L"AI Status"),Text(L"Game-Mode")},1);
         filter_->name=T(L"Quelle",L"Source");filter_->on_change=[this]{sync_palette();host_->relayout();};
         auto search=palette.add<TextField>(TextField::Single,L"");search->hint=T(L"Kacheln suchen",L"Search tiles");search->name=search->hint;search->limit=64;
         search->on_change=[this,search]{palette_->query=search->text();for(auto& c:palette_->query)c=wchar_t(std::towlower(c));palette_->current=0;host_->relayout();};
@@ -155,10 +156,11 @@ private:
         syncing_=true;name_->set_text(widen(working_.name));syncing_=false;grid_->selected=-1;grid_->focused_block=-1;
         ++generation_;pending_=true;sync();tabs();
     }
-    void create(){
+    void create(bool game=false){
         if(host_->busy() || !discard())return;
         if(documents_.size()>=custom::view_limit){host_->toast(T(L"Höchstens 64 Ansichten.",L"At most 64 views."),ToastKind::Error);return;}
         custom::View view;for(int i=1;;++i){view.id="ansicht-"+std::to_string(i);if(std::none_of(documents_.begin(),documents_.end(),[&](const auto& v){return v.id==view.id;}))break;}
+        if(game){view=custom::game_mode_template(view.id,host_->english());documents_.push_back(view);choose(int(documents_.size())-1,true);metadata_dirty_=true;update_buttons();return;}
         view.name=host_->english()?"My view":"Meine Ansicht";view.standard.columns={1,1,1};view.standard.rows={1,1};documents_.push_back(view);choose(int(documents_.size())-1,true);metadata_dirty_=true;update_buttons();
     }
     void erase(){
@@ -192,8 +194,8 @@ private:
             }tabs();};});
     }
     void sync_palette(){
-        if(!loaded_)return;palette_->tiles.clear();static const char* sources[]={"","system","spotify","rss","streaming","bf6","friends","discord","homeassistant","plugin:","ai"};
-        palette_->category=sources[filter_->index];for(const auto& b:history_.current().blocks){auto source=b.value("source",std::string());palette_->tiles.push_back({b["id"],label(b),source.starts_with("plugin:")?"plugin:":source,b.value("shown",false),false});}palette_->current=0;
+        if(!loaded_)return;palette_->tiles.clear();static const char* sources[]={"","system","spotify","rss","streaming","bf6","friends","discord","homeassistant","plugin:","ai","game"};
+        palette_->category=sources[filter_->index];for(const auto& b:history_.current().blocks){auto source=b.value("source",std::string());palette_->tiles.push_back({b["id"],label(b),TilePalette::source_category(source,b.value("block",std::string())),b.value("shown",false),false});}palette_->current=0;
     }
     int selected_block()const{if(!loaded_ || !grid_)return -1;if(grid_->focused_block>=0 && grid_->focused_block<int(history_.current().blocks.size()))return grid_->focused_block;
         if(grid_->selected>=0 && grid_->selected<int(history_.current().layout["zones"].size())){auto id=history_.current().layout["zones"][grid_->selected]["id"];for(size_t i=0;i<history_.current().blocks.size();++i)if(history_.current().blocks[i].value("shown",false)&&history_.current().blocks[i]["zone"]==id)return int(i);}return -1;}

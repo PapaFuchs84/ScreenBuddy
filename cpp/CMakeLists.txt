@@ -26,6 +26,7 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
+    src/game_detect.cpp src/game_logo.cpp src/game_intro.cpp src/render_game.cpp src/game_runtime.cpp src/ui_page_game_mode.cpp
     src/custom_view.cpp
     src/custom_view_editor.cpp
     src/ui_page_custom_views.cpp
@@ -47,7 +48,7 @@ target_compile_definitions(flcore PUBLIC UNICODE _UNICODE NOMINMAX WIN32_LEAN_AN
 target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EHsc /MP /GF)
 target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL OpenSSL::Crypto Opus::opus ZLIB::ZLIB
                                     nlohmann_json::nlohmann_json tomlplusplus::tomlplusplus pugixml::pugixml httplib::httplib
-                                    d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
+                                    dxgi powrprof tdh d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
                                     windowsapp comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 oleaut32 oleacc uuid uxtheme shell32)
 
 # Eingebettete Dateien: bei Änderungen die Ressourcen neu bauen (CMake erkennt RCDATA-Abhängigkeiten nicht selbst)
@@ -187,3 +188,9 @@ target_link_libraries(fl-builtin-catalog-tests PRIVATE nlohmann_json::nlohmann_j
 add_executable(fl-custom-view-tests tests/custom_view_tests.cpp)
 target_link_libraries(fl-custom-view-tests PRIVATE flcore)
 target_link_options(fl-custom-view-tests PRIVATE /MANIFEST:NO)
+
+add_executable(fl-game-tests tests/game_tests.cpp)
+target_link_libraries(fl-game-tests PRIVATE flcore)
+
+# Silent test process, excluded from public release exports.
+add_executable(fl-game-dummy WIN32 tests/game_dummy.cpp)

@@ -7,6 +7,16 @@
 #include <iphlpapi.h>
 #include <pdh.h>
 #include <pdhmsg.h>
+#include <icmpapi.h>
+#include <ws2tcpip.h>
+#include <powrprof.h>
+#include <dxgi1_4.h>
+#include <evntrace.h>
+#include <evntcons.h>
+#include <tdh.h>
+#include <cmath>
+#include <numeric>
+#include <cstdlib>
 
 #include <algorithm>
 #include <cstring>
@@ -80,7 +90,7 @@ std::pair<std::string, int> cpu_name() {
 
 struct SysMonitor::Pdh {
     PDH_HQUERY q = nullptr;
-    PDH_HCOUNTER cpu = nullptr, perf = nullptr;
+    PDH_HCOUNTER cpu = nullptr, perf = nullptr, cores = nullptr, engines = nullptr, memory = nullptr;
     Pdh() {
         if (PdhOpenQueryW(nullptr, 0, &q) != ERROR_SUCCESS) { q = nullptr; return; }
         // wie im Task-Manager ("% Processor Utility" statt Leerlaufzeit)
@@ -88,17 +98,30 @@ struct SysMonitor::Pdh {
             cpu = nullptr;
         if (PdhAddEnglishCounterW(q, L"\\Processor Information(_Total)\\% Processor Performance", 0, &perf) != ERROR_SUCCESS)
             perf = nullptr;
+        if(PdhAddEnglishCounterW(q,L"\\Processor Information(*)\\% Processor Utility",0,&cores)!=ERROR_SUCCESS)cores=nullptr;
+        if(PdhAddEnglishCounterW(q,L"\\GPU Engine(*)\\Utilization Percentage",0,&engines)!=ERROR_SUCCESS)engines=nullptr;
+        if(PdhAddEnglishCounterW(q,L"\\GPU Adapter Memory(*)\\Dedicated Usage",0,&memory)!=ERROR_SUCCESS)memory=nullptr;
         PdhCollectQueryData(q);
     }
     ~Pdh() {
         if (q) PdhCloseQuery(q);
+    }
+    std::vector<std::pair<std::wstring,double>> values(PDH_HCOUNTER counter) {
+        std::vector<std::pair<std::wstring,double>> out;if(!counter)return out;DWORD size=0,count=0;
+        if(PdhGetFormattedCounterArrayW(counter,PDH_FMT_DOUBLE,&size,&count,nullptr)!=PDH_MORE_DATA || size>4*1024*1024)return out;
+        std::vector<unsigned char> buffer(size);
+        auto items=reinterpret_cast<PDH_FMT_COUNTERVALUE_ITEM_W*>(buffer.data());
+        if(PdhGetFormattedCounterArrayW(counter,PDH_FMT_DOUBLE,&size,&count,items)!=ERROR_SUCCESS)return out;
+        for(DWORD i=0;i<count;++i)if((items[i].FmtValue.CStatus==PDH_CSTATUS_VALID_DATA || items[i].FmtValue.CStatus==PDH_CSTATUS_NEW_DATA) && std::isfinite(items[i].FmtValue.doubleValue))out.emplace_back(items[i].szName,items[i].FmtValue.doubleValue);
+        return out;
     }
     std::optional<double> value(PDH_HCOUNTER c) {
         if (!c) return std::nullopt;
         PDH_FMT_COUNTERVALUE v{};
         if (PdhGetFormattedCounterValue(c, PDH_FMT_DOUBLE | PDH_FMT_NOCAP100, nullptr, &v) != ERROR_SUCCESS)
             return std::nullopt;
-        return v.doubleValue;
+        if(v.CStatus!=PDH_CSTATUS_VALID_DATA && v.CStatus!=PDH_CSTATUS_NEW_DATA)return {};
+        return std::isfinite(v.doubleValue)?std::optional<double>(v.doubleValue):std::nullopt;
     }
 };
 
@@ -178,10 +201,130 @@ ojson hwinfo_sensors() {
     return {{"available", true}, {"temps", names(SENSOR_TEMP)}, {"fans", names(SENSOR_FAN)}};
 }
 
+
+void FrameHistory::present(double t){
+    if(!std::isfinite(t) || (!times_.empty() && t<=times_.back()))return;
+    if(!times_.empty() && t-times_.back()>2)times_.clear();
+    times_.push_back(t);while(times_.size()>1200 || (!times_.empty() && t-times_.front()>10))times_.pop_front();
+}
+FrameStats FrameHistory::stats(double now) const {
+    FrameStats out;if(times_.size()<2 || now<times_.back() || now-times_.back()>2)return out;
+    std::vector<double> durations;
+    for(size_t i=1;i<times_.size();++i)if(times_[i]>=now-10)durations.push_back((times_[i]-times_[i-1])*1000);
+    if(durations.empty())return out;
+    const double average=std::accumulate(durations.begin(),durations.end(),0.)/durations.size();
+    if(average<=0)return out;out.intervals=durations.size();out.fps=1000/average;out.frametime_ms=average;
+    for(auto d:durations){out.history.push_back(d);if(out.history.size()>120)out.history.pop_front();}
+    // 1% low requires >=100 intervals; never invent it from two frames.
+    if(durations.size()>=100){std::sort(durations.rbegin(),durations.rend());size_t n=(durations.size()+99)/100;out.low=1000/(std::accumulate(durations.begin(),durations.begin()+n,0.)/n);}
+    return out;
+}
+struct SysMonitor::PresentTrace {
+    static inline const GUID provider={0xca11c036,0x0102,0x4a2d,{0xa6,0xad,0xf0,0x3c,0xfe,0xd5,0xd3,0xc9}};
+    TRACEHANDLE session=0,consumer=INVALID_PROCESSTRACE_HANDLE;
+    std::wstring name;
+    std::vector<unsigned char> properties;
+    std::thread thread;
+    std::atomic<uint32_t> pid{0};
+    std::mutex mutex;
+    struct Chain {FrameHistory frames;double last=0;};
+    std::map<uint64_t,Chain> chains;
+    double frequency=1;
+    DWORD error=ERROR_SUCCESS;
+    ULONG lost=0;
+    bool tried=false;
+    EVENT_TRACE_PROPERTIES* props(){return reinterpret_cast<EVENT_TRACE_PROPERTIES*>(properties.data());}
+    PresentTrace(){LARGE_INTEGER f;QueryPerformanceFrequency(&f);frequency=double(f.QuadPart);}
+    ~PresentTrace(){stop();}
+    void stop(){
+        if(session){ControlTraceW(session,name.c_str(),props(),EVENT_TRACE_CONTROL_STOP);session=0;}
+        if(consumer!=INVALID_PROCESSTRACE_HANDLE){CloseTrace(consumer);consumer=INVALID_PROCESSTRACE_HANDLE;}
+        if(thread.joinable())thread.join();
+    }
+    static bool property(EVENT_RECORD* e,const wchar_t* name,void* result,ULONG bytes){PROPERTY_DATA_DESCRIPTOR d{};d.PropertyName=reinterpret_cast<ULONGLONG>(name);d.ArrayIndex=ULONG_MAX;return TdhGetProperty(e,0,nullptr,1,&d,bytes,static_cast<PBYTE>(result))==ERROR_SUCCESS;}
+    static void WINAPI event(EVENT_RECORD* e){
+        auto self=static_cast<PresentTrace*>(e->UserContext);
+        if(e->EventHeader.ProcessId!=self->pid.load() || e->EventHeader.ProviderId!=provider || (e->EventHeader.EventDescriptor.Id!=42 && e->EventHeader.EventDescriptor.Id!=55))return;
+        uint64_t swap=0;ULONG flags=0;
+        if(!property(e,L"pIDXGISwapChain",&swap,sizeof swap) || !property(e,L"Flags",&flags,sizeof flags) || (flags&1))return;
+        double t=e->EventHeader.TimeStamp.QuadPart/self->frequency;
+        std::lock_guard lock(self->mutex);
+        if(e->EventHeader.ProcessId!=self->pid)return;
+        if(!self->chains.contains(swap) && self->chains.size()>=8)return;
+        auto& c=self->chains[swap];c.last=t;c.frames.present(t);
+    }
+    void start(){
+        tried=true;name=L"ScreenBuddy.Game."+std::to_wstring(GetCurrentProcessId())+L"."+std::to_wstring(GetTickCount64());
+        properties.assign(sizeof(EVENT_TRACE_PROPERTIES)+(name.size()+1)*sizeof(wchar_t),0);
+        auto p=props();p->Wnode.BufferSize=ULONG(properties.size());p->Wnode.Flags=WNODE_FLAG_TRACED_GUID;p->Wnode.ClientContext=1;
+        p->LogFileMode=EVENT_TRACE_REAL_TIME_MODE;p->LoggerNameOffset=sizeof(EVENT_TRACE_PROPERTIES);p->BufferSize=64;p->MinimumBuffers=2;p->MaximumBuffers=16;p->FlushTimer=1;
+        error=StartTraceW(&session,name.c_str(),p);if(error!=ERROR_SUCCESS){session=0;return;}
+        error=EnableTraceEx2(session,&provider,EVENT_CONTROL_CODE_ENABLE_PROVIDER,TRACE_LEVEL_VERBOSE,0x8000000000000002ull,0,0,nullptr);
+        if(error!=ERROR_SUCCESS){stop();return;}
+        EVENT_TRACE_LOGFILEW log{};log.LoggerName=name.data();log.ProcessTraceMode=PROCESS_TRACE_MODE_REAL_TIME|PROCESS_TRACE_MODE_EVENT_RECORD|PROCESS_TRACE_MODE_RAW_TIMESTAMP;log.EventRecordCallback=&event;log.Context=this;
+        consumer=OpenTraceW(&log);if(consumer==INVALID_PROCESSTRACE_HANDLE){error=GetLastError();stop();return;}
+        const auto handle=consumer;thread=std::thread([handle]{auto trace=handle;ProcessTrace(&trace,1,nullptr,nullptr);});
+    }
+    void target(uint32_t value){
+        if(pid.exchange(value)!=value){std::lock_guard lock(mutex);chains.clear();}
+        if(!value && session){stop();tried=false;}
+        if(value && !tried)start();
+    }
+    FrameStats snapshot(double now){
+        if(session && ControlTraceW(session,name.c_str(),props(),EVENT_TRACE_CONTROL_QUERY)==ERROR_SUCCESS && props()->EventsLost!=lost){lost=props()->EventsLost;std::lock_guard lock(mutex);chains.clear();return {};}
+        std::lock_guard lock(mutex);FrameStats best;size_t count=0;
+        for(const auto& [key,c]:chains) {auto s=c.frames.stats(now);if(s.intervals>count){count=s.intervals;best=std::move(s);}}
+        return best;
+    }
+    std::string reason()const {if(!pid)return "no_game";if(error==ERROR_ACCESS_DENIED)return "etw_access_denied";if(error!=ERROR_SUCCESS)return "etw_unavailable";return "dxgi_present_calls";}
+};
+struct SysMonitor::GpuApi {
+    HMODULE nvml=nullptr,adl=nullptr;bool initialized=false;void* device=nullptr;void* context=nullptr;int adapter=-1;
+    template<class F>static F symbol(HMODULE dll,const char* name){return reinterpret_cast<F>(dll?GetProcAddress(dll,name):nullptr);}
+    // ABI declarations from the public NVML and AMD ADL interfaces. Read only.
+    struct Util {unsigned gpu,memory;};struct Memory {unsigned long long total,free,used;};
+    struct Activity {int size,engine,memory,voltage,activity,level,bus_speed,bus_lanes,max_lanes,reserved;};
+    struct Adapter {int size,index;char udid[256];int bus,device,function,vendor;char name[256],display[256];int present,exist;char driver[256],driver_ext[256],pnp[256];int osdisplay;};
+    std::string amd_name;
+    struct Temperature {int size,value;};struct Fan {int size,type,speed,flags;};
+    static void* __stdcall allocate(int size){return size>0?std::malloc(size):nullptr;}
+    GpuApi(){
+        nvml=LoadLibraryExW(L"nvml.dll",nullptr,LOAD_LIBRARY_SEARCH_SYSTEM32);
+        auto init=symbol<int(*)()>(nvml,"nvmlInit_v2");auto get=symbol<int(*)(unsigned,void**)>(nvml,"nvmlDeviceGetHandleByIndex_v2");
+        if(init && get && init()==0){initialized=true;if(get(0,&device)!=0)device=nullptr;}
+        if(device)return;
+        adl=LoadLibraryExW(L"atiadlxx.dll",nullptr,LOAD_LIBRARY_SEARCH_SYSTEM32);
+        auto create=symbol<int(*)(void*(__stdcall*)(int),int,void**)>(adl,"ADL2_Main_Control_Create");
+        auto count=symbol<int(*)(void*,int*)>(adl,"ADL2_Adapter_NumberOfAdapters_Get");auto active=symbol<int(*)(void*,int,int*)>(adl,"ADL2_Adapter_Active_Get");
+        auto info=symbol<int(*)(void*,Adapter*,int)>(adl,"ADL2_Adapter_AdapterInfo_Get");
+        if(create && count && active && info && create(&allocate,1,&context)==0){int n=0;if(count(context,&n)==0 && n>0 && n<128){std::vector<Adapter> adapters(n);for(auto& a:adapters)a.size=sizeof(Adapter);
+            if(info(context,adapters.data(),int(adapters.size()*sizeof(Adapter)))==0)for(const auto& a:adapters){int enabled=0;if(active(context,a.index,&enabled)==0 && enabled){adapter=a.index;amd_name=std::string(a.name,strnlen(a.name,sizeof a.name));break;}}}}
+    }
+    ~GpuApi(){if(context)if(auto f=symbol<int(*)(void*)>(adl,"ADL2_Main_Control_Destroy"))f(context);if(adl)FreeLibrary(adl);if(initialized)if(auto f=symbol<int(*)()>(nvml,"nvmlShutdown"))f();if(nvml)FreeLibrary(nvml);}
+    void sample(SysSnapshot& s){
+        if(device){
+            auto scalar=[&](const char* name)->std::optional<double>{auto f=symbol<int(*)(void*,unsigned*)>(nvml,name);unsigned v=0;return f && f(device,&v)==0?std::optional<double>(v):std::nullopt;};
+            if(auto f=symbol<int(*)(void*,Util*)>(nvml,"nvmlDeviceGetUtilizationRates")){Util v{};if(f(device,&v)==0)s.gpu_pct=v.gpu;}
+            if(auto f=symbol<int(*)(void*,unsigned,unsigned*)>(nvml,"nvmlDeviceGetTemperature")){unsigned v=0;if(f(device,0,&v)==0)s.gpu_temp=v;}
+            if(auto f=symbol<int(*)(void*,unsigned,unsigned*)>(nvml,"nvmlDeviceGetClockInfo")){unsigned v=0;if(f(device,0,&v)==0)s.gpu_mhz=v;}
+            s.gpu_fan=scalar("nvmlDeviceGetFanSpeed");if(auto v=scalar("nvmlDeviceGetPowerUsage"))s.gpu_watts=*v/1000;
+            if(auto f=symbol<int(*)(void*,Memory*)>(nvml,"nvmlDeviceGetMemoryInfo")){Memory m{};if(f(device,&m)==0){s.gpu_mem_used=double(m.used)/(1024*1024);s.gpu_mem_total=double(m.total)/(1024*1024);}}
+            if(auto f=symbol<int(*)(void*,char*,unsigned)>(nvml,"nvmlDeviceGetName")){char name[128]{};if(f(device,name,sizeof name)==0)s.gpu_name=name;}
+        } else if(context && adapter>=0){
+            s.gpu_name=amd_name;
+            if(auto f=symbol<int(*)(void*,int,Activity*)>(adl,"ADL2_Overdrive5_CurrentActivity_Get")){Activity v{};v.size=sizeof v;if(f(context,adapter,&v)==0){s.gpu_pct=std::clamp(double(v.activity),0.,100.);s.gpu_mhz=v.engine/100.;}}
+            if(auto f=symbol<int(*)(void*,int,int,Temperature*)>(adl,"ADL2_Overdrive5_Temperature_Get")){Temperature v{sizeof v,0};if(f(context,adapter,0,&v)==0)s.gpu_temp=v.value/1000.;}
+            if(auto f=symbol<int(*)(void*,int,int,Fan*)>(adl,"ADL2_Overdrive5_FanSpeed_Get")){Fan v{sizeof v,1,0,0};if(f(context,adapter,0,&v)==0)s.gpu_fan=v.speed;}
+            if(auto f=symbol<int(*)(void*,int,int,int*)>(adl,"ADL2_Overdrive6_CurrentPower_Get")){int v=0;if(f(context,adapter,0,&v)==0 && v>=0)s.gpu_watts=v/256.;}
+        }
+    }
+};
+
 // ---------- Sammler ----------
 SysMonitor::SysMonitor(const ojson& cfg) {
     auto s = [&](const char* k) { return cfg.contains(k) && cfg[k].is_string() ? cfg[k].get<std::string>() : std::string(); };
     net_adapter_ = trim(s("net_adapter"));
+    ping_target_ = s("ping_target");
     cpu_temp_sensor_ = s("cpu_temp_sensor");
     cpu_fan_sensor_ = s("cpu_fan_sensor");
     auto [name, mhz] = cpu_name();
@@ -227,11 +370,24 @@ void SysMonitor::run() {
 
 void SysMonitor::sample() {
     SysSnapshot& s = snap_;
+    s.cpu_pct.reset();s.cpu_ghz.reset();
     if (!pdh_) pdh_ = std::make_unique<Pdh>();  // beim ersten Aufruf anlegen; Werte gibt es ab dem zweiten Aufruf
     if (pdh_->q && PdhCollectQueryData(pdh_->q) == ERROR_SUCCESS) {
         if (auto v = pdh_->value(pdh_->cpu)) s.cpu_pct = std::min(100.0, *v);
         if (auto v = pdh_->value(pdh_->perf); v && base_mhz_) s.cpu_ghz = base_mhz_ * *v / 100 / 1000;
     }
+    s.cpu_cores.clear();
+    for(const auto& [name,value]:pdh_->values(pdh_->cores))if(name.find(L"_Total")==std::wstring::npos)s.cpu_cores.push_back(std::clamp(value,0.,100.));
+    SYSTEM_INFO si{};GetSystemInfo(&si);
+    struct CpuPower {ULONG number,max,current,limit,max_idle,current_idle;};
+    std::vector<CpuPower> power(si.dwNumberOfProcessors);
+    if(!power.empty() && CallNtPowerInformation(ProcessorInformation,nullptr,0,power.data(),ULONG(power.size()*sizeof(CpuPower)))==0) {
+        double mhz=0;for(const auto& core:power)mhz+=core.current;if(mhz>0)s.cpu_ghz=mhz/power.size()/1000.;
+    }
+    if(!trace_)trace_=std::make_unique<PresentTrace>();
+    trace_->target(game_pid_);auto frames=trace_->snapshot(mono());
+    s.fps=frames.fps;s.frametime_ms=frames.frametime_ms;s.fps_low=frames.low;s.frametime_hist=frames.history;s.fps_reason=trace_->reason();
+    sample_ping();
     MEMORYSTATUSEX ms{sizeof ms};
     if (GlobalMemoryStatusEx(&ms)) {
         s.ram_total = ms.ullTotalPhys / double(1ull << 30);
@@ -287,34 +443,35 @@ void SysMonitor::sample_net() {
 }
 
 void SysMonitor::sample_gpu() {
-    SysSnapshot& s = snap_;
-    std::string out = run_hidden(
-        L"nvidia-smi --query-gpu=name,utilization.gpu,temperature.gpu,fan.speed,memory.used,memory.total "
-        L"--format=csv,noheader,nounits",
-        5000);
-    if (trim(out).empty()) return;
-    std::string first = split(trim(out), "\n")[0];
-    auto parts = split(first, ",");
-    if (parts.size() < 6) return;
-    for (auto& p : parts) p = trim(p);
-    auto num = [](const std::string& x) -> std::optional<double> {
-        char* end = nullptr;
-        double v = strtod(x.c_str(), &end);
-        if (x.empty() || !end || *end) return std::nullopt;
-        return v;
-    };
-    s.gpu_name = replace_all(replace_all(parts[0], "NVIDIA ", ""), "GeForce ", "");
-    s.gpu_pct = num(parts[1]);
-    s.gpu_temp = num(parts[2]);
-    s.gpu_fan = num(parts[3]);
-    s.gpu_mem_used = num(parts[4]);
-    s.gpu_mem_total = num(parts[5]);
+    auto& s=snap_;s.gpu_pct.reset();s.gpu_temp.reset();s.gpu_fan.reset();s.gpu_mhz.reset();s.gpu_watts.reset();s.gpu_mem_used.reset();s.gpu_mem_total.reset();
+    if(!gpu_)gpu_=std::make_unique<GpuApi>();
+    gpu_->sample(s);
+    if(!s.gpu_pct)for(const auto& [name,value]:pdh_->values(pdh_->engines))s.gpu_pct=std::max(s.gpu_pct.value_or(0),std::clamp(value,0.,100.));
+    // PDH is adapter-wide. QueryVideoMemoryInfo would describe ScreenBuddy's own
+    // process budget/usage, not the game's usage, so it must not be labelled VRAM used.
+    if(!gpu_->device && !s.gpu_mem_used) {double used=0;auto memory=pdh_->values(pdh_->memory);for(const auto& [name,value]:memory)used+=std::max(0.,value);if(!memory.empty())s.gpu_mem_used=used/(1024*1024);}
+    if(!gpu_->device && !s.gpu_mem_total) {
+        IDXGIFactory1* factory=nullptr;if(SUCCEEDED(CreateDXGIFactory1(__uuidof(IDXGIFactory1),reinterpret_cast<void**>(&factory)))) {
+            double total=0;for(UINT i=0;;++i){IDXGIAdapter1* adapter=nullptr;if(factory->EnumAdapters1(i,&adapter)==DXGI_ERROR_NOT_FOUND)break;if(!adapter)break;DXGI_ADAPTER_DESC1 desc{};if(SUCCEEDED(adapter->GetDesc1(&desc)) && !(desc.Flags&DXGI_ADAPTER_FLAG_SOFTWARE))total+=double(desc.DedicatedVideoMemory);adapter->Release();}
+            factory->Release();if(total>0)s.gpu_mem_total=total/(1024*1024);
+        }
+    }
+}
+void SysMonitor::sample_ping() {
+    auto& s=snap_;s.ping_ms.reset();s.jitter_ms.reset();if(ping_target_.empty())return;
+    IN_ADDR address{};if(InetPtonW(AF_INET,widen(ping_target_).c_str(),&address)!=1)return;
+    HANDLE h=IcmpCreateFile();if(h==INVALID_HANDLE_VALUE)return;
+    char request[]="ScreenBuddy";std::vector<unsigned char> buffer(sizeof(ICMP_ECHO_REPLY)+sizeof request+8);
+    DWORD count=IcmpSendEcho(h,address.S_un.S_addr,request,sizeof request,nullptr,buffer.data(),DWORD(buffer.size()),200);
+    if(count){auto reply=reinterpret_cast<ICMP_ECHO_REPLY*>(buffer.data());if(reply->Status==IP_SUCCESS){s.ping_ms=reply->RoundTripTime;if(ping_previous_)s.jitter_ms=std::abs(*s.ping_ms-*ping_previous_);ping_previous_=s.ping_ms;}else ping_previous_.reset();}else ping_previous_.reset();
+    IcmpCloseHandle(h);
 }
 
 void SysMonitor::sample_hwinfo() {
     SysSnapshot& s = snap_;
     auto r = hwinfo_readings();
     s.hwinfo = r.has_value();
+    s.cpu_temp.reset();s.cpu_fan.reset();s.disk_temp.reset();
     if (!r || r->empty()) return;
     s.cpu_temp = pick(*r, SENSOR_TEMP, {cpu_temp_sensor_, "CPU (Tctl/Tdie)", "CPU Package", "CPU Die (average)", "CPU"});
     s.cpu_fan = pick(*r, SENSOR_FAN,

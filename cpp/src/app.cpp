@@ -1,3 +1,4 @@
+#include "render_game.h"
 // © 2026 FuchsLabs
 #include "app.h"
 #include "custom_view.h"
@@ -302,7 +303,11 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
     if (b(cfg_["streaming"], "enabled") && !preview_dir_)
         streaming_ = std::make_unique<tmdb::TmdbFeed>(cfg_["streaming"], cfg_["ui"].value("language", "de"),
                                                       cfg_path_.parent_path() / L"cache" / L"tmdb-logos");
-    if (b(sy, "enabled", true)) sys_ = std::make_unique<sysinfo::SysMonitor>(sy);
+    if (b(sy,"enabled",true) || b(cfg_["game_mode"],"enabled")) {
+        auto settings=sy;if(b(cfg_["game_mode"],"enabled"))settings["ping_target"]=cfg_["game_mode"]["ping_target"];
+        sys_=std::make_unique<sysinfo::SysMonitor>(settings);
+    }
+    if(b(cfg_["game_mode"],"enabled") && !preview_dir_)game_=std::make_unique<game::Runtime>(cfg_path_.parent_path()/L"cache/game-logos",s(cfg_["game_mode"],"additional_games"),s(cfg_["game_mode"],"exclusions"),[this](uint32_t pid){if(sys_)sys_->set_game_pid(pid);mark_dirty();});
     // Discord wird gebraucht, wenn seine Seite an ist oder die gemeinsame Freundesliste es einbezieht
     bool want_discord = b(dc, "enabled", true) || (b(fr, "enabled") && b(fr, "include_discord", true));
     if (want_discord && !trim(s(dc, "token")).empty()) discord_ = std::make_unique<discord::DiscordFeed>(dc, dirty);
@@ -541,6 +546,11 @@ std::optional<Image> App::custom_preview(const custom::View& view,const std::str
     std::lock_guard lock(render::mutex());render::apply_theme(dp_);
     RendererSet rs(width,height,cfg_);using namespace render::samples;
     return custom::draw(view,device,width,height,[&](const custom::Tile& tile,const custom::Layout& layout,int w,int h)->std::optional<Image> {
+        if(tile.source=="system" && game::metric_tile(tile.block)) {
+            auto snap=system();snap.fps=120;snap.frametime_ms=8.33;snap.fps_low=90;snap.gpu_mhz=2400;snap.gpu_watts=180;snap.ping_ms=12;snap.jitter_ms=1;snap.cpu_cores={24,50,80,12};snap.frametime_hist={8,9,8,12,7,8};
+            if(!custom::visible(tile,game::metric_values(snap,"Example Game",3600)))return {};
+            return game::draw_metric(tile,layout,w,h,snap,"Example Game",3600);
+        }
         if(tile.source=="ai") {
             auto overlay=custom::single_builtin(tile,layout);const auto snap=render::samples::ai_status();
             if(!overlay || !custom::visible(tile,ai::tile_values(snap,CLOCK))) return {};
@@ -604,6 +614,7 @@ App::~App() {
     if (bf6_) bf6_->stop();
     if (rss_) rss_->stop();
     if (streaming_) streaming_->stop();
+    if (game_) game_->stop();
     if (sys_) sys_->stop();
 }
 
@@ -855,10 +866,10 @@ std::string App::friends_message() {
 }
 
 std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion,
-                                           const std::vector<std::string>* pages_override, ViewState* view, double tick, bool phone, const std::string& device) {
+                                           const std::vector<std::string>* pages_override, ViewState* view, double tick, bool phone, const std::string& device, const std::string& forced_custom) {
     // [(Name, Seitenanzahl, Zeichenfunktion(seite, zeichner))] in der eingestellten Reihenfolge
     std::vector<PageEntry> out;
-    for (auto& key : active_pages(companion, pages_override)) {
+    for (auto& key : (forced_custom.empty()?active_pages(companion,pages_override):std::vector<std::string>{forced_custom})) {
         if(key=="ai") {
             auto snapshot=ai_->model().snapshot(std::time(nullptr));
             if(view && std::count(view->current.begin(),view->current.end(),"ai")) {
@@ -882,7 +893,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             if(!custom_view) continue;
             PageEntry entry{key,1,{}};
             const auto allowed_pages=active_pages(phone,pages_override);
-            entry.custom_draw=[this,custom_view=*custom_view,device,friends,people,phone,allowed_pages,view,tick](RendererSet& rs) {
+            entry.custom_draw=[this,custom_view=*custom_view,device,friends,people,phone,allowed_pages,view,tick,game_snapshot=game_?game_->snapshot():game::Snapshot{}](RendererSet& rs) {
                 return custom::draw_out(custom_view,device,rs.width,rs.height,
                     [&](const custom::Tile& tile,const custom::Layout& layout,int w,int h)->std::optional<custom::TileDraw> {
                     if(tile.source.starts_with("plugin:")) {
@@ -977,6 +988,13 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                     auto arrangement=custom::single_builtin(tile,layout);
                     if(!arrangement) return {};
                     using Json=plugins::Json;
+                    if(tile.source=="system" && game::metric_tile(tile.block)) {
+                        auto snap=sys_?sys_->snapshot():SysSnapshot{};
+                        const auto name=game_snapshot.game?game_snapshot.game->name:std::string();
+                        std::optional<double> elapsed=game_snapshot.game?std::optional<double>(std::max(0.,mono()-game_snapshot.started)):std::nullopt;
+                        if(!custom::visible(tile,game::metric_values(snap,name,elapsed)))return {};
+                        return custom::TileDraw{game::draw_metric(tile,layout,w,h,snap,name,elapsed,game_snapshot.logo)};
+                    }
                     if(tile.source=="system" && sys_) {
                         auto snap=sys_->snapshot();Json data=Json::object();
                         auto add=[&](const char* key,const auto& value){if(value) data[key]=*value;};
@@ -1518,12 +1536,48 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         view.keepout_warning = mono();
     }
     out.area = area;
+    // The override never mutates the configured rotation or normal page index.
+    const auto game_snapshot=game_?game_->snapshot():game::Snapshot{};
+    const auto& game_cfg=cfg_["game_mode"];
+    const auto target=s(game_cfg,"target_display");
+    const bool primary_target=(target=="primary" || (!phone && target==primary_layout_id()));
+    const bool selected=primary_target?(&view==&primary_view_ || (phone && out_.get()==companion_ && !companion_output_)):(phone && !id.empty() && id==target);
+    const auto key=s(game_cfg,"view");
+    auto document=game_snapshot.game && selected && key.starts_with("custom:")?custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7)):std::nullopt;
+    auto content_frame=[&](const Image& source){Image content(area.w,area.h,Color{});if(source.w!=size.first || source.h!=size.second)return content;
+        for(int y=0;y<area.h;++y)std::copy_n(source.px.begin()+size_t(y+area.y)*source.w+area.x,area.w,content.px.begin()+size_t(y)*area.w);return content;};
+    if(document) {
+        const bool entering=!view.game_active;
+        const bool changed=entering || view.game_generation!=game_snapshot.generation;
+        if(entering){view.game_entered=now;view.saved_switched=view.switched;view.saved_page=view.page;}
+        if(changed){view.game_active=true;view.game_generation=game_snapshot.generation;
+            if(b(game_cfg,"intro",true))view.game_intro.begin(content_frame(view.previous_frame),now,b(game_cfg,"reduce_motion"));else view.game_intro.reset();}
+        const bool resizing=view.size!=size || view.area!=area;
+        if(resizing && !entering){view.game_intro.reset();view.cycles.clear();view.fade_caches.clear();}
+        view.step.exchange(0);
+        {std::lock_guard lock(view.next_mu);view.page_request.clear();view.frame_next_requests.clear();view.frame_next_requests.swap(view.next_requests);}
+        if(!dirty && !changed && !resizing && now<view.next_deadline)return out;
+        view.next_deadline=plugins::schedule::never;view.animating=false;
+        std::lock_guard lock(render::mutex());
+        auto pages=page_list(discord_?discord_->friends():std::vector<Friend>{},friends_?friends_->people():std::vector<Friend>{},renderers_for(area.w,area.h),phone,pages_override,&view,now,phone,phone?(id.empty()?"network":id):primary_layout_id(),key);
+        if(!pages.empty() && pages.front().custom_draw) {
+            // draw() shares the existing keepout and arranged-touch transform.
+            auto drawn=draw(pages,{{0,0,area.w,area.h}},0,size,area);
+            out.frame=std::move(drawn.frame);out.taps=std::move(drawn.taps);
+            if(view.game_intro.active(now)) {auto content=view.game_intro.draw(content_frame(out.frame),game_snapshot.logo,game_snapshot.game->name,now);out.frame=device::compose_view(content,size,area,render::theme().bg);out.taps.clear();view.animating=true;}
+            view.next_deadline=std::min(view.next_deadline,now+(view.animating?.05:1.));
+            view.current={key};view.size=size;view.area=area;out.skipped=false;out.switched=changed;
+            out.navigation={{"index",0},{"total",1},{"visible",1},{"current",view.current},{"can_step",false},{"game_mode",true}};
+            view.previous_frame=out.frame;return out;
+        }
+    }
+    if(view.game_active){view.game_active=false;view.game_intro.reset();view.page=view.saved_page;view.switched=now-(view.game_entered-view.saved_switched);view.current.clear();dirty=true;}
     bool due = now - view.switched >= page_seconds;
     auto minute = clock_hhmm();
     bool live = std::count(view.current.begin(), view.current.end(), "system") > 0;
     live = live || std::count(view.current.begin(),view.current.end(),"ai") > 0;
-    if(b(cfg_["ai"],"enabled")) for(const auto& key:view.current) if(key.starts_with("custom:")) {
-        if(auto doc=custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7))) for(const auto& tile:doc->effective(id).tiles) if(tile.source=="ai") live=true;
+    for(const auto& key:view.current) if(key.starts_with("custom:")) {
+        if(auto doc=custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7))) for(const auto& tile:doc->effective(id).tiles) if(tile.source=="ai" || tile.source=="system") live=true;
     }
     // Keep visible playback alive even when silent capture publishes no changes.
     // Otherwise the 3 s activity lease expires before the 4 s simulation delay.
@@ -1600,6 +1654,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     }
     if (out.switched) view.switched = mono();
     view.render_ms = ewma(view.render_ms,(mono()-now)*1000);
+    view.previous_frame=out.frame;
     LOGD("app", "Renderzeit %.1f ms",view.render_ms.value_or(0));
     return out;
 }
@@ -1649,7 +1704,7 @@ void App::render_devices(bool dirty) {
         // Synchronisation betrifft die Companion-Seitenposition, nicht die USB-Ausgabe.
         const auto& shared=companion_output_?companion_view_:primary_view_;
         const bool page_changed=!independent() && d->view.page!=shared.page;
-        if(!independent()) { d->view.page=shared.page;d->view.switched=shared.switched; }
+        if(!independent() && !d->view.game_active) { d->view.page=shared.page;d->view.switched=shared.switched; }
         RenderOut r = render_core(d->view, size, seconds, true, own ? &*own : nullptr, dirty || page_changed, false, id);
         if (r.skipped) { first = false; continue; }
         {
@@ -1865,6 +1920,7 @@ void App::run() {
         companion_->on_device_pages = [this](const std::string&) { mark_dirty(); };
     }
     if (sys_) sys_->start();
+    if (game_) game_->start();
     auto dirty = [this] { mark_dirty(); };
     if (bf6_) bf6_->start(dirty);
     if (rss_) rss_->start(dirty);
@@ -2210,6 +2266,7 @@ void App::run() {
     if (bf6_) bf6_->stop();
     if (rss_) rss_->stop();
     if (streaming_) streaming_->stop();
+    if (game_) game_->stop();
     if (sys_) sys_->stop();
     if (out_) {
         if (b(dp_, "screen_off_on_exit", true) && !restart_) {
