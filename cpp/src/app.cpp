@@ -295,8 +295,24 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
     auto dirty = [this] { mark_dirty(); };
     ai_=std::make_unique<ai::Service>(cfg_path_.parent_path()/L"ai-status");
     if(b(cfg_["ai"],"enabled") && !preview_dir_) {ai_->start(cfg_["ai"].value("port",ai::PORT));ai_->enable_usage(b(cfg_["ai"],"automatic_usage"),b(cfg_["ai"],"codex_real_account"),b(cfg_["ai"],"claude_real_account"));}
-    if (b(bf, "enabled") && bf.contains("players") && bf["players"].is_array() && !bf["players"].empty())
+    if (b(bf, "enabled") && bf.contains("players") && bf["players"].is_array() && !bf["players"].empty()) {
         bf6_ = std::make_unique<bf6::Bf6Stats>(bf);
+        // Auto-Heilung: gefundene Spieler-ID als "#id" in config.toml nachtragen (Datei neu laden, cfg_ bleibt unverändert)
+        if (!preview_dir_)
+            bf6_->set_on_heal([this](const std::string& entry, const std::string& healed) {
+                try {
+                    std::lock_guard lk(cfg_mu_);
+                    ojson disk = config::load(cfg_path_);
+                    if (!disk.contains("bf6") || !disk["bf6"].contains("players") || !disk["bf6"]["players"].is_array()) return;
+                    bool changed = false;
+                    for (auto& e : disk["bf6"]["players"])
+                        if (e.is_string() && e.get<std::string>() == entry) { e = healed; changed = true; }
+                    if (changed) config::save(cfg_path_, disk);
+                } catch (const std::exception& ex) {
+                    LOGD("bf6", "BF6: ID nicht gespeichert: %s", ex.what());
+                }
+            });
+    }
     if (b(rs, "enabled") && rs.contains("feeds") && rs["feeds"].is_array() && !rs["feeds"].empty())
         rss_ = std::make_unique<rss::RssFeeds>(rs);
     // Streaming-Neustarts: auch ohne Key anlegen, damit die Seite „Kein Key“ zeigt (Anfragen gibt es erst mit Key)

@@ -364,6 +364,33 @@ static void test_bf6_platforms() {
     auto n = bf6::name_candidates("P4p4F0x");
     CHECK(n.size() == 2 && n[0] == "P4p4F0x" && n[1] == "p4p4f0x");
     CHECK(bf6::name_candidates("abc").size() == 1);
+    // Spieler-ID im Eintrag: "Name#id" / "Name@psn#id", alte Formate unverändert
+    auto e = bf6::parse_entry_full("schmieselbeehee#1008293746");
+    CHECK(e.name == "schmieselbeehee" && e.platform == "pc" && e.id == "1008293746");
+    e = bf6::parse_entry_full(" Fox@psn#1234567 ");
+    CHECK(e.name == "Fox" && e.platform == "psn" && e.id == "1234567");
+    e = bf6::parse_entry_full("Fox@XBOX");
+    CHECK(e.name == "Fox" && e.platform == "xbox" && e.id.empty());
+    e = bf6::parse_entry_full("Fox");
+    CHECK(e.name == "Fox" && e.platform == "pc" && e.id.empty());
+    e = bf6::parse_entry_full("Fox#1234");  // kurze Zahl = Teil des Gamertags, keine ID
+    CHECK(e.name == "Fox#1234" && e.id.empty());
+    e = bf6::parse_entry_full("Fox #1@xbox");
+    CHECK(e.name == "Fox #1" && e.platform == "xbox" && e.id.empty());
+    e = bf6::parse_entry_full("Fox@unbekannt#123456");
+    CHECK(e.name == "Fox@unbekannt" && e.platform == "pc" && e.id == "123456");
+    e = bf6::parse_entry_full("#1234567");  // nur eine Zahl: bleibt Name
+    CHECK(e.name == "#1234567" && e.id.empty());
+    CHECK(bf6::parse_entry("Fox@psn#1234567") == std::make_pair(std::string("Fox"), std::string("psn")));
+    CHECK(bf6::parse_entry("Fox")  == std::make_pair(std::string("Fox"), std::string("pc")));
+    // ID aus JSON und Suchtreffer (Name nur exakt bzw. ohne Groß/Klein, sonst keine ID)
+    CHECK(bf6::json_id(nlohmann::json(1008293746LL)) == "1008293746" && bf6::json_id(nlohmann::json(" 77 ")) == "77");
+    CHECK(bf6::json_id(nlohmann::json(0)).empty() && bf6::json_id(nlohmann::json()).empty() && bf6::json_id(nlohmann::json(false)).empty());
+    auto res = nlohmann::json::parse(R"({"results":[{"name":"abc","id":1},{"userName":"ABC","personaId":"22"},{"name":"abcd","id":3}]})");
+    CHECK(bf6::pick_search_id(res, "ABC") == "22" && bf6::pick_search_id(res, "abc") == "1");
+    CHECK(bf6::pick_search_id(res, "AbC") == "1");
+    CHECK(bf6::pick_search_id(res, "xyz").empty() && bf6::pick_search_id(nlohmann::json::parse(R"({"results":[]})"), "abc").empty());
+    CHECK(bf6::pick_search_id(nlohmann::json::parse(R"([{"name":"Fox","nucleusId":99}])"), "fox") == "99");
 }
 
 static void test_spotify() {
@@ -696,6 +723,12 @@ static void test_touch_targets() {
     CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/ps4/name/%C3%9Cni%2Fcode%3Fx%3D1?game=bf6"));
     p.query = "Fox@steam";
     CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/pc/name/Fox?game=bf6"));
+    // mit Spieler-ID (Eintrag oder Abfrage) zeigt der Link auf die ID-Seite
+    p.query = "Fox@psn#1234567890";
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/ps4/playerid/1234567890?game=bf6"));
+    p.query = "Fox"; p.id = "42424242";
+    CHECK_EQ(touch::player_targets(p)[0].url, std::string("https://gametools.network/stats/pc/playerid/42424242?game=bf6"));
+    p.id.clear();
     p.error = "nicht gefunden";
     CHECK(touch::player_targets(p).empty());
     p.error.clear(); p.query.clear();

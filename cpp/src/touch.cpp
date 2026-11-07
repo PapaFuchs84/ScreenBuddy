@@ -88,11 +88,15 @@ Targets friend_targets(const Friend& person) {
 
 Targets player_targets(const Bf6Player& player) {
     if (!player.error.empty()) return {};
-    auto [name, platform] = bf6::parse_entry(player.query);
+    auto [name, platform, id] = bf6::parse_entry_full(player.query);
     if (name.empty()) return {};
     // Die Webseite kennt andere Plattformkürzel als die Stats-API ("ea" ergibt dort eine leere Seite).
     std::string web_platform = platform == "ps" || platform == "psn" ? "ps4" :
                                platform == "xbox" || platform == "xbl" ? "xboxone" : "pc";
+    // Mit Spieler-ID (aus dem Eintrag oder von der Abfrage) zeigt der Link auf die ID-Seite – unabhängig vom Namen
+    if (id.empty()) id = player.id;
+    if (!id.empty() && std::all_of(id.begin(), id.end(), [](char c) { return c >= '0' && c <= '9'; }))
+        return {{"https://gametools.network/stats/" + web_platform + "/playerid/" + id + "?game=bf6", ""}};
     return {{"https://gametools.network/stats/" + web_platform + "/name/" + http::url_encode(name) + "?game=bf6", ""}};
 }
 

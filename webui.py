@@ -192,7 +192,7 @@ class SettingsServer:
         if p.error:
             return _json({"ok": False, "error": "Spieler nicht gefunden"})
         return _json({"ok": True, "name": p.name, "rank": p.rank, "rank_name": p.rank_name,
-                      "kd": p.kd, "win_pct": p.win_pct})
+                      "kd": p.kd, "win_pct": p.win_pct, "id": p.id})  # id: zum Übernehmen als "Name#id"
 
     async def check_rss(self, request: web.Request) -> web.Response:
         url = request.query.get("url", "").strip()
