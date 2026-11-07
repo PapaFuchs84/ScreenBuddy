@@ -36,7 +36,7 @@ void require_fonts() {
     ComPtr<IDWriteFontCollection> fonts;
     if (FAILED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
                                   reinterpret_cast<IUnknown**>(factory.GetAddressOf()))) ||
-        FAILED(factory->GetSystemFontCollection(&fonts)))
+        FAILED(factory->GetSystemFontCollection(&fonts, TRUE)))
         throw std::runtime_error("DirectWrite-Systemschriften konnten nicht gelesen werden; kein Vergleich.");
     for (auto name : {L"Roboto", L"Segoe UI Variable"}) {
         UINT32 index = 0; BOOL exists = FALSE;
