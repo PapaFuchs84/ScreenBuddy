@@ -32,6 +32,9 @@
 
 using namespace fl;
 namespace fs = std::filesystem;
+int ai_cli_fixture(int argc,char** argv);
+int test_ai_cli(bool real);
+int test_ai_status(const std::filesystem::path& output = {});
 
 static int g_fail = 0, g_ok = 0;
 #define CHECK(cond)                                                              \
@@ -64,7 +67,7 @@ static void test_config() {
     fs::remove(tmp);
     ojson cfg = config::load(tmp);
     CHECK_EQ(cfg["ui"]["port"].get<int>(), 8765);
-    CHECK_EQ(cfg["display"]["pages"].size(), (size_t)8);
+    CHECK_EQ(cfg["display"]["pages"].size(), 9u);
     ojson in = {{"display", {{"brightness", "250"}, {"theme", "dunkel"}, {"color_bg", "#aabbcc"}}},
                 {"discord", {{"token", "geheim"}, {"guild_ids", {"123456789012345678", " ", "5"}}}},
                 {"rss", {{"feeds", {"a.de", "a.de", " b.de "}}}}};
@@ -142,7 +145,7 @@ static void test_config() {
                                                         {"visible_pages", {"system", "plugin:wetter", "plugin:"}}}}});
     CHECK_EQ(with_plugin["display"]["pages"][0], ojson("plugin:wetter"));
     CHECK_EQ(with_plugin["display"]["pages"][1], ojson("system"));
-    CHECK_EQ(with_plugin["display"]["pages"].size(), (size_t)9);
+    CHECK_EQ(with_plugin["display"]["pages"].size(), 10u);
     CHECK_EQ(with_plugin["display"]["visible_pages"], ojson::array({"system", "plugin:wetter"}));
     CHECK(config::is_page_key("plugin:wetter"));
     CHECK(!config::is_page_key("plugin:"));
@@ -1320,6 +1323,11 @@ static void test_standard_theme() {
     fs::remove_all(root);
 }
 int main(int argc, char** argv) {
+    wchar_t aiModule[MAX_PATH];GetModuleFileNameW(nullptr,aiModule,MAX_PATH);
+    if(std::filesystem::path(aiModule).filename()==L"codex.exe" || std::filesystem::path(aiModule).filename()==L"claude.exe") return ai_cli_fixture(argc,argv);
+    if(argc>=2 && std::string(argv[1])=="ai-cli-test") return test_ai_cli(false);
+    if(argc>=2 && std::string(argv[1])=="ai-cli-probe") return test_ai_cli(true);
+
     if (argc == 2 && std::string(argv[1]) == "plugin-touch") {
         gfx_init();
         test_touch_targets(); test_system_touch(); test_plugin_taps();
@@ -1333,6 +1341,11 @@ int main(int argc, char** argv) {
     if (argc >= 6 && std::string(argv[1]) == "touch")
         return touch_probe(atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
     gfx_init();
+    if (argc >= 2 && std::string(argv[1]) == "ai-status") {
+        try {return test_ai_status(argc>=3?fs::path(argv[2]):fs::path{}) ? 1 : 0;}
+        catch(const std::exception& e) {std::printf("AI exception: %s\n",e.what());return 1;}
+    }
+    CHECK(test_ai_status()==0);
     test_editor_contrast();
     test_transfer_simulated();
     test_plugin_taps();

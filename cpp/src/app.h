@@ -74,6 +74,7 @@ public:
 
     // ---------- für die Einstellungsseite ----------
     ojson cfg();                                    // Kopie der aktuellen Konfiguration
+    ai::Service& ai_status() { return *ai_; }
     void set_setup_done();
     const std::filesystem::path& cfg_path() const { return cfg_path_; }
     std::pair<int, int> size() const;
@@ -247,6 +248,7 @@ private:
     std::map<std::pair<int, int>, std::unique_ptr<RendererSet>> sets_;
 
     std::unique_ptr<bf6::Bf6Stats> bf6_;
+    std::unique_ptr<ai::Service> ai_;
     std::unique_ptr<rss::RssFeeds> rss_;
     std::unique_ptr<tmdb::TmdbFeed> streaming_;
     std::unique_ptr<sysinfo::SysMonitor> sys_;

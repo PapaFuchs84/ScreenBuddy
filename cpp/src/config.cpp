@@ -21,7 +21,7 @@
 
 namespace fl::config {
 
-const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify"};
+const std::vector<std::string> PAGES = {"system", "friends", "discord", "bf6", "rss", "streaming", "homeassistant", "spotify", "ai"};
 
 bool is_page_key(const std::string& k) {
     if (std::count(PAGES.begin(), PAGES.end(), k)) return true;
@@ -36,6 +36,7 @@ using Key = std::pair<std::string, std::string>;
 const ojson& defaults() {
     static const ojson d = [] {
         ojson j;
+        j["ai"] = {{"enabled",false},{"automatic_usage",false}};
         j["discord"] = {{"enabled", true}, {"token", ""}, {"guild_ids", ojson::array()}, {"friend_ids", ojson::array()},
                         {"ignore_ids", ojson::array()}, {"show_offline", false}};
         j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}, {"brightness", 50}, {"reset_on_start", true},
@@ -396,6 +397,7 @@ static const std::map<std::string, std::string> HEADERS = {
     {"discord", "Discord-Freunde (Bot-Token, Server, Personen)"},
     {"display", "Display und Seitenwechsel (pages = Reihenfolge der Seiten)"},
     {"system", "Systemansicht"},
+    {"ai", "KI-Status / AI Status (nur lokal / local only)"},
     {"homeassistant", "Home Assistant (Adresse, Zugriffstoken, bis zu 4 Entitäten; Schalter nur mit Touch)"},
     {"spotify", "Spotify (Client-ID deiner Spotify-Developer-App; Anmeldung in den Einstellungen, Tokens in spotify.token; Steuern nur mit Touch und Spotify Premium)"},
     {"friends", "Gemeinsame Freundesliste (Discord, Steam, Xbox, PlayStation); links = manuell verknüpfte Personen"},

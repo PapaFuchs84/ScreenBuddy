@@ -19,6 +19,7 @@
 #include "models.h"
 #include "spotify.h"
 #include "plugin_zones.h"
+#include "ai_status.h"
 
 namespace fl::render {
 
@@ -96,6 +97,19 @@ private:
     class FriendArrangedHintBlock;
     plugins::zones::Plan friend_arrangement(const builtin::Overlay& overlay) const;
     std::vector<plugins::zones::PlacedBlock> friend_layout() const;
+};
+
+class AiRenderer : public Renderer {
+public:
+    AiRenderer(int w, int h) : Renderer(w,h,"KI-Status") {}
+    Image render(const ai::Snapshot& snapshot, double tick, std::time_t now);
+    BuiltinDrawOut render_arranged(const ai::Snapshot& snapshot, const builtin::Overlay& overlay, double tick, std::time_t now);
+    Image render_tile(const std::string& source, const ai::Snapshot& snapshot, std::time_t now);
+private:
+    void draw_tile(Canvas& canvas, const plugins::zones::Rect& area, const std::string& source, const ai::Snapshot& snapshot, std::time_t now);
+    struct Row { ai::Session session; float y=0, opacity=0; bool present=false; double changed=0; size_t ordinal=1; };
+    std::map<std::string,Row> rows_;
+    double previous_ = 0;
 };
 
 class Bf6Renderer : public Renderer {
