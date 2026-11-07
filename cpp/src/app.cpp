@@ -563,7 +563,7 @@ std::optional<Image> App::custom_preview(const custom::View& view,const std::str
     RendererSet rs(width,height,cfg_);using namespace render::samples;
     return custom::draw(view,device,width,height,[&](const custom::Tile& tile,const custom::Layout& layout,int w,int h)->std::optional<Image> {
         if(tile.source=="system" && game::metric_tile(tile.block)) {
-            auto snap=system();snap.fps=120;snap.frametime_ms=8.33;snap.fps_low=90;snap.gpu_mhz=2400;snap.gpu_watts=180;snap.ping_ms=12;snap.jitter_ms=1;snap.cpu_cores={24,50,80,12};snap.frametime_hist={8,9,8,12,7,8};
+            auto snap=system();snap.fps=120;snap.frametime_ms=8.33;snap.fps_low=90;snap.gpu_mhz=2400;snap.gpu_watts=180;snap.ping_ms=12;snap.jitter_ms=1;snap.cpu_cores={24,50,80,12};snap.frametime_hist.clear();snap.fps_hist.clear();for(int i=0;i<60;++i){snap.frametime_hist.push_back(8+(i%7)*.6);snap.fps_hist.push_back(120-(i%7)*3);}
             if(!custom::visible(tile,game::metric_values(snap,"Example Game",3600)))return {};
             return game::draw_metric(tile,layout,w,h,snap,"Example Game",3600);
         }
@@ -749,6 +749,12 @@ std::vector<std::string> App::active_pages(bool companion, const std::vector<std
     if(!pages_override) for(const auto& view:custom::Store(cfg_path_.parent_path()/L"views").list()) {
         auto key="custom:"+view.id;
         if(std::none_of(order.begin(),order.end(),[&](const auto& p){return p==key;})) out.push_back(key);
+    }
+    // Reserved on every output, including device overrides and implicit custom pages.
+    // page_list() also uses this list to grant navigation/tap destinations.
+    if(b(cfg_["game_mode"],"enabled")) {
+        const auto reserved=s(cfg_["game_mode"],"view");
+        std::erase(out,reserved);
     }
     return out;
 }

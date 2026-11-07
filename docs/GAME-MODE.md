@@ -20,7 +20,23 @@ Game-Mode erkennt ein laufendes Spiel und zeigt auf dem gewählten ScreenBuddy-D
 
 Steam-Spiele werden über die Steam-Registry und lokale Bibliotheks-/App-Manifeste zugeordnet. Epic verwendet die lokalen Launcher-Manifeste. Xbox/Game-Pass-Spiele werden anhand der `XboxGames`-Installationspfade zugeordnet. Die allgemeine Erkennung prüft Vordergrundfenster/Vollbild und die Zugehörigkeit zu einer bekannten Spielebibliothek. Ein beliebiges Vollbildfenster allein gilt nicht als Spiel.
 
-**Zusätzliche Spiele:** je Zeile der vollständige Pfad zu einer Spiel-EXE, etwa `D:\Spiele\Beispielspiel\Spiel.exe`. Keine Befehlszeilen, Platzhalter oder Verzeichnisse eintragen. **Ausschlüsse:** je Zeile ein EXE-Dateiname oder vollständiger EXE-Pfad. Browser, Explorer und Medienplayer werden grundsätzlich ausgeschlossen; weitere Launcher-/Hilfsprogramme bei Bedarf ergänzen.
+Zusätzlich werden folgende lokale HKLM-Registry-Einträge gelesen (jeweils `SOFTWARE\WOW6432Node` und die native `SOFTWARE`-Ansicht):
+
+| Bibliothek | Quelle und Name |
+| --- | --- |
+| GOG Galaxy | `GOG.com\Games\<id>`: `gameName`, `path`, optional `exe`. |
+| Ubisoft Connect | `Ubisoft\Launcher\Installs\<id>\InstallDir`; Name aus einem Uninstall-Eintrag mit identischem Installationspfad, sonst aus dem Ordnernamen. |
+| EA App/Origin | `EA Games\<Name>` oder `Electronic Arts\<Name>`: `Install Dir`; außerdem Uninstall-Einträge mit Publisher `Electronic Arts`/`EA` (auch die unterstützten `Inc.`-Schreibweisen) und `InstallLocation`. |
+| Battle.net/Blizzard | Uninstall-Einträge mit Publisher `Blizzard Entertainment` (auch `Inc.`) und `InstallLocation`. Zusätzlich `Blizzard Entertainment\Battle.net` beziehungsweise `Battle.net`, Wert `InstallPath`, oder der Battle.net-Uninstall-Pfad: nur fest benannte Spielordner darin und direkt daneben. |
+| Rockstar | `Rockstar Games\<Name>\InstallFolder`. |
+
+Uninstall bedeutet `Microsoft\Windows\CurrentVersion\Uninstall\<Eintrag>` unter den genannten HKLM-Ansichten. Für Battle.net umfasst die Ordnerliste World of Warcraft, Diablo III/IV, StarCraft/II, Hearthstone, Heroes of the Storm, Overwatch und Warcraft III/Warcraft III Reforged. Es gibt keine rekursive Laufwerkssuche und keine Abfrage von Launcher-Konten oder undokumentierten Datenbanken.
+
+Bei allen neuen Bibliotheken muss zum Start ein Prozess unter dem registrierten Installationspfad laufen und dessen Fenster im Vordergrund Vollbild/Borderless belegen. Auch eine hinterlegte GOG-EXE umgeht diese Prüfung nicht; Epic-EXE-Treffer verwenden jetzt ebenfalls die Fensterprüfung. Steam behält den bisherigen `RunningAppID`-Sonderweg; manuell eingetragene EXEs gelten weiterhin als exakte Treffer ohne Fensterprüfung. Ein bereits bestätigter, unverändert laufender Spielprozess bleibt beim Alt-Tab aktiv. Die Bibliotheken werden ungefähr alle 60 Sekunden neu eingelesen.
+
+Grenzen: Fehlende/veraltete Registry-Einträge, reine Benutzerinstallationen ohne passenden HKLM-Eintrag, abweichende Publisher-Namen oder andere Battle.net-Spielordner können Erkennung verhindern. Dann den tatsächlichen Spiel-EXE-Pfad manuell ergänzen. Ein unbekanntes Hilfsprogramm im Spielordner kann als Spiel gelten, wenn es selbst im Vordergrund Vollbild läuft; bei Bedarf ausschließen. Pfadzugehörigkeit wird lexikalisch geprüft, ohne Junction-/Symlink-Auflösung. Nicht-Steam-Spiele verwenden das EXE-Icon plus Spielname; fehlt das Icon, bleibt der Name. Echte Abnahme dieser fünf Launcher steht aus.
+
+**Zusätzliche Spiele:** je Zeile der vollständige Pfad zu einer Spiel-EXE, etwa `D:\Spiele\Beispielspiel\Spiel.exe`. Keine Befehlszeilen, Platzhalter oder Verzeichnisse eintragen. **Ausschlüsse:** je Zeile ein EXE-Dateiname oder vollständiger EXE-Pfad. Browser, Explorer, Medienplayer, bekannte Launcher, `Agent.exe`, Blizzard-Fehler-/Crashhandler und EXE-Namen mit `Launcher` werden grundsätzlich ausgeschlossen (ohne Beachtung der Groß-/Kleinschreibung). Das gilt auch für `EAAntiCheat.GameServiceLauncher.exe`, `BEService.exe` und `EasyAntiCheat*.exe`; weitere Hilfsprogramme bei Bedarf ergänzen.
 
 Die Erkennung entprellt Wechsel: Ein Spiel muss mindestens drei Sekunden stabil erkannt werden, bevor Game-Mode startet. Nach fünf Sekunden ohne das bisherige Spiel endet Game-Mode. Kurzzeitiges Erkennen oder Verschwinden löst damit keinen sofortigen Seitenwechsel aus. Die Spielzeit zählt die erkannte Sitzung, keine vom Spielekonto gelieferte Gesamtspielzeit.
 
@@ -75,3 +91,17 @@ Die App-EXE enthält den Installer. Sie für Tests ausschließlich über ein iso
 Unit-Tests prüfen die Logik; eine Dummy-Prozess-Simulation prüft die isolierte App-Integration. Solche Prüfungen belegen keine reale Spieleerkennung über alle Launcher, keine physische Display-/Touch-Ausgabe und keine Hardwaremesswerte. Ausgeführte Prüfungen mit Ergebnis, Screenshot und noch offene Abnahmen stehen ausschließlich im [aktuellen Prüfstand](PLAN-GAME-MODE.md#p9-6-tests-und-doku).
 
 Prüfung am 07.11.2026: 26 automatisierte Suiten und die isolierte Dummy-Simulation bestanden. Das Startskript liegt nun im Projekt unter `cpp/tests/Start-GameMode-Test.ps1`; Aufruf mit `python cpp/tests/game_mode_integration.py`. UI 18766; KI blieb wegen belegtem 18765 ausgeschaltet. Aktuelle Vorschaubilder liegen nur lokal unter `cpp/build/game-mode-test/`. Vollständiger Prüfstand und offene echte Spiel-/Hardwareabnahme im Plan.
+
+P9-7: Die fünf zusätzlichen Registry-Quellen und Ausschlüsse sind durch synthetische Unit-Tests abgedeckt (196 Game-Mode-Prüfungen insgesamt); echte Launcher-/Spiel- und Hardwareabnahme wurde dafür nicht ausgeführt. Aktueller Gesamtlauf und Grenzen: [P9-7-Prüfstand](PLAN-GAME-MODE.md#p9-7-weitere-spielebibliotheken).
+
+## P9-8
+
+Solange Game-Mode aktiviert ist, ist die gewählte Ansicht auf allen Ausgaben aus normaler Rotation, Navigation, Companion-Seitenlisten und Seiten-Tap-Zielen reserviert. Sie erscheint nur im Game-Mode-Pfad. Bei deaktiviertem Game-Mode ist sie wieder eine normale Seite.
+
+Nicht-Steam-Spiele (auch GOG/Ubisoft) verwenden das direkt aus der laufenden EXE extrahierte Icon mit bis zu 256 Pixeln. Bei passendem `Application Executable` im benachbarten `AppxManifest.xml` werden zuerst Paket-Logos einschließlich Größenvarianten gelesen; danach EXE-Icon, Shell-Icon und Name. Fehlende Rechte oder nicht auflösbare Paketressourcen bleiben Fallback-Fälle; das erweitert nicht die Spielerkennung.
+
+Die neue Vorlage enthält oben Logo, Name und Spielzeit, darunter neun Metriken in drei Spalten. Bestehende gespeicherte Layouts werden nicht überschrieben; die Vorlage bei Bedarf neu anlegen. Spielkacheln einschließlich CPU/GPU verwenden gemeinsame Karten, Rundungen, orange Titel und größere Werte. FPS/Frametime zeigen bei ausreichender Höhe und Dichte oberhalb „Kompakt“ einen Verlauf aus bis zu 60 Sekundenwerten. Ungültige Messungen bleiben Lücken; ein Prozesswechsel leert den Verlauf. Das zehnsekündige ETW-Statistikfenster bleibt unverändert.
+
+Das Intro wird im normalen Ausgabeframe komponiert, in `last_frame()` gespeichert und ist über `/api/preview.png` sichtbar. Der isolierte Test auf Port 18766 prüft verschiedene Intro-Frames und den anschließenden Ansichtsframe. Das ist ein Software-Nachweis, keine physische Displayabnahme.
+
+P9-8-Prüfstand: 26/26 Suiten (207 Game-Mode-Prüfungen) und isolierte Dummy-/Intro-Integration auf 18766 bestanden. Echte Launcher-Logos und physische Displays nicht getestet; Einzelheiten im [Plan](PLAN-GAME-MODE.md#p9-8-rotation-logos-und-spielkacheln).

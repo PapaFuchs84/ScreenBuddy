@@ -8,6 +8,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 BF6-Rangliste: Spieler lassen sich jetzt per ID eintragen (`Name#ID`, `Name@psn#ID`; alte Einträge bleiben gültig). Abfrage per `playerid`, der Name dient nur der Anzeige. Nach einer erfolgreichen Namenssuche merkt sich die App die ID und trägt sie in die Konfiguration ein; bei Fehlschlag Rückfall über Spielersuche und Kleinschreibung. „Prüfen“ zeigt die gefundene ID (Web-Oberfläche mit „ID übernehmen“ und optionalem ID-Feld); der Web-Link führt bei vorhandener ID auf die ID-Seite. Python-Variante an die PC-Reihenfolge `pc, ea` angeglichen.
 
+P9-8: Game-Ansicht bei aktiviertem Game-Mode aus normaler Rotation, Companion-Navigation und Tap-Zielen reserviert. Direkte EXE-Icons/Paket-Logos, einheitliche Spielkacheln, größere Werte, neue Vorlage und 60-Sekunden-Sparklines für FPS/Frametime. Isolierte Rotations-/Intro-Prüfung und synthetische Regressionstests; echte Spiele und physische Displays bleiben offen.
+
+P9-7: Lesende Bibliotheksquellen für GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard und Rockstar. Austauschbarer Registry-Zugriff, synthetische Parser-/Filtertests, Vollbildprüfung auch bei GOG-/Epic-EXE-Treffern; Launcher-/Anti-Cheat-Ausschlüsse erweitert. DE/EN-Doku und Hilfen aktualisiert; Prüfstand und offene echte Launcher-Abnahme im [Plan](docs/PLAN-GAME-MODE.md).
+
 P9-6: 26 automatisierte Suiten grün, darunter 114 Game-Mode-Prüfungen; isolierte Dummy-Simulation auf UI 18766 mit Intro-/Aktiv-/Rückkehr-Vorschaubildern bestanden. KI-Empfänger wegen belegtem 18765 aus. Offene PresentMon-/Hardwaregrenzen und nicht ausgeführte Installer-Tests im [Plan](docs/PLAN-GAME-MODE.md).
 
 P9-5: Game-Mode-Einstellungen, Display-/Ansichtsauswahl, zusätzliche Spiele/Ausschlüsse, Editor-Vorlage und Game-Mode-Palette. Hintergrund-Erkennung mit asynchronen Logos, Intro und pausierter normaler Rotation; Rückkehr nach Spielende. DE/EN-Bedienung und eingebettete Hilfen synchronisiert. Lokale Entwicklung, kein Release.

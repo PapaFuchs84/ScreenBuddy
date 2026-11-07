@@ -82,3 +82,45 @@ Lokale, nicht eingecheckte Artefakte: `cpp/build/game-mode-checks/results.json` 
 - [Windows Prozessrechte](https://learn.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights), [Vollbildstatus](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shqueryusernotificationstate).
 - [NVML Device Queries](https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html), [AMD ADL OD5](https://gpuopen-librariesandsdks.github.io/adl/group__OVERDRIVE5API.html), [ADL AdapterInfo](https://gpuopen-librariesandsdks.github.io/adl/structAdapterInfo.html).
 - [DXGI-Eventmetadaten, PresentMon/MIT](https://github.com/GameTechDev/PresentMon/blob/main/PresentData/ETW/Microsoft_Windows_DXGI.h), [ICMP](https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpsendecho). Keine libre-panel-Quellen eingesehen/verwendet.
+
+
+## P9-7 Weitere Spielebibliotheken
+
+Lokale Umsetzung auf `feature/game-mode` (Basis `2cb5918`), kein Release. `Discovery::refresh()` ergänzt GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard und Rockstar. Die genauen Registry-Pfade, Namens-/Ordner-Fallbacks und Grenzen stehen gemeinsam gepflegt in [DE](GAME-MODE.md#spielerkennung) und [EN](GAME-MODE.en.md#game-detection).
+
+- Austauschbare `Registry`-Schnittstelle für die neuen HKLM-Quellen; produktiv ausschließlich `RegOpenKeyExW`/`RegEnumKeyExW`/`RegGetValueW` mit lesenden Rechten, explizit native und WOW6432Node-Ansicht. Fehlende Werte/Leserechte liefern keine Einträge. Höchstens 10.000 Unterschlüssel pro Abfrage; keine Registry-Schreibzugriffe.
+- Installationspfade müssen absolut sein und dürfen kein Laufwerkswurzelverzeichnis sein. Doppelte Installationspfade werden zusammengeführt. GOG-EXE-Metadaten außerhalb des Spielordners werden verworfen; die Pfaderkennung bleibt nutzbar. Battle.net prüft ausschließlich zehn fest benannte Spielordner unter/neben dem registrierten Launcherpfad; keine rekursive Suche oder proprietäre Datenbank.
+- Neue Bibliotheken: Prozess im Installationspfad plus Vordergrund/Vollbild oder Borderless zum Start; eine exakte GOG-EXE umgeht die Fensterprüfung nicht. Der bisherige exakte Epic-EXE-Sonderweg verwendet jetzt ebenfalls die Fensterprüfung. Steam-RunningAppID und manuelle EXE-Treffer behalten ihre bisherigen Sonderwege; bestätigte Prozesse bleiben beim Alt-Tab aktiv.
+- Standardfilter: bekannte Launcher, Origin, Agent, BlizzardError/CrashHandler, EXE-Namen mit `Launcher`, EAAntiCheat.GameServiceLauncher, BEService und EasyAntiCheat*. Der Filter gilt auch für manuelle Einträge und bereits bestätigte Prozesse. Keine Prozessrechte über `PROCESS_QUERY_LIMITED_INFORMATION`, keine Hooks/Injektion, keine Prozessspeicherabfragen. Nicht-Steam nutzt den vorhandenen EXE-Icon-/Namens-Fallback ohne Launcher-Netzabfragen.
+- Grenzen: Erkennung hängt von lokalen HKLM-Einträgen/Publisher-Schreibweisen ab; reine Benutzerinstallationen, abweichende Ordner und unbekannte Hilfsprogramme sind nicht vollständig abgedeckt. Pfade werden lexikalisch verglichen, Junctions/Symlinks nicht aufgelöst. Eine manuelle Spiel-EXE beziehungsweise ein zusätzlicher Ausschluss bleibt der Rückfall.
+
+Prüfstand am 07.11.2026:
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Build | Bestehender CMake/Ninja-MSVC-Release-Build erfolgreich. Ausschließlich lokale Entwicklungsartefakte, keine Auslieferung. |
+| Game-Unit-Tests | **196 Prüfungen bestanden**, davon **82 neue** mit synthetischer Registry/Dateisystem-Prüffunktion unter `cpp/tests/game_tests/registry_tests.h`: alle fünf Quellen, native/WOW-Daten, fehlende/ungültige Pfade und Werte, Dubletten, Ubisoft-Namen, Publisher, Battle.net-Ordner, EXE-Ausbruch, Launcher/Anti-Cheat, Vordergrundbedingung einschließlich Epic sowie bestehende Steam-/manuelle Sonderwege. Keine echte Registry oder Spielprozesse für diese neuen Tests. |
+| Gesamtsuiten | **26/26 bestanden** über `python cpp/tests/game_mode_checks.py`, ohne App-Integration. Der erste Lauf stoppte beim bestehenden Custom-View-Test mit `Dynamic receiver failed: 0`; ein unabhängiger dynamischer Loopback-Bind und der unveränderte vollständige Wiederholungslauf bestanden. Ursache des einmaligen Empfänger-Startfehlers nicht geklärt, kein Fix behauptet. Nach zwei zusätzlichen Epic-Regressionstests nur `fl-game-tests` erneut gebaut und mit **196/196** bestanden. |
+| Dokumentation | 227 lokale Links aus README DE/EN, C++-README, Referenz DE/EN und Game-Mode-Dokumenten auf existierende Ziele geprüft. JavaScript-Syntax aller vier Anleitungsvorlagen/-ressourcen grün, Game-Mode-Hilfe zwischen Vorlage/Ressource je Sprache identisch. Versions-/Download-/Laufzeitangaben bleiben beim bisherigen Release; kein Versionswechsel. |
+| Nicht ausgeführt | Keine neue App-/Dummy-Integration, keine echten Launcher-/Spielstarts, kein physischer Display-/Touch-/Sensor-/Anti-Cheat-Abnahmetest, kein Installer/Upgrade/Release. Keine App-EXE gestartet, keine Tests gegen 8765, keine hörbaren Töne, kein Push. Der historische P9-6-Integrationsnachweis oben bleibt unverändert. |
+
+Ergebnisdateien bleiben lokal unter `cpp/build/game-mode-checks/`; keine Konfigurationen, Logs oder privaten Screenshots werden eingecheckt.
+
+## P9-8 Rotation, Logos und Spielkacheln
+
+Lokale Entwicklung auf `feature/game-mode`, Basis `8822084`; kein Release. `active_pages()` reserviert die konfigurierte Game-Ansicht bei aktiviertem Game-Mode für alle Ausgaben einschließlich Companion-Gerätelisten und Tap-Freigaben. Der Game-Mode-/Intro-Pfad bleibt unverändert. Bei deaktiviertem Game-Mode ist die Ansicht wieder normal verfügbar.
+
+Direkte EXE-Icon-Extraktion bis 256 px vor Shell-Fallback; passende AppxManifest-Logos mit Größenvarianten vor EXE-Fallback. Keine zusätzliche UWP-Spielerkennung. Einheitlicher Spielkachel-Renderer einschließlich CPU/GPU, adaptive größere Typografie, Vorlage mit Kopfzeile und 3×3 Metriken, FPS-/Frametime-Sparklines aus bis zu 60 Sekundenwerten (Lücken bei fehlenden Daten, Reset bei Prozesswechsel). Bestehende gespeicherte Ansichten bleiben erhalten.
+
+Prüfstand am 07.11.2026:
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Build | MSVC/CMake/Ninja-Release-Build erfolgreich; lokale Entwicklungsartefakte, keine Auslieferung. |
+| Automatisierte Suiten | **26/26 bestanden** über `python cpp/tests/game_mode_checks.py`; darunter **207 Game-Mode**, **2143 Custom-View** und **1874 Layout-/UI-Prüfungen**. Reservation bei expliziten/automatisch ergänzten Ansichten, Companion-Gerätelisten, Tap-Freigaben und deaktiviertem Game-Mode geprüft. Synthetische Paket-Assets mit größter Größenvariante, EXE-Icon-/GOG-/Ubisoft-Codepfad und 60-Sekunden-Verlauf einschließlich Lücken/Prozesswechsel geprüft. |
+| App-Integration | `python cpp/tests/game_mode_integration.py` über `Start-GameMode-Test.ps1`, ausschließlich UI **18766**, KI deaktiviert. Je acht Seitenwechsel vor/nach Dummy-Spiel ohne Game-Ansicht; erkannter Dummy zeigt die Game-Ansicht; nach Spielende Rückkehr, bei deaktiviertem Game-Mode normale Rotation. Drei unterschiedliche Intro-Frames aus `/api/preview.png` und anschließender Ansichtsframe bestätigt. |
+| Bildreferenzen | P9-Custom-Editor-/Game-Mode-Hashes bewusst aktualisiert; zusätzliche gerenderte Vorlagen in DE/EN bei 480×320 und 1520×720. Die deutschen Renderbilder beider Größen sowie Intro/Rückkehr angesehen. Andere Referenzdateien unverändert. |
+| Dokumentation | Game-Mode DE/EN und drei Changelogs aktualisiert; lokale Ziele ihrer Markdown-Links und `git diff --check` geprüft. README-/Versions-/Download-/Laufzeitangaben bleiben beim bisherigen Entwicklungs-/Release-Stand. |
+| Nicht ausgeführt | Keine echten GOG-/Ubisoft-/Xbox-/UWP-Spielstarts oder deren Logoabnahme; keine physischen Display-/Touch-/Sensor-/Anti-Cheat-Tests. Der gleiche komponierte Intro-Frame geht an Ausgabe und `last_frame()`, der Software-Test ersetzt keine physische Bestätigung. Kein Installer/Upgrade/Release, keine Tests auf 8765, keine Töne, kein Push. |
+
+Ergebnisse und anonyme Testbilder bleiben lokal unter `cpp/build/game-mode-checks/`, `cpp/build/game-mode-test/` und `cpp/build/screenbuddy-release/p9-ui-snapshots/`. Keine Konfigurationen, Logs oder privaten Screenshots eingecheckt.

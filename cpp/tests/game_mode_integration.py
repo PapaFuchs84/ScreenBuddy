@@ -44,7 +44,7 @@ def view(id):
 
 DATA.mkdir(parents=True, exist_ok=True)
 (DATA / 'views').mkdir(exist_ok=True)
-for id in ['game-test', 'normal-test']:
+for id in ['game-test', 'normal-test', 'normal-two']:
     (DATA / 'views' / (id + '.view.json')).write_text(json.dumps(view(id)), encoding='utf-8')
 dummy_path = BUILD / 'fl-game-dummy.exe'
 config = f'''[ui]
@@ -60,8 +60,8 @@ enabled = false
 automatic_usage = false
 
 [display]
-pages = ["custom:normal-test"]
-visible_pages = ["custom:normal-test"]
+pages = ["custom:normal-test", "custom:game-test", "custom:normal-two"]
+visible_pages = ["custom:normal-test", "custom:game-test", "custom:normal-two"]
 page_seconds = 600
 theme = "material-orange"
 screen_off_on_exit = false
@@ -97,26 +97,58 @@ try:
     app_pid = json.loads(launched.stdout)['pid']
     initial = wait(lambda: (nav if (nav := api('/api/pages')).get('current') else None))
     assert initial['current'] == ['custom:normal-test'], initial
+    def rotation_without_game():
+        seen = set()
+        for _ in range(8):
+            before = api('/api/pages')['current']
+            assert 'custom:game-test' not in before, before
+            seen.update(before)
+            api('/api/pages/step', {'delta': 1})
+            wait(lambda: api('/api/pages')['current'] != before)
+        assert seen == {'custom:normal-test', 'custom:normal-two'}, seen
+    rotation_without_game()
+    assert 'custom:game-test' not in api('/api/config')['active']
     dummy = subprocess.Popen([str(dummy_path)], cwd=ROOT, creationflags=0x08000000)
     time.sleep(1)
     assert not api('/api/pages').get('game_mode', False), 'start debounce bypassed'
     active = wait(lambda: (nav if (nav := api('/api/pages')).get('game_mode') else None))
     assert active['current'] == ['custom:game-test'], active
     time.sleep(.8)  # Capture a visible intro phase, after the initial dimming frame.
-    (OUT / 'intro.png').write_bytes(api('/api/preview.png'))
+    intro_frame = api('/api/preview.png')
+    (OUT / 'intro.png').write_bytes(intro_frame)
+    intro_frames = [intro_frame]
+    for _ in range(2):
+        time.sleep(.08)
+        intro_frames.append(api('/api/preview.png'))
+    assert len(set(intro_frames)) == 3, 'intro frames must animate in preview'
+
     time.sleep(3)
-    (OUT / 'active.png').write_bytes(api('/api/preview.png'))
+    active_frame = api('/api/preview.png')
+    (OUT / 'active.png').write_bytes(active_frame)
+    assert intro_frame != active_frame, 'intro must differ from the selected view'
+
     dummy.terminate()
     dummy.wait(timeout=5)
     dummy = None
     time.sleep(1)
     assert api('/api/pages').get('game_mode'), 'end debounce bypassed'
     restored = wait(lambda: (nav if not (nav := api('/api/pages')).get('game_mode') else None))
-    assert restored['current'] == ['custom:normal-test'], restored
+    assert 'custom:game-test' not in restored['current'], restored
     (OUT / 'restored.png').write_bytes(api('/api/preview.png'))
+    rotation_without_game()
+    api('/api/config', {'config': {'game_mode': {'enabled': False}}})
+    wait(lambda: 'custom:game-test' in api('/api/config')['active'])
+    seen = set()
+    for _ in range(8):
+        nav = api('/api/pages')
+        seen.update(nav['current'])
+        api('/api/pages/step', {'delta': 1})
+        wait(lambda: api('/api/pages')['current'] != nav['current'])
+    assert 'custom:game-test' in seen, seen
     report = {'passed': True, 'simulation': 'silent dummy / exact additional EXE path',
-              'ui_port': 18766, 'ai_port': 18765, 'ai_receiver': 'disabled: port occupied, not needed for game-mode', 'start_debounce': True,
-              'end_debounce': True, 'rotation_restored': True,
+              'ui_port': 18766, 'ai_port': 18765, 'ai_receiver': 'disabled: not needed for game-mode', 'start_debounce': True,
+              'end_debounce': True, 'rotation_restored': True, 'reserved_view_excluded': True,
+              'disabled_view_rotates': True, 'preview_intro_animates': True,
               'screenshots': ['intro.png', 'active.png', 'restored.png'],
               'physical_device_test': False, 'real_game_test': False}
     (OUT / 'result.json').write_text(json.dumps(report, indent=2), encoding='utf-8')

@@ -16,6 +16,7 @@
 #include <tdh.h>
 #include <cmath>
 #include <numeric>
+#include <limits>
 #include <cstdlib>
 
 #include <algorithm>
@@ -202,6 +203,17 @@ ojson hwinfo_sensors() {
 }
 
 
+void MetricHistory::sample(SysSnapshot& s,uint32_t pid,double now) {
+    if(pid!=pid_){pid_=pid;sampled_=-1;fps_.clear();times_.clear();}
+    const double tick=std::floor(now);
+    if(sampled_<0 || tick>sampled_) {
+        const double missing=std::numeric_limits<double>::quiet_NaN();
+        if(sampled_>=0)for(int i=1;i<std::min(60.,tick-sampled_);++i){fps_.push_back(missing);times_.push_back(missing);}
+        fps_.push_back(s.fps.value_or(missing));times_.push_back(s.frametime_ms.value_or(missing));sampled_=tick;
+        while(fps_.size()>60)fps_.pop_front();while(times_.size()>60)times_.pop_front();
+    }
+    s.fps_hist=fps_;s.frametime_hist=times_;
+}
 void FrameHistory::present(double t){
     if(!std::isfinite(t) || (!times_.empty() && t<=times_.back()))return;
     if(!times_.empty() && t-times_.back()>2)times_.clear();
@@ -385,8 +397,8 @@ void SysMonitor::sample() {
         double mhz=0;for(const auto& core:power)mhz+=core.current;if(mhz>0)s.cpu_ghz=mhz/power.size()/1000.;
     }
     if(!trace_)trace_=std::make_unique<PresentTrace>();
-    trace_->target(game_pid_);auto frames=trace_->snapshot(mono());
-    s.fps=frames.fps;s.frametime_ms=frames.frametime_ms;s.fps_low=frames.low;s.frametime_hist=frames.history;s.fps_reason=trace_->reason();
+    const auto pid=game_pid_.load();trace_->target(pid);auto frames=trace_->snapshot(mono());
+    s.fps=frames.fps;s.frametime_ms=frames.frametime_ms;s.fps_low=frames.low;metric_history_.sample(s,pid,mono());s.fps_reason=trace_->reason();
     sample_ping();
     MEMORYSTATUSEX ms{sizeof ms};
     if (GlobalMemoryStatusEx(&ms)) {

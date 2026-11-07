@@ -4,6 +4,10 @@
 
 BF6: Spieler-ID im Eintrag (`Name#ID`, `Name@psn#ID`, ab 6 Ziffern), Abfrage per `playerid`, Auto-Heilung (ID aus Namenssuche im Speicher und in `config.toml`), Rückfall über `/bf6/player`-Suche und Namensvarianten; „Prüfen“ liefert `id`, Web-Link nutzt `/playerid/`. Neue Tests für `parse_entry_full`, `pick_search_id` und Touch-Ziele.
 
+P9-8: Reservierte Game-Ansicht aus normalen Seiten-/Tap-Listen filtern; Intro im Preview-Frame nachweisen. EXE-Icons bis 256 px, passende AppxManifest-Assets, gemeinsame CPU-/GPU-/Spielkacheln, neue Vorlage und 60-Sekunden-Messwertverlauf. Synthetische und isolierte Tests; keine reale Launcher-/Displayabnahme.
+
+P9-7: Fünf weitere lesende Spielebibliotheken, austauschbare HKLM-Registry-Abfragen, begrenzter Battle.net-Ordner-Fallback, Launcher-/Anti-Cheat-Filter und Vordergrund-/Vollbildprüfung für Registry- und Epic-EXE-Treffer. Synthetische Tests unter `tests/game_tests/`; DE/EN-Dokumentation und eingebettete Hilfen. Echte Launcher-/Hardwareabnahme bleibt offen; [Prüfstand](../docs/PLAN-GAME-MODE.md#p9-7-weitere-spielebibliotheken).
+
 P9-6: 26/26 Prüfsuiten und isolierter Dummy-Test bestanden; reproduzierbare Start-/Prüfskripte, lokaler Bildnachweis und ehrlicher Prüfstatus im [Game-Mode-Plan](../docs/PLAN-GAME-MODE.md). Keine EXE direkt gestartet/installiert, kein Test auf 8765, keine hörbaren Töne, kein Push/Release.
 
 P9-5: Runtime/Display-Override, native Einstellungen, Editor-Vorlage, Konfigurationsvalidierung und DE/EN-Hilfen. Historische Editor-Snapshots bleiben erhalten; neue P9-Referenzen. Steam-VDF unterstützt leere Felder. 114 Game-Unit-Prüfungen und isolierte Dummy-Simulation bestanden; Gesamtlauf siehe Plan.

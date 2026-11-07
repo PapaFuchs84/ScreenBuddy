@@ -43,6 +43,15 @@ public:
 private:
     std::deque<double> times_;
 };
+// One sample per second; invalid samples leave gaps and PID changes clear history.
+class MetricHistory {
+public:
+    void sample(SysSnapshot& snapshot, uint32_t pid, double now);
+private:
+    uint32_t pid_=0;
+    double sampled_=-1;
+    std::deque<double> fps_, times_;
+};
 class SysMonitor {
 public:
     explicit SysMonitor(const ojson& cfg);
@@ -75,6 +84,7 @@ private:
     std::string ping_target_;
     std::optional<double> ping_previous_;
     std::atomic<uint32_t> game_pid_{0};
+    MetricHistory metric_history_;
     struct PresentTrace;
     std::unique_ptr<PresentTrace> trace_;
     struct GpuApi;

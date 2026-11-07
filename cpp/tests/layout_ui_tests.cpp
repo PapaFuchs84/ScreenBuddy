@@ -6,6 +6,7 @@
 #include "ui_tile_palette.h"
 #include "native_settings.h"
 #include "app.h"
+#include "i18n.h"
 #include "util.h"
 #include "snapshot_support.h"
 #include "page_frame.h"
@@ -977,7 +978,7 @@ static void custom_editor_tests(const fs::path& root,const fs::path& images,bool
     h.find<Button>(L"Löschen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==1);CHECK(saved.get(initial.id));
     auto game_button=h.find<Button>(L"+ Game-Mode");CHECK(game_button);if(game_button){
         game_button->activate(h.view);settle(h,*page);auto game_grid=h.find<GridEditor>();CHECK(game_grid);
-        if(game_grid){auto draft=custom::editor_layout(game_grid->model);CHECK(draft && draft->tiles.size()==9);}
+        if(game_grid){auto draft=custom::editor_layout(game_grid->model);CHECK(draft && draft->tiles.size()==12);}
         auto filter=h.find<Combo>(L"Quelle");auto palette=h.find<TilePalette>();CHECK(filter && palette);
         if(filter && palette){auto option=std::find_if(filter->options.begin(),filter->options.end(),[](const auto& text){return text.de==L"Game-Mode";});CHECK(option!=filter->options.end());if(option!=filter->options.end()){filter->index=int(option-filter->options.begin());filter->on_change();settle(h,*page);CHECK(palette->category=="game");CHECK(palette->visible().size()==16);}}
         h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==2);
@@ -1070,6 +1071,17 @@ static void game_mode_ui_tests(const fs::path& root,const fs::path& images,bool 
         auto filter=h.find<Combo>(L"Quelle");auto palette=h.find<TilePalette>();CHECK(filter && palette);
         if(filter && palette){auto it=std::find_if(filter->options.begin(),filter->options.end(),[](const auto& option){return option.de==L"Game-Mode";});CHECK(it!=filter->options.end());if(it!=filter->options.end()){filter->index=int(it-filter->options.begin());filter->on_change();settle(h,*page);CHECK(palette->visible().size()==16);}}
         capture(h,"game-mode-editor");h.view.set_root(nullptr);
+    }
+    // Actual rendered template, in addition to settings/editor chrome.
+    {
+        auto cfg=offline_config();cfg["display"]["theme"]="material-orange";
+        App app(cfg,root/"game-render.toml",nullptr,root/"preview");
+        for(bool en:{false,true})for(auto size:{std::pair{480,320},std::pair{1520,720}}) {
+            i18n::set_lang(en?"en":"de");
+            auto image=app.custom_preview(custom::game_mode_template("example-game"),"",size);CHECK(image);
+            if(image){auto key=std::string("game-mode-render.")+(en?"en":"de")+"."+std::to_string(size.first);actual[key]=snapshot::hash_image(*image);if(!record)CHECK(expected[key]==actual[key]);snapshot::write_png(images/(key+".png"),*image);}
+        }
+        i18n::set_lang("de");
     }
     if(record){std::ofstream out(baseline);for(const auto& [key,hash]:actual)out<<key<<' '<<hash<<'\n';CHECK(bool(out));}else CHECK(expected.size()==actual.size());
 }

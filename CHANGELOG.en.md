@@ -8,6 +8,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 BF6 leaderboard: players can now be entered by ID (`Name#ID`, `Name@psn#ID`; existing entries keep working). Lookups use `playerid`, the name is display-only. After a successful name lookup the app remembers the ID and writes it to the configuration; on failure it falls back to the player search and lowercase names. "Check" shows the ID found (web UI with "Use ID" and an optional ID field); the web link points to the ID page when an ID is known. The Python variant now uses the `pc, ea` platform order.
 
+P9-8: Reserve the selected Game-Mode view from normal rotation, Companion navigation and tap destinations while enabled. Direct EXE icons/package logos, consistent game cards, larger values, updated template and 60-second FPS/frametime sparklines. Isolated rotation/intro checks and synthetic regression tests; real games and physical displays remain pending.
+
+P9-7: Read-only library discovery for GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard and Rockstar. Replaceable registry access, synthetic parser/filter tests, fullscreen gate also for GOG/Epic EXE matches; extended launcher/anti-cheat exclusions. DE/EN docs and help updated; validation and pending real launcher acceptance in the [plan](docs/PLAN-GAME-MODE.md).
+
 P9-6: 26 automated suites passed, including 114 Game-Mode checks; isolated dummy simulation on UI 18766 produced intro/active/restored previews and passed. AI receiver disabled because 18765 was occupied. PresentMon/hardware limits and unexecuted installer tests in the [plan](docs/PLAN-GAME-MODE.md).
 
 P9-5: Game-Mode settings, display/view selection, additional games/exclusions, editor template and palette. Background discovery with asynchronous logos, intro and paused normal rotation; rotation resumes after the game ends. DE/EN usage and embedded guides synchronized. Local development, no release.

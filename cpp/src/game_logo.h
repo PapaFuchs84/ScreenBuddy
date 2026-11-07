@@ -16,5 +16,6 @@ private:
     std::filesystem::path directory_;
     Fetch fetch_;
 };
+ImagePtr package_logo(const std::filesystem::path& exe);
 ImagePtr executable_icon(const std::filesystem::path& exe);
 }
