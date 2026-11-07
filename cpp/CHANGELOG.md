@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+P9-6: 26/26 Prüfsuiten und isolierter Dummy-Test bestanden; reproduzierbare Start-/Prüfskripte, lokaler Bildnachweis und ehrlicher Prüfstatus im [Game-Mode-Plan](../docs/PLAN-GAME-MODE.md). Keine EXE direkt gestartet/installiert, kein Test auf 8765, keine hörbaren Töne, kein Push/Release.
+
 P9-5: Runtime/Display-Override, native Einstellungen, Editor-Vorlage, Konfigurationsvalidierung und DE/EN-Hilfen. Historische Editor-Snapshots bleiben erhalten; neue P9-Referenzen. Steam-VDF unterstützt leere Felder. 114 Game-Unit-Prüfungen und isolierte Dummy-Simulation bestanden; Gesamtlauf siehe Plan.
 
 P9-4: Dokumentierte, dynamisch geladene GPU-APIs und eigene ETW-Sitzung; Frame-Statistik und Katalog/Renderer mit Offline-Prüfungen. Kein vollständiger PresentMon-/Scanout-Ersatz.

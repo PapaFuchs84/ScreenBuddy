@@ -6,6 +6,8 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+P9-6: 26 automated suites passed, including 114 Game-Mode checks; isolated dummy simulation on UI 18766 produced intro/active/restored previews and passed. AI receiver disabled because 18765 was occupied. PresentMon/hardware limits and unexecuted installer tests in the [plan](docs/PLAN-GAME-MODE.md).
+
 P9-5: Game-Mode settings, display/view selection, additional games/exclusions, editor template and palette. Background discovery with asynchronous logos, intro and paused normal rotation; rotation resumes after the game ends. DE/EN usage and embedded guides synchronized. Local development, no release.
 
 P9-4: 16 additional single system tiles for Game-Mode, DXGI Present-call cadence/frametime/1% low, NVML/AMD ADL/PDH, per-core CPU load/clock, VRAM and ICMP ping/jitter. Missing sources show n/a; standard pages unchanged.

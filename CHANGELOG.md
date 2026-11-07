@@ -6,6 +6,8 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+P9-6: 26 automatisierte Suiten grün, darunter 114 Game-Mode-Prüfungen; isolierte Dummy-Simulation auf UI 18766 mit Intro-/Aktiv-/Rückkehr-Vorschaubildern bestanden. KI-Empfänger wegen belegtem 18765 aus. Offene PresentMon-/Hardwaregrenzen und nicht ausgeführte Installer-Tests im [Plan](docs/PLAN-GAME-MODE.md).
+
 P9-5: Game-Mode-Einstellungen, Display-/Ansichtsauswahl, zusätzliche Spiele/Ausschlüsse, Editor-Vorlage und Game-Mode-Palette. Hintergrund-Erkennung mit asynchronen Logos, Intro und pausierter normaler Rotation; Rückkehr nach Spielende. DE/EN-Bedienung und eingebettete Hilfen synchronisiert. Lokale Entwicklung, kein Release.
 
 P9-4: 16 neue System-Einzelkacheln für Game-Mode, DXGI-Present-Aufrufrate/Frametime/1%-Low, NVML/AMD-ADL/PDH, CPU-Kernlast/Takt, VRAM und ICMP-Ping/Jitter. Fehlende Quellen n/a; unveränderte Standardseiten.

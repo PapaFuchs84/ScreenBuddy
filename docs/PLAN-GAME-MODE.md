@@ -43,29 +43,42 @@ Nur dokumentierte APIs:
 - Isolierter Testlauf über `ScreenBuddy-2.10.0-test\Start-ScreenBuddy-Test.ps1` (separates Datenverzeichnis, Port 18766), Screenshot; Spielstart per Dummy-Prozess simulieren.
 - Doku DE/EN (document-specialist).
 
-## Umsetzungsstand
+## Umsetzungsstand (2026-11-07)
 
-P9-1: Erkennung und reine Parser implementiert; automatisierte Build-/Testprüfung läuft im Arbeitsgang. Keine Live-Spiel-/Hardwarebestätigung.
+| Phase | Ergebnis |
+|---|---|
+| P9-1 | `game_detect.*`: begrenzte Steam-VDF/ACF- und Epic-Parser (einschließlich leerer VDF-Felder), Bibliotheks-/EXE-Zuordnung, XboxGames auf festen Laufwerken, Vollbild-/Fensterprüfung, Ausschlüsse, 3-s-Start/5-s-Ende-Zustandsautomat. Nur `PROCESS_QUERY_LIMITED_INFORMATION`; Alt-Tab beendet ein bestätigtes, weiter laufendes Spiel nicht. |
+| P9-2 | `game_logo.*`: feste Steam-CDN-URLs, PNG/Header/Hero-Fallback, begrenzte Antworten/Bildgrößen, lokaler Cache mit 7-Tage-Ablauf und Reparse-Abweisung, lokales EXE-Icon plus Name. Laden asynchron, sofortiger lokaler Icon-Ersatz. Kein Scraping/TMDB. |
+| P9-3 | `game_intro.*` und `app.cpp`: 2,5 s mit Abdunklung/Easing/Glanz und vorhandenem `FadeCache`/`blend_rect`; reduziert 0,35 s ohne Skalierung/Glanz. Displaysperrzonen berücksichtigt, Touch-Ziele während des Intros gesperrt. Größenwechsel beendet die laufende Animation. |
+| P9-4 | 16 additive System-Einzelkacheln, bestehende RAM-/Netz-/GPU-/CPU-Karten bleiben verfügbar. Eigene DXGI-ETW-Sitzung mit PID-/Swapchain-Filter und TEST-Ausschluss, aktivste Kette nach ungekapptem Intervallzähler, 10-s-/1.200-Intervall-Fenster, 1%-Low erst ab 100 Intervallen, n/a nach 2 s ohne Present. NVML und AMD-ADL aus System32, PDH-Fallback, CPU-Kernlast/Takt, ICMP/VRAM. Standardseiten unverändert. |
+| P9-5 | `game_runtime.*`, `config.cpp`, native Game-Mode-Seite und Editor: Aktivierung, Ziel, `custom:<id>`, Intro/reduziert, IPv4-Ping, mehrzeilige zusätzliche EXE-Pfade/Ausschlüsse. Vorlage **+ Game-Mode** und Palettenfilter. Worker und Logos blockieren den Render-Thread nicht. Display-Override erhält normale Seitenliste/Position/Restlaufzeit, Rückkehr beim Spielende; fehlende Ansicht lässt normale Rotation bestehen. |
+| P9-6 | Neue Unit-/UI-Prüfungen, wiederholbare isolierte Start-/Testskripte, Dummy-Prozess-Simulation und Vorschaubilder; DE/EN-Dokumentation, Referenzlinks, Changelogs und Anleitungsvorlagen/Ressourcen synchronisiert. |
 
-P9-1 geprüft: Release-Build und 25 Offline-Prüfungen bestanden. P9-2: Logo-Cache implementiert; feste Steam-URLs, 7 Tage Ablauf, Größenlimit, Reparse-Punkt-Abweisung, EXE-Icon/Name als Fallback.
-
-P9-2 geprüft: 38 Offline-Prüfungen bestanden. P9-3: Intro-Renderer implementiert (2,5 s; reduziert 0,35 s), bestehender `FadeCache`/`blend_rect`. App-Anbindung in P9-5.
-
-P9-3 geprüft: 47 Offline-Prüfungen bestanden. P9-4 implementiert: 16 additive System-Kacheln, DXGI-ETW mit PID-/Swapchain-Filter, TEST-Ausschluss, begrenztem Verlauf, 1%-Low erst ab 100 Intervallen und n/a nach 2 s ohne Present. NVML/AMD ADL dynamisch aus System32; PDH-Fallback, CPU-Kernlast/Takt, ICMP (200 ms Timeout, IPv4, Jitter = absolute RTT-Differenz), VRAM via NVML bzw. PDH/DXGI-Kapazität. Standardseiten unverändert.
+Bedienung und Quellenbeschreibung: [Deutsch](GAME-MODE.md), [English](GAME-MODE.en.md). Einstellungen gelten nach Speichern/Neustart. Zusätzliche Spiele/Ausschlüsse: maximal 128 Zeilen/32 KiB; zusätzliche Spiele verlangen absolute EXE-Pfade, keine Befehle/Platzhalter. Cacheablauf betrifft die Wiederverwendung von Dateien, keine automatische Komplettbereinigung des Cacheverzeichnisses.
 
 ## Nicht umgesetzt
 
-- Vollständige PresentMon-/DxgKrnl-Present-Auswertung für Scanout-/Display-FPS, D3D9/OpenGL/Vulkan ohne DXGI: der vorhandene Sammler misst ausdrücklich **DXGI-Present-Aufrufrate**, keine angezeigten Frames. Nicht unterstützte Ereignisse ergeben n/a. Ohne passende Rechte bleibt ETW n/a; keine automatische Rechteerhöhung. Fehlende Performance-Log-Users-Rechte ggf. administrativ einrichten, dann neu starten.
-- ADLX ist nicht zusätzlich integriert: AMD wird über dokumentierte ADL-OD5-/OD6-Leseaufrufe unterstützt, soweit vom Treiber angeboten. Nicht unterstützte einzelne Sensoren bleiben n/a. Kein Treiber-/Hardwareversprechen ohne physische Prüfung.
-- `QueryVideoMemoryInfo` wird bewusst nicht als globaler VRAM-Verbrauch verwendet: die API meldet Prozessbudget/-verbrauch des Aufrufers. Ersatz: NVML für ersten NVIDIA-Adapter, sonst PDH Dedicated Usage plus DXGI DedicatedVideoMemory (über Adapter aggregiert). Keine Zuordnung dieser Werte zum Spielprozess oder automatische Auswahl der vom Spiel benutzten GPU.
+- Vollständige PresentMon-/DxgKrnl-Auswertung für Scanout-/Display-FPS sowie D3D9/OpenGL/Vulkan ohne DXGI: der Sammler misst ausdrücklich **DXGI-Present-Aufrufrate**, keine angezeigten Frames. Nicht unterstützte Ereignisse bleiben n/a. Ohne passende ETW-Rechte ebenfalls n/a; keine automatische Rechteerhöhung. Gegebenenfalls Mitgliedschaft in Performance Log Users administrativ einrichten, dann neu starten.
+- ADLX ist nicht zusätzlich integriert: AMD verwendet dokumentierte ADL-OD5-/OD6-Leseaufrufe, soweit der Treiber diese anbietet. Nicht unterstützte Sensoren bleiben n/a. Keine automatische Auswahl der vom Spiel benutzten GPU; NVML nutzt den ersten verfügbaren NVIDIA-Adapter, AMD den ersten aktiven ADL-Adapter. PDH-Last ist der höchste gemeldete Engine-Wert.
+- `QueryVideoMemoryInfo` wird nicht als globaler VRAM-Verbrauch ausgegeben: sie meldet Prozessbudget/-verbrauch des Aufrufers. Ersatz: NVML für ersten NVIDIA-Adapter, sonst PDH Dedicated Usage plus DXGI DedicatedVideoMemory über Adapter aggregiert. Keine Zuordnung dieser VRAM-Werte zum Spielprozess.
+- Kein Nachweis realer Steam-/Epic-/Xbox-Spielstarts, geschützter Spielprozesse oder vollständiger Hersteller-/Treiberabdeckung. Kein physischer Display-/Touch-/Mehrgeräte-Test und keine reale ETW-FPS-/GPU-Sensor-Abnahme. Fehlende Bibliotheks-/Prozessrechte können Erkennung verhindern; zusätzliche EXE-Pfade sind der manuelle Rückfall.
+
+## P9-6 Prüfstand (2026-11-07)
+
+| Prüfung | Ergebnis und Grenze |
+|---|---|
+| CMake/vcpkg, MSVC x64 Release | Gesamter vorhandener CMake-Baum gebaut, inklusive ScreenBuddy und Testprogrammen. Bestehender vcpkg-Abhängigkeitscache nur lesend verwendet. Lokaler Entwicklungsbuild, keine Auslieferung/Signierung, kein Push. |
+| Automatisierte Suiten | **26/26 bestanden** über `python cpp/tests/game_mode_checks.py`: 24 C++-Prüfprogramme einschließlich Game-/Custom-View-/Katalog-/UI-/Companion-/Snapshot-Prüfungen, Standalone-Distribution und synthetischer KI-Adapter. `fl-game-tests`: **114**; Custom views **2.101**; Katalog **313**; Layout-UI **1.866**; `fl-tests` **3.531**, jeweils ohne Fehler. |
+| Bildreferenzen | Bestehende Standardseiten-/Plugin-Snapshots grün. Historische P8-Hashdateien unverändert, beabsichtigte Editoränderungen und neue Game-Mode-Form/Palette als eigene `p9-*-hashes.txt`. DE/EN-Widgetbilder mit Beispieldaten; keine reale Desktop-/Hardware-Abnahme. |
+| Isolierte App-Simulation | `python cpp/tests/game_mode_integration.py`: App ausschließlich über `cpp/tests/Start-GameMode-Test.ps1`, `FUCHSLABS_INSTANCE`, eigenes Datenverzeichnis, `--run --no-lcd`, UI **18766**. Stummer eigener Dummy-Prozess: Start-/Ende-Entprellung, Logo-Intro/EXE-Icon, Game-Ansicht und Rückkehr zur vorherigen Rotation bestanden. |
+| Portgrenze | Kein Testzugriff auf **8765**. KI-Port **18765** war belegt; der für Game-Mode nicht benötigte KI-Empfänger blieb in der App-Simulation ausgeschaltet. Keine fremde Instanz beendet oder umkonfiguriert. Das Startskript erlaubt KI nur mit explizitem `-AiReceiver` und freiem 18765. |
+| Dokumentation | Lokale Links der betroffenen READMEs/Referenzen/Bedienungsdokumente geprüft; JavaScript-Syntax aller vier DE/EN-Anleitungsvorlagen/Ressourcen mit `node --check` bestanden. Geprüfte eingebettete Bilder unverändert. `git diff --check` sauber. |
+| Nicht ausgeführte Abläufe | Bestehende Installer-/App-Skripte, die die EXE direkt starten oder installieren, wurden gemäß Aufgabenregel nicht ausgeführt. Keine Veröffentlichung, kein Store-/Installer-/Upgrade-Test; physische Prüfungen siehe oben. |
+
+Lokale, nicht eingecheckte Artefakte: `cpp/build/game-mode-checks/results.json` und einzelne Prüfausgaben; `cpp/build/game-mode-test/result.json`, `intro.png`, `active.png`, `restored.png`; synthetische native Widgetbilder unter `cpp/build/screenbuddy-release/p9-ui-snapshots/`. Konfigurationen, DPAPI-Daten und Logs bleiben lokal/ignoriert. Keine hörbaren Testtöne.
 
 ## Schnittstellenbelege
 
 - [Windows Prozessrechte](https://learn.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights), [Vollbildstatus](https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shqueryusernotificationstate).
 - [NVML Device Queries](https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html), [AMD ADL OD5](https://gpuopen-librariesandsdks.github.io/adl/group__OVERDRIVE5API.html), [ADL AdapterInfo](https://gpuopen-librariesandsdks.github.io/adl/structAdapterInfo.html).
 - [DXGI-Eventmetadaten, PresentMon/MIT](https://github.com/GameTechDev/PresentMon/blob/main/PresentData/ETW/Microsoft_Windows_DXGI.h), [ICMP](https://learn.microsoft.com/en-us/windows/win32/api/icmpapi/nf-icmpapi-icmpsendecho). Keine libre-panel-Quellen eingesehen/verwendet.
-
-
-P9-4 geprüft: 105 Game-Prüfungen und 313 Katalogprüfungen bestanden. P9-5: Einstellungen/Validierung, Editor-Vorlage und Filter, asynchroner Logo-Worker, gezielter Display-Override samt Sperrzonen/Touch-Sperre während Intro und Wiederaufnahme der vorherigen Rotation implementiert. Keine Änderung der gespeicherten normalen Seitenliste. Zusätzliche Spiele/Ausschlüsse sind begrenzte mehrzeilige Textfelder, exakte EXE-Pfade. Einstellungen gelten nach Speichern/Neustart. DE/EN-Bedienung: [Deutsch](GAME-MODE.md), [English](GAME-MODE.en.md); Anleitungsvorlagen und eingebettete Ressourcen synchron.
-
-P9-5 geprüft: Release-Entwicklungsbuild, 114 Game-Unit-Prüfungen und 2.101 Custom-View-Prüfungen bestanden. Native Einstellungen und Game-Palette mit Beispieldaten DE/EN im vorhandenen UI-Testweg gerendert; keine physische Abnahme. Die alten P8-Referenzdateien bleiben unverändert, die beabsichtigten Editoränderungen haben eigene P9-Hashes. Isolierte Dummy-Prozess-Simulation über `cpp/tests/Start-GameMode-Test.ps1`: 3-s-Start/5-s-Ende-Entprellung, Intro/EXE-Icon und Rückkehr zur normalen Rotation bestanden. UI 18766; KI-Empfänger bleibt ausgeschaltet, da 18765 bereits belegt ist. Hauptinstanz nicht verändert. Abschließender Gesamttest folgt in P9-6.
