@@ -4,6 +4,15 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Geändert
+- Game-Mode-Kacheln im „Cockpit“-Design: kleine graue Beschriftung, oranger Akzentstreifen, Einheit klein in Orange, große FPS-Hero-Kachel mit Verlauf, Ringe für GPU/CPU, Warnfarben ab 80 % (gelb) und 90 % (rot). Die Vorlage „+ Game-Mode“ legt das neue Layout an; bestehende Ansichten bleiben unverändert.
+
+### Hinzugefügt
+- Game-Mode-Einstellungen: Karte „FPS-Messung“ mit Status und Button „FPS-Messung aktivieren“. Einmalige UAC-Abfrage, die eigene EXE trägt den Benutzer in die Gruppe „Leistungsprotokollbenutzer“ ein; danach einmal ab-/anmelden. Fallback: `cpp/tools/Grant-PerfLogUsers.bat`.
+- Verwaiste ETW-Messsitzungen abgestürzter ScreenBuddy-Prozesse werden beim Start beendet.
+
 ## [2.10.1] - 2026-11-08
 
 Companion-App bleibt 1.0.3.

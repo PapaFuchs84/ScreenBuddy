@@ -66,7 +66,7 @@ int main(){try {
  frames.present(1);check(frames.stats(2).history.size()==120);check(!frames.stats(4.01).fps);frames.present(5);check(!frames.stats(5).fps);frames.present(5.02);check(frames.stats(5.02).fps && !frames.stats(5.02).low);
  for(const auto& block:fl::builtin::find("system")->blocks)if(block.tile_only){check(metric_tile(block.id));fl::custom::Layout layout;fl::custom::Tile tile;tile.source="system";tile.block=block.id;tile.zone={"tile",0,0,1,1};check(bool(fl::custom::single_builtin(tile,layout)));check(!draw_metric(tile,layout,480,320,fl::SysSnapshot{}).empty());}
  check(metric_values(fl::SysSnapshot{}).at("fps").is_null());
- auto templ=fl::custom::game_mode_template("test-game");check(bool(fl::custom::parse(fl::custom::to_json(templ).dump())));check(templ.standard.tiles.size()==12);
+ auto templ=fl::custom::game_mode_template("test-game");check(bool(fl::custom::parse(fl::custom::to_json(templ).dump())));check(templ.standard.tiles.size()==8);check(templ.standard.tiles[1].block=="system.fps" && templ.standard.tiles[1].zone.row_span==2);
  fl::sysinfo::MetricHistory history;fl::SysSnapshot readings;
  for(int i=0;i<75;++i){readings.fps=60+i;readings.frametime_ms=1000./(60+i);history.sample(readings,123,i);}
  check(readings.fps_hist.size()==60 && readings.fps_hist.front()==75 && readings.fps_hist.back()==134);

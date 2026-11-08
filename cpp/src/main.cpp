@@ -21,6 +21,7 @@
 #include "sysinfo.h"
 #include "theme.h"
 #include "util.h"
+#include "perflog.h"
 #include "distribution.h"
 #include "winsetup.h"
 
@@ -34,6 +35,7 @@ struct Args {
     bool reopen_settings = false;  // --settings: Einstellungsfenster gleich öffnen (nach Neustart aus dem Fenster)
     bool demo = false, no_lcd = false, restarted = false, autostart = false, verbose = false;
     bool install = false, silent = false, uninstall = false, run = false;
+    std::optional<std::wstring> grant_perflog;  // --grant-perflog <SID>: Hilfsaufruf mit Administratorrechten (UAC), fügt den Benutzer zur Gruppe Leistungsprotokollbenutzer hinzu
     std::optional<std::wstring> finish_dir;
     unsigned long finish_pid = 0;
 };
@@ -56,6 +58,7 @@ Args parse(int argc, wchar_t** argv) {
         else if (s == L"--silent") a.silent = true;
         else if (s == L"--uninstall") a.uninstall = true;
         else if (s == L"--run") a.run = true;
+        else if (s == L"--grant-perflog") a.grant_perflog = next();
         else if (s == L"--uninstall-finish") {
             a.finish_dir = next();
             a.finish_pid = std::wcstoul(next().c_str(), nullptr, 10);
@@ -189,6 +192,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     int argc = 0;
     wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     Args args = parse(argc, argv);
+    if (args.grant_perflog) return perflog::run_helper(*args.grant_perflog);  // vor Installer/Fenster: nur Gruppe erweitern, nichts installieren
     dpi_aware();  // vor dem ersten Fenster: Bildschirmgrößen in echten Pixeln
     gfx_init();
 

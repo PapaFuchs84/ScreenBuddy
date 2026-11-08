@@ -978,7 +978,7 @@ static void custom_editor_tests(const fs::path& root,const fs::path& images,bool
     h.find<Button>(L"Löschen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==1);CHECK(saved.get(initial.id));
     auto game_button=h.find<Button>(L"+ Game-Mode");CHECK(game_button);if(game_button){
         game_button->activate(h.view);settle(h,*page);auto game_grid=h.find<GridEditor>();CHECK(game_grid);
-        if(game_grid){auto draft=custom::editor_layout(game_grid->model);CHECK(draft && draft->tiles.size()==12);}
+        if(game_grid){auto draft=custom::editor_layout(game_grid->model);CHECK(draft && draft->tiles.size()==8);}
         auto filter=h.find<Combo>(L"Quelle");auto palette=h.find<TilePalette>();CHECK(filter && palette);
         if(filter && palette){auto option=std::find_if(filter->options.begin(),filter->options.end(),[](const auto& text){return text.de==L"Game-Mode";});CHECK(option!=filter->options.end());if(option!=filter->options.end()){filter->index=int(option-filter->options.begin());filter->on_change();settle(h,*page);CHECK(palette->category=="game");CHECK(palette->visible().size()==16);}}
         h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==2);
