@@ -43,7 +43,7 @@ Image draw_metric(const custom::Tile& tile,const custom::Layout& layout,int w,in
     std::string title=tile.block;for(const auto& b:builtin::find("system")->blocks)if(b.id==tile.block)title=i18n::lang()=="en"?b.label.en:b.label.de;
     if(snapshot.fps_reason=="hwinfo_presentmon"){if(key=="fps")title="FPS · HWiNFO";else if(key=="fps_low")title="FPS · 1 % Low · HWiNFO";else if(key=="frametime")title="Frametime · HWiNFO";}
     title=upper_ascii(title);
-    Font label{float(std::clamp(a.height/7,11.f,16.f)),true},value{float(std::clamp(a.height/(hero?2.0f:tile.density==0?2.6f:2.2f),24.f,hero?104.f:52.f)),true};
+    Font label{float(std::clamp(a.height/7,11.f,16.f)),true},value{float(std::clamp(a.height/(hero?2.0f:tile.density==0?2.6f:1.7f),24.f,hero?104.f:70.f)),true};
     while(label.size>9 && c.textlength(title,label)>a.width-16)label.size-=.5f;
     c.text(a.x+10,a.y+6,title,label,theme.muted);
     auto data=metric_values(snapshot,name,elapsed);std::string text="n/a",unit;std::optional<double> ringload;
@@ -63,11 +63,21 @@ Image draw_metric(const custom::Tile& tile,const custom::Layout& layout,int w,in
     const bool ringed=ringload && a.height>=70 && a.width/a.height<=1.7f;
     if(key=="game_logo" && logo && !logo->empty()) {float fit=std::min((a.width-16)*scale/logo->w,(a.height-36)*scale/logo->h);if(fit>0){auto image=resize(*logo,std::max(1,int(logo->w*fit)),std::max(1,int(logo->h*fit)));c.image(image,a.x+(a.width-image.w/scale)/2,a.y+28);}}
     else if(ringed){
-        float d=std::min(a.height-34,a.width-20),cx=a.x+a.width/2,cy=a.y+a.height/2+11,r=d/2,th=std::max(5.f,d*.12f);
+        const float top=a.y+label.size+8,bottom=a.y+a.height-6,cy=(top+bottom)/2;
+        const bool wide=a.width>=a.height*1.25f;   // wide tile: huge number on the left, ring on the right; square tile: number inside the ring
+        const float d=std::max(20.f,wide?std::min(bottom-top,a.width*.40f):std::min(bottom-top,a.width-14)),r=d/2,th=std::max(5.f,d*.10f);
+        const float cx=wide?a.x+a.width-10-r:a.x+a.width/2;
         auto track=mix_color(theme.card,theme.muted,.3f);ring_arc(c,cx,cy,r,r-th,1,track);ring_arc(c,cx,cy,r,r-th,std::clamp(*ringload/100,0.,1.),level_color(theme,*ringload));
-        Font rv{std::clamp(d*.30f,14.f,48.f),true};c.text(cx,cy,text,rv,theme.text,"mm");
-    }
-    else {
+        if(wide){
+            Font big{std::clamp(a.height/1.5f,28.f,92.f),true};Font small{std::max(12.f,big.size*.42f),true};
+            const float room=a.width-d-34;
+            while(big.size>14 && c.textlength(text,big)+c.textlength("%",small)+4>room){big.size-=.5f;small.size=std::max(10.f,big.size*.42f);}
+            c.text(a.x+10,cy,text,big,theme.text,"lm");c.text(a.x+10+c.textlength(text,big)+4,cy+big.size*.12f,"%",small,theme.accent,"lm");
+        } else {
+            const float inner=d-2*th;Font rv{std::clamp(inner*.62f,16.f,110.f),true},pv{std::max(10.f,rv.size*.34f),true};
+            c.text(cx,cy-rv.size*.12f,text,rv,theme.text,"mm");c.text(cx,cy+rv.size*.46f,"%",pv,theme.accent,"mm");
+        }
+    }    else {
         Font unit_font{std::max(11.f,value.size*.42f),true};
         auto width=[&]{return c.textlength(text,value)+(unit.empty()?0.f:c.textlength(unit,unit_font)+4);};
         while(value.size>12 && width()>a.width-16){value.size-=.5f;unit_font.size=std::max(10.f,value.size*.42f);}
