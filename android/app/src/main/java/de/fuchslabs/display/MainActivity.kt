@@ -54,7 +54,6 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         store = Store(this)
         val text = getColor(R.color.ui_text); val textSec = getColor(R.color.ui_text_secondary); val onPrimary = getColor(R.color.ui_on_primary); val bg = getColor(R.color.ui_bg)
-        val night = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         androidx.core.view.WindowInsetsControllerCompat(window, window.decorView).apply { isAppearanceLightStatusBars = false; isAppearanceLightNavigationBars = false }
         val dp = resources.displayMetrics.density
         fun pad(v: View, p: Int) = v.setPadding((p * dp).toInt(), (p * dp).toInt(), (p * dp).toInt(), (p * dp).toInt())
@@ -114,20 +113,24 @@ class MainActivity : AppCompatActivity() {
         }
         col.addView(sw1)
         col.addView(TextView(this).apply { setText(R.string.setting_launcher_desc); setTextColor(textSec); textSize = 14f; pad(this, 4) })
-        col.addView(Switch(this).apply {
+        val bootSwitch = Switch(this).apply {
             setTextColor(text); minHeight = (48 * dp).toInt(); setText(R.string.setting_boot); isChecked = store.bootStart
             setOnCheckedChangeListener { _, on -> store.bootStart = on }
-        })
+        }
+        col.addView(bootSwitch)
         col.addView(label(R.string.section_auto))
-        col.addView(Switch(this).apply {
+        val autoSwitch = Switch(this).apply {
             setTextColor(text); minHeight = (48 * dp).toInt(); setText(R.string.setting_auto); isChecked = store.autoMode
             setOnCheckedChangeListener { _, on -> store.autoMode = on; if (on) requestAutoPermissions(); StandbyService.sync(this@MainActivity) }
-        })
+        }
+        col.addView(autoSwitch)
         col.addView(TextView(this).apply { setText(R.string.setting_auto_desc); setTextColor(textSec); textSize = 14f; pad(this, 4) })
         col.addView(gap(secondary(getString(R.string.btn_perm_overlay)) { openOverlaySettings() }))
         if (!isTv) col.addView(gap(secondary(getString(R.string.btn_perm_admin)) { requestAdmin() }))
         col.addView(gap(secondary(getString(R.string.btn_perm_battery)) { openBatterySettings() }))
-        forgetBtn = secondary(getString(R.string.btn_forget)) { store.forget(); sw1.isChecked = false; refresh() }
+        forgetBtn = secondary(getString(R.string.btn_forget)) {
+            store.forget(); sw1.isChecked = false; bootSwitch.isChecked = false; autoSwitch.isChecked = false; refresh()
+        }
         col.addView(gap(forgetBtn, 20))
 
         val scroll = ScrollView(this).apply { setBackgroundColor(bg); isFillViewport = true; addView(col) }

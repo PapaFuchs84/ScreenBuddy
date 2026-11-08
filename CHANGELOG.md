@@ -4,6 +4,14 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased] – Companion 1.1.0
+
+- Android-App 1.1.0 (versionCode 9): dunkles Standard-Design mit Orange-Akzenten; Protokoll und App-ID bleiben erhalten. Separater Kandidat, noch keine Veröffentlichung.
+- Optionale Automatik (standardmäßig aus): sucht den gekoppelten PC per mDNS und öffnet die Anzeige, soweit Android und die erteilten Freigaben es zulassen. Nach erkannter Abwesenheit wird die Anzeige mit 20 Sekunden Karenz geschlossen; auf Handys kann sie mit Geräteadmin-Freigabe zusätzlich den Bildschirm sperren. Android-TV schließt nur die Anzeige.
+- mDNS-Suche hält einen WLAN-Multicast-Lock nur während der Suche und gibt ihn bei Ende/Fehler frei. Das soll Hintergrundempfang auf Geräten mit Multicast-Filterung ermöglichen; die Geräte-Nachprüfung läuft noch. Die kontinuierliche Automatik-Suche kann den Akkuverbrauch erhöhen.
+- Fallback für gesperrte Geräte: Weil z. B. das Redmi 8 bei ausgeschaltetem Bildschirm kein mDNS empfängt, prüft die Automatik zusätzlich etwa einmal pro Minute per Alarm, ob der gekoppelte PC auf seinem Companion-Port per TCP erreichbar ist (ohne TLS/PIN/Daten). Android kann diese Alarme im Ruhezustand verzögern.
+- Einrichtung, Berechtigungen, Hintergrundbeschränkungen und noch offene Geräteabnahme stehen in der [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110-in-entwicklung). Frühere Gerätetests belegen die neue Automatik nicht.
+
 ## [2.10.1] - 2026-11-08
 
 Companion-App bleibt 1.0.3.

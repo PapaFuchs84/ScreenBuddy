@@ -2,7 +2,7 @@
 
 [English](STORE-DISTRIBUTION.en.md)
 
-ScreenBuddy 2.9.6 und Companion 1.0.4 sind unveröffentlichte Kandidaten. Die Microsoft-Store-Ausgabe verwendet MSIX; die Companion-App wird vorerst ausschließlich als signierte APK vorbereitet. Kein automatischer Upload und keine Kontoerstellung sind Bestandteil der Buildskripte.
+Die Microsoft-Store-Ausgabe wird als MSIX vorbereitet. Companion 1.1.0 ist ein unveröffentlichter, separater Kandidat und wird vorerst ausschließlich als signierte APK vorbereitet. Kein automatischer Upload und keine Kontoerstellung sind Bestandteil der Buildskripte.
 
 ## Windows bauen und paketieren
 
@@ -35,9 +35,9 @@ Ein Start kann bereits `config.toml` erzeugen. In diesem Fall die Store-Konfigur
 
 ## Companion-APK
 
-JDK 21, Android SDK 36, AGP 8.10.1 und Gradle 8.11.1. App-ID `de.fuchslabs.display`, minSdk 26, targetSdk 36, Version 1.0.4 / Code 8. Einrichtung berücksichtigt Systemleisten, Kamera-Ausschnitt und Bildschirmtastatur. Android-16-Großbildschirmregeln können Orientierungsvorgaben übersteuern; Darstellung und Touch müssen auf Tablet/TV geprüft werden.
+JDK 21, Android SDK 36, AGP 8.10.1 und Gradle 8.11.1. App-ID `de.fuchslabs.display`, minSdk 26, targetSdk 36, Version 1.1.0 / Code 9. Einrichtung berücksichtigt Systemleisten, Kamera-Ausschnitt und Bildschirmtastatur. Android-16-Großbildschirmregeln können Orientierungsvorgaben übersteuern; Darstellung und Touch müssen auf Tablet/TV geprüft werden. Die neue Automatik ist standardmäßig aus; Berechtigungen und offene Geräteprüfungen stehen in der [Companion-Anleitung](COMPANION.md#automatik-companion-110-in-entwicklung).
 
-`SCREENBUDDY_SIGNING_PROPERTIES` verweist auf die bisherige private Signing-Datei außerhalb des Repositorys. Dann `./android/Build-Companion.ps1` ausführen. Das Skript prüft Protokolltests, Release-Lint und APK-Signatur und erzeugt `dist/android/ScreenBuddy-Companion-1.0.4.apk` mit SHA-256. Gleichbleibende App-ID und gleicher Release-Schlüssel sind Voraussetzung für Updates vorhandener Release-APKs. Debug-Installationen nicht ungefragt deinstallieren.
+`SCREENBUDDY_SIGNING_PROPERTIES` verweist auf die bisherige private Signing-Datei außerhalb des Repositorys. Dann `./android/Build-Companion.ps1` ausführen. Das Skript prüft Protokolltests, Release-Lint und APK-Signatur und erzeugt `dist/android/ScreenBuddy-Companion-1.1.0.apk` mit SHA-256. Gleichbleibende App-ID und gleicher Release-Schlüssel sind Voraussetzung für Updates vorhandener Release-APKs. Debug-Installationen nicht ungefragt deinstallieren.
 
 Play-Veröffentlichung ist ausdrücklich vertagt. Ein späteres AAB kann mit `:app:bundleRelease` erstellt werden; Play App Signing, Datenschutz-/Datensicherheitsangaben und gegebenenfalls geschlossene Tests sind vor einem Upload gesondert vorzubereiten.
 

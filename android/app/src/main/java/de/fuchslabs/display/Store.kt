@@ -23,7 +23,12 @@ class Store(private val ctx: Context) {
             .putString("name", p.name).putString("key_enc", KeyVault.encrypt(p.key)).apply()
     }
 
-    fun forget() { sp.edit().clear().apply(); KeyVault.delete(); setLauncherEnabled(false) }
+    fun forget() {
+        sp.edit().clear().apply()
+        StandbyService.sync(ctx)
+        KeyVault.delete()
+        setLauncherEnabled(false)
+    }
 
     var bootStart: Boolean
         get() = sp.getBoolean("boot", false)

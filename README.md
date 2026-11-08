@@ -2,6 +2,8 @@
 
 Store-Ausgabe in Vorbereitung: [Microsoft Store / Companion-Build](docs/STORE-DISTRIBUTION.md). Noch keine Store-Veröffentlichung.
 
+**Companion 1.1.0 in Entwicklung (noch nicht veröffentlicht):** dunkles Standard-Design und optionale Automatik für den gekoppelten PC. Einrichtung, Freigaben und Geräteprüfgrenzen: [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110-in-entwicklung).
+
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 
