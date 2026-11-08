@@ -34,7 +34,7 @@ set(CORE_SOURCES
     src/builtin_catalog.cpp src/layout_edit.cpp src/ui_layout_grid.cpp src/ui_editor.cpp src/ui_tile_palette.cpp
     src/ui_page_layout.cpp
     src/plugin_schedule.cpp src/device_profile.cpp src/distribution.cpp src/util.cpp src/secure.cpp src/i18n.cpp src/config.cpp src/gfx.cpp src/theme.cpp src/render.cpp src/page_samples.cpp src/page_frame.cpp
-    src/http.cpp src/netguard.cpp src/sysinfo.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/key_help.cpp src/psn_logic.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/amp_logic.cpp src/audio_levels.cpp src/discord.cpp
+    src/http.cpp src/netguard.cpp src/sysinfo.cpp src/perflog.cpp src/bf6.cpp src/rss.cpp src/tmdb_logic.cpp src/tmdb.cpp src/key_help.cpp src/psn_logic.cpp src/friends.cpp src/ha.cpp src/spotify.cpp src/amp_logic.cpp src/audio_levels.cpp src/discord.cpp
     src/serial_display.cpp src/monitor_display.cpp src/winsetup.cpp src/tray.cpp src/webui.cpp src/app.cpp
     src/installer.cpp src/resources.cpp src/native_settings.cpp src/ui_shell_material.cpp src/touch.cpp src/update.cpp
     src/ui_kit.cpp src/ui_logic.cpp src/ui_pages.cpp src/ui_page_general.cpp src/ui_page_system.cpp src/ui_page_friends.cpp src/ui_page_discord.cpp
@@ -48,7 +48,7 @@ target_compile_definitions(flcore PUBLIC UNICODE _UNICODE NOMINMAX WIN32_LEAN_AN
 target_compile_options(flcore PUBLIC /utf-8 /W3 /permissive- /Zc:__cplusplus /EHsc /MP /GF)
 target_link_libraries(flcore PUBLIC dpp::dpp ${DPP_EXTRA_LIBS} OpenSSL::SSL OpenSSL::Crypto Opus::opus ZLIB::ZLIB
                                     nlohmann_json::nlohmann_json tomlplusplus::tomlplusplus pugixml::pugixml httplib::httplib
-                                    dxgi powrprof tdh d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi pdh crypt32 setupapi shlwapi
+                                    dxgi powrprof tdh d2d1 dwrite windowscodecs winhttp ws2_32 iphlpapi netapi32 pdh crypt32 setupapi shlwapi
                                     windowsapp comctl32 comdlg32 dwmapi bcrypt advapi32 user32 gdi32 ole32 oleaut32 oleacc uuid uxtheme shell32)
 
 # Eingebettete Dateien: bei Änderungen die Ressourcen neu bauen (CMake erkennt RCDATA-Abhängigkeiten nicht selbst)

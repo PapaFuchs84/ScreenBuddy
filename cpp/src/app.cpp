@@ -324,6 +324,7 @@ App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out,
         sys_=std::make_unique<sysinfo::SysMonitor>(settings);
     }
     if(b(cfg_["game_mode"],"enabled") && !preview_dir_)game_=std::make_unique<game::Runtime>(cfg_path_.parent_path()/L"cache/game-logos",s(cfg_["game_mode"],"additional_games"),s(cfg_["game_mode"],"exclusions"),[this](uint32_t pid){if(sys_)sys_->set_game_pid(pid);mark_dirty();});
+    if(game_ && sys_)sys_->set_trace_warm(true);
     // Discord wird gebraucht, wenn seine Seite an ist oder die gemeinsame Freundesliste es einbezieht
     bool want_discord = b(dc, "enabled", true) || (b(fr, "enabled") && b(fr, "include_discord", true));
     if (want_discord && !trim(s(dc, "token")).empty()) discord_ = std::make_unique<discord::DiscordFeed>(dc, dirty);
