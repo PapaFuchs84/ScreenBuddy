@@ -108,5 +108,29 @@ int main(){try {
  check(configured["game_mode"]["view"]=="custom:test-game");check(configured["game_mode"]["additional_games"].get<std::string>().find('\n')!=std::string::npos);
  for(const auto& patch:std::vector<fl::ojson>{{{"game_mode",{{"view","../bad"}}}},{{"game_mode",{{"ping_target","999.1.1.1"}}}},{{"game_mode",{{"additional_games","relative.exe"}}}}}){bool rejected=false;try{fl::config::merge(cfg,patch);}catch(...){rejected=true;}check(rejected);}
  check(stats.intervals==120);
+ if(const char* out=std::getenv("FL_GAME_PREVIEW_DIR")){   // developer aid: cockpit gallery + margin/centring measurements, not part of the checks
+  namespace fs=std::filesystem;fs::create_directories(out);fl::render::set_theme("dunkel",{{"bg","#131118"},{"card","#201f26"},{"accent","#f57c00"},{"text","#e8e4ee"},{"muted","#a29cab"}});
+  auto make=[](double fps,double gpu,double cpu,double ft,double ping,double used){fl::SysSnapshot s;s.fps=fps;s.gpu_pct=gpu;s.cpu_pct=cpu;s.frametime_ms=ft;s.ping_ms=ping;s.gpu_mem_used=used;s.gpu_mem_total=8188;
+   for(int i=0;i<60;++i){s.fps_hist.push_back(fps+8*std::sin(i/4.0));s.frametime_hist.push_back(ft+ft*.12*std::sin(i/5.0));}return s;};
+  struct Scene{std::string name;int w,h;fl::SysSnapshot s;std::string game;double elapsed;};
+  std::vector<Scene> scenes={{"bf6-redmi",1520,720,make(49,99,47,20.5,8,7769),"Battlefield 6",39},{"digits3-redmi",1520,720,make(144,100,100,6.9,128.5,8100),"Elden Ring",12345},
+   {"digits1-redmi",1520,720,make(7,5,3,142.9,1,900),"Hades",5},{"longname-redmi",1520,720,make(60,80,90,16.7,12,4000),"The Elder Scrolls V: Skyrim Special Edition Anniversary Edition",3600},
+   {"na-redmi",1520,720,fl::SysSnapshot{},"",0},{"bf6-480",480,320,make(49,99,47,20.5,8,7769),"Battlefield 6",39},{"digits3-480",480,320,make(144,100,100,6.9,128.5,8100),"Elden Ring",12345}};
+  fl::Image logo_image(256,256,fl::Color{167,139,216});auto logo=std::make_shared<const fl::Image>(logo_image);
+  auto templ=fl::custom::game_mode_template("preview");const auto& th=fl::render::theme();
+  auto close_to=[](uint32_t px,fl::Color col,int tol){int r=(px>>16)&255,g=(px>>8)&255,b=px&255;return std::abs(r-col.r)<=tol&&std::abs(g-col.g)<=tol&&std::abs(b-col.b)<=tol;};
+  for(const auto& sc:scenes){
+   fl::Image composite;
+   for(const auto& tile:templ.standard.tiles){
+    auto img=draw_metric(tile,templ.standard,sc.w,sc.h,sc.s,sc.game,sc.elapsed,logo);const uint32_t bg=img.px[0];
+    if(composite.empty())composite=img;else for(size_t i=0;i<img.px.size();++i)if(img.px[i]!=bg)composite.px[i]=img.px[i];
+    int x0=img.w,y0=img.h,x1=-1,y1=-1;for(int y=0;y<img.h;++y)for(int x=0;x<img.w;++x)if(img.at(x,y)!=bg){x0=std::min(x0,x);y0=std::min(y0,y);x1=std::max(x1,x);y1=std::max(y1,y);}
+    auto ink=[&](fl::Color col,int ya,int yb,int& ix0,int& iy0,int& ix1,int& iy1){ix0=img.w;iy0=img.h;ix1=-1;iy1=-1;for(int y=std::max(ya,y0+6);y<std::min(yb,y1-5);++y)for(int x=x0+10;x<x1-8;++x)if(close_to(img.at(x,y),col,24)){ix0=std::min(ix0,x);iy0=std::min(iy0,y);ix1=std::max(ix1,x);iy1=std::max(iy1,y);}};
+    int lx0,ly0,lx1,ly1,vx0,vy0,vx1,vy1;ink(th.muted,y0,y0+(y1-y0)/4,lx0,ly0,lx1,ly1);ink(th.text,ly1+1,y1,vx0,vy0,vx1,vy1);
+    if(vx1>=0)std::printf("%-16s %-18s card %4d,%4d-%4d,%4d | label x %4d..%4d bottom %4d | value x %4d..%4d y %4d..%4d | L %3d R %3d (dx %+d) above %3d below %3d\n",sc.name.c_str(),tile.block.c_str(),x0,y0,x1,y1,lx0,lx1,ly1,vx0,vx1,vy0,vy1,vx0-x0,x1-vx1,(vx0+vx1)/2-(x0+x1)/2,vy0-ly1,y1-vy1);
+   }
+   std::ofstream(fs::path(out)/(sc.name+".png"),std::ios::binary)<<fl::encode_png(composite);
+  }
+ }
  std::cout<<checks<<" game checks passed\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}
