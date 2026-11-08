@@ -55,6 +55,8 @@ SHOTS = HERE.parent / 'docs' / 'screenshots' / '2.10' / ('en' if EN else 'de')
 imgs = {key: data(SHOTS / (name + '.png'), width=1280) for key, name in NEW.items()}
 for old, new in ALIAS.items():
     imgs[old] = imgs[new]
+# 2.11: Cockpit-Ansicht (Redmi 8, Battlefield 6, anonym); gleiche Aufnahme in DE und EN
+imgs['s_cockpit'] = data(HERE.parent / 'docs' / 'screenshots' / '2.11' / 'de' / 'game-mode-cockpit.png', width=1280)
 gif = HERE.parent / 'docs' / 'screenshots' / '2.10' / 'game-mode-intro.gif'
 imgs['gif_game'] = 'data:image/gif;base64,' + base64.b64encode(gif.read_bytes()).decode('ascii')
 imgs.update({key: data(SRC / (filename + '.png')) for key, filename in native.items() if key not in imgs})

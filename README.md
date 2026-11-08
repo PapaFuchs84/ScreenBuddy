@@ -16,7 +16,7 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.10.1-F77F00)
+![Version](https://img.shields.io/badge/version-2.11.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
