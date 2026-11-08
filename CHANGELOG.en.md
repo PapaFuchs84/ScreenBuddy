@@ -12,6 +12,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ### Added
 - Game-Mode settings: “FPS measurement” card with status and an “Enable FPS measurement” button. One UAC prompt; the app's own EXE adds the user to the “Performance Log Users” group; then sign out/in once. Fallback: `cpp/tools/Grant-PerfLogUsers.bat`.
 - Orphaned ETW sessions of crashed ScreenBuddy processes are stopped at start.
+- FPS with anti-cheat games (verified live with BF6): the ETW session is created at start-up while Game-Mode is on (the anti-cheat refuses new sessions once the game runs). Start ScreenBuddy before the game. Fallback: HWiNFO's “PresentMon” sensor group (read-only).
 
 ## [2.10.1] - 2026-11-08
 

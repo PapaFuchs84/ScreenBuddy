@@ -302,10 +302,10 @@ struct SysMonitor::PresentTrace {
         consumer=OpenTraceW(&log);if(consumer==INVALID_PROCESSTRACE_HANDLE){error=GetLastError();LOGW("fps","OpenTrace fehlgeschlagen: %lu",unsigned long(error));stop();return;}
         const auto handle=consumer;thread=std::thread([handle]{auto trace=handle;ProcessTrace(&trace,1,nullptr,nullptr);});
     }
-    void target(uint32_t value){
+    void target(uint32_t value,bool warm){
         if(pid.exchange(value)!=value){std::lock_guard lock(mutex);chains.clear();}
-        if(!value && session){stop();tried=false;}
-        if(value && !tried)start();
+        if(!value && session && !warm){stop();tried=false;}
+        if((value||warm) && !tried)start();
     }
     FrameStats snapshot(double now){
         if(pid.load() && now-last_log>=10){last_log=now;LOGI("fps","ETW pid=%u session=%d error=%lu events=%llu prozess=%llu present=%llu eigenschaft_fehler=%llu verloren=%lu",pid.load(),session?1:0,unsigned long(error),(unsigned long long)seen_any.load(),(unsigned long long)seen_process.load(),(unsigned long long)seen_present.load(),(unsigned long long)property_failed.load(),unsigned long(lost));}
@@ -423,8 +423,10 @@ void SysMonitor::sample() {
         double mhz=0;for(const auto& core:power)mhz+=core.current;if(mhz>0)s.cpu_ghz=mhz/power.size()/1000.;
     }
     if(!trace_)trace_=std::make_unique<PresentTrace>();
-    const auto pid=game_pid_.load();trace_->target(pid);auto frames=trace_->snapshot(mono());
-    s.fps=frames.fps;s.frametime_ms=frames.frametime_ms;s.fps_low=frames.low;metric_history_.sample(s,pid,mono());s.fps_reason=trace_->reason();
+    const auto pid=game_pid_.load();trace_->target(pid,trace_warm_.load());auto frames=trace_->snapshot(mono());
+    s.fps=frames.fps;s.frametime_ms=frames.frametime_ms;s.fps_low=frames.low;s.fps_reason=trace_->reason();
+    if(pid && !s.fps && hw_fps_){s.fps=hw_fps_;s.frametime_ms=hw_frametime_?hw_frametime_:std::optional<double>(1000/ *hw_fps_);s.fps_low=hw_low_;s.fps_reason="hwinfo_presentmon";}  // only while a game is detected
+    metric_history_.sample(s,pid,mono());
     sample_ping();
     MEMORYSTATUSEX ms{sizeof ms};
     if (GlobalMemoryStatusEx(&ms)) {
@@ -509,8 +511,15 @@ void SysMonitor::sample_hwinfo() {
     SysSnapshot& s = snap_;
     auto r = hwinfo_readings();
     s.hwinfo = r.has_value();
-    s.cpu_temp.reset();s.cpu_fan.reset();s.disk_temp.reset();
+    s.cpu_temp.reset();s.cpu_fan.reset();s.disk_temp.reset();hw_fps_.reset();hw_frametime_.reset();hw_low_.reset();
     if (!r || r->empty()) return;
+    for (auto& x : *r) {  // HWiNFO integrates PresentMon: sensor group "PresentMon" = foreground presenter, no process id
+        if (casefold(x.sensor).find("presentmon") == std::string::npos || !std::isfinite(x.value) || x.value <= 0) continue;
+        const auto label = casefold(x.label);
+        if (label == "framerate presented (avg)") hw_fps_ = x.value;
+        else if (label == "frame time presented (avg)") hw_frametime_ = x.value;
+        else if (label == "framerate presented (1% low)") hw_low_ = x.value;
+    }
     s.cpu_temp = pick(*r, SENSOR_TEMP, {cpu_temp_sensor_, "CPU (Tctl/Tdie)", "CPU Package", "CPU Die (average)", "CPU"});
     s.cpu_fan = pick(*r, SENSOR_FAN,
                      {cpu_fan_sensor_, "CPU", "CPU_OPT", "AIO Pump", "AIO Pumpe", "Pumpe", "Chassis1"});

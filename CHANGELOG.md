@@ -12,6 +12,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ### Hinzugefügt
 - Game-Mode-Einstellungen: Karte „FPS-Messung“ mit Status und Button „FPS-Messung aktivieren“. Einmalige UAC-Abfrage, die eigene EXE trägt den Benutzer in die Gruppe „Leistungsprotokollbenutzer“ ein; danach einmal ab-/anmelden. Fallback: `cpp/tools/Grant-PerfLogUsers.bat`.
 - Verwaiste ETW-Messsitzungen abgestürzter ScreenBuddy-Prozesse werden beim Start beendet.
+- FPS bei Anti-Cheat-Spielen (BF6 live geprüft): Die ETW-Messsitzung wird bei aktivem Game-Mode schon beim Start angelegt (der Anti-Cheat verweigert neue Sitzungen, sobald das Spiel läuft). ScreenBuddy daher vor dem Spiel starten. Fallback: HWiNFO-Sensorgruppe „PresentMon“ (nur lesend).
 
 ## [2.10.1] - 2026-11-08
 
