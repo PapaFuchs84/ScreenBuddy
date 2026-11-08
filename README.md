@@ -111,14 +111,18 @@ Dazu kommen:
 | <img src="docs/screenshots/display-bf6-dunkel.png" width="380" alt="Battlefield-6-Rangliste im dunklen Design"> | <img src="docs/screenshots/display-blogs-dunkel.png" width="380" alt="Blog-Updates im dunklen Design"> |
 | Battlefield-6-Rangliste (Dunkel) | Blog-Updates (Dunkel) |
 
-| Einstellungsseite | |
+| Einstellungsfenster (2.10.0, Standard-Design Material-Orange) | |
 |---|---|
-| <img src="anleitung/bilder/start.png" width="380" alt="Startseite der Einstellungen"> | <img src="anleitung/bilder/prev0.png" width="380" alt="Übersicht mit Live-Vorschau"> |
-| Start mit Ersteinrichtung | Übersicht mit Live-Vorschau |
-| <img src="anleitung/bilder/discord.png" width="380" alt="Discord-Einstellungen mit Hilfe zum Aufklappen"> | <img src="anleitung/bilder/bf6.png" width="380" alt="Battlefield-6-Spieler eintragen"> |
-| Discord mit Hilfe zum Aufklappen | Battlefield-6-Spieler eintragen und prüfen |
+| <img src="docs/screenshots/2.10/de/01-uebersicht.png" width="380" alt="Einstellungsfenster, Übersicht mit Live-Vorschau"> | <img src="docs/screenshots/2.10/de/12-zonen-editor.png" width="380" alt="Zonen-Editor für Plugin-Seiten"> |
+| Übersicht mit Live-Vorschau | Zonen-Editor (Plugin-Seiten, neu in 2.10.0) |
+| <img src="docs/screenshots/2.10/de/10-eigene-ansichten.png" width="380" alt="Eigene Ansichten: Kacheln zu eigenen Seiten kombinieren"> | <img src="docs/screenshots/2.10/de/07-game-mode.png" width="380" alt="Game-Mode-Einstellungen"> |
+| Eigene Ansichten (Kacheln, Raster, Touch-Ziele) | Game-Mode: Spielerkennung, Intro, Ziel-Display |
+| <img src="docs/screenshots/2.10/de/06-ki-status.png" width="380" alt="KI-Status mit Claude- und Codex-Karten"> | <img src="docs/screenshots/2.10/de/09-spotify.png" width="380" alt="Spotify-Einstellungen mit zuletzt gespieltem Titel"> |
+| KI-Status (Claude Code, Codex) | Spotify, mit „zuletzt gespielt“ und Cover-Tipp |
 
-Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherigen Oberfläche 1.x.
+<p align="center"><img src="docs/screenshots/2.10/game-mode-intro.gif" width="480" alt="Game-Mode-Intro: Logo-Animation beim Spielstart"><br>Game-Mode-Intro beim Spielstart (2,5 s)</p>
+
+Alle Bilder zeigen Beispieldaten einer Testinstanz. Die Display-Bilder oben stammen teils aus früheren Versionen.
 
 ## Schnellstart
 

@@ -145,16 +145,39 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 .dc .cb i{width:18px;height:18px;border-radius:4px;border:2px solid #80848e}
 .dc .cb i.on{background:var(--blue);border-color:var(--blue)}
 .dc .url{background:#1e1f22;border-radius:4px;padding:8px 10px;font-family:Consolas,monospace;font-size:12px;color:#00a8fc;margin-top:6px;word-break:break-all}
+/* Search (top bar) */
+.search{position:relative;flex:1;min-width:150px;max-width:340px}
+.search input{width:100%;font:inherit;font-size:15px;padding:6px 12px;border:0;border-radius:10px;background:#fff4e6;color:#14213d}
+.search input::placeholder{color:#68605c}
+.search input:focus-visible{outline:3px solid #14213d;outline-offset:2px}
+.sres{--text:#14213d;--muted:#68605c;--card:#fffaf3;--card2:#fae4c8;--line:#eed2b0;--orange2:#b05200;position:absolute;left:0;top:calc(100% + 8px);
+width:max(100%,min(440px,calc(100vw - 40px)));max-height:min(70vh,520px);overflow:auto;background:var(--card);color:var(--text);border:1px solid var(--line);
+border-radius:14px;box-shadow:0 12px 32px #0004;z-index:8;text-align:left}
+html[data-theme=dunkel] .sres{--text:#fff4e6;--muted:#a9b4cb;--card:#14213d;--card2:#1b2b4d;--line:#27395f;--orange2:#ff9a2e}
+.sres[hidden]{display:none}
+.sres [role=option]{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--line)}
+.sres [role=option]:last-child{border-bottom:0}
+.sres [role=option][aria-selected=true]{background:var(--card2);box-shadow:inset 4px 0 0 var(--orange2)}
+.sres .st{font-weight:700;font-family:var(--head);font-size:16px;display:flex;gap:8px;align-items:baseline}
+.sres .st small{font-weight:400;font-family:"Segoe UI",system-ui,sans-serif;color:var(--muted);font-size:13px;margin-left:auto;white-space:nowrap}
+.sres .sn{font-size:14px;color:var(--muted);margin-top:2px;line-height:1.4}
+.sres mark{background:#ffd27a;color:#14213d;border-radius:3px;padding:0 1px}
+.sres .snone{padding:14px;color:var(--muted);font-size:15px}
 .ok{color:var(--green);font-weight:700}
 .party{font-size:80px;text-align:center;margin:10px 0}
 @media(max-width:720px){.ring{border-width:3px}html,body{font-size:17px}h1{font-size:27px}.grid2,.pages{grid-template-columns:1fr}
-.next{min-width:0;flex:1}.big{padding:13px 18px}.dc{grid-template-columns:1fr}.dc .side{display:none}.count span{display:none}}
+.next{min-width:0;flex:1}.big{padding:13px 18px}.dc{grid-template-columns:1fr}.dc .side{display:none}.count span{display:none}
+.topin{flex-wrap:wrap;gap:8px 12px}.search{order:10;flex:1 0 100%;max-width:none}}
 @media print{.top,.nav,.help>summary:before{display:none}}
 </style>
 </head>
 <body>
 <div class="top"><div class="topin">
   <div class="brand"><img src="{{img:icon}}" alt="">ScreenBuddy</div>
+  <div class="search" role="search" aria-label="Search this guide">
+    <input id="q" type="search" role="combobox" aria-label="Search this guide" aria-expanded="false" aria-controls="sres" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="🔍 Search (press /)">
+    <div class="sres" id="sres" hidden><div id="slist" role="listbox" aria-label="Search results"></div><div class="snone" id="snone" role="status" hidden>No results – try another word</div></div>
+  </div>
   <div class="count" id="count"></div>
   <a class="menu" id="lang" href="ANLEITUNG.html" style="text-decoration:none;color:var(--text)">Deutsch</a>
   <button class="menu" id="menu" aria-label="Show all steps">☰ All steps</button>
@@ -172,13 +195,16 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 <div class="zoom" id="zoom"></div>
 
 <script>
-/* Native 2.9.5 release-test captures, anonymized afterwards; German UI labels. Display demos use synthetic data. */
+/* ScreenBuddy 2.10.0 captures from a test instance with sample data (screenshots are not retouched), English UI. Display demos use synthetic data. */
  const IMG = {
-   start: '{{img:start}}', app: '{{img:app}}', uebersicht: '{{img:uebersicht}}', discord: '{{img:discord}}', bf6: '{{img:bf6}}',
-   blogs: '{{img:blogs}}', display: '{{img:display}}', bar: '{{img:bar}}', page_system: '{{img:page_system}}',
-   page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', ha_display: '{{img:ha_display}}', ha_setup: '{{img:ha_setup}}', ha_pick: '{{img:ha_pick}}', icon: '{{img:icon}}', design: '{{img:design}}', cupertino_light: '{{img:cupertino_light}}', cupertino_dark: '{{img:cupertino_dark}}', fluent_light: '{{img:fluent_light}}', fluent_dark: '{{img:fluent_dark}}', material_light: '{{img:material_light}}', material_dark: '{{img:material_dark}}'};
+   s_uebersicht: '{{img:s_uebersicht}}', s_anzeige: '{{img:s_anzeige}}', s_sperrzone: '{{img:s_sperrzone}}', s_seiten: '{{img:s_seiten}}',
+   s_design: '{{img:s_design}}', s_ki: '{{img:s_ki}}', s_game: '{{img:s_game}}', s_game_erk: '{{img:s_game_erk}}', s_spotify: '{{img:s_spotify}}',
+   s_ansichten: '{{img:s_ansichten}}', s_ansicht_game: '{{img:s_ansicht_game}}', s_zonen: '{{img:s_zonen}}', s_freunde: '{{img:s_freunde}}',
+   s_discord: '{{img:s_discord}}', s_bf6: '{{img:s_bf6}}', s_blogs: '{{img:s_blogs}}', s_streaming: '{{img:s_streaming}}', s_ha: '{{img:s_ha}}',
+   s_erweit: '{{img:s_erweit}}', s_app: '{{img:s_app}}', gif_game: '{{img:gif_game}}',
+   page_system: '{{img:page_system}}', page_blogs: '{{img:page_blogs}}', ha_display: '{{img:ha_display}}', icon: '{{img:icon}}'};
  function shot(name, rings = [], cap = '') {
-   return `<figure><span class="real">📷 Native 2.9.5 interface · anonymized · German labels</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${cap}"></div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
+   return `<figure><span class="real">📷 ScreenBuddy 2.10.0 · test instance with sample data</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${cap}"></div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
  }
  const help = (items, title = 'Not working? Click here') =>
   `<details class="help"><summary>${title}</summary><div class="in"><dl>${items.map(([q, a]) => `<dt>${q}</dt><dd>${a}</dd>`).join('')}</dl></div></details>`;
@@ -193,8 +219,11 @@ const FEAT = [
   ['blogs', '📰', 'News', 'The newest articles from websites you like'],
   ['streaming', '🎬', 'New on streaming', 'New movies and series on Netflix, Disney+ and more'],
   ['homeassistant', '🏠', 'Home Assistant', 'Values and switches from your smart home'],
-  ['spotify', '🎵', 'Spotify', 'The song playing on Spotify right now']];
-let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true, streaming: false, homeassistant: false, spotify: false}, cur = 0, seen = new Set();
+  ['spotify', '🎵', 'Spotify', 'The song playing on Spotify right now, or the last one you played'],
+  ['ki', '🤖', 'AI Status', 'What Claude Code and Codex are doing on your PC right now'],
+  ['views', '🧩', 'My own layouts', 'Arrange tiles in zones and build your own views'],
+  ['game', '🕹️', 'Game-Mode', 'A special view that appears by itself when you start a game']];
+let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true, streaming: false, homeassistant: false, spotify: false, ki: false, views: false, game: false}, cur = 0, seen = new Set();
 try { Object.assign(sel, JSON.parse(localStorage.getItem('fl-guide-sel') || '{}')); } catch (e) {}
 const saveSel = () => { try { localStorage.setItem('fl-guide-sel', JSON.stringify(sel)); } catch (e) {} };
 
@@ -207,9 +236,10 @@ const STEPS = [
   <figure><div class="shot" data-zoom><img src="${IMG.page_blogs}" alt="News"></div><figcaption>New articles from your favourite websites</figcaption></figure>
 </div>
 <p>You always do just <b>one small step</b>. The top right shows how far you've got. When you're done, press ${b('Next →')} at the bottom.</p>
-<p><b>Design systems (since 2.9.2):</b> Cupertino: collapsible sidebar and optional inspector; Fluent: page search and Back history; Material: five destinations, subpages and floating save actions for pending changes. System displays also use distinct compositions. The theme editor profile also controls shapes, typography, spacing and interaction feedback. Native settings follow after Save &amp; apply. Each profile offers light and dark variants; the window appearance switch also switches its profile palette. In the editor, Base loads the reference palette and replaces all nine colors. These are not full operating-system replicas.</p>
+<p><b>New look in 2.10.0:</b> The default design is now <b>dark Material with an orange accent</b>. Fresh installs start with it. If you already had ScreenBuddy, it asks you <b>once</b> “Set new default?”. The answer is <b>No</b> unless you pick Yes, so nothing changes by surprise. Cupertino, Fluent, Light, Dark, Windows and your own themes stay available under <b>View › Colors &amp; design</b>.</p>
+<div class="box tip"><p><b>Lost in this guide?</b> Use the <b>search field</b> at the top. Type a word like “token” or “touch” and jump straight to the right step. Press <span class="key">/</span> to get to the field quickly.</p></div>
 <div class="box tip"><p>If something doesn't work, every step has a <b>“Not working?”</b> button at the bottom. It tells you what you can do.</p></div>
-<div class="box warn"><p>The app itself can be switched between <b>German and English</b>. In ScreenBuddy 2.9, choose <b>EN</b> at the top; in earlier 2.3.0, select <b>English</b> under <b>“Sprache · Language”</b> and save. The native screenshots below still show German labels.</p></div>`},
+<div class="box warn"><p>The app itself can be switched between <b>German and English</b>. In ScreenBuddy 2.10 or newer, choose <b>EN</b> at the top; in earlier 2.3.0, select <b>English</b> under <b>“Sprache · Language”</b> and save. The screenshots in this guide show the English labels.</p></div>`},
 
 {t: 'What do you want to see?', html: () => `
 <p class="kicker">Choose</p><h1>What should your display show?</h1>
@@ -234,10 +264,10 @@ ${sel.bf6 ? '<li><b>The EA names</b> of you and your Battlefield friends.</li>' 
 {t: 'Get the program', html: () => `
 <p class="kicker">Download</p><h1>Download the program</h1>
 <p class="lead">ScreenBuddy is <b>one single file</b>. There is nothing to unpack.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.9.5:</b> Download <span class="key">ScreenBuddy.exe</span>. Menu images show native 2.9.5 release-test captures with German labels, anonymized afterwards. Accounts, addresses and private previews are covered. Display demos use synthetic data; choose EN in the app for English controls. Earlier 2.3.0 uses different menus and its own bundled guide. Tip: rest the mouse on a status dot in the left list for a moment and a hint tells you whether the page is set up and on (green) or not set up or off (grey).</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.10 or newer:</b> Download <span class="key">ScreenBuddy.exe</span> from the latest release. The menu pictures in this guide are screenshots captured with a 2.10.0 build from a test instance with sample data. They are not retouched, so they show example values. Display demos use synthetic data. Earlier 2.3.0 uses different menus and its own bundled guide. Tip: rest the mouse on a status dot in the list for a moment and a hint tells you whether the page is set up and on (green) or not set up or off (grey).</p></div>
 <ol class="do">
 <li>Open this page: <a href="https://github.com/PapaFuchs84/ScreenBuddy/releases/latest" target="_blank" rel="noopener">Latest release on GitHub</a>. Or use the file from whoever sent you this guide.</li>
-<li>Download <span class="key">ScreenBuddy.exe</span> from release 2.9.3 and verify its SHA-256 using the supplied checksum file.</li>
+<li>Download <span class="key">ScreenBuddy.exe</span> from the latest release and verify its SHA-256 using the supplied checksum file.</li>
 <li>It normally lands in your <b>Downloads</b> folder.</li>
 </ol>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock win">
@@ -266,9 +296,9 @@ ${help([['I can\'t find the file.', 'Look in the <b>Downloads</b> folder. You ca
 <li>Click ${b('Install')}. Wait a moment. Then it says <b>“Done! The app is starting now.”</b></li>
 </ol>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock win">
-<div class="tb">ScreenBuddy 2.9 – Installation<span>— ☐ ✕</span></div>
+<div class="tb">ScreenBuddy – Installation<span>— ☐ ✕</span></div>
 <div class="files" style="display:block;padding:16px;text-align:left">
-<p style="margin:0 0 8px"><b>Installation · ScreenBuddy 2.9</b></p>
+<p style="margin:0 0 8px"><b>Installation · ScreenBuddy</b></p>
 <p style="margin:0 0 8px">☑ Start with Windows (only the fox icon in the notification area)<br>☑ Start menu entry</p>
 <p style="margin:0;text-align:right"><span class="btnname hlbtn">Install</span></p></div></div></figure>
 <div class="box tip"><p><b>Did you have version 1.x?</b> Then one more tick box appears: <b>“Retire the old 1.x version”</b>. Leave it on: your settings and credentials are carried over. The old folder gets the suffix <span class="key">-1.x-alt</span> and stays as a backup.</p></div>
@@ -296,44 +326,60 @@ ${help([['Nothing happens.', 'Wait 10 seconds. The program needs a moment the fi
 {t: 'The settings page', html: () => `
 <p class="kicker">Check</p><h1>The settings open by themselves</h1>
 <p class="lead">After installing, a window of its own opens. That's the <b>settings page</b>. You set everything up there. It belongs only to you and isn't on the internet.</p>
-<p>In the native 2.9.5 window, use the <b>EN</b> button at the top to switch the app to English. On <b>Overview</b>, the first card should say <b>Connected</b> for your own display. The screenshot uses German labels and was anonymized after release testing. Check the connection status on your own device.</p>
-${shot('start', [[286, 196, 869, 63]], 'The first card shows display status. Check the value on your own device.')}
+<p>In the ScreenBuddy 2.10 (or newer) window, use the <b>EN</b> button at the top to switch the app to English. Open <b>Overview</b> in the left rail. The first card should say <b>Connected</b> for your own display. The screenshot comes from a test instance, so check the connection status on your own device.</p>
+${shot('s_uebersicht', [], 'The Overview page. The first card shows the display status. Check the value on your own device.')}
 <p>If that works, your little display lights up now too. 🎉</p>
 ${help([['It says “The display\'s vendor app is running”.', `Click ${g('Stop vendor app')} next to it. If <b>“Vendor app autostart”</b> appears below it, click ${g('Disable vendor app autostart')} there. Windows then asks once whether you allow it: click <b>Yes</b>.`],
   ['It says “Display not found”.', 'Unplug the USB cable and plug it back in. Try another USB port on the PC. Then wait a few seconds.'],
-  ['Published 2.3.0 says WebView2 is missing.', 'Install the <b>Microsoft Edge WebView2 runtime</b> and restart 2.3.0. ScreenBuddy 2.9 has a native settings window.'],
+  ['Published 2.3.0 says WebView2 is missing.', 'Install the <b>Microsoft Edge WebView2 runtime</b> and restart 2.3.0. ScreenBuddy 2.10 and newer have a native settings window.'],
   ['The window didn\'t open.', 'At the bottom right next to the clock there is a small orange icon (maybe behind the arrow <span class="key">^</span>). Double-click it.'],
   ['The picture on the display is upside down.', 'No problem, you\'ll fix that in the step “Rotate picture and brightness”.']])}`},
 
-{t: 'Menus and themes', html: () => `<h1>Where are the settings?</h1><p>Page names apply to every theme. When a later step says “on the left”, open the same page using your theme’s navigation.</p><ul><li><b>View:</b> Overview, Display, Pages &amp; order, <b>Colors &amp; design</b>.</li><li><b>Pages:</b> System, Friends, Discord, Battlefield 6, Blogs (RSS), New on streaming, Home Assistant, Spotify.</li><li><b>App:</b> Companion, Plugins, Plugin store, Updates &amp; startup.</li></ul><p><b>FuchsLabs:</b> full list on the left. <b>Cupertino:</b> ☰ toggles the sidebar; Preview opens the inspector. <b>Fluent:</b> search by page title, use ‹ to go back; clear search to see all pages.</p><p><b>Material:</b> View → Colors &amp; design. Choose subpages below the heading, or in the dropdown when space is limited. Plugins are under Extensions, Companion and updates under App. ◧ toggles preview. Save actions appear with pending changes.</p>${shot('cupertino_light', [], 'Cupertino · Light · German UI')}${shot('cupertino_dark', [], 'Cupertino · Dark · German UI')}${shot('fluent_light', [], 'Fluent · Light · search and Back · German UI')}${shot('fluent_dark', [], 'Fluent · Dark · German UI')}${shot('material_light', [], 'Material · Light · View and Colors & design · German UI')}${shot('material_dark', [], 'Material · Dark · German UI')}<h2>Install a theme</h2><ol><li>Open View → Colors &amp; design.</li><li>In Themes from the store, refresh, select a theme and click Install theme.</li><li>The theme is selected automatically. Save &amp; apply keeps it after restart.</li></ol>${shot('design', [], 'Theme installed and selected directly on Colors & design. Account-free test instance; German UI, no hardware evidence.')}<p>The shared request switch remains under App → Plugin store. Store color themes and design systems are separate: choose the layout with Design system in the theme editor. Light/Dark at the top affects the window; the color scheme affects display output.</p>`},
+{t: 'Menus and themes', html: () => `
+<p class="kicker">Find your way</p><h1>Where are the settings?</h1>
+<p class="lead">On the far left of the settings window there is a narrow bar with five big entries. Each one has <b>tabs</b> at the top.</p>
+<ul>
+<li><b>Overview:</b> your display status at a glance.</li>
+<li><b>View:</b> tabs <b>Display</b>, <b>Pages &amp; order</b>, <b>Colors &amp; design</b>.</li>
+<li><b>Pages:</b> tabs <b>System</b>, <b>AI Status</b>, <b>Game-Mode</b>, <b>Friends</b>, <b>Discord</b>, <b>Battlefield 6</b>, <b>Blogs (RSS)</b>, <b>New on streaming</b>, <b>Home Assistant</b>, <b>Spotify</b>, <b>Custom views</b>.</li>
+<li><b>Extensions:</b> tabs <b>Plugins</b> and <b>Plugin store</b>.</li>
+<li><b>App:</b> tabs <b>Companion</b> and <b>Updates &amp; startup</b>.</li>
+</ul>
+<p>In this guide we write paths like <b>Pages › Spotify</b>: first the entry in the left bar, then the tab.</p>
+<div class="box tip"><p><b>Good to know:</b> The old “Arrange pages” entry is gone. You choose the <b>order</b> under <b>View › Pages &amp; order</b>. You arrange <b>tiles</b> in the editor under <b>Pages › Custom views</b>.</p></div>
+<h2>The new default look</h2>
+<p>Fresh installs use <b>dark Material with an orange accent</b>. If you already had ScreenBuddy, it asks once “Set new default?” and the preselected answer is <b>No</b>. Cupertino, Fluent, Light, Dark, Windows and your own themes stay selectable under <b>View › Colors &amp; design</b>.</p>
+<h2>Install a theme</h2>
+<ol class="do"><li>Open <b>View › Colors &amp; design</b>.</li><li>In <b>Themes from the store</b>, click <b>Refresh store</b>, select a theme and click <b>Install theme</b>.</li><li>The theme is selected automatically. ${b('Save &amp; apply')} keeps it after a restart.</li></ol>
+${shot('s_design', [], 'View › Colors &amp; design with the theme choice and the themes from the store.')}
+<p>The shared switch for store requests stays under <b>Extensions › Plugin store</b>. Store color themes and design systems are separate things. Light/Dark at the top changes the window; the color scheme changes the display output.</p>`},
 
 {t: 'Start with Windows', html: () => `
 <p class="kicker">Turn on</p><h1>The display should always come on by itself</h1>
 <p class="lead">So you don't have to start the program yourself every time:</p>
-<ol class="do"><li>Under <b>Updates &amp; Autostart</b>, turn on the <b>“Start with Windows”</b> switch. It turns orange. (If you ticked this during installation, it's already on.)</li></ol>
-${shot('app', [], 'Updates &amp; Autostart. Start with Windows is disabled in this isolated test instance; it is available in the regular app.')}
-<div class="box tip"><p><b>New in 2.2.0 – new version:</b> At most once a day the program checks GitHub for a newer version. If there is one, a balloon appears at the fox icon and <b>Updates &amp; Autostart</b> shows “New version available” with a link to the download page. Nothing is ever installed by itself. Use <b>Check for updates now</b> to ask yourself; the <b>“Automatically check for updates”</b> switch turns the check off.</p></div>
+<ol class="do"><li>Open <b>App › Updates &amp; startup</b> and turn on the <b>“Start with Windows”</b> switch. It turns orange. (If you ticked this during installation, it's already on.)</li></ol>
+<div class="box tip"><p><b>New in 2.2.0 – new version:</b> At most once a day the program checks GitHub for a newer version. If there is one, a balloon appears at the fox icon and <b>App › Updates &amp; startup</b> shows “New version available” with a link to the download page. Nothing is ever installed by itself. Use <b>Check for updates now</b> to ask yourself; the <b>“Automatically check for updates”</b> switch turns the check off.</p></div>
 <div class="box tip"><p>The <b>Overview</b> page has the ${b('Guide (German)')} and ${b('Guide (English)')} buttons. They bring you back to this guide at any time.</p></div>
 <div class="box tip"><p>From now on the program starts by itself when you sign in to Windows. It then only shows the small fox icon at the bottom right; the settings don't open on their own. You can turn it off on the same page.</p></div>`},
 
 {t: 'Choose pages', html: () => `
 <p class="kicker">Choose</p><h1>Which pages does the display show?</h1>
-<p class="lead">Click <b>Pages &amp; order</b> on the left (German screenshot: <b>Seiten &amp; Reihenfolge</b>). Select and reorder pages there. The live preview remains on the right.</p>
-<div class="box tip"><p>The live preview shows the current picture of the selected device. To step the running display, use <b>Show previous page</b> and <b>Show next page</b> under <b>Companion</b>; they act on the Companion output. No save is needed.</p></div>
-${shot('uebersicht', [], 'The native Pages &amp; order view with checkboxes and arrow buttons.')}
+<p class="lead">Open <b>View › Pages &amp; order</b>. You choose pages and put them in order there. The live preview stays on the right.</p>
+<div class="box tip"><p>The live preview shows the current picture of the selected device. To step the running display, use <b>Show previous page</b> and <b>Show next page</b> under <b>App › Companion</b>; they act on the Companion output. No save is needed.</p></div>
+${shot('s_seiten', [], 'View › Pages &amp; order with checkboxes and arrow buttons.')}
 <ol class="do">
 <li>Use the <b>checkbox</b> to turn a page on or off. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Turn off the pages you don\'t want.' : ''}${sel.friends ? ' For Steam, Xbox and PlayStation, turn on <b>“Friends”</b>.' : ''}</li>
 <li>Use the <b>arrows ▲ ▼</b> on this page to change the order.</li>
-<li>Find the <b>Brightness</b> slider under <b>Display</b> (German screenshot: <b>Anzeige</b>).</li>
+<li>Find the <b>Brightness</b> slider under <b>View › Display</b>.</li>
 </ol>
-<div class="box warn"><p>A bar with ${b('Save &amp; apply')} then appears at the bottom. You press it at the very end. But you can also press it now.</p></div>`},
+<div class="box warn"><p>When you change something, a bar with ${b('Save &amp; apply')} appears at the bottom. You press it at the very end. But you can also press it now.</p></div>`},
 
 {t: 'HDMI/USB-C and touch', html: () => `
 <p class="kicker">Another display</p><h1>Set up an HDMI screen and touch</h1>
 <p class="lead">This step is for a normal screen connected over HDMI or USB-C, starting with version 2.0.3. Skip it for a small USB display using a COM port.</p>
 <ol class="do">
 <li>Connect the screen to your PC and set Windows to <b>Extend</b>. Touch also requires the <b>USB touch connection</b>.</li>
-<li>Open <b>Display</b> (German screenshot: <b>Anzeige</b>) in settings. Choose <b>Monitor</b> (HDMI/USB-C) under <b>Display type</b> and select the intended screen under <b>Monitor</b>. Select <b>Save &amp; apply</b>.</li>
+<li>Open <b>View › Display</b> in settings. Choose <b>Monitor</b> (HDMI/USB-C) under <b>Display type</b> and select the intended screen under <b>Monitor</b>. Select <b>Save &amp; apply</b>.</li>
 <li>Do taps appear on another screen? Select <b>Open Windows wizard</b> under <b>Assign touchscreen</b>. The display output pauses while the Windows wizard is open.</li>
 <li>Press <b>Enter</b> to skip other screens. When the wizard message appears on the intended touchscreen, touch that screen. <b>Esc</b> cancels.</li>
 <li>Select <b>Check again</b> afterwards. Enable <b>Touch control</b> if needed and save. Swipe left = next page, right = previous; tap on the left = back, elsewhere = next. Tapping a blog post opens it in the browser on your PC (from 2.0.6).</li>
@@ -348,14 +394,28 @@ ${shot('uebersicht', [], 'The native Pages &amp; order view with checkboxes and 
 <p class="kicker">Only if needed</p><h1>Is the picture upside down?</h1>
 <p class="lead">If the picture on your display is the right way up, just press ${b('Next →')}.</p>
 <p>If it's upside down:</p>
-<ol class="do"><li>Click <b>Display</b> on the left (German screenshot: <b>Anzeige</b>).</li><li>Under <b>Orientation</b>, choose the other option: <b>“Landscape”</b> instead of <b>“Landscape 180°”</b> or the other way round.</li></ol>
-${shot('display', [], 'Orientation is on Display, below the brightness slider.')}`},
+<ol class="do"><li>Open <b>View › Display</b>.</li><li>Under <b>Orientation</b>, choose the other option: <b>“Landscape”</b> instead of <b>“Landscape 180°”</b> or the other way round.</li></ol>
+${shot('s_anzeige', [], 'View › Display. Brightness and orientation are on this page.')}`},
+
+{t: 'Safe margins (keepout zone)', html: () => `
+<p class="kicker">Only if needed · New in 2.10</p><h1>Is something cut off at the edge?</h1>
+<p class="lead">Some TVs and monitors hide a little bit of the picture at the edge. With a <b>keepout zone</b> you leave an empty border, so nothing important gets lost. If everything is visible, just press ${b('Next →')}.</p>
+<ol class="do">
+<li>For a <b>USB display</b> or a <b>monitor</b>: open <b>View › Display</b> and find <b>Keepout</b>. There are four number fields: top, right, bottom and left.</li>
+<li>For a <b>Companion device</b> (phone, tablet or Android TV): open <b>App › Companion</b>. There you set a shared default and, for each paired device, its own margins.</li>
+<li>Type the margins in <b>whole pixels</b>, between 0 and 1000. Then press ${b('Save &amp; apply')}.</li>
+</ol>
+${shot('s_sperrzone', [], 'The keepout fields. The preview shows the empty border.')}
+<div class="box tip"><p>The preview shows the border right away. If less than 160 × 120 usable pixels would be left, ScreenBuddy ignores the margins. An Android TV always shows pictures in landscape.</p></div>
+${help([['I typed a number but the border looks smaller.', 'Each edge can be at most one third of the smaller side of the picture. Bigger numbers are cut down.'],
+  ['My Companion device does not have its own margins.', 'Own margins per device only work in the independent mode. Otherwise the shared default applies.']])}`},
 
 {t: 'Colors and design', html: () => `
-<p class="kicker">New in 2.9</p><h1>How should it look?</h1>
-<p class="lead">If you like the colors, just press ${b('Next →')}. You can change them at any time.</p>
-<ol class="do"><li>Click <b>"Colors &amp; design"</b> on the left.</li><li>Choose <b>Light</b> or <b>Dark</b> in the FuchsLabs style. Or choose <b>"Match Windows"</b>: the display then takes light or dark and the accent color from Windows and follows when you change it in Windows.</li><li>Your own colors: create a <b>theme</b>, change the colors in the editor and check the preview. The editor warns when text would be hard to read and can fix the contrast. <b>Import</b> and <b>Export</b> swap themes as a file. Three examples (in the style of Apple, Google and Microsoft interfaces) are in the <b>cpp/examples/themes</b> folder of the GitHub project. You can also find ready-made themes right here in the <b>"Themes from the store"</b> card: select one and click <b>Install theme</b> (colors only, checked and signed). The theme is then already selected.</li><li>Click ${b('Save & apply')}.</li></ol>
-<div class="box tip"><p>In the list on the left (group <b>PAGES</b> and <b>Companion</b>), a <b>green dot</b> shows that a data source is set up and switched on. <b>Grey</b> means not set up yet or off. A legend sits at the bottom of the list.</p></div>`},
+<p class="kicker">Look</p><h1>How should it look?</h1>
+<p class="lead">New installs start with <b>dark Material in orange</b>. If you like that, just press ${b('Next →')}. You can change it at any time.</p>
+<ol class="do"><li>Open <b>View › Colors &amp; design</b>.</li><li>Choose a design: Material, Cupertino, Fluent, <b>Light</b> or <b>Dark</b> in the FuchsLabs style. Or choose <b>"Windows"</b>: the display then takes light or dark and the accent color from Windows and follows when you change it in Windows.</li><li>Your own colors: create a <b>theme</b>, change the colors in the editor and check the preview. The editor warns when text would be hard to read and can fix the contrast. <b>Import</b> and <b>Export</b> swap themes as a file. Three examples (in the style of Apple, Google and Microsoft interfaces) are in the <b>cpp/examples/themes</b> folder of the GitHub project. You can also find ready-made themes right here in the <b>"Themes from the store"</b> card: select one and click <b>Install theme</b> (colors only, checked and signed). The theme is then already selected.</li><li>Click ${b('Save &amp; apply')}.</li></ol>
+${shot('s_design', [], 'View › Colors &amp; design.')}
+<div class="box tip"><p>In the page list, a <b>green dot</b> shows that a data source is set up and switched on. <b>Grey</b> means not set up yet or off. A legend sits at the bottom of the list.</p></div>`},
 
 {need: 'discord', t: 'Discord 1: create a bot', html: () => `
 <p class="kicker">Discord · part 1 of 3</p><h1>Make yourself a little Discord helper</h1>
@@ -376,7 +436,7 @@ ${shot('display', [], 'Orientation is on Display, below the brightness slider.')
 <div class="sw hlbtn" style="outline-offset:0">Presence Intent <i class="on"></i></div>
 <div class="sw hlbtn" style="outline-offset:0">Server Members Intent <i class="on"></i></div>
 <div class="sw">Message Content Intent <i></i></div></div></div></figure>
-<div class="box tip"><p>You'll also find the same steps and the ${g('Discord developer page ↗')} button on the settings page under <b>Discord</b>, in <b>“How to get the bot token”</b>.</p></div>
+<div class="box tip"><p>You'll also find the same steps and the ${g('Discord developer page ↗')} button on the settings page under <b>Pages › Discord</b>, in <b>“How to get the bot token”</b>.</p></div>
 <div class="box secret"><p>The <b>token</b> is like a <b>password</b>. Don't show it to anyone and don't send it to anyone. You'll only paste it into your settings page in a moment.</p></div>
 ${help([['I lost the token.', `No problem. Just click <b>Reset Token</b> again. Then you get a new one.`],
   ['Discord asks for my password or a code.', 'That\'s Discord\'s security check. Enter it there on Discord, nowhere else.']])}`},
@@ -405,12 +465,12 @@ ${help([['My server isn\'t in the list.', 'You can only invite bots to servers w
 {need: 'discord', t: 'Discord 3: paste the token', html: () => `
 <p class="kicker">Discord · part 3 of 3</p><h1>Give the display the token</h1>
 <ol class="do">
-<li>Go back to the settings page and click <b>“Discord”</b> on the left.</li>
+<li>Go back to the settings page and open <b>Pages › Discord</b>.</li>
 <li>Click into the <b>Bot token</b> field and paste the token: <span class="key">Ctrl</span> + <span class="key">V</span>.</li>
 <li>Press ${b('Save &amp; apply')} at the bottom. Wait about 10 seconds.</li>
 <li>The people from your server now appear under <b>Pick people</b>. Tick your friends.</li>
 </ol>
-${shot('discord', [], 'Bot token and people are on the native Discord page. The sample has no real token.')}
+${shot('s_discord', [], 'Pages › Discord. The bot token field and the people list. The sample has no real token.')}
 <div class="box tip"><p>If you tick <b>nobody</b>, the display shows everyone from the server. If you tick friends, only them.</p></div>
 ${help([['Under “Pick people” it says “The bot is not connected right now”.', 'Check that you pasted the whole token and that in part 1 you turned the two switches (intents) green and saved. Then click <b>Save &amp; apply</b> again.'],
   ['My friends are missing from the list.', 'The bot only sees people on servers it is on itself. Invite it to the server your friends are on as well (part 2).'],
@@ -420,43 +480,46 @@ ${help([['Under “Pick people” it says “The bot is not connected right now�
 <p class="kicker">Steam, Xbox, PlayStation</p><h1>Add your Steam, Xbox and PlayStation friends</h1>
 <p class="lead">For this the display needs a <b>key</b> for each. That's a long code that lets the app read your friends list. You only need the ones you use. PlayStation is optional and off by default.</p>
 <ol class="do">
-<li>Click <b>“Friends”</b> on the left.</li>
+<li>Open <b>Pages › Friends</b>.</li>
 <li><b>Steam:</b> fold out <b>“How to get the Steam key”</b> and click ${g('Get Steam key ↗')}. Under <b>Domain Name</b>, write <b>localhost</b>. Copy the key into the <b>Steam API key</b> field. A card directly below the field shows the same steps with buttons.</li>
 <li>Open your Steam profile in the browser and copy the address from the address bar into the <b>Steam ID or profile URL</b> field.</li>
 <li>Very important: with ${g('Open privacy settings ↗')} set <b>Friends list</b> to <b>Public</b> on Steam.</li>
 <li><b>Xbox:</b> fold out <b>“How to get the Xbox key (OpenXBL)”</b> and follow the steps there.</li>
 <li>Click ${g('Check connection')} for each. Green means: it works. Then ${b('Save &amp; apply')}.</li>
 </ol>
-${shot('freunde', [], 'The native Friends page contains Steam, Xbox and PlayStation settings. Scroll down for more fields.')}
+${shot('s_freunde', [], 'Pages › Friends contains the Steam, Xbox and PlayStation settings. Scroll down for more fields.')}
 <div class="box secret"><p>The keys are like <b>passwords</b>. Don't show them to anyone.</p></div>
 <div class="box warn"><p><b>PlayStation (optional, unofficial):</b> Sony offers no official interface for friends. ScreenBuddy therefore uses the <b>NPSSO code</b> of your PlayStation sign-in. This is <b>at your own risk</b>: Sony may change the interface at any time or restrict your account. The feature is <b>off by default</b>; leave the <b>PlayStation code (NPSSO)</b> field empty if you don't want it. To set it up, open <b>“How to get the PlayStation code (NPSSO)”</b> and follow the steps, paste the code and click ${g('Check connection')}. The code is like a password, is stored only encrypted on your PC and is sent only to Sony. It expires after about two months; just fetch a new one then.</p></div>
 ${help([['It says the friends list is private.', 'On Steam, set the friends list to <b>Public</b> (step 4) and check again.'],
   ['PlayStation says the sign-in expired or is invalid.', 'The NPSSO code has expired or was copied wrongly. Fetch a new one (it has 64 characters) and click <b>Check connection</b> again.'],
   ['A friend appears twice in the list.', 'At the very bottom under <b>“Merge people”</b>, choose both accounts and click <b>Link</b>.'],
-  ['Discord friends now appear twice on the display.', 'In the <b>Overview</b>, turn off the <b>“Discord friends”</b> page. The shared list already includes Discord.']])}`},
+  ['Discord friends now appear twice on the display.', 'Under <b>View › Pages &amp; order</b>, turn off the <b>“Discord friends”</b> page. The shared list already includes Discord.']])}`},
 
 {need: 'bf6', t: 'Battlefield 6', html: () => `
 <p class="kicker">Battlefield 6</p><h1>Add the Battlefield players</h1>
 <p class="lead">EA doesn't tell anyone who your friends are. That's why you write the names down yourself.</p>
 <ol class="do">
-<li>Click <b>“Battlefield 6”</b> on the left.</li>
+<li>Open <b>Pages › Battlefield 6</b>.</li>
 <li>Write your <b>EA name</b> on one line of the <b>EA IDs</b> list. If you play on PlayStation or Xbox, append <b>@psn</b> or <b>@xbox</b> to the name, for example <b>Name@psn</b>.</li>
 <li>Do the same for each friend, one line per name.</li>
 <li>Under <b>Check a name</b>, type a name into the <b>EA ID</b> field and click ${g('Check')}. If a <b>rank</b> appears in green, the name is correct.</li>
+<li><b>New in 2.10:</b> ${g('Check')} also shows the player's <b>ID</b>. Click ${g('Use ID')} and the entry becomes <b>Name#ID</b> (console: <b>Name@psn#ID</b>). The app then looks the player up by that ID, which is more reliable than the name. Old entries without an ID still work.</li>
 </ol>
-${shot('bf6', [], 'Battlefield 6 settings in the native interface. Scroll down for the player list.')}
-${help([['It says “Player not found”.', 'Look closely at the spelling. Upper and lower case, and zero and O, often get mixed up. Ask your friend for their exact EA name.'],
+${shot('s_bf6', [], 'Pages › Battlefield 6. Scroll down for the player list and the name check.')}
+<div class="box tip"><p>If the data source is having a bad day, the display now says <b>“source unavailable”</b> instead of “not found”. Your last good values and saved IDs are kept. Just wait a bit.</p></div>
+${help([['It says “Player not found”.', 'Look closely at the spelling. Upper and lower case, and zero and O, often get mixed up. Ask your friend for their exact EA name. Or use the ID with <b>Use ID</b>.'],
+  ['It says “source unavailable”.', 'The data source (not your PC) has a problem right now. Try again later. Nothing is lost.'],
   ['My friend plays on a console.', 'Append <b>@psn</b> (PlayStation) or <b>@xbox</b> (Xbox) to the name, for example <b>Name@psn</b>.']])}`},
 
 {need: 'blogs', t: 'News', html: () => `
 <p class="kicker">News</p><h1>Pick some websites</h1>
 <p class="lead">The display shows the newest articles from websites that often post new things (for example news sites or blogs).</p>
 <ol class="do">
-<li>Click <b>“Blogs”</b> on the left.</li>
+<li>Open <b>Pages › Blogs (RSS)</b>.</li>
 <li>Copy the website's address from your browser and paste it into the <b>Feed URLs</b> list, one address per line.</li>
 <li>Paste the address under <b>Check a feed</b> into the <b>URL</b> field and click ${g('Check')}. Green means: it works.</li>
 </ol>
-${shot('blogs', [], 'The native RSS page. Scroll down for addresses and the check action.')}
+${shot('s_blogs', [], 'Pages › Blogs (RSS). Scroll down for addresses and the check action.')}
 ${help([['It says “No feed found”.', 'Some sites don\'t offer an article list for programs. Try another site, or add <span class="key">/feed/</span> to the end of the address.']])}`},
 
 {need: 'streaming', t: 'New on streaming', html: () => `
@@ -467,10 +530,11 @@ ${help([['It says “No feed found”.', 'Some sites don\'t offer an article lis
 <li>Create a free account on <b>themoviedb.org</b> and get your key under <b>Settings → API</b>. In ScreenBuddy the card <b>“How to get the TMDB key”</b> has an <b>“Open TMDB API page”</b> button that opens the right page.</li>
 <li>For personal use choose <b>Developer</b> and read the terms. <b>Type of Use:</b> Desktop Application (if offered). <b>Application Name:</b> ScreenBuddy. <b>Application URL:</b> https://github.com/PapaFuchs84/ScreenBuddy (project page). <b>Application Summary:</b> “Display new movie and TV releases from my streaming providers on my personal ScreenBuddy display.”</li>
 <li>In personal fields enter your own name, email and the requested contact/address details. Optional fields may remain empty. Field names may vary. After submitting, copy the <b>API Key (v3)</b> or complete <b>API Read Access Token</b> – not your TMDB password.</li>
-<li>Click <b>“New on streaming”</b> on the left, turn the page on and paste the key. It is stored encrypted.</li>
+<li>Open <b>Pages › New on streaming</b>, turn the page on and paste the key. It is stored encrypted.</li>
 <li>Click ${g('Check key & load providers')} and tick your services in the list. Netflix, Prime Video, Disney+, Apple TV+, WOW and RTL+ are preselected.</li>
 <li>The region follows the app language (German: DE, English: US). You can change it in the <b>Region</b> field.</li>
 </ol>
+${shot('s_streaming', [], 'Pages › New on streaming. Your own key is entered here.')}
 ${help([['The display says “No key”.', 'Enter the key in the settings and save. Without a key ScreenBuddy does not request anything.'], ['It says “No data”.', 'Check the key and your internet connection. Data is requested at most once an hour; older entries stay visible until then.']])}
 <p style="font-size:.85em;opacity:.75">This product uses the TMDB API but is not endorsed or certified by TMDB. Provider data: JustWatch.</p>`},
 
@@ -484,13 +548,17 @@ ${help([['The display says “No key”.', 'Enter the key in the settings and sa
 <p class="kicker">Spotify</p><h1>Your song on the display</h1>
 <p class="lead">The display shows the song playing on Spotify right now, with cover and progress. With touch you can also press previous, pause and next (Spotify requires a Premium account for this).</p>
 <p>In landscape, the <b>Amplifier display</b> shows 16 bars from the Windows system output. Switch it off under Settings → Spotify. Analysis expires within three seconds of the last view of active playback; bars decay to zero during silence. The audio connection stays open locally; nothing is recorded or sent.</p>
-<p>Tapping the loaded cover opens the Spotify app on the PC. Premium is not required; Spotify must be installed. Without cover art this action is inactive.</p>
+<p><b>Tapping the cover</b> opens the Spotify app <b>on the PC</b>. This also works when you tap on a Companion device. Spotify is not started on the phone. Premium is not required; Spotify must be installed on the PC. Without cover art this action is inactive.</p>
+<p><b>New in 2.10:</b> When nothing is playing, the page shows the <b>last played song</b> with its cover. It is shown dimmed and says “Last played”, without buttons.</p>
 <ol class="do">
-<li>Create an app at <b>developer.spotify.com/dashboard</b> and tick “Web API”. The card <b>“How to get the Spotify client ID”</b> in ScreenBuddy takes you there with the <b>“Open Spotify dashboard”</b> button.</li>
+<li>Open <b>Pages › Spotify</b>. Create an app at <b>developer.spotify.com/dashboard</b> and tick “Web API”. The card <b>“How to get the Spotify client ID”</b> in ScreenBuddy takes you there with the <b>“Open Spotify dashboard”</b> button.</li>
 <li>Enter exactly the address shown in ScreenBuddy under <b>Spotify</b> as the <b>Redirect URI</b>.</li>
 <li>Copy the <b>Client ID</b> into ScreenBuddy, turn the page on and save.</li>
 <li>Click <b>“Sign in to Spotify”</b> and agree in the browser.</li>
 </ol>
+${shot('s_spotify', [], 'Pages › Spotify. Sign in here.')}
+<div class="box tip"><p><b>Already signed in with an older version?</b> Sign in <b>once more</b> under <b>Pages › Spotify</b>. The “last played” feature needs one extra permission (“recently played”). Without it you see the old message “Nothing is playing”.</p></div>
+<div class="box secret"><p>The <b>Client ID</b> belongs to you. Don't post it in chats or screenshots.</p></div>
 ${help([['It says “no active device”.', 'Open Spotify on your phone or PC once and play a song.'], ['The buttons do nothing.', 'Controlling needs Spotify Premium. The display works without it.']])}`},
 
 {need: 'homeassistant', t: 'Home Assistant', html: () => `
@@ -499,14 +567,14 @@ ${help([['It says “no active device”.', 'Open Spotify on your phone or PC on
 ${shot('ha_display', [], 'How the page looks on the display: two sensors and two switches.', 480, 320)}
 <h2>1. Address and access token</h2>
 <ol class="do">
-<li>On the settings page, open the ${b('Home Assistant')} tab on the left.</li>
+<li>On the settings page, open <b>Pages › Home Assistant</b>.</li>
 <li>Under ${b('Address')} enter what you use in your browser, for example <b>http://homeassistant.local:8123</b>.</li>
 <li>Get a token in Home Assistant: click your <b>name</b> at the bottom left, switch to <b>Security</b> at the top, and at the very bottom under <b>Long-lived access tokens</b> click <b>Create token</b>. Enter a name, for example “Display”, click <b>OK</b> and copy the token right away. It is shown only once.</li>
 <li>Paste it into ${b('Access token')}.</li>
 <li>Click ${b('Check connection &amp; load entities')}. If it says “Connected” next to it, everything worked.</li>
 </ol>
 <div class="box tip"><p>The <b>“How to get the access token”</b> card below the credential field explains the steps and links to the official guide.</p></div>
-${shot('ha_setup', [], 'Address, access token and connection check on the native Home Assistant page.')}
+${shot('s_ha', [], 'Pages › Home Assistant: address, access token, connection check and entities.')}
 <div class="box secret"><p>The <b>token</b> is like a <b>password</b> for your smart home. Show it to no one. The app stores it encrypted; only your Windows account can read it.</p></div>
 <h2>2. Choose tiles</h2>
 <ol class="do">
@@ -515,41 +583,126 @@ ${shot('ha_setup', [], 'Address, access token and connection check on the native
 <li>Turn on ${b('Show page')} at the top and click ${b('Save &amp; apply')} at the bottom.</li>
 </ol>
 <p>The entity selector is farther down on the same page. Scroll down in the middle panel.</p>
-<div class="box tip"><p><b>Switches</b> (switches, lights, fans, input booleans) can only be chosen if a touch screen is connected and <b>Touch control</b> is on (<b>Display</b> tab, see step “HDMI/USB-C and touch”). A tap on the tile then flips the switch. Without touch only sensors remain. Locks, covers and alarm systems deliberately cannot be switched.</p></div>
+<div class="box tip"><p><b>Switches</b> (switches, lights, fans, input booleans) can only be chosen if a touch screen is connected and <b>Touch control</b> is on (<b>View › Display</b>, see step “HDMI/USB-C and touch”). A tap on the tile then flips the switch. Without touch only sensors remain. Locks, covers and alarm systems deliberately cannot be switched.</p></div>
 ${help([['Home Assistant is not reachable.', 'Check the address and that your PC and Home Assistant are on the same network. If you only use “homeassistant.local”, try the IP address, for example <b>http://192.168.1.20:8123</b>.'],
   ['Token invalid or expired.', 'In Home Assistant create a new long-lived token under <b>Security</b> and paste it in.'],
   ['Address is wrong (no API found).', 'Use Home Assistant’s own address with its port, for example <b>:8123</b>, and no path after it.'],
-  ['My switch is missing from the list.', 'Switches only appear when touch is active. Turn on <b>Touch control</b> under <b>Display</b>.'],
+  ['My switch is missing from the list.', 'Switches only appear when touch is active. Turn on <b>Touch control</b> under <b>View › Display</b>.'],
   ['The page does not appear on the display.', `The page is only shown once it is switched on and address, token and at least one tile are filled in. Then do not forget ${b('Save &amp; apply')}.`]])}`},
 
 {t: 'Plugin store', html: () => `
 <p class="kicker">Optional · Plugins</p><h1>Get extra plugins from the store</h1>
 <p class="lead">The plugin store offers reviewed extra pages for your display, for example clock, weather, a Pomodoro board or a game night. You do not need it to use ScreenBuddy.</p>
 <ol class="do">
-<li>In the settings, open the <b>Plugin store</b> page. It sits in the <b>APP</b> group next to <b>Companion</b> and <b>Plugins</b>. Install themes (color designs) under <b>Colors &amp; design</b>.</li>
+<li>In the settings, open <b>Extensions › Plugin store</b>. The tab next to it, <b>Extensions › Plugins</b>, lists what you have installed. Install themes (color designs) under <b>View › Colors &amp; design</b>.</li>
 <li>The switch <b>Use the plugin store</b> is on by default. When it is off, the program fetches nothing from the store; other data sources keep running. The change only takes effect after <b>Save &amp; apply</b>.</li>
 <li>Search with the <b>Search</b> field or choose a category.</li>
 <li>Click a plugin. Under <b>Details</b> you see author, version, licence and status.</li>
 <li>Read the line “This plugin sends data to …”. If you agree, click <b>Install</b>.</li>
 </ol>
-<div class="box warn"><p>An installed plugin stays <b>off</b>. Turn it on deliberately on the <b>Plugins</b> page and allow every host it sends data to. On an update all approvals are reset; check the hosts again then.</p></div>
+${shot('s_erweit', [], 'Extensions › Plugins. Installed plugins are switched on here.')}
+<div class="box warn"><p>An installed plugin stays <b>off</b>. Turn it on deliberately on <b>Extensions › Plugins</b> and allow every host it sends data to. On an update all approvals are reset; check the hosts again then. Tap links are a separate permission and are <b>off by default</b>.</p></div>
 <div class="box tip"><p><b>Want to build your own plugin?</b> The <a href="/plugin-werkstatt?lang=en" target="_blank">Plugin Workshop</a> guides you step by step with a builder, live preview and bug detective.</p></div>
 <p>The program switches off revoked plugins automatically. Without internet the store shows the last checked state. Click <b>Refresh store</b> to get the newest state.</p>
 ${help([['The store says “not reachable”.', 'Check your internet connection and click <b>Refresh store</b>.'],
   ['The store says “not available”.', 'This version has no signing key for the store. Use the current version from the download page.'],
   ['I cannot find a plugin.', 'Choose the category <b>All</b> and clear the search text.']])}`},
 
-{t: 'Game-Mode (development)', html: () => `
-<p class="kicker">P9 · Not released yet</p><h1>The right view while gaming</h1>
-<ol class="do"><li>Under <b>App → Custom views</b>, create a template with <b>+ Game-Mode</b>, edit and apply it.</li><li>Under <b>Game-Mode</b>, enable the feature and select a target display and custom view. Configure the intro, reduced animations and IPv4 ping target.</li><li>Enter additional games as absolute EXE paths, one per line. Exclusions accept EXE paths or filenames. Save and restart.</li></ol>
-<p>Libraries: Steam, Epic, Xbox plus GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard and Rockstar using local registry/manifest data. New registry sources require a game process in the installation folder with a foreground fullscreen/borderless window; launchers, launcher helpers and known anti-cheat services are excluded. Add the game EXE manually if entries are missing. Non-Steam: EXE icon and name. Real launcher acceptance tests remain open.</p>
-<p>After 3 seconds of stable detection, the optional logo intro leads to your custom view. After 5 seconds without the game, the previous rotation resumes. A missing custom view leaves normal rotation running.</p>
-<p>Missing readings remain <b>n/a</b>. FPS measure DXGI Present calls, not displayed frames; ETW may require administrator or Performance Log Users rights. CPU temperature requires HWiNFO. No game process modification, DLL injection or process memory reading. Real games, devices and sensors require separate acceptance testing.</p>`},
+{need: 'ki', t: 'AI Status', html: () => `
+<p class="kicker">New in 2.10 · AI Status</p><h1>See what your AI helpers are doing</h1>
+<p class="lead">If you use <b>Claude Code</b> or <b>Codex</b> on your PC, the display can show a card for each one. You see whether it is working, waiting or finished.</p>
+<ol class="do">
+<li>Open <b>Pages › AI Status</b>.</li>
+<li>Click the <b>preview</b> button for the hooks first. It shows what would be changed. Nothing is written yet.</li>
+<li>If the preview looks fine, click <b>apply</b>. ScreenBuddy makes a <b>.bak</b> backup of the file once, then adds its hooks. You can remove them again at any time.</li>
+<li>Turn the page on and press ${b('Save &amp; apply')}.</li>
+</ol>
+${shot('s_ki', [], 'Pages › AI Status. The default receiver port is 18765 (this test instance uses 18965).')}
+<div class="box tip"><p><b>Everything stays on your PC.</b> The hooks talk only to ScreenBuddy over the local loopback address. The default port is <b>18765</b>; you can change it. ScreenBuddy only receives the session ID, the event, the tool name and the model. It never receives your prompts or answers.</p></div>
+<div class="box secret"><p>Usage <b>limits</b> are shown only if you agree to it. Without your consent the display shows <b>n/a</b>. ScreenBuddy never shows account tokens anywhere.</p></div>
+${help([['A value says “n/a”.', 'There is no measurement for it yet, or you did not agree to show limits. That is normal.'],
+  ['Nothing happens when I use Claude Code or Codex.', 'Check that you applied the hooks, that the page is on, and that the port in ScreenBuddy is the one shown on this page. Then start a new session in the tool.'],
+  ['I want to undo it.', 'Use the remove button on the same page. It takes out only the ScreenBuddy entries. The .bak file is your safety copy.']])}`},
+
+{need: 'views', t: 'Zone layout and editor', html: () => `
+<p class="kicker">New in 2.10 · Layout</p><h1>Pages are made of zones and tiles</h1>
+<p class="lead">Every page is a grid of <b>zones</b>. Each zone holds <b>tiles</b>, like System values, a friends list or a song. Every tile has a fixed ID, so your arrangement stays when things are updated.</p>
+<ul>
+<li><b>Density:</b> compact, normal or detailed. A tile that does not fit is simply hidden.</li>
+<li><b>Rotating field:</b> a zone where several tiles take turns.</li>
+<li><b>Built-in pages</b> can be edited: System, Friends, Discord, Battlefield 6, Blogs, New on streaming, Spotify and AI Status. <b>Home Assistant</b> stays as it is.</li>
+</ul>
+<h2>The editor</h2>
+<ol class="do">
+<li>Open <b>Pages › Custom views</b> and pick a page in the page list.</li>
+<li>Take a tile from the <b>palette</b>. Use the search and the filters to find it fast.</li>
+<li><b>Drag and drop</b> it into a zone. Undo and redo are there if you slip.</li>
+<li>No mouse? Use the keyboard. <span class="key">F6</span> switches the area, <span class="key">Space</span> picks up a tile, <span class="key">Enter</span> drops it, <span class="key">Esc</span> cancels.</li>
+<li>Check the preview and click ${b('Apply')}.</li>
+</ol>
+${shot('s_zonen', [], 'The zone editor with the tile palette on one side and the grid in the display shape.')}
+<div class="box tip"><p>Plugins with the newer manifest (schema 2) can use zones too. A plugin tile can offer a tap link to a website. That only works with HTTPS links and only if you allowed links for that plugin. It is <b>off by default</b>.</p></div>
+${help([['A tile is missing on my display.', 'It probably did not fit in this density level. Try another density or give it a bigger zone.'],
+  ['My plugin cannot be arranged.', 'Only plugins with manifest v2 can be arranged. Older plugins show a hint that the arrangement needs manifest v2.'],
+  ['I dropped a tile outside the grid.', 'Then nothing happens and the tile stays where it was. Try again inside the grid.']])}`},
+
+{need: 'views', t: 'Custom views', html: () => `
+<p class="kicker">New in 2.10 · Custom views</p><h1>Build your own view for each display</h1>
+<p class="lead">With <b>Custom views</b> you design a page yourself, with single tiles for system values, lists, Spotify or Home Assistant entities. You can make a different layout for each display.</p>
+<ol class="do">
+<li>Open <b>Pages › Custom views</b>.</li>
+<li>At the top you see <b>tabs</b>, one for each display or device. Only displays that are switched on show up. Layouts you saved for a display that is offline are kept.</li>
+<li>A device can <b>inherit from standard</b>. Then it copies the standard layout until you change it.</li>
+<li>Add tiles from the palette, move them, and look at the preview.</li>
+<li>Click ${b('Apply')}. ScreenBuddy saves a backup and then uses your view as a page in the rotation.</li>
+</ol>
+${shot('s_ansichten', [], 'Pages › Custom views with the device tabs, the page list and the tile palette.')}
+<h2>What happens when someone touches a tile?</h2>
+<p>You can choose a <b>touch target for each tile</b>:</p>
+<ul>
+<li><b>Default:</b> the tile does what it always does.</li>
+<li><b>Custom action:</b> for example <b>switch page</b> (“touch jump”), or the <b>next entry</b> of a rotating field.</li>
+<li><b>Link:</b> opens a website on the PC. This only works if links are allowed, and only for HTTPS addresses.</li>
+</ul>
+<div class="box warn"><p>The permission for links is <b>off by default</b>. If you do not turn it on, tapping a link tile does nothing, and the page does not switch either.</p></div>
+${help([['My display does not appear as a tab.', 'Only displays that are active are shown as tabs. Switch the display on, then look again.'],
+  ['My view does not show up on the display.', 'Did you click <b>Apply</b>? Also check that the custom page is switched on under <b>View › Pages &amp; order</b>.']])}`},
+
+{need: 'game', t: 'Game-Mode', html: () => `
+<p class="kicker">New in 2.10 · Game-Mode</p><h1>The right view while gaming</h1>
+<p class="lead">ScreenBuddy notices when you start a game. First a short <b>intro</b> with the logo and the game name plays. Then your display switches to a special <b>game view</b> with live tiles. When the game ends, normal life goes on.</p>
+<figure><span class="real">📷 ScreenBuddy 2.10.0 · test instance with sample data</span><div class="shot" data-zoom><img src="${IMG.gif_game}" alt="Animation: the Game-Mode intro with logo and game name, then the game view with tiles"></div><figcaption>The intro (about 2.5 seconds), then the game view with tiles. The network name in the background is covered.</figcaption></figure>
+<h2>Set it up</h2>
+<ol class="do">
+<li>Open <b>Pages › Custom views</b>, click <b>+ Game-Mode</b> to create a ready-made template, change it if you like, and click ${b('Apply')}.</li>
+<li>Open <b>Pages › Game-Mode</b> and turn it on.</li>
+<li>Choose the <b>target display</b>: <b>Primary output</b> or a display you pick.</li>
+<li>Under <b>Custom view</b>, choose the template you just made.</li>
+<li>Optional: set the intro, <b>Reduce animations</b> (the intro gets shorter) and the IPv4 address for the ping tile.</li>
+<li>Press ${b('Save &amp; apply')}.</li>
+</ol>
+${shot('s_game', [], 'Pages › Game-Mode. Turn it on, choose the target display and the custom view.')}
+${shot('s_ansicht_game', [], 'The custom views editor with the Game-Mode template.')}
+<h2>How it detects games</h2>
+<p>ScreenBuddy only <b>looks</b>. It reads which launchers and programs are on your PC. It does not change games, inject anything or read game memory. It knows Steam, Epic, Xbox, GOG Galaxy, Ubisoft Connect, EA app, Battle.net and Rockstar.</p>
+<ul>
+<li>A game must be detected for <b>3 seconds</b> in a row before Game-Mode starts.</li>
+<li>Game-Mode ends after <b>5 seconds</b> without the game. Then your normal rotation continues.</li>
+<li>Launchers and helper programs are ignored.</li>
+<li>Missing a game? Under detection, add its EXE as a full path, one per line. Exclusions take EXE paths or file names.</li>
+</ul>
+${shot('s_game_erk', [], 'Pages › Game-Mode: game detection with extra games and exclusions.')}
+<p>The tiles show things like FPS, frametime, 1% low, GPU, VRAM and ping. If a value cannot be measured, the tile says <b>n/a</b>.</p>
+<div class="box tip"><p>While Game-Mode is running, the game view is reserved. It is not part of the rotation, the Companion navigation or the tap targets. If the custom view is missing, normal rotation just keeps running.</p></div>
+<div class="box warn"><p><b>Honest note:</b> We have not yet tested detection with every launcher and every game. FPS is measured with Windows event tracing (ETW). That may need administrator rights, or membership in the “Performance Log Users” group. CPU temperature needs HWiNFO (see the “My PC” step).</p></div>
+${help([['Game-Mode never starts.', 'Check that it is turned on and that a custom view is chosen. If your game is not detected, add its EXE under additional games.'],
+  ['The FPS tile says n/a.', 'FPS needs ETW. Try running ScreenBuddy as administrator once, or add your Windows account to “Performance Log Users”.'],
+  ['The game view is on the wrong screen.', 'Change the <b>target display</b> on the Game-Mode page.']])}`},
 
 {t: 'Save', html: () => `
 <p class="kicker">Very important</p><h1>Don't forget to save!</h1>
 <p class="lead">When you've changed something, a bar appears at the bottom of the settings page.</p>
-${shot('bar', [], 'Save &amp; apply is at the bottom right of the native window.')}
+<p>It is the orange ${b('Save &amp; apply')} button. It is in the bar at the bottom of the settings window.</p>
 <ol class="do">
 <li>Press ${b('Save &amp; apply')}.</li>
 <li>Wait about <b>10 seconds</b>. The display restarts briefly.</li>
@@ -560,7 +713,7 @@ ${shot('bar', [], 'Save &amp; apply is at the bottom right of the native window.
 {t: 'Find it again', html: () => `
 <p class="kicker">Later</p><h1>How to find the settings again</h1>
 <p class="lead">The program runs quietly in the background. It has a small <b>orange icon</b> at the bottom right next to the clock.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.9.5:</b> The native interface already includes the phase-2 pages for Discord, friends, Home Assistant, Companion pairing with QR code and device management, and Colors &amp; design. The source editor, page ordering, updates and autostart are also available natively. All settings open in the native window; this illustrated HTML guide remains available in the browser. Source plugins require their settings and approval for every host. Earlier 2.3.0 uses the previous interface.</p></div>
+<div class="box tip"><p><b>ScreenBuddy 2.10 and newer:</b> All settings open in the native window with the left bar Overview, View, Pages, Extensions and App. This illustrated HTML guide stays available in the browser. Source plugins require their settings and approval for every host. Earlier 2.3.0 uses the previous interface.</p></div>
 <figure><span class="real">✏️ A mock-up, it looks roughly like this</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
 <span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22/10/2026</div></div></div></figure>
@@ -578,11 +731,11 @@ ${shot('bar', [], 'Save &amp; apply is at the bottom right of the native window.
 <p class="lead" style="text-align:center">You've set everything up. Now you can watch the pages change.</p>
 <h2>If something doesn't work later</h2>
 ${help([['The display stays dark.', 'Check whether the orange icon is at the bottom right. If not: open the program from the Start menu (or double-click the EXE). Then check display status on <b>Overview</b>.'],
-  ['The picture looks shifted or strange.', 'Briefly unplug the cable and plug it back in. Or click <b>Restart</b> on the <b>Updates &amp; startup</b> page.'],
-  ['The display is too dark.', 'On the <b>Display</b> page, slide <b>Brightness</b> to the right, then <b>Save &amp; apply</b>.'],
+  ['The picture looks shifted or strange.', 'Briefly unplug the cable and plug it back in. Or click <b>Restart</b> under <b>App › Updates &amp; startup</b>.'],
+  ['The display is too dark.', 'Open <b>View › Display</b> and slide <b>Brightness</b> to the right, then <b>Save &amp; apply</b>.'],
   ['I want to get rid of the program.', 'Open Windows <b>Settings → Apps</b>, choose <b>ScreenBuddy</b> (version 2.3.0: <b>FuchsLabs USB-Display</b>) and click <b>Uninstall</b>. Windows asks whether your settings and credentials should be deleted too.']], 'Help with problems')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Have fun! · © 2026 FuchsLabs</p>`},
-{t: 'Companion: independent phone display', html: () => `<h1>USB display and phone at the same time</h1><p class="lead">Companion preview from version 2.3.0: both outputs have their own pages and timers.</p><ol><li>Keep the USB/HDMI display type. Enable Companion in its tab, then save and apply.</li><li>Install the Companion app (separate download; on Android TV it appears in the TV launcher, and left/right on the remote switches the page). An older debug APK uses a different certificate and cannot be directly updated; agree on backup and migration before uninstalling it. A fresh installation needs pairing again. Use the same private network or USB tethering. Pair with the local code and compare the certificate fingerprint.</li><li>Choose pages and timing under Companion → Pages for Companion.Choose the other output under Display → Pages on USB display / monitor.</li><li>The extra controls appear only while Companion is enabled. Enable and configure each data source in its own tab.</li></ol><p>Swiping changes only the phone view. Native resolution follows connection and rotation. The first connected phone determines the shared Companion size; other phones share its pages. Larger requests are reduced proportionally to 2560 pixels per edge / 4,194,304 pixels. Real Redmi output, injected gestures and reconnect were tested over USB tethering with the predecessor 0.2.1-preview. The user also confirmed sharp output, finger swipes and taps. Wi-Fi and physical USB output in the same new PC instance need separate acceptance.</p>`}
+{t: 'Companion: independent phone display', html: () => `<p class="kicker">Optional · Companion</p><h1>USB display and phone at the same time</h1><p class="lead">Companion: both outputs have their own pages and timers.</p><ol class="do"><li>Keep the USB/HDMI display type. Open <b>App › Companion</b>, enable Companion, then save and apply.</li><li>Install the Companion app (separate download; on Android TV it appears in the TV launcher, and left/right on the remote switches the page). An older debug APK uses a different certificate and cannot be directly updated; agree on backup and migration before uninstalling it. A fresh installation needs pairing again. Use the same private network or USB tethering. Pair with the local code and compare the certificate fingerprint.</li><li>Choose pages and timing for the phone under <b>App › Companion</b>. Choose the other output under <b>View › Pages &amp; order</b>.</li><li>The extra controls appear only while Companion is enabled. Enable and configure each data source on its own tab under <b>Pages</b>.</li><li>Screen edges cut off on a TV? Set the keepout zone for each device here (see “Safe margins”).</li></ol>${shot('s_app', [], 'App › Companion with pairing and the paired devices.')}<p>Swiping changes only the phone view. Native resolution follows connection and rotation. The first connected phone determines the shared Companion size; other phones share its pages. Larger requests are reduced proportionally to 2560 pixels per edge / 4,194,304 pixels. Real Redmi output, injected gestures and reconnect were tested over USB tethering with the predecessor 0.2.1-preview. The user also confirmed sharp output, finger swipes and taps. Wi-Fi and physical USB output in the same new PC instance need separate acceptance.</p>`}
 ];
 
 const $ = s => document.querySelector(s);
@@ -615,9 +768,114 @@ $('#menu').onclick = () => {
   $('#toc').classList.add('show');
 };
 $('#toc').onclick = e => { if (e.target.id === 'toc') $('#toc').classList.remove('show'); };
+/* ---------- Search (offline, built lazily on first focus) ---------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+/* lower-case, strip diacritics; map[k] = index in the original string of normalised char k */
+function normMap(text) {
+  let n = '', map = [];
+  for (let i = 0; i < text.length; i++) {
+    const t = text[i].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/ß/g, 'ss');
+    for (let k = 0; k < t.length; k++) { n += t[k]; map.push(i); }
+  }
+  return {n, map};
+}
+const normStr = s => normMap(s).n;
+let SIDX = null, sHits = [], sAct = -1;
+function buildIndex() {
+  if (SIDX) return SIDX;
+  SIDX = STEPS.map(s => {
+    let text = '';
+    try {
+      const doc = new DOMParser().parseFromString(s.html().replace(/src="data:[^"]*"/g, 'src=""'), 'text/html');
+      doc.querySelectorAll('script,style').forEach(el => el.remove());
+      text = (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+    } catch (e) {}
+    return {s, title: s.t, tn: normMap(s.t), body: text, bn: normMap(text)};
+  });
+  return SIDX;
+}
+function markHtml(text, toks) {
+  const {n, map} = normMap(text), r = [];
+  toks.forEach(t => { for (let p = n.indexOf(t); p >= 0; p = n.indexOf(t, p + t.length)) r.push([map[p], map[p + t.length - 1] + 1]); });
+  r.sort((a, b) => a[0] - b[0]);
+  let out = '', pos = 0;
+  r.forEach(([a, b]) => { if (a < pos) { if (b > pos) { out += '<mark>' + esc(text.slice(pos, b)) + '</mark>'; pos = b; } return; }
+    out += esc(text.slice(pos, a)) + '<mark>' + esc(text.slice(a, b)) + '</mark>'; pos = b; });
+  return out + esc(text.slice(pos));
+}
+function runSearch(q) {
+  const toks = normStr(q).split(/\s+/).filter(Boolean);
+  if (!toks.length) return [];
+  const res = [];
+  buildIndex().forEach((e, order) => {
+    let score = 0, first = -1;
+    for (const t of toks) {
+      const inT = e.tn.n.indexOf(t), inB = e.bn.n.indexOf(t);
+      if (inT < 0 && inB < 0) return;
+      if (inT >= 0) score += 20 + (inT === 0 || e.tn.n[inT - 1] === ' ' ? 10 : 0);
+      if (inB >= 0) { let c = 0; for (let p = inB; p >= 0 && c < 5; p = e.bn.n.indexOf(t, p + t.length)) c++; score += c; if (first < 0 || inB < first) first = inB; }
+    }
+    res.push({e, score, first, order});
+  });
+  return res.sort((a, b) => b.score - a.score || a.order - b.order).slice(0, 8);
+}
+function snippet(r, toks) {
+  const b = r.e.body, from = r.first < 0 ? 0 : r.e.bn.map[r.first] || 0, a = Math.max(0, from - 45);
+  let s = b.slice(a, a + 140), start = a;
+  if (start > 0) { const sp = s.indexOf(' '); if (sp > -1 && sp < 15) s = s.slice(sp + 1); s = '… ' + s; }
+  if (a + 140 < b.length) s += ' …';
+  return markHtml(s, toks);
+}
+function renderResults() {
+  const q = $('#q').value, toks = normStr(q).split(/\s+/).filter(Boolean);
+  const box = $('#sres'), list = $('#slist'), none = $('#snone');
+  if (!toks.length) { closeSearch(); return; }
+  sHits = runSearch(q); sAct = sHits.length ? 0 : -1;
+  list.innerHTML = sHits.map((r, i) => {
+    const hidden = r.e.s.need && !sel[r.e.s.need];
+    return `<div role="option" id="sr${i}" data-i="${i}" aria-selected="${i === 0}"><div class="st"><span>${markHtml(r.e.title, toks)}</span>${hidden ? '<small>(not selected)</small>' : ''}</div><div class="sn">${snippet(r, toks)}</div></div>`;
+  }).join('');
+  none.hidden = sHits.length > 0; box.hidden = false;
+  $('#q').setAttribute('aria-expanded', 'true');
+  syncAct();
+}
+function syncAct() {
+  $('#slist').querySelectorAll('[role=option]').forEach((el, i) => el.setAttribute('aria-selected', i === sAct));
+  if (sAct >= 0) { $('#q').setAttribute('aria-activedescendant', 'sr' + sAct); const el = $('#sr' + sAct); el && el.scrollIntoView({block: 'nearest'}); }
+  else $('#q').removeAttribute('aria-activedescendant');
+}
+function closeSearch() {
+  $('#sres').hidden = true; $('#q').setAttribute('aria-expanded', 'false'); $('#q').removeAttribute('aria-activedescendant'); sHits = []; sAct = -1;
+}
+function gotoHit(i) {
+  const r = sHits[i]; if (!r) return;
+  const s = r.e.s;
+  if (s.need && !sel[s.need]) { sel[s.need] = true; saveSel(); }
+  const idx = active().indexOf(s);
+  closeSearch(); $('#q').blur();
+  show(idx < 0 ? 0 : idx);
+}
+$('#q').addEventListener('focus', () => { buildIndex(); if ($('#q').value.trim()) renderResults(); });
+$('#q').addEventListener('input', renderResults);
+$('#q').addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' && sHits.length) { e.preventDefault(); sAct = (sAct + 1) % sHits.length; syncAct(); }
+  else if (e.key === 'ArrowUp' && sHits.length) { e.preventDefault(); sAct = (sAct - 1 + sHits.length) % sHits.length; syncAct(); }
+  else if (e.key === 'Enter') { e.preventDefault(); gotoHit(sAct); }
+  else if (e.key === 'Escape') { e.preventDefault(); if ($('#sres').hidden) $('#q').blur(); else closeSearch(); }
+  e.stopPropagation();
+});
+$('#slist').addEventListener('mousedown', e => e.preventDefault());
+$('#slist').addEventListener('click', e => { const o = e.target.closest('[role=option]'); if (o) gotoHit(+o.dataset.i); });
+document.addEventListener('click', e => { if (!e.target.closest('.search')) closeSearch(); });
+
+const typing = el => el && (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { $('#zoom').classList.remove('show'); $('#toc').classList.remove('show'); }
-  if (['INPUT', 'TEXTAREA', 'BUTTON'].includes(document.activeElement.tagName) && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  if (((e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) && !typing(document.activeElement)) {
+    e.preventDefault(); $('#q').focus(); $('#q').select(); return;
+  }
+  if (typing(document.activeElement)) return;
+  if (document.activeElement.tagName === 'BUTTON' && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
   if (e.key === 'ArrowRight') $('#next').click(); if (e.key === 'ArrowLeft' && cur > 0) show(cur - 1);
 });
 const fromHash = () => show((parseInt(location.hash.slice(1)) || 1) - 1);

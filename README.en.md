@@ -111,14 +111,18 @@ Plus:
 | <img src="docs/screenshots/en/display-bf6-dark.png" width="380" alt="Battlefield 6 leaderboard, dark theme"> | <img src="docs/screenshots/en/display-blogs-dark.png" width="380" alt="Blog updates, dark theme"> |
 | Battlefield 6 leaderboard (dark) | Blog updates (dark) |
 
-| Settings page | |
+| Settings window (2.10.0, default Material Orange design) | |
 |---|---|
-| <img src="docs/screenshots/en/settings-start.png" width="380" alt="Start page of the settings"> | <img src="docs/screenshots/en/settings-overview.png" width="380" alt="Overview with live preview"> |
-| Start with first-run setup | Overview with live preview |
-| <img src="docs/screenshots/en/settings-discord.png" width="380" alt="Discord settings with fold-out help"> | <img src="docs/screenshots/en/settings-bf6.png" width="380" alt="Adding Battlefield 6 players"> |
-| Discord with fold-out help | Add and check Battlefield 6 players |
+| <img src="docs/screenshots/2.10/en/01-uebersicht.png" width="380" alt="Settings window, overview with live preview"> | <img src="docs/screenshots/2.10/en/12-zonen-editor.png" width="380" alt="Zone editor for plugin pages"> |
+| Overview with live preview | Zone editor (plugin pages, new in 2.10.0) |
+| <img src="docs/screenshots/2.10/en/10-eigene-ansichten.png" width="380" alt="Custom views: combine tiles into your own pages"> | <img src="docs/screenshots/2.10/en/07-game-mode.png" width="380" alt="Game Mode settings"> |
+| Custom views (tiles, grid, touch targets) | Game Mode: game detection, intro, target display |
+| <img src="docs/screenshots/2.10/en/06-ki-status.png" width="380" alt="AI status with Claude and Codex cards"> | <img src="docs/screenshots/2.10/en/09-spotify.png" width="380" alt="Spotify settings with last played track"> |
+| AI status (Claude Code, Codex) | Spotify, with “last played” and cover tap |
 
-All pictures show sample data; some screenshots are from the previous 1.x UI.
+<p align="center"><img src="docs/screenshots/2.10/game-mode-intro.gif" width="480" alt="Game Mode intro: logo animation when a game starts"><br>Game Mode intro when a game starts (2.5 s)</p>
+
+All pictures show sample data from a test instance. The display pictures above are partly from earlier versions.
 
 ## Quick start
 

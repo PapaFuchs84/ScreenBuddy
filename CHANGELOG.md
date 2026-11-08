@@ -6,6 +6,11 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unreleased]
 
+### Dokumentation
+
+- Anleitung (ANLEITUNG.html/GUIDE.html) auf 2.10.0 aktualisiert, mit Suche; neue Aufnahmen im neuen Standard-Design und Game-Mode-GIF unter docs/screenshots/2.10/.
+- README- und Wiki-Bilder auf die 2.10.0-Aufnahmen umgestellt.
+
 ## [2.10.0] - 2026-11-07
 
 Companion-App bleibt 1.0.3. Release-Notizen: [docs/RELEASE-NOTES-2.10.0.md](docs/RELEASE-NOTES-2.10.0.md).

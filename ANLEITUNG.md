@@ -105,6 +105,14 @@ Alles ist optional, schalte nur ein, was du magst (**Seiten & Reihenfolge**: Hak
 
 Nach jeder Änderung auf **Speichern & anwenden** klicken. Die Anzeige startet dann kurz neu.
 
+### Neu in 2.10.0
+
+- **Eigene Ansichten** (**App → Eigene Ansichten**): Kacheln zu eigenen Seiten zusammenstellen und je Display anordnen. Zonen-Layout für Plugin-Seiten und Seiten-Editor: [docs/FUNKTIONEN.md](docs/FUNKTIONEN.md#plugin-seiten-mit-zonen-layout-und-seiten-editor-ab-2100).
+- **Game-Mode:** erkennt Spiele, zeigt ein kurzes Logo-Intro und eine eigene Ansicht auf dem gewählten Display (Ziel: Hauptausgabe oder ein gekoppeltes Companion-Gerät). Siehe [docs/GAME-MODE.md](docs/GAME-MODE.md).
+- **KI-Status:** Claude-Code- und Codex-Karten (Limits ohne Messwert zeigen `n/a`); eigene Einwilligung nötig.
+- **Spotify:** Ohne Wiedergabe erscheint der zuletzt gespielte Titel (einmal neu anmelden). Ein Tipp auf das Cover öffnet Spotify am PC.
+- **Sperrzone:** Unter **Anzeige** Ränder in Pixeln pro Gerät freihalten.
+
 ## Beim Windows-Start automatisch starten
 
 Auf der Seite **Updates & Autostart** den Schalter **Mit Windows starten** einschalten. Das geht ohne Administratorrechte und lässt sich dort auch wieder ausschalten.

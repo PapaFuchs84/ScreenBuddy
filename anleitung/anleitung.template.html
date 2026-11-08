@@ -150,11 +150,30 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 @media(max-width:720px){.ring{border-width:3px}html,body{font-size:17px}h1{font-size:27px}.grid2,.pages{grid-template-columns:1fr}
 .next{min-width:0;flex:1}.big{padding:13px 18px}.dc{grid-template-columns:1fr}.dc .side{display:none}.count span{display:none}}
 @media print{.top,.nav,.help>summary:before{display:none}}
+/* Suche */
+.search{position:relative;flex:1 1 220px;max-width:360px;min-width:0}
+.search:before{content:"🔍";position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none}
+.search input{width:100%;font:inherit;font-size:15px;padding:7px 12px 7px 34px;border-radius:10px;border:2px solid transparent;background:#fff4e6;color:#14213d}
+.search input::placeholder{color:#68605c;opacity:1}
+.search input:focus-visible,.menu:focus-visible{outline:3px solid #14213d;outline-offset:2px}
+.sres{position:fixed;z-index:25;display:none;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px #14213d55;max-height:min(70vh,560px);overflow:auto;padding:6px}
+.sres.show{display:block}
+.sres [role=option]{padding:10px 12px;border-radius:10px;cursor:pointer}
+.sres [role=option][aria-selected=true]{background:var(--card2);outline:2px solid var(--orange)}
+.sres .st{font-family:var(--head);font-weight:700;font-size:16px}
+.sres .st small{font-family:"Segoe UI",system-ui,sans-serif;font-weight:400;color:var(--muted);font-size:13px;margin-left:6px}
+.sres .sn{color:var(--muted);font-size:14px;line-height:1.4;margin-top:2px}
+.sres mark{background:#ffd9a0;color:#14213d;border-radius:3px;padding:0 2px}
+.sres .none{padding:12px;color:var(--muted);cursor:default}
+html[data-theme=dunkel] .sres mark{background:#b05200;color:#fff4e6}
+@media(max-width:720px){.topin{flex-wrap:wrap;gap:10px}.search{order:5;flex:1 1 100%;max-width:none}.brand{font-size:19px}}
+@media print{.search,.sres{display:none}}
 </style>
 </head>
 <body>
 <div class="top"><div class="topin">
   <div class="brand"><img src="{{img:icon}}" alt="">ScreenBuddy</div>
+  <div class="search" role="search"><input id="q" type="search" role="combobox" placeholder="Suchen …  ( / )" aria-label="In der Anleitung suchen" aria-keyshortcuts="/ Control+K" aria-autocomplete="list" aria-expanded="false" aria-controls="sres" autocomplete="off" spellcheck="false"></div>
   <div class="count" id="count"></div>
   <a class="menu" id="lang" href="GUIDE.html" style="text-decoration:none;color:var(--text)">English</a>
   <button class="menu" id="menu" aria-label="Alle Schritte anzeigen">☰ Alle Schritte</button>
@@ -170,15 +189,30 @@ background:linear-gradient(#2a3b5c,#2a3b5c) top/100% calc(100% - 56px) no-repeat
 <div class="toc" id="toc"><div class="pan"><b style="font-size:20px">Alle Schritte</b>
   <p style="color:var(--muted);font-size:15px;margin:6px 0 0">Tippe auf einen Schritt, um direkt dorthin zu springen.</p><ol id="toclist"></ol></div></div>
 <div class="zoom" id="zoom"></div>
+<div class="sres" id="sres" role="listbox" aria-label="Suchergebnisse"></div>
 
 <script>
-/* Native Release-Testaufnahmen 2.9.5, nachträglich anonymisiert; Display-Demos mit Beispieldaten. */
+/* Aufnahmen ScreenBuddy 2.10.0 (Testinstanz mit Beispieldaten, nicht nachträglich retuschiert; im GIF ist ein Netzwerkname im Hintergrund überdeckt). */
  const IMG = {
-   start: '{{img:start}}', app: '{{img:app}}', uebersicht: '{{img:uebersicht}}', discord: '{{img:discord}}', bf6: '{{img:bf6}}',
-   blogs: '{{img:blogs}}', display: '{{img:display}}', bar: '{{img:bar}}', page_system: '{{img:page_system}}',
-   page_blogs: '{{img:page_blogs}}', freunde: '{{img:freunde}}', ha_display: '{{img:ha_display}}', ha_setup: '{{img:ha_setup}}', ha_pick: '{{img:ha_pick}}', icon: '{{img:icon}}', design: '{{img:design}}', cupertino_light: '{{img:cupertino_light}}', cupertino_dark: '{{img:cupertino_dark}}', fluent_light: '{{img:fluent_light}}', fluent_dark: '{{img:fluent_dark}}', material_light: '{{img:material_light}}', material_dark: '{{img:material_dark}}'};
- function shot(name, rings = [], cap = '') {
-   return `<figure><span class="real">📷 Native Oberfläche 2.9.5 · nachträglich anonymisiert</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${cap}"></div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
+   icon: '{{img:icon}}', page_system: '{{img:page_system}}', page_blogs: '{{img:page_blogs}}', ha_display: '{{img:ha_display}}',
+   s_uebersicht: '{{img:s_uebersicht}}', s_anzeige: '{{img:s_anzeige}}', s_sperrzone: '{{img:s_sperrzone}}', s_seiten: '{{img:s_seiten}}',
+   s_design: '{{img:s_design}}', s_ki: '{{img:s_ki}}', s_game: '{{img:s_game}}', s_game_erk: '{{img:s_game_erk}}', s_spotify: '{{img:s_spotify}}',
+   s_ansichten: '{{img:s_ansichten}}', s_ansicht_game: '{{img:s_ansicht_game}}', s_zonen: '{{img:s_zonen}}', s_freunde: '{{img:s_freunde}}',
+   s_discord: '{{img:s_discord}}', s_bf6: '{{img:s_bf6}}', s_blogs: '{{img:s_blogs}}', s_streaming: '{{img:s_streaming}}', s_ha: '{{img:s_ha}}',
+   s_erweit: '{{img:s_erweit}}', s_app: '{{img:s_app}}', gif_game: '{{img:gif_game}}'};
+ const ALT = {
+   s_uebersicht: 'Einstellungsfenster, Seite Übersicht mit der Leiste links und dem Displaystatus', s_anzeige: 'Einstellungen, Ansicht, Reiter Anzeige',
+   s_sperrzone: 'Einstellungen mit den Sperrzonen-Rändern', s_seiten: 'Einstellungen, Ansicht, Reiter Seiten und Reihenfolge mit Häkchen und Pfeilen',
+   s_design: 'Einstellungen, Ansicht, Reiter Farben und Design', s_ki: 'Einstellungen, Seiten, Reiter KI-Status', s_game: 'Einstellungen, Seiten, Reiter Game-Mode',
+   s_game_erk: 'Game-Mode, Bereich Erkennung mit zusätzlichen Spielen und Ausschlüssen', s_spotify: 'Einstellungen, Seiten, Reiter Spotify',
+   s_ansichten: 'Editor Eigene Ansichten mit Seitenliste, Fläche und Eigenschaften', s_ansicht_game: 'Editor Eigene Ansichten mit der Game-Mode-Vorlage',
+   s_zonen: 'Zonen-Editor mit der Kachelpalette', s_freunde: 'Einstellungen, Seiten, Reiter Freunde', s_discord: 'Einstellungen, Seiten, Reiter Discord',
+   s_bf6: 'Einstellungen, Seiten, Reiter Battlefield 6', s_blogs: 'Einstellungen, Seiten, Reiter Blogs (RSS)', s_streaming: 'Einstellungen, Seiten, Reiter Streaming-Neustarts',
+   s_ha: 'Einstellungen, Seiten, Reiter Home Assistant', s_erweit: 'Einstellungen, Bereich Erweiterungen mit den Plugins', s_app: 'Einstellungen, Bereich App, Reiter Companion',
+   gif_game: 'Animation: Game-Mode-Intro mit Logo und Spielname, danach die Game-Ansicht mit Kacheln'};
+ const REAL = '📷 ScreenBuddy 2.10.0 · Testinstanz mit Beispieldaten';
+ function shot(name, rings = [], cap = '', label = REAL) {
+   return `<figure><span class="real">${label}</span><div class="shot" data-zoom><img src="${IMG[name]}" alt="${ALT[name] || ''}"></div>${cap ? `<figcaption>${cap}</figcaption>` : ''}</figure>`;
  }
  const help = (items, title = 'Klappt nicht? Hier klicken') =>
   `<details class="help"><summary>${title}</summary><div class="in"><dl>${items.map(([q, a]) => `<dt>${q}</dt><dd>${a}</dd>`).join('')}</dl></div></details>`;
@@ -193,8 +227,11 @@ const FEAT = [
   ['blogs', '📰', 'Neuigkeiten', 'Die neuesten Artikel von Webseiten, die du magst'],
   ['streaming', '🎬', 'Neu bei Streaming', 'Neue Filme und Serien bei Netflix, Disney+ und Co.'],
   ['homeassistant', '🏠', 'Home Assistant', 'Werte und Schalter aus deinem Smart Home'],
-  ['spotify', '🎵', 'Spotify', 'Das Lied, das gerade bei Spotify läuft']];
-let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true, streaming: false, homeassistant: false, spotify: false}, cur = 0, seen = new Set();
+  ['spotify', '🎵', 'Spotify', 'Das Lied, das gerade (oder zuletzt) bei Spotify lief'],
+  ['ki', '🤖', 'KI-Status', 'Was Claude Code und Codex auf deinem PC gerade tun'],
+  ['game', '🕹️', 'Game-Mode', 'Beim Spielen zeigt das Display automatisch FPS und Co.'],
+  ['views', '🧩', 'Eigene Ansichten und Zonen-Layout', 'Kacheln selbst anordnen und festlegen, was ein Tipp macht']];
+let sel = {system: true, discord: true, friends: false, bf6: true, blogs: true, streaming: false, homeassistant: false, spotify: false, ki: false, game: false, views: false}, cur = 0, seen = new Set();
 try { Object.assign(sel, JSON.parse(localStorage.getItem('fl-guide-sel') || '{}')); } catch (e) {}
 const saveSel = () => { try { localStorage.setItem('fl-guide-sel', JSON.stringify(sel)); } catch (e) {} };
 
@@ -207,7 +244,8 @@ const STEPS = [
   <figure><div class="shot" data-zoom><img src="${IMG.page_blogs}" alt="Neuigkeiten"></div><figcaption>Neue Artikel von deinen Lieblingsseiten</figcaption></figure>
 </div>
 <p>Du machst immer nur <b>einen kleinen Schritt</b>. Oben rechts steht, wie weit du schon bist. Wenn du fertig bist, drückst du unten auf ${b('Weiter →')}.</p>
-<p><b>Designsysteme (ab 2.9.2):</b> Cupertino: einblendbare Sidebar und optionaler Inspector; Fluent: Seitensuche und Zurück-Verlauf; Material: fünf Hauptziele, Unterseiten und schwebende Speicheraktion bei Änderungen. Auch die Systemanzeige nutzt je Profil einen anderen Aufbau. Im Theme-Editor steuert das Designsystem zusätzlich Formen, Schrift, Abstände und Interaktionsfeedback. Die native Oberfläche folgt nach Speichern &amp; anwenden. Jedes Profil bietet Hell und Dunkel; der Fensterschalter wechselt auch die Profilpalette. Im Editor lädt „Basis“ die Referenzpalette und ersetzt die neun Farbwerte. Keine vollständige Kopie eines Betriebssystems.</p>
+<p><b>Neu in 2.10.0:</b> Das neue Standard-Design ist <b>dunkles Material mit Orange-Akzent</b>. Neuinstallationen starten damit. Hattest du ScreenBuddy schon, fragt es dich einmal: <b>„Neuen Standard setzen?“</b> (Voreinstellung: Nein, also bleibt alles wie es ist). Cupertino, Fluent, Hell, Dunkel, Windows und eigene Themes kannst du weiter wählen, und zwar unter <b>Ansicht › Farben &amp; Design</b>.</p>
+<div class="box tip"><p><b>Du suchst etwas?</b> Tipp oben ins Suchfeld oder drück <span class="key">/</span> (oder <span class="key">Strg</span> + <span class="key">K</span>). Die Suche findet auch Schritte, die du gerade ausgeblendet hast.</p></div>
 <div class="box tip"><p>Wenn etwas nicht klappt, gibt es bei jedem Schritt unten einen Knopf <b>„Klappt nicht?“</b>. Dort steht, was du tun kannst.</p></div>`},
 
 {t: 'Was willst du sehen?', html: () => `
@@ -233,10 +271,10 @@ ${sel.bf6 ? '<li><b>Die EA-Namen</b> von dir und deinen Battlefield-Freunden.</l
 {t: 'Programm holen', html: () => `
 <p class="kicker">Herunterladen</p><h1>Lade das Programm herunter</h1>
 <p class="lead">ScreenBuddy ist <b>eine einzige Datei</b>. Du musst nichts auspacken.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.9.5:</b> Lade <span class="key">ScreenBuddy.exe</span> herunter. Die Menübilder zeigen die native Oberfläche 2.9.5 aus der Release-Prüfung, anschließend anonymisiert. Konten, Adressen und private Vorschauen sind überdeckt. Display-Demobilder enthalten Beispieldaten. Die frühere Version 2.3.0 hat andere Menüs; nutze dafür ihre eigene eingebettete Anleitung. Tipp: Lässt du die Maus kurz auf einem Statuspunkt links in der Liste ruhen, erklärt ein Hinweis, ob die Seite eingerichtet und an (grün) oder nicht eingerichtet bzw. aus (grau) ist.</p></div>
+<div class="box tip"><p><b>ScreenBuddy ab 2.10:</b> Lade <span class="key">ScreenBuddy.exe</span> aus dem neuesten Release herunter. Die Bilder in dieser Anleitung stammen aus einer Testinstanz von 2.10.0 mit Beispieldaten und sind nicht nachträglich bearbeitet. Die frühere Version 2.3.0 hat andere Menüs; nutze dafür ihre eigene eingebettete Anleitung.</p></div>
 <ol class="do">
 <li>Öffne diese Seite: <a href="https://github.com/PapaFuchs84/ScreenBuddy/releases/latest" target="_blank" rel="noopener">Aktueller Release auf GitHub</a>. Oder nimm die Datei, die dir der geschickt hat, von dem du diese Anleitung hast.</li>
-<li>Lade <span class="key">ScreenBuddy.exe</span> aus Release 2.9.3 herunter und prüfe die SHA-256-Prüfsumme mit der beiliegenden Prüfsummendatei.</li>
+<li>Lade <span class="key">ScreenBuddy.exe</span> aus dem neuesten Release herunter und prüfe die SHA-256-Prüfsumme mit der beiliegenden Prüfsummendatei.</li>
 <li>Sie landet normalerweise im Ordner <b>Downloads</b>.</li>
 </ol>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
@@ -257,7 +295,7 @@ ${help([['Ich finde die Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den fi
 
 {t: 'Installieren', html: () => `
 <p class="kicker">Installieren</p><h1>Starte das Programm und installiere es</h1>
-<p>Starte <span class="key">ScreenBuddy.exe</span>. Die Beispiele zeigen anonyme Beispieldaten.</p>
+<p>Starte <span class="key">ScreenBuddy.exe</span>.</p>
 <ol class="do">
 <li>Mach einen <b>Doppelklick</b> auf <span class="key">ScreenBuddy.exe</span>. Das ist die Datei mit dem orangen Zeichen.</li>
 <li>Es öffnet sich ein kleines Fenster. Es zeigt, wohin installiert wird: in <span class="key">%LOCALAPPDATA%\FuchsLabs\USB-Display</span>, also nur in dein eigenes Konto.</li>
@@ -265,9 +303,9 @@ ${help([['Ich finde die Datei nicht.', 'Schau im Ordner <b>Downloads</b>. Den fi
 <li>Klicke auf ${b('Installieren')}. Warte kurz. Dann steht dort <b>„Fertig! Die App startet jetzt.“</b></li>
 </ol>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock win">
-<div class="tb">ScreenBuddy 2.9 – Installation<span>— ☐ ✕</span></div>
+<div class="tb">ScreenBuddy 2.10 – Installation<span>— ☐ ✕</span></div>
 <div class="files" style="display:block;padding:16px;text-align:left">
-<p style="margin:0 0 8px"><b>Installation · ScreenBuddy 2.9</b></p>
+<p style="margin:0 0 8px"><b>Installation · ScreenBuddy 2.10</b></p>
 <p style="margin:0 0 8px">☑ Mit Windows starten (nur das Fuchs-Symbol im Infobereich)<br>☑ Eintrag im Startmenü</p>
 <p style="margin:0;text-align:right"><span class="btnname hlbtn">Installieren</span></p></div></div></figure>
 <div class="box tip"><p><b>Hattest du schon Version 1.x?</b> Dann erscheint noch ein Häkchen <b>„Alte Version 1.x stilllegen“</b>. Lass es an: Deine Einstellungen und Zugangsdaten werden übernommen. Der alte Ordner bekommt den Zusatz <span class="key">-1.x-alt</span> und bleibt als Sicherung.</p></div>
@@ -295,36 +333,50 @@ ${help([['Es passiert gar nichts.', 'Warte 10 Sekunden. Das Programm braucht bei
 {t: 'Die Einstellungsseite', html: () => `
 <p class="kicker">Nachschauen</p><h1>Die Einstellungen öffnen sich von selbst</h1>
 <p class="lead">Nach dem Installieren geht ein eigenes Fenster auf. Das ist die <b>Einstellungsseite</b>. Dort stellst du alles ein. Sie gehört nur dir und ist nicht im Internet.</p>
-<p>Auf <b>Übersicht</b> steht der Displaystatus in der ersten Kachel. Nach dem Anschluss soll er <b>„Verbunden“</b> anzeigen. Das Bild unten entstand bei der Release-Prüfung und wurde anschließend anonymisiert. Prüfe den Status an deinem eigenen Gerät.</p>
-${shot('start', [[286, 196, 869, 63]], 'Die Statuskachel steht links oben. Prüfe den Wert an deinem eigenen Gerät.')}
+<p>Links siehst du eine Leiste mit fünf Bereichen: <b>Übersicht, Ansicht, Seiten, Erweiterungen, App</b>. Wir starten auf <b>Übersicht</b>. Dort steht der Displaystatus in der Kachel <b>Display</b>. Nach dem Anschluss soll er <b>„Verbunden“</b> anzeigen. Prüfe den Status an deinem eigenen Gerät.</p>
+${shot('s_uebersicht', [], 'Links die Leiste mit den fünf Bereichen, oben links die Kachel „Display“ mit dem Status.')}
 <p>Wenn das klappt, leuchtet jetzt auch dein kleines Display. 🎉</p>
 ${help([['Da steht „Die Hersteller-App des Displays läuft“.', `Klicke daneben auf ${g('Hersteller-App beenden')}. Wenn darunter noch <b>„Autostart der Hersteller-App“</b> steht, klicke dort auf ${g('Abschalten')}. Windows fragt dann einmal nach, ob du das erlaubst: <b>Ja</b> klicken.`],
   ['Da steht „Display nicht gefunden“.', 'Zieh das USB-Kabel ab und steck es wieder an. Probier einen anderen USB-Anschluss am PC. Warte dann ein paar Sekunden.'],
-  ['Version 2.3.0 meldet fehlendes WebView2.', 'Installiere die <b>Microsoft Edge WebView2-Laufzeit</b> und starte die veröffentlichte 2.3.0 erneut. ScreenBuddy 2.9 nutzt ein natives Einstellungsfenster.'],
+  ['Version 2.3.0 meldet fehlendes WebView2.', 'Installiere die <b>Microsoft Edge WebView2-Laufzeit</b> und starte die veröffentlichte 2.3.0 erneut. ScreenBuddy 2.10 nutzt ein natives Einstellungsfenster.'],
   ['Das Fenster ist nicht aufgegangen.', 'Unten rechts neben der Uhr ist ein kleines oranges Zeichen (vielleicht hinter dem Pfeil <span class="key">^</span>). Mach darauf einen Doppelklick.'],
   ['Das Bild auf dem Display steht auf dem Kopf.', 'Kein Problem, das reparierst du gleich in Schritt „Bild drehen und Helligkeit“.']])}`},
 
-{t: 'Menü und Themes', html: () => `<h1>Wo finde ich welche Einstellung?</h1><p>Die Seitennamen gelten in jedem Theme. Wenn ein späterer Schritt „links“ sagt, öffne dieselbe Seite in der Navigation deines Themes.</p><ul><li><b>Ansicht:</b> Übersicht, Anzeige, Seiten &amp; Reihenfolge, <b>Farben &amp; Design</b>.</li><li><b>Seiten:</b> System, Freunde, Discord, Battlefield 6, Blogs (RSS), Streaming-Neustarts, Home Assistant, Spotify.</li><li><b>App:</b> Companion, Plugins, Plugin-Store, Updates &amp; Autostart.</li></ul><p><b>FuchsLabs:</b> vollständige Liste links. <b>Cupertino:</b> ☰ öffnet die Seitenliste; Vorschau öffnet den Inspector. <b>Fluent:</b> Seitentitel im Suchfeld suchen, mit ‹ zurückgehen; für alle Seiten die Suche leeren.</p><p><b>Material:</b> Ansicht → Farben &amp; Design. Unterseiten stehen unter der Überschrift oder in einem Auswahlmenü. Plugins liegen unter Erweiterungen; Companion und Updates unter App. ◧ schaltet die Vorschau. Speichern erscheint bei Änderungen.</p>${shot('cupertino_light', [], 'Cupertino · Hell · einblendbare Seitenliste')}${shot('cupertino_dark', [], 'Cupertino · Dunkel')}${shot('fluent_light', [], 'Fluent · Hell · Suche und Zurück')}${shot('fluent_dark', [], 'Fluent · Dunkel')}${shot('material_light', [], 'Material · Hell · Ansicht mit Farben & Design')}${shot('material_dark', [], 'Material · Dunkel')}<h2>Theme installieren</h2><ol><li>Ansicht → Farben &amp; Design öffnen.</li><li>Unter Themes aus dem Store aktualisieren, Theme auswählen und Theme installieren klicken.</li><li>Das Theme ist oben ausgewählt. Speichern &amp; anwenden übernimmt es nach dem Neustart.</li></ol>${shot('design', [], 'Theme direkt unter Farben & Design installiert und automatisch ausgewählt. Kontenfreie Testinstanz, kein Hardware-Nachweis.')}<p>Der gemeinsame Abrufschalter bleibt unter App → Plugin-Store. Store-Farbdesign und Designsystem sind getrennt: Den Aufbau wählst du im Theme-Editor unter Designsystem. Hell/Dunkel oben betrifft das Fenster; das Farbschema betrifft die Displayausgabe.</p>`},
+{t: 'Wo finde ich was?', html: () => `
+<p class="kicker">Orientierung</p><h1>Wo finde ich welche Einstellung?</h1>
+<p class="lead">Links in der Einstellungsseite steht eine Leiste mit <b>fünf Bereichen</b>. Sagt die Anleitung „Ansicht › Anzeige“, klickst du links auf <b>Ansicht</b> und dann oben auf den Reiter <b>Anzeige</b>.</p>
+<ul>
+<li><b>Übersicht:</b> Status von Display, Quellen und Verbindungen, dazu Schnellzugriff und die Anleitungen.</li>
+<li><b>Ansicht:</b> Reiter <b>Anzeige</b>, <b>Seiten &amp; Reihenfolge</b> und <b>Farben &amp; Design</b>.</li>
+<li><b>Seiten:</b> Reiter <b>System</b>, <b>KI-Status</b>, <b>Game-Mode</b>, <b>Freunde</b>, <b>Discord</b>, <b>Battlefield 6</b>, <b>Blogs (RSS)</b>, <b>Streaming-Neustarts</b>, <b>Home Assistant</b>, <b>Spotify</b> und <b>Eigene Ansichten</b>.</li>
+<li><b>Erweiterungen:</b> <b>Plugins</b> und <b>Plugin-Store</b>.</li>
+<li><b>App:</b> <b>Companion</b> sowie <b>Updates &amp; Autostart</b>.</li>
+</ul>
+<div class="box tip"><p>Den Menüpunkt <b>„Seite anordnen“</b> gibt es nicht mehr. Die <b>Reihenfolge</b> der Seiten stellst du unter <b>Ansicht › Seiten &amp; Reihenfolge</b> ein. Die <b>Anordnung der Kacheln</b> machst du im Editor unter <b>Seiten › Eigene Ansichten</b>.</p></div>
+<div class="box tip"><p>Andere Designs (Cupertino, Fluent, Windows …) zeigen dieselben Bereiche vielleicht an anderer Stelle, zum Beispiel als Seitenliste. Die Namen bleiben gleich.</p></div>
+<p>Oben rechts im Fenster schaltest du mit <b>Hell, Dunkel</b> und <b>Windows</b> nur das Aussehen des Einstellungsfensters um. Das Design der Display-Ausgabe wählst du unter <b>Ansicht › Farben &amp; Design</b>.</p>`},
 
 {t: 'Mit Windows starten', html: () => `
 <p class="kicker">Einschalten</p><h1>Das Display soll immer von selbst angehen</h1>
 <p class="lead">Damit du das Programm nicht jedes Mal selbst starten musst:</p>
-<ol class="do"><li>Öffne <b>Updates &amp; Autostart</b> und schalte <b>„Mit Windows starten“</b> ein. Er wird dann orange. (Hast du das beim Installieren schon angehakt, ist er schon an.)</li></ol>
-${shot('app', [], '„Updates &amp; Autostart“. Die Anzeige entstand während der Release-Prüfung; private Vorschauen sind überdeckt.')}
+<ol class="do"><li>Öffne links <b>App</b> und den Reiter <b>Updates &amp; Autostart</b>. Schalte <b>„Mit Windows starten“</b> ein. Er wird dann orange. (Hast du das beim Installieren schon angehakt, ist er schon an.)</li></ol>
+${shot('s_app', [], 'Der Bereich „App“ hat zwei Reiter: „Companion“ (hier zu sehen) und „Updates &amp; Autostart“.')}
 <div class="box tip"><p>Auf der Seite <b>Übersicht</b> gibt es die Knöpfe ${b('Anleitung (DE)')} und ${b('Anleitung (EN)')}. Damit kommst du jederzeit zurück zu dieser Anleitung.</p></div>
-<div class="box tip"><p><b>Neu in 2.2.0 – neue Version:</b> Das Programm schaut höchstens einmal am Tag bei GitHub nach, ob es eine neuere Version gibt. Dann erscheint eine Sprechblase am Fuchs-Symbol, und unter <b>Updates &amp; Autostart</b> steht „Neue Version verfügbar“ mit einem Link zur Download-Seite. Es wird nie etwas von allein installiert. Mit <b>Jetzt nach Updates suchen</b> fragst du selbst nach; der Schalter <b>„Automatisch nach Updates suchen“</b> schaltet das Nachschauen aus.</p></div>
+<div class="box tip"><p><b>Neu in 2.2.0 – neue Version:</b> Das Programm schaut höchstens einmal am Tag bei GitHub nach, ob es eine neuere Version gibt. Dann erscheint eine Sprechblase am Fuchs-Symbol, und unter <b>App › Updates &amp; Autostart</b> steht „Neue Version verfügbar“ mit einem Link zur Download-Seite. Es wird nie etwas von allein installiert. Mit <b>Jetzt nach Updates suchen</b> fragst du selbst nach; der Schalter <b>„Automatisch nach Updates suchen“</b> schaltet das Nachschauen aus.</p></div>
 <div class="box tip"><p>Ab jetzt startet das Programm von selbst, wenn du dich bei Windows anmeldest. Es zeigt dann nur das kleine Fuchs-Symbol unten rechts, die Einstellungen gehen nicht von allein auf. Ausschalten kannst du es auf derselben Seite.</p></div>`},
 
 {t: 'Seiten aussuchen', html: () => `
 <p class="kicker">Aussuchen</p><h1>Welche Seiten zeigt das Display?</h1>
-<p class="lead">Klicke links auf <b>„Seiten &amp; Reihenfolge“</b>. Dort wählst du Seiten aus und sortierst sie. Die Live-Vorschau steht rechts.</p>
-<div class="box tip"><p>Die Live-Vorschau zeigt das aktuelle Bild des gewählten Geräts. Zum Weiterschalten gibt es unter <b>Companion</b> die Knöpfe <b>Vorige Seite zeigen</b> und <b>Nächste Seite zeigen</b>; sie wirken auf die Companion-Ausgabe. Dafür musst du nicht speichern.</p></div>
-${shot('uebersicht', [], 'Die native Seite „Seiten &amp; Reihenfolge“ mit Häkchen und Pfeilen.')}
+<p class="kicker">Aussuchen</p><h1>Welche Seiten zeigt das Display?</h1>
+<p class="lead">Klicke links auf <b>Ansicht</b> und oben auf den Reiter <b>„Seiten &amp; Reihenfolge“</b>. Dort wählst du Seiten aus und sortierst sie.</p>
+${shot('s_seiten', [], 'Seiten &amp; Reihenfolge: Häkchen zum Anzeigen, Pfeile zum Sortieren.')}
 <ol class="do">
 <li>Mit dem <b>Häkchen</b> machst du eine Seite an oder aus. ${['discord', 'bf6', 'blogs'].filter(k => !sel[k]).length ? 'Mach die Seiten aus, die du nicht willst.' : ''}${sel.friends ? ' Für Steam, Xbox und PlayStation schaltest du <b>„Freunde“</b> ein.' : ''}</li>
-<li>Mit den <b>Pfeilen ▲ ▼</b> änderst du die Reihenfolge auf „Seiten &amp; Reihenfolge“.</li>
-<li>Den Regler <b>Helligkeit</b> findest du unter <b>Anzeige</b>.</li>
+<li>Mit den <b>Pfeilen ▲ ▼</b> änderst du die Reihenfolge. Mit der Tastatur geht es auch: <span class="key">Alt</span> + Pfeiltaste verschiebt, die <span class="key">Leertaste</span> schaltet ein oder aus.</li>
+<li>Den Regler <b>Helligkeit</b> findest du unter <b>Ansicht › Anzeige</b>.</li>
+<li>Kacheln einer Seite selbst anordnen? Dafür gibt es unten den Knopf <b>„Eigene Ansichten …“</b>, siehe Schritt „Eigene Ansichten“.</li>
 </ol>
+<div class="box tip"><p>Eine Seite erscheint nur, wenn ihre Quelle eingerichtet und eingeschaltet ist. Eingeschaltete Plugins stehen ebenfalls in der Liste.</p></div>
 <div class="box warn"><p>Unten erscheint dann ein Balken mit ${b('Speichern &amp; anwenden')}. Den drückst du ganz am Ende. Du kannst ihn aber auch jetzt schon drücken.</p></div>`},
 
 {t: 'HDMI/USB-C und Touch', html: () => `
@@ -332,7 +384,7 @@ ${shot('uebersicht', [], 'Die native Seite „Seiten &amp; Reihenfolge“ mit H�
 <p class="lead">Dieser Schritt gilt für einen normalen Bildschirm über HDMI oder USB-C ab Version 2.0.3. Für ein kleines USB-Display über COM-Port kannst du weitergehen.</p>
 <ol class="do">
 <li>Verbinde den Bildschirm mit dem PC. Stelle Windows auf <b>Erweitern</b>. Für Touch muss auch die <b>USB-Touchverbindung</b> bestehen.</li>
-<li>Öffne <b>Anzeige</b> in den Einstellungen. Wähle unter <b>Display-Typ</b> die Ausgabe <b>Monitor</b> (HDMI oder USB-C) und unter <b>Bildschirm</b> den vorgesehenen Monitor. Klicke auf <b>Speichern &amp; anwenden</b>.</li>
+<li>Öffne <b>Ansicht › Anzeige</b> in den Einstellungen. Wähle unter <b>Display-Typ</b> die Ausgabe <b>Monitor</b> (HDMI oder USB-C) und unter <b>Bildschirm</b> den vorgesehenen Monitor. Klicke auf <b>Speichern &amp; anwenden</b>.</li>
 <li>Erscheinen Berührungen auf einem anderen Bildschirm? Klicke auf <b>Touch-Bildschirm zuordnen</b>. Die Anzeige pausiert während des Windows-Assistenten.</li>
 <li>Überspringe andere Bildschirme mit <b>Enter</b>. Sobald der Text des Assistenten auf dem gewünschten Touchscreen steht, berühre diesen Bildschirm. <b>Esc</b> bricht ab.</li>
 <li>Klicke danach auf <b>Erneut prüfen</b>. Schalte bei Bedarf <b>Touch-Steuerung</b> ein und speichere. Nach links wischen = nächste Seite, nach rechts = vorherige; Tippen links = zurück, sonst weiter. Tippen auf einen Blogbeitrag öffnet ihn im Browser auf dem PC (ab 2.0.6).</li>
@@ -347,14 +399,26 @@ ${shot('uebersicht', [], 'Die native Seite „Seiten &amp; Reihenfolge“ mit H�
 <p class="kicker">Nur wenn nötig</p><h1>Steht das Bild auf dem Kopf?</h1>
 <p class="lead">Wenn das Bild auf deinem Display richtig herum ist, drück einfach auf ${b('Weiter →')}.</p>
 <p>Wenn es auf dem Kopf steht:</p>
-<ol class="do"><li>Klicke links auf <b>„Anzeige“</b>.</li><li>Wähle bei <b>Ausrichtung</b> die andere Variante, also <b>„Quer“</b> statt <b>„Quer 180°“</b> oder andersherum.</li></ol>
-${shot('display', [], 'Die Ausrichtung steht auf der Seite „Anzeige“ unter dem Helligkeitsregler.')}`},
+<ol class="do"><li>Klicke links auf <b>Ansicht</b> und oben auf den Reiter <b>„Anzeige“</b>.</li><li>Wähle bei <b>Ausrichtung</b> die andere Variante, also <b>„Quer“</b> statt <b>„Quer 180°“</b> oder andersherum.</li></ol>
+${shot('s_anzeige', [], 'Ansicht › Anzeige: Helligkeit und Ausrichtung.')}`},
+
+{t: 'Sperrzone (Ränder)', html: () => `
+<p class="kicker">Nur wenn nötig</p><h1>Rand freihalten: die Sperrzone</h1>
+<p class="lead">Manche Displays, Rahmen oder Fernseher verdecken ein Stück vom Bildrand. Mit der <b>Sperrzone</b> bleibt dort alles frei. Das Bild rutscht nicht, die Kacheln halten nur Abstand.</p>
+${shot('s_sperrzone', [], 'Die Ränder oben, rechts, unten und links stellst du in ganzen Pixeln ein.')}
+<ol class="do">
+<li><b>USB-Display oder Monitor:</b> Öffne <b>Ansicht › Anzeige</b> und trage die Ränder ein (ganze Pixel, 0 bis 1000).</li>
+<li><b>Handy, Tablet oder Android-TV:</b> Öffne <b>App › Companion</b>. Dort gibt es eine gemeinsame Vorgabe. Im unabhängigen Betrieb hat jedes gekoppelte Gerät seine eigene Sperrzone.</li>
+<li>Klicke auf ${b('Speichern &amp; anwenden')} und schau dir das Ergebnis an.</li>
+</ol>
+<div class="box tip"><p>Pro Rand darf die Sperrzone höchstens ein Drittel der kleineren Bildkante groß sein. Bleiben weniger als 160 × 120 Pixel übrig, ignoriert ScreenBuddy die Sperrzone. <b>Android-TV</b> läuft immer im Querformat.</p></div>`},
 
 {t: 'Farben und Design', html: () => `
-<p class="kicker">Neu in 2.9</p><h1>Wie soll es aussehen?</h1>
+<p class="kicker">Neu in 2.10.0</p><h1>Wie soll es aussehen?</h1>
 <p class="lead">Wenn dir die Farben gefallen, drück einfach auf ${b('Weiter →')}. Du kannst sie aber jederzeit ändern.</p>
-<ol class="do"><li>Klicke links auf <b>„Farben &amp; Design“</b>.</li><li>Wähle <b>Hell</b> oder <b>Dunkel</b> im FuchsLabs-Stil. Oder wähle <b>„An Windows anpassen“</b>: Dann übernimmt das Display Hell oder Dunkel und die Akzentfarbe von Windows und ändert sich mit, wenn du in Windows etwas umstellst.</li><li>Eigene Farben: Lege ein <b>Theme</b> an, ändere die Farben im Editor und schau dir die Vorschau an. Der Editor warnt, wenn Text schlecht lesbar wäre, und kann den Kontrast korrigieren. Mit <b>Import</b> und <b>Export</b> tauschst du Themes als Datei. Drei Beispiele (im Stil von Apples, Googles und Microsofts Oberflächen) liegen im Ordner <b>cpp/examples/themes</b> des GitHub-Projekts. Fertige Themes anderer findest du direkt hier in der Karte <b>„Themes aus dem Store“</b>: auswählen und <b>Theme installieren</b> (nur Farben, geprüft und signiert). Das Theme ist danach schon ausgewählt.</li><li>Klicke auf ${b('Speichern & anwenden')}.</li></ol>
-<div class="box tip"><p>Links in der Liste (Gruppe <b>SEITEN</b> und <b>Companion</b>) zeigt ein <b>grüner Punkt</b>, dass eine Datenquelle eingerichtet und eingeschaltet ist. <b>Grau</b> heißt: noch nicht eingerichtet oder aus. Unten in der Liste steht eine Legende.</p></div>`},
+<div class="box tip"><p><b>Neues Standard-Design:</b> dunkles Material mit Orange-Akzent. Neuinstallationen starten damit. Wenn du ScreenBuddy schon hattest, fragt es einmal „Neuen Standard setzen?“. Die Voreinstellung ist <b>Nein</b>.</p></div>
+<ol class="do"><li>Klicke links auf <b>Ansicht</b> und oben auf <b>„Farben &amp; Design“</b>.</li><li>Wähle ein Design. Es gibt <b>Material Orange (dunkel)</b>, <b>Cupertino</b>, <b>Fluent</b>, <b>Hell</b>, <b>Dunkel</b> und <b>Windows</b>. Bei „Windows“ übernimmt das Display Hell oder Dunkel und die Akzentfarbe von Windows und ändert sich mit, wenn du in Windows etwas umstellst.</li><li>Eigene Farben: Lege ein <b>Theme</b> an, ändere die Farben im Editor und schau dir die Vorschau an. Der Editor warnt, wenn Text schlecht lesbar wäre, und kann den Kontrast korrigieren. Mit <b>Import</b> und <b>Export</b> tauschst du Themes als Datei.</li><li>Fertige Themes anderer: Karte <b>„Themes aus dem Store“</b> aktualisieren, Theme auswählen und <b>Theme installieren</b> klicken (nur Farben, geprüft und signiert). Es ist danach schon ausgewählt.</li><li>Klicke auf ${b('Speichern & anwenden')}.</li></ol>
+${shot('s_design', [], 'Farben &amp; Design im neuen Standard-Design.')}`},
 
 {need: 'discord', t: 'Discord 1: Bot anlegen', html: () => `
 <p class="kicker">Discord · Teil 1 von 3</p><h1>Mach dir einen kleinen Discord-Helfer</h1>
@@ -375,7 +439,7 @@ ${shot('display', [], 'Die Ausrichtung steht auf der Seite „Anzeige“ unter d
 <div class="sw hlbtn" style="outline-offset:0">Presence Intent <i class="on"></i></div>
 <div class="sw hlbtn" style="outline-offset:0">Server Members Intent <i class="on"></i></div>
 <div class="sw">Message Content Intent <i></i></div></div></div></figure>
-<div class="box tip"><p>Die gleichen Schritte und den Knopf ${g('Discord-Entwicklerseite ↗')} findest du auch auf der Einstellungsseite bei <b>Discord</b> unter <b>„So bekommst du den Bot-Token“</b>.</p></div>
+<div class="box tip"><p>Die gleichen Schritte und den Knopf ${g('Discord-Entwicklerseite ↗')} findest du auch auf der Einstellungsseite bei <b>Seiten › Discord</b> unter <b>„So bekommst du den Bot-Token“</b>.</p></div>
 <div class="box secret"><p>Der <b>Token</b> ist wie ein <b>Passwort</b>. Zeig ihn niemandem und schick ihn niemandem. Du fügst ihn gleich nur in deine Einstellungsseite ein.</p></div>
 ${help([['Die Seite ist auf Englisch.', 'Das ist normal, Discord hat diese Seite nur auf Englisch. Halte dich einfach an die fett gedruckten Wörter.'],
   ['Ich habe den Token verloren.', `Kein Problem. Klicke einfach noch einmal auf <b>Reset Token</b>. Dann bekommst du einen neuen.`],
@@ -405,12 +469,12 @@ ${help([['Mein Server steht nicht in der Liste.', 'Du darfst nur Bots auf Server
 {need: 'discord', t: 'Discord 3: Token einfügen', html: () => `
 <p class="kicker">Discord · Teil 3 von 3</p><h1>Gib dem Display den Token</h1>
 <ol class="do">
-<li>Geh zurück zur Einstellungsseite und klicke links auf <b>„Discord“</b>.</li>
+<li>Geh zurück zur Einstellungsseite, klicke links auf <b>Seiten</b> und oben auf den Reiter <b>„Discord“</b>.</li>
 <li>Klicke in das Feld <b>Bot-Token</b> und füge den Token ein: <span class="key">Strg</span> + <span class="key">V</span>.</li>
 <li>Drück unten auf ${b('Speichern &amp; anwenden')}. Warte etwa 10 Sekunden.</li>
 <li>Jetzt erscheinen bei <b>Personen</b> die Leute von deinem Server. Setz einen Haken bei deinen Freunden.</li>
 </ol>
-${shot('discord', [], 'Bot-Token und Personen stehen auf der nativen Discord-Seite. Die Beispieldaten enthalten keinen echten Token.')}
+${shot('s_discord', [], 'Seiten › Discord: Bot-Token und Personen. Die Beispieldaten enthalten keinen echten Token.')}
 <div class="box tip"><p>Wenn du <b>niemanden</b> anhakst, zeigt das Display alle Leute vom Server. Wenn du Freunde anhakst, nur diese.</p></div>
 ${help([['Bei „Personen“ steht „Der Bot ist gerade nicht verbunden“.', 'Prüfe, ob du den ganzen Token eingefügt hast, und ob du in Teil 1 die beiden Schalter (Intents) grün gemacht und gespeichert hast. Klicke dann noch einmal auf <b>Speichern &amp; anwenden</b>.'],
   ['Meine Freunde fehlen in der Liste.', 'Der Bot sieht nur Leute auf Servern, auf denen er selbst ist. Lade ihn auch auf den Server ein, auf dem deine Freunde sind (Teil 2).'],
@@ -420,43 +484,45 @@ ${help([['Bei „Personen“ steht „Der Bot ist gerade nicht verbunden“.', '
 <p class="kicker">Steam, Xbox, PlayStation</p><h1>Hol deine Freunde von Steam, Xbox und PlayStation dazu</h1>
 <p class="lead">Dafür braucht das Display je einen <b>Schlüssel</b>. Das ist ein langer Code, mit dem die App deine Freundesliste lesen darf. Du brauchst nur die, die du benutzt. PlayStation ist optional und standardmäßig aus.</p>
 <ol class="do">
-<li>Klicke links auf <b>„Freunde“</b>.</li>
+<li>Klicke links auf <b>Seiten</b> und oben auf den Reiter <b>„Freunde“</b>.</li>
 <li><b>Steam:</b> Klapp <b>„So bekommst du den Steam-Schlüssel“</b> auf und klicke auf ${g('Steam-Schlüssel holen ↗')}. Bei <b>Domain Name</b> schreibst du <b>localhost</b>. Den Schlüssel kopierst du ins Feld <b>Steam-API-Schlüssel</b>. Dieselben Schritte mit Knöpfen zeigt dir auch eine eigene Karte direkt unter dem Feld.</li>
 <li>Öffne dein Steam-Profil im Browser und kopier die Adresse oben aus der Adresszeile ins Feld <b>Steam-ID oder Profiladresse</b>.</li>
 <li>Ganz wichtig: Mit ${g('Datenschutz öffnen ↗')} stellst du bei Steam <b>Freundesliste</b> auf <b>Öffentlich</b>.</li>
 <li><b>Xbox:</b> Klapp <b>„So bekommst du den Xbox-Schlüssel (OpenXBL)“</b> auf und folge den Schritten dort.</li>
 <li>Klicke jeweils auf ${g('Verbindung prüfen')}. Grün heißt: klappt. Dann ${b('Speichern &amp; anwenden')}.</li>
 </ol>
-${shot('freunde', [], 'Die native Freunde-Seite enthält Steam-, Xbox- und PlayStation-Einstellungen. Scrolle für weitere Felder nach unten.')}
+${shot('s_freunde', [], 'Seiten › Freunde mit Steam-, Xbox- und PlayStation-Einstellungen. Scrolle für weitere Felder nach unten.')}
 <div class="box secret"><p>Die Schlüssel sind wie <b>Passwörter</b>. Zeig sie niemandem.</p></div>
 <div class="box warn"><p><b>PlayStation (optional, inoffiziell):</b> Sony bietet für Freunde keine offizielle Schnittstelle. ScreenBuddy nutzt deshalb den <b>NPSSO-Code</b> deiner PlayStation-Anmeldung. Das geschieht <b>auf eigenes Risiko</b>: Sony kann die Schnittstelle jederzeit ändern oder dein Konto einschränken. Die Funktion ist <b>standardmäßig aus</b>; lass das Feld <b>PlayStation-Code (NPSSO)</b> leer, wenn du sie nicht willst. Zum Einrichten klapp <b>„So bekommst du den PlayStation-Code (NPSSO)“</b> auf und folge den Schritten, füge den Code ein und klicke auf ${g('Verbindung prüfen')}. Der Code ist wie ein Passwort, liegt nur verschlüsselt auf deinem PC und geht nur an Sony. Er läuft nach etwa zwei Monaten ab; dann holst du einfach einen neuen.</p></div>
 ${help([['Da steht, die Freundesliste ist privat.', 'Bei Steam die Freundesliste auf <b>Öffentlich</b> stellen (Schritt 4) und dann noch einmal prüfen.'],
   ['Ein Freund steht doppelt in der Liste.', 'Ganz unten bei <b>„Personen zusammenführen“</b> die beiden Konten auswählen und auf <b>Verknüpfen</b> klicken.'],
   ['PlayStation meldet „Anmeldung abgelaufen oder ungültig“.', 'Der NPSSO-Code ist abgelaufen oder falsch kopiert. Hol dir einen neuen (er hat 64 Zeichen) und klicke wieder auf <b>Verbindung prüfen</b>.'],
-  ['Discord-Freunde stehen jetzt doppelt auf dem Display.', 'In der <b>Übersicht</b> die Seite <b>„Discord-Freunde“</b> ausschalten. Die gemeinsame Liste zeigt Discord schon mit.']])}`},
+  ['Discord-Freunde stehen jetzt doppelt auf dem Display.', 'Unter <b>Ansicht › Seiten &amp; Reihenfolge</b> die Seite <b>„Discord“</b> ausschalten. Die gemeinsame Liste zeigt Discord schon mit.']])}`},
 
 {need: 'bf6', t: 'Battlefield 6', html: () => `
 <p class="kicker">Battlefield 6</p><h1>Trag die Battlefield-Spieler ein</h1>
 <p class="lead">EA verrät nicht, wer deine Freunde sind. Darum schreibst du die Namen selbst auf.</p>
 <ol class="do">
-<li>Klicke links auf <b>„Battlefield 6“</b>.</li>
+<li>Klicke links auf <b>Seiten</b> und oben auf <b>„Battlefield 6“</b>.</li>
 <li>Schreib in der Liste <b>EA-IDs</b> deinen <b>EA-Namen</b> in eine Zeile. Spielst du auf PlayStation oder Xbox, häng <b>@psn</b> oder <b>@xbox</b> an den Namen, zum Beispiel <b>Name@psn</b>.</li>
 <li>Mach das genauso für jeden Freund, eine Zeile pro Name.</li>
-<li>Tipp unter <b>Name prüfen</b> einen Namen in das Feld <b>EA-ID</b> und klicke auf ${g('Prüfen')}. Steht dort grün ein <b>Rang</b>, ist der Name richtig.</li>
+<li><b>Neu:</b> Du kannst auch die <b>ID</b> eintragen, zum Beispiel <b>Name#ID</b> oder <b>Name@psn#ID</b>. Die Abfrage läuft dann über die ID, der Name wird nur angezeigt. Alte Einträge ohne ID funktionieren weiter.</li>
+<li>Tipp unter <b>Name prüfen</b> einen Namen in das Feld <b>EA-ID</b> und klicke auf ${g('Prüfen')}. Steht dort grün ein <b>Rang</b>, ist der Name richtig. ScreenBuddy zeigt dir dabei die gefundene <b>ID</b>. Mit <b>„ID übernehmen“</b> (Web-Oberfläche) schreibst du sie in den Eintrag.</li>
 </ol>
-${shot('bf6', [], 'Battlefield-6-Einstellungen in der nativen Oberfläche. Scrolle für die Spielerliste nach unten.')}
-${help([['Da steht „Spieler nicht gefunden“.', 'Schau genau auf die Schreibweise. Groß- und Kleinbuchstaben und Null und O werden oft verwechselt. Frag deinen Freund nach seinem genauen EA-Namen.'],
-  ['Mein Freund spielt auf der Konsole.', 'Häng an den Namen <b>@psn</b> (PlayStation) oder <b>@xbox</b> (Xbox) an, zum Beispiel <b>Name@psn</b>.']])}`},
+${shot('s_bf6', [], 'Battlefield-6-Einstellungen. Scrolle für die Spielerliste nach unten.')}
+${help([['Da steht „Spieler nicht gefunden“.', 'Schau genau auf die Schreibweise. Groß- und Kleinbuchstaben und Null und O werden oft verwechselt. Frag deinen Freund nach seinem genauen EA-Namen oder trage seine ID ein (<b>Name#ID</b>).'],
+  ['Mein Freund spielt auf der Konsole.', 'Häng an den Namen <b>@psn</b> (PlayStation) oder <b>@xbox</b> (Xbox) an, zum Beispiel <b>Name@psn</b>.'],
+  ['Da steht „Quelle gestört“.', 'Die Datenquelle (gametools) antwortet gerade mit einem Serverfehler. Es liegt nicht an deinem Namen. Die zuletzt guten Werte und gemerkte IDs bleiben erhalten. Probier es später noch einmal.']])}`},
 
 {need: 'blogs', t: 'Neuigkeiten', html: () => `
 <p class="kicker">Neuigkeiten</p><h1>Such dir Webseiten aus</h1>
 <p class="lead">Das Display zeigt die neuesten Artikel von Webseiten, die öfter neue Sachen schreiben (zum Beispiel News-Seiten oder Blogs).</p>
 <ol class="do">
-<li>Klicke links auf <b>„Blogs“</b>.</li>
+<li>Klicke links auf <b>Seiten</b> und oben auf den Reiter <b>„Blogs (RSS)“</b>.</li>
 <li>Kopier die Adresse der Webseite aus deinem Browser und füge sie in die Liste <b>Feed-Adressen</b> ein, eine Adresse pro Zeile.</li>
 <li>Füge die Adresse unter <b>Feed prüfen</b> ins Feld <b>Adresse</b> ein und klicke auf ${g('Prüfen')}. Grün heißt: klappt.</li>
 </ol>
-${shot('blogs', [], 'Die native RSS-Seite. Scrolle für die Adressliste und Prüffunktion nach unten.')}
+${shot('s_blogs', [], 'Seiten › Blogs (RSS). Scrolle für die Adressliste und Prüffunktion nach unten.')}
 ${help([['Da steht „Kein Feed gefunden“.', 'Manche Seiten machen keine Artikel-Liste für Programme. Probier eine andere Seite oder häng an die Adresse <span class="key">/feed/</span> an.']])}`},
 
 {need: 'streaming', t: 'Neu bei Streaming', html: () => `
@@ -467,46 +533,49 @@ ${help([['Da steht „Kein Feed gefunden“.', 'Manche Seiten machen keine Artik
 <li>Hol dir auf <b>themoviedb.org</b> ein kostenloses Konto und unter <b>Einstellungen → API</b> deinen Key. In ScreenBuddy öffnet die Karte <b>„So bekommst du den TMDB-Key“</b> mit dem Knopf <b>„TMDB-API-Seite öffnen“</b> direkt die richtige Seite.</li>
 <li>Bei der Beantragung für private Nutzung <b>Developer</b> wählen und die Bedingungen lesen. <b>Type of Use:</b> Desktop Application (falls angeboten). <b>Application Name:</b> ScreenBuddy. <b>Application URL:</b> https://github.com/PapaFuchs84/ScreenBuddy (Projektseite). <b>Application Summary:</b> „Display new movie and TV releases from my streaming providers on my personal ScreenBuddy display.“</li>
 <li>In persönliche Felder deinen eigenen Namen, E-Mail und die verlangten Kontakt-/Adressangaben eintragen. Optionale Felder dürfen leer bleiben. Die Feldnamen können abweichen. Nach dem Absenden den <b>API Key (v3)</b> oder vollständigen <b>API Read Access Token</b> kopieren – nicht dein TMDB-Passwort.</li>
-<li>Klicke links auf <b>„Streaming-Neustarts“</b>, schalte die Seite an und füge den Key ein. Er wird verschlüsselt gespeichert.</li>
+<li>Klicke links auf <b>Seiten</b> und oben auf <b>„Streaming-Neustarts“</b>, schalte die Seite an und füge den Key ein. Er wird verschlüsselt gespeichert.</li>
 <li>Klicke auf ${g('Key prüfen & Anbieter laden')} und setze bei der Liste Haken bei deinen Anbietern. Vorgewählt sind Netflix, Prime Video, Disney+, Apple TV+, WOW und RTL+.</li>
 <li>Die Region folgt der App-Sprache (Deutsch: DE, Englisch: US). Du kannst sie im Feld <b>Region</b> ändern.</li>
 </ol>
+${shot('s_streaming', [], 'Seiten › Streaming-Neustarts.')}
 ${help([['Auf dem Display steht „Kein Key“.', 'Trage den Key in den Einstellungen ein und speichere. Ohne Key fragt ScreenBuddy nichts ab.'], ['Dort steht „Keine Daten“.', 'Prüfe Key und Internetverbindung. Die Daten werden höchstens einmal pro Stunde abgefragt; alte Einträge bleiben bis dahin sichtbar.']])}
 <p style="font-size:.85em;opacity:.75">This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.</p>`},
 
 {need: 'system', t: 'Mein PC', html: () => `
 <p class="kicker">Mein PC</p><h1>Die PC-Seite läuft schon</h1>
-<p class="lead">Hier musst du nichts machen. Die Seite zeigt sofort, wie viel dein PC gerade arbeitet.</p>
+<p class="lead">Hier musst du nichts machen. Die Seite zeigt sofort, wie viel dein PC gerade arbeitet. Ihre Einstellungen findest du unter <b>Seiten › System</b>.</p>
 <figure><div class="shot" data-zoom style="max-width:520px"><img src="${IMG.page_system}" alt="Systemseite"></div></figure>
 <div class="box tip"><p><b>Für Profis:</b> Steht bei CPU-Temperatur und Lüfter nur ein Strich „–“? Dafür braucht der PC das kostenlose Programm <b>HWiNFO64</b>. Installiere es von <a href="https://www.hwinfo.com/" target="_blank" rel="noopener">hwinfo.com</a>. Starte es und schalte in seinen Einstellungen die <b>Shared Memory Unterstützung</b> ein. Frag dafür am besten einen Erwachsenen.</p></div>`},
 
 {need: 'spotify', t: 'Spotify', html: () => `
 <p class="kicker">Spotify</p><h1>Dein Lied auf dem Display</h1>
 <p class="lead">Das Display zeigt das Lied, das gerade bei Spotify läuft, mit Bild und Fortschritt. Mit Touch kannst du dort auch Zurück, Pause und Weiter drücken (dafür braucht Spotify ein Premium-Konto).</p>
-<p>Im Querformat zeigt die <b>Amplifier-Anzeige</b> 16 Balken der Windows-Systemausgabe. Unter Einstellungen → Spotify lässt sie sich ausschalten. Die Analyse endet spätestens drei Sekunden nach dem letzten Anzeigen der laufenden Wiedergabe; bei Stille fallen die Balken auf null. Die Audioverbindung bleibt lokal geöffnet, es wird nichts aufgezeichnet oder gesendet.</p>
-<p>Ein Tipp auf das geladene Cover öffnet die Spotify-App am PC. Dafür ist kein Premium nötig; Spotify muss installiert sein. Ohne Cover ist diese Aktion inaktiv.</p>
+${shot('s_spotify', [], 'Seiten › Spotify.')}
+<div class="box tip"><p><b>Neu in 2.10.0, „Zuletzt gespielt“:</b> Läuft gerade nichts, zeigt die Seite den <b>zuletzt gespielten Titel</b> mit Cover, etwas gedimmt und ohne Tasten. Dafür brauchst du den zusätzlichen Zugriff „zuletzt gespielt“: Melde dich <b>einmal unter Seiten › Spotify neu an</b>. Ohne ihn bleibt es bei der bisherigen Meldung.</p></div>
+<p>Ein <b>Tipp auf das Cover öffnet Spotify am PC</b>. Das klappt auch, wenn du von einem Companion-Gerät tippst. Auf dem Handy startet Spotify dadurch nicht. Dafür ist kein Premium nötig; Spotify muss auf dem PC installiert sein. Ohne Cover ist diese Aktion inaktiv.</p>
+<p>Im Querformat zeigt die <b>Amplifier-Anzeige</b> 16 Balken der Windows-Systemausgabe. Unter Seiten › Spotify lässt sie sich ausschalten. Die Analyse endet spätestens drei Sekunden nach dem letzten Anzeigen der laufenden Wiedergabe; bei Stille fallen die Balken auf null. Die Audioverbindung bleibt lokal geöffnet, es wird nichts aufgezeichnet oder gesendet.</p>
 <ol class="do">
 <li>Lege auf <b>developer.spotify.com/dashboard</b> eine App an und kreuze „Web API“ an. Die Karte <b>„So bekommst du die Spotify-Client-ID“</b> in ScreenBuddy führt dich mit dem Knopf <b>„Spotify-Dashboard öffnen“</b> dorthin.</li>
-<li>Trage als <b>Redirect URI</b> genau die Adresse ein, die in ScreenBuddy unter <b>Spotify</b> steht.</li>
+<li>Trage als <b>Redirect URI</b> genau die Adresse ein, die in ScreenBuddy unter <b>Seiten › Spotify</b> steht.</li>
 <li>Kopiere die <b>Client-ID</b> in ScreenBuddy, schalte die Seite an und speichere.</li>
 <li>Klicke auf <b>„Bei Spotify anmelden“</b> und stimme im Browser zu.</li>
 </ol>
-${help([['Es steht „kein aktives Gerät“.', 'Starte Spotify einmal am Handy oder PC und spiele ein Lied ab.'], ['Die Tasten tun nichts.', 'Das Steuern geht nur mit Spotify Premium. Die Anzeige geht auch ohne.']])}`},
+${help([['Es steht „kein aktives Gerät“.', 'Starte Spotify einmal am Handy oder PC und spiele ein Lied ab.'], ['Die Tasten tun nichts.', 'Das Steuern geht nur mit Spotify Premium. Die Anzeige geht auch ohne.'], ['Es steht nur „Es läuft gerade nichts“.', 'Melde dich unter Seiten › Spotify einmal neu an, damit „zuletzt gespielt“ erlaubt wird.']])}`},
 
 {need: 'homeassistant', t: 'Home Assistant', html: () => `
 <p class="kicker">Smart Home</p><h1>Home Assistant auf dem Display</h1>
 <p class="lead">Dein Display zeigt bis zu <b>4 Kacheln</b> aus deinem Smart Home: Sensoren, zum Beispiel Temperatur oder Solarleistung, und mit Touch auch Schalter und Lampen. Du brauchst Home Assistant in deinem Heimnetz und die App ab Version 2.1.0.</p>
-${shot('ha_display', [], 'So sieht die Seite auf dem Display aus: zwei Sensoren und zwei Schalter.', 480, 320)}
+${shot('ha_display', [], 'So sieht die Seite auf dem Display aus: zwei Sensoren und zwei Schalter.')}
 <h2>1. Adresse und Zugriffstoken</h2>
 <ol class="do">
-<li>Öffne links in der Einstellungsseite den Reiter ${b('Home Assistant')}.</li>
+<li>Öffne links <b>Seiten</b> und oben den Reiter ${b('Home Assistant')}.</li>
 <li>Trage bei ${b('Adresse')} ein, was du auch im Browser benutzt, zum Beispiel <b>http://homeassistant.local:8123</b>.</li>
 <li>Hol dir in Home Assistant ein Token: unten links auf deinen <b>Namen</b> klicken, oben auf <b>Sicherheit</b> wechseln, ganz unten bei <b>Langlebige Zugriffstoken</b> auf <b>Token erstellen</b> klicken. Einen Namen eingeben, zum Beispiel „Display“, auf <b>OK</b> klicken und das Token sofort kopieren. Es wird nur einmal angezeigt.</li>
 <li>Füge es bei ${b('Zugriffstoken')} ein.</li>
 <li>Klicke auf ${b('Verbindung prüfen &amp; Entitäten laden')}. Steht daneben „Verbunden“, hat alles geklappt.</li>
 </ol>
 <div class="box tip"><p>Die Karte <b>„So bekommst du das Zugriffstoken“</b> unter dem Zugangsfeld erklärt die Schritte und verlinkt die offizielle Anleitung.</p></div>
-${shot('ha_setup', [], 'Adresse, Zugriffstoken und Verbindungsprüfung auf der nativen Home-Assistant-Seite.')}
+${shot('s_ha', [], 'Seiten › Home Assistant: Adresse, Zugriffstoken und Verbindungsprüfung.')}
 <div class="box secret"><p>Das <b>Token</b> ist wie ein <b>Passwort</b> für dein Smart Home. Zeig es niemandem. Die App speichert es verschlüsselt, nur dein Windows-Konto kann es lesen.</p></div>
 <h2>2. Kacheln wählen</h2>
 <ol class="do">
@@ -515,18 +584,98 @@ ${shot('ha_setup', [], 'Adresse, Zugriffstoken und Verbindungsprüfung auf der n
 <li>Schalte ganz oben ${b('Seite anzeigen')} ein und klicke unten auf ${b('Speichern &amp; anwenden')}.</li>
 </ol>
 <p>Die Entitäten-Auswahl liegt auf derselben Seite weiter unten. Scrolle im mittleren Bereich nach unten.</p>
-<div class="box tip"><p><b>Schalter</b> (Schalter, Licht, Ventilator, Eingabe-Schalter) lassen sich nur wählen, wenn ein Touch-Bildschirm angeschlossen und <b>Touch-Steuerung</b> eingeschaltet ist (Reiter <b>Display</b>, siehe Schritt „HDMI/USB-C und Touch“). Dann legt ein Tipp auf die Kachel den Schalter um. Ohne Touch bleiben nur Sensoren. Schlösser, Rollläden und Alarmanlagen lassen sich bewusst nicht schalten.</p></div>
+<div class="box tip"><p><b>Schalter</b> (Schalter, Licht, Ventilator, Eingabe-Schalter) lassen sich nur wählen, wenn ein Touch-Bildschirm angeschlossen und <b>Touch-Steuerung</b> eingeschaltet ist (<b>Ansicht › Anzeige</b>, siehe Schritt „HDMI/USB-C und Touch“). Dann legt ein Tipp auf die Kachel den Schalter um. Ohne Touch bleiben nur Sensoren. Schlösser, Rollläden und Alarmanlagen lassen sich bewusst nicht schalten.</p></div>
 ${help([['Home Assistant ist nicht erreichbar.', 'Prüfe die Adresse und ob PC und Home Assistant im selben Netzwerk sind. Wenn du nur „homeassistant.local“ benutzt, probiere die IP-Adresse, zum Beispiel <b>http://192.168.1.20:8123</b>.'],
   ['Token ungültig oder abgelaufen.', 'Erstelle in Home Assistant unter <b>Sicherheit</b> ein neues langlebiges Token und füge es ein.'],
   ['Adresse stimmt nicht (keine API gefunden).', 'Die Adresse muss die von Home Assistant selbst sein, mit Port, zum Beispiel <b>:8123</b>, und ohne Pfad dahinter.'],
-  ['Mein Schalter fehlt in der Liste.', 'Schalter erscheinen nur, wenn Touch aktiv ist. Schalte unter <b>Display</b> die <b>Touch-Steuerung</b> ein.'],
+  ['Mein Schalter fehlt in der Liste.', 'Schalter erscheinen nur, wenn Touch aktiv ist. Schalte unter <b>Ansicht › Anzeige</b> die <b>Touch-Steuerung</b> ein.'],
   ['Die Seite erscheint nicht auf dem Display.', `Die Seite wird erst gezeigt, wenn sie eingeschaltet ist und Adresse, Token und mindestens eine Kachel ausgefüllt sind. Danach ${b('Speichern &amp; anwenden')} nicht vergessen.`]])}`},
+
+{need: 'views', t: 'Zonen-Layout und Editor', html: () => `
+<p class="kicker">Neu in 2.10.0</p><h1>Seiten bestehen aus Zonen und Kacheln</h1>
+<p class="lead">Jede Seite ist ein Raster. Im Raster gibt es <b>Zonen</b>, und in den Zonen liegen <b>Kacheln</b>. Jede Kachel hat einen festen Namen (die Block-ID bleibt gleich), darum bleiben deine Layouts bei Updates heil.</p>
+${shot('s_zonen', [], 'Der Zonen-Editor mit der Kachelpalette.')}
+<ul>
+<li><b>Dichte:</b> Eine Kachel kann <b>kompakt</b>, <b>normal</b> oder <b>ausführlich</b> sein. Passt eine Kachel nicht in ihren Platz, blendet ScreenBuddy sie aus, statt sie zu quetschen.</li>
+<li><b>Wechselfeld:</b> Mehrere Kacheln teilen sich einen Platz und wechseln reihum.</li>
+<li><b>Palette:</b> Du suchst Kacheln mit Suchfeld und Filtern und ziehst sie auf die Fläche (Ziehen und Ablegen).</li>
+<li><b>Rückgängig und Wiederholen</b> gibt es auch. Der Editor lässt sich komplett mit der <b>Tastatur</b> bedienen.</li>
+<li>Die eingebauten Seiten (System, Freunde, Discord, Battlefield 6, Blogs, Streaming, Spotify, KI-Status) kannst du darin bearbeiten. <b>Home Assistant bleibt nativ</b> und gehört nicht zum Zonen-System.</li>
+</ul>
+<div class="box tip"><p>Den Editor öffnest du unter <b>Seiten › Eigene Ansichten</b>. Wie das geht, steht im nächsten Schritt.</p></div>`},
+
+{need: 'views', t: 'Eigene Ansichten', html: () => `
+<p class="kicker">Neu in 2.10.0</p><h1>Baue dir deine eigene Ansicht</h1>
+<p class="lead">Im Editor mischst du Kacheln aus vielen Quellen: System, Listen, Spotify, KI-Status und Werte aus Home Assistant.</p>
+${shot('s_ansichten', [], 'Eigene Ansichten: links die Seitenliste, in der Mitte die Fläche, rechts die Eigenschaften.')}
+<ol class="do">
+<li>Öffne <b>Seiten › Eigene Ansichten</b>.</li>
+<li>Oben stehen <b>Reiter pro Display oder Gerät</b>, vorne <b>Standard</b>. Es erscheinen nur Displays, die gerade aktiv sind. Gespeicherte Layouts von Geräten, die offline sind, bleiben erhalten.</li>
+<li>Klicke auf ${b('+ Neue Ansicht')}, gib ihr einen Namen und ziehe Kacheln aus der Palette (links bei <b>Kacheln</b>) auf die Fläche.</li>
+<li>Ein Geräte-Reiter kann <b>„Von Standard erben“</b>: Das Gerät übernimmt das Standard-Layout, bis du dort etwas Eigenes baust.</li>
+<li>Mit ${b('Übernehmen')} gilt die Ansicht. ${b('Rückgängig')} und ${b('Wiederholen')} helfen bei Fehlern.</li>
+<li>Unter <b>Seiten</b> (Spalte links, zweiter Knopf unten) stehen neue Ansichten und die eingebauten Seiten. Ein Klick öffnet sie zum Bearbeiten.</li>
+</ol>
+<h2>Was passiert beim Tippen? Das Touch-Ziel</h2>
+<p>Bei jeder Kachel steht rechts bei den <b>Eigenschaften</b> das <b>Touch-Ziel</b>. <b>Standard</b> heißt: Die Kachel macht, was sie immer macht. Bei <b>Individuell</b> wählst du selbst:</p>
+<ul>
+<li><b>Seite wechseln</b> („Touch-Absprung“): Ein Tipp springt zu einer festen Seite, die im Seitenwechsel des Geräts vorkommt.</li>
+<li><b>Link öffnen:</b> öffnet eine Adresse am PC. Nur <b>HTTPS</b> und nur bei Plugin-Kacheln, denen du das erlaubt hast.</li>
+<li><b>Nächster Eintrag:</b> schaltet bei einem Wechselfeld zum nächsten Eintrag.</li>
+</ul>
+<div class="box warn"><p>Die <b>Link-Freigabe</b> ist standardmäßig <b>aus</b>. Ändert sich ein Plugin, wird sie wieder zurückgenommen. Du erlaubst sie bewusst pro Plugin.</p></div>
+${help([['Mein Display fehlt als Reiter.', 'Es erscheinen nur Displays, die gerade aktiv sind. Schließe es an oder schalte es ein. Sein gespeichertes Layout bleibt in der Zwischenzeit erhalten.'],
+  ['Eine Kachel bleibt leer.', 'Sie passt vielleicht nicht in ihren Platz oder ihre Quelle liefert gerade nichts. Mach sie größer oder wähle mehr Dichte.'],
+  ['Der Link öffnet sich nicht.', 'Prüfe, ob das Plugin eingeschaltet ist, die Freigabe „Links öffnen“ gesetzt wurde und die Adresse mit https:// beginnt.']])}`},
+
+{need: 'game', t: 'Game-Mode', html: () => `
+<p class="kicker">Neu in 2.10.0</p><h1>Beim Spielen die passende Ansicht</h1>
+<p class="lead">ScreenBuddy merkt, wenn du ein Spiel startest, und zeigt dann automatisch eine eigene Ansicht, zum Beispiel mit FPS und Grafikkartenwerten.</p>
+${shot('gif_game', [], 'Erst das Intro mit Logo und Spielname, danach die Game-Ansicht mit Kacheln.', REAL + ' · Netzwerkname im Hintergrund überdeckt')}
+<h2>So läuft es ab</h2>
+<ol class="do">
+<li>ScreenBuddy <b>liest nur mit</b> und erkennt Spiele von Steam, Epic, Xbox, GOG Galaxy, Ubisoft Connect, EA App, Battle.net und Rockstar. Nach <b>3 Sekunden</b> stabiler Erkennung startet der Game-Mode.</li>
+<li>Es erscheint ein <b>Intro</b> (etwa 2,5 Sekunden) mit Logo und Spielname. Ist <b>„Animationen reduzieren“</b> an, ist es nur kurz.</li>
+<li>Danach zeigt das <b>Ziel-Display</b> die Game-Ansicht mit Kacheln: FPS, Frametime, 1 %-Low, GPU, VRAM, Ping und mehr. Fehlt ein Messwert, steht dort <b>n/a</b>.</li>
+<li>Nach <b>5 Sekunden</b> ohne Spiel läuft die normale Seitenrotation weiter.</li>
+</ol>
+<h2>Einrichten</h2>
+<ol class="do">
+<li>Öffne <b>Seiten › Eigene Ansichten</b>, klicke auf ${b('+ Game-Mode')} und danach auf ${b('Übernehmen')}. Das legt eine Vorlage an, die du verändern darfst.</li>
+<li>Öffne <b>Seiten › Game-Mode</b>. Schalte <b>„Game-Mode aktivieren“</b> ein. Wähle bei <b>Ziel-Display</b> die „Primäre Ausgabe“ oder ein bestimmtes Gerät, und bei <b>Eigene Ansicht</b> deine Game-Ansicht.</li>
+<li>Stell ein, ob das <b>Spiellogo-Intro</b> kommen soll, und ob Animationen reduziert werden. Beim <b>Ping-Ziel</b> kannst du die IPv4-Adresse deines Routers eintragen.</li>
+<li>Unter <b>Erkennung</b> trägst du <b>zusätzliche Spiele</b> (vollständiger EXE-Pfad, ein Pfad pro Zeile) und <b>Ausschlüsse</b> ein. Dann ${b('Speichern &amp; anwenden')} und ScreenBuddy neu starten.</li>
+</ol>
+${shot('s_game', [], 'Die Seite Game-Mode.')}
+${shot('s_game_erk', [], 'Erkennung: zusätzliche Spiele und Ausschlüsse.')}
+${shot('s_ansicht_game', [], 'Der Editor mit der Game-Mode-Vorlage.')}
+<div class="box tip"><p>Solange der Game-Mode läuft, gehört die Game-Ansicht ihm allein. Sie ist dann aus der Seitenrotation, der Companion-Navigation und den Touch-Zielen herausgenommen.</p></div>
+<div class="box warn"><p><b>Ehrlich gesagt:</b> Die Spielerkennung wurde noch nicht mit allen Launchern abgenommen. Fehlt dein Spiel, trage seine EXE unter „Zusätzliche Spiele“ ein. Für <b>FPS</b> nutzt ScreenBuddy Windows-Ereignisse (ETW). Dafür braucht es manchmal Administratorrechte oder die Mitgliedschaft in der Gruppe <b>Leistungsprotokoll-Benutzer</b>. Der <b>Ping</b> misst dein Ping-Ziel, nicht den Spielserver. ScreenBuddy greift nicht in das Spiel ein.</p></div>
+${help([['Nichts passiert, wenn ich ein Spiel starte.', 'Prüfe, ob der Game-Mode an ist und eine eigene Ansicht gewählt wurde. Ohne Ansicht bleibt die normale Rotation. Trage das Spiel sonst unter „Zusätzliche Spiele“ ein.'],
+  ['Bei FPS steht n/a.', 'Die FPS-Messung braucht ETW. Starte ScreenBuddy mit Administratorrechten oder nimm dein Konto in die Gruppe „Leistungsprotokoll-Benutzer“ auf. Frag dafür einen Erwachsenen.'],
+  ['Die Game-Ansicht erscheint auf dem falschen Display.', 'Wähle bei „Ziel-Display“ das richtige Gerät statt „Primäre Ausgabe“.']])}`},
+
+{need: 'ki', t: 'KI-Status', html: () => `
+<p class="kicker">Neu in 2.10.0</p><h1>Was machen Claude Code und Codex gerade?</h1>
+<p class="lead">Auf der Seite <b>KI-Status</b> siehst du je eine Karte für <b>Claude Code</b> und <b>Codex</b>: Arbeiten sie gerade, warten sie auf dich oder sind sie fertig?</p>
+${shot('s_ki', [], 'Seiten › KI-Status.')}
+<ol class="do">
+<li>Öffne <b>Seiten › KI-Status</b> und schalte <b>„Seite und lokalen Empfänger aktivieren“</b> ein.</li>
+<li>Der Empfänger lauscht <b>nur auf deinem PC</b> (Loopback, Standard-Port <b>18765</b>). Du kannst den Port ändern. Ist er belegt, nimmt ScreenBuddy einen freien. Nach dem Speichern neu starten.</li>
+<li>Bei <b>„Hooks einrichten oder entfernen“</b> lädst du zuerst eine <b>Vorschau</b> und wendest die Änderung erst dann an. Vorhandene Dateien bekommen einmalig eine Sicherung (<span class="key">.bak</span>). „Entfernen“ löscht nur die Befehle, die ScreenBuddy selbst eingetragen hat.</li>
+<li>Willst du auch Limits sehen, schalte die Einwilligung <b>„Echtes Konto lesend nutzen“</b> ein. Ohne sie steht dort <b>n/a</b>.</li>
+</ol>
+<div class="box secret"><p>Die Hooks senden nur <b>Sitzungs-ID, Ereignis, Tool und Modell</b>, keine Prompts. Zeig oder schick niemandem Konto-Token oder Login-Dateien.</p></div>
+<div class="box tip"><p>Die KI-Kacheln kannst du auch in <b>Eigene Ansichten</b> verwenden. Cloud-Sitzungen unterstützen lokale Hooks möglicherweise nicht. Fehlende Werte bleiben <b>n/a</b>.</p></div>
+${help([['Es erscheint nichts.', 'Die Karte erscheint erst, wenn mindestens eine Sitzung gemeldet wurde. Prüfe, ob die Hooks angewendet wurden, und starte dein KI-Programm neu.'],
+  ['Der Port ist belegt.', 'ScreenBuddy wählt dann selbst einen freien Port. Den tatsächlichen Port zeigt die Statuszeile auf der Seite.']])}`},
 
 {t: 'Plugin-Store', html: () => `
 <p class="kicker">Optional · Plugins</p><h1>Zusatz-Plugins aus dem Store holen</h1>
 <p class="lead">Im Plugin-Store findest du geprüfte Zusatzseiten für dein Display, zum Beispiel Uhr, Wetter, Pomodoro-Tafel oder Spieleabend. Du brauchst den Store nicht, um ScreenBuddy zu nutzen.</p>
+${shot('s_erweit', [], 'Erweiterungen: Plugins und Plugin-Store.')}
 <ol class="do">
-<li>Öffne in den Einstellungen die Seite ${b('Plugin-Store')}. Sie liegt in der Gruppe ${b('APP')} neben ${b('Companion')} und ${b('Plugins')}. Themes (Farbdesigns) installierst du unter ${b('Farben & Design')}.</li>
+<li>Öffne links den Bereich ${b('Erweiterungen')} und dort ${b('Plugin-Store')}. Daneben liegt ${b('Plugins')}. Themes (Farbdesigns) installierst du unter ${b('Ansicht › Farben & Design')}.</li>
 <li>Der Schalter ${b('Plugin-Store verwenden')} ist standardmäßig an. Ist er aus, ruft das Programm nichts aus dem Store ab; andere Datenquellen laufen weiter. Die Änderung gilt erst nach ${b('Speichern & anwenden')}.</li>
 <li>Suche mit dem Feld ${b('Suche')} oder wähle eine Kategorie.</li>
 <li>Klicke ein Plugin an. Unter ${b('Details')} siehst du Autor, Version, Lizenz und Status.</li>
@@ -539,17 +688,10 @@ ${help([['Der Store meldet „nicht erreichbar“.', 'Prüfe deine Internetverbi
   ['Der Store meldet „nicht verfügbar“.', 'Diese Version hat keinen Signaturschlüssel für den Store. Nutze die aktuelle Version von der Download-Seite.'],
   ['Ich finde ein Plugin nicht.', 'Wähle die Kategorie <b>Alle</b> und lösche den Text im Suchfeld.']])}`},
 
-{t: 'Game-Mode (Entwicklung)', html: () => `
-<p class="kicker">P9 · Noch nicht veröffentlicht</p><h1>Beim Spielen die passende Ansicht</h1>
-<ol class="do"><li>Unter <b>App → Eigene Ansichten</b> mit <b>+ Game-Mode</b> eine Vorlage anlegen, bearbeiten und übernehmen.</li><li>Unter <b>Game-Mode</b> Aktivierung, Ziel-Display und eigene Ansicht wählen. Intro, reduzierte Animation und Ping-Ziel (IPv4) einstellen.</li><li>Zusätzliche Spiele als absolute EXE-Pfade eintragen, ein Pfad pro Zeile. Ausschlüsse akzeptieren EXE-Pfade oder Dateinamen. Speichern und neu starten.</li></ol>
-<p>Bibliotheken: Steam, Epic, Xbox sowie GOG Galaxy, Ubisoft Connect, EA App/Origin, Battle.net/Blizzard und Rockstar über lokale Registry-/Manifestdaten. Neue Registry-Quellen benötigen einen Spielprozess im Installationsordner mit Vordergrund-Vollbild/Borderless; Launcher, Launcher-Helfer und bekannte Anti-Cheat-Dienste sind ausgeschlossen. Fehlende Einträge manuell per Spiel-EXE ergänzen. Nicht-Steam: EXE-Icon und Name. Echte Launcher-Abnahme steht aus.</p>
-<p>Nach 3 Sekunden stabiler Erkennung erscheint das optionale Logo-Intro, danach die eigene Ansicht. Nach 5 Sekunden ohne Spiel geht die vorherige Rotation weiter. Eine fehlende Ansicht lässt die normale Rotation bestehen.</p>
-<p>Fehlende Messwerte bleiben <b>n/a</b>. FPS messen DXGI-Present-Aufrufe, keine angezeigten Frames; ETW benötigt gegebenenfalls Administratorrechte oder Performance Log Users. CPU-Temperatur benötigt HWiNFO. Keine Eingriffe in Spielprozesse, keine DLL-Injektion oder Speicherabfragen. Echte Spiele, Geräte und Sensoren benötigen gesonderte Abnahme.</p>`},
-
 {t: 'Speichern', html: () => `
 <p class="kicker">Ganz wichtig</p><h1>Speichern nicht vergessen!</h1>
 <p class="lead">Wenn du etwas geändert hast, erscheint unten auf der Einstellungsseite ein Balken.</p>
-${shot('bar', [], '„Speichern &amp; anwenden“ befindet sich rechts unten im nativen Fenster.')}
+<p>Der Balken mit ${b('Speichern &amp; anwenden')} erscheint, sobald du etwas geändert hast. Er steht unten im Einstellungsfenster.</p>
 <ol class="do">
 <li>Drück auf ${b('Speichern &amp; anwenden')}.</li>
 <li>Warte etwa <b>10 Sekunden</b>. Das Display wird kurz neu gestartet.</li>
@@ -560,7 +702,7 @@ ${shot('bar', [], '„Speichern &amp; anwenden“ befindet sich rechts unten im 
 {t: 'Wiederfinden', html: () => `
 <p class="kicker">Später</p><h1>So findest du die Einstellungen wieder</h1>
 <p class="lead">Das Programm läuft leise im Hintergrund. Es hat ein kleines <b>oranges Zeichen</b> unten rechts neben der Uhr.</p>
-<div class="box tip"><p><b>ScreenBuddy 2.9.5:</b> Die native Oberfläche enthält bereits die Phase-2-Seiten für Discord, Freunde, Home Assistant, Companion-Kopplung mit QR-Code und Geräteverwaltung sowie Farben &amp; Design. Quellen-Editor, Seitenreihenfolge, Updates und Autostart sind ebenfalls nativ verfügbar. Alle Einstellungen öffnen sich im nativen Fenster; die bebilderte Anleitung selbst bleibt als HTML-Hilfe im Browser verfügbar. Quellen-Plugins benötigen Pflicht-Einstellungen und die Zustimmung zu jedem Host. Die frühere Version 2.3.0 nutzt die bisherige Oberfläche.</p></div>
+<div class="box tip"><p><b>ScreenBuddy ab 2.10:</b> Alle Einstellungen öffnen sich im nativen Fenster. Die bebilderte Anleitung selbst bleibt als HTML-Hilfe im Browser verfügbar. Quellen-Plugins benötigen Pflicht-Einstellungen und die Zustimmung zu jedem Host. Die frühere Version 2.3.0 nutzt die bisherige Oberfläche.</p></div>
 <figure><span class="real">✏️ Nachgebaut, so ungefähr sieht es aus</span><div class="mock">
 <div class="tray"><div class="flyout"><span>☁️</span><span class="hlbtn"><img src="${IMG.icon}" alt=""></span><span>🎧</span></div>
 <span class="ar hlbtn">^</span><span>📶</span><span>🔊</span><div class="clock">14:05<br>22.10.2026</div></div></div></figure>
@@ -578,11 +720,22 @@ ${shot('bar', [], '„Speichern &amp; anwenden“ befindet sich rechts unten im 
 <p class="lead" style="text-align:center">Du hast alles eingerichtet. Jetzt kannst du zuschauen, wie die Seiten wechseln.</p>
 <h2>Wenn später etwas nicht klappt</h2>
 ${help([['Das Display bleibt dunkel.', 'Schau, ob das orange Zeichen unten rechts da ist. Wenn nicht: das Programm im Startmenü öffnen (oder die EXE doppelklicken). Danach auf <b>Übersicht</b> den Displaystatus prüfen.'],
-  ['Das Bild sieht verschoben oder komisch aus.', 'Kabel kurz abziehen und wieder anstecken. Oder auf der Seite <b>Updates &amp; Autostart</b> auf <b>Neu starten</b> klicken.'],
-  ['Das Display ist zu dunkel.', 'Seite <b>Anzeige</b>, Regler <b>Helligkeit</b> nach rechts schieben, dann <b>Speichern &amp; anwenden</b>.'],
+  ['Das Bild sieht verschoben oder komisch aus.', 'Kabel kurz abziehen und wieder anstecken. Oder unter <b>App › Updates &amp; Autostart</b> auf <b>Neu starten</b> klicken.'],
+  ['Das Display ist zu dunkel.', '<b>Ansicht › Anzeige</b>, Regler <b>Helligkeit</b> nach rechts schieben, dann <b>Speichern &amp; anwenden</b>.'],
   ['Ich will das Programm loswerden.', 'Öffne in Windows <b>Einstellungen → Apps</b>, wähle <b>ScreenBuddy</b> (Version 2.3.0: <b>FuchsLabs USB-Display</b>) und klicke auf <b>Deinstallieren</b>. Windows fragt, ob auch deine Einstellungen und Zugangsdaten gelöscht werden sollen.']], 'Hilfe bei Problemen')}
 <p style="color:var(--muted);margin-top:26px;text-align:center">Viel Spaß! · © 2026 FuchsLabs</p>`},
-{t: 'Companion: Handy unabhängig steuern', html: () => `<h1>USB-Display und Handy gleichzeitig</h1><p class="lead">Companion-Vorschau ab Version 2.3.0: Beide Anzeigen haben eigene Seiten und Wechselintervalle.</p><ol><li>USB/HDMI als Display-Typ beibehalten. Im Reiter Companion den Dienst einschalten, speichern und anwenden.</li><li>Companion-App als separaten Download installieren (auf Android TV erscheint sie im TV-Launcher; Pfeil links/rechts an der Fernbedienung wechselt die Seite). Eine ältere Debug-APK hat eine andere Signatur und lässt sich nicht direkt aktualisieren; vor ihrer Deinstallation Sicherung und Umstieg abstimmen. Nach Neuinstallation erneut koppeln. Dasselbe private Netz oder USB-Tethering verwenden. Mit dem lokalen Code koppeln und Zertifikat-Fingerabdruck vergleichen.</li><li>Unter Companion → Seiten für Companion die Handy-Seiten und den Seitenwechsel wählen. Die andere Anzeige unter Display → Seiten auf USB-Display / Bildschirm wählen.</li><li>Die zusätzlichen Einstellungen erscheinen nur bei aktivem Companion. Datenquellen in ihrem eigenen Reiter einschalten und einrichten.</li></ol><p>Wischen schaltet nur das Handy um. Die native Auflösung folgt Verbindung und Rotation. Das zuerst verbundene Handy bestimmt die gemeinsame Companion-Größe; weitere Handys teilen dessen Seiten. Größere Anfragen werden proportional auf höchstens 2560 Pixel je Kante / 4.194.304 Pixel verkleinert. Redmi-Ausgabe, injizierte Gesten und Wiederverbindung sind über USB-Tethering mit dem Vorgänger 0.2.1-preview geprüft. Der Nutzer bestätigte außerdem scharfes Bild, Wischen und Tippen mit dem Finger. WLAN und physischer USB-Betrieb in derselben neuen PC-Instanz brauchen eine gesonderte Abnahme.</p>`}
+{t: 'Companion: Handy unabhängig steuern', html: () => `
+<p class="kicker">App</p><h1>USB-Display und Handy gleichzeitig</h1>
+<p class="lead">Mit der <b>Companion-App</b> (aktuell 1.0.3) zeigt dein Android-Handy oder Android-TV eigene Seiten, während das USB-Display seine eigenen zeigt. Beide Anzeigen haben eigene Seiten und Wechselintervalle.</p>
+${shot('s_app', [], 'App › Companion: Ausgabe, Seitenwechsel und gemeinsame Sperrzone.')}
+<ol class="do">
+<li>Lass USB/HDMI als Display-Typ. Öffne links <b>App</b> und den Reiter <b>Companion</b>. Schalte <b>„Companion zusätzlich aktivieren“</b> ein, speichere und wende an.</li>
+<li>Installiere die Companion-App als separaten Download (auf Android TV erscheint sie im TV-Launcher; Pfeil links/rechts an der Fernbedienung wechselt die Seite). Eine ältere Debug-APK hat eine andere Signatur und lässt sich nicht direkt aktualisieren; vor ihrer Deinstallation Sicherung und Umstieg abstimmen. Nach Neuinstallation erneut koppeln. Nutze dasselbe private Netz oder USB-Tethering. Koppeln geht mit dem lokalen Code, vergleiche dabei den Zertifikat-Fingerabdruck.</li>
+<li>Stehen die Geräte nicht auf „Geräte synchron anzeigen“, wählst du die Handy-Seiten und den Seitenwechsel auf derselben Seite unter <b>App › Companion</b>. Die Seiten für das USB-Display oder den Bildschirm wählst du unter <b>Ansicht › Seiten &amp; Reihenfolge</b>.</li>
+<li>Datenquellen schaltest du unter <b>Seiten</b> in ihrem eigenen Reiter ein und richtest sie dort ein.</li>
+<li><b>Sperrzone:</b> Für jedes Gerät kannst du Ränder freihalten, siehe Schritt „Sperrzone (Ränder)“. Android-TV läuft immer im Querformat.</li>
+</ol>
+<p>Wischen schaltet nur das Handy um. Die native Auflösung folgt Verbindung und Rotation. Das zuerst verbundene Handy bestimmt die gemeinsame Companion-Größe; weitere Handys teilen dessen Seiten. Größere Anfragen werden proportional auf höchstens 2560 Pixel je Kante / 4.194.304 Pixel verkleinert.</p>`}
 ];
 
 const $ = s => document.querySelector(s);
@@ -615,9 +768,119 @@ $('#menu').onclick = () => {
   $('#toc').classList.add('show');
 };
 $('#toc').onclick = e => { if (e.target.id === 'toc') $('#toc').classList.remove('show'); };
+
+/* ===== Suche: offline, ohne Bibliotheken ===== */
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const foldChar = c => c.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/ß/g, 'ss');
+const fold = s => { let o = ''; for (let i = 0; i < s.length; i++) o += foldChar(s[i]); return o; };
+function foldMap(s) { let n = ''; const m = []; for (let i = 0; i < s.length; i++) { const f = foldChar(s[i]); for (let j = 0; j < f.length; j++) { n += f[j]; m.push(i); } } return {n, m}; }
+let SIDX = null, sRes = [], sTerms = [], sAct = -1;
+function buildIndex() {
+  const selBak = Object.assign({}, sel), imgBak = Object.assign({}, IMG);
+  Object.keys(sel).forEach(k => sel[k] = true); Object.keys(IMG).forEach(k => IMG[k] = '');
+  SIDX = [];
+  try {
+    STEPS.forEach((s, i) => {
+      let html = ''; try { html = s.html(); } catch (e) {}
+      const doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html');   // inaktives Dokument: keine Bilder, keine Skripte
+      doc.querySelectorAll('script,style,.real').forEach(n => n.remove());
+      const raw = (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+      const fm = foldMap(raw);
+      SIDX.push({i, step: s, title: s.t, tn: fold(s.t), raw, n: fm.n, m: fm.m});
+    });
+  } finally { Object.assign(sel, selBak); Object.assign(IMG, imgBak); }
+}
+function runSearch(q) {
+  sTerms = fold(q).split(/\s+/).filter(Boolean);
+  if (!sTerms.length) return [];
+  const out = [];
+  for (const e of SIDX) {
+    let score = 0, ok = true;
+    for (const t of sTerms) {
+      let sc = 0; const ti = e.tn.indexOf(t);
+      if (ti >= 0) sc += 10 + (ti === 0 || e.tn[ti - 1] === ' ' ? 5 : 0);
+      let c = 0, p = e.n.indexOf(t);
+      while (p >= 0 && c < 5) { c++; p = e.n.indexOf(t, p + t.length); }
+      sc += c * 2;
+      if (!sc) { ok = false; break; }
+      score += sc;
+    }
+    if (ok) out.push({e, score});
+  }
+  out.sort((a, b) => b.score - a.score || a.e.i - b.e.i);
+  return out.slice(0, 8);
+}
+function snippet(e) {
+  let pos = -1;
+  for (const t of sTerms) { const p = e.n.indexOf(t); if (p >= 0 && (pos < 0 || p < pos)) pos = p; }
+  const o = pos >= 0 ? e.m[pos] : 0;
+  let start = Math.max(0, o - 45);
+  if (start > 0) { const sp = e.raw.indexOf(' ', start); if (sp >= 0 && sp < o) start = sp + 1; }
+  const end = Math.min(e.raw.length, start + 150), ranges = [];
+  let ns = e.m.findIndex(v => v >= start); if (ns < 0) ns = e.n.length;
+  for (const t of sTerms) {
+    let p = e.n.indexOf(t, ns);
+    while (p >= 0 && e.m[p] < end) { ranges.push([e.m[p], Math.min(end, e.m[p + t.length - 1] + 1)]); p = e.n.indexOf(t, p + t.length); }
+  }
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  for (const r of ranges) { const l = merged[merged.length - 1]; if (l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else merged.push(r.slice()); }
+  let html = start > 0 ? '… ' : '', at = start;
+  for (const [a, z] of merged) { html += esc(e.raw.slice(at, a)) + '<mark>' + esc(e.raw.slice(a, z)) + '</mark>'; at = z; }
+  return html + esc(e.raw.slice(at, end)) + (end < e.raw.length ? ' …' : '');
+}
+const qEl = $('#q'), rEl = $('#sres');
+function placeRes() {
+  const r = qEl.getBoundingClientRect(), w = Math.min(Math.max(r.width, 380), innerWidth - 16);
+  rEl.style.top = (r.bottom + 6) + 'px'; rEl.style.width = w + 'px';
+  rEl.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+}
+function closeRes() { rEl.classList.remove('show'); qEl.setAttribute('aria-expanded', 'false'); qEl.removeAttribute('aria-activedescendant'); }
+function markAct() {
+  rEl.querySelectorAll('[data-k]').forEach(el => el.setAttribute('aria-selected', String(+el.dataset.k === sAct)));
+  const el = rEl.querySelector('[data-k="' + sAct + '"]');
+  if (el) { qEl.setAttribute('aria-activedescendant', el.id); el.scrollIntoView({block: 'nearest'}); } else qEl.removeAttribute('aria-activedescendant');
+}
+function updateRes() {
+  if (!SIDX) buildIndex();
+  const q = qEl.value.trim();
+  if (!q) { closeRes(); return; }
+  sRes = runSearch(q); sAct = sRes.length ? 0 : -1;
+  rEl.innerHTML = sRes.length
+    ? sRes.map(({e}, k) => `<div role="option" id="sr${k}" data-k="${k}" aria-selected="${k === 0}"><div class="st">${esc(e.title)}${e.step.need && !sel[e.step.need] ? '<small>(nicht ausgewählt)</small>' : ''}</div><div class="sn">${snippet(e)}</div></div>`).join('')
+    : '<div class="none" role="option" aria-disabled="true">Keine Treffer – probier ein anderes Wort</div>';
+  placeRes(); rEl.classList.add('show'); qEl.setAttribute('aria-expanded', 'true'); markAct();
+  rEl.querySelectorAll('[data-k]').forEach(el => el.onclick = () => pickRes(+el.dataset.k));
+}
+function pickRes(k) {
+  const hit = sRes[k]; if (!hit) return;
+  const st = hit.e.step;
+  if (st.need && !sel[st.need]) { sel[st.need] = true; saveSel(); }   // ausgeblendetes Merkmal einschalten
+  closeRes(); $('#toc').classList.remove('show'); qEl.value = ''; qEl.blur();
+  show(active().indexOf(st));
+}
+qEl.addEventListener('focus', () => { if (!SIDX) buildIndex(); if (qEl.value.trim()) updateRes(); });
+qEl.addEventListener('input', updateRes);
+qEl.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault(); if (!rEl.classList.contains('show')) { updateRes(); return; }
+    if (sRes.length) { sAct = (sAct + (e.key === 'ArrowDown' ? 1 : -1) + sRes.length) % sRes.length; markAct(); }
+  } else if (e.key === 'Enter') { e.preventDefault(); if (sAct >= 0) pickRes(sAct); }
+  else if (e.key === 'Escape') { if (rEl.classList.contains('show')) closeRes(); else { qEl.value = ''; qEl.blur(); } }
+});
+document.addEventListener('mousedown', e => { if (!e.target.closest('.search') && !e.target.closest('#sres')) closeRes(); });
+window.addEventListener('resize', () => { if (rEl.classList.contains('show')) placeRes(); });
+document.addEventListener('keydown', e => {
+  const tg = document.activeElement && document.activeElement.tagName;
+  if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT' || (document.activeElement && document.activeElement.isContentEditable)) return;
+  const slash = e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey, ctrlk = (e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey) && !e.altKey;
+  if (slash || ctrlk) { e.preventDefault(); qEl.focus(); qEl.select(); }
+});
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { $('#zoom').classList.remove('show'); $('#toc').classList.remove('show'); }
-  if (['INPUT', 'TEXTAREA', 'BUTTON'].includes(document.activeElement.tagName) && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const tg = document.activeElement.tagName;
+  if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') return;
+  if (tg === 'BUTTON' && e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
   if (e.key === 'ArrowRight') $('#next').click(); if (e.key === 'ArrowLeft' && cur > 0) show(cur - 1);
 });
 const fromHash = () => show((parseInt(location.hash.slice(1)) || 1) - 1);
