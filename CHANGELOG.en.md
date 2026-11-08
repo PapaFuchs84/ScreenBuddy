@@ -4,7 +4,13 @@
 
 All notable changes to the app. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [2.10.1] - 2026-11-08
+
+The Companion app remains 1.0.3.
+
+### Fixed
+
+- Settings: info boxes grow with changing text (AI Status was cut off). The page height is recalculated after every status tick.
 
 ### Documentation
 

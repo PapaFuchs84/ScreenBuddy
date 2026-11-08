@@ -25,12 +25,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "FuchsLabs"
             VALUE "FileDescription", "ScreenBuddy"
-            VALUE "FileVersion", "2.10.0.0"
+            VALUE "FileVersion", "2.10.1.0"
             VALUE "InternalName", "ScreenBuddy"
             VALUE "LegalCopyright", "\xA9 2026 FuchsLabs"
             VALUE "OriginalFilename", "ScreenBuddy.exe"
             VALUE "ProductName", "ScreenBuddy"
-            VALUE "ProductVersion", "2.10.0"
+            VALUE "ProductVersion", "2.10.1"
         END
     END
     BLOCK "VarFileInfo"
