@@ -32,13 +32,13 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
 
-**Neu in 2.10.0 (07.11.2026):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **App → Eigene Ansichten**. Dazu Standard-Theme `material-orange`, Spotify „zuletzt gespielt“ und BF6-Eintrag per ID. Die Companion-App bleibt 1.0.3. Hardware- und Geräteabnahme nur teilweise live; Einzelheiten in den Release-Notizen. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
+**Neu in 2.10.0 (07.11.2026):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **Seiten → Eigene Ansichten**. Dazu Standard-Theme `material-orange`, Spotify „zuletzt gespielt“ und BF6-Eintrag per ID. Die Companion-App bleibt 1.0.3. Hardware- und Geräteabnahme nur teilweise live; Einzelheiten in den Release-Notizen. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
 
 **Game-Mode (neu in 2.10.0):** Spielerkennung, optionales Logo-Intro (2,5 s) und eine eigene Ansicht für das gewählte Display. [Einrichtung, Messwertgrenzen und Prüfstand](docs/GAME-MODE.md).
 
 **P8-4 (lokale Entwicklung):** Eigene Ansichten bieten Claude-, Codex- und Limits-Kacheln über den vorhandenen KI-Renderer. Unbekannte Limits bleiben `n/a`; KI separat aktivieren. [Bedienung und Portkonflikt](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
-**P8-2 (lokale Entwicklung):** Unter **App → Eigene Ansichten** lassen sich Quellen als Mini-Kacheln kombinieren, speichern und je aktivem Display anordnen. Offline-Geräte erscheinen nicht als Editor-Tab; ihre Layouts bleiben erhalten. [Bedienung, Grenzen und Prüfstatus](docs/PHASE8-EIGENE-ANSICHTEN.md).
+**Eigene Ansichten (seit 2.10.0):** Unter **Seiten → Eigene Ansichten** lassen sich Quellen als Mini-Kacheln kombinieren, speichern und je aktivem Display anordnen. Offline-Geräte erscheinen nicht als Editor-Tab; ihre Layouts bleiben erhalten. [Bedienung, Grenzen und Prüfstatus](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 **Neu in 2.9.5:** Menü mit Ansicht, Seiten und App; **Farben & Design unter Ansicht**, inklusive direkter Installation signierter Store-Themes. [Menü und Theme-Anleitung](docs/NAVIGATION.md).
 
@@ -111,18 +111,22 @@ Dazu kommen:
 | <img src="docs/screenshots/display-bf6-dunkel.png" width="380" alt="Battlefield-6-Rangliste im dunklen Design"> | <img src="docs/screenshots/display-blogs-dunkel.png" width="380" alt="Blog-Updates im dunklen Design"> |
 | Battlefield-6-Rangliste (Dunkel) | Blog-Updates (Dunkel) |
 
-| Einstellungsseite | |
+| Einstellungsfenster (2.10.0, Standard-Design Material-Orange) | |
 |---|---|
-| <img src="anleitung/bilder/start.png" width="380" alt="Startseite der Einstellungen"> | <img src="anleitung/bilder/prev0.png" width="380" alt="Übersicht mit Live-Vorschau"> |
-| Start mit Ersteinrichtung | Übersicht mit Live-Vorschau |
-| <img src="anleitung/bilder/discord.png" width="380" alt="Discord-Einstellungen mit Hilfe zum Aufklappen"> | <img src="anleitung/bilder/bf6.png" width="380" alt="Battlefield-6-Spieler eintragen"> |
-| Discord mit Hilfe zum Aufklappen | Battlefield-6-Spieler eintragen und prüfen |
+| <img src="docs/screenshots/2.10/de/01-uebersicht.png" width="380" alt="Einstellungsfenster, Übersicht mit Live-Vorschau"> | <img src="docs/screenshots/2.10/de/12-zonen-editor.png" width="380" alt="Zonen-Editor für Plugin-Seiten"> |
+| Übersicht mit Live-Vorschau | Zonen-Editor (Plugin-Seiten, neu in 2.10.0) |
+| <img src="docs/screenshots/2.10/de/10-eigene-ansichten.png" width="380" alt="Eigene Ansichten: Kacheln zu eigenen Seiten kombinieren"> | <img src="docs/screenshots/2.10/de/07-game-mode.png" width="380" alt="Game-Mode-Einstellungen"> |
+| Eigene Ansichten (Kacheln, Raster, Touch-Ziele) | Game-Mode: Spielerkennung, Intro, Ziel-Display |
+| <img src="docs/screenshots/2.10/de/06-ki-status.png" width="380" alt="KI-Status mit Claude- und Codex-Karten"> | <img src="docs/screenshots/2.10/de/09-spotify.png" width="380" alt="Spotify-Einstellungen mit zuletzt gespieltem Titel"> |
+| KI-Status (Claude Code, Codex) | Spotify, mit „zuletzt gespielt“ und Cover-Tipp |
 
-Alle Bilder zeigen Beispieldaten; einzelne Screenshots stammen aus der bisherigen Oberfläche 1.x.
+<p align="center"><img src="docs/screenshots/2.10/game-mode-intro.gif" width="480" alt="Game-Mode-Intro: Logo-Animation beim Spielstart"><br>Game-Mode-Intro beim Spielstart (2,5 s)</p>
+
+Alle Bilder zeigen Beispieldaten einer Testinstanz. Die Display-Bilder oben stammen teils aus früheren Versionen.
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus [release 2.10.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.10.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
+1. **ScreenBuddy.exe** aus dem [neuesten Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
 2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.

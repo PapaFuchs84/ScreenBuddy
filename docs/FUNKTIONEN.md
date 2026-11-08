@@ -17,6 +17,7 @@ Aus dem README ausgelagert (Stand 2.9.4). Englisch: [FEATURES.en.md](FEATURES.en
 - [Android-Companion-App (ab 2.3.0, mehrere Geräte ab 2.7.0)](#android-companion-app-ab-230-mehrere-geräte-ab-270)
 - [Plugin-Store und Plugins (ab 2.6.0)](#plugin-store-und-plugins-ab-260)
 - [Plugin-Seiten mit Zonen-Layout und Seiten-Editor (ab 2.10.0)](#plugin-seiten-mit-zonen-layout-und-seiten-editor-ab-2100)
+- [Eigene Ansichten, Game-Mode, KI-Status und Spotify (ab 2.10.0)](#eigene-ansichten-game-mode-ki-status-und-spotify-ab-2100)
 - [Ansichten durchblättern (ab 2.0.4)](#ansichten-durchblättern-ab-204)
 
 ## Systemseite per Touch und Update-Hinweis (ab 2.2.0)
@@ -100,6 +101,14 @@ Mehr: [Plugin-System](PLUGIN-SYSTEM.md) · [Tutorial](PLUGIN-TUTORIAL.md) · [St
 - **Sperrzone pro Gerät:** Siehe [Navigation](NAVIGATION.md#geräteprofil-und-sperrzone-phase-4a-entwicklung).
 
 Details: [Plugin-System](PLUGIN-SYSTEM.md) · [Tutorial](PLUGIN-TUTORIAL.md) · [Navigation](NAVIGATION.md#plugin-seite-anordnen-entwicklung-für-2100).
+
+## Eigene Ansichten, Game-Mode, KI-Status und Spotify (ab 2.10.0)
+
+- **Eigene Ansichten:** Unter **App → Eigene Ansichten** lassen sich Kacheln (System, Listen, Spotify, Home-Assistant-Entitäten, KI) per Drag & Drop zu eigenen Seiten kombinieren, je Display anordnen und mit einem Touch-Ziel je Kachel versehen. Bedienung: [PHASE8-EIGENE-ANSICHTEN.md](PHASE8-EIGENE-ANSICHTEN.md).
+- **Game-Mode:** Erkennt ein laufendes Spiel, zeigt ein 2,5-Sekunden-Intro mit Logo und danach eine eigene Game-Ansicht (`custom:<id>`) auf dem gewählten Display. Das Ziel steht in `target_display`: `primary` (Hauptausgabe, Standard) oder die ID eines gekoppelten Companion-Geräts. Einrichtung und Grenzen: [GAME-MODE.md](GAME-MODE.md).
+- **KI-Status:** Claude-Code- und Codex-Karten mit Status, Sitzungsanimation und optionalen Limits (`n/a`, wenn nichts gemessen wird); auch als Kacheln in Eigene Ansichten. Die Hook-Ereignisse bleiben lokal (Loopback, Standardport 18765); Limits brauchen die Konto-Einwilligung. Stand und Grenzen: [ai-status-report.md](../cpp/ai-status-report.md).
+- **Spotify:** Läuft nichts, zeigt die Seite den zuletzt gespielten Titel (gedimmt, ohne Tasten); dafür einmal unter Einstellungen › Spotify neu anmelden. Ein Tipp auf das Cover öffnet die Spotify-App am PC, auch von einem Companion-Gerät aus.
+- **Sperrzone:** Unter **Anzeige** lassen sich je Gerät Ränder in ganzen Pixeln freihalten (USB-Display, Monitor, Companion-Geräte im unabhängigen Betrieb). Siehe [Navigation](NAVIGATION.md#geräteprofil-und-sperrzone-phase-4a-entwicklung).
 
 ## Ansichten durchblättern (ab 2.0.4)
 

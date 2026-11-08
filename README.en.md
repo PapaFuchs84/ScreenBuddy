@@ -7,7 +7,7 @@ Store edition in preparation: [Microsoft Store / Companion build](docs/STORE-DIS
 
 # ScreenBuddy
 
-In development: [AI Status for Claude Code and Codex](cpp/AI-STATUS.en.md), local hooks with preview/backup and an `ai.*` tile source. Missing measurements remain `n/a`; see [validation and outstanding work](cpp/ai-status-report.md). Not released yet.
+New in 2.10.0: [AI Status for Claude Code and Codex](cpp/AI-STATUS.en.md), local hooks with preview/backup and an `ai.*` tile source. Missing measurements remain `n/a`; see [validation and outstanding work](cpp/ai-status-report.md).
 
 AI usage: separate confirmed real-account opt-ins default to off. Claude and Codex read limits using access tokens from Windows login files through unofficial HTTPS endpoints (subject to change, provider tolerance unclear). Configurable receiver port with fallback. See the linked AI Status guide.
 
@@ -16,7 +16,7 @@ AI usage: separate confirmed real-account opt-ins default to off. Claude and Cod
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.9.5-F77F00)
+![Version](https://img.shields.io/badge/version-2.10.0-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -32,13 +32,13 @@ AI usage: separate confirmed real-account opt-ins default to off. Claude and Cod
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
 
-**In preparation 2.10.0 (unreleased):** plugin pages with a zone layout (manifest v2), density levels, conditional display, cycling zones, tap targets with link consent (off by default), keepout per device, built-in pages on the shared frame and a page editor and a touch target per tile under **App → Custom views**. Nothing has been released yet; hardware, Companion and UI acceptance are pending. [Release notes 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.en.md)
+**New in 2.10.0 (07.11.2026):** plugin pages with a zone layout (manifest v2), density levels, conditional display, cycling zones, tap targets with link consent (off by default), keepout per device, built-in pages on the shared frame, a page editor and a touch target per tile under **Pages → Custom views**. Also the default theme `material-orange`, Spotify “last played” and BF6 entries by ID. The Companion app stays 1.0.3. Hardware and device acceptance only partly live; see the release notes for details. [Release notes 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.en.md)
 
-**Game Mode (local development):** Game detection, optional logo intro and a custom view on the selected display. [Setup, measurement limits and validation](docs/GAME-MODE.en.md). Not released yet.
+**Game Mode (new in 2.10.0):** game detection, optional logo intro (2.5 s) and a custom view on the selected display. [Setup, measurement limits and validation](docs/GAME-MODE.en.md).
 
 **P8-4 (local development):** Custom views now offer Claude, Codex and limits tiles using the existing AI renderer. Unknown limits remain `n/a`; AI must be enabled separately. [Usage and port collision](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
-**P8-2 (local development):** **App → Custom views** combines source tiles into saved views with layouts per active display. Offline devices are hidden from editor tabs while their layouts remain stored. [Usage, limits and validation](docs/PHASE8-EIGENE-ANSICHTEN.md).
+**Custom views (since 2.10.0):** **Pages → Custom views** combines source tiles into saved views with layouts per active display. Offline devices are hidden from editor tabs while their layouts remain stored. [Usage, limits and validation](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 **New in 2.9.5:** View, Pages and App navigation; **Colors & design under View**, including signed store-theme installation. [Menu and theme guide](docs/NAVIGATION.en.md).
 
@@ -111,18 +111,22 @@ Plus:
 | <img src="docs/screenshots/en/display-bf6-dark.png" width="380" alt="Battlefield 6 leaderboard, dark theme"> | <img src="docs/screenshots/en/display-blogs-dark.png" width="380" alt="Blog updates, dark theme"> |
 | Battlefield 6 leaderboard (dark) | Blog updates (dark) |
 
-| Settings page | |
+| Settings window (2.10.0, default Material Orange design) | |
 |---|---|
-| <img src="docs/screenshots/en/settings-start.png" width="380" alt="Start page of the settings"> | <img src="docs/screenshots/en/settings-overview.png" width="380" alt="Overview with live preview"> |
-| Start with first-run setup | Overview with live preview |
-| <img src="docs/screenshots/en/settings-discord.png" width="380" alt="Discord settings with fold-out help"> | <img src="docs/screenshots/en/settings-bf6.png" width="380" alt="Adding Battlefield 6 players"> |
-| Discord with fold-out help | Add and check Battlefield 6 players |
+| <img src="docs/screenshots/2.10/en/01-uebersicht.png" width="380" alt="Settings window, overview with live preview"> | <img src="docs/screenshots/2.10/en/12-zonen-editor.png" width="380" alt="Zone editor for plugin pages"> |
+| Overview with live preview | Zone editor (plugin pages, new in 2.10.0) |
+| <img src="docs/screenshots/2.10/en/10-eigene-ansichten.png" width="380" alt="Custom views: combine tiles into your own pages"> | <img src="docs/screenshots/2.10/en/07-game-mode.png" width="380" alt="Game Mode settings"> |
+| Custom views (tiles, grid, touch targets) | Game Mode: game detection, intro, target display |
+| <img src="docs/screenshots/2.10/en/06-ki-status.png" width="380" alt="AI status with Claude and Codex cards"> | <img src="docs/screenshots/2.10/en/09-spotify.png" width="380" alt="Spotify settings with last played track"> |
+| AI status (Claude Code, Codex) | Spotify, with “last played” and cover tap |
 
-All pictures show sample data; some screenshots are from the previous 1.x UI.
+<p align="center"><img src="docs/screenshots/2.10/game-mode-intro.gif" width="480" alt="Game Mode intro: logo animation when a game starts"><br>Game Mode intro when a game starts (2.5 s)</p>
+
+All pictures show sample data from a test instance. The display pictures above are partly from earlier versions.
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from [release 2.9.5](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.9.5). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
+1. Download **ScreenBuddy.exe** from the [latest release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **EN** with the **DE | EN** switch at the top right of the settings window, then **Save & apply**.
@@ -261,8 +265,8 @@ All documents by audience (German): [`docs/README.md`](docs/README.md). The most
 | [`docs/PLUGIN-SYSTEM.en.md`](docs/PLUGIN-SYSTEM.en.md) | plugin guide ([Deutsch](docs/PLUGIN-SYSTEM.md)), [tutorial](docs/PLUGIN-TUTORIAL.en.md), [store terms](docs/PLUGIN-STORE-TERMS.md) |
 | [`docs/GAME-MODE.en.md`](docs/GAME-MODE.en.md) | Development Game Mode: setup and measurement limits ([Deutsch](docs/GAME-MODE.md)) |
 | [`docs/COMPANION.en.md`](docs/COMPANION.en.md) | Companion setup ([Deutsch](docs/COMPANION.md)) |
-| [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | release notes 2.10.0 (in preparation, not released; German/English) |
-| [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | release notes of the current version (German/English; earlier: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
+| [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | release notes 2.10.0 (German/English) |
+| [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | release notes 2.9.5 (German/English; earlier: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
 | [`CHANGELOG.en.md`](CHANGELOG.en.md) | changes per version ([Deutsch](CHANGELOG.md)) |
 | [`CONTRIBUTING.en.md`](CONTRIBUTING.en.md) | contributing ([Deutsch](CONTRIBUTING.md)) |
 | [`SECURITY.en.md`](SECURITY.en.md) | reporting vulnerabilities ([Deutsch](SECURITY.md)) |

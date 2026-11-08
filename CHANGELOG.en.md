@@ -6,6 +6,11 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Documentation
+
+- Guide (ANLEITUNG.html/GUIDE.html) updated to 2.10.0, with search; new screenshots in the new default design and a Game Mode GIF under `docs/screenshots/2.10/`.
+- README and wiki pictures switched to the 2.10.0 screenshots.
+
 ## [2.10.0] - 2026-11-07
 
 The Companion app remains 1.0.3. Release notes: [docs/RELEASE-NOTES-2.10.0.md](docs/RELEASE-NOTES-2.10.0.md) (German).

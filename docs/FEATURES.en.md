@@ -17,6 +17,7 @@ Moved out of the README (status 2.9.4). German: [FUNKTIONEN.md](FUNKTIONEN.md). 
 - [Android Companion app (from 2.3.0, multiple devices from 2.7.0)](#android-companion-app-from-230-multiple-devices-from-270)
 - [Plugin store and plugins (from 2.6.0)](#plugin-store-and-plugins-from-260)
 - [Plugin pages with zone layout and page editor (from 2.10.0)](#plugin-pages-with-zone-layout-and-page-editor-from-2100)
+- [Custom views, Game Mode, AI status and Spotify (from 2.10.0)](#custom-views-game-mode-ai-status-and-spotify-from-2100)
 - [Browse views (from 2.0.4)](#browse-views-from-204)
 
 ## System page touch and update notice (from 2.2.0)
@@ -100,6 +101,14 @@ More: [Plugin system](PLUGIN-SYSTEM.en.md) · [Tutorial](PLUGIN-TUTORIAL.en.md) 
 - **Keepout per device:** See [Navigation](NAVIGATION.en.md#device-profile-and-keepout-phase-4a-development).
 
 Details: [Plugin system](PLUGIN-SYSTEM.en.md) · [Tutorial](PLUGIN-TUTORIAL.en.md) · [Navigation](NAVIGATION.en.md#arrange-plugin-page-development-for-2100).
+
+## Custom views, Game Mode, AI status and Spotify (from 2.10.0)
+
+- **Custom views:** Under **App → Custom views** you combine tiles (system, lists, Spotify, Home Assistant entities, AI) by drag and drop into your own pages, arrange them per display and give each tile a touch target. Usage: [PHASE8-EIGENE-ANSICHTEN.md](PHASE8-EIGENE-ANSICHTEN.md) (German).
+- **Game Mode:** Detects a running game, shows a 2.5-second logo intro and then a custom game view (`custom:<id>`) on the chosen display. The target is `target_display`: `primary` (main output, default) or the ID of a paired Companion device. Setup and limits: [GAME-MODE.en.md](GAME-MODE.en.md).
+- **AI status:** Claude Code and Codex cards with status, session animation and optional limits (`n/a` when nothing is measured); also available as tiles in Custom views. Hook events stay local (loopback, default port 18765); limits need the account consent. State and limits: [ai-status-report.md](../cpp/ai-status-report.md) (German).
+- **Spotify:** When nothing is playing, the page shows the last played track (dimmed, no buttons); sign in again once under Settings › Spotify for this. Tapping the cover opens the Spotify app on the PC, also from a Companion device.
+- **Keepout:** Under **Display** you can reserve margins in whole pixels per device (USB display, monitor, Companion devices in independent mode). See [Navigation](NAVIGATION.en.md#device-profile-and-keepout-phase-4a-development).
 
 ## Browse views (from 2.0.4)
 

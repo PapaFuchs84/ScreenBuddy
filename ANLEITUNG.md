@@ -8,7 +8,7 @@ Diese App zeigt auf deinem kleinen USB-Display im Wechsel: **System** (Auslastun
 
 ## In 3 Minuten loslegen
 
-1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest), derzeit **2.9.5**. Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
+1. **EXE herunterladen:** [aktueller Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) (ab **2.10**). Die EXE ist unsigniert; kein ZIP entpacken. Mit `SHA256SUMS.txt` lässt sich die Datei prüfen.
 2. Windows 10/11 x64 verwenden. Seit 2.5.0 wird keine Microsoft Edge WebView2 Runtime mehr benötigt (die frühere Version 2.3.0 braucht sie noch).
 3. Display anschließen und `ScreenBuddy.exe` starten. Der Installer richtet die App unter `%LOCALAPPDATA%\FuchsLabs\USB-Display` ein. Er benötigt dafür keine Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster** für die Einstellungen.
@@ -104,6 +104,14 @@ Alles ist optional, schalte nur ein, was du magst (**Seiten & Reihenfolge**: Hak
 - **Streaming-Neustarts:** Bei **Streaming-Neustarts** einen kostenlosen TMDB-Key (themoviedb.org → Einstellungen → API) eintragen, **Key prüfen & Anbieter laden** wählen und deine Anbieter ankreuzen. Die Seite zeigt neue Filme und Serien der letzten 30 Tage. This product uses the TMDB API but is not endorsed or certified by TMDB. Anbieterdaten: JustWatch.
 
 Nach jeder Änderung auf **Speichern & anwenden** klicken. Die Anzeige startet dann kurz neu.
+
+### Neu in 2.10.0
+
+- **Eigene Ansichten** (**App → Eigene Ansichten**): Kacheln zu eigenen Seiten zusammenstellen und je Display anordnen. Zonen-Layout für Plugin-Seiten und Seiten-Editor: [docs/FUNKTIONEN.md](docs/FUNKTIONEN.md#plugin-seiten-mit-zonen-layout-und-seiten-editor-ab-2100).
+- **Game-Mode:** erkennt Spiele, zeigt ein kurzes Logo-Intro und eine eigene Ansicht auf dem gewählten Display (Ziel: Hauptausgabe oder ein gekoppeltes Companion-Gerät). Siehe [docs/GAME-MODE.md](docs/GAME-MODE.md).
+- **KI-Status:** Claude-Code- und Codex-Karten (Limits ohne Messwert zeigen `n/a`); eigene Einwilligung nötig.
+- **Spotify:** Ohne Wiedergabe erscheint der zuletzt gespielte Titel (einmal neu anmelden). Ein Tipp auf das Cover öffnet Spotify am PC.
+- **Sperrzone:** Unter **Anzeige** Ränder in Pixeln pro Gerät freihalten.
 
 ## Beim Windows-Start automatisch starten
 
