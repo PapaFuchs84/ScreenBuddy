@@ -4,7 +4,13 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [2.10.1] - 2026-11-08
+
+Companion-App bleibt 1.0.3.
+
+### Behoben
+
+- Einstellungen: Infoboxen wachsen mit wechselndem Text mit (KI-Status abgeschnitten). Die Seitenhöhe wird nach jedem Status-Tick neu berechnet.
 
 ### Dokumentation
 
