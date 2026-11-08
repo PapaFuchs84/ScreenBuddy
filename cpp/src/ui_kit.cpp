@@ -1364,6 +1364,16 @@ void Surface::relayout() {
     invalidate();
 }
 
+// Texte ändern sich im Sekundentakt (z. B. KI-Status): Wächst oder schrumpft die Seite dadurch, neu anordnen,
+// damit Infoboxen mit ihrem Inhalt mitwachsen statt ihn abzuschneiden.
+void Surface::relayout_if_resized() {
+    if (!hwnd_ || !rt_ || !root_ || on_layout) return;
+    D2D1_SIZE_F sz = size();
+    Ctx c{rt_.Get(), kit, kit.theme(), brush_.Get(), device_};
+    const float h = root_->layout(c, 0, 0, sz.width);
+    if (std::abs(h - doc_h_) > 0.5f) relayout();
+}
+
 void Surface::invalidate() { if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE); }
 
 void Surface::changed(Widget* w) {

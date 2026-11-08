@@ -270,6 +270,7 @@ struct NativeSettings::Impl : ui::Host {
                 update_device();
                 if (current >= 0) slots[size_t(current)].page->tick(*this, status_);
                 frame->invalidate();
+                content->relayout_if_resized();
                 content->invalidate();
             });
         });

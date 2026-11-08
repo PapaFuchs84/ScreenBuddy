@@ -534,6 +534,7 @@ public:
     void set_root(Widget* root);  // nicht besitzend
     Widget* root() const { return root_; }
     void relayout();
+    void relayout_if_resized();   // nur wenn sich die Seitenhöhe durch geänderte Texte ändert
     void invalidate();
     void changed(Widget* w);      // Wert geändert (vom Widget aufgerufen)
     void focus(Widget* w, bool keyboard = true);
