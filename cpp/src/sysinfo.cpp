@@ -159,7 +159,8 @@ std::optional<std::vector<Reading>> hwinfo_readings() {
                     r.type = u32(o);
                     uint32_t sidx = u32(o + 4);
                     r.label = cstr(o + 140, 128);
-                    if (r.label.empty()) r.label = cstr(o + 12, 128);
+                    r.label_orig = cstr(o + 12, 128);
+                    if (r.label.empty()) r.label = r.label_orig;
                     r.unit = cstr(o + 268, 16);
                     memcpy(&r.value, view + o + 284, 8);
                     r.sensor = sidx < sensors.size() ? sensors[sidx] : "";
@@ -188,6 +189,30 @@ static std::optional<double> pick(const std::vector<Reading>& readings, uint32_t
         for (auto* r : cands)
             if (casefold(r->label).find(casefold(w)) != std::string::npos) return r->value;
     return std::nullopt;
+}
+
+static std::string process_name(uint32_t pid) {
+    if (!pid) return {};
+    HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (!h) return {};
+    wchar_t path[MAX_PATH * 2]; DWORD n = DWORD(std::size(path)); std::string out;
+    if (QueryFullProcessImageNameW(h, 0, path, &n)) { std::wstring w(path, n); auto slash = w.find_last_of(L"\\/"); out = narrow(slash == std::wstring::npos ? w : w.substr(slash + 1)); }
+    CloseHandle(h); return out;
+}
+
+PresentMonValues presentmon_values(const std::vector<Reading>& readings, const std::string& process) {
+    PresentMonValues out;
+    const auto wanted = process.empty() ? std::string() : "[" + casefold(process) + "]";
+    for (auto& x : readings) {
+        const auto sensor = casefold(x.sensor);
+        if (sensor.find("presentmon") == std::string::npos || !std::isfinite(x.value) || x.value <= 0) continue;
+        if (!wanted.empty() && sensor.find(wanted) == std::string::npos) continue;  // only the detected game's group
+        const auto label = casefold(x.label_orig.empty() ? x.label : x.label_orig);  // the original label stays English in localized HWiNFO
+        if (label == "framerate presented (avg)") out.fps = x.value;
+        else if (label == "frame time presented (avg)") out.frametime_ms = x.value;
+        else if (label == "framerate presented (1% low)") out.low = x.value;
+    }
+    return out;
 }
 
 ojson hwinfo_sensors() {
@@ -513,13 +538,8 @@ void SysMonitor::sample_hwinfo() {
     s.hwinfo = r.has_value();
     s.cpu_temp.reset();s.cpu_fan.reset();s.disk_temp.reset();hw_fps_.reset();hw_frametime_.reset();hw_low_.reset();
     if (!r || r->empty()) return;
-    for (auto& x : *r) {  // HWiNFO integrates PresentMon: sensor group "PresentMon" = foreground presenter, no process id
-        if (casefold(x.sensor).find("presentmon") == std::string::npos || !std::isfinite(x.value) || x.value <= 0) continue;
-        const auto label = casefold(x.label);
-        if (label == "framerate presented (avg)") hw_fps_ = x.value;
-        else if (label == "frame time presented (avg)") hw_frametime_ = x.value;
-        else if (label == "framerate presented (1% low)") hw_low_ = x.value;
-    }
+    const auto presentmon = presentmon_values(*r, process_name(game_pid_.load()));
+    hw_fps_ = presentmon.fps; hw_frametime_ = presentmon.frametime_ms; hw_low_ = presentmon.low;
     s.cpu_temp = pick(*r, SENSOR_TEMP, {cpu_temp_sensor_, "CPU (Tctl/Tdie)", "CPU Package", "CPU Die (average)", "CPU"});
     s.cpu_fan = pick(*r, SENSOR_FAN,
                      {cpu_fan_sensor_, "CPU", "CPU_OPT", "AIO Pump", "AIO Pumpe", "Pumpe", "Chassis1"});

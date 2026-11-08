@@ -92,6 +92,14 @@ int main(){try {
   // Ring (quadratische Kachel, GPU) und Balken-Rueckfall (breite Kachel) liefern verschiedene Bilder; hoher Wert aendert Farbe/Winkel.
   fl::custom::Tile gpu=metric;gpu.block="system.gpu";readings.gpu_pct=50;auto low=draw_metric(gpu,metric_layout,480,320,readings);readings.gpu_pct=95;check(low.px!=draw_metric(gpu,metric_layout,480,320,readings).px);
   readings.fps=0;auto unit_img=draw_metric(metric,metric_layout,480,320,readings);check(!unit_img.empty());}
+ {using fl::sysinfo::Reading;std::vector<Reading> r={{8,"PresentMon","Framerate Presented (avg)","FPS",143.5},{8,"PresentMon","Framerate Presented (1% low)","FPS",120.25},{8,"PresentMon","Frame Time Presented (avg)","ms",6.97},{8,"PresentMon","Framerate Displayed (avg)","FPS",60},{8,"CPU [#0]: AMD","Framerate Presented (avg)","FPS",1}};
+  auto v=fl::sysinfo::presentmon_values(r);check(v.fps && *v.fps==143.5);check(v.low && *v.low==120.25);check(v.frametime_ms && *v.frametime_ms==6.97);
+  r[0].value=-1;r[2].value=std::nan("");auto bad=fl::sysinfo::presentmon_values(r);check(!bad.fps && !bad.frametime_ms && bad.low);   // invalid/negative values are ignored, other sensor groups are never used
+  check(!fl::sysinfo::presentmon_values({}).fps);
+  fl::SysSnapshot hw;hw.fps=90;hw.fps_reason="hwinfo_presentmon";fl::custom::Layout hl;fl::custom::Tile ht;ht.source="system";ht.block="system.fps";ht.zone={"hw",0,0,1,1};hw.fps_hist={80,90};auto hi=draw_metric(ht,hl,480,320,hw);hw.fps_reason="dxgi_present_calls";check(hi.px!=draw_metric(ht,hl,480,320,hw).px);}
+ {using fl::sysinfo::Reading;std::vector<Reading> loc={{8,"PresentMon [bf6.exe]","Bildrate Presented (avg)","FPS",100.5,"Framerate Presented (avg)"},{8,"PresentMon [bf6.exe]","Bildrate Presented (1% low)","FPS",80,"Framerate Presented (1% low)"},{8,"PresentMon [claude.exe]","Bildrate Presented (avg)","FPS",129,"Framerate Presented (avg)"}};
+  auto mine=fl::sysinfo::presentmon_values(loc,"BF6.exe");check(mine.fps && *mine.fps==100.5 && mine.low && *mine.low==80);   // localized labels, only the detected game group
+  auto other=fl::sysinfo::presentmon_values(loc,"nothere.exe");check(!other.fps);check(fl::sysinfo::presentmon_values(loc).fps.has_value());}
  auto cfg=fl::config::defaults();check(cfg["game_mode"]["enabled"]==false);
  auto configured=fl::config::merge(cfg,{{"game_mode",{{"enabled",true},{"view","custom:test-game"},{"ping_target","127.0.0.1"},{"additional_games","C:\\Games\\Example.exe\nD:\\Games\\Other.exe"}}}});
  check(configured["game_mode"]["view"]=="custom:test-game");check(configured["game_mode"]["additional_games"].get<std::string>().find('\n')!=std::string::npos);

@@ -5,19 +5,25 @@
 #include <algorithm>
 #include "util.h"
 #include "perflog.h"
+#include "sysinfo.h"
 namespace fl::ui {
 namespace {
 class GameModePage:public Page {
     Form form_;
     Label* fps_status_=nullptr;Button* fps_button_=nullptr;
+    static bool hwinfo_fps(){
+        if(perflog::test_override_active() || perflog::access()==perflog::Access::Granted)return false;
+        auto readings=sysinfo::hwinfo_readings();return readings && sysinfo::presentmon_values(*readings).fps;
+    }
     static Text status_text(){
+        if(hwinfo_fps())return T(L"Status: FPS über HWiNFO (PresentMon-Sensoren) – eigene Messung (ETW) nicht verfügbar.",L"Status: FPS via HWiNFO (PresentMon sensors) – own measurement (ETW) not available.");
         switch(perflog::access()){
         case perflog::Access::Granted:return T(L"Status: aktiv – FPS und Frametime werden gemessen.",L"Status: active – FPS and frametime are measured.");
         case perflog::Access::NeedsRelogin:return T(L"Status: Recht ist eingerichtet. Bitte ab- und wieder anmelden, danach ScreenBuddy neu starten.",L"Status: permission is set up. Please sign out and back in, then restart ScreenBuddy.");
         case perflog::Access::Blocked:return T(L"Status: Windows verweigert die Messung (z. B. durch den Anti-Cheat des laufenden Spiels). Läuft HWiNFO, nutzt ScreenBuddy dessen PresentMon-Werte als Ersatz; sonst bleibt n/a. Tipp: ScreenBuddy vor dem Spiel starten.",L"Status: Windows refuses the measurement (e.g. due to the running game's anti-cheat). If HWiNFO runs, ScreenBuddy uses its PresentMon values instead; otherwise n/a. Tip: start ScreenBuddy before the game.");
         default:return T(L"Status: inaktiv – ohne Recht zeigen FPS und Frametime n/a.",L"Status: inactive – without the permission FPS and frametime show n/a.");}
     }
-    static Label::Tone status_tone(){return perflog::access()==perflog::Access::Granted?Label::Success:perflog::access()==perflog::Access::NeedsRelogin?Label::Accent:perflog::access()==perflog::Access::Blocked?Label::Danger:Label::Muted;}
+    static Label::Tone status_tone(){if(hwinfo_fps())return Label::Success;return perflog::access()==perflog::Access::Granted?Label::Success:perflog::access()==perflog::Access::NeedsRelogin?Label::Accent:perflog::access()==perflog::Access::Blocked?Label::Danger:Label::Muted;}
     void grant(Host& host){
         if(perflog::access()==perflog::Access::Granted){host.toast(T(L"FPS-Messung ist bereits aktiv.",L"FPS measurement is already active."));return;}
         Host* h=&host;

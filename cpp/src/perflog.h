@@ -9,6 +9,7 @@ enum class Access {
     Blocked,         // group is set and in the token, but Windows still refuses ETW sessions (needs administrator)
 };
 Access access();
+bool test_override_active();
 void set_test_override(Access value);  // tests only: makes the status independent of the machine
 // Starts this EXE elevated (one UAC prompt, ShellExecute "runas") with "--grant-perflog <user SID>" and waits for it.
 // Returns true when the helper ended successfully. Never keeps administrator rights.

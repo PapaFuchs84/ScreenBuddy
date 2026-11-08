@@ -41,6 +41,7 @@ Image draw_metric(const custom::Tile& tile,const custom::Layout& layout,int w,in
     c.rounded_rectangle(a.x,a.y+a.height*.18f,a.x+2.5f,a.y+a.height*.82f,1.2f,theme.accent);
     c.clip_push(a.x+4,a.y+4,a.x+a.width-5,a.y+a.height-5);
     std::string title=tile.block;for(const auto& b:builtin::find("system")->blocks)if(b.id==tile.block)title=i18n::lang()=="en"?b.label.en:b.label.de;
+    if(snapshot.fps_reason=="hwinfo_presentmon"){if(key=="fps")title="FPS · HWiNFO";else if(key=="fps_low")title="FPS · 1 % Low · HWiNFO";else if(key=="frametime")title="Frametime · HWiNFO";}
     title=upper_ascii(title);
     Font label{float(std::clamp(a.height/7,11.f,16.f)),true},value{float(std::clamp(a.height/(hero?2.0f:tile.density==0?2.6f:2.2f),24.f,hero?104.f:52.f)),true};
     while(label.size>9 && c.textlength(title,label)>a.width-16)label.size-=.5f;

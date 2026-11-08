@@ -70,6 +70,7 @@ bool request_grant(){
     WaitForSingleObject(info.hProcess,60000);DWORD code=1;GetExitCodeProcess(info.hProcess,&code);CloseHandle(info.hProcess);
     return code==0;
 }
+bool test_override_active(){return test_override.has_value();}
 void set_test_override(Access value){test_override=value;}
 int run_helper(const std::wstring& user_sid){
     // Only a syntactically valid user SID is accepted (S-1-5-21-... domain/local account or Microsoft/Azure account), never well-known groups.

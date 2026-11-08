@@ -21,10 +21,14 @@ struct Reading {
     uint32_t type;
     std::string sensor, label, unit;
     double value;
+    std::string label_orig;  // original (English) label; "label" may be a localized user label
 };
 inline constexpr uint32_t SENSOR_TEMP = 1, SENSOR_FAN = 3;
 
 std::optional<std::vector<Reading>> hwinfo_readings();
+// HWiNFO integrates PresentMon: sensor group "PresentMon" (foreground presenter, no process id). Pure function, unit-tested.
+struct PresentMonValues { std::optional<double> fps, frametime_ms, low; };
+PresentMonValues presentmon_values(const std::vector<Reading>& readings, const std::string& process = {});  // sensor group "PresentMon [<exe>]"
 ojson list_interfaces();   // [{"name", "description"}]
 ojson hwinfo_sensors();    // {"available", "temps", "fans"}
 std::pair<std::string, int> cpu_name();
