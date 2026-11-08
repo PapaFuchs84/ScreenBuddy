@@ -32,13 +32,13 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
 
-**Neu in 2.10.0 (07.11.2026):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **App → Eigene Ansichten**. Dazu Standard-Theme `material-orange`, Spotify „zuletzt gespielt“ und BF6-Eintrag per ID. Die Companion-App bleibt 1.0.3. Hardware- und Geräteabnahme nur teilweise live; Einzelheiten in den Release-Notizen. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
+**Neu in 2.10.0 (07.11.2026):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **Seiten → Eigene Ansichten**. Dazu Standard-Theme `material-orange`, Spotify „zuletzt gespielt“ und BF6-Eintrag per ID. Die Companion-App bleibt 1.0.3. Hardware- und Geräteabnahme nur teilweise live; Einzelheiten in den Release-Notizen. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
 
 **Game-Mode (neu in 2.10.0):** Spielerkennung, optionales Logo-Intro (2,5 s) und eine eigene Ansicht für das gewählte Display. [Einrichtung, Messwertgrenzen und Prüfstand](docs/GAME-MODE.md).
 
 **P8-4 (lokale Entwicklung):** Eigene Ansichten bieten Claude-, Codex- und Limits-Kacheln über den vorhandenen KI-Renderer. Unbekannte Limits bleiben `n/a`; KI separat aktivieren. [Bedienung und Portkonflikt](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
-**P8-2 (lokale Entwicklung):** Unter **App → Eigene Ansichten** lassen sich Quellen als Mini-Kacheln kombinieren, speichern und je aktivem Display anordnen. Offline-Geräte erscheinen nicht als Editor-Tab; ihre Layouts bleiben erhalten. [Bedienung, Grenzen und Prüfstatus](docs/PHASE8-EIGENE-ANSICHTEN.md).
+**Eigene Ansichten (seit 2.10.0):** Unter **Seiten → Eigene Ansichten** lassen sich Quellen als Mini-Kacheln kombinieren, speichern und je aktivem Display anordnen. Offline-Geräte erscheinen nicht als Editor-Tab; ihre Layouts bleiben erhalten. [Bedienung, Grenzen und Prüfstatus](docs/PHASE8-EIGENE-ANSICHTEN.md).
 
 **Neu in 2.9.5:** Menü mit Ansicht, Seiten und App; **Farben & Design unter Ansicht**, inklusive direkter Installation signierter Store-Themes. [Menü und Theme-Anleitung](docs/NAVIGATION.md).
 
@@ -126,7 +126,7 @@ Alle Bilder zeigen Beispieldaten einer Testinstanz. Die Display-Bilder oben stam
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus [release 2.10.0](https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/v2.10.0) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
+1. **ScreenBuddy.exe** aus dem [neuesten Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
 2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
