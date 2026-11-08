@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs – isolierte native Editorprüfung, keine App-/Netzwerk-Schleife.
 #include "ui_pages.h"
+#include "perflog.h"
 #include "custom_view_editor.h"
 #include "ui_layout_grid.h"
 #include "ui_editor.h"
@@ -1043,6 +1044,7 @@ static void ai_custom_editor_tests(const fs::path& root,const fs::path& images,b
 }
 // P9: actual settings form and Game-Mode palette/template, anonymous sample data.
 static void game_mode_ui_tests(const fs::path& root,const fs::path& images,bool record) {
+    perflog::set_test_override(perflog::Access::NotMember);  // FPS card text must not depend on this machine
     const auto baseline=fs::path(FL_LAYOUT_SNAPSHOT_DIR)/"p9-game-mode-hashes.txt";
     std::map<std::string,std::string> expected,actual;
     if(record){CHECK(!fs::exists(baseline));if(fs::exists(baseline))return;}

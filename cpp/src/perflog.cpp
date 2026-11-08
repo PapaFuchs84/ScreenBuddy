@@ -2,10 +2,13 @@
 #include "perflog.h"
 #include "util.h"
 #include <windows.h>
+#include <wmistr.h>
+#include <evntrace.h>
 #include <lm.h>
 #include <sddl.h>
 #include <shellapi.h>
 #include <memory>
+#include <optional>
 #include <vector>
 namespace fl::perflog {
 namespace {
@@ -37,12 +40,26 @@ bool is_member_in_directory(const std::wstring& user_sid){
     if(info)NetApiBufferFree(info);LocalFree(wanted);return found;
 }
 }
+// Real test instead of trusting the token: can this process create a real-time ETW session right now?
+bool can_start_trace(){
+    std::wstring name=L"ScreenBuddy.Probe."+std::to_wstring(GetCurrentProcessId());
+    std::vector<unsigned char> buffer(sizeof(EVENT_TRACE_PROPERTIES)+(name.size()+1)*sizeof(wchar_t),0);
+    auto p=reinterpret_cast<EVENT_TRACE_PROPERTIES*>(buffer.data());p->Wnode.BufferSize=ULONG(buffer.size());p->Wnode.Flags=WNODE_FLAG_TRACED_GUID;p->Wnode.ClientContext=1;
+    p->LogFileMode=EVENT_TRACE_REAL_TIME_MODE;p->LoggerNameOffset=sizeof(EVENT_TRACE_PROPERTIES);p->BufferSize=64;p->MinimumBuffers=2;p->MaximumBuffers=4;
+    TRACEHANDLE session=0;auto error=StartTraceW(&session,name.c_str(),p);
+    if(error==ERROR_SUCCESS){ControlTraceW(session,name.c_str(),p,EVENT_TRACE_CONTROL_STOP);return true;}
+    return false;
+}
+std::optional<Access> test_override;
 Access access(){
-    if(elevated())return Access::Granted;
+    if(test_override)return *test_override;
+    if(can_start_trace())return Access::Granted;
     BOOL member=FALSE;auto sid=well_known_group();
-    if(sid && CheckTokenMembership(nullptr,sid.get(),&member) && member)return Access::Granted;
+    const bool in_token=elevated() || (sid && CheckTokenMembership(nullptr,sid.get(),&member) && member);
     auto user=current_user_sid();
-    return !user.empty() && is_member_in_directory(user)?Access::NeedsRelogin:Access::NotMember;
+    const bool in_group=!user.empty() && is_member_in_directory(user);
+    if(in_token && in_group)return Access::Blocked;   // group present, yet Windows still refuses sessions (policy/ACL): needs an elevated start
+    return in_group?Access::NeedsRelogin:Access::NotMember;
 }
 bool request_grant(){
     auto user=current_user_sid();if(user.empty())return false;
@@ -53,6 +70,7 @@ bool request_grant(){
     WaitForSingleObject(info.hProcess,60000);DWORD code=1;GetExitCodeProcess(info.hProcess,&code);CloseHandle(info.hProcess);
     return code==0;
 }
+void set_test_override(Access value){test_override=value;}
 int run_helper(const std::wstring& user_sid){
     // Only a syntactically valid user SID is accepted (S-1-5-21-... domain/local account or Microsoft/Azure account), never well-known groups.
     PSID sid=nullptr;if(user_sid.rfind(L"S-1-5-21-",0)!=0 && user_sid.rfind(L"S-1-12-1-",0)!=0)return 2;

@@ -238,6 +238,8 @@ struct SysMonitor::PresentTrace {
     std::vector<unsigned char> properties;
     std::thread thread;
     std::atomic<uint32_t> pid{0};
+    std::atomic<uint64_t> seen_any{0},seen_process{0},seen_present{0},property_failed{0};  // diagnostics for the n/a cause
+    double last_log=0;
     std::mutex mutex;
     struct Chain {FrameHistory frames;double last=0;};
     std::map<uint64_t,Chain> chains;
@@ -256,9 +258,14 @@ struct SysMonitor::PresentTrace {
     static bool property(EVENT_RECORD* e,const wchar_t* name,void* result,ULONG bytes){PROPERTY_DATA_DESCRIPTOR d{};d.PropertyName=reinterpret_cast<ULONGLONG>(name);d.ArrayIndex=ULONG_MAX;return TdhGetProperty(e,0,nullptr,1,&d,bytes,static_cast<PBYTE>(result))==ERROR_SUCCESS;}
     static void WINAPI event(EVENT_RECORD* e){
         auto self=static_cast<PresentTrace*>(e->UserContext);
-        if(e->EventHeader.ProcessId!=self->pid.load() || e->EventHeader.ProviderId!=provider || (e->EventHeader.EventDescriptor.Id!=42 && e->EventHeader.EventDescriptor.Id!=55))return;
+        ++self->seen_any;
+        if(e->EventHeader.ProcessId!=self->pid.load() || e->EventHeader.ProviderId!=provider)return;
+        ++self->seen_process;
+        if(e->EventHeader.EventDescriptor.Id!=42 && e->EventHeader.EventDescriptor.Id!=55)return;
         uint64_t swap=0;ULONG flags=0;
-        if(!property(e,L"pIDXGISwapChain",&swap,sizeof swap) || !property(e,L"Flags",&flags,sizeof flags) || (flags&1))return;
+        if(!property(e,L"pIDXGISwapChain",&swap,sizeof swap) || !property(e,L"Flags",&flags,sizeof flags)){++self->property_failed;return;}
+        if(flags&1)return;
+        ++self->seen_present;
         double t=e->EventHeader.TimeStamp.QuadPart/self->frequency;
         std::lock_guard lock(self->mutex);
         if(e->EventHeader.ProcessId!=self->pid)return;
@@ -288,11 +295,11 @@ struct SysMonitor::PresentTrace {
         properties.assign(sizeof(EVENT_TRACE_PROPERTIES)+(name.size()+1)*sizeof(wchar_t),0);
         auto p=props();p->Wnode.BufferSize=ULONG(properties.size());p->Wnode.Flags=WNODE_FLAG_TRACED_GUID;p->Wnode.ClientContext=1;
         p->LogFileMode=EVENT_TRACE_REAL_TIME_MODE;p->LoggerNameOffset=sizeof(EVENT_TRACE_PROPERTIES);p->BufferSize=64;p->MinimumBuffers=2;p->MaximumBuffers=16;p->FlushTimer=1;
-        error=StartTraceW(&session,name.c_str(),p);if(error!=ERROR_SUCCESS){session=0;return;}
+        error=StartTraceW(&session,name.c_str(),p);if(error!=ERROR_SUCCESS){LOGW("fps","StartTrace fehlgeschlagen: %lu",unsigned long(error));session=0;return;}
         error=EnableTraceEx2(session,&provider,EVENT_CONTROL_CODE_ENABLE_PROVIDER,TRACE_LEVEL_VERBOSE,0x8000000000000002ull,0,0,nullptr);
-        if(error!=ERROR_SUCCESS){stop();return;}
+        if(error!=ERROR_SUCCESS){LOGW("fps","EnableTraceEx2 (DXGI) fehlgeschlagen: %lu",unsigned long(error));stop();return;}
         EVENT_TRACE_LOGFILEW log{};log.LoggerName=name.data();log.ProcessTraceMode=PROCESS_TRACE_MODE_REAL_TIME|PROCESS_TRACE_MODE_EVENT_RECORD|PROCESS_TRACE_MODE_RAW_TIMESTAMP;log.EventRecordCallback=&event;log.Context=this;
-        consumer=OpenTraceW(&log);if(consumer==INVALID_PROCESSTRACE_HANDLE){error=GetLastError();stop();return;}
+        consumer=OpenTraceW(&log);if(consumer==INVALID_PROCESSTRACE_HANDLE){error=GetLastError();LOGW("fps","OpenTrace fehlgeschlagen: %lu",unsigned long(error));stop();return;}
         const auto handle=consumer;thread=std::thread([handle]{auto trace=handle;ProcessTrace(&trace,1,nullptr,nullptr);});
     }
     void target(uint32_t value){
@@ -301,6 +308,7 @@ struct SysMonitor::PresentTrace {
         if(value && !tried)start();
     }
     FrameStats snapshot(double now){
+        if(pid.load() && now-last_log>=10){last_log=now;LOGI("fps","ETW pid=%u session=%d error=%lu events=%llu prozess=%llu present=%llu eigenschaft_fehler=%llu verloren=%lu",pid.load(),session?1:0,unsigned long(error),(unsigned long long)seen_any.load(),(unsigned long long)seen_process.load(),(unsigned long long)seen_present.load(),(unsigned long long)property_failed.load(),unsigned long(lost));}
         if(session && ControlTraceW(session,name.c_str(),props(),EVENT_TRACE_CONTROL_QUERY)==ERROR_SUCCESS && props()->EventsLost!=lost){lost=props()->EventsLost;std::lock_guard lock(mutex);chains.clear();return {};}
         std::lock_guard lock(mutex);FrameStats best;size_t count=0;
         for(const auto& [key,c]:chains) {auto s=c.frames.stats(now);if(s.intervals>count){count=s.intervals;best=std::move(s);}}

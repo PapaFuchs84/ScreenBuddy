@@ -4,5 +4,5 @@ game-mode-render.de.1520 fac7809e5b3b164a
 game-mode-render.de.480 b630e5ed78240ec4
 game-mode-render.en.1520 83441db06f0ebd01
 game-mode-render.en.480 b666fbd48f5928f1
-game-mode-settings.de 46e7c1c2f2b10752
-game-mode-settings.en 8e2a182f9355ff73
+game-mode-settings.de f3f3d6303bacdf3a
+game-mode-settings.en 1760636a16b6155c
