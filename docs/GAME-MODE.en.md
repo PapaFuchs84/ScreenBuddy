@@ -78,6 +78,8 @@ FPS uses the most active swapchain and ignores `DXGI_PRESENT_TEST` calls. The me
 
 This is not a complete PresentMon/DxgKrnl collector or a scanout FPS measurement. Vulkan, OpenGL and D3D9 without DXGI events remain `n/a`; missing permissions, missing events or lost events can also result in `n/a`. Real-time ETW sessions may require administrator privileges or the Windows **Performance Log Users** group. Elevated privileges do not guarantee measurements. Do not change game-process permissions.
 
+**FPS without administrator:** run `cpp/tools/Grant-PerfLogUsers.bat` once via right-click “Run as administrator”. It adds the current user to the “Performance Log Users” group (undo: `net localgroup "Performance Log Users" <user> /delete`); then sign out and back in. The script is never run automatically. Also not guaranteed: UWP/Store games, streaming/cloud games and processes that do not present themselves; those stay `n/a`. Leftovers of crashed ScreenBuddy sessions (`ScreenBuddy.Game.<PID>.<tick>`) are stopped on the next start. No PresentMon code is used; only the same public ETW interface is read.
+
 ADLX is not integrated; AMD values are limited to ADL Overdrive 5/6 queries supported by the driver. DXGI `QueryVideoMemoryInfo` is deliberately not used as game VRAM consumption: that query would describe the calling ScreenBuddy process.
 
 ## Privacy and permitted interfaces
@@ -112,6 +114,8 @@ While Game-Mode is enabled, its selected view is reserved on all outputs: normal
 Non-Steam games (including GOG/Ubisoft) use the running executable's directly extracted icon at up to 256 pixels. A matching `Application Executable` in a nearby `AppxManifest.xml` first supplies package logos, including size variants; fallback order is EXE icon, shell icon and name. Missing permissions or unresolved package resources remain fallback cases; this does not extend game detection.
 
 The new template has logo, name and session time above nine metrics in three columns. Existing saved layouts are preserved; create a new view from the template to adopt it. Game tiles including CPU/GPU share cards, corner radii, orange titles and larger values. FPS/frametime show up to 60 one-second samples when tile height and density above Compact allow it. Invalid samples leave gaps; process changes clear the history. The ten-second ETW statistics window is unchanged.
+
+**Cockpit design:** small, grey, upper-case labels, an orange accent stripe on the left, units small in orange next to the value. An FPS tile of roughly 100 height or more becomes the hero tile (orange frame, very large number, filled history). CPU/GPU appear as a ring instead of a bar in tiles that are not too wide; bars and rings switch to yellow from 80% and red from 90% (fixed signal colours). A tile background gradient is not implemented because the renderer lacks alpha fills.
 
 The intro is composed into the regular output frame, stored in `last_frame()` and visible through `/api/preview.png`. The isolated port-18766 test checks distinct intro frames and the subsequent view frame. This proves the software path, not physical display output.
 

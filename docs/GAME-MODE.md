@@ -78,6 +78,8 @@ Die FPS-Anzeige verwendet die aktivste Swapchain und ignoriert `DXGI_PRESENT_TES
 
 Das ist kein vollständiger PresentMon-/DxgKrnl-Sammler und keine Scanout-FPS-Messung. Vulkan, OpenGL und D3D9 ohne DXGI-Ereignisse bleiben `n/a`; fehlende Rechte, fehlende Ereignisse oder Ereignisverluste können ebenfalls `n/a` ergeben. ETW-Echtzeitsitzungen können Administratorrechte oder die Windows-Gruppe **Performance Log Users** erfordern. Erhöhte Rechte garantieren keine Messwerte. Keine Rechte an Spielprozessen ändern.
 
+**FPS ohne Administrator:** `cpp/tools/Grant-PerfLogUsers.bat` einmalig per Rechtsklick „Als Administrator ausführen“ starten. Es trägt den aktuellen Benutzer in die Gruppe „Leistungsprotokollbenutzer“ ein (Rückgängig: `net localgroup "Performance Log Users" <Benutzer> /delete`); danach ab- und anmelden. Das Skript wird nie automatisch ausgeführt. Nicht garantiert sind außerdem UWP-/Store-Spiele, Streaming-/Cloud-Spiele und Prozesse, die nicht selbst präsentieren: dort bleibt die Anzeige `n/a`. Reste abgestürzter ScreenBuddy-Messsitzungen (`ScreenBuddy.Game.<PID>.<Tick>`) werden beim nächsten Start beendet. PresentMon-Code wird nicht verwendet; es wird nur dieselbe öffentliche ETW-Schnittstelle gelesen.
+
 ADLX ist nicht eingebunden; AMD-Werte sind auf die vom Treiber angebotenen ADL-Overdrive-5/6-Abfragen beschränkt. DXGI `QueryVideoMemoryInfo` wird bewusst nicht als VRAM-Spielverbrauch verwendet: Diese Abfrage würde den aufrufenden ScreenBuddy-Prozess beschreiben.
 
 ## Datenschutz und erlaubte Schnittstellen
@@ -112,6 +114,8 @@ Solange Game-Mode aktiviert ist, ist die gewählte Ansicht auf allen Ausgaben au
 Nicht-Steam-Spiele (auch GOG/Ubisoft) verwenden das direkt aus der laufenden EXE extrahierte Icon mit bis zu 256 Pixeln. Bei passendem `Application Executable` im benachbarten `AppxManifest.xml` werden zuerst Paket-Logos einschließlich Größenvarianten gelesen; danach EXE-Icon, Shell-Icon und Name. Fehlende Rechte oder nicht auflösbare Paketressourcen bleiben Fallback-Fälle; das erweitert nicht die Spielerkennung.
 
 Die neue Vorlage enthält oben Logo, Name und Spielzeit, darunter neun Metriken in drei Spalten. Bestehende gespeicherte Layouts werden nicht überschrieben; die Vorlage bei Bedarf neu anlegen. Spielkacheln einschließlich CPU/GPU verwenden gemeinsame Karten, Rundungen, orange Titel und größere Werte. FPS/Frametime zeigen bei ausreichender Höhe und Dichte oberhalb „Kompakt“ einen Verlauf aus bis zu 60 Sekundenwerten. Ungültige Messungen bleiben Lücken; ein Prozesswechsel leert den Verlauf. Das zehnsekündige ETW-Statistikfenster bleibt unverändert.
+
+**Cockpit-Design:** Labels klein, grau und in Großbuchstaben, ein oranger Akzentstreifen links, Einheiten klein in Orange neben dem Wert. Eine FPS-Kachel ab etwa 100 Höhe wird zur Hero-Kachel (Orange-Rahmen, sehr große Zahl, Verlauf mit Fläche). CPU/GPU erscheinen in nicht zu breiten Kacheln als Ring statt Balken; Balken und Ringe wechseln ab 80 % auf Gelb und ab 90 % auf Rot (feste Signalfarben). Ein Hintergrundverlauf der Kachel ist wegen fehlender Alpha-Füllung im Renderer nicht umgesetzt.
 
 Das Intro wird im normalen Ausgabeframe komponiert, in `last_frame()` gespeichert und ist über `/api/preview.png` sichtbar. Der isolierte Test auf Port 18766 prüft verschiedene Intro-Frames und den anschließenden Ansichtsframe. Das ist ein Software-Nachweis, keine physische Displayabnahme.
 

@@ -265,7 +265,25 @@ struct SysMonitor::PresentTrace {
         if(!self->chains.contains(swap) && self->chains.size()>=8)return;
         auto& c=self->chains[swap];c.last=t;c.frames.present(t);
     }
+    // Stops ETW sessions left behind by crashed ScreenBuddy processes (name ScreenBuddy.Game.<pid>.<tick>); sessions of
+    // running processes and foreign sessions are never touched. Failures are ignored (needs the same rights as StartTrace).
+    static void cleanup_orphans(){
+        constexpr size_t count=64,names=1024,each=sizeof(EVENT_TRACE_PROPERTIES)+2*names*sizeof(wchar_t);
+        std::vector<unsigned char> storage(count*each,0);std::vector<EVENT_TRACE_PROPERTIES*> list(count);
+        for(size_t i=0;i<count;++i){auto p=reinterpret_cast<EVENT_TRACE_PROPERTIES*>(storage.data()+i*each);p->Wnode.BufferSize=ULONG(each);p->LoggerNameOffset=sizeof(EVENT_TRACE_PROPERTIES);p->LogFileNameOffset=ULONG(sizeof(EVENT_TRACE_PROPERTIES)+names*sizeof(wchar_t));list[i]=p;}
+        ULONG found=0;if(QueryAllTracesW(list.data(),ULONG(count),&found)!=ERROR_SUCCESS)return;
+        const std::wstring prefix=L"ScreenBuddy.Game.";
+        for(ULONG i=0;i<found && i<count;++i){
+            auto text=reinterpret_cast<const wchar_t*>(reinterpret_cast<const unsigned char*>(list[i])+list[i]->LoggerNameOffset);std::wstring session(text,wcsnlen(text,names));
+            if(session.rfind(prefix,0)!=0)continue;
+            unsigned long owner=wcstoul(session.c_str()+prefix.size(),nullptr,10);
+            if(owner==GetCurrentProcessId())continue;
+            if(owner){HANDLE process=OpenProcess(SYNCHRONIZE|PROCESS_QUERY_LIMITED_INFORMATION,FALSE,owner);if(process){bool alive=WaitForSingleObject(process,0)==WAIT_TIMEOUT;CloseHandle(process);if(alive)continue;}}
+            ControlTraceW(0,session.c_str(),list[i],EVENT_TRACE_CONTROL_STOP);
+        }
+    }
     void start(){
+        cleanup_orphans();
         tried=true;name=L"ScreenBuddy.Game."+std::to_wstring(GetCurrentProcessId())+L"."+std::to_wstring(GetTickCount64());
         properties.assign(sizeof(EVENT_TRACE_PROPERTIES)+(name.size()+1)*sizeof(wchar_t),0);
         auto p=props();p->Wnode.BufferSize=ULONG(properties.size());p->Wnode.Flags=WNODE_FLAG_TRACED_GUID;p->Wnode.ClientContext=1;
