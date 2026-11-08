@@ -87,6 +87,11 @@ int main(){try {
  readings.fps=120;readings.fps_hist={90,120,110};metric.block="system.fps";
  auto with_history=draw_metric(metric,metric_layout,480,320,readings);readings.fps_hist.clear();
  check(with_history.px!=draw_metric(metric,metric_layout,480,320,readings).px);
+ {const auto& th=fl::render::theme();check(level_color(th,50)==th.accent);const fl::Color warn{255,179,0},hot{255,77,61};check(level_color(th,80)==warn);check(level_color(th,89.9)==warn);check(level_color(th,90)==hot);check(level_color(th,100)==hot);
+  check(upper_ascii("Frametime · Verlauf")=="FRAMETIME · VERLAUF");check(mix_color({0,0,0},{100,200,50},.5f)==fl::Color{50,100,25});check(mix_color({0,0,0},{10,10,10},2.f)==fl::Color{10,10,10});
+  // Ring (quadratische Kachel, GPU) und Balken-Rueckfall (breite Kachel) liefern verschiedene Bilder; hoher Wert aendert Farbe/Winkel.
+  fl::custom::Tile gpu=metric;gpu.block="system.gpu";readings.gpu_pct=50;auto low=draw_metric(gpu,metric_layout,480,320,readings);readings.gpu_pct=95;check(low.px!=draw_metric(gpu,metric_layout,480,320,readings).px);
+  readings.fps=0;auto unit_img=draw_metric(metric,metric_layout,480,320,readings);check(!unit_img.empty());}
  auto cfg=fl::config::defaults();check(cfg["game_mode"]["enabled"]==false);
  auto configured=fl::config::merge(cfg,{{"game_mode",{{"enabled",true},{"view","custom:test-game"},{"ping_target","127.0.0.1"},{"additional_games","C:\\Games\\Example.exe\nD:\\Games\\Other.exe"}}}});
  check(configured["game_mode"]["view"]=="custom:test-game");check(configured["game_mode"]["additional_games"].get<std::string>().find('\n')!=std::string::npos);
