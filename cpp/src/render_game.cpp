@@ -78,14 +78,18 @@ Image draw_metric(const custom::Tile& tile,const custom::Layout& layout,int w,in
     if((tile.density!=0 || hero) && a.height>=44 && !ringed){
         const auto& history=key=="fps"?snapshot.fps_hist:snapshot.frametime_hist;
         if(key=="fps" || key=="frametime") {
-            double maximum=1;for(auto v:history)if(std::isfinite(v))maximum=std::max(maximum,v);
-            const float base=a.y+a.height-8,amp=hero?.3f:.16f;
+            // One continuous line: invalid samples are bridged (not drawn), the newest sample sits at the right edge,
+            // values are scaled between the window's minimum and maximum so small variations stay visible.
+            double minimum=1e300,maximum=-1e300;size_t valid=0;for(auto v:history)if(std::isfinite(v)){minimum=std::min(minimum,v);maximum=std::max(maximum,v);++valid;}
+            const float base=a.y+a.height-8,range=a.height*(hero?.3f:.16f);
             std::vector<PointF> points;
-            auto flush=[&]{if(points.size()>1){auto area=points;area.push_back({points.back().x,base});area.push_back({points.front().x,base});c.polygon(area,mix_color(theme.card,theme.accent,.22f));c.line(points,theme.accent,2);}points.clear();};
-            for(size_t i=0;i<history.size();++i) {
-                if(!std::isfinite(history[i])){flush();continue;}
-                points.push_back({a.x+8+float(i)*(a.width-16)/59.f,base-float(history[i]/maximum)*a.height*amp});
-            }flush();
+            const size_t count=history.size(),shift=count<60?60-count:0;
+            for(size_t i=0;i<count;++i) {
+                if(!std::isfinite(history[i]))continue;
+                const double norm=maximum>minimum?(history[i]-minimum)/(maximum-minimum):.5;
+                points.push_back({a.x+8+float(i+shift)*(a.width-16)/59.f,base-float(.2+.8*norm)*range});
+            }
+            if(valid>1){auto area=points;area.push_back({points.back().x,base});area.push_back({points.front().x,base});c.polygon(area,mix_color(theme.card,theme.accent,.22f));c.line(points,theme.accent,2);}
         } else {
             auto load=key=="cpu"?snapshot.cpu_pct:key=="gpu"?snapshot.gpu_pct:std::optional<double>{};
             if(key=="vram" && snapshot.gpu_mem_used && snapshot.gpu_mem_total && *snapshot.gpu_mem_total>0)load=100* *snapshot.gpu_mem_used/ *snapshot.gpu_mem_total;
