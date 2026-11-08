@@ -102,7 +102,9 @@ int main(){try {
   auto other=fl::sysinfo::presentmon_values(loc,"nothere.exe");check(!other.fps);check(fl::sysinfo::presentmon_values(loc).fps.has_value());}
  {fl::SysSnapshot g;g.frametime_ms=16;fl::custom::Layout gl;fl::custom::Tile gt;gt.source="system";gt.block="system.frametime";gt.zone={"g",0,0,1,1};auto none=draw_metric(gt,gl,480,320,g);
   g.frametime_hist={16,std::nan(""),18,std::nan(""),std::nan(""),17,20};auto gaps=draw_metric(gt,gl,480,320,g);check(gaps.px!=none.px);   // gaps are bridged into one line, no crash
-  g.frametime_hist={std::nan(""),std::nan("")};check(draw_metric(gt,gl,480,320,g).px==none.px);}   // fewer than two valid samples draw nothing
+  g.frametime_hist={std::nan(""),std::nan("")};check(draw_metric(gt,gl,480,320,g).px==none.px);
+  // start-up outlier must not flatten the line: with the outlier the image equals the one where the outlier is replaced by the window maximum
+  g.frametime_hist.clear();for(int i=0;i<40;++i)g.frametime_hist.push_back(20+(i%5));auto flat_ref=g.frametime_hist;g.frametime_hist[0]=5000;auto with_outlier=draw_metric(gt,gl,480,320,g);g.frametime_hist=flat_ref;g.frametime_hist[0]=24;auto bounded=draw_metric(gt,gl,480,320,g);check(with_outlier.px==bounded.px);}   // fewer than two valid samples draw nothing
  auto cfg=fl::config::defaults();check(cfg["game_mode"]["enabled"]==false);
  auto configured=fl::config::merge(cfg,{{"game_mode",{{"enabled",true},{"view","custom:test-game"},{"ping_target","127.0.0.1"},{"additional_games","C:\\Games\\Example.exe\nD:\\Games\\Other.exe"}}}});
  check(configured["game_mode"]["view"]=="custom:test-game");check(configured["game_mode"]["additional_games"].get<std::string>().find('\n')!=std::string::npos);

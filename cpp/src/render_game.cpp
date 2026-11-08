@@ -118,12 +118,15 @@ Image draw_metric(const custom::Tile& tile,const custom::Layout& layout,int w,in
     if(chart){
         const auto& history=key=="fps"?snapshot.fps_hist:snapshot.frametime_hist;
         // One continuous line: invalid samples are bridged, newest sample at the right edge, scaled between min and max of the window.
-        double minimum=1e300,maximum=-1e300;size_t valid=0;for(auto v:history)if(std::isfinite(v)){minimum=std::min(minimum,v);maximum=std::max(maximum,v);++valid;}
+        // Robust scale: 5th..95th percentile, so a start-up outlier does not flatten the whole line (values outside are clamped).
+        std::vector<double> sorted;for(auto v:history)if(std::isfinite(v))sorted.push_back(v);
+        std::sort(sorted.begin(),sorted.end());const size_t valid=sorted.size();
+        const double minimum=valid?sorted[size_t(valid*.05)]:0,maximum=valid?sorted[std::min(valid-1,size_t(valid*.95))]:0;
         const float base=bottom,left=side?a.x+PAD+content_w*.42f:a.x+PAD,span=side?content_w*.58f:content_w;
         std::vector<PointF> points;const size_t count=history.size(),shift=count<60?60-count:0;
         for(size_t i=0;i<count;++i){
             if(!std::isfinite(history[i]))continue;
-            const double norm=maximum>minimum?(history[i]-minimum)/(maximum-minimum):.5;
+            const double norm=maximum>minimum?std::clamp((history[i]-minimum)/(maximum-minimum),0.,1.):.5;
             points.push_back({left+float(i+shift)*span/59.f,base-float(.12+.88*norm)*chart_h});
         }
         if(valid>1){auto area=points;area.push_back({points.back().x,base});area.push_back({points.front().x,base});c.polygon(area,mix_color(theme.card,theme.accent,.22f));c.line(points,theme.accent,2);}
