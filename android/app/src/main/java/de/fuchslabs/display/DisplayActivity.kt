@@ -76,12 +76,19 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         hideSystemUi()
     }
 
+    private val closeReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: android.content.Context, i: Intent) { finishAndRemoveTask() }
+    }
+
     override fun onStart() {
         super.onStart()
+        androidx.core.content.ContextCompat.registerReceiver(this, closeReceiver,
+            android.content.IntentFilter(StandbyService.ACTION_CLOSE), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
         startClient()
     }
 
     override fun onStop() {
+        try { unregisterReceiver(closeReceiver) } catch (_: Exception) {}
         trustDialog?.dismiss(); trustDialog = null
         client?.stop(); client = null
         super.onStop()

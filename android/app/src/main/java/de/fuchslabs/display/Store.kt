@@ -29,6 +29,11 @@ class Store(private val ctx: Context) {
         get() = sp.getBoolean("boot", false)
         set(v) { sp.edit().putBoolean("boot", v).apply() }
 
+    /** Automatik: Bereitschaftsdienst oeffnet die Anzeige, wenn der PC erscheint, und sperrt sie, wenn er endet. */
+    var autoMode: Boolean
+        get() = sp.getBoolean("auto", false)
+        set(v) { sp.edit().putBoolean("auto", v).apply() }
+
     /** "landscape" (Standard, sensorLandscape), "auto" (Sensor) oder "portrait". */
     var orientation: String
         get() = sp.getString("orientation", "landscape").takeIf { it in ORIENTATIONS } ?: "landscape"

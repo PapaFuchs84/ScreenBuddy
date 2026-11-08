@@ -21,8 +21,8 @@ android {
         applicationId = "de.fuchslabs.display"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.0.4"
+        versionCode = 9
+        versionName = "1.1.0"
     }
     signingConfigs {
         if (signingFile != null) create("companionRelease") {
