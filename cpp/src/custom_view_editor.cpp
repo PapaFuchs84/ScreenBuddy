@@ -3,9 +3,12 @@
 #include <algorithm>
 namespace fl::custom {
 View game_mode_template(std::string id,bool english) {
-    View v;v.id=std::move(id);v.name=english?"Game-Mode":"Game-Mode";v.standard.columns={1,1,1};v.standard.rows={3,2,2,2};
-    const std::vector<std::string> blocks={"system.game_logo","system.game_name","system.game_time","system.fps","system.frametime","system.gpu","system.cpu","system.vram","system.ping","system.fps_low","system.cpu_temp","system.jitter"};
-    for(size_t i=0;i<blocks.size();++i){Tile t;t.source="system";t.block=blocks[i];t.zone={"game_"+std::to_string(i),int(i%3),int(i/3),1,1};v.standard.tiles.push_back(t);}
+    View v;v.id=std::move(id);v.name=english?"Game-Mode":"Game-Mode";v.standard.columns={5,6,4,4};v.standard.rows={1,1,1};
+    // Cockpit: logo+name left, FPS hero in the middle, hardware on the right (column,row,column span,row span).
+    struct Cell {const char* block;int column,row,columns,rows;};
+    const std::vector<Cell> cells={{"system.game_logo",0,0,1,2},{"system.fps",1,0,1,2},{"system.gpu",2,0,1,1},{"system.cpu",3,0,1,1},{"system.vram",2,1,2,1},
+        {"system.game_time",0,2,1,1},{"system.ping",1,2,1,1},{"system.frametime",2,2,2,1}};
+    for(size_t i=0;i<cells.size();++i){Tile t;t.source="system";t.block=cells[i].block;t.zone={"game_"+std::to_string(i),cells[i].column,cells[i].row,cells[i].columns,cells[i].rows};v.standard.tiles.push_back(t);}
     return v;
 }
 

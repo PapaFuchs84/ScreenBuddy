@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs – isolierte native Editorprüfung, keine App-/Netzwerk-Schleife.
 #include "ui_pages.h"
+#include "perflog.h"
 #include "custom_view_editor.h"
 #include "ui_layout_grid.h"
 #include "ui_editor.h"
@@ -978,7 +979,7 @@ static void custom_editor_tests(const fs::path& root,const fs::path& images,bool
     h.find<Button>(L"Löschen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==1);CHECK(saved.get(initial.id));
     auto game_button=h.find<Button>(L"+ Game-Mode");CHECK(game_button);if(game_button){
         game_button->activate(h.view);settle(h,*page);auto game_grid=h.find<GridEditor>();CHECK(game_grid);
-        if(game_grid){auto draft=custom::editor_layout(game_grid->model);CHECK(draft && draft->tiles.size()==12);}
+        if(game_grid){auto draft=custom::editor_layout(game_grid->model);CHECK(draft && draft->tiles.size()==8);}
         auto filter=h.find<Combo>(L"Quelle");auto palette=h.find<TilePalette>();CHECK(filter && palette);
         if(filter && palette){auto option=std::find_if(filter->options.begin(),filter->options.end(),[](const auto& text){return text.de==L"Game-Mode";});CHECK(option!=filter->options.end());if(option!=filter->options.end()){filter->index=int(option-filter->options.begin());filter->on_change();settle(h,*page);CHECK(palette->category=="game");CHECK(palette->visible().size()==16);}}
         h.find<Button>(L"Übernehmen")->activate(h.view);settle(h,*page);CHECK(saved.list().size()==2);
@@ -1043,6 +1044,7 @@ static void ai_custom_editor_tests(const fs::path& root,const fs::path& images,b
 }
 // P9: actual settings form and Game-Mode palette/template, anonymous sample data.
 static void game_mode_ui_tests(const fs::path& root,const fs::path& images,bool record) {
+    perflog::set_test_override(perflog::Access::NotMember);  // FPS card text must not depend on this machine
     const auto baseline=fs::path(FL_LAYOUT_SNAPSHOT_DIR)/"p9-game-mode-hashes.txt";
     std::map<std::string,std::string> expected,actual;
     if(record){CHECK(!fs::exists(baseline));if(fs::exists(baseline))return;}

@@ -4,7 +4,20 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
-## [Unreleased] – Companion 1.1.0
+## [2.11.0] - 2026-11-08
+
+Companion-App bleibt 1.0.3.
+
+### Geändert
+- Game-Mode-Kacheln im „Cockpit“-Design: kleine graue Beschriftung, oranger Akzentstreifen, Einheit klein in Orange, große FPS-Hero-Kachel mit Verlauf, Ringe für GPU/CPU, Warnfarben ab 80 % (gelb) und 90 % (rot). Die Vorlage „+ Game-Mode“ legt das neue Layout an; bestehende Ansichten bleiben unverändert. Festes Raster mit einheitlichen Rändern, zentrierten Werten, Einheit auf der Grundlinie, große Zahlen auch bei GPU/CPU (Zahl links, Ring rechts), Frametime-Kurve als durchgehende Linie.
+- Game-Mode-Kacheln: Schriftgrößen skalieren jetzt mit dem Display-Seitenverhältnis (auf breiten Displays waren die Zahlen zu klein).
+
+### Hinzugefügt
+- Game-Mode-Einstellungen: Karte „FPS-Messung“ mit Status und Button „FPS-Messung aktivieren“. Einmalige UAC-Abfrage, die eigene EXE trägt den Benutzer in die Gruppe „Leistungsprotokollbenutzer“ ein; danach einmal ab-/anmelden. Fallback: `cpp/tools/Grant-PerfLogUsers.bat`.
+- Verwaiste ETW-Messsitzungen abgestürzter ScreenBuddy-Prozesse werden beim Start beendet.
+- FPS bei Anti-Cheat-Spielen (BF6 live geprüft): Die ETW-Messsitzung wird bei aktivem Game-Mode schon beim Start angelegt (der Anti-Cheat verweigert neue Sitzungen, sobald das Spiel läuft). ScreenBuddy daher vor dem Spiel starten. Fallback: HWiNFO-Sensorgruppe „PresentMon“ (nur lesend).
+
+## [Companion 1.1.0] - 2026-11-09
 
 - Android-App 1.1.0 (versionCode 9): dunkles Standard-Design mit Orange-Akzenten; Protokoll und App-ID bleiben erhalten. Separater Kandidat, noch keine Veröffentlichung.
 - Optionale Automatik (standardmäßig aus): sucht den gekoppelten PC per mDNS und öffnet die Anzeige, soweit Android und die erteilten Freigaben es zulassen. Nach erkannter Abwesenheit wird die Anzeige mit 20 Sekunden Karenz geschlossen; auf Handys kann sie mit Geräteadmin-Freigabe zusätzlich den Bildschirm sperren. Android-TV schließt nur die Anzeige.
