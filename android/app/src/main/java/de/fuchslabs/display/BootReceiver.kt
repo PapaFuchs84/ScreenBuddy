@@ -12,6 +12,7 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         val s = Store(ctx)
+        if (s.autoMode) { try { StandbyService.sync(ctx) } catch (_: Exception) {}; return }
         if (s.bootStart && s.paired() != null) {
             try {
                 ctx.startActivity(Intent(ctx, DisplayActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

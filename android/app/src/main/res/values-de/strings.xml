@@ -40,4 +40,16 @@
     <string name="orient_portrait">Hoch</string>
     <string name="tv_dpad_hint">◄ ► Seite wechseln · OK hat noch keine Funktion</string>
     <string name="info_no_camera">Dieses Gerät hat keine Kamera. Bitte unten manuell koppeln.</string>
+    <string name="section_auto">Automatik</string>
+    <string name="setting_auto">Anzeige öffnen, wenn ScreenBuddy startet</string>
+    <string name="setting_auto_desc">Startet einen kleinen Bereitschaftsdienst. Startet ScreenBuddy am PC, wacht dieses Gerät auf und zeigt die Anzeige; beendest du ScreenBuddy, wird der Bildschirm gesperrt (nur Handys; Android TV kann die Anzeige nur schließen).</string>
+    <string name="btn_perm_overlay">Anzeige über anderen Apps erlauben</string>
+    <string name="btn_perm_admin">Bildschirmsperre erlauben</string>
+    <string name="btn_perm_battery">Von Akku-Optimierung ausnehmen</string>
+    <string name="admin_explain">Wird nur genutzt, um den Bildschirm zu sperren, wenn ScreenBuddy am PC beendet wird.</string>
+    <string name="err_settings">Diese Einstellungsseite gibt es auf diesem Gerät nicht.</string>
+    <string name="notif_open">Tippen, um die Anzeige zu öffnen</string>
+    <string name="notif_standby">Wartet auf ScreenBuddy am PC</string>
+    <string name="notif_channel_standby">Bereitschaft</string>
+    <string name="notif_channel_alert">Anzeige-Start</string>
 </resources>

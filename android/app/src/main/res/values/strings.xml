@@ -40,4 +40,16 @@
     <string name="orient_portrait">Portrait</string>
     <string name="tv_dpad_hint">◄ ► switch page · OK has no action yet</string>
     <string name="info_no_camera">This device has no camera. Use manual pairing below.</string>
+    <string name="section_auto">Automatic mode</string>
+    <string name="setting_auto">Open display when ScreenBuddy starts</string>
+    <string name="setting_auto_desc">Runs a small standby service. When ScreenBuddy starts on the PC, this device wakes and shows the display; when ScreenBuddy quits, the screen is locked (phones only; Android TV can only close the display).</string>
+    <string name="btn_perm_overlay">Allow display over other apps</string>
+    <string name="btn_perm_admin">Allow screen lock</string>
+    <string name="btn_perm_battery">Exempt from battery optimization</string>
+    <string name="admin_explain">Only used to lock the screen when ScreenBuddy quits on the PC.</string>
+    <string name="err_settings">This settings page is not available on this device.</string>
+    <string name="notif_open">Tap to open the display</string>
+    <string name="notif_standby">Waiting for ScreenBuddy on your PC</string>
+    <string name="notif_channel_standby">Standby</string>
+    <string name="notif_channel_alert">Display start</string>
 </resources>
