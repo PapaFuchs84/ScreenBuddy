@@ -9,7 +9,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 - Android app 1.1.0 (versionCode 9): dark default design with orange accents; protocol and application ID stay unchanged. Separate candidate, not yet published.
 - Optional automatic mode (off by default): discovers the paired PC through mDNS and opens the display where Android and granted permissions allow it. After detected absence, closes the display following a 20-second grace period; phones can additionally lock the screen with device-administrator permission. Android TV only closes the display.
 - mDNS discovery holds a Wi-Fi multicast lock only while searching and releases it on stop/failure. This is intended to allow background reception on devices filtering multicast; device revalidation is still pending. Continuous automatic-mode discovery may increase battery consumption.
-- Fallback for locked devices: because e.g. the Redmi 8 receives no mDNS with the screen off, automatic mode also checks about once a minute, via an alarm, whether the paired PC is reachable by TCP on its companion port (no TLS/PIN/data). Android may delay these alarms in idle mode.
+- Fallback for locked devices: because e.g. the Redmi 8 receives no mDNS with the screen off, automatic mode also checks via an alarm (roughly every one to two minutes), whether the paired PC is reachable by TCP on its companion port (no TLS/PIN/data). Android may delay these alarms in idle mode.
 - Setup, permissions, background restrictions and pending device acceptance are described in the [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110-in-development). Earlier device checks do not establish acceptance of the new automatic mode.
 
 ## [2.10.1] - 2026-11-08
