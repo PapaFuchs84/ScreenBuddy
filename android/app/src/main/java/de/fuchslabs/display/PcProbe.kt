@@ -1,5 +1,6 @@
 package de.fuchslabs.display
 
+import android.util.Log
 import de.fuchslabs.display.protocol.HostPolicy
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -13,6 +14,9 @@ object PcProbe {
         if (!HostPolicy.isAllowed(host) || !HostPolicy.isValidPort(port)) return false
         return try {
             Socket().use { it.connect(InetSocketAddress(host, port), timeoutMs); true }
-        } catch (_: Exception) { false }
+        } catch (e: Exception) {
+            Log.d("CompanionStandby", "Probe error: ${e.javaClass.simpleName}: ${e.message}")
+            false
+        }
     }
 }
