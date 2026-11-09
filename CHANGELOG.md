@@ -4,13 +4,26 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
-## [Unreleased] – Companion 1.1.0
+## [Companion 1.1.0] - 2026-11-09
 
-- Android-App 1.1.0 (versionCode 9): dunkles Standard-Design mit Orange-Akzenten; Protokoll und App-ID bleiben erhalten. Separater Kandidat, noch keine Veröffentlichung.
+- Android-App 1.1.0 (versionCode 9): dunkles Standard-Design mit Orange-Akzenten; Protokoll und App-ID bleiben erhalten. Eigenes Release `companion-v1.1.0` (nur APK), unabhängig von der ScreenBuddy-Version.
 - Optionale Automatik (standardmäßig aus): sucht den gekoppelten PC per mDNS und öffnet die Anzeige, soweit Android und die erteilten Freigaben es zulassen. Nach erkannter Abwesenheit wird die Anzeige mit 20 Sekunden Karenz geschlossen; auf Handys kann sie mit Geräteadmin-Freigabe zusätzlich den Bildschirm sperren. Android-TV schließt nur die Anzeige.
-- mDNS-Suche hält einen WLAN-Multicast-Lock nur während der Suche und gibt ihn bei Ende/Fehler frei. Das soll Hintergrundempfang auf Geräten mit Multicast-Filterung ermöglichen; die Geräte-Nachprüfung läuft noch. Die kontinuierliche Automatik-Suche kann den Akkuverbrauch erhöhen.
+- mDNS-Suche hält einen WLAN-Multicast-Lock nur während der Suche und gibt ihn bei Ende/Fehler frei. Das soll Hintergrundempfang auf Geräten mit Multicast-Filterung ermöglichen. Die kontinuierliche Automatik-Suche kann den Akkuverbrauch erhöhen.
 - Fallback für gesperrte Geräte: Weil z. B. das Redmi 8 bei ausgeschaltetem Bildschirm kein mDNS empfängt, prüft die Automatik zusätzlich per Alarm (etwa jede bis zweite Minute), ob der gekoppelte PC auf seinem Companion-Port per TCP erreichbar ist (ohne TLS/PIN/Daten). Android kann diese Alarme im Ruhezustand verzögern.
-- Einrichtung, Berechtigungen, Hintergrundbeschränkungen und noch offene Geräteabnahme stehen in der [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110-in-entwicklung). Frühere Gerätetests belegen die neue Automatik nicht.
+- Einrichtung, Berechtigungen, Hintergrundbeschränkungen und Prüfgrenzen stehen in der [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110). Geprüft: Redmi 8 (bei gesperrtem Bildschirm Auto-Aus nach ca. 2,5 Minuten, Auto-Auf nach ca. 74 Sekunden, jeweils ein Durchlauf). Nicht geprüft: Pixel; Android-TV ohne echten PC-Start/-Ende.
+
+## [2.11.0] - 2026-11-08
+
+Companion-App bleibt 1.0.3.
+
+### Geändert
+- Game-Mode-Kacheln im „Cockpit“-Design: kleine graue Beschriftung, oranger Akzentstreifen, Einheit klein in Orange, große FPS-Hero-Kachel mit Verlauf, Ringe für GPU/CPU, Warnfarben ab 80 % (gelb) und 90 % (rot). Die Vorlage „+ Game-Mode“ legt das neue Layout an; bestehende Ansichten bleiben unverändert. Festes Raster mit einheitlichen Rändern, zentrierten Werten, Einheit auf der Grundlinie, große Zahlen auch bei GPU/CPU (Zahl links, Ring rechts), Frametime-Kurve als durchgehende Linie.
+- Game-Mode-Kacheln: Schriftgrößen skalieren jetzt mit dem Display-Seitenverhältnis (auf breiten Displays waren die Zahlen zu klein).
+
+### Hinzugefügt
+- Game-Mode-Einstellungen: Karte „FPS-Messung“ mit Status und Button „FPS-Messung aktivieren“. Einmalige UAC-Abfrage, die eigene EXE trägt den Benutzer in die Gruppe „Leistungsprotokollbenutzer“ ein; danach einmal ab-/anmelden. Fallback: `cpp/tools/Grant-PerfLogUsers.bat`.
+- Verwaiste ETW-Messsitzungen abgestürzter ScreenBuddy-Prozesse werden beim Start beendet.
+- FPS bei Anti-Cheat-Spielen (BF6 live geprüft): Die ETW-Messsitzung wird bei aktivem Game-Mode schon beim Start angelegt (der Anti-Cheat verweigert neue Sitzungen, sobald das Spiel läuft). ScreenBuddy daher vor dem Spiel starten. Fallback: HWiNFO-Sensorgruppe „PresentMon“ (nur lesend).
 
 ## [2.10.1] - 2026-11-08
 

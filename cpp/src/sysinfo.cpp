@@ -159,7 +159,8 @@ std::optional<std::vector<Reading>> hwinfo_readings() {
                     r.type = u32(o);
                     uint32_t sidx = u32(o + 4);
                     r.label = cstr(o + 140, 128);
-                    if (r.label.empty()) r.label = cstr(o + 12, 128);
+                    r.label_orig = cstr(o + 12, 128);
+                    if (r.label.empty()) r.label = r.label_orig;
                     r.unit = cstr(o + 268, 16);
                     memcpy(&r.value, view + o + 284, 8);
                     r.sensor = sidx < sensors.size() ? sensors[sidx] : "";
@@ -188,6 +189,30 @@ static std::optional<double> pick(const std::vector<Reading>& readings, uint32_t
         for (auto* r : cands)
             if (casefold(r->label).find(casefold(w)) != std::string::npos) return r->value;
     return std::nullopt;
+}
+
+static std::string process_name(uint32_t pid) {
+    if (!pid) return {};
+    HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (!h) return {};
+    wchar_t path[MAX_PATH * 2]; DWORD n = DWORD(std::size(path)); std::string out;
+    if (QueryFullProcessImageNameW(h, 0, path, &n)) { std::wstring w(path, n); auto slash = w.find_last_of(L"\\/"); out = narrow(slash == std::wstring::npos ? w : w.substr(slash + 1)); }
+    CloseHandle(h); return out;
+}
+
+PresentMonValues presentmon_values(const std::vector<Reading>& readings, const std::string& process) {
+    PresentMonValues out;
+    const auto wanted = process.empty() ? std::string() : "[" + casefold(process) + "]";
+    for (auto& x : readings) {
+        const auto sensor = casefold(x.sensor);
+        if (sensor.find("presentmon") == std::string::npos || !std::isfinite(x.value) || x.value <= 0) continue;
+        if (!wanted.empty() && sensor.find(wanted) == std::string::npos) continue;  // only the detected game's group
+        const auto label = casefold(x.label_orig.empty() ? x.label : x.label_orig);  // the original label stays English in localized HWiNFO
+        if (label == "framerate presented (avg)") out.fps = x.value;
+        else if (label == "frame time presented (avg)") out.frametime_ms = x.value;
+        else if (label == "framerate presented (1% low)") out.low = x.value;
+    }
+    return out;
 }
 
 ojson hwinfo_sensors() {
@@ -238,6 +263,8 @@ struct SysMonitor::PresentTrace {
     std::vector<unsigned char> properties;
     std::thread thread;
     std::atomic<uint32_t> pid{0};
+    std::atomic<uint64_t> seen_any{0},seen_process{0},seen_present{0},property_failed{0};  // diagnostics for the n/a cause
+    double last_log=0;
     std::mutex mutex;
     struct Chain {FrameHistory frames;double last=0;};
     std::map<uint64_t,Chain> chains;
@@ -256,33 +283,57 @@ struct SysMonitor::PresentTrace {
     static bool property(EVENT_RECORD* e,const wchar_t* name,void* result,ULONG bytes){PROPERTY_DATA_DESCRIPTOR d{};d.PropertyName=reinterpret_cast<ULONGLONG>(name);d.ArrayIndex=ULONG_MAX;return TdhGetProperty(e,0,nullptr,1,&d,bytes,static_cast<PBYTE>(result))==ERROR_SUCCESS;}
     static void WINAPI event(EVENT_RECORD* e){
         auto self=static_cast<PresentTrace*>(e->UserContext);
-        if(e->EventHeader.ProcessId!=self->pid.load() || e->EventHeader.ProviderId!=provider || (e->EventHeader.EventDescriptor.Id!=42 && e->EventHeader.EventDescriptor.Id!=55))return;
+        ++self->seen_any;
+        if(e->EventHeader.ProcessId!=self->pid.load() || e->EventHeader.ProviderId!=provider)return;
+        ++self->seen_process;
+        if(e->EventHeader.EventDescriptor.Id!=42 && e->EventHeader.EventDescriptor.Id!=55)return;
         uint64_t swap=0;ULONG flags=0;
-        if(!property(e,L"pIDXGISwapChain",&swap,sizeof swap) || !property(e,L"Flags",&flags,sizeof flags) || (flags&1))return;
+        if(!property(e,L"pIDXGISwapChain",&swap,sizeof swap) || !property(e,L"Flags",&flags,sizeof flags)){++self->property_failed;return;}
+        if(flags&1)return;
+        ++self->seen_present;
         double t=e->EventHeader.TimeStamp.QuadPart/self->frequency;
         std::lock_guard lock(self->mutex);
         if(e->EventHeader.ProcessId!=self->pid)return;
         if(!self->chains.contains(swap) && self->chains.size()>=8)return;
         auto& c=self->chains[swap];c.last=t;c.frames.present(t);
     }
+    // Stops ETW sessions left behind by crashed ScreenBuddy processes (name ScreenBuddy.Game.<pid>.<tick>); sessions of
+    // running processes and foreign sessions are never touched. Failures are ignored (needs the same rights as StartTrace).
+    static void cleanup_orphans(){
+        constexpr size_t count=64,names=1024,each=sizeof(EVENT_TRACE_PROPERTIES)+2*names*sizeof(wchar_t);
+        std::vector<unsigned char> storage(count*each,0);std::vector<EVENT_TRACE_PROPERTIES*> list(count);
+        for(size_t i=0;i<count;++i){auto p=reinterpret_cast<EVENT_TRACE_PROPERTIES*>(storage.data()+i*each);p->Wnode.BufferSize=ULONG(each);p->LoggerNameOffset=sizeof(EVENT_TRACE_PROPERTIES);p->LogFileNameOffset=ULONG(sizeof(EVENT_TRACE_PROPERTIES)+names*sizeof(wchar_t));list[i]=p;}
+        ULONG found=0;if(QueryAllTracesW(list.data(),ULONG(count),&found)!=ERROR_SUCCESS)return;
+        const std::wstring prefix=L"ScreenBuddy.Game.";
+        for(ULONG i=0;i<found && i<count;++i){
+            auto text=reinterpret_cast<const wchar_t*>(reinterpret_cast<const unsigned char*>(list[i])+list[i]->LoggerNameOffset);std::wstring session(text,wcsnlen(text,names));
+            if(session.rfind(prefix,0)!=0)continue;
+            unsigned long owner=wcstoul(session.c_str()+prefix.size(),nullptr,10);
+            if(owner==GetCurrentProcessId())continue;
+            if(owner){HANDLE process=OpenProcess(SYNCHRONIZE|PROCESS_QUERY_LIMITED_INFORMATION,FALSE,owner);if(process){bool alive=WaitForSingleObject(process,0)==WAIT_TIMEOUT;CloseHandle(process);if(alive)continue;}}
+            ControlTraceW(0,session.c_str(),list[i],EVENT_TRACE_CONTROL_STOP);
+        }
+    }
     void start(){
+        cleanup_orphans();
         tried=true;name=L"ScreenBuddy.Game."+std::to_wstring(GetCurrentProcessId())+L"."+std::to_wstring(GetTickCount64());
         properties.assign(sizeof(EVENT_TRACE_PROPERTIES)+(name.size()+1)*sizeof(wchar_t),0);
         auto p=props();p->Wnode.BufferSize=ULONG(properties.size());p->Wnode.Flags=WNODE_FLAG_TRACED_GUID;p->Wnode.ClientContext=1;
         p->LogFileMode=EVENT_TRACE_REAL_TIME_MODE;p->LoggerNameOffset=sizeof(EVENT_TRACE_PROPERTIES);p->BufferSize=64;p->MinimumBuffers=2;p->MaximumBuffers=16;p->FlushTimer=1;
-        error=StartTraceW(&session,name.c_str(),p);if(error!=ERROR_SUCCESS){session=0;return;}
+        error=StartTraceW(&session,name.c_str(),p);if(error!=ERROR_SUCCESS){LOGW("fps","StartTrace fehlgeschlagen: %lu",unsigned long(error));session=0;return;}
         error=EnableTraceEx2(session,&provider,EVENT_CONTROL_CODE_ENABLE_PROVIDER,TRACE_LEVEL_VERBOSE,0x8000000000000002ull,0,0,nullptr);
-        if(error!=ERROR_SUCCESS){stop();return;}
+        if(error!=ERROR_SUCCESS){LOGW("fps","EnableTraceEx2 (DXGI) fehlgeschlagen: %lu",unsigned long(error));stop();return;}
         EVENT_TRACE_LOGFILEW log{};log.LoggerName=name.data();log.ProcessTraceMode=PROCESS_TRACE_MODE_REAL_TIME|PROCESS_TRACE_MODE_EVENT_RECORD|PROCESS_TRACE_MODE_RAW_TIMESTAMP;log.EventRecordCallback=&event;log.Context=this;
-        consumer=OpenTraceW(&log);if(consumer==INVALID_PROCESSTRACE_HANDLE){error=GetLastError();stop();return;}
+        consumer=OpenTraceW(&log);if(consumer==INVALID_PROCESSTRACE_HANDLE){error=GetLastError();LOGW("fps","OpenTrace fehlgeschlagen: %lu",unsigned long(error));stop();return;}
         const auto handle=consumer;thread=std::thread([handle]{auto trace=handle;ProcessTrace(&trace,1,nullptr,nullptr);});
     }
-    void target(uint32_t value){
+    void target(uint32_t value,bool warm){
         if(pid.exchange(value)!=value){std::lock_guard lock(mutex);chains.clear();}
-        if(!value && session){stop();tried=false;}
-        if(value && !tried)start();
+        if(!value && session && !warm){stop();tried=false;}
+        if((value||warm) && !tried)start();
     }
     FrameStats snapshot(double now){
+        if(pid.load() && now-last_log>=10){last_log=now;LOGI("fps","ETW pid=%u session=%d error=%lu events=%llu prozess=%llu present=%llu eigenschaft_fehler=%llu verloren=%lu",pid.load(),session?1:0,unsigned long(error),(unsigned long long)seen_any.load(),(unsigned long long)seen_process.load(),(unsigned long long)seen_present.load(),(unsigned long long)property_failed.load(),unsigned long(lost));}
         if(session && ControlTraceW(session,name.c_str(),props(),EVENT_TRACE_CONTROL_QUERY)==ERROR_SUCCESS && props()->EventsLost!=lost){lost=props()->EventsLost;std::lock_guard lock(mutex);chains.clear();return {};}
         std::lock_guard lock(mutex);FrameStats best;size_t count=0;
         for(const auto& [key,c]:chains) {auto s=c.frames.stats(now);if(s.intervals>count){count=s.intervals;best=std::move(s);}}
@@ -397,8 +448,10 @@ void SysMonitor::sample() {
         double mhz=0;for(const auto& core:power)mhz+=core.current;if(mhz>0)s.cpu_ghz=mhz/power.size()/1000.;
     }
     if(!trace_)trace_=std::make_unique<PresentTrace>();
-    const auto pid=game_pid_.load();trace_->target(pid);auto frames=trace_->snapshot(mono());
-    s.fps=frames.fps;s.frametime_ms=frames.frametime_ms;s.fps_low=frames.low;metric_history_.sample(s,pid,mono());s.fps_reason=trace_->reason();
+    const auto pid=game_pid_.load();trace_->target(pid,trace_warm_.load());auto frames=trace_->snapshot(mono());
+    s.fps=frames.fps;s.frametime_ms=frames.frametime_ms;s.fps_low=frames.low;s.fps_reason=trace_->reason();
+    if(pid && !s.fps && hw_fps_){s.fps=hw_fps_;s.frametime_ms=hw_frametime_?hw_frametime_:std::optional<double>(1000/ *hw_fps_);s.fps_low=hw_low_;s.fps_reason="hwinfo_presentmon";}  // only while a game is detected
+    metric_history_.sample(s,pid,mono());
     sample_ping();
     MEMORYSTATUSEX ms{sizeof ms};
     if (GlobalMemoryStatusEx(&ms)) {
@@ -483,8 +536,10 @@ void SysMonitor::sample_hwinfo() {
     SysSnapshot& s = snap_;
     auto r = hwinfo_readings();
     s.hwinfo = r.has_value();
-    s.cpu_temp.reset();s.cpu_fan.reset();s.disk_temp.reset();
+    s.cpu_temp.reset();s.cpu_fan.reset();s.disk_temp.reset();hw_fps_.reset();hw_frametime_.reset();hw_low_.reset();
     if (!r || r->empty()) return;
+    const auto presentmon = presentmon_values(*r, process_name(game_pid_.load()));
+    hw_fps_ = presentmon.fps; hw_frametime_ = presentmon.frametime_ms; hw_low_ = presentmon.low;
     s.cpu_temp = pick(*r, SENSOR_TEMP, {cpu_temp_sensor_, "CPU (Tctl/Tdie)", "CPU Package", "CPU Die (average)", "CPU"});
     s.cpu_fan = pick(*r, SENSOR_FAN,
                      {cpu_fan_sensor_, "CPU", "CPU_OPT", "AIO Pump", "AIO Pumpe", "Pumpe", "Chassis1"});

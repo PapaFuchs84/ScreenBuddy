@@ -21,10 +21,14 @@ struct Reading {
     uint32_t type;
     std::string sensor, label, unit;
     double value;
+    std::string label_orig;  // original (English) label; "label" may be a localized user label
 };
 inline constexpr uint32_t SENSOR_TEMP = 1, SENSOR_FAN = 3;
 
 std::optional<std::vector<Reading>> hwinfo_readings();
+// HWiNFO integrates PresentMon: sensor group "PresentMon" (foreground presenter, no process id). Pure function, unit-tested.
+struct PresentMonValues { std::optional<double> fps, frametime_ms, low; };
+PresentMonValues presentmon_values(const std::vector<Reading>& readings, const std::string& process = {});  // sensor group "PresentMon [<exe>]"
 ojson list_interfaces();   // [{"name", "description"}]
 ojson hwinfo_sensors();    // {"available", "temps", "fans"}
 std::pair<std::string, int> cpu_name();
@@ -60,6 +64,8 @@ public:
     void stop();
     SysSnapshot snapshot();
     void set_game_pid(uint32_t pid) { game_pid_=pid; }
+    // Game-Mode on: create the ETW session at app start, before a game (and its anti-cheat) runs; some anti-cheats refuse new sessions later.
+    void set_trace_warm(bool on) { trace_warm_=on; }
     void sample();               // eine Messung (auch für --demo)
     const SysSnapshot& raw() const { return snap_; }
 
@@ -81,9 +87,11 @@ private:
     uint64_t net_prev_in_ = 0, net_prev_out_ = 0;
     std::optional<uint32_t> net_idx_;
     double gpu_next_ = 0;
+    std::optional<double> hw_fps_, hw_frametime_, hw_low_;  // HWiNFO sensor group "PresentMon" (read-only fallback when ETW is unavailable)
     std::string ping_target_;
     std::optional<double> ping_previous_;
     std::atomic<uint32_t> game_pid_{0};
+    std::atomic<bool> trace_warm_{false};
     MetricHistory metric_history_;
     struct PresentTrace;
     std::unique_ptr<PresentTrace> trace_;

@@ -1,8 +1,8 @@
 ## Companion-App (ab 2.3.0): unabhängige Anzeigen
 
-Unveröffentlichter Kandidat: Companion 1.1.0 (Code 9), targetSdk 36, dunkles Standard-Design mit Orange-Akzenten; [Build- und Store-Vorbereitung](STORE-DISTRIBUTION.md). Die bisherige Veröffentlichung bleibt unverändert.
+Aktuelle Version: Companion 1.1.0 (Code 9), targetSdk 36, dunkles Standard-Design mit Orange-Akzenten; [Build- und Store-Vorbereitung](STORE-DISTRIBUTION.md). Vorgänger war 1.0.3.
 
-## Automatik (Companion 1.1.0, in Entwicklung)
+## Automatik (Companion 1.1.0)
 
 Die Automatik ist standardmäßig aus und benötigt eine vorhandene Kopplung. Sie nutzt die vorhandene lokale mDNS-Ankündigung des PC-Companion-Dienstes; eine Protokolländerung am PC ist dafür nicht nötig. PC und Android-Gerät müssen sich im privaten Netz erreichen, und mDNS darf nicht durch Gastnetz, Router oder Firewall blockiert sein. Ein Netzwechsel oder eine geänderte PC-Adresse kann die Erkennung verhindern; dann manuell verbinden und die gespeicherte Verbindung prüfen.
 
@@ -23,7 +23,7 @@ Zum Beenden der Automatik den Schalter in der Einrichtung ausschalten. Eine erte
 
 **Automatisierter Prüfstand 08.11.2026:** 40 JVM-Protokolltests bestanden (inkl. Logik der TCP-Erreichbarkeitsprüfung), Debug-APK und signierte Release-APK gebaut. **Geräteprüfung Redmi 8 (Android 14), 09.11.2026, bei ausgeschaltetem Bildschirm:** ScreenBuddy am PC beendet, die Anzeige schloss nach zwei fehlgeschlagenen Prüfungen und 20 Sekunden Karenz, rund 2,5 Minuten nach dem Ausschalten des Bildschirms. Nach dem Neustart von ScreenBuddy öffnete sich die Anzeige und der Bildschirm ging an, 74 Sekunden nach dem PC-Start. Jeweils ein Durchlauf, nicht wiederholt. Noch nicht geprüft: Pixel (nicht per adb erreichbar), Android-TV mit echtem PC-Start/-Ende, Wiederholungen und andere Geräte. Die APK-Signatur wurde geprüft; das Signierzertifikat stimmt mit der veröffentlichten Companion-App 1.0.3 überein. Debug- und Release-Lint: 37 Warnungen, 0 Fehler. Die Version bleibt unveröffentlicht; Build und Signaturprüfung belegen keine Geräteabnahme.
 
-**Prüfgrenzen des Kandidaten:** Reale Freigabedialoge, Aufwecken aus gesperrtem Zustand, Start nach Android-Boot, PC-Start/-Ende, Netzunterbrechung und Wiederverbindung sowie Finger-/Fernbedienung am Redmi, Pixel und TV sind für 1.1.0 noch abzunehmen. Frühere Prüfstände unten beziehen sich auf die jeweils genannte Version.
+**Prüfgrenzen von 1.1.0:** Reale Freigabedialoge, Aufwecken aus gesperrtem Zustand, Start nach Android-Boot, PC-Start/-Ende, Netzunterbrechung und Wiederverbindung sowie Finger-/Fernbedienung am Redmi, Pixel und TV sind für 1.1.0 noch abzunehmen. Frühere Prüfstände unten beziehen sich auf die jeweils genannte Version.
 
 **Stand 31.10.2026:** Die aktuelle Companion-App 1.0.3 (versionCode 7; neues Login-Design in Hell und Dunkel; seit 1.0.1 mit Abstand zu abgerundeten Ecken und Kamera-Ausschnitt) ist ein separater Download und nicht Teil der Windows-EXE. Der Gerätetest am Redmi 8 über USB-Tethering vom 27.10.2026 (Quer-/Hochformat, echte Fingerbedienung, automatischer Wechsel und Wiederverbindung ohne neue PIN) galt dem Vorgänger 0.2.1-preview (versionCode 3, mit neuem RSA-3072-Release-Schlüssel signiert, APK-v2-Signatur geprüft). Für die Companion-App 1.0.3 wurde die Oberfläche am 31.10.2026 auf Pixel 10 Pro, Redmi 8 und BeyondTV installiert und per Screenshot geprüft; ein vollständiger Verbindungstest ist im [Testprotokoll](../cpp/TESTPROTOKOLL.md) kein eigener Gerätetest dokumentiert. Die bisherige Debug-APK hat eine andere Signatur und lässt sich nicht direkt damit aktualisieren. Nicht automatisch deinstallieren: lokale Daten und Kopplungen würden gelöscht. [Build, Signierung und Migration](../android/README.md). Frühere Geräteergebnisse unten gelten für 0.2.0-preview.
 

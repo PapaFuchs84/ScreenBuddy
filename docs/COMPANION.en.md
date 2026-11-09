@@ -1,8 +1,8 @@
 ## Companion app (from 2.3.0): independent displays
 
-Unpublished candidate: Companion 1.1.0 (code 9), targetSdk 36, dark default design with orange accents; [build and Store preparation](STORE-DISTRIBUTION.en.md). The previously published release is unchanged.
+Current version: Companion 1.1.0 (code 9), targetSdk 36, dark default design with orange accents; [build and Store preparation](STORE-DISTRIBUTION.en.md). The predecessor was 1.0.3.
 
-## Automatic mode (Companion 1.1.0, in development)
+## Automatic mode (Companion 1.1.0)
 
 Automatic mode defaults to off and requires an existing pairing. It uses the PC Companion service's existing local mDNS announcement; no PC protocol change is required. The PC and Android device must be reachable on the private network, and the guest network, router or firewall must not block mDNS. Network changes or a changed PC address can prevent detection; connect manually and check the saved connection in that case.
 
@@ -21,7 +21,7 @@ In Android system settings, the app is named **FuchsLabs Display**. Search under
 
 Turn the setup switch off to stop automatic mode. An already granted device-administrator permission remains an Android system setting; revoke it under device administrators, including before uninstalling where required. After an Android restart, enabled automatic mode attempts to resume standby. Android battery saving, force-stop and manufacturer restrictions can prevent it; open the app manually and check system permissions if necessary. Manual use remains available without automatic mode.
 
-**Automated validation, 8 November 2026:** 40 JVM protocol tests passed (including the TCP reachability-check logic); debug and signed release APKs built. **Device test, Redmi 8 (Android 14), 9 November 2026, screen off:** with ScreenBuddy closed on the PC, the display closed after two failed checks and the 20-second grace period, about 2.5 minutes after the screen was switched off. After restarting ScreenBuddy, the display opened and the screen turned on 74 seconds after the PC started. One run each, not repeated. Not yet tested: Pixel (not reachable via adb), Android TV with a real PC start/stop, repeats and other devices. The APK signature was verified and the signing certificate matches the published Companion app 1.0.3. Debug and release lint: 37 warnings, 0 errors. The version remains unpublished; build and signature verification do not establish device acceptance.
+**Automated validation, 8 November 2026:** 40 JVM protocol tests passed (including the TCP reachability-check logic); debug and signed release APKs built. **Device test, Redmi 8 (Android 14), 9 November 2026, screen off:** with ScreenBuddy closed on the PC, the display closed after two failed checks and the 20-second grace period, about 2.5 minutes after the screen was switched off. After restarting ScreenBuddy, the display opened and the screen turned on 74 seconds after the PC started. One run each, not repeated. Not yet tested: Pixel (not reachable via adb), Android TV with a real PC start/stop, repeats and other devices. The APK signature was verified and the signing certificate matches the published Companion app 1.0.3. Debug and release lint: 37 warnings, 0 errors. Build and signature verification do not establish device acceptance.
 
 **Candidate validation limits:** Real permission dialogs, waking from a locked state, Android boot startup, PC start/quit, network interruptions/reconnection and physical touch/remote operation on Redmi, Pixel and TV still require acceptance for 1.1.0. Earlier results below apply to their named versions.
 
