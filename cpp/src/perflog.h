@@ -13,7 +13,9 @@ bool test_override_active();
 void set_test_override(Access value);  // tests only: makes the status independent of the machine
 // Starts this EXE elevated (one UAC prompt, ShellExecute "runas") with "--grant-perflog <user SID>" and waits for it.
 // Returns true when the helper ended successfully. Never keeps administrator rights.
+// Packaged Store builds return false without launching an elevation prompt.
 bool request_grant();
 // Entry point of the elevated helper: adds the SID to the group. Returns a process exit code (0 = success).
+// Packaged Store builds return ERROR_NOT_SUPPORTED before changing group membership.
 int run_helper(const std::wstring& user_sid);
 }

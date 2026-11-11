@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "util.h"
 #include "perflog.h"
+#include "distribution.h"
 #include "sysinfo.h"
 namespace fl::ui {
 namespace {
@@ -26,6 +27,11 @@ class GameModePage:public Page {
     static Label::Tone status_tone(){if(hwinfo_fps())return Label::Success;return perflog::access()==perflog::Access::Granted?Label::Success:perflog::access()==perflog::Access::NeedsRelogin?Label::Accent:perflog::access()==perflog::Access::Blocked?Label::Danger:Label::Muted;}
     void grant(Host& host){
         if(perflog::access()==perflog::Access::Granted){host.toast(T(L"FPS-Messung ist bereits aktiv.",L"FPS measurement is already active."));return;}
+        if(distribution::packaged()){
+            if(fps_status_){fps_status_->text=status_text();fps_status_->tone=status_tone();}
+            host.toast(status_text());
+            host.relayout();return;
+        }
         Host* h=&host;
         host.run([this,h]()->std::function<void()>{
             const bool ok=perflog::request_grant();  // one UAC prompt; the helper is this EXE with --grant-perflog
@@ -54,7 +60,8 @@ public:
         form_.text(*card,"game_mode","ping_target",T(L"Ping-Ziel (IPv4)",L"Ping target (IPv4)"));
         auto fps=root.add<Card>(T(L"FPS-Messung",L"FPS measurement"),T(L"Liest Windows-Present-Ereignisse (ETW), ohne Eingriff in Spiele. Braucht einmalig die Gruppe „Leistungsprotokollbenutzer“.",L"Reads Windows present events (ETW) without touching games. Needs membership in the “Performance Log Users” group once."));
         fps_status_=fps->add<Label>(status_text());fps_status_->tone=status_tone();
-        fps_button_=fps->add<Button>(T(L"FPS-Messung aktivieren",L"Enable FPS measurement"),Button::Secondary,[this,h=&host]{grant(*h);});
+        fps_button_=fps->add<Button>(distribution::packaged()?T(L"FPS-Berechtigung prüfen",L"Check FPS permission"):T(L"FPS-Messung aktivieren",L"Enable FPS measurement"),Button::Secondary,[this,h=&host]{grant(*h);});
+        if(distribution::packaged())fps->add<Note>(T(L"Die Store-Version ändert keine Windows-Gruppen. Fehlt das Recht, bitte einen Administrator um Aufnahme deines Windows-Kontos in „Leistungsprotokollbenutzer“ bitten und danach ab- und wieder anmelden. Bereits vorhandene Rechte und HWiNFO-FPS können weiter genutzt werden.",L"The Store version does not change Windows groups. If permission is missing, ask an administrator to add your Windows account to “Performance Log Users”, then sign out and back in. Existing permissions and HWiNFO FPS remain available."));
         auto paths=root.add<Card>(T(L"Erkennung",L"Detection"));
         auto additional=form_.text(*paths,"game_mode","additional_games",T(L"Zusätzliche Spiele",L"Additional games"),T(L"Absolute EXE-Pfade, ein Pfad pro Zeile.",L"Absolute EXE paths, one path per line."));additional->kind=TextField::Multi;additional->lines=4;additional->limit=32768;
         auto excluded=form_.text(*paths,"game_mode","exclusions",T(L"Ausschlüsse",L"Exclusions"),T(L"EXE-Pfad oder Dateiname, ein Eintrag pro Zeile.",L"EXE path or filename, one entry per line."));excluded->kind=TextField::Multi;excluded->lines=4;excluded->limit=32768;

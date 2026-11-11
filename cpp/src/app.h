@@ -247,7 +247,7 @@ private:
     std::mutex stop_threads_mu_;
     std::vector<std::jthread> stop_threads_;
     std::optional<Image> last_frame_, companion_frame_;
-    ojson companion_navigation_;
+    ojson companion_navigation_ = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
     ojson navigation_ = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
     bool display_ok_;
     std::string display_error_;

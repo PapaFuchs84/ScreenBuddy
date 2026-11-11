@@ -1,6 +1,6 @@
 <div align="center">
 
-Store edition in preparation: [Microsoft Store / Companion build](docs/STORE-DISTRIBUTION.en.md). No Store publication yet.
+Store edition “ScreenBuddy by FuchsLabs” in preparation: [Microsoft Store / Companion build](docs/STORE-DISTRIBUTION.en.md). No Store publication yet. [App privacy](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
 
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>

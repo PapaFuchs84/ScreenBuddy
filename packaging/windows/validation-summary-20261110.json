@@ -1,0 +1,109 @@
+{
+  "sourceCommit": "7b8d0c16ebf030dc598c9a9616ffd4ce9f149e3f",
+  "sourceChangesUncommitted": true,
+  "windowsVersion": "2.11.0",
+  "binarySHA256": "b78e2dc576beea84c169b888349ce1cb80ca594d9403dea43f0dff8eeab2a466",
+  "runDate": "2026-11-10",
+  "releaseSuites": {
+    "failed": 0,
+    "isolation": "temporary private Windows desktop; no visible desktop switch",
+    "existingAssertionsPreserved": true,
+    "goldenReferencesModified": false,
+    "evidence": [
+      "cpp/build/release-checks-final-private-20261110/results.json",
+      "cpp/build/release-checks-final-private-20261110/console.txt"
+    ],
+    "attempted": 25,
+    "runner": "cpp/tests/run_release_checks.py",
+    "passed": 25
+  },
+  "checks": {
+    "coreAssertions": 3556,
+    "installerPreservationCases": 2,
+    "builtinHitMaps": 4221,
+    "layoutAssertions": 1877,
+    "builtinImages": 4221,
+    "companionIntegrationChecks": 40
+  },
+  "extraSuites": {
+    "customViewChecks": 2144,
+    "passed": 2,
+    "evidence": [
+      "cpp/build/extra-checks-final-20261110/results.json"
+    ],
+    "gameChecks": 290,
+    "attempted": 2
+  },
+  "fontPrerequisite": {
+    "evidence": [
+      "cpp/build/font-source/verification.json",
+      "cpp/build/font-source/registration.json"
+    ],
+    "version": "3.016",
+    "officialArchiveSHA256": "1653dbe12f248da8fb0b9920db7b9496cd677ed3981154f6f15285c8bd4e334f",
+    "family": "Roboto",
+    "scope": "six missing current-user registrations of existing official files",
+    "fontBundled": false
+  },
+  "msix": {
+    "syntheticUpdate": true,
+    "startupRoundtrip": true,
+    "uninstalled": true,
+    "fpsElevationBlocked": true,
+    "dataRetained": true,
+    "vendorElevationBlocked": true,
+    "developerRegistration": true,
+    "overwriteProtected": true,
+    "importWhatIf": true,
+    "evidence": [
+      "cpp/build/msix-checks-final-20261110/results.json",
+      "cpp/build/msix-checks-final-20261110/before-update.json",
+      "cpp/build/msix-checks-final-20261110/after-update.json"
+    ],
+    "officialIdentity": false,
+    "syntheticVersion": "2.11.1.0",
+    "makeAppx": true
+  },
+  "packagingFixture": {
+    "evidence": [
+      "cpp/build/packaging-displayname-final-20261110.txt"
+    ],
+    "freshPackageHashOnly": true,
+    "invalidIdentityAndDisplayNameRejected": true,
+    "displayNameDefaultAndAlternateForwarding": true,
+    "existingAssetsProtected": true,
+    "recursiveAssetsAndSixDocuments": true,
+    "passed": true,
+    "actualMakeAppxDisplayNameEscaping": {
+      "passed": true,
+      "xmlAmpersandAndAngleBracketsEscaped": true,
+      "scope": "local test package only, not registered",
+      "decodedProductAppStartupAndPublisherExact": true,
+      "evidence": "cpp/build/msix-displayname-20261110/results.json"
+    }
+  },
+  "wack": {
+    "overallResult": "PASS",
+    "requiredPassed": 13,
+    "requiredTotal": 13,
+    "partialRun": false,
+    "optionalPassed": 10,
+    "optionalWarning": "Informational blocked-executables / S-mode diagnostic; no S-mode compatibility claim",
+    "packageSHA256": "d050177351a490e56d84ff4b61235466e7ba1bf111d2f2e3774a046165d7f6f7",
+    "officialStoreId": "9P03461RLGG0",
+    "evidence": [
+      "cpp/build/wack-official-20261110/sanitized-summary.json"
+    ],
+    "optionalTotal": 11
+  },
+  "physicalAcceptance": false,
+  "signedStoreServicingTested": false,
+  "storeCertification": false,
+  "testResourceCleanup": {
+    "nativeLayoutOrSnapshotProcessesRemaining": 0,
+    "temporaryTestDesktopsRemaining": 0,
+    "verified": true,
+    "localValidationPackagesRemaining": 0,
+    "method": "read-only EnumDesktops, Get-AppxPackage, and Get-Process after tests"
+  }
+}

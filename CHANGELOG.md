@@ -4,6 +4,18 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+### Behoben
+
+- Windows-Prüfungen: Temporärer privater Testdesktop hält echte HWND-Tastaturtests unabhängig von anderen Anwendungen; die Geräteeditor-Prüfung wartet nach Vorschauaufgaben auf einen aktualisierten Leerlaufzustand vor „Übernehmen“. Referenzbilder und fachliche Prüfungen bleiben erhalten.
+- Microsoft Store: reservierter Titel „ScreenBuddy by FuchsLabs“, exakte offizielle Paketidentität und konfigurierbarer XML-maskierter DisplayName; App-Datenschutz und Support zweisprachig vorbereitet/veröffentlicht, ohne öffentliche unsignierte EXE-Auslieferung.
+- Companion: Die Seitennavigation liefert bereits beim Start ein Objekt mit leerer Seitenliste statt `null`; API-Abfragen zwischen Serverstart und erstem Companion-Bild bleiben dadurch gültig.
+- Game-Mode-Prüfung verwendet die ScreenBuddy.exe neben der Test-EXE statt eines fest verdrahteten Buildordners; alternative Buildverzeichnisse werden korrekt geprüft.
+- Store-Ausgabe: Hersteller-Autostart wird außerhalb der App über die Windows-Aufgabenplanung verwaltet; ScreenBuddy startet dafür keine erhöhten Aufgabenplanungsbefehle.
+- Store-Ausgabe: FPS-Einrichtung startet keinen erhöhten Hilfsprozess; stattdessen erklärt „FPS-Berechtigung prüfen“ die Freigabe durch einen Administrator. Vorhandene ETW-Berechtigungen und HWiNFO-Messwerte bleiben nutzbar.
+- Store-Vorbereitung auf Basis von 2.11.0: Prüfsummen beziehen sich ausschließlich auf das neu gebaute MSIX; Screenshots mit Herkunftsmanifest und Store-Logos werden mitkopiert. Aktuelle Kontosperre und verbleibende Einreichungsschritte dokumentiert.
+
 ## [2.11.0] - 2026-11-08
 
 Companion-App bleibt 1.0.3.

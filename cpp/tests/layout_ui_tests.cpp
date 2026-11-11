@@ -1,6 +1,7 @@
 // © 2026 FuchsLabs – isolierte native Editorprüfung, keine App-/Netzwerk-Schleife.
 #include "ui_pages.h"
 #include "perflog.h"
+#include "distribution.h"
 #include "custom_view_editor.h"
 #include "ui_layout_grid.h"
 #include "ui_editor.h"
@@ -431,7 +432,8 @@ static void device_editor_tests(const fs::path& root) {
     h.actions.device_layout_apply=[&](bool,const auto& id,const auto& device,const auto& j){CHECK(h.store.set_arrangement(id,j.dump(),device));};
     h.actions.device_layout_reset=[&](bool,const auto& id,const auto& device){CHECK(h.store.clear_arrangement(id,device));};
     auto page=make_layout_page();page->build(h,h.root);page->shown(h);h.drain();page->tick(h,h.state);h.drain();
-    auto settle=[&]{page->tick(h,h.state);h.drain();page->tick(h,h.state);h.drain();page->tick(h,h.state);};
+    // Preview completion needs another UI tick to refresh Apply's enabled state.
+    auto settle=[&]{bool idle=false;for(int i=0;i<12;++i){page->tick(h,h.state);const bool work=h.busy();h.drain();if(!work){idle=true;break;}}CHECK(idle && !h.busy());};
     auto grid=h.find<GridEditor>();CHECK(grid);if(!grid)return;
     auto model=grid->model;model.layout["columns"]={2,1,1};grid->on_edit(model,"");
     auto phone=h.find<Button>(L"Phone · 320 × 480 · Hoch · erbt Standard");CHECK(phone);if(!phone)return;
@@ -439,7 +441,7 @@ static void device_editor_tests(const fs::path& root) {
     CHECK(h.find<GridEditor>()->model.layout["columns"][0]==2);
     h.confirm_answer=true;phone->activate(h.view);settle();
     auto orientation=h.find<Segment>(L"Ausrichtung");CHECK(orientation && orientation->index==1);
-    auto apply=h.find<Button>(L"Übernehmen");CHECK(apply);if(apply)apply->activate(h.view);settle();
+    auto apply=h.find<Button>(L"Übernehmen");CHECK(apply && apply->enabled);if(apply)apply->activate(h.view);settle();
     CHECK(h.store.arrangement_get("editor-test","phone")["inherited"]==false);
     auto own_tab=h.find<Button>(L"Phone · 320 × 480 · Hoch · eigene Anordnung");
     CHECK(own_tab && own_tab->role()==Role::NavTab && own_tab->checked());
@@ -1088,7 +1090,56 @@ static void game_mode_ui_tests(const fs::path& root,const fs::path& images,bool 
     if(record){std::ofstream out(baseline);for(const auto& [key,hash]:actual)out<<key<<' '<<hash<<'\n';CHECK(bool(out));}else CHECK(expected.size()==actual.size());
 }
 
+// Explicit developer export, separate from golden recording and normal tests.
+// Uses the real native page/widget renderer without opening or activating a window.
+static int export_store_listing(const fs::path& output) {
+    if(fs::exists(output) && !fs::is_empty(output))throw std::runtime_error("Use a fresh screenshot directory.");
+    fs::create_directories(output);
+    const auto root=fs::temp_directory_path()/("fl-store-listing-"+std::to_string(GetCurrentProcessId()));
+    if(fs::exists(root))throw std::runtime_error("Screenshot fixture directory already exists.");
+    struct Cleanup { fs::path path; ~Cleanup(){std::error_code ec;fs::remove_all(path,ec);} } cleanup{root};
+    fs::create_directories(root);
+    perflog::set_test_override(perflog::Access::NotMember);
+    ojson report={{"appVersion",VERSION},{"packaged",distribution::packaged()},
+                  {"capture","Native Page/TreeCanvas renderer, isolated synthetic fixtures, no window/desktop capture"},
+                  {"sampleDataOnly",true},{"hardwareEvidence",false},{"images",ojson::array()}};
+    if(distribution::packaged()) {
+        TestHost host(root/"help-check");auto page=make_app_page();page->build(host,host.root);
+        auto privacy=host.find<Button>(L"Datenschutzerklärung");auto support=host.find<Button>(L"Support");
+        if(!privacy || !support || privacy->text.get(true)!=L"Privacy policy" || !privacy->on_click || !support->on_click)
+            throw std::runtime_error("Packaged privacy/support controls are missing.");
+        report["privacySupportControls"]=true;
+        host.view.set_root(nullptr);
+    }
+    for(bool english:{false,true})for(bool editor:{false,true}) {
+        i18n::set_lang(english?"en":"de");
+        auto cfg=offline_config();cfg["ai"]["enabled"]=false;cfg["ui"]["plugin_store"]=false;
+        cfg["ui"]["language"]=english?"en":"de";cfg["game_mode"]["view"]="custom:store-example-game";
+        const std::string name=std::string(english?"en-":"de-")+(editor?"editor":"game-mode")+".png";
+        TestHost host(root/name,cfg);
+        host.kit.english=english;host.kit.use_design({{"theme",theme::DEFAULT_ID}});host.kit.use_windows(false);host.kit.dark=true;
+        host.actions.layout_displays=[] {return Json::array({{{"id","monitor:sample"},{"name","Example monitor"},{"width",1920},{"height",1080},{"usable_width",1920},{"usable_height",1080},{"online",true}}});};
+        auto error=custom::Store(host.dir/"views").save(custom::game_mode_template("store-example-game"));
+        if(!error.empty())throw std::runtime_error(error);
+        auto page=editor?make_custom_views_page():make_game_mode_page();
+        page->build(host,host.root);page->shown(host);settle(host,*page);
+        TreeCanvas canvas(host.kit,1600,1200);layout_tree(host.kit,canvas,host.root);
+        auto rendered=paint_tree(host.kit,canvas,host.root,true);
+        snapshot::write_png(output/name,rendered);
+        report["images"].push_back({{"file",name},{"language",english?"en":"de"},{"width",rendered.w},{"height",rendered.h}});
+        page->hidden(host);host.view.set_root(nullptr);
+    }
+    i18n::set_lang("de");
+    std::ofstream(output/"capture-report.json")<<report.dump(2);
+    std::printf("Exported four native sample renders; packaged=%s\n",distribution::packaged()?"true":"false");
+    return 0;
+}
+
 int main(int argc,char** argv) {
+    if(argc==3 && std::string(argv[1])=="--export-store-listing") {
+        try {gfx_init();return export_store_listing(fs::path(argv[2]));}
+        catch(const std::exception& e){std::fprintf(stderr,"Store sample export: %s\n",e.what());return 1;}
+    }
     setvbuf(stdout,nullptr,_IONBF,0);
     gfx_init(); SetConsoleOutputCP(CP_UTF8); capture_tests();
     if(argc==2 && std::string(argv[1])=="--capture-only") { std::printf("Capture: %d passed, %d failed\n",passed,failed); return failed?1:0; }

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Windows-Testumgebung / Windows test environment: `tests/Run-ReleaseChecks.ps1` startet den unveränderten vollständigen Runner auf einem temporären privaten Desktop ohne sichtbaren Desktopwechsel. Die Geräteeditor-Prüfung pumpt Aufgaben bis zu einem tatsächlichen UI-Leerlauf und prüft „Übernehmen“ auf Aktivierung. No assertions or goldens are removed; real HWND input paths remain exercised independently of other applications.
+
+- Companion-Start / Companion startup: Initialer Navigationszustand ist wie bei der Hauptanzeige ein leeres Objektmodell statt JSON-`null`; die bestehende App-Integration prüft zusätzlich den Objektvertrag während des Starts. Initial navigation uses the same empty object state as the primary display instead of JSON `null`; app integration also checks the startup object contract.
+
+- Store-Ausgabe / Store edition: „Hilfe & Datenschutz“ in „Updates & Autostart“ öffnet die appbezogene Datenschutzerklärung und Supportseite von FuchsLabs im Standardbrowser. “Help & privacy” links the app-specific privacy policy and support page in the default browser.
+
+- Store-Bilder / Store images: `fl-layout-ui-tests --export-store-listing <neuer Ordner>` exportiert vier DE/EN-Beispielbilder mit dem echten nativen Seitenrenderer und protokolliert Version/Paketkontext; kein Desktopzugriff, keine echten Konten/Geräte und keine Änderung an Snapshot-Referenzen. Exports four German/English sample renders and records version/package context without desktop capture, real accounts/devices or golden changes.
+
+- Tests: Game-Mode-Iconprüfung verwendet die App neben der Test-EXE statt eines festen Buildordners. / Game Mode icon tests resolve the app beside the test executable instead of a fixed build directory.
+
+- Microsoft Store: Paketierte Builds starten weder den FPS-Gruppenhelfer noch die erhöhte Hersteller-Autostart-Abschaltung. DE/EN-Hinweise erklären die Einrichtung durch einen Administrator außerhalb der App; vorhandene ETW-Rechte und HWiNFO-FPS bleiben verfügbar. Die Paketprüfung kontrolliert beide gesperrten Einstiegspunkte ohne Änderungen an Windows-Gruppen oder Aufgaben.
+- Microsoft Store: Packaged builds do not launch the FPS group helper or elevated vendor-startup changes. German/English guidance explains administrator setup outside the app; existing ETW permissions and HWiNFO FPS remain available. The package probe checks blocked entry points without changing Windows groups or tasks.
+
 BF6: Spieler-ID im Eintrag (`Name#ID`, `Name@psn#ID`, ab 6 Ziffern), Abfrage per `playerid`, Auto-Heilung (ID aus Namenssuche im Speicher und in `config.toml`), Rückfall über `/bf6/player`-Suche und Namensvarianten; „Prüfen“ liefert `id`, Web-Link nutzt `/playerid/`. Neue Tests für `parse_entry_full`, `pick_search_id` und Touch-Ziele.
 
 P9-9: Toolhelp-Einträge auch bei verweigertem Prozesshandle/Image-Pfad erhalten; begrenzter EXE-Cache je Bibliothek, eindeutiger Dateinamen-Fallback mit Vordergrund/Vollbild und PID-/Namensbindung. EAAntiCheat.GameService*.exe sowie Installer/Crash-/Hilfsprogramme ausschließen. Simulierte BF6-/Entprellungs-/Filtertests, DE/EN-Dokumentation; echte Javelin-/FPS-/Displayabnahme offen.
