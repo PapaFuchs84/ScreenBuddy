@@ -49,10 +49,8 @@ Unter **Einstellungen → Anzeige → Animationen** lässt sich die globale Anim
 
 ## Grenzen und Prüfstatus
 
-Prüfstatus 2.12.0: siehe Release-Notizen
-<!-- PRÜFSTATUS-2.12 -->
+**Prüfstatus 2.12.0 (integrierter Build):** 25 C++-Testsuiten ohne Fehler, darunter 3556 Kernregression, 1877 Layout-UI, 4221 eingebaute Snapshots mit Trefferkarten, 2101 Plugin-Snapshots, 448 Companion (einschließlich USB-Ausgabethread), 119 Hardware-HUD, 2144 eigene Ansichten, 845 Plugin-Zeitplanung und 290 Game-Prüfungen. Isolierte Integration: Installer-Erhalt (2), App-Companion-Integration (40) und Standalone-Distribution bestanden. Zusätzlich vier Codex-Reviewrunden; deren Befunde sind behoben.
 
-**Softwareprüfungen (Kandidatenstand vor der Integration):** 119 Prüfungen zu HUD, globaler Migration und KI, 434 Companion, 3556 Kernregression, 2144 eigene Ansichten, 845 Plugin-Zeitplanung und 290 Game-Prüfungen bestanden. Der vollständige Lauf des integrierten 2.12.0-Builds wird wiederholt.
 
 **Physisch geprüft:**
 

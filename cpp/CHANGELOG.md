@@ -2,8 +2,7 @@
 
 ## 2.12.0 – 2026-11-14
 
-Prüfstatus 2.12.0: siehe Release-Notizen
-<!-- PRÜFSTATUS-2.12 -->
+Prüfstatus / Test status 2.12.0: 25 C++-Suiten/suites 0 Fehler/failures (3556 Kern/core, 1877 Layout-UI, 4221 Snapshots, 2101 Plugin-Snapshots, 448 Companion, 119 HUD, 2144 Custom, 845 Schedule, 290 Game); Integration: Installer 2, App-Companion 40, Standalone ok.
 
 - Hardware-HUD / Hardware HUD: Optionale HUD-Ansicht der Systemseite (Einstellung unter „System“) mit Neon-Vektorgrafik, automatisch wechselnden Seiten Übersicht/GPU/CPU, Lüfter-/Ring-/Pulsanimationen und Layouts für breite, normale und Hochkant-Displays; gemessene Textbreiten und Umbrüche verhindern überlappende Beschriftungen. Optional HUD view for the System page (setting under “System”) with neon vector graphics, auto-rotating Overview/GPU/CPU pages, fan/ring/pulse animations and layouts for wide, normal and portrait displays; measured text widths and wrapping prevent overlapping labels.
 
