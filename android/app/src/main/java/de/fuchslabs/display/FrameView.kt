@@ -100,11 +100,13 @@ class FrameView(ctx: Context) : View(ctx) {
     private val decoded = LatestSlot<Decoded>()
     /** Wird von [clearPending] erhoeht; Bilder aus einer frueheren Epoche werden nicht mehr angezeigt. */
     @Volatile private var epoch = 0
+    /** Epoche des angezeigten Bildes; nur Main-Thread. Tippen zaehlt erst, wenn ein Bild des aktuellen Ziels sichtbar ist. */
+    private var shownEpoch = -1
     private val showDecoded = Runnable {
         val d = decoded.take() ?: return@Runnable
         if (d.epoch != epoch) { d.bitmap.recycle(); return@Runnable }
         // Das bisher angezeigte Bitmap wird nicht recycelt: der letzte Zeichenvorgang kann es noch referenzieren.
-        bmp = d.bitmap; bgColor = d.bg or Color.BLACK; invalidate()
+        bmp = d.bitmap; bgColor = d.bg or Color.BLACK; shownEpoch = d.epoch; invalidate()
     }
 
     /**
@@ -170,6 +172,8 @@ class FrameView(ctx: Context) : View(ctx) {
         when (e.actionMasked) {
             MotionEvent.ACTION_UP -> if (!swiped && abs(e.x - downX) < slop && abs(e.y - downY) < slop) {
                 val shown = bmp ?: return true
+                // Nach einem Zielwechsel zeigt das stehende Bild noch den vorherigen PC: kein Tippen dorthin weiterleiten.
+                if (shownEpoch != epoch) return true
                 if (shown.width != rw || shown.height != rh) return true
                 val lb = Letterbox.compute(contentWidth, contentHeight, rw, rh)
                 lb.toRender(e.x - insL, e.y - insT)?.let { (x, y) -> onTouchRender?.invoke(x, y) }

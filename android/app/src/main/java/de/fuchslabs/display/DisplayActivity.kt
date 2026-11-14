@@ -42,7 +42,9 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = Store(this)
-        autoOpened = intent.getBooleanExtra(EXTRA_AUTO, false)
+        // Nach einem Neuaufbau (z. B. Sprachwechsel) gilt die zuletzt wirksame Zuordnung, nicht ein spaeter
+        // eingetroffener Automatik-Intent.
+        autoOpened = savedInstanceState?.getBoolean(STATE_AUTO) ?: intent.getBooleanExtra(EXTRA_AUTO, false)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         frameView = FrameView(this)
         status = TextView(this).apply {
@@ -89,6 +91,11 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         override fun onReceive(c: android.content.Context, i: Intent) { finishAndRemoveTask() }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_AUTO, autoOpened)
+    }
+
     override fun onStart() {
         super.onStart()
         started = true
@@ -116,6 +123,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         // Eine manuell geoeffnete, bereits sichtbare Anzeige bleibt manuell: die Automatik hat sie nicht in den
         // Vordergrund geholt und darf das Geraet beim Verschwinden des PCs deshalb nicht sperren.
         autoOpened = AutoOwnership.afterNewIntent(auto, autoOpened, started)
+        intent.putExtra(EXTRA_AUTO, autoOpened) // gespeicherter Intent spiegelt die wirksame Zuordnung
         if (autoOpened && started) autoForeground = token
         else if (!autoOpened && autoForeground === token) autoForeground = null
         // Gleiches gespeichertes Ziel und der Client laeuft bereits: nichts neu aufzubauen.
@@ -246,6 +254,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         const val EXTRA_PIN = "pin"; const val EXTRA_NAME = "name"
         /** Gesetzt vom StandbyService, wenn die Automatik die Anzeige oeffnet. */
         const val EXTRA_AUTO = "auto"
+        private const val STATE_AUTO = "auto_opened"
 
         /** Kennung der von der Automatik geoeffneten Instanz, solange sie zwischen onStart und onStop sichtbar ist. */
         @Volatile private var autoForeground: Any? = null
