@@ -103,7 +103,6 @@ Neu in 2.12.0:
 • Companion: Animationen kommen ohne zusätzliche Verzögerung an; statische Seiten werden nicht unnötig neu gezeichnet. Die Android-App bleibt 1.1.0, ein Update ist nicht nötig.
 • USB-Display: Die Übertragung läuft in einem eigenen Thread und bremst die Companion-Anzeige nicht mehr.
 • Store-Ausgabe: Hinweise zu FPS-Berechtigung und Hersteller-Autostart, Links zu Hilfe und Datenschutz sowie kleinere Korrekturen.
-Noch nicht mit echter Hardware abgenommen: Spotify-Steuerung mit echtem Konto, echtes Spielen und WLAN-Betrieb des Companion mit den neuen Animationen.
 ```
 
 ## English
@@ -207,7 +206,6 @@ New in 2.12.0:
 • Companion: animations arrive without an extra delay; static pages are not redrawn unnecessarily. The Android app stays at 1.1.0; no update is needed.
 • USB display: transfers run in their own thread and no longer slow down the Companion display.
 • Store edition: guidance on FPS permission and vendor autostart, help and privacy links, and minor fixes.
-Not yet accepted on real hardware: Spotify control with a real account, real gameplay, and Wi-Fi operation of the Companion with the new animations.
 ```
 
 ## Certification notes

@@ -62,6 +62,6 @@ Prüfstatus 2.12.0: siehe Release-Notizen
 **Nicht geprüft:** echtes Spotify-Konto und Wiedergabesteuerung, echtes Spielen, WLAN/LAN, Hintergrundbetrieb, Neustart sowie Langzeit-, Akku- und Temperaturverhalten.
 
 **Gemeinsame Abnahme USB-Display + Companion:**
-<!-- GEMEINSAM-2.12 -->
+Bestanden am 14.11.2026 mit derselben App (2.12.0-Build), echtem USB-Display Rev. A an COM7 und echtem Redmi 8 als Companion über USB-Tunnel, je 10 Sekunden: Companion mit aktiver KI bei Ziel 30/60 allein 21,4/22,9 UI-Neuzeichnungen/s, zusammen mit normaler USB-Systemseite 19,9/25,5 und zusammen mit Hardware-HUD auf dem USB-Display 20,6/26,2. Das USB-Display bremst den Companion also nicht mehr aus. Das HUD selbst erreicht auf dem seriellen Panel wegen der Bandbreite nur etwa 0,6 Bilder/s (fast vollständige Bilder, etwa 1,7 s je Übertragung); die normale Systemseite etwa 1,9 Aktualisierungen/s. Kurze Vordergrundmessung, keine optische Panelmessung.
 
 Die Messungen der lokalen HUD-Testbuilds vor 2.12.0 stehen als historische Analyse in [Hardware-HUD: Bildratenanalyse](HARDWARE-HUD-FPS-ANALYSE.md).

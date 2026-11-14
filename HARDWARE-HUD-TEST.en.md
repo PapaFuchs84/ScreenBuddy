@@ -62,6 +62,6 @@ Prüfstatus 2.12.0: siehe Release-Notizen
 **Not tested:** a real Spotify account and playback control, real gameplay, Wi-Fi/LAN, background operation, restart, and long-term, battery and thermal behaviour.
 
 **Joint USB display + Companion acceptance:**
-<!-- GEMEINSAM-2.12 -->
+Passed on 14 Nov 2026 with the same app (2.12.0 build), a real Rev. A USB display on COM7 and a real Redmi 8 as Companion over a USB tunnel, 10 seconds each: Companion with active AI at target 30/60 alone 21.4/22.9 UI redraws/s, together with the normal USB system page 19.9/25.5, and together with the Hardware HUD on the USB display 20.6/26.2. The USB display no longer slows the Companion down. The HUD itself only reaches about 0.6 frames/s on the serial panel because of its bandwidth (nearly full frames, about 1.7 s per transfer); the normal system page about 1.9 updates/s. Short foreground measurement, no optical panel measurement.
 
 Measurements from the local HUD test builds before 2.12.0 are kept as a historical analysis in [Hardware HUD: frame-rate analysis](HARDWARE-HUD-FPS-ANALYSE.en.md).

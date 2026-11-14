@@ -217,10 +217,13 @@ Image hardware_hud(int width,int height,const SysSnapshot& snap,double tick,int 
     c.clip_push(0,0,w,h);
 
     // Faint animated circuitry leaves the foreground values easy to read.
-    for(float yy=65;yy<h-35;yy+=54) for(float xx=25;xx<w;xx+=94) {
+    // Spacing grows for extreme aspect ratios so the grid stays at most ~24 × 16 cells.
+    const float step_x=std::max(94.f,w/24.f),step_y=std::max(54.f,h/16.f);
+    int row=0;
+    for(float yy=65;yy<h-35;yy+=step_y,++row) for(float xx=25;xx<w;xx+=step_x) {
         const float phase=float(tick)*1.7f-xx*.009f-yy*.014f;
         const float glow=std::pow(std::max(0.f,std::sin(phase)),8.f)*.26f;
-        outline(c,xx+(int(yy/54)%2?47:0),yy,28,24,mix(GRID,DIM_C,glow),false);
+        outline(c,xx+((row+1)%2?step_x/2:0),yy,28,24,mix(GRID,DIM_C,glow),false);
     }
     const float scan=float(std::fmod(tick*90.,double(std::max(w,1.f))));
     c.rectangle(scan,52,scan+1,h-36,Color{9,27,41});
