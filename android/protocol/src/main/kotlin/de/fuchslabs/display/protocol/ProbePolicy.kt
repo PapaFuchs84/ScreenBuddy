@@ -19,7 +19,15 @@ class ProbePolicy(private val failuresForAbsence: Int = 2) {
         private set
     private var failures = 0
 
-    fun onMdns(here: Boolean) { mdnsHere = here }
+    /**
+     * Records the mDNS state. A sighting that vouches for the PC ([here] and [mdnsReliable]) also
+     * clears earlier probe failures, whether or not a probe runs while it lasts: a failure from
+     * before the sighting must not count towards the threshold after a later mDNS loss.
+     */
+    fun onMdns(here: Boolean, mdnsReliable: Boolean = true) {
+        mdnsHere = here
+        if (here && mdnsReliable) failures = 0
+    }
 
     /** True when mDNS no longer reports a PC that counts as present: confirm by TCP now. */
     fun lossNeedsProbe(present: Boolean): Boolean = present && !mdnsHere

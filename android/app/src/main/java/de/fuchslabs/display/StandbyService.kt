@@ -117,7 +117,8 @@ class StandbyService : Service() {
         val p = target ?: return
         val here = list.any { it.host == p.host && it.port == p.port }
         Log.d(TAG, "Discovery update: count=${list.size}, pairedMatch=$here")
-        policy.onMdns(here)
+        // Bei ausgeschaltetem Bildschirm kann die Liste veraltet sein: dann loescht sie keine fehlgeschlagenen Proben.
+        policy.onMdns(here, (getSystemService(POWER_SERVICE) as PowerManager).isInteractive)
         if (here) { applyPresence(true); return }
         // Fehlende mDNS-Ankuendigung (auch nach einem Suchfehler) ist allein kein Beleg fuer Abwesenheit:
         // sofort per TCP nachpruefen. Die Karenzzeit beginnt erst nach der Schwelle fehlgeschlagener Proben.

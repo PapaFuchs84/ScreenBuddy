@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import de.fuchslabs.display.protocol.AutoOwnership
 import de.fuchslabs.display.protocol.orientationFor
 
 /** Vollbild-Anzeige: immersiv, Bildschirm bleibt an, Auto-Reconnect. Extras: pairing (Kopplung) optional. */
@@ -112,9 +113,11 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         // Die Automatik darf eine laufende Kopplung nicht abbrechen.
         if (auto && pairingPin != null) return
         setIntent(intent)
-        autoOpened = auto
-        if (auto && started) autoForeground = token
-        else if (!auto && autoForeground === token) autoForeground = null
+        // Eine manuell geoeffnete, bereits sichtbare Anzeige bleibt manuell: die Automatik hat sie nicht in den
+        // Vordergrund geholt und darf das Geraet beim Verschwinden des PCs deshalb nicht sperren.
+        autoOpened = AutoOwnership.afterNewIntent(auto, autoOpened, started)
+        if (autoOpened && started) autoForeground = token
+        else if (!autoOpened && autoForeground === token) autoForeground = null
         // Gleiches gespeichertes Ziel und der Client laeuft bereits: nichts neu aufzubauen.
         if (!intent.hasExtra(EXTRA_PIN) && pairingPin == null && client != null) return
         stopClient()

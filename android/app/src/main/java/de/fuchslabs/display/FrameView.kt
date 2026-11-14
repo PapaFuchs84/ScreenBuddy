@@ -12,12 +12,12 @@ import androidx.core.view.WindowInsetsCompat
 import de.fuchslabs.display.protocol.DpadNavigation
 import de.fuchslabs.display.protocol.Letterbox
 import de.fuchslabs.display.protocol.Protocol
+import de.fuchslabs.display.protocol.GenerationSlot
 import de.fuchslabs.display.protocol.ImageLimits
 import de.fuchslabs.display.protocol.LatestSlot
 import de.fuchslabs.display.protocol.SwipeClassifier
 import de.fuchslabs.display.protocol.SwipeDir
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 
 /** Zeichnet das JPEG-Frame mit Letterbox und sendet Taps in Renderkoordinaten. */
@@ -92,7 +92,8 @@ class FrameView(ctx: Context) : View(ctx) {
     fun setRenderSize(w: Int, h: Int) { rw = w; rh = h; invalidate() }
 
     private val decoder = Executors.newSingleThreadExecutor { r -> Thread(r, "frame-decode").apply { isDaemon = true } }
-    private val latest = AtomicReference<ByteArray?>()
+    /** Neuestes noch nicht dekodiertes Frame, zusammen mit der Epoche, in der es angenommen wurde. */
+    private val latest = GenerationSlot<ByteArray>()
 
     private class Decoded(val epoch: Int, val bitmap: Bitmap, val bg: Int)
     /** Hoechstens ein dekodiertes, noch nicht angezeigtes Bild und hoechstens eine geplante Uebergabe. */
@@ -106,10 +107,14 @@ class FrameView(ctx: Context) : View(ctx) {
         bmp = d.bitmap; bgColor = d.bg or Color.BLACK; invalidate()
     }
 
-    /** Nimmt das Frame an; Decodierung im Hintergrund, nur das neueste Frame wird dekodiert. */
+    /**
+     * Nimmt das Frame an; Decodierung im Hintergrund, nur das neueste Frame wird dekodiert. Die Epoche wird hier
+     * vergeben und bleibt am Frame: ein noch fuer ein frueheres Ziel geplanter Decoder kann ein neues Frame
+     * dadurch nicht der alten Epoche zuordnen. Nur auf dem Main-Thread aufrufen.
+     */
     fun setFrame(jpeg: ByteArray) {
         if (!ImageLimits.bytesOk(jpeg.size)) return
-        if (latest.getAndSet(jpeg) == null) decoder.execute { decodeLatest() }
+        if (latest.offer(epoch, jpeg)) decoder.execute { decodeLatest() }
     }
 
     /**
@@ -118,14 +123,16 @@ class FrameView(ctx: Context) : View(ctx) {
      */
     fun clearPending() {
         epoch++ // zuerst: ein gerade laufender Decoder liefert danach nichts mehr aus
-        latest.set(null)
+        latest.advance(epoch) // wartendes Frame der alten Epoche verwerfen
         removeCallbacks(showDecoded)
         decoded.clear { it.bitmap.recycle() } // nie angezeigt, daher gefahrlos
     }
 
     private fun decodeLatest() {
-        val e = epoch // vor der Entnahme lesen, damit clearPending() dieses Bild sicher verwirft
-        val jpeg = latest.getAndSet(null) ?: return
+        // Frame und Epoche gemeinsam entnehmen: massgeblich ist die Epoche bei setFrame(), nicht die beim Dekodieren.
+        val f = latest.take() ?: return
+        val e = f.generation
+        val jpeg = f.value
         try {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, bounds)

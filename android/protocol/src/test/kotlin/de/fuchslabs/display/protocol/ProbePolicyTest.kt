@@ -96,9 +96,28 @@ class ProbePolicyTest {
         assertNull(p.onProbe(false))
         assertFalse(p.needsQuickRetry(false)) // absent PC: the periodic probe is enough
         assertTrue(p.needsQuickRetry(true))
-        p.onMdns(true)
-        assertFalse(p.needsQuickRetry(true)) // mDNS vouches again
+        p.onMdns(true, mdnsReliable = false) // screen off: possibly stale, clears nothing
+        assertFalse(p.needsQuickRetry(true)) // would vouch if it were reliable
         assertTrue(p.needsQuickRetry(true, mdnsReliable = false))
+        p.onMdns(true) // reliable sighting vouches and clears the failure
+        assertFalse(p.needsQuickRetry(true))
+        assertFalse(p.needsQuickRetry(true, mdnsReliable = false))
+    }
+
+    @Test fun mdnsSightingResetsEarlierProbeFailure() {
+        val p = ProbePolicy()
+        assertNull(p.onProbe(false)) // failed probe
+        p.onMdns(true)               // mDNS positive, no probe runs meanwhile
+        p.onMdns(false)              // mDNS loss
+        assertNull(p.onProbe(false)) // first unvouched failure again: must NOT reach the threshold
+        assertEquals(false, p.onProbe(false))
+    }
+
+    @Test fun unreliableMdnsSightingDoesNotResetFailures() {
+        val p = ProbePolicy()
+        assertNull(p.onProbe(false, mdnsReliable = false))
+        p.onMdns(true, mdnsReliable = false) // screen off: stale list
+        assertEquals(false, p.onProbe(false, mdnsReliable = false))
     }
 
     @Test fun failuresWhileMdnsVouchesDoNotShortenThreshold() {

@@ -46,12 +46,24 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
     private var sentW = target.screenW // zuletzt dem Server mitgeteilte Groesse (hello bzw. resize)
     private var sentH = target.screenH
 
-    private class PendingFrame(val gen: Int, val gate: HandshakeGate, val payload: ByteArray)
-    /** Hoechstens ein noch nicht zugestelltes Bild und hoechstens eine geplante Zustellung. */
-    private val pendingFrame = LatestSlot<PendingFrame>()
+    private class PendingFrame(val gate: HandshakeGate, val payload: ByteArray)
+    /**
+     * Hoechstens ein noch nicht zugestelltes Bild und hoechstens eine geplante Zustellung. Jedes Bild traegt die
+     * Generation seiner Verbindung; ein verspaeteter Callback einer frueheren Verbindung kann das wartende Bild
+     * der aktuellen daher nicht ersetzen.
+     */
+    private val pendingFrame = GenerationSlot<PendingFrame>()
     private val deliverFrame = Runnable {
         val f = pendingFrame.take() ?: return@Runnable
-        if (f.gen == generation && f.gate.acceptFrame()) { lastRx = now(); listener.onFrame(f.payload) }
+        val p = f.value
+        if (f.generation == generation && p.gate.acceptFrame()) { lastRx = now(); listener.onFrame(p.payload) }
+    }
+
+    /** Macht alle bisherigen Callbacks ungueltig; Bilder frueherer Generationen werden ab jetzt abgewiesen. */
+    private fun nextGeneration(): Int {
+        val g = ++generation
+        pendingFrame.advance(g)
+        return g
     }
 
     fun start() {
@@ -65,7 +77,7 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
     }
 
     fun stop() {
-        running = false; generation++; gate.close()
+        running = false; nextGeneration(); gate.close()
         main.removeCallbacksAndMessages(null)
         pendingFrame.clear() // die geplante Zustellung wurde eben entfernt
         ws?.close(1000, "bye"); ws = null
@@ -94,7 +106,7 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
 
     private fun connect() {
         if (!running) return
-        val gen = ++generation
+        val gen = nextGeneration()
         listener.onState(if (everConnected) State.RECONNECTING else State.CONNECTING)
         val tm = PinningTrustManager(target.fingerprint)
         val client = OkHttpClient.Builder()
@@ -135,7 +147,8 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
                 val f = VideoFrame.parse(bytes.toByteArray()) ?: return
                 // Nur das neueste Bild wartet auf den Main-Thread; ein ueberholtes wird verworfen, statt
                 // je Bild ein eigenes Runnable samt Nutzdaten aufzustauen.
-                if (pendingFrame.offer(PendingFrame(gen, g, f.payload))) main.post(deliverFrame)
+                // Ein Bild einer aelteren Generation wird abgewiesen und ueberschreibt nie ein neueres.
+                if (pendingFrame.offer(gen, PendingFrame(g, f.payload))) main.post(deliverFrame)
             }
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { webSocket.close(1000, null) }
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
@@ -177,7 +190,7 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
             }
             is ServerMessage.Ping -> w.send(ClientMessage.pong())
             is ServerMessage.Error -> {
-                running = false; generation++; gate.close()
+                running = false; nextGeneration(); gate.close()
                 w.close(1000, null); ws = null
                 listener.onFatal(Fatal.SERVER_ERROR, "${m.code}: ${m.msg}")
                 listener.onState(State.STOPPED)
@@ -200,7 +213,7 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
     private fun retry() {
         if (!running) return
         gate.close()
-        generation++ // alte Callbacks verwerfen
+        nextGeneration() // alte Callbacks verwerfen
         ws?.cancel(); ws = null
         val delay = minOf(1000L * (1 shl minOf(attempt, 3)), 10_000L)
         attempt++
