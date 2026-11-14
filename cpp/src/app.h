@@ -144,6 +144,9 @@ private:
         double next_deadline = plugins::schedule::never;
         bool animating = false;
         std::optional<double> render_ms;
+        double last_render = -plugins::schedule::never;
+        std::map<std::string, std::pair<uint64_t, double>> ai_motion;
+        void track_ai_animation(const ai::Snapshot& snapshot, const std::string& provider, double tick, bool transitions);
         std::vector<std::string> next_requests;
         std::vector<std::string> frame_next_requests; // nur Anzeige-Thread
         std::mutex next_mu;

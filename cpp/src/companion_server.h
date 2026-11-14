@@ -47,6 +47,7 @@ public:
         // Pro Gerät (nur wenn independent() wahr ist): eigenes Bild, eigene Größe, eigene Gesten. device = Geräte-ID.
         std::function<bool()> independent;
         std::function<Frame(const std::string& device)> encode_frame_for;
+        std::function<int(const std::string& device)> frame_rate_for; // trusted producer pacing (5..60), never controlled by client
         std::function<void(const std::string& device, int, int)> on_resize_for;
         std::function<void(const std::string& device, int)> on_swipe_for;
         std::function<void(const std::string& device, int, int, int, int)> on_touch_frame_for;
@@ -63,7 +64,7 @@ public:
     void start();                        // wirft std::runtime_error (kein Heimnetz, Port belegt, TLS)
     void stop();
     bool running() const { return running_; }
-    void frame_changed();                // neues Bild vorhanden: Clients holen es (höchstens 5/s)
+    void frame_changed();                // neues Bild vorhanden: Clients holen es (normal 5/s; Animation wird bereits an der Quelle auf 5..60/s begrenzt)
     std::string fingerprint() const { return fingerprint_; }
     const Options& options() const { return opt_; }
     Pairing& pairing() { return pairing_; }

@@ -116,6 +116,12 @@ public:
             T(L"Falls das Bild auf dem Kopf steht", L"If the picture is upside down"),
             {"landscape", "reverse_landscape", "portrait", "reverse_portrait"},
             {T(L"Quer", L"Landscape"), T(L"Quer 180°", L"Landscape 180°"), T(L"Hoch", L"Portrait"), T(L"Hoch 180°", L"Portrait 180°")});
+        Card* animation = root.add<Card>(T(L"Animationen", L"Animations"),
+            T(L"Gemeinsame Zielrate für alle animierten Ansichten, einschließlich Hardware HUD, Spotify und Eigene Ansichten.",
+              L"Shared target rate for all animated views, including Hardware HUD, Spotify and Custom views."));
+        form_.number(*animation, "display", "animation_fps", T(L"Animationsrate (Bilder/s)", L"Animation rate (frames/s)"),
+            T(L"5 bis 60 Bilder/s. Höhere Werte benötigen mehr Rechenleistung und bei Companion mehr Netzwerkbandbreite. Die erreichbare Rate hängt von Gerät und Verbindung ab.",
+              L"5 to 60 frames/s. Higher values use more processing power and, with Companion, more network bandwidth. The achievable rate depends on the device and connection."), 5, 60);
         Card* keepout = root.add<Card>(T(L"Sperrzone", L"Keepout"),
             T(L"Pixel am physischen Rand (USB: natives Hochformat). Monitor folgt Windows; keine Software-Drehung. Nach Speichern zeigt die Vorschau den Rand.",
               L"Pixels at the physical edge (USB: native portrait). Monitor follows Windows; no software rotation. After saving, the preview shows the border."));

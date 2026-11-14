@@ -132,6 +132,7 @@ HMODULE dnsapi() {
 
 struct NetworkDisplay::DeviceFrame {
     Image image;
+    int animation_fps = 0;
     uint64_t version = 0;
     std::shared_ptr<const companion::Server::Frame> jpeg;  // zu version passend, träge erzeugt
     ojson navigation;                                       // Seitenposition für die Statusanzeige
@@ -197,6 +198,11 @@ void NetworkDisplay::connect() {
         tap_cv_.notify_one();
     };
     hooks.independent = [this] { return independent_.load(); };
+    hooks.frame_rate_for = [this](const std::string& device) {
+        std::lock_guard lk(mu_);
+        auto it = device_frames_.find(device);
+        return it != device_frames_.end() ? it->second->animation_fps : 0;
+    };
     hooks.encode_frame_for = [this](const std::string& device) {
         std::shared_ptr<DeviceFrame> slot;
         Image image;
@@ -296,12 +302,13 @@ void NetworkDisplay::set_independent(bool on) {
         if (auto srv = server()) srv->frame_changed();   // Clients holen ihr Bild neu
 }
 
-void NetworkDisplay::show_for(const std::string& device, const Image& frame, const ojson& navigation) {
+void NetworkDisplay::show_for(const std::string& device, const Image& frame, const ojson& navigation, int animation_fps) {
     {
         std::lock_guard lk(mu_);
         auto& slot = device_frames_[device];
         if (!slot) slot = std::make_shared<DeviceFrame>();
         slot->navigation = navigation;
+        slot->animation_fps = animation_fps >= 5 && animation_fps <= companion::MAX_ANIMATION_FPS ? animation_fps : 0;
         if (slot->image.w == frame.w && slot->image.h == frame.h && slot->image.px == frame.px) return;  // unverändert
         slot->image = frame;
         slot->version = ++frame_version_;
@@ -353,6 +360,7 @@ void NetworkDisplay::screen_off() {
         for (auto& [id, slot] : device_frames_) {   // unabhängiger Betrieb: jedes Gerät bekommt sein schwarzes Bild
             if (slot->image.empty()) continue;
             slot->image = Image(slot->image.w, slot->image.h, Color{0, 0, 0});
+            slot->animation_fps = 0;
             slot->version = ++frame_version_;
             slot->jpeg.reset();
         }

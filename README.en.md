@@ -34,6 +34,8 @@ AI usage: separate confirmed real-account opt-ins default to off. Claude and Cod
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
 
+**Local test build v3 (14 November 2026):** global animation rate under **Display → Animations**, 5 to 60, default 30 (`display.animation_fps`). It covers visible animation including Hardware HUD, AI status, Spotify and transitions; static pages retain their own cadence. Local package `ScreenBuddy-Hardware-HUD-Test-v3.zip`, marked `TEST3`; global app/device acceptance remains pending. Earlier Redmi rates describe only the then-current HUD candidate. [Measurements and limits](HARDWARE-HUD-FPS-ANALYSE.en.md) · [Usage and validation](HARDWARE-HUD-TEST.en.md). No GitHub or Microsoft Store publication.
+
 **New in 2.10.0 (07.11.2026):** plugin pages with a zone layout (manifest v2), density levels, conditional display, cycling zones, tap targets with link consent (off by default), keepout per device, built-in pages on the shared frame, a page editor and a touch target per tile under **Pages → Custom views**. Also the default theme `material-orange`, Spotify “last played” and BF6 entries by ID. The Companion app stays 1.0.3. Hardware and device acceptance only partly live; see the release notes for details. [Release notes 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.en.md)
 
 **Game Mode (new in 2.10.0):** game detection, optional logo intro (2.5 s) and a custom view on the selected display. [Setup, measurement limits and validation](docs/GAME-MODE.en.md).

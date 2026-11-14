@@ -18,6 +18,12 @@ public:
         Card* page = root.add<Card>(T(L"Seite", L"Page"));
         form_.toggle(*page, "system", "enabled", T(L"Seite anzeigen", L"Show page"));
         form_.text(*page, "system", "title", T(L"Titel", L"Title"));
+        Card* hud = root.add<Card>(Text(L"Hardware HUD"),
+            T(L"Lokale Testansicht im Neon-Stil. Übersicht, GPU und CPU wechseln alle 8 Sekunden. Fehlende Sensorwerte erscheinen als --.",
+              L"Local neon-style test view. Overview, GPU and CPU rotate every 8 seconds. Missing sensors appear as --."));
+        form_.toggle(*hud, "system", "hardware_hud", T(L"Hardware HUD anzeigen", L"Show Hardware HUD"));
+        hud->add<Note>(T(L"Die Animationsrate für alle Ansichten stellst du unter Anzeige → Animationen ein.",
+                         L"Set the animation rate for all views under Display → Animations."));
         Card* sensors = root.add<Card>(T(L"Sensoren", L"Sensors"), T(L"Leere Felder = automatisch erkennen.", L"Empty fields = detect automatically."));
         form_.text(*sensors, "system", "net_adapter", T(L"Netzwerkadapter", L"Network adapter"), T(L"Leer = automatisch", L"Empty = automatic"));
         form_.segment(*sensors, "system", "net_unit", T(L"Netzwerkeinheit", L"Network unit"), {}, {"bit", "byte"},

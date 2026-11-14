@@ -334,6 +334,24 @@ static void test_gate() {
     CHECK(g.due(2, 10.2));
     g.reset();
     CHECK(g.due(2, 10.21));   // nach neuer Anmeldung sofort ein Vollbild
+    for (int fps : {5, 10, 15, 20, 30, 60}) {
+        FrameGate hud;
+        CHECK(hud.due(1, 0, fps));
+        hud.sent(1, 10);
+        CHECK(!hud.due(1, 20, fps));
+        CHECK(hud.due(2, 10.00001, fps)); // producer pacing: no second transport delay
+        CHECK(hud.due(2, 10 + 1.0/fps, fps));
+        hud.reset();
+        CHECK(hud.due(2, 10.001, fps));
+    }
+    FrameGate dynamic;
+    dynamic.sent(1, 10);
+    CHECK(!dynamic.due(2, 10.1)); // normal rate remains five even after opt-in use
+    CHECK(dynamic.due(2, 10.1, 10));
+    CHECK(!dynamic.due(2, 10.1, -1));
+    CHECK(!dynamic.due(2, 10.1, 61));
+    CHECK(!dynamic.due(2, 10.1, 999999));
+    CHECK(dynamic.due(2, 10.2, 0));
 }
 
 static fs::path tmpfile(const char* name) {
@@ -1252,6 +1270,72 @@ static void test_independent(bool offline = false) {
     for (int i = 0; i < 4 && last != "SHARED"; ++i) last = frame_of(b);
     CHECK_EQ(last, "SHARED");
 }
+// HUD rate is a server-side per-device hint; normal pages retain the default gate.
+static void test_hud_transport_rate() {
+#ifdef _WIN32
+    WSADATA wsa; WSAStartup(MAKEWORD(2, 2), &wsa);
+#endif
+    const auto path = tmpfile("fl-companion-hud-rate.json");
+    Store store(path, enc, dec, [] { return 1.0; });
+    const auto key = base64(store.add_device("HUD rate test"));
+    std::atomic<double> clock{10};
+    std::atomic<int> fps{0};
+    std::atomic<uint64_t> version{1};
+    std::atomic<bool> huge_frame{false};
+    Server::Hooks hooks;
+    hooks.now = [&] { return clock.load(); };
+    hooks.independent = [] { return true; };
+    hooks.frame_rate_for = [&](const std::string&) { return fps.load(); };
+    hooks.encode_frame_for = [&](const std::string&) { return Server::Frame{huge_frame ? std::string(8*1024*1024,'X') : "HUD",480,320,version.load()}; };
+    int port = 0; auto srv = start_on_random_port(store, hooks, port);
+    CHECK(srv != nullptr); if (!srv) return;
+    srv->frame_changed();
+    {
+        Client client; CHECK(client.open(port));
+        client.send(R"({"t":"hello","v":1,"key":")" + key + R"(","w":480,"h":320})");
+        auto ready=client.recv(); CHECK(ready && ready->payload==msg_ready(480,320));
+        auto initial=client.recv(); CHECK(initial && initial->op==Op::Binary);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // let the send-completion clock be recorded
+        // One millisecond is insufficient for normal pages.
+        clock=10.001; ++version; srv->frame_changed();
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        client.send(R"({"t":"ping"})"); auto pong=client.recv();
+        CHECK(pong && pong->payload==msg_pong());
+        // Producer-paced HUD releases the pending frame without a second 100 ms timer.
+        fps=10;
+        auto animated=client.recv(); CHECK(animated && animated->op==Op::Binary);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // Return to a normal page: the next frame must again wait 200 ms.
+        fps=0; clock=10.10; ++version; srv->frame_changed();
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        client.send(R"({"t":"ping"})"); pong=client.recv();
+        CHECK(pong && pong->payload==msg_pong());
+        clock=10.201;
+        auto normal=client.recv(); CHECK(normal && normal->op==Op::Binary);
+        // A new global sequence with an unchanged device version is still suppressed.
+        fps=30; clock=10.5; srv->frame_changed();
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        client.send(R"({"t":"ping"})"); pong=client.recv();
+        CHECK(pong && pong->payload==msg_pong());
+    }
+    // An authenticated producer-paced client that stops reading still cannot
+    // hold shutdown behind a complete large-frame transfer or build a send queue.
+    huge_frame=true; fps=60; ++version; srv->frame_changed();
+    {
+        Client slow; CHECK(slow.open(port));
+        int receive_buffer=1024;
+        setsockopt(slow.s,SOL_SOCKET,SO_RCVBUF,reinterpret_cast<const char*>(&receive_buffer),sizeof receive_buffer);
+        slow.send(R"({"t":"hello","v":1,"key":")" + key + R"(","w":480,"h":320})");
+        auto ready=slow.recv(); CHECK(ready && ready->payload==msg_ready(480,320));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        const auto start=std::chrono::steady_clock::now(); srv->stop();
+        const double elapsed=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
+        CHECK(elapsed<2);
+        std::printf("  stop() with authenticated non-reading HUD client: %.2f s\n",elapsed);
+    }
+    std::error_code error; fs::remove(path,error);
+}
+
 int main(int argc, char** argv) {
     const bool offline = argc == 2 && std::string(argv[1]) == "--offline";
     test_crypto();
@@ -1265,7 +1349,7 @@ int main(int argc, char** argv) {
     test_store();
     test_corrupt_keepout();
     test_identity();
-    if (!offline) { test_server(); test_server_hardening(); test_resize_swipe(); }
+    if (!offline) { test_server(); test_server_hardening(); test_resize_swipe(); test_hud_transport_rate(); }
     test_independent(offline);
     if (offline) std::printf("OFFLINE: TLS server, server hardening, resize/swipe and independent server integration NOT RUN (network forbidden).\n");
     std::printf("%d Prüfungen ok, %d Fehler\n", g_ok, g_fail);

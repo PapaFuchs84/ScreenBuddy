@@ -68,6 +68,7 @@ struct SysSnapshot {
 
     std::string cpu_name = "CPU";
     std::optional<double> cpu_pct, cpu_ghz, cpu_temp, cpu_fan;  // Lüfter in RPM
+    std::optional<double> cpu_watts;                         // HWiNFO CPU Package Power / PPT, W
     std::string gpu_name = "GPU";
     std::optional<double> gpu_pct, gpu_temp, gpu_fan;           // Lüfter in %
     std::optional<double> gpu_mem_used, gpu_mem_total;          // MiB
