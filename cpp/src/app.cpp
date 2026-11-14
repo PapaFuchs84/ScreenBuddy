@@ -660,6 +660,7 @@ bool App::touch_enabled() const {
 }
 
 App::~App() {
+    serial_pump_.reset();   // its worker uses App state; stop it before anything else goes away
     { std::lock_guard lock(stop_threads_mu_); stop_threads_.clear(); }
     if (update_) update_->stop();
     if (ha_) ha_->stop();
@@ -1513,10 +1514,24 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
     // Teil-Updates übertragen nur geänderte Bänder; ein verlorenes Datenpaket bliebe sonst als Streifen stehen.
     // Deshalb bei jedem Seitenwechsel und alle 5 Minuten ein Vollbild.
     double now = mono();
-    if (transition || now - last_full_ > 300) {
-        out_->invalidate();
-        last_full_ = now;
+    const bool full = transition || now - last_full_ > 300;
+    if (full) last_full_ = now;
+    // Decided on the display thread; the transfer worker must not read view state.
+    const bool playback = meter_ && spotify_ && spotify_->snapshot().playing &&
+        (std::count(primary_view_.current.begin(), primary_view_.current.end(), "spotify") ||
+         (meter_->active() && std::any_of(primary_view_.current.begin(),primary_view_.current.end(),[](const auto& key){return key.starts_with("custom:");})));
+    if (serial_output()) {
+        // USB transfers take ~0.5 s per animated frame. Hand the newest frame
+        // to the worker instead of stalling Companion rendering in this loop.
+        if (!serial_pump_) serial_pump_ = std::make_unique<FramePump>([this](const FramePump::Job& job) { transfer(job); });
+        serial_pump_->submit({frame, full, playback});
+        return;
     }
+    transfer({frame, full, playback});
+}
+
+void App::transfer(const FramePump::Job& job) {
+    if (job.full) out_->invalidate();
     try {
         // A slow serial transfer still displays this playback page. Keep the
         // meter alive until it completes, including exception cleanup.
@@ -1524,11 +1539,8 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
             audio::LevelMeter* meter;
             explicit PlaybackTransfer(audio::LevelMeter* m) : meter(m) { if (meter) meter->visible_transfer(true); }
             ~PlaybackTransfer() { if (meter) { meter->touch(); meter->visible_transfer(false); } }
-        } playback_transfer(meter_ && spotify_ && spotify_->snapshot().playing &&
-                            (std::count(primary_view_.current.begin(), primary_view_.current.end(), "spotify") ||
-                             (meter_->active() && std::any_of(primary_view_.current.begin(),primary_view_.current.end(),[](const auto& key){return key.starts_with("custom:");})))
-                            ? meter_.get() : nullptr);
-        int rows = out_->show(frame);
+        } playback_transfer(job.playback ? meter_.get() : nullptr);
+        int rows = out_->show(job.frame);
         auto transfer = out_->transfer();
         LOGD("app", "%d Zeilen, %.0f ms, %.0f kB/s", rows, transfer.last_seconds*1000, transfer.bytes_per_second.value_or(0)/1000);
     } catch (const std::exception& e) {
@@ -2358,6 +2370,8 @@ void App::run() {
     }
     if (update_) update_->start();
     display_loop();
+    // Finish an in-flight USB transfer before services (meter) stop and before screen off/close.
+    serial_pump_.reset();
     plugin_worker.request_stop();
     if (plugin_worker.joinable()) plugin_worker.join();
     store_worker.request_stop();

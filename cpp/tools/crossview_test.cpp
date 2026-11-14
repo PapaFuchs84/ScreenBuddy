@@ -31,7 +31,7 @@ std::vector<float> levels(double tick) {
 }
 Image frame(const std::string& kind,int w,int h,double tick) {
     auto sys=sample_system(tick);auto sp=render::samples::spotify();sp.title="SYNTHETISCHE TESTDATEN";sp.artist="Kein Spotify-Konto / keine Kontosteuerung";
-    sp.progress_ms=int(std::fmod(83000+tick*1000,187000));sp.fetched_at=mono();auto bars=levels(tick);
+    sp.progress_ms=int(std::fmod(83000+tick*1000,187000));sp.fetched_at=tick;  /* same time base as the render tick */auto bars=levels(tick);
     auto ai=render::samples::ai_status();for(auto& s:ai.sessions)s.model="LOCAL_TEST_SAMPLE";for(auto& [key,s]:ai.representatives)s.model="LOCAL_TEST_SAMPLE";constexpr std::time_t clock=render::samples::CLOCK;
     if(kind=="system")return render::SysRenderer(w,h,"System / BEISPIELDATEN","bit").render(sys,clock);
     if(kind=="spotify")return render::SpotifyRenderer(w,h,"Spotify / BEISPIELDATEN").render(sp,tick,&bars,1,true,clock);
@@ -76,7 +76,7 @@ int main(int argc,char** argv) try {
     const std::vector<std::string> kinds={"system","spotify","ai","mixed","game"};
     while(mono()-start<seconds) {
         const double tick=mono()-start;std::string selected=kind;
-        if(kind=="rotate")selected=kinds[((int(tick/4)+offset.load())%4+4)%4];
+        if(kind=="rotate")selected=kinds[((int(tick/4)+offset.load())%int(kinds.size())+int(kinds.size()))%int(kinds.size())];
         if(usb) {
             auto [w,h]=usb->size();auto image=frame(selected,w,h,tick);if(saved!=selected){save_png(output/(selected+"-"+std::to_string(w)+"x"+std::to_string(h)+"-SAMPLES.png"),image);saved=selected;}
             const auto before=mono();rows+=usb->show(image);show_ms+=(mono()-before)*1000;++shows;

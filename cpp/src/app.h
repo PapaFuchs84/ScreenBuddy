@@ -24,6 +24,7 @@
 #include "gfx.h"
 #include "models.h"
 #include "output.h"
+#include "frame_pump.h"
 #include "device_profile.h"
 #include "device_overlays.h"
 #include "plugin_store.h"
@@ -211,6 +212,7 @@ private:
     std::string friends_message();
     bool connect_display();
     void output(const Image& frame, bool transition, const ojson& navigation);
+    void transfer(const FramePump::Job& job);   // synchronous send (serial: on the pump worker)
     void display_loop();
     bool tap_at(int x, int y, bool secondary = false, int w = 0, int h = 0);
     void companion_tap(int x, int y, int w, int h);
@@ -221,7 +223,11 @@ private:
     ojson dp_;
     std::filesystem::path cfg_path_;
     std::unique_ptr<Output> out_;
-    std::unique_ptr<NetworkDisplay> companion_output_;   // zusätzlich zum USB-Display/Bildschirm
+    // Serial transfers run here so Companion rendering never waits for USB.
+    // Declared after out_ (destroyed first); ~App and shutdown stop it explicitly.
+    std::unique_ptr<FramePump> serial_pump_;
+    bool serial_output() const { return out_ && !out_->is_monitor() && out_.get() != (Output*)companion_; }
+    std::unique_ptr<NetworkDisplay> companion_output_;  // zusätzlich zum USB-Display/Bildschirm
     NetworkDisplay* companion_ = nullptr;               // out_ (Ausgabe „network“) oder companion_output_
     std::optional<std::filesystem::path> preview_dir_;
     bool show_settings_on_start_ = false;

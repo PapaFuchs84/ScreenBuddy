@@ -58,9 +58,10 @@ public:
     void screen_off() override;
     void close() override;
 
-    TransferStats transfer() const override { std::lock_guard lk(mu_); return stats_; }
-    std::string layout_id() const override { std::lock_guard lk(mu_); return port_id_; }
-    std::string layout_name() const override { std::lock_guard lk(mu_);return "USB-Display · "+resolved_port_; }
+    // Readable while a transfer holds mu_ (the display loop must not wait for USB).
+    TransferStats transfer() const override { std::lock_guard lk(info_mu_); return stats_; }
+    std::string layout_id() const override { std::lock_guard lk(info_mu_); return port_id_; }
+    std::string layout_name() const override { std::lock_guard lk(info_mu_);return "USB-Display · "+resolved_port_; }
     static std::optional<std::string> find_port();
     static std::string rgb565le(const Image& img, int y0, int y1);
 
@@ -81,7 +82,8 @@ private:
     int band_height_ = 8;
     void* handle_ = nullptr;
     std::optional<Image> last_frame_;
-    mutable std::mutex mu_;
+    mutable std::mutex mu_;        // port handle, last_frame_, whole transfers
+    mutable std::mutex info_mu_;   // stats_, port_id_, resolved_port_ (never held during I/O)
     TransferStats stats_;
 };
 

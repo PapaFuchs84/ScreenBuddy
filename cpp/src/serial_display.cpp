@@ -118,7 +118,7 @@ void SerialDisplay::open(int attempts) {
         std::string up = port_cfg_;
         for (auto& c : up) c = (char)toupper((unsigned char)c);
         std::optional<std::string> port = up == "AUTO" ? find_port() : std::optional<std::string>(port_cfg_);
-        if(port) {resolved_port_=*port;port_id_=serial_layout_id(*port);}
+        if(port) {std::lock_guard info(info_mu_);resolved_port_=*port;port_id_=serial_layout_id(*port);}
         if (port) {
             std::wstring path = L"\\\\.\\" + widen(*port);
             HANDLE h = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
@@ -266,7 +266,7 @@ int SerialDisplay::show_locked(const Image& frame) {
     auto ranges = partial ? changed_bands(*last_frame_, frame, band_height_) : std::vector<std::pair<int,int>>{{0,frame.h}};
     int sent = 0;
     for (auto [first,end] : ranges) { blit(frame,first,end); sent += end-first; }
-    record_transfer(stats_,sent,frame.w,mono()-start,partial);
+    { std::lock_guard info(info_mu_); record_transfer(stats_,sent,frame.w,mono()-start,partial); }
     last_frame_ = frame;
     return sent;
 }

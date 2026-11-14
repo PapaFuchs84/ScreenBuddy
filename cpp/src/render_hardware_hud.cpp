@@ -227,7 +227,7 @@ Image hardware_hud(int width,int height,const SysSnapshot& snap,double tick,int 
     circuit(c,{{20,38},{w*.25f,38},{w*.25f+15,23},{w-20,23}},CYAN,tick);
     circuit(c,{{20,h-25},{w*.67f,h-25},{w*.67f+14,h-39},{w-20,h-39}},PINK,tick,170);
     const Font headerFont=font(c,portrait?13.f:12.f,true);
-    c.text(24,18,fit(c,"SCREENBUDDY / HARDWARE HUD / TEST 3",headerFont,w-150),headerFont,CYAN,"lm");
+    c.text(24,18,fit(c,"SCREENBUDDY / HARDWARE HUD",headerFont,w-150),headerFont,CYAN,"lm");
     const std::array<const char*,3> pages{label("SYSTEMÜBERSICHT","SYSTEM OVERVIEW"),label("GPU-TELEMETRIE","GPU TELEMETRY"),label("CPU-TELEMETRIE","CPU TELEMETRY")};
     c.text(w-24,43,pages[page],font(c,portrait?15.f:14.f,true),PINK,"rm");
     for(int i=0;i<3;++i) c.rectangle(w-100+i*26,11,w-80+i*26,14,i==page?CYAN:DIM_C);

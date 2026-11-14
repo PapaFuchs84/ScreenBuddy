@@ -30,6 +30,7 @@
 
 #include "companion.h"
 #include "companion_server.h"
+#include "frame_pump.h"
 
 using namespace fl::companion;
 namespace fs = std::filesystem;
@@ -1336,6 +1337,50 @@ static void test_hud_transport_rate() {
     std::error_code error; fs::remove(path,error);
 }
 
+// USB transfers (~0.5 s) run on a FramePump worker: submitting never waits for
+// the slow output, only the newest pending frame is sent, and a full-frame
+// request survives replacement by newer partial frames.
+static void test_frame_pump() {
+    using namespace std::chrono;
+    std::mutex m;
+    std::vector<std::pair<int, bool>> got;  // (first pixel, full)
+    {
+        fl::FramePump pump([&](const fl::FramePump::Job& job) {
+            std::this_thread::sleep_for(milliseconds(150));  // slow serial transfer
+            std::lock_guard lk(m);
+            got.push_back({job.frame.px.empty() ? -1 : int(job.frame.px[0]), job.full});
+        });
+        auto frame = [](uint32_t v) { fl::Image image(4, 2); std::fill(image.px.begin(), image.px.end(), v); return image; };
+        pump.submit({frame(1), false, false});
+        std::this_thread::sleep_for(milliseconds(30));  // worker now inside the slow send
+        const auto start = steady_clock::now();
+        pump.submit({frame(2), true, false});
+        for (uint32_t i = 3; i <= 50; ++i) pump.submit({frame(i), false, false});
+        const double submit_ms = duration<double, std::milli>(steady_clock::now() - start).count();
+        CHECK(submit_ms < 50);  // 49 submits while a 150 ms transfer runs
+        CHECK(pump.busy());
+        for (int i = 0; i < 100 && pump.busy(); ++i) std::this_thread::sleep_for(milliseconds(10));
+        CHECK(!pump.busy());
+        CHECK_EQ(pump.sent(), uint64_t(2));
+        CHECK_EQ(pump.replaced(), uint64_t(48));
+        pump.submit({frame(60), false, false});
+        std::this_thread::sleep_for(milliseconds(20));
+        pump.submit({frame(61), false, false});  // pending at stop: dropped; in-flight finishes
+        const auto stop_start = steady_clock::now();
+        pump.stop();
+        CHECK(duration<double>(steady_clock::now() - stop_start).count() < 1.0);
+        pump.submit({frame(70), false, false});  // ignored after stop
+    }
+    std::lock_guard lk(m);
+    CHECK_EQ(got.size(), size_t(3));
+    if (got.size() == 3) {
+        CHECK_EQ(got[0].first, 1);
+        CHECK_EQ(got[1].first, 50);   // newest frame, not a backlog
+        CHECK(got[1].second);         // sticky full request from frame 2
+        CHECK_EQ(got[2].first, 60);
+    }
+}
+
 int main(int argc, char** argv) {
     const bool offline = argc == 2 && std::string(argv[1]) == "--offline";
     test_crypto();
@@ -1349,6 +1394,7 @@ int main(int argc, char** argv) {
     test_store();
     test_corrupt_keepout();
     test_identity();
+    test_frame_pump();
     if (!offline) { test_server(); test_server_hardening(); test_resize_swipe(); test_hud_transport_rate(); }
     test_independent(offline);
     if (offline) std::printf("OFFLINE: TLS server, server hardening, resize/swipe and independent server integration NOT RUN (network forbidden).\n");
