@@ -23,6 +23,16 @@ Rings, fans and signal pulses are animated, as are page transitions. The motion 
 
 There are separate layouts for wide, regular and portrait displays. Hardware names wrap using their measured text width so labels do not overlap.
 
+## Colours
+
+Under **Pages → System → Hardware HUD → Colours**:
+
+- **Design** (default): the HUD uses the colours of the active design (skin): background, accent and header colour, text and warning colour. Light designs give a light HUD.
+- **Neon**: the classic cyan and magenta look on dark blue.
+- **Custom**: primary colour, secondary colour and background of your choice (colour picker or #RRGGBB). An empty field keeps the design value.
+
+Colours with too little contrast are adjusted automatically for readability; text always stays legible. The warning colour from 85 °C comes from the design (red for Neon).
+
 ## Measurements and HWiNFO
 
 - CPU load and clock come from Windows.

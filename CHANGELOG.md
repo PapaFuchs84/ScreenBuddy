@@ -17,7 +17,7 @@ Bestanden am 14.11.2026 mit derselben App (2.12.0-Build), echtem USB-Display Rev
 
 ### Hinzugefügt
 
-- **Hardware-HUD:** Optionale Ansicht für die Systemseite (Einstellung unter **System**) mit Neon-Vektorgrafik, automatisch wechselnden Seiten Übersicht/GPU/CPU sowie Lüfter-, Ring- und Pulsanimationen. Eigene Layouts für breite, normale und hochkant betriebene Displays; Textbreiten werden gemessen und umbrochen, damit Beschriftungen nicht überlappen.
+- **Hardware-HUD:** Optionale Ansicht für die Systemseite (Einstellung unter **System**) mit Vektorgrafik, automatisch wechselnden Seiten Übersicht/GPU/CPU sowie Lüfter-, Ring- und Pulsanimationen. Eigene Layouts für breite, normale und hochkant betriebene Displays; Textbreiten werden gemessen und umbrochen, damit Beschriftungen nicht überlappen. Farben standardmäßig aus dem aktiven Design, wahlweise klassisches Neon oder eigene Haupt-, Zweit- und Hintergrundfarbe; zu schwache Kontraste werden automatisch angepasst.
 - **CPU-Leistung in Watt:** CPU-Package-Leistung aus geeigneten HWiNFO-Leistungssensoren (Typ Power, Einheit W). Fehlende oder ungültige Werte bleiben unbekannt („--“); es wird nichts geschätzt.
 - **Globale Animationsrate:** **Einstellungen → Anzeige → Animationen** (`display.animation_fps`), 5–60, Standard 30. Gilt für sichtbare Animationen: Hardware-HUD, aktive KI-Pulse und Zeilenübergänge, laufende Spotify-Seite samt Pegel-/Fortschrittskacheln, animierte eigene Ansichten, Game-Intro und Plugin-Überblendungen.
 

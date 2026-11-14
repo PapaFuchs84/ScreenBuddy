@@ -19,9 +19,20 @@ public:
         form_.toggle(*page, "system", "enabled", T(L"Seite anzeigen", L"Show page"));
         form_.text(*page, "system", "title", T(L"Titel", L"Title"));
         Card* hud = root.add<Card>(Text(L"Hardware HUD"),
-            T(L"Animierte Systemansicht im Neon-Stil. Übersicht, GPU und CPU wechseln alle 8 Sekunden. Fehlende Sensorwerte erscheinen als --.",
-              L"Animated neon-style system view. Overview, GPU and CPU rotate every 8 seconds. Missing sensors appear as --."));
+            T(L"Animierte Systemansicht mit Vektorgrafik. Übersicht, GPU und CPU wechseln alle 8 Sekunden. Fehlende Sensorwerte erscheinen als --.",
+              L"Animated system view with vector graphics. Overview, GPU and CPU rotate every 8 seconds. Missing sensors appear as --."));
         form_.toggle(*hud, "system", "hardware_hud", T(L"Hardware HUD anzeigen", L"Show Hardware HUD"));
+        form_.segment(*hud, "system", "hud_colors", T(L"Farben", L"Colours"),
+                      T(L"Design übernimmt die Farben des aktiven Designs; Neon ist der klassische Cyan-/Magenta-Look.",
+                        L"Design uses the colours of the active design; Neon is the classic cyan/magenta look."),
+                      {"theme", "neon", "custom"}, {T(L"Design", L"Design"), Text(L"Neon"), T(L"Eigene", L"Custom")});
+        form_.color(*hud, "system", "hud_color_primary", T(L"Hauptfarbe", L"Primary colour"),
+                    T(L"Nur bei „Eigene“. Leer = Akzentfarbe des Designs.", L"Custom only. Empty = design accent colour."));
+        form_.color(*hud, "system", "hud_color_secondary", T(L"Zweitfarbe", L"Secondary colour"),
+                    T(L"Nur bei „Eigene“. Leer = Kopfzeilenfarbe des Designs.", L"Custom only. Empty = design header colour."));
+        form_.color(*hud, "system", "hud_color_background", T(L"Hintergrund", L"Background"),
+                    T(L"Nur bei „Eigene“. Leer = Hintergrund des Designs. Zu schwach kontrastierende Farben werden für die Lesbarkeit angepasst.",
+                      L"Custom only. Empty = design background. Colours with too little contrast are adjusted for readability."));
         hud->add<Note>(T(L"Die Animationsrate für alle Ansichten stellst du unter Anzeige → Animationen ein.",
                          L"Set the animation rate for all views under Display → Animations."));
         Card* sensors = root.add<Card>(T(L"Sensoren", L"Sensors"), T(L"Leere Felder = automatisch erkennen.", L"Empty fields = detect automatically."));

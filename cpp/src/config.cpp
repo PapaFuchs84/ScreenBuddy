@@ -48,7 +48,8 @@ const ojson& defaults() {
                         // Eigene Farben (theme = "eigen"): Vorlage plus #RRGGBB-Werte; leer = Farbe der Vorlage
                         {"color_base", "hell"}, {"color_bg", ""}, {"color_card", ""}, {"color_header", ""},
                         {"color_accent", ""}, {"color_text", ""}, {"color_muted", ""}};
-        j["system"] = {{"enabled", true}, {"hardware_hud", false}, {"hardware_hud_fps", 30}, {"title", "System"}, {"net_adapter", ""}, {"net_unit", "bit"},
+        j["system"] = {{"enabled", true}, {"hardware_hud", false}, {"hardware_hud_fps", 30},
+                       {"hud_colors", "theme"}, {"hud_color_primary", ""}, {"hud_color_secondary", ""}, {"hud_color_background", ""}, {"title", "System"}, {"net_adapter", ""}, {"net_unit", "bit"},
                        {"disk", "C:"}, {"cpu_temp_sensor", ""}, {"cpu_fan_sensor", ""}};
         j["friends"] = {{"enabled", false}, {"title", "Freunde"}, {"include_discord", true}, {"auto_merge", true},
                         {"show_offline", false}, {"steam_api_key", ""}, {"steam_id", ""}, {"xbox_api_key", ""}, {"psn_npsso", ""},
@@ -88,6 +89,7 @@ static const std::map<Key, std::pair<long long, long long>> LIMITS = {
 static const std::map<Key, std::vector<std::string>> CHOICES = {
     {{"display", "orientation"}, {"landscape", "reverse_landscape", "portrait", "reverse_portrait"}},
     {{"system", "net_unit"}, {"bit", "byte"}},
+    {{"system", "hud_colors"}, {"theme", "neon", "custom"}},
     {{"display", "color_base"}, {"hell", "dunkel"}},
     {{"display", "output"}, {"serial", "monitor", "network"}},
     {{"ui", "language"}, {"de", "en"}},
@@ -342,7 +344,7 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
         throw std::invalid_argument("erlaubt: material-orange, cupertino, fluent, hell, dunkel, windows, custom:<id>");
     if (auto it = CHOICES.find(k); it != CHOICES.end() && !std::count(it->second.begin(), it->second.end(), v))
         throw std::invalid_argument("erlaubt: " + join(it->second, ", "));
-    if (sec == "display" && is_color_key(key) && !v.empty()) {
+    if (((sec == "display" && is_color_key(key)) || (sec == "system" && key.rfind("hud_color_", 0) == 0)) && !v.empty()) {
         static const std::regex rx("#[0-9a-fA-F]{6}");
         if (!std::regex_match(v, rx)) throw std::invalid_argument("Farbe als #RRGGBB erwartet");
         for (auto& c : v) c = (char)toupper((unsigned char)c);

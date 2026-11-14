@@ -1808,6 +1808,11 @@ TextField* Form::text(Card& card, const char* sec, const char* key, Text label, 
     bindings_.push_back({sec, key, Kind::Text, w});
     return w;
 }
+ColorField* Form::color(Card& card, const char* sec, const char* key, Text label, Text desc) {
+    auto w = card.row<ColorField>(std::move(label), std::move(desc), as_text(value(sec, key)));
+    bindings_.push_back({sec, key, Kind::Color, w});
+    return w;
+}
 TextField* Form::secret(Card& card, const char* sec, const char* key, Text label, Text desc) {
     auto w = card.row<TextField>(std::move(label), std::move(desc), TextField::Secret, L"");
     const ojson& set = value(sec, (std::string(key) + "_set").c_str());
@@ -1862,6 +1867,13 @@ void Form::collect(ojson& patch) const {
         case Kind::Segment: section[b.key] = b.values.at(size_t(static_cast<Segment*>(b.w)->index)); break;
         case Kind::Combo: section[b.key] = b.values.at(size_t(static_cast<Combo*>(b.w)->index)); break;
         case Kind::Text: section[b.key] = trim(narrow(static_cast<TextField*>(b.w)->text())); break;
+        case Kind::Color: {
+            auto* field = static_cast<ColorField*>(b.w);
+            if (!field->valid())
+                throw Invalid(en ? "Enter a colour as #RRGGBB or leave the field empty." : "Farbe als #RRGGBB eingeben oder das Feld leer lassen.", b.w);
+            section[b.key] = field->hex();
+            break;
+        }
         case Kind::Secret: {
             std::string t = trim(narrow(static_cast<TextField*>(b.w)->text()));
             if (!t.empty()) section[b.key] = t;  // leer = gespeicherten Wert behalten

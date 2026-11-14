@@ -1231,7 +1231,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             if (b(cfg_["system"], "hardware_hud")) {
                 // HUD fills the system page; ordinary card hit targets do not apply.
                 out.push_back({key, 1, [this](int, RendererSet& rs) {
-                    return render::hardware_hud(rs.width, rs.height, sys_->snapshot(), mono());
+                    return render::hardware_hud(rs.width, rs.height, sys_->snapshot(), mono(), 8, render::hud_palette(cfg_["system"], render::theme()));
                 }});
                 continue;
             }

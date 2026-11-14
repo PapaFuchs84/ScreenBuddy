@@ -17,7 +17,7 @@ Passed on 14 Nov 2026 with the same app (2.12.0 build), a real Rev. A USB displa
 
 ### Added
 
-- **Hardware HUD:** optional view for the System page (setting under **System**) with neon vector graphics, automatically rotating Overview/GPU/CPU pages and fan, ring and pulse animations. Separate layouts for wide, normal and portrait displays; text widths are measured and wrapped so labels do not overlap.
+- **Hardware HUD:** optional view for the System page (setting under **System**) with vector graphics, automatically rotating Overview/GPU/CPU pages and fan, ring and pulse animations. Separate layouts for wide, normal and portrait displays; text widths are measured and wrapped so labels do not overlap. Colours follow the active design by default, with classic neon or custom primary, secondary and background colours as options; insufficient contrast is adjusted automatically.
 - **CPU power in watts:** CPU package power from suitable HWiNFO power sensors (type Power, unit W). Missing or invalid values stay unknown (“--”); nothing is estimated.
 - **Global animation rate:** **Settings → Display → Animations** (`display.animation_fps`), 5–60, default 30. Applies to visible animations: hardware HUD, active AI pulses and row transitions, the playing Spotify page with level/progress tiles, animated custom views, the Game intro and plugin fades.
 

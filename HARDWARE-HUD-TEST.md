@@ -23,6 +23,16 @@ Ringe, Lüfter und Signalimpulse sind animiert, Seitenübergänge ebenfalls. Die
 
 Es gibt eigene Layouts für breite, normale und hochkant betriebene Displays. Hardwarebezeichnungen werden anhand ihrer gemessenen Textbreite umbrochen, damit Beschriftungen nicht überlappen.
 
+## Farben
+
+Unter **Seiten → System → Hardware HUD → Farben**:
+
+- **Design** (Standard): Das HUD übernimmt die Farben des aktiven Designs (Skin): Hintergrund, Akzent- und Kopfzeilenfarbe, Text und Warnfarbe. Helle Designs ergeben ein helles HUD.
+- **Neon**: der klassische Look mit Cyan und Magenta auf Dunkelblau.
+- **Eigene**: Hauptfarbe, Zweitfarbe und Hintergrund frei wählbar (Farbwähler oder #RRGGBB). Ein leeres Feld übernimmt den Wert des Designs.
+
+Farben mit zu wenig Kontrast werden automatisch für die Lesbarkeit angepasst; Text bleibt immer gut lesbar. Die Warnfarbe ab 85 °C kommt aus dem Design (bei Neon: Rot).
+
 ## Messwerte und HWiNFO
 
 - CPU-Auslastung und Takt kommen aus Windows.

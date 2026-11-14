@@ -33,7 +33,7 @@ USB-Display bzw. Monitor und Companion können gleichzeitig laufen, mit eigenen 
 
 SYSTEMWERTE UND HARDWARE-HUD
 • Systemseite: CPU (Last, Takt, Temperatur, Lüfter), GPU (Last, Temperatur, Lüfter, VRAM), Arbeitsspeicher, Datenträger und Netzwerk mit Verlauf.
-• Neu: optionales Hardware-HUD für die Systemseite – Neon-Vektorgrafik mit automatisch wechselnden Seiten Übersicht, GPU und CPU, animierten Lüftern, Ringen und Impulsen sowie eigenen Layouts für breite, normale und Hochkant-Displays.
+• Neu: optionales Hardware-HUD für die Systemseite – Vektorgrafik in den Farben deines Designs, als klassisches Neon oder in eigenen Farben, mit automatisch wechselnden Seiten Übersicht, GPU und CPU, animierten Lüftern, Ringen und Impulsen sowie eigenen Layouts für breite, normale und Hochkant-Displays.
 • Neu: CPU-Package-Leistung in Watt aus passenden HWiNFO-Sensoren.
 • CPU-Temperatur, Lüfterdrehzahl und Watt benötigen HWiNFO mit aktivierter Shared-Memory-Ausgabe und passenden Sensoren; in der kostenlosen HWiNFO-Ausgabe ist Shared Memory auf 12 Stunden begrenzt. GPU-Werte gibt es für NVIDIA- und AMD-Grafikkarten; welche Messwerte verfügbar sind, hängt von GPU und Treiber ab. Fehlende Messwerte werden als unbekannt angezeigt, nie geschätzt.
 
@@ -82,7 +82,7 @@ GUT ZU WISSEN
 
 1. Ausgabe auf unterstützten 3,5-Zoll-USB-Displays (480 × 320), jedem zusätzlichen HDMI-/USB-C-Monitor oder Android-Geräten mit der Companion-App
 2. Systemseite mit CPU, GPU, Arbeitsspeicher, Datenträgern und Netzwerk samt Verlauf
-3. Neu: optionales Hardware-HUD mit Neon-Vektorgrafik und automatisch wechselnden Seiten Übersicht, GPU und CPU
+3. Neu: optionales Hardware-HUD mit Vektorgrafik in Design-, Neon- oder eigenen Farben und wechselnden Seiten Übersicht, GPU und CPU
 4. Neu: CPU-Package-Leistung in Watt aus passenden HWiNFO-Sensoren; fehlende Werte bleiben unbekannt
 5. Neu: globale Animationsrate von 5 bis 60 Bildern pro Sekunde für sichtbare Animationen
 6. Game-Mode mit Spielerkennung, optionalem Logo-Intro und eigener Spielansicht (FPS, Frametime, GPU, VRAM, Ping je nach Messquelle)
@@ -109,7 +109,7 @@ USB-Display; Systemmonitor; Hardware-Monitor; Zweitbildschirm; Game-Mode FPS; Se
 
 ```text
 Neu in 2.12.0:
-• Hardware-HUD: optionale Neon-Ansicht für die Systemseite mit automatisch wechselnden Seiten Übersicht, GPU und CPU, animierten Lüftern, Ringen und Impulsen sowie Layouts für breite, normale und Hochkant-Displays. Einschalten in den Einstellungen bei der Systemseite.
+• Hardware-HUD: optionale animierte Ansicht für die Systemseite in den Farben deines Designs, als Neon oder in eigenen Farben, mit automatisch wechselnden Seiten Übersicht, GPU und CPU, animierten Lüftern, Ringen und Impulsen sowie Layouts für breite, normale und Hochkant-Displays. Einschalten in den Einstellungen bei der Systemseite.
 • CPU-Leistung in Watt aus passenden HWiNFO-Sensoren. Fehlende Werte bleiben unbekannt („--“).
 • Globale Animationsrate: Einstellungen → Anzeige → Animationen, 5 bis 60, Standard 30. Gilt für sichtbare Animationen wie Hardware-HUD, KI-Status, Spotify, eigene Ansichten, Game-Intro und Plugin-Überblendungen. Statische Seiten und die Sensorabfrage bleiben unverändert sparsam.
 • Companion: Animationen kommen ohne zusätzliche Verzögerung an; statische Seiten werden nicht unnötig neu gezeichnet. Dazu gibt es die Companion-App 1.1.1 mit Fehlerkorrekturen; 1.1.0 funktioniert weiter.
@@ -136,7 +136,7 @@ The USB display or monitor and the Companion can run at the same time, each with
 
 SYSTEM STATS AND HARDWARE HUD
 • System page: CPU (load, clock, temperature, fan), GPU (load, temperature, fan, VRAM), memory, drives and network with history.
-• New: optional Hardware HUD for the System page – neon vector graphics with automatically rotating Overview, GPU and CPU pages, animated fans, rings and pulses, and dedicated layouts for wide, regular and portrait displays.
+• New: optional Hardware HUD for the System page – vector graphics in your design's colours, classic neon or custom colours, with automatically rotating Overview, GPU and CPU pages, animated fans, rings and pulses, and dedicated layouts for wide, regular and portrait displays.
 • New: CPU package power in watts from suitable HWiNFO sensors.
 • CPU temperature, fan speed and watts need HWiNFO with shared-memory output enabled and suitable sensors; in the free HWiNFO edition shared memory is limited to 12 hours. GPU readings are available for NVIDIA and AMD graphics cards; which readings are available depends on the GPU and driver. Missing readings are shown as unknown, never estimated.
 
@@ -185,7 +185,7 @@ GOOD TO KNOW
 
 1. Output to supported 3.5-inch USB displays (480 × 320), any additional HDMI/USB-C monitor, or Android devices running the Companion app
 2. System page with CPU, GPU, memory, drives and network including history
-3. New: optional Hardware HUD with neon vector graphics and automatically rotating Overview, GPU and CPU pages
+3. New: optional Hardware HUD with vector graphics in design, neon or custom colours and rotating Overview, GPU and CPU pages
 4. New: CPU package power in watts from suitable HWiNFO sensors; missing values stay unknown
 5. New: global animation rate from 5 to 60 frames per second for visible animations
 6. Game Mode with game detection, optional logo intro and a dedicated gaming view (FPS, frametime, GPU, VRAM, ping depending on the measurement source)
@@ -212,7 +212,7 @@ USB display; system monitor; hardware monitor; second screen; game mode FPS; HWi
 
 ```text
 New in 2.12.0:
-• Hardware HUD: optional neon view for the System page with automatically rotating Overview, GPU and CPU pages, animated fans, rings and pulses, and layouts for wide, regular and portrait displays. Enable it in settings next to the system page.
+• Hardware HUD: optional animated view for the System page in your design's colours, as neon or in custom colours, with automatically rotating Overview, GPU and CPU pages, animated fans, rings and pulses, and layouts for wide, regular and portrait displays. Enable it in settings next to the system page.
 • CPU power in watts from suitable HWiNFO sensors. Missing values stay unknown (“--”).
 • Global animation rate: Settings → Display → Animations, 5 to 60, default 30. Applies to visible animations such as the Hardware HUD, AI status, Spotify, custom views, the Game intro and plugin fades. Static pages and sensor polling stay as economical as before.
 • Companion: animations arrive without an extra delay; static pages are not redrawn unnecessarily. Companion app 1.1.1 adds bug fixes; 1.1.0 keeps working.

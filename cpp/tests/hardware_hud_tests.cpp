@@ -6,6 +6,7 @@
 #include "i18n.h"
 #include <windows.h>
 #include <objbase.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
@@ -148,6 +149,54 @@ int main(int argc,char** argv) {
     }
     auto invalid=snap;invalid.cpu_temp=std::numeric_limits<double>::quiet_NaN();invalid.cpu_watts=-10;invalid.gpu_temp=std::numeric_limits<double>::infinity();
     CHECK(!render::hardware_hud(480,800,invalid,17).empty());
+
+    // Colours: default follows the active design, Neon keeps the classic look, Custom overrides per field.
+    {
+        const auto rejected=[&](const ojson& patch){ try { (void)config::merge(cfg,patch); return false; } catch(const std::exception&) { return true; } };
+        CHECK(cfg["system"]["hud_colors"]=="theme");
+        CHECK(cfg["system"]["hud_color_primary"]=="" && cfg["system"]["hud_color_secondary"]=="" && cfg["system"]["hud_color_background"]=="");
+        for(const char* mode:{"theme","neon","custom"}) CHECK(config::merge(cfg,{{"system",{{"hud_colors",mode}}}})["system"]["hud_colors"]==mode);
+        CHECK(rejected({{"system",{{"hud_colors","rainbow"}}}}));
+        CHECK(config::merge(cfg,{{"system",{{"hud_color_primary","#12ab34"}}}})["system"]["hud_color_primary"]=="#12AB34");
+        CHECK(config::merge(cfg,{{"system",{{"hud_color_primary",""}}}})["system"]["hud_color_primary"]=="");
+        CHECK(rejected({{"system",{{"hud_color_secondary","red"}}}}));
+        CHECK(rejected({{"system",{{"hud_color_background","#12345"}}}}));
+
+        render::Theme dark;dark.bg={12,18,32};dark.card={22,32,52};dark.accent={240,140,40};dark.orange={90,170,255};
+        dark.text={240,240,235};dark.muted={150,160,175};dark.warn={235,80,70};
+        render::Theme light=dark;light.bg={250,244,232};light.card={240,230,212};light.text={20,30,50};light.muted={95,100,110};
+        const auto same=[](Color a,Color b){return a==b;};
+        const auto neon=render::hud_neon_palette();
+        ojson system=cfg["system"];
+        system["hud_colors"]="neon";
+        const auto n=render::hud_palette(system,dark);
+        CHECK(same(n.bg,neon.bg)&&same(n.primary,neon.primary)&&same(n.secondary,neon.secondary)&&same(n.grid,neon.grid)&&same(n.scan,neon.scan));
+        // The classic look is unchanged: an explicit Neon palette renders exactly like the default.
+        CHECK(render::hardware_hud(800,480,snap,9,8,n).px==render::hardware_hud(800,480,snap,9).px);
+        system["hud_colors"]="theme";
+        const auto t=render::hud_palette(system,dark);
+        CHECK(same(t.bg,dark.bg)&&same(t.primary,dark.accent)&&same(t.secondary,dark.orange)&&same(t.text,dark.text)&&same(t.warn,dark.warn));
+        CHECK(render::hardware_hud(800,480,snap,9,8,t).px!=render::hardware_hud(800,480,snap,9).px);
+        const auto lt=render::hud_palette(system,light);
+        CHECK(same(lt.bg,light.bg)&&render::contrast(lt.text,lt.bg)>=4.5&&render::contrast(lt.muted,lt.bg)>=2.5);
+        CHECK(render::contrast(lt.primary,lt.bg)>=1.8&&render::contrast(lt.secondary,lt.bg)>=1.8);
+        // Custom: set fields win, empty or invalid fields fall back to the design.
+        system["hud_colors"]="custom";system["hud_color_primary"]="#00FF88";system["hud_color_secondary"]="";system["hud_color_background"]="not a colour";
+        const auto c=render::hud_palette(system,dark);
+        CHECK(same(c.primary,Color{0,255,136})&&same(c.secondary,dark.orange)&&same(c.bg,dark.bg));
+        system["hud_color_background"]="#FFFFFF";system["hud_color_primary"]="#FFFFF0";system["hud_color_secondary"]="#FFFFF0";
+        const auto low=render::hud_palette(system,dark);
+        CHECK(same(low.bg,Color{255,255,255})&&render::contrast(low.text,low.bg)>=4.5);
+        CHECK(render::contrast(low.primary,low.bg)>=1.8&&!same(low.primary,low.secondary));
+        // Unknown mode behaves like the design default.
+        system["hud_colors"]=42;
+        const auto fallback=render::hud_palette(system,dark);
+        CHECK(same(fallback.primary,dark.accent)&&same(fallback.bg,dark.bg));
+        const auto image=render::hardware_hud(800,480,snap,9,8,c);
+        CHECK(std::any_of(image.px.begin(),image.px.end(),[](uint32_t p){return ((p>>16)&255)==0&&((p>>8)&255)==255&&(p&255)==136;}));
+        if(!out.empty()) for(const auto& [name,palette]:std::vector<std::pair<std::string,render::HudPalette>>{{"theme-dark",t},{"theme-light",lt},{"custom",c}})
+            save(out/("sample-colours-"+name+".png"),render::hardware_hud(1200,360,snap,9,8,palette));
+    }
     std::printf("Hardware HUD: %d passed, %d failed\n",passed,failed);CoUninitialize();return failed?1:0;
 }
 

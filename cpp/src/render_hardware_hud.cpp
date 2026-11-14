@@ -15,9 +15,13 @@
 namespace fl::render {
 namespace {
 constexpr float PI = 3.14159265358979323846f;
-constexpr Color BG{5, 8, 18}, PANEL{9, 17, 31}, CYAN{58, 228, 245}, PINK{222, 78, 240};
-constexpr Color WHITE{225, 246, 255}, MUTED{121, 151, 177}, GRID{10, 22, 36}, DIM_C{14, 66, 80}, DIM_P{61, 25, 77};
-
+// Active palette for the frame being drawn. hardware_hud() sets it under the global
+// render mutex (or single-threaded in tests); the helpers below read it.
+Color BG, PANEL, CYAN, PINK, WHITE, MUTED, GRID, DIM_C, DIM_P, SCAN, HOT;
+void use(const HudPalette& p) {
+    BG = p.bg; PANEL = p.panel; CYAN = p.primary; PINK = p.secondary; WHITE = p.text; MUTED = p.muted;
+    GRID = p.grid; DIM_C = p.dim_primary; DIM_P = p.dim_secondary; SCAN = p.scan; HOT = p.warn;
+}
 const char* label(const char* de, const char* en) { return i18n::lang()=="en"?en:de; }
 Font font(const Canvas& c, float size, bool bold = false) { return {std::max(7.f, size*c.s()), bold, L"Bahnschrift"}; }
 Color mix(Color a, Color b, float t) {
@@ -157,7 +161,7 @@ void component(Canvas& c, float x, float y, float size, int page, double tick) {
     }
 }
 void temperature(Canvas& c, float x, float y, float r, std::optional<double> temp, const std::string& label,double tick) {
-    const Color color=valid(temp)&&*temp>=85?Color{255,107,94}:CYAN;
+    const Color color=valid(temp)&&*temp>=85?HOT:CYAN;
     c.polygon(hex(x,y,r*.94f,r*.72f),PANEL);
     outline(c,x,y,r,r*.77f,color);
     outline(c,x,y,r*.9f,r*.67f,PINK,false);
@@ -203,7 +207,43 @@ std::optional<double> gib(std::optional<double> mib) {return valid(mib)?std::opt
 
 } // namespace
 
-Image hardware_hud(int width,int height,const SysSnapshot& snap,double tick,int page_seconds) {
+HudPalette hud_neon_palette() {
+    return {{5, 8, 18}, {9, 17, 31}, {58, 228, 245}, {222, 78, 240}, {225, 246, 255}, {121, 151, 177}, {255, 107, 94},
+            {10, 22, 36}, {14, 66, 80}, {61, 25, 77}, {9, 27, 41}};
+}
+
+HudPalette hud_derive(HudPalette p) {
+    p.grid = mix(p.bg, p.primary, .07f);
+    p.dim_primary = mix(p.bg, p.primary, .24f);
+    p.dim_secondary = mix(p.bg, p.secondary, .26f);
+    p.scan = mix(p.bg, p.primary, .09f);
+    return p;
+}
+
+HudPalette hud_palette(const ojson& system, const Theme& skin) {
+    const auto text = [&](const char* key) {
+        return system.is_object() && system.contains(key) && system[key].is_string() ? system[key].get<std::string>() : std::string();
+    };
+    const std::string mode = text("hud_colors");
+    if (mode == "neon") return hud_neon_palette();
+    HudPalette p{skin.bg, skin.card, skin.accent, skin.orange, skin.text, skin.muted, skin.warn, {}, {}, {}, {}};
+    if (mode == "custom") {
+        if (auto c = parse_color(text("hud_color_background"))) { p.bg = *c; p.panel = mix(*c, skin.card == skin.bg ? skin.text : skin.card, .12f); }
+        if (auto c = parse_color(text("hud_color_primary"))) p.primary = *c;
+        if (auto c = parse_color(text("hud_color_secondary"))) p.secondary = *c;
+    }
+    // Keep values and labels readable on any background, including light skins and custom colours.
+    if (contrast(p.text, p.bg) < 4.5) p.text = fl::theme::readable_on(p.bg);
+    if (contrast(p.muted, p.bg) < 2.5) p.muted = mix(p.text, p.bg, .35f);
+    if (contrast(p.panel, p.bg) > 1.6 || p.panel == p.bg) p.panel = mix(p.bg, p.text, .05f);
+    for (Color* accent : {&p.primary, &p.secondary})
+        if (contrast(*accent, p.bg) < 1.8) *accent = mix(*accent, p.text, .55f);
+    if (p.secondary == p.primary) p.secondary = mix(p.primary, p.text, .45f);
+    return hud_derive(p);
+}
+
+Image hardware_hud(int width,int height,const SysSnapshot& snap,double tick,int page_seconds,const HudPalette& palette) {
+    use(palette);
     width=std::max(width,1); height=std::max(height,1);
     tick=std::isfinite(tick)&&tick>=0?std::fmod(tick,86400.):0;
     page_seconds=std::clamp(page_seconds,3,60);
@@ -226,7 +266,7 @@ Image hardware_hud(int width,int height,const SysSnapshot& snap,double tick,int 
         outline(c,xx+((row+1)%2?step_x/2:0),yy,28,24,mix(GRID,DIM_C,glow),false);
     }
     const float scan=float(std::fmod(tick*90.,double(std::max(w,1.f))));
-    c.rectangle(scan,52,scan+1,h-36,Color{9,27,41});
+    c.rectangle(scan,52,scan+1,h-36,SCAN);
     circuit(c,{{20,38},{w*.25f,38},{w*.25f+15,23},{w-20,23}},CYAN,tick);
     circuit(c,{{20,h-25},{w*.67f,h-25},{w*.67f+14,h-39},{w-20,h-39}},PINK,tick,170);
     const Font headerFont=font(c,portrait?13.f:12.f,true);
