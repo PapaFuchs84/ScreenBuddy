@@ -1,6 +1,8 @@
 # Global animation: frame rate and limits
 
-[Deutsch](HARDWARE-HUD-FPS-ANALYSE.md) · local validation dated 14 November 2026, no publication.
+[Deutsch](HARDWARE-HUD-FPS-ANALYSE.md) · validation dated 13/14 November 2026.
+
+> **Historical measurement:** this document describes measurements and open points of the local HUD test builds before ScreenBuddy 2.12.0 and is no longer updated. The released feature and the 2.12.0 test status are on the [Hardware HUD](HARDWARE-HUD-TEST.en.md) page.
 
 The previous five frames/s cap is not a requirement of the Companion protocol or Android app. No measured justification for that value is established in the original local commit. It primarily budgets full-frame JPEG encoding, transfer and decoding. A fresh Redmi v2 retest at that cap observed 49 UI redraws over 12.093 seconds: 4.05/s.
 
@@ -28,8 +30,6 @@ All three connections stayed active. Thermal status remained 0 and battery tempe
 
 Historical HUD-only candidate for this table: `F099702F29136203E44E20602A9813A844ED62B3B56466923704F761263CBFC4`. This table characterises that transport candidate. The later HUD-only build with default 30 passed 88 HUD and 3556 regression checks; 434 Companion checks passed on the same transport code. The final physical smoke test of build `96BC99AD4D179E8E0A8C9407415E5CB0C2238E1B83B31151664DE92408B18316` passed for all three pages in landscape (36.41 s) and portrait (35.80 s): live values, cycling, movement and no observed overlaps. The test configuration deliberately omitted `hardware_hud_fps`; the API confirmed compiled default 30. This is not a new timed frame-rate measurement.
 
-Local report: [producer-paced/BENCHMARK-RESULT.md](redmi-validation/fps-benchmark-2026-11-13/producer-paced/BENCHMARK-RESULT.md).
-
 ## Earlier transport candidate: six targets
 
 This separate run retained the additional transport timer. It is preserved as history and must not be presented as a final-path measurement. Background load and short individual windows do not support a strict causal comparison between variants.
@@ -42,8 +42,6 @@ This separate run retained the additional transport timer. It is preserved as hi
 | 20 | 15.85 | 0.263 | 0.846 | 12.91 |
 | 30 | 16.82 | 0.444 | 0.891 | 13.84 |
 | 60 | 31.11 | 0.607 | 1.262 | 25.52 |
-
-Local report: [first comparison](redmi-validation/fps-benchmark-2026-11-13/BENCHMARK-RESULT.md).
 
 ## Mixed outputs and native USB: new cases still pending
 

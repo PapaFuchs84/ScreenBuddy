@@ -1,6 +1,6 @@
 <div align="center">
 
-Store edition “ScreenBuddy by FuchsLabs” in preparation: [Microsoft Store / Companion build](docs/STORE-DISTRIBUTION.en.md). No Store publication yet. [App privacy](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
+Store edition “ScreenBuddy by FuchsLabs”: [Microsoft Store](https://apps.microsoft.com/detail/9P03461RLGG0) · [notes on the Store edition](docs/STORE-DISTRIBUTION.en.md). [App privacy](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
 
 **Companion 1.1.0 (release `companion-v1.1.0`):** a dark default design and optional automatic mode for the paired PC. Setup, permissions and device-validation limits: [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110).
 
@@ -34,7 +34,7 @@ AI usage: separate confirmed real-account opt-ins default to off. Claude and Cod
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
 
-**Local test build v3 (14 November 2026):** global animation rate under **Display → Animations**, 5 to 60, default 30 (`display.animation_fps`). It covers visible animation including Hardware HUD, AI status, Spotify and transitions; static pages retain their own cadence. Local package `ScreenBuddy-Hardware-HUD-Test-v3.zip`, marked `TEST3`; global app/device acceptance remains pending. Earlier Redmi rates describe only the then-current HUD candidate. [Measurements and limits](HARDWARE-HUD-FPS-ANALYSE.en.md) · [Usage and validation](HARDWARE-HUD-TEST.en.md). No GitHub or Microsoft Store publication.
+**New in 2.12.0 (14 November 2026):** an optional **Hardware HUD** for the System page (neon vector graphics, automatically rotating Overview/GPU/CPU pages, layouts for wide, regular and portrait displays), CPU package power in watts from HWiNFO, and a global animation rate under **Settings → Display → Animations**, 5 to 60, default 30 (`display.animation_fps`). It covers visible animation including the Hardware HUD, AI status, Spotify and transitions; static pages retain their own cadence and sensors are not polled more often. The serial USB display transfers in its own thread and no longer slows the Companion. The Companion app stays 1.1.0. [Hardware HUD: usage, limits and test status](HARDWARE-HUD-TEST.en.md) · [historical frame-rate analysis](HARDWARE-HUD-FPS-ANALYSE.en.md) · [Changelog](CHANGELOG.en.md)
 
 **New in 2.10.0 (07.11.2026):** plugin pages with a zone layout (manifest v2), density levels, conditional display, cycling zones, tap targets with link consent (off by default), keepout per device, built-in pages on the shared frame, a page editor and a touch target per tile under **Pages → Custom views**. Also the default theme `material-orange`, Spotify “last played” and BF6 entries by ID. The Companion app stays 1.0.3. Hardware and device acceptance only partly live; see the release notes for details. [Release notes 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.en.md)
 
@@ -268,6 +268,7 @@ All documents by audience (German): [`docs/README.md`](docs/README.md). The most
 | [`docs/FEATURES.en.md`](docs/FEATURES.en.md) | features in detail ([Deutsch](docs/FUNKTIONEN.md)) |
 | [`docs/PLUGIN-SYSTEM.en.md`](docs/PLUGIN-SYSTEM.en.md) | plugin guide ([Deutsch](docs/PLUGIN-SYSTEM.md)), [tutorial](docs/PLUGIN-TUTORIAL.en.md), [store terms](docs/PLUGIN-STORE-TERMS.md) |
 | [`docs/GAME-MODE.en.md`](docs/GAME-MODE.en.md) | Development Game Mode: setup and measurement limits ([Deutsch](docs/GAME-MODE.md)) |
+| [`HARDWARE-HUD-TEST.en.md`](HARDWARE-HUD-TEST.en.md) | Hardware HUD and animation rate (new in 2.12.0; [Deutsch](HARDWARE-HUD-TEST.md)) |
 | [`docs/COMPANION.en.md`](docs/COMPANION.en.md) | Companion setup ([Deutsch](docs/COMPANION.md)) |
 | [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | release notes 2.10.0 (German/English) |
 | [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | release notes 2.9.5 (German/English; earlier: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |

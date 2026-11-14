@@ -4,9 +4,33 @@
 
 All notable changes to the app. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [2.12.0] - 2026-11-14
+
+The Companion app remains 1.1.0 (protocol and Android app unchanged). Feature page: [Hardware HUD](HARDWARE-HUD-TEST.en.md).
+
+Prüfstatus 2.12.0: siehe Release-Notizen
+<!-- PRÜFSTATUS-2.12 -->
+
+Software (candidate build before integration): 119 HUD/global-migration/AI checks, 434 Companion, 3556 core regression, 2144 custom-view, 845 plugin-scheduling and 290 game checks passed; the full suite of the integrated 2.12.0 build is being re-run. Physically tested: a real Redmi 8 (Android 14) as Companion over a USB tunnel at targets 5/30/60 (active AI about 4.9/21.3/26.2 UI redraws/s; normal system page about 0.6/s), portrait/landscape, swiping and automatic rotation without overlaps; a real serial Rev. A USB display on COM7 with routing/transfer checks (no optical panel frame-rate measurement). Not tested: a real Spotify account and playback control, real gameplay, Wi-Fi/LAN, background operation, restart, and long-term, battery and thermal behaviour.
+
+Joint USB display + Companion acceptance:
+<!-- GEMEINSAM-2.12 -->
+
+### Added
+
+- **Hardware HUD:** optional view for the System page (setting under **System**) with neon vector graphics, automatically rotating Overview/GPU/CPU pages and fan, ring and pulse animations. Separate layouts for wide, normal and portrait displays; text widths are measured and wrapped so labels do not overlap.
+- **CPU power in watts:** CPU package power from suitable HWiNFO power sensors (type Power, unit W). Missing or invalid values stay unknown (“--”); nothing is estimated.
+- **Global animation rate:** **Settings → Display → Animations** (`display.animation_fps`), 5–60, default 30. Applies to visible animations: hardware HUD, active AI pulses and row transitions, the playing Spotify page with level/progress tiles, animated custom views, the Game intro and plugin fades.
+
+### Changed
+
+- Static views keep their own slow refresh; the animation rate does not make sensors poll more often. The former local key `system.hardware_hud_fps` is migrated; an explicitly configured global value takes precedence.
+- Companion: PC-paced animations get no second transport delay; normal static Companion pages stay limited to 5 fps. Static Companion tiles are no longer redrawn merely because the main display animates quickly.
+- USB display (serial, Rev. A, 480 × 320): transfers run in their own output thread with a latest-frame handoff. A slow USB transfer (about 0.4–0.5 s per animated frame) no longer blocks Companion rendering; serial animations are paced by the measured transfer time instead of a fixed one-second pause.
 
 ### Fixed
+
+The following Store fixes were already contained in the Microsoft Store package 2.11.0.0 and appear for the first time as regular version 2.12.0.
 
 - Windows checks: a temporary private test desktop isolates real HWND keyboard tests from other applications; the device-editor fixture waits for an updated idle state after preview work before applying. Image references and behavioral assertions are preserved.
 - Microsoft Store: reserved title “ScreenBuddy by FuchsLabs”, exact official package identity and configurable XML-escaped DisplayName; bilingual app privacy/support prepared and published, without a public unsigned EXE release.
@@ -15,6 +39,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 - Store edition: vendor autostart is managed outside the app using Windows Task Scheduler; ScreenBuddy does not launch elevated scheduler commands.
 - Store edition: FPS setup does not launch an elevated helper; “Check FPS permission” explains administrator-assisted permission setup. Existing ETW permissions and HWiNFO measurements remain usable.
 - Store preparation based on 2.11.0: checksums cover only the newly built MSIX; screenshots with provenance manifest and listing logos are copied with it. Documented the current account block and remaining submission steps.
+
 ## [Companion 1.1.0] - 2026-11-09
 
 - Android app 1.1.0 (versionCode 9): dark default design with orange accents; protocol and application ID stay unchanged. Separate release `companion-v1.1.0` (APK only), independent of the ScreenBuddy version.

@@ -1,6 +1,6 @@
 <div align="center">
 
-Store-Ausgabe „ScreenBuddy by FuchsLabs“ in Vorbereitung: [Microsoft Store / Companion-Build](docs/STORE-DISTRIBUTION.md). Noch keine Store-Veröffentlichung. [App-Datenschutz](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
+Store-Ausgabe „ScreenBuddy by FuchsLabs“: [Microsoft Store](https://apps.microsoft.com/detail/9P03461RLGG0) · [Hinweise zur Store-Ausgabe](docs/STORE-DISTRIBUTION.md). [App-Datenschutz](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
 
 **Companion 1.1.0 (Release `companion-v1.1.0`):** dunkles Standard-Design und optionale Automatik für den gekoppelten PC. Einrichtung, Freigaben und Geräteprüfgrenzen: [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110).
 
@@ -34,7 +34,7 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
 
-**Lokale Testversion v3 (14.11.2026):** globale Animationsrate unter **Anzeige → Animationen**, 5 bis 60, Standard 30 (`display.animation_fps`). Sie gilt für sichtbare Animationen einschließlich Hardware HUD, KI-Status, Spotify und Übergängen; statische Seiten behalten ihren eigenen Takt. Lokales Paket `ScreenBuddy-Hardware-HUD-Test-v3.zip`, Kennung `TEST3`; globale App-/Geräteabnahme noch offen. Frühere Redmi-Bildraten gelten ausschließlich für den damaligen HUD-Kandidaten. [Messung und Grenzen](HARDWARE-HUD-FPS-ANALYSE.md) · [Bedienung und Prüfstand](HARDWARE-HUD-TEST.md). Keine Veröffentlichung auf GitHub oder im Microsoft Store.
+**Neu in 2.12.0 (14.11.2026):** optionales **Hardware-HUD** für die Systemseite (Neon-Vektorgrafik, automatisch wechselnde Seiten Übersicht/GPU/CPU, Layouts für breite, normale und Hochkant-Displays), CPU-Package-Leistung in Watt aus HWiNFO und eine globale Animationsrate unter **Einstellungen → Anzeige → Animationen**, 5 bis 60, Standard 30 (`display.animation_fps`). Sie gilt für sichtbare Animationen einschließlich Hardware-HUD, KI-Status, Spotify und Übergängen; statische Seiten behalten ihren eigenen Takt, Sensoren werden nicht häufiger abgefragt. Das serielle USB-Display überträgt in einem eigenen Thread und bremst den Companion nicht mehr. Die Companion-App bleibt 1.1.0. [Hardware-HUD: Bedienung, Grenzen und Prüfstatus](HARDWARE-HUD-TEST.md) · [historische Bildratenanalyse](HARDWARE-HUD-FPS-ANALYSE.md) · [Changelog](CHANGELOG.md)
 
 **Neu in 2.10.0 (07.11.2026):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **Seiten → Eigene Ansichten**. Dazu Standard-Theme `material-orange`, Spotify „zuletzt gespielt“ und BF6-Eintrag per ID. Die Companion-App bleibt 1.0.3. Hardware- und Geräteabnahme nur teilweise live; Einzelheiten in den Release-Notizen. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
 
@@ -268,6 +268,7 @@ Alle Dokumente nach Zielgruppe: [`docs/README.md`](docs/README.md). Die wichtigs
 | [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) | Architektur für Entwickler |
 | [`docs/PLUGIN-SYSTEM.md`](docs/PLUGIN-SYSTEM.md) | Plugin-Anleitung ([English](docs/PLUGIN-SYSTEM.en.md)), [Tutorial](docs/PLUGIN-TUTORIAL.md), [Store-Bedingungen](docs/PLUGIN-STORE-BEDINGUNGEN.md) |
 | [`docs/GAME-MODE.md`](docs/GAME-MODE.md) | Game-Mode im Entwicklungszweig: Einrichtung und Messwertgrenzen ([English](docs/GAME-MODE.en.md)) |
+| [`HARDWARE-HUD-TEST.md`](HARDWARE-HUD-TEST.md) | Hardware-HUD und Animationsrate (neu in 2.12.0; [English](HARDWARE-HUD-TEST.en.md)) |
 | [`docs/COMPANION.md`](docs/COMPANION.md) | Companion einrichten ([English](docs/COMPANION.en.md)) |
 | [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | Release-Notizen der aktuellen Version 2.10.0 |
 | [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | Release-Notizen 2.9.5 (frühere: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |

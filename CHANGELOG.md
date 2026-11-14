@@ -4,9 +4,33 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
-## [Unveröffentlicht]
+## [2.12.0] - 2026-11-14
+
+Companion-App bleibt 1.1.0 (Protokoll und Android-App unverändert). Funktionsseite: [Hardware-HUD](HARDWARE-HUD-TEST.md).
+
+Prüfstatus 2.12.0: siehe Release-Notizen
+<!-- PRÜFSTATUS-2.12 -->
+
+Software (Kandidatenstand vor der Integration): 119 Prüfungen zu HUD, globaler Migration und KI, 434 Companion, 3556 Kernregression, 2144 eigene Ansichten, 845 Plugin-Zeitplanung und 290 Game-Prüfungen bestanden; der vollständige Lauf des integrierten 2.12.0-Builds wird wiederholt. Physisch geprüft: echtes Redmi 8 (Android 14) als Companion über USB-Tunnel mit den Zielraten 5/30/60 (aktive KI etwa 4,9/21,3/26,2 UI-Neuzeichnungen/s; normale Systemseite etwa 0,6/s), Hoch-/Querformat, Wischen und automatischer Wechsel ohne Überlappungen; echtes serielles USB-Display Rev. A an COM7 mit Routing-/Übertragungsprüfungen (keine optische Bildratenmessung am Panel). Nicht geprüft: echtes Spotify-Konto und Wiedergabesteuerung, echtes Spielen, WLAN/LAN, Hintergrundbetrieb, Neustart sowie Langzeit-, Akku- und Temperaturverhalten.
+
+Gemeinsame Abnahme USB-Display + Companion:
+<!-- GEMEINSAM-2.12 -->
+
+### Hinzugefügt
+
+- **Hardware-HUD:** Optionale Ansicht für die Systemseite (Einstellung unter **System**) mit Neon-Vektorgrafik, automatisch wechselnden Seiten Übersicht/GPU/CPU sowie Lüfter-, Ring- und Pulsanimationen. Eigene Layouts für breite, normale und hochkant betriebene Displays; Textbreiten werden gemessen und umbrochen, damit Beschriftungen nicht überlappen.
+- **CPU-Leistung in Watt:** CPU-Package-Leistung aus geeigneten HWiNFO-Leistungssensoren (Typ Power, Einheit W). Fehlende oder ungültige Werte bleiben unbekannt („--“); es wird nichts geschätzt.
+- **Globale Animationsrate:** **Einstellungen → Anzeige → Animationen** (`display.animation_fps`), 5–60, Standard 30. Gilt für sichtbare Animationen: Hardware-HUD, aktive KI-Pulse und Zeilenübergänge, laufende Spotify-Seite samt Pegel-/Fortschrittskacheln, animierte eigene Ansichten, Game-Intro und Plugin-Überblendungen.
+
+### Geändert
+
+- Statische Ansichten behalten ihre eigene langsame Aktualisierung; Sensoren werden durch die Animationsrate nicht häufiger abgefragt. Der frühere lokale Schlüssel `system.hardware_hud_fps` wird migriert; ein ausdrücklich gesetzter globaler Wert hat Vorrang.
+- Companion: Am PC getaktete Animationen erhalten keine zweite Transportverzögerung; normale statische Companion-Seiten bleiben auf 5 Bilder/s begrenzt. Statische Companion-Kacheln werden nicht mehr neu gezeichnet, nur weil die Hauptanzeige schnell animiert.
+- USB-Display (seriell, Rev. A, 480 × 320): Übertragungen laufen in einem eigenen Ausgabethread mit Übergabe des jeweils neuesten Bildes. Eine langsame USB-Übertragung (etwa 0,4–0,5 s je animiertem Bild) blockiert das Companion-Rendering nicht mehr; serielle Animationen richten sich nach der gemessenen Übertragungszeit statt nach einer festen Ein-Sekunden-Pause.
 
 ### Behoben
+
+Die folgenden Store-Korrekturen waren bereits im Microsoft-Store-Paket 2.11.0.0 enthalten und erscheinen erstmals als reguläre Version 2.12.0.
 
 - Windows-Prüfungen: Temporärer privater Testdesktop hält echte HWND-Tastaturtests unabhängig von anderen Anwendungen; die Geräteeditor-Prüfung wartet nach Vorschauaufgaben auf einen aktualisierten Leerlaufzustand vor „Übernehmen“. Referenzbilder und fachliche Prüfungen bleiben erhalten.
 - Microsoft Store: reservierter Titel „ScreenBuddy by FuchsLabs“, exakte offizielle Paketidentität und konfigurierbarer XML-maskierter DisplayName; App-Datenschutz und Support zweisprachig vorbereitet/veröffentlicht, ohne öffentliche unsignierte EXE-Auslieferung.
@@ -15,6 +39,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 - Store-Ausgabe: Hersteller-Autostart wird außerhalb der App über die Windows-Aufgabenplanung verwaltet; ScreenBuddy startet dafür keine erhöhten Aufgabenplanungsbefehle.
 - Store-Ausgabe: FPS-Einrichtung startet keinen erhöhten Hilfsprozess; stattdessen erklärt „FPS-Berechtigung prüfen“ die Freigabe durch einen Administrator. Vorhandene ETW-Berechtigungen und HWiNFO-Messwerte bleiben nutzbar.
 - Store-Vorbereitung auf Basis von 2.11.0: Prüfsummen beziehen sich ausschließlich auf das neu gebaute MSIX; Screenshots mit Herkunftsmanifest und Store-Logos werden mitkopiert. Aktuelle Kontosperre und verbleibende Einreichungsschritte dokumentiert.
+
 ## [Companion 1.1.0] - 2026-11-09
 
 - Android-App 1.1.0 (versionCode 9): dunkles Standard-Design mit Orange-Akzenten; Protokoll und App-ID bleiben erhalten. Eigenes Release `companion-v1.1.0` (nur APK), unabhängig von der ScreenBuddy-Version.

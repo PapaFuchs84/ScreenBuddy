@@ -1,6 +1,8 @@
 # Globale Animationen: Bildrate und Grenzen
 
-[English](HARDWARE-HUD-FPS-ANALYSE.en.md) · lokaler Prüfstand vom 14.11.2026, keine Veröffentlichung.
+[English](HARDWARE-HUD-FPS-ANALYSE.en.md) · Prüfstand vom 13./14.11.2026.
+
+> **Historische Messung:** Dieses Dokument beschreibt Messungen und offene Punkte der lokalen HUD-Testbuilds vor ScreenBuddy 2.12.0 und wird nicht fortgeschrieben. Die veröffentlichte Funktion und der Prüfstatus von 2.12.0 stehen unter [Hardware-HUD](HARDWARE-HUD-TEST.md).
 
 Die bisherige Grenze von fünf Bildern/s ist keine Vorgabe des Companion-Protokolls oder der Android-App. Im ursprünglichen lokalen Commit ist keine Messbegründung für den Wert belegt. Sie begrenzt vor allem den Aufwand für vollständige JPEG-Bilder, Kodierung, Übertragung und Dekodierung. Im erneuten Redmi-Test von v2 wurden bei dieser Grenze 49 UI-Neuzeichnungen über 12,093 Sekunden beobachtet: 4,05/s.
 
@@ -28,8 +30,6 @@ Alle drei Verbindungen blieben bestehen. Thermischer Status war 0, die Batteriet
 
 Historischer HUD-only-Kandidat für diese Tabelle: `F099702F29136203E44E20602A9813A844ED62B3B56466923704F761263CBFC4`. Die Tabelle charakterisiert diesen Transportkandidaten. Der spätere HUD-only-Build mit Standard 30 bestand 88 HUD- und 3556 Regressionsprüfungen; 434 Companion-Prüfungen desselben Transportcodes bestanden. Der abschließende physische Smoke-Test des endgültigen Builds `96BC99AD4D179E8E0A8C9407415E5CB0C2238E1B83B31151664DE92408B18316` bestand für alle drei Seiten im Querformat (36,41 s) und Hochformat (35,80 s): Live-Werte, Wechsel, Bewegung und keine beobachteten Überlappungen. `hardware_hud_fps` fehlte bewusst in der Testkonfiguration; die API bestätigte den kompilierten Standard 30. Das ist keine neue Zeitmessung der Bildrate.
 
-Lokaler Bericht: [producer-paced/BENCHMARK-RESULT.md](redmi-validation/fps-benchmark-2026-11-13/producer-paced/BENCHMARK-RESULT.md).
-
 ## Vorheriger Transportkandidat: sechs Zielwerte
 
 Dieser getrennte Durchlauf verwendete noch den zusätzlichen Transporttimer. Er wird als Verlauf erhalten und darf nicht als Messung des finalen Pfads ausgegeben werden. Hintergrundlast und kurze Einzelmessungen erlauben keine strenge Ursache-Wirkungs-Aussage zwischen den Varianten.
@@ -42,8 +42,6 @@ Dieser getrennte Durchlauf verwendete noch den zusätzlichen Transporttimer. Er 
 | 20 | 15,85 | 0,263 | 0,846 | 12,91 |
 | 30 | 16,82 | 0,444 | 0,891 | 13,84 |
 | 60 | 31,11 | 0,607 | 1,262 | 25,52 |
-
-Lokaler Bericht: [erster Vergleich](redmi-validation/fps-benchmark-2026-11-13/BENCHMARK-RESULT.md).
 
 ## Gemischte Ausgaben und natives USB: neue Fälle noch offen
 

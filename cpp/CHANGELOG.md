@@ -1,6 +1,24 @@
 # Changelog
 
-## Unreleased
+## 2.12.0 – 2026-11-14
+
+Prüfstatus 2.12.0: siehe Release-Notizen
+<!-- PRÜFSTATUS-2.12 -->
+
+- Hardware-HUD / Hardware HUD: Optionale HUD-Ansicht der Systemseite (Einstellung unter „System“) mit Neon-Vektorgrafik, automatisch wechselnden Seiten Übersicht/GPU/CPU, Lüfter-/Ring-/Pulsanimationen und Layouts für breite, normale und Hochkant-Displays; gemessene Textbreiten und Umbrüche verhindern überlappende Beschriftungen. Optional HUD view for the System page (setting under “System”) with neon vector graphics, auto-rotating Overview/GPU/CPU pages, fan/ring/pulse animations and layouts for wide, normal and portrait displays; measured text widths and wrapping prevent overlapping labels.
+
+- CPU-Leistung / CPU power: CPU-Package-Leistung in Watt aus geeigneten HWiNFO-Sensoren (Typ Power, Einheit W); fehlende oder ungültige Werte bleiben unbekannt („--“). CPU package power in watts from suitable HWiNFO sensors (type Power, unit W); missing or invalid values stay unknown (“--”).
+
+- Animationsrate / Animation rate: Globaler Schlüssel `display.animation_fps` (5–60, Standard 30; Einstellungen → Anzeige → Animationen) taktet sichtbare Animationen: HUD, aktive KI-Pulse/Zeilenübergänge, laufende Spotify-Seite und Pegel-/Fortschrittskacheln, animierte eigene Ansichten, Game-Intro, Plugin-Überblendungen. Statische Ansichten behalten ihre langsame Aktualisierung, Sensoren werden nicht häufiger abgefragt. `system.hardware_hud_fps` wird migriert; ein ausdrücklicher globaler Wert hat Vorrang. Global key `display.animation_fps` (5–60, default 30; Settings → Display → Animations) paces visible animations: HUD, active AI pulses/row transitions, the playing Spotify page and level/progress tiles, animated custom views, Game intro, plugin fades. Static views keep their slow refresh and sensors are not polled more often. `system.hardware_hud_fps` is migrated; an explicit global value wins.
+
+- Companion: Am PC getaktete Animationen erhalten keine zweite Transportverzögerung; statische Seiten bleiben bei 5 fps und werden nicht mehr neu gezeichnet, nur weil die Hauptanzeige schnell animiert. Protokoll und Android-App unverändert (Companion 1.1.0). PC-paced animations get no second transport delay; static pages stay at 5 fps and are no longer redrawn merely because the main display animates quickly. Wire protocol and Android app unchanged (Companion 1.1.0).
+
+- USB-Display / USB display (seriell/serial Rev. A, 480 × 320): Eigener Ausgabethread mit Übergabe des neuesten Bildes; eine langsame Übertragung (etwa 0,4–0,5 s je animiertem Bild) blockiert das Companion-Rendering nicht mehr, serielle Animationen folgen der gemessenen Übertragungszeit statt einer festen Ein-Sekunden-Pause. Dedicated output thread with a latest-frame handoff; a slow transfer (about 0.4–0.5 s per animated frame) no longer blocks Companion rendering, and serial animations follow the measured transfer time instead of a fixed one-second pause.
+
+- Prüfgrenzen / Test limits: Physisch geprüft sind Redmi 8 (Android 14, USB-Tunnel, Zielraten 5/30/60) und das serielle Rev.-A-Display an COM7 (Routing/Übertragung, keine optische Bildratenmessung). Nicht geprüft: echtes Spotify-Konto/Wiedergabesteuerung, echtes Spielen, WLAN/LAN, Hintergrund/Neustart/Langzeit/Akku/Temperatur. Physically tested: Redmi 8 (Android 14, USB tunnel, targets 5/30/60) and the serial Rev. A display on COM7 (routing/transfer, no optical frame-rate measurement). Not tested: real Spotify account/playback control, real gameplay, Wi-Fi/LAN, background/restart/long-term/battery/thermal. Gemeinsame Abnahme / joint USB + Companion acceptance:
+<!-- GEMEINSAM-2.12 -->
+
+Die folgenden Store-Einträge waren bereits im Microsoft-Store-Paket 2.11.0.0 enthalten und erscheinen erstmals als reguläre Version 2.12.0. / The following Store entries were already contained in the Microsoft Store package 2.11.0.0 and appear for the first time as regular version 2.12.0.
 
 - Windows-Testumgebung / Windows test environment: `tests/Run-ReleaseChecks.ps1` startet den unveränderten vollständigen Runner auf einem temporären privaten Desktop ohne sichtbaren Desktopwechsel. Die Geräteeditor-Prüfung pumpt Aufgaben bis zu einem tatsächlichen UI-Leerlauf und prüft „Übernehmen“ auf Aktivierung. No assertions or goldens are removed; real HWND input paths remain exercised independently of other applications.
 
@@ -14,6 +32,8 @@
 
 - Microsoft Store: Paketierte Builds starten weder den FPS-Gruppenhelfer noch die erhöhte Hersteller-Autostart-Abschaltung. DE/EN-Hinweise erklären die Einrichtung durch einen Administrator außerhalb der App; vorhandene ETW-Rechte und HWiNFO-FPS bleiben verfügbar. Die Paketprüfung kontrolliert beide gesperrten Einstiegspunkte ohne Änderungen an Windows-Gruppen oder Aufgaben.
 - Microsoft Store: Packaged builds do not launch the FPS group helper or elevated vendor-startup changes. German/English guidance explains administrator setup outside the app; existing ETW permissions and HWiNFO FPS remain available. The package probe checks blocked entry points without changing Windows groups or tasks.
+
+## Frühere Einträge / Earlier entries
 
 BF6: Spieler-ID im Eintrag (`Name#ID`, `Name@psn#ID`, ab 6 Ziffern), Abfrage per `playerid`, Auto-Heilung (ID aus Namenssuche im Speicher und in `config.toml`), Rückfall über `/bf6/player`-Suche und Namensvarianten; „Prüfen“ liefert `id`, Web-Link nutzt `/playerid/`. Neue Tests für `parse_entry_full`, `pick_search_id` und Touch-Ziele.
 
