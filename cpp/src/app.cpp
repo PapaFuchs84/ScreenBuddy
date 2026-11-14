@@ -1001,19 +1001,26 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         plugins::DrawOut drawn;
                         if(cycling) {
                             using namespace plugins::schedule;
-                            auto& state=view->cycles[cycle_key];
-                            if(view->cycle_generations[cycle_key]!=std::pair{installed->generation,installed->layout_revision}) {reset(state,true,false);view->fade_caches.erase(cycle_key);}
-                            view->cycle_generations[cycle_key]={installed->generation,installed->layout_revision};
+                            // Cached redraws also run for the settings preview (other thread):
+                            // they draw from a fresh local cycle and never touch live scheduling.
+                            const bool live_state=on_display_thread();
+                            std::map<std::string,ZoneState> preview_state;
+                            auto& state=live_state?view->cycles[cycle_key]:preview_state;
+                            if(live_state) {
+                                if(view->cycle_generations[cycle_key]!=std::pair{installed->generation,installed->layout_revision}) {reset(state,true,false);view->fade_caches.erase(cycle_key);}
+                                view->cycle_generations[cycle_key]={installed->generation,installed->layout_revision};
+                            }
                             ZoneInput input{tile.zone.id,Mode::first_available,cycle->transition=="fade",{}};
                             for(const auto& widget:widgets) {auto found=std::find_if(page.widgets.begin(),page.widgets.end(),[&](const auto& w){return w.id==widget.id;});input.entries.push_back({widget.id,widget.seconds,found!=page.widgets.end() && !found->missing});}
                             std::vector<std::string> requests;
-                            if(std::find(view->frame_next_requests.begin(),view->frame_next_requests.end(),installed->manifest.id+"/"+cycle_key)!=view->frame_next_requests.end())requests.push_back(tile.zone.id);
+                            if(live_state && std::find(view->frame_next_requests.begin(),view->frame_next_requests.end(),installed->manifest.id+"/"+cycle_key)!=view->frame_next_requests.end())requests.push_back(tile.zone.id);
                             auto kind=phone?OutputKind::companion:!out_?OutputKind::none:out_->is_monitor()?OutputKind::monitor:OutputKind::serial;
                             auto transfer=phone || !out_?TransferStats{}:out_->transfer();
-                            auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,view->render_ms.value_or(0),h,w,companion_?companion_->client_ids().size():0); configure_animation_budget(budget, animation_fps(cfg_));
+                            auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,live_state?view->render_ms.value_or(0):0,h,w,companion_?companion_->client_ids().size():0); configure_animation_budget(budget, animation_fps(cfg_));
                             auto choices=advance({input},state,tick,budget,requests);
-                            view->next_deadline=std::min(view->next_deadline,choices.next_deadline);view->animating=view->animating || choices.animating;
-                            auto& cache=view->fade_caches[cycle_key];if(!cache)cache=std::make_shared<plugins::FadeCache>();
+                            if(live_state) {view->next_deadline=std::min(view->next_deadline,choices.next_deadline);view->animating=view->animating || choices.animating;}
+                            std::shared_ptr<plugins::FadeCache> preview_cache;
+                            auto& cache=live_state?view->fade_caches[cycle_key]:preview_cache;if(!cache)cache=std::make_shared<plugins::FadeCache>();
                             std::map<std::string,std::shared_ptr<plugins::FadeCache>> caches{{manifest.id,cache}};
                             drawn=plugins::draw_choices_out(page,w,h,choices.zones,caches);
                             // An explicit next override covers the same published zone, including transition guards.
@@ -1167,9 +1174,14 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             if (view && manifest.layout && std::any_of(manifest.layout->zones.begin(),manifest.layout->zones.end(),[](const auto& z){return z.cycle.has_value();})) {
                 entry.prepare = [this,view,tick,phone,page,manifest,generation=installed->generation,layout_revision=installed->layout_revision,tile_width=r.width,tile_height=r.height](PageEntry& entry) {
                     using namespace plugins::schedule;
-                    auto& state=view->cycles[manifest.id];
-                    if (view->cycle_generations[manifest.id]!=std::pair{generation,layout_revision}) { plugins::schedule::reset(state,true,false); view->fade_caches.erase(manifest.id); }
-                    view->cycle_generations[manifest.id]={generation,layout_revision};
+                    // Settings-preview redraws run on another thread: fresh local cycle, no live scheduling.
+                    const bool live_state=on_display_thread();
+                    std::map<std::string,ZoneState> preview_state;
+                    auto& state=live_state?view->cycles[manifest.id]:preview_state;
+                    if (live_state) {
+                        if (view->cycle_generations[manifest.id]!=std::pair{generation,layout_revision}) { plugins::schedule::reset(state,true,false); view->fade_caches.erase(manifest.id); }
+                        view->cycle_generations[manifest.id]={generation,layout_revision};
+                    }
                     std::vector<ZoneInput> inputs;
                     for (const auto& z:manifest.layout->zones) if (z.cycle) {
                         ZoneInput input{z.id,z.cycle->mode=="rotate" ? Mode::rotate : Mode::first_available,z.cycle->transition=="fade",{}};
@@ -1190,18 +1202,21 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                     for(const auto& zone:geometry.zones)
                         if(std::any_of(inputs.begin(),inputs.end(),[&](const auto& input){return input.zone==zone.id;}))
                             zone_rows=std::max(zone_rows,int(std::ceil(zone.area.height*scale)));
-                    auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,view->render_ms.value_or(0),zone_rows,view->size.first,
+                    auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,live_state?view->render_ms.value_or(0):0,zone_rows,live_state?view->size.first:tile_width,
                         companion_ ? companion_->client_ids().size() : 0); configure_animation_budget(budget, animation_fps(cfg_));
                     std::vector<std::string> requests;
                     const auto prefix=manifest.id+"/";
-                    for(const auto& request:view->frame_next_requests)
+                    if (live_state) for(const auto& request:view->frame_next_requests)
                         if(request.starts_with(prefix)) requests.push_back(request.substr(prefix.size()));
                     auto result=advance(inputs,state,tick,budget,requests);
-                    if (std::any_of(state.begin(),state.end(),[&](const auto& pair){return pair.second.fade && pair.second.fade->start==tick;}))
-                        view->fade_caches.erase(manifest.id);
-                    view->next_deadline=std::min(view->next_deadline,result.next_deadline);
-                    view->animating=view->animating || result.animating;
-                    auto& cache=view->fade_caches[manifest.id]; if (!cache) cache=std::make_shared<plugins::FadeCache>();
+                    std::shared_ptr<plugins::FadeCache> preview_cache;
+                    if (live_state) {
+                        if (std::any_of(state.begin(),state.end(),[&](const auto& pair){return pair.second.fade && pair.second.fade->start==tick;}))
+                            view->fade_caches.erase(manifest.id);
+                        view->next_deadline=std::min(view->next_deadline,result.next_deadline);
+                        view->animating=view->animating || result.animating;
+                    }
+                    auto& cache=live_state?view->fade_caches[manifest.id]:preview_cache; if (!cache) cache=std::make_shared<plugins::FadeCache>();
                     std::map<std::string,std::shared_ptr<plugins::FadeCache>> caches{{manifest.id,cache}};
                     entry.plugin_draw=[page,choices=result.zones,caches,generation](RendererSet& rs) mutable {
                         auto out=plugins::draw_choices_out(page,rs.width,rs.height,choices,caches);
@@ -1654,6 +1669,10 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         if(resizing && !entering){view.game_intro.reset();view.cycles.clear();view.fade_caches.clear();}
         view.step.exchange(0);
         {std::lock_guard lock(view.next_mu);view.page_request.clear();view.frame_next_requests.clear();view.frame_next_requests.swap(view.next_requests);}
+        // Data notifications do not push an animating game view past the selected rate.
+        if(dirty && !changed && !resizing && view.animating && now<view.last_render+1.0/animation_fps(cfg_)) {
+            dirty=false;view.next_deadline=std::min(view.next_deadline,view.last_render+1.0/animation_fps(cfg_));
+        }
         if(!dirty && !changed && !resizing && now<view.next_deadline)return out;
         view.next_deadline=plugins::schedule::never;view.animating=false;
         std::lock_guard lock(render::mutex());
@@ -1683,7 +1702,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     live = live && now - view.last_render >= .5;
     // Keep visible playback alive even when silent capture publishes no changes.
     // Otherwise the 3 s activity lease expires before the 4 s simulation delay.
-    live = live || (now - view.last_render >= .1 && meter_ && spotify_ && spotify_->snapshot().playing &&
+    live = live || (now - view.last_render >= std::max(.1, 1.0 / animation_fps(cfg_)) && meter_ && spotify_ && spotify_->snapshot().playing &&
                     (std::count(view.current.begin(), view.current.end(), "spotify") > 0 ||
                      (meter_->active() && std::any_of(view.current.begin(),view.current.end(),[](const auto& key){return key.starts_with("custom:");}))));
     // Data notifications (e.g. audio levels) mark everything dirty. An animating

@@ -229,7 +229,7 @@ private:
     // Cached redraws also run for the settings preview; only the display thread
     // may update a view's animation/scheduling state.
     std::atomic<std::thread::id> display_thread_{};
-    bool on_display_thread() const { return std::this_thread::get_id() == display_thread_.load(); }
+    bool on_display_thread() const { const auto owner = display_thread_.load(); return owner == std::thread::id{} || owner == std::this_thread::get_id(); }   // before the loop starts no other thread schedules
     bool serial_output() const { return out_ && !out_->is_monitor() && out_.get() != (Output*)companion_; }
     std::unique_ptr<NetworkDisplay> companion_output_;  // zusätzlich zum USB-Display/Bildschirm
     NetworkDisplay* companion_ = nullptr;               // out_ (Ausgabe „network“) oder companion_output_
