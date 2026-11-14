@@ -1,6 +1,6 @@
 # Certification notes — ScreenBuddy for Windows
 
-Review text prepared for Partner Center, 10 November 2026. Replace this header with the actual submitted package version and official identity after name reservation. Do not submit the local validation identities as an official product.
+Review text for Partner Center, first prepared 10 November 2026 and updated 14 November 2026 for package `ScreenBuddy-2.12.0.0-x64.msix`, version 2.12.0.0, identity `49510Herbst.ScreenBuddybyFuchsLabs`. Not yet submitted at the time of writing. Do not submit the local validation identities as an official product.
 
 ## English reviewer notes
 
@@ -26,6 +26,14 @@ runFullTrust ist für Desktop-APIs, USB/COM, Monitor-/Tray-Ausgabe, Systemwerte 
 
 Das Paket fordert kein allowElevation an. FPS-Gruppenfreischaltung und erhöhte Änderung des Hersteller-Autostarts sind im Store-Kontext gesperrt und durch Hinweise zur externen Administrator-Einrichtung ersetzt. Die App-spezifischen Datenschutz-/Hilfeseiten sind aus den paketierten Einstellungen erreichbar. Keine echten Zugangsdaten oder Kopplungscodes in Prüfbilder aufnehmen.
 
-## Executed local WACK result (10 November 2026)
+## Evidence for 2.12.0.0 / Nachweise für 2.12.0.0
 
-Official-identity developer registration, final binary SHA-256 `b78e2dc576beea84c169b888349ce1cb80ca594d9403dea43f0dff8eeab2a466`: overall PASS, no partial run, all 13 required tests passed. One optional Blocked executables heuristic flags process-launch APIs and command/interpreter strings; the other ten optional tests passed. The app launches its bundled startup target and opens selected browser/desktop integrations; optional AI hooks use Windows PowerShell and may be unavailable in Windows S mode. No full S-mode compatibility claim is made. Microsoft classifies these Desktop Bridge optional checks as informational: https://learn.microsoft.com/en-us/windows/uwp/debug-test-perf/windows-desktop-bridge-app-tests . No test filters or binary obfuscation were used to hide the warning. Store certification remains a separate Microsoft decision.
+Developer-registration package test passed: install, StartupTask round trip, import/WhatIf/overwrite refusal, synthetic update to 2.12.1.0 with data retained, and uninstall. WACK has not been run for 2.12.0.
+
+Pakettest mit Entwicklerregistrierung bestanden: Installation, StartupTask-Hin-und-Rückweg, Import/WhatIf/Überschreibverweigerung, synthetisches Update auf 2.12.1.0 mit erhaltenen Daten und Deinstallation. WACK wurde für 2.12.0 nicht ausgeführt.
+
+## Historischer WACK-Nachweis für 2.11.0.0 / historical WACK evidence for 2.11.0.0 (executed locally, 10 November 2026)
+
+This result belongs to the 2.11.0.0 binary named by the hash below, not to 2.12.0. / Dieses Ergebnis gehört zur 2.11.0.0-Binärdatei mit dem folgenden Hash, nicht zu 2.12.0.
+
+Official-identity developer registration, final 2.11.0.0 binary SHA-256 `b78e2dc576beea84c169b888349ce1cb80ca594d9403dea43f0dff8eeab2a466`: overall PASS, no partial run, all 13 required tests passed. One optional Blocked executables heuristic flags process-launch APIs and command/interpreter strings; the other ten optional tests passed. The app launches its bundled startup target and opens selected browser/desktop integrations; optional AI hooks use Windows PowerShell and may be unavailable in Windows S mode. No full S-mode compatibility claim is made. Microsoft classifies these Desktop Bridge optional checks as informational: https://learn.microsoft.com/en-us/windows/uwp/debug-test-perf/windows-desktop-bridge-app-tests . No test filters or binary obfuscation were used to hide the warning. Store certification remains a separate Microsoft decision.

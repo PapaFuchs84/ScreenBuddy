@@ -11,8 +11,16 @@ import de.fuchslabs.display.protocol.Protocol
 
 data class FoundPc(val serviceName: String, val name: String, val host: String, val port: Int)
 
-/** mDNS-Erkennung von _fuchslabs-display._tcp ueber NsdManager (kein Play Services noetig). */
-class Discovery(ctx: Context, private val onChange: (List<FoundPc>) -> Unit) {
+/**
+ * mDNS-Erkennung von _fuchslabs-display._tcp ueber NsdManager (kein Play Services noetig).
+ * [onRunning] meldet auf dem Main-Thread true, sobald das System die Suche gestartet hat, und false, wenn sie
+ * ohne [stop] endet (Startfehler oder vom System beendet); danach ist [isRunning] false und [start] erneut moeglich.
+ */
+class Discovery(
+    ctx: Context,
+    private val onRunning: (Boolean) -> Unit = {},
+    private val onChange: (List<FoundPc>) -> Unit
+) {
     private val nsd = ctx.getSystemService(Context.NSD_SERVICE) as NsdManager
     private val wifi = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
     private var multicastLock: WifiManager.MulticastLock? = null
@@ -30,11 +38,17 @@ class Discovery(ctx: Context, private val onChange: (List<FoundPc>) -> Unit) {
     // rediscovered. Both identities must still match before publishing a result.
     private fun isCurrent(run: Long) = listener != null && generation == run
 
-    fun start() {
-        if (listener != null) return
+    /** true zwischen [start] und [stop] bzw. bis die Suche fehlschlaegt oder vom System beendet wird. */
+    val isRunning: Boolean get() = listener != null
+
+    /** Liefert false, wenn die Suche nicht laeuft, weil der Start sofort fehlgeschlagen ist. */
+    fun start(): Boolean {
+        if (listener != null) return true
         val run = ++generation
         val callbacks = object : NsdManager.DiscoveryListener {
-            override fun onDiscoveryStarted(serviceType: String) {}
+            override fun onDiscoveryStarted(serviceType: String) {
+                main.post { if (isCurrent(run)) onRunning(true) }
+            }
             override fun onDiscoveryStopped(serviceType: String) { ended() }
             override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) { ended() }
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
@@ -43,6 +57,7 @@ class Discovery(ctx: Context, private val onChange: (List<FoundPc>) -> Unit) {
                     if (!isCurrent(run)) return@post
                     clearRun()
                     onChange(emptyList())
+                    onRunning(false)
                 }
             }
             override fun onServiceFound(info: NsdServiceInfo) {
@@ -71,9 +86,10 @@ class Discovery(ctx: Context, private val onChange: (List<FoundPc>) -> Unit) {
                 it.acquire()
             }
         } catch (_: Exception) { multicastLock = null }
-        try {
+        return try {
             nsd.discoverServices(Protocol.SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, callbacks)
-        } catch (_: Exception) { clearRun() }
+            true
+        } catch (_: Exception) { clearRun(); false }
     }
 
     fun stop() {

@@ -1,6 +1,18 @@
 # Store listing draft / Store-Eintrag als Entwurf
 
-Not submitted. The exact Store title ScreenBuddy by FuchsLabs is reserved; official identity is recorded below. Live IARC rating and remaining submission fields are being completed in Partner Center. App-specific privacy/support pages are public and verified; four current sample images are prepared. Never publish placeholders. The description, product features, keywords and “what's new” text below target Windows 2.12.0 (updated 14 November 2026; first certified Store edition was 2.11.0; public page https://apps.microsoft.com/detail/9P03461RLGG0); older status sentences in this file are historical. Screenshots/ contains four current 2.11.0 German/English native settings/editor renders at 1600 × 1200. They use actual Page/TreeCanvas code under a temporary developer package identity with sample data, not desktop captures or physical-device evidence; see provenance and captions.
+## Status
+
+### 2.12.0 (aktuell / current)
+
+Package `ScreenBuddy-2.12.0.0-x64.msix`, identity `49510Herbst.ScreenBuddybyFuchsLabs`, version 2.12.0.0. Not yet submitted at the time of writing (14 November 2026): package upload, certification and publication of this update are open. The description, product features, keywords and “what's new” text below target Windows 2.12.0. Never publish placeholders. The Companion download URL is fixed in the listing text below and is not an open input. Screenshots/ contains four 2.11.0 German/English native settings/editor renders at 1600 × 1200; no 2.12.0 images have been added. They use actual Page/TreeCanvas code under a temporary developer package identity with sample data, not desktop captures or physical-device evidence; see provenance and captions.
+
+Paket `ScreenBuddy-2.12.0.0-x64.msix`, Identität `49510Herbst.ScreenBuddybyFuchsLabs`, Version 2.12.0.0. Zum Zeitpunkt dieser Fassung (14.11.2026) noch nicht eingereicht: Paket-Upload, Zertifizierung und Veröffentlichung dieses Updates sind offen. Die Texte unten gelten für 2.12.0. Die Companion-Downloadadresse steht fest und ist keine offene Eingabe. Die vier Beispielbilder stammen aus 2.11.0.
+
+### 2.11.0 (historisch / historical: certified and published)
+
+2.11.0 was the first Store edition; it was certified and published (public page https://apps.microsoft.com/detail/9P03461RLGG0). The reserved Store title is ScreenBuddy by FuchsLabs; the official identity and the verified privacy/support pages are recorded below and remain valid. The sections “Remaining inputs” and “Portal progress” at the end of this file record the 2.11.0 submission as it stood on 10/11 November 2026 and do not describe 2.12.0.
+
+2.11.0 war die erste Store-Ausgabe; sie wurde zertifiziert und veröffentlicht. Die Abschnitte „Remaining inputs“ und „Portal progress“ am Ende dieser Datei halten den damaligen Stand der 2.11.0-Einreichung fest und beschreiben nicht 2.12.0.
 
 ## Deutsch
 
@@ -23,15 +35,15 @@ SYSTEMWERTE UND HARDWARE-HUD
 • Systemseite: CPU (Last, Takt, Temperatur, Lüfter), GPU (Last, Temperatur, Lüfter, VRAM), Arbeitsspeicher, Datenträger und Netzwerk mit Verlauf.
 • Neu: optionales Hardware-HUD für die Systemseite – Neon-Vektorgrafik mit automatisch wechselnden Seiten Übersicht, GPU und CPU, animierten Lüftern, Ringen und Impulsen sowie eigenen Layouts für breite, normale und Hochkant-Displays.
 • Neu: CPU-Package-Leistung in Watt aus passenden HWiNFO-Sensoren.
-• CPU-Temperatur, Lüfterdrehzahl und Watt benötigen das kostenlose HWiNFO mit aktivierter Shared-Memory-Ausgabe. GPU-Werte gibt es für NVIDIA-Grafikkarten; andere GPUs liefern weniger Werte. Fehlende Messwerte werden als unbekannt angezeigt, nie geschätzt.
+• CPU-Temperatur, Lüfterdrehzahl und Watt benötigen HWiNFO mit aktivierter Shared-Memory-Ausgabe und passenden Sensoren; in der kostenlosen HWiNFO-Ausgabe ist Shared Memory auf 12 Stunden begrenzt. GPU-Werte gibt es für NVIDIA- und AMD-Grafikkarten; welche Messwerte verfügbar sind, hängt von GPU und Treiber ab. Fehlende Messwerte werden als unbekannt angezeigt, nie geschätzt.
 
 GAME-MODE
 • Erkennt laufende Spiele aus Steam, Epic, Xbox, GOG Galaxy, Ubisoft Connect, EA App, Battle.net und Rockstar – rein lesend.
-• Optionales Logo-Intro beim Spielstart, danach eine eigene Spielansicht im Cockpit-Design mit Kacheln wie FPS, Frametime, 1%-Low, GPU, VRAM und Ping samt Verlauf.
+• Optionales Logo-Intro beim Spielstart; danach eine zuvor im Editor angelegte und ausgewählte Spielansicht, etwa im Cockpit-Stil mit Kacheln wie FPS, Frametime, 1%-Low, GPU, VRAM und Ping samt Verlauf. Ohne gewählte Ansicht läuft die normale Seitenfolge weiter.
 • FPS und Frametime erscheinen nur, wenn eine Messquelle verfügbar ist. Die Store-Ausgabe fordert dafür keine Administratorrechte an: Die nötige Windows-Gruppenberechtigung richtet ein Administrator einmalig manuell ein; vorhandene Berechtigungen oder HWiNFO-Messwerte werden genutzt.
 
 FREUNDE, SPIELE UND NEUIGKEITEN
-• Freundesliste aus Discord, Steam und Xbox in einer gemeinsamen Liste; dieselbe Person erscheint nur einmal. PlayStation-Freunde sind optional, standardmäßig aus und nutzen eine inoffizielle Schnittstelle auf eigenes Risiko.
+• Freundesliste aus Discord, Steam und Xbox in einer gemeinsamen Liste. Konten lassen sich manuell verknüpfen; gleiche Namen werden automatisch zusammengeführt (abschaltbar). PlayStation-Freunde sind optional, standardmäßig aus und nutzen eine inoffizielle Schnittstelle auf eigenes Risiko.
 • Discord-Seite mit Status, Aktivität und Avatar (eigener Discord-Bot).
 • Battlefield-6-Rangliste eingetragener Freunde mit Rang, K/D und Siegquote.
 • Blog-Updates per RSS/Atom: der neueste Beitrag je Blog.
@@ -49,16 +61,16 @@ EIGENE ANSICHTEN, PLUGINS UND DESIGN
 • Neu: globale Animationsrate von 5 bis 60 Bildern pro Sekunde (Standard 30) unter Einstellungen → Anzeige → Animationen. Sie gilt für sichtbare Animationen wie Hardware-HUD, KI-Status, Spotify und Seitenübergänge. Der Wert ist ein Ziel, keine Garantie; das serielle USB-Display überträgt bauartbedingt deutlich langsamer.
 
 KOSTENLOSE ANDROID-COMPANION-APP
-Mit der kostenlosen ScreenBuddy-Companion-App wird ein Android-Handy, -Tablet oder Android-TV zur zusätzlichen Anzeige. Gekoppelt wird per QR-Code oder PIN; die Verbindung läuft verschlüsselt direkt zwischen PC und Gerät im privaten Netz oder über USB-Tethering, ohne Cloud. Der PC rendert in der Auflösung des Geräts, Hoch- und Querformat werden unterstützt, und du blätterst per Wischen. Mehrere Geräte können synchron oder unabhängig laufen. Die optionale Automatik öffnet die Anzeige, sobald der gekoppelte PC erreichbar ist.
+Mit der kostenlosen ScreenBuddy-Companion-App wird ein Android-Handy, -Tablet oder Android-TV zur zusätzlichen Anzeige. Gekoppelt wird per QR-Code oder PIN; die Verbindung läuft verschlüsselt direkt zwischen PC und Gerät im privaten Netz oder über USB-Tethering, ohne Cloud. Der PC rendert passend zur Geräteauflösung innerhalb der Größenlimits; größere Auflösungen werden proportional verkleinert. Hoch- und Querformat werden unterstützt, und du blätterst per Wischen. Mehrere Geräte können synchron oder unabhängig laufen. Die optionale Automatik kann die Anzeige öffnen, wenn der gekoppelte PC erreichbar ist; Android-Berechtigungen und Hintergrundbeschränkungen können das verzögern oder verhindern.
 Die Companion-App ist nicht Teil dieses Store-Pakets und nicht bei Google Play erhältlich. Du lädst die APK kostenlos von GitHub und installierst sie selbst:
-Download (Companion 1.1.0): https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/companion-v1.1.0
+Download (Companion 1.1.1): https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/companion-v1.1.1
 Anleitung: https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/COMPANION.md
 
 DATENSCHUTZ UND SICHERHEIT
 • Keine Telemetrie, kein ScreenBuddy-Konto, normaler Betrieb ohne Administratorrechte.
 • Zugangsdaten werden mit Windows-DPAPI verschlüsselt gespeichert.
 • Die lokale Einstellungsschnittstelle ist nur auf diesem PC erreichbar; der Companion-Dienst ist standardmäßig aus.
-• Verbindungen zu Diensten bestehen nur für Datenquellen, die du selbst einrichtest.
+• Netzwerkzugriffe entstehen durch Integrationen, die du selbst einrichtest, und durch den abschaltbaren Plugin-/Theme-Katalog; Updates liefert der Microsoft Store.
 
 GUT ZU WISSEN
 • Viele Seiten benötigen ein eigenes Konto oder einen eigenen kostenlosen API-Schlüssel beim jeweiligen Dienst (z. B. Discord-Bot, Steam, OpenXBL, TMDB, Spotify, Home Assistant). Hilfen dazu stehen direkt neben den Eingabefeldern und in der eingebauten, bebilderten Anleitung.
@@ -100,7 +112,7 @@ Neu in 2.12.0:
 • Hardware-HUD: optionale Neon-Ansicht für die Systemseite mit automatisch wechselnden Seiten Übersicht, GPU und CPU, animierten Lüftern, Ringen und Impulsen sowie Layouts für breite, normale und Hochkant-Displays. Einschalten in den Einstellungen bei der Systemseite.
 • CPU-Leistung in Watt aus passenden HWiNFO-Sensoren. Fehlende Werte bleiben unbekannt („--“).
 • Globale Animationsrate: Einstellungen → Anzeige → Animationen, 5 bis 60, Standard 30. Gilt für sichtbare Animationen wie Hardware-HUD, KI-Status, Spotify, eigene Ansichten, Game-Intro und Plugin-Überblendungen. Statische Seiten und die Sensorabfrage bleiben unverändert sparsam.
-• Companion: Animationen kommen ohne zusätzliche Verzögerung an; statische Seiten werden nicht unnötig neu gezeichnet. Die Android-App bleibt 1.1.0, ein Update ist nicht nötig.
+• Companion: Animationen kommen ohne zusätzliche Verzögerung an; statische Seiten werden nicht unnötig neu gezeichnet. Dazu gibt es die Companion-App 1.1.1 mit Fehlerkorrekturen; 1.1.0 funktioniert weiter.
 • USB-Display: Die Übertragung läuft in einem eigenen Thread und bremst die Companion-Anzeige nicht mehr.
 • Store-Ausgabe: Hinweise zu FPS-Berechtigung und Hersteller-Autostart, Links zu Hilfe und Datenschutz sowie kleinere Korrekturen.
 ```
@@ -126,15 +138,15 @@ SYSTEM STATS AND HARDWARE HUD
 • System page: CPU (load, clock, temperature, fan), GPU (load, temperature, fan, VRAM), memory, drives and network with history.
 • New: optional Hardware HUD for the System page – neon vector graphics with automatically rotating Overview, GPU and CPU pages, animated fans, rings and pulses, and dedicated layouts for wide, regular and portrait displays.
 • New: CPU package power in watts from suitable HWiNFO sensors.
-• CPU temperature, fan speed and watts need the free HWiNFO with shared-memory output enabled. GPU readings are available for NVIDIA graphics cards; other GPUs provide fewer values. Missing readings are shown as unknown, never estimated.
+• CPU temperature, fan speed and watts need HWiNFO with shared-memory output enabled and suitable sensors; in the free HWiNFO edition shared memory is limited to 12 hours. GPU readings are available for NVIDIA and AMD graphics cards; which readings are available depends on the GPU and driver. Missing readings are shown as unknown, never estimated.
 
 GAME MODE
 • Detects running games from Steam, Epic, Xbox, GOG Galaxy, Ubisoft Connect, EA App, Battle.net and Rockstar – read-only.
-• Optional logo intro when a game starts, followed by a dedicated cockpit-style gaming view with tiles such as FPS, frametime, 1% low, GPU, VRAM and ping with history.
+• Optional logo intro when a game starts, followed by a gaming view you created and selected beforehand in the editor, for example cockpit-style with tiles such as FPS, frametime, 1% low, GPU, VRAM and ping with history. Without a selected view the normal page rotation continues.
 • FPS and frametime appear only when a measurement source is available. The Store edition does not request administrator rights for this: an administrator sets up the required Windows group membership manually once; existing permissions or HWiNFO measurements are used.
 
 FRIENDS, GAMES AND NEWS
-• Friends from Discord, Steam and Xbox in one combined list; the same person appears only once. PlayStation friends are optional, off by default and use an unofficial interface at your own risk.
+• Friends from Discord, Steam and Xbox in one combined list. Accounts can be linked manually; matching names are merged automatically (can be switched off). PlayStation friends are optional, off by default and use an unofficial interface at your own risk.
 • Discord page with status, activity and avatar (your own Discord bot).
 • Battlefield 6 leaderboard of the friends you enter, with rank, K/D and win rate.
 • Blog updates via RSS/Atom: the latest post from each blog.
@@ -152,16 +164,16 @@ CUSTOM VIEWS, PLUGINS AND DESIGN
 • New: global animation rate from 5 to 60 frames per second (default 30) under Settings → Display → Animations. It applies to visible animations such as the Hardware HUD, AI status, Spotify and page transitions. The value is a target, not a guarantee; the serial USB display transfers considerably more slowly by design.
 
 FREE ANDROID COMPANION APP
-The free ScreenBuddy Companion app turns an Android phone, tablet or Android TV into an additional display. Pairing uses a QR code or PIN; the connection is encrypted and runs directly between PC and device on your private network or over USB tethering, without any cloud. The PC renders at the device's resolution, portrait and landscape are supported, and you change pages by swiping. Several devices can run in sync or independently. Optional automatic mode opens the display as soon as the paired PC is reachable.
+The free ScreenBuddy Companion app turns an Android phone, tablet or Android TV into an additional display. Pairing uses a QR code or PIN; the connection is encrypted and runs directly between PC and device on your private network or over USB tethering, without any cloud. The PC renders to the device resolution within size limits; larger resolutions are scaled down proportionally. Portrait and landscape are supported, and you change pages by swiping. Several devices can run in sync or independently. Optional automatic mode can open the display when the paired PC is reachable; Android permissions and background restrictions can delay or prevent this.
 The Companion app is not part of this Store package and is not available on Google Play. You download the APK free of charge from GitHub and install it yourself:
-Download (Companion 1.1.0): https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/companion-v1.1.0
+Download (Companion 1.1.1): https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/companion-v1.1.1
 Guide: https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/COMPANION.en.md
 
 PRIVACY AND SECURITY
 • No telemetry, no ScreenBuddy account, normal operation without administrator rights.
 • Credentials are stored encrypted with Windows DPAPI.
 • The local settings interface is reachable only on this PC; the Companion service is off by default.
-• Connections to services exist only for the data sources you set up yourself.
+• Network access comes from the integrations you set up yourself and from the plugin/theme catalogue, which can be switched off; updates are delivered by the Microsoft Store.
 
 GOOD TO KNOW
 • Many pages need your own account or your own free API key with the respective service (for example a Discord bot, Steam, OpenXBL, TMDB, Spotify, Home Assistant). Help is shown right next to the input fields and in the built-in illustrated guide.
@@ -203,7 +215,7 @@ New in 2.12.0:
 • Hardware HUD: optional neon view for the System page with automatically rotating Overview, GPU and CPU pages, animated fans, rings and pulses, and layouts for wide, regular and portrait displays. Enable it in settings next to the system page.
 • CPU power in watts from suitable HWiNFO sensors. Missing values stay unknown (“--”).
 • Global animation rate: Settings → Display → Animations, 5 to 60, default 30. Applies to visible animations such as the Hardware HUD, AI status, Spotify, custom views, the Game intro and plugin fades. Static pages and sensor polling stay as economical as before.
-• Companion: animations arrive without an extra delay; static pages are not redrawn unnecessarily. The Android app stays at 1.1.0; no update is needed.
+• Companion: animations arrive without an extra delay; static pages are not redrawn unnecessarily. Companion app 1.1.1 adds bug fixes; 1.1.0 keeps working.
 • USB display: transfers run in their own thread and no longer slow down the Companion display.
 • Store edition: guidance on FPS permission and vendor autostart, help and privacy links, and minor fixes.
 ```
@@ -214,7 +226,9 @@ Classic x64 Win32 desktop app. runFullTrust supports device access, the local TC
 
 Reviewers can inspect settings without a USB display and use monitor output. --demo --no-lcd --preview <folder> renders samples. No personal credentials or pairing codes may be included in screenshots or review data.
 
-## Remaining inputs
+## 2.11.0 (historisch / historical): remaining inputs
+
+Historical wording from before the 2.11.0 certification, kept unchanged below; 2.11.0 was later certified and published, and the Companion download URL listed here as open has since been fixed in the listing text. / Historischer Wortlaut vor der Zertifizierung von 2.11.0, unten unverändert; 2.11.0 wurde später zertifiziert und veröffentlicht, die hier noch offene Companion-Downloadadresse steht inzwischen fest.
 
 Category and live IARC rating; final Companion APK download URL and hardware documentation; final device/certification record. Four 2.11.0 DE/EN native-rendered sample images are under Screenshots/ (see captions and provenance), visually checked for correct language and example-only data. They are not hardware, live-account or official Store-identity evidence. Publication remains pending.
 
@@ -242,6 +256,8 @@ Package family: `49510Herbst.ScreenBuddybyFuchsLabs_x6tj6b3k2dr8c`
 
 The brand inside the Windows application remains ScreenBuddy. The exact plain title ScreenBuddy was unavailable in the Store; the owner selected this reserved alternative.
 
-## Portal progress (11 November 2026)
+## 2.11.0 (historisch / historical): portal progress (11 November 2026)
+
+Historical record of the 2.11.0 submission, kept unchanged; it does not describe the 2.12.0 update. / Historischer Stand der 2.11.0-Einreichung, unverändert; beschreibt nicht das Update 2.12.0.
 
 Submission draft: `1152921505702369346`. Developer Agreement 8.11 acceptance is verified after owner approval. Properties is Complete; primary category Utilities + tools with no misleading subcategory and no MR-PC/OneDrive-backup/game-recording/alternate-drive declarations. Pricing is Complete at 0 EUR. Localized listings, live IARC and package upload are being completed; the package has transferred and shows Validating…, but package acceptance, certification submission and Store publication are not yet confirmed.

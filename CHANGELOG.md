@@ -6,7 +6,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [2.12.0] - 2026-11-14
 
-Companion-App bleibt 1.1.0 (Protokoll und Android-App unverändert). Funktionsseite: [Hardware-HUD](HARDWARE-HUD-TEST.md).
+Passend dazu erscheint Companion 1.1.1 (Fehlerkorrekturen, Protokoll unverändert; 1.1.0 funktioniert weiter). Funktionsseite: [Hardware-HUD](HARDWARE-HUD-TEST.md).
 
 **Prüfstatus 2.12.0 (integrierter Build):** 25 C++-Testsuiten ohne Fehler, darunter 3556 Kernregression, 1877 Layout-UI, 4221 eingebaute Snapshots mit Trefferkarten, 2101 Plugin-Snapshots, 448 Companion (einschließlich USB-Ausgabethread), 119 Hardware-HUD, 2144 eigene Ansichten, 845 Plugin-Zeitplanung und 290 Game-Prüfungen. Isolierte Integration: Installer-Erhalt (2), App-Companion-Integration (40) und Standalone-Distribution bestanden. Zusätzlich vier Codex-Reviewrunden; deren Befunde sind behoben.
 
@@ -25,7 +25,7 @@ Bestanden am 14.11.2026 mit derselben App (2.12.0-Build), echtem USB-Display Rev
 
 - Statische Ansichten behalten ihre eigene langsame Aktualisierung; Sensoren werden durch die Animationsrate nicht häufiger abgefragt. Der frühere lokale Schlüssel `system.hardware_hud_fps` wird migriert; ein ausdrücklich gesetzter globaler Wert hat Vorrang.
 - Companion: Am PC getaktete Animationen erhalten keine zweite Transportverzögerung; normale statische Companion-Seiten bleiben auf 5 Bilder/s begrenzt. Statische Companion-Kacheln werden nicht mehr neu gezeichnet, nur weil die Hauptanzeige schnell animiert.
-- USB-Display (seriell, Rev. A, 480 × 320): Übertragungen laufen in einem eigenen Ausgabethread mit Übergabe des jeweils neuesten Bildes. Eine langsame USB-Übertragung (etwa 0,4–0,5 s je animiertem Bild) blockiert das Companion-Rendering nicht mehr; serielle Animationen richten sich nach der gemessenen Übertragungszeit statt nach einer festen Ein-Sekunden-Pause.
+- USB-Display (seriell, Rev. A, 480 × 320): Übertragungen laufen in einem eigenen Ausgabethread mit Übergabe des jeweils neuesten Bildes. Eine langsame USB-Übertragung (je nach Bildinhalt; beim HUD etwa 1,7 s je Übertragung) blockiert das Companion-Rendering nicht mehr; serielle Animationen richten sich nach der gemessenen Übertragungszeit statt nach einer festen Ein-Sekunden-Pause.
 
 ### Behoben
 
@@ -38,6 +38,16 @@ Die folgenden Store-Korrekturen waren bereits im Microsoft-Store-Paket 2.11.0.0 
 - Store-Ausgabe: Hersteller-Autostart wird außerhalb der App über die Windows-Aufgabenplanung verwaltet; ScreenBuddy startet dafür keine erhöhten Aufgabenplanungsbefehle.
 - Store-Ausgabe: FPS-Einrichtung startet keinen erhöhten Hilfsprozess; stattdessen erklärt „FPS-Berechtigung prüfen“ die Freigabe durch einen Administrator. Vorhandene ETW-Berechtigungen und HWiNFO-Messwerte bleiben nutzbar.
 - Store-Vorbereitung auf Basis von 2.11.0: Prüfsummen beziehen sich ausschließlich auf das neu gebaute MSIX; Screenshots mit Herkunftsmanifest und Store-Logos werden mitkopiert. Aktuelle Kontosperre und verbleibende Einreichungsschritte dokumentiert.
+
+## [Companion 1.1.1] - 2026-11-14
+
+- Android-App 1.1.1 (versionCode 10): Fehlerkorrekturen für 1.1.0. Protokoll und App-ID bleiben unverändert; kompatibel mit ScreenBuddy 2.12.0 und älter.
+- Bildübergabe begrenzt: Empfangene und dekodierte Bilder warten nicht mehr einzeln in der Warteschlange des Hauptthreads. Je Stufe gibt es höchstens ein wartendes Bild und eine geplante Übergabe; überholte Bilder werden verworfen, wartende beim Stoppen gelöscht. Das verhindert wachsenden Speicherbedarf und Verzögerung bei hoher Bildrate und ausgelasteter Oberfläche.
+- Automatik: Eine fehlende mDNS-Ankündigung oder ein Fehler der mDNS-Suche startet nicht mehr sofort die 20-Sekunden-Karenz. Die App prüft stattdessen umgehend per TCP und beginnt die Karenz erst nach zwei fehlgeschlagenen Prüfungen in Folge; ein erreichbarer PC behält seine Anzeige.
+- Automatik: Der Bildschirm wird nur noch gesperrt, wenn die Automatik die Anzeige selbst geöffnet hat und diese beim Schließen noch im Vordergrund ist, nicht mehr nach einer bloßen Benachrichtigung.
+- Automatik: Eine fehlgeschlagene oder vom System beendete mDNS-Suche wird mit wachsendem Abstand (5 Sekunden bis höchstens 5 Minuten) neu gestartet.
+- Kopplung: Eine neue Kopplung (Host, PIN, Fingerabdruck) wird auch übernommen, wenn die Anzeige bereits geöffnet ist; die bisherige Verbindung und ein offener Fingerabdruck-Dialog werden vorher beendet.
+- Geprüft: 56 JVM-Tests des Protokollmoduls und Kotlin-Debug-Kompilierung. Nicht geprüft: Geräte (Redmi, Pixel, Android-TV); keine APK signiert oder installiert. Einzelheiten: [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110).
 
 ## [Companion 1.1.0] - 2026-11-09
 

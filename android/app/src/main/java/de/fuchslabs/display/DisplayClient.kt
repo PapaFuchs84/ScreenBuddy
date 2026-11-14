@@ -46,6 +46,14 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
     private var sentW = target.screenW // zuletzt dem Server mitgeteilte Groesse (hello bzw. resize)
     private var sentH = target.screenH
 
+    private class PendingFrame(val gen: Int, val gate: HandshakeGate, val payload: ByteArray)
+    /** Hoechstens ein noch nicht zugestelltes Bild und hoechstens eine geplante Zustellung. */
+    private val pendingFrame = LatestSlot<PendingFrame>()
+    private val deliverFrame = Runnable {
+        val f = pendingFrame.take() ?: return@Runnable
+        if (f.gen == generation && f.gate.acceptFrame()) { lastRx = now(); listener.onFrame(f.payload) }
+    }
+
     fun start() {
         if (!HostPolicy.isAllowed(target.host) || !HostPolicy.isValidPort(target.port)) {
             listener.onFatal(Fatal.INVALID_TARGET, target.host)
@@ -59,6 +67,7 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
     fun stop() {
         running = false; generation++; gate.close()
         main.removeCallbacksAndMessages(null)
+        pendingFrame.clear() // die geplante Zustellung wurde eben entfernt
         ws?.close(1000, "bye"); ws = null
         listener.onState(State.STOPPED)
     }
@@ -124,7 +133,9 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
                 if (bytes.size > ImageLimits.MAX_BYTES + 1) return
                 val f = VideoFrame.parse(bytes.toByteArray()) ?: return
-                main.post { if (gen == generation && g.acceptFrame()) { lastRx = now(); listener.onFrame(f.payload) } }
+                // Nur das neueste Bild wartet auf den Main-Thread; ein ueberholtes wird verworfen, statt
+                // je Bild ein eigenes Runnable samt Nutzdaten aufzustauen.
+                if (pendingFrame.offer(PendingFrame(gen, g, f.payload))) main.post(deliverFrame)
             }
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { webSocket.close(1000, null) }
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {

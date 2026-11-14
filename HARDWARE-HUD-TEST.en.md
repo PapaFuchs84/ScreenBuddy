@@ -45,7 +45,7 @@ Under **Settings → Display → Animations** the global animation rate can be s
 
 - **Windows monitor (HDMI/USB-C):** uses the normal monitor output.
 - **Android Companion:** PC-paced animations get no second transport delay. Normal static Companion pages stay limited to 5 frames/s and are not redrawn merely because the main display animates quickly. The protocol and Android app are unchanged; Companion 1.1.0 remains current.
-- **Serial USB display (Rev. A, 480 × 320):** transfers run in their own output thread and always hand over the latest frame. An animated frame takes about 0.4–0.5 s here, so the animation is paced by the measured transfer time and does not reach the configured target rate on this display. A slow USB transfer no longer blocks Companion rendering.
+- **Serial USB display (Rev. A, 480 × 320):** transfers run in their own output thread and always hand over the latest frame. Transfer time depends on the image content: in the integrated 2.12.0 HUD test a HUD transfer took about 1.7 s (≈ 0.6 frames/s), while the normal system page reached about 1.9 updates/s; earlier partial-transfer measurements are in the [analysis page](HARDWARE-HUD-FPS-ANALYSE.en.md). The animation is therefore paced by the measured transfer time and does not reach the configured target rate on this display. A slow USB transfer no longer blocks Companion rendering.
 
 ## Limits and test status
 

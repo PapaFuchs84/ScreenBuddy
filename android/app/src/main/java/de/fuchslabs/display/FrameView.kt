@@ -13,6 +13,7 @@ import de.fuchslabs.display.protocol.DpadNavigation
 import de.fuchslabs.display.protocol.Letterbox
 import de.fuchslabs.display.protocol.Protocol
 import de.fuchslabs.display.protocol.ImageLimits
+import de.fuchslabs.display.protocol.LatestSlot
 import de.fuchslabs.display.protocol.SwipeClassifier
 import de.fuchslabs.display.protocol.SwipeDir
 import java.util.concurrent.Executors
@@ -93,13 +94,37 @@ class FrameView(ctx: Context) : View(ctx) {
     private val decoder = Executors.newSingleThreadExecutor { r -> Thread(r, "frame-decode").apply { isDaemon = true } }
     private val latest = AtomicReference<ByteArray?>()
 
+    private class Decoded(val epoch: Int, val bitmap: Bitmap, val bg: Int)
+    /** Hoechstens ein dekodiertes, noch nicht angezeigtes Bild und hoechstens eine geplante Uebergabe. */
+    private val decoded = LatestSlot<Decoded>()
+    /** Wird von [clearPending] erhoeht; Bilder aus einer frueheren Epoche werden nicht mehr angezeigt. */
+    @Volatile private var epoch = 0
+    private val showDecoded = Runnable {
+        val d = decoded.take() ?: return@Runnable
+        if (d.epoch != epoch) { d.bitmap.recycle(); return@Runnable }
+        // Das bisher angezeigte Bitmap wird nicht recycelt: der letzte Zeichenvorgang kann es noch referenzieren.
+        bmp = d.bitmap; bgColor = d.bg or Color.BLACK; invalidate()
+    }
+
     /** Nimmt das Frame an; Decodierung im Hintergrund, nur das neueste Frame wird dekodiert. */
     fun setFrame(jpeg: ByteArray) {
         if (!ImageLimits.bytesOk(jpeg.size)) return
         if (latest.getAndSet(jpeg) == null) decoder.execute { decodeLatest() }
     }
 
+    /**
+     * Verwirft wartende, noch nicht angezeigte Bilder (Stopp oder Zielwechsel). Das angezeigte Bild bleibt stehen.
+     * Nur auf dem Main-Thread aufrufen.
+     */
+    fun clearPending() {
+        epoch++ // zuerst: ein gerade laufender Decoder liefert danach nichts mehr aus
+        latest.set(null)
+        removeCallbacks(showDecoded)
+        decoded.clear { it.bitmap.recycle() } // nie angezeigt, daher gefahrlos
+    }
+
     private fun decodeLatest() {
+        val e = epoch // vor der Entnahme lesen, damit clearPending() dieses Bild sicher verwirft
         val jpeg = latest.getAndSet(null) ?: return
         try {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -107,7 +132,8 @@ class FrameView(ctx: Context) : View(ctx) {
             if (!ImageLimits.dimsOk(bounds.outWidth, bounds.outHeight)) return
             val b = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size) ?: return
             val bg = b.getPixel(0, 0) // Letterbox-Hintergrund = Randfarbe des Bildes
-            post { bmp = b; bgColor = bg or Color.BLACK; invalidate() }
+            // Ein ueberholtes, nie angezeigtes Bitmap sofort freigeben statt je Bild ein Runnable aufzustauen.
+            if (decoded.offer(Decoded(e, b, bg)) { it.bitmap.recycle() }) post(showDecoded)
         } catch (_: Exception) {} catch (_: OutOfMemoryError) {}
     }
 

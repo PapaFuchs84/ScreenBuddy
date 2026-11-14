@@ -45,7 +45,7 @@ Unter **Einstellungen → Anzeige → Animationen** lässt sich die globale Anim
 
 - **Windows-Monitor (HDMI/USB-C):** nutzt den normalen Monitorausgang.
 - **Android-Companion:** Am PC getaktete Animationen erhalten keine zweite Transportverzögerung. Normale statische Companion-Seiten bleiben auf 5 Bilder/s begrenzt und werden nicht neu gezeichnet, nur weil die Hauptanzeige schnell animiert. Protokoll und Android-App sind unverändert; Companion 1.1.0 bleibt aktuell.
-- **Serielles USB-Display (Rev. A, 480 × 320):** Die Übertragung läuft in einem eigenen Ausgabethread und übergibt stets das neueste Bild. Ein animiertes Bild benötigt hier etwa 0,4–0,5 s; die Animation richtet sich deshalb nach der gemessenen Übertragungszeit und erreicht auf diesem Display nicht die eingestellte Zielrate. Eine langsame USB-Übertragung blockiert das Companion-Rendering nicht mehr.
+- **Serielles USB-Display (Rev. A, 480 × 320):** Die Übertragung läuft in einem eigenen Ausgabethread und übergibt stets das neueste Bild. Die Übertragungsdauer hängt vom Bildinhalt ab: Im integrierten HUD-Test mit 2.12.0 dauerte eine Übertragung des HUD etwa 1,7 s (≈ 0,6 Bilder/s), die normale Systemseite erreichte etwa 1,9 Aktualisierungen/s; frühere Teiltransfermessungen stehen in der [Analyseseite](HARDWARE-HUD-FPS-ANALYSE.md). Die Animation richtet sich deshalb nach der gemessenen Übertragungszeit und erreicht auf diesem Display nicht die eingestellte Zielrate. Eine langsame USB-Übertragung blockiert das Companion-Rendering nicht mehr.
 
 ## Grenzen und Prüfstatus
 

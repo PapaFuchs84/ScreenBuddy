@@ -32,6 +32,8 @@ PC-App (Server) <-> Android-App (Client), nur lokales Netz.
 
 ## Abgleich 24.10.2026 (unveröffentlicht)
 
+Historischer Implementierungsstand vom 24.10.2026: Das dort beschriebene gemeinsame Größen- und Bildmodell („Größenbesitzer“, „Andere Geräte teilen das Bild“) gilt nicht mehr. Aktuell werden Größe, Frames und JPEG-Zwischenspeicher je Gerät separat verwaltet; Geräte können synchron oder unabhängig navigieren. Die Größenlimits (2560 Pixel je Kante, 4.194.304 Pixel) gelten weiterhin.
+
 - `hello.w/h` und `resize.w/h` bestimmen nach erfolgreicher Anmeldung die Companion-Größe; maximal 2560 Pixel je Kante und 4.194.304 Pixel, größere Größen proportional reduziert. Erstes angemeldetes Gerät mit Größe bleibt Größenbesitzer bis zur Trennung. Andere Geräte teilen das Bild; keine unabhängige Ansicht pro Handy.
 - `ready.w/h` werden mit dem JPEG-Snapshot gespeichert und vor einem Bild mit neuen Abmessungen aktualisiert. Ein vorübergehendes initiales `ready` darf noch die Startgröße melden. Erst das folgende `ready` zum neuen Bild bestätigt dessen neue Renderkoordinaten.
 - `swipe.dir`: `left` = +1, `right` = -1; aus Kompatibilität auch +1/-1 wie im auf dem Redmi getesteten Schnellfix. Nur nach Anmeldung; zusammen mit `touch` höchstens 10/s. Touch mit inzwischen veralteten Bildabmessungen wird verworfen.

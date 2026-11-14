@@ -6,7 +6,7 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [2.12.0] - 2026-11-14
 
-The Companion app remains 1.1.0 (protocol and Android app unchanged). Feature page: [Hardware HUD](HARDWARE-HUD-TEST.en.md).
+Companion 1.1.1 is released alongside (bug fixes, protocol unchanged; 1.1.0 keeps working). Feature page: [Hardware HUD](HARDWARE-HUD-TEST.en.md).
 
 **Test status 2.12.0 (integrated build):** 25 C++ test suites without failures, including 3556 core regression, 1877 layout UI, 4221 built-in snapshots with hit maps, 2101 plugin snapshots, 448 Companion (including the USB output thread), 119 Hardware HUD, 2144 custom-view, 845 plugin-scheduling and 290 game checks. Isolated integration: installer preservation (2), app Companion integration (40) and standalone distribution passed. In addition, four Codex review rounds; their findings are fixed.
 
@@ -25,7 +25,7 @@ Passed on 14 Nov 2026 with the same app (2.12.0 build), a real Rev. A USB displa
 
 - Static views keep their own slow refresh; the animation rate does not make sensors poll more often. The former local key `system.hardware_hud_fps` is migrated; an explicitly configured global value takes precedence.
 - Companion: PC-paced animations get no second transport delay; normal static Companion pages stay limited to 5 fps. Static Companion tiles are no longer redrawn merely because the main display animates quickly.
-- USB display (serial, Rev. A, 480 × 320): transfers run in their own output thread with a latest-frame handoff. A slow USB transfer (about 0.4–0.5 s per animated frame) no longer blocks Companion rendering; serial animations are paced by the measured transfer time instead of a fixed one-second pause.
+- USB display (serial, Rev. A, 480 × 320): transfers run in their own output thread with a latest-frame handoff. A slow USB transfer (depending on image content; about 1.7 s per transfer for the HUD) no longer blocks Companion rendering; serial animations are paced by the measured transfer time instead of a fixed one-second pause.
 
 ### Fixed
 
@@ -38,6 +38,16 @@ The following Store fixes were already contained in the Microsoft Store package 
 - Store edition: vendor autostart is managed outside the app using Windows Task Scheduler; ScreenBuddy does not launch elevated scheduler commands.
 - Store edition: FPS setup does not launch an elevated helper; “Check FPS permission” explains administrator-assisted permission setup. Existing ETW permissions and HWiNFO measurements remain usable.
 - Store preparation based on 2.11.0: checksums cover only the newly built MSIX; screenshots with provenance manifest and listing logos are copied with it. Documented the current account block and remaining submission steps.
+
+## [Companion 1.1.1] - 2026-11-14
+
+- Android app 1.1.1 (versionCode 10): bug fixes for 1.1.0. Protocol and application ID stay unchanged; compatible with ScreenBuddy 2.12.0 and older.
+- Bounded frame hand-over: received and decoded frames no longer wait individually in the main thread's queue. Each stage holds at most one waiting frame and one scheduled hand-over; superseded frames are discarded and waiting ones are cleared on stop. This prevents growing memory use and latency at high frame rates with a busy UI.
+- Automatic mode: a missing mDNS announcement or a failed mDNS discovery no longer starts the 20-second grace period immediately. The app checks by TCP right away instead and starts the grace period only after two consecutive failed checks; a reachable PC keeps its display.
+- Automatic mode: the screen is locked only when automatic mode opened the display itself and that display is still in the foreground when it closes, no longer after a mere notification.
+- Automatic mode: a failed or system-terminated mDNS discovery is restarted at growing intervals (5 seconds up to at most 5 minutes).
+- Pairing: a new pairing (host, PIN, fingerprint) is applied even when the display is already open; the previous connection and an open fingerprint dialog are closed first.
+- Tested: 56 JVM tests of the protocol module and the Kotlin debug compile. Not tested: devices (Redmi, Pixel, Android TV); no APK was signed or installed. Details: [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110).
 
 ## [Companion 1.1.0] - 2026-11-09
 

@@ -7,6 +7,10 @@ package de.fuchslabs.display.protocol
  * probe is therefore positive evidence on its own. A failed probe only counts as absence when
  * mDNS does not report the PC either and the failure repeated, so a single Wi-Fi hiccup can
  * never close a display that mDNS still sees.
+ *
+ * mDNS silence alone is never absence either: a lost announcement or a failed discovery only
+ * requests TCP confirmation ([lossNeedsProbe]); the closing countdown starts when [onProbe]
+ * returns false, i.e. after [failuresForAbsence] consecutive failed probes.
  */
 class ProbePolicy(private val failuresForAbsence: Int = 2) {
     init { require(failuresForAbsence >= 1) }
@@ -16,6 +20,9 @@ class ProbePolicy(private val failuresForAbsence: Int = 2) {
     private var failures = 0
 
     fun onMdns(here: Boolean) { mdnsHere = here }
+
+    /** True when mDNS no longer reports a PC that counts as present: confirm by TCP now. */
+    fun lossNeedsProbe(present: Boolean): Boolean = present && !mdnsHere
 
     /**
      * Nothing to learn while the PC is already present and mDNS still sees it.
@@ -28,9 +35,19 @@ class ProbePolicy(private val failuresForAbsence: Int = 2) {
     /** true = PC reachable (present), false = confirmed absent, null = no conclusion. */
     fun onProbe(reachable: Boolean, mdnsReliable: Boolean = true): Boolean? {
         if (reachable) { failures = 0; return true }
+        // Failures only count while mDNS does not vouch for the PC: the threshold then always
+        // means consecutive unvouched failures, never stale ones from an earlier phase.
+        if (mdnsHere && mdnsReliable) { failures = 0; return null }
         failures++
-        return if (!(mdnsHere && mdnsReliable) && failures >= failuresForAbsence) false else null
+        return if (failures >= failuresForAbsence) false else null
     }
+
+    /**
+     * True while a present PC has failed probes below the threshold: probe again soon instead
+     * of leaving the display in doubt until the next periodic probe.
+     */
+    fun needsQuickRetry(present: Boolean, mdnsReliable: Boolean = true): Boolean =
+        present && !(mdnsHere && mdnsReliable) && failures in 1 until failuresForAbsence
 
     fun reset() {
         mdnsHere = false
