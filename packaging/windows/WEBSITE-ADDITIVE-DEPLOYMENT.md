@@ -20,7 +20,7 @@ Use these in Store properties and packaged Help & privacy only after verifying t
 
 ## Owning website and persistence
 
-The available local website source is `C:/Users/admin/FuchsLabs/website-2.10-official-media/fuchslabs-website`. Its earlier HANDOFF says it was a pending archive-based website update. Do not overwrite the live website from that whole directory or assume it is a fresh mirror of the server.
+The available local website source is a local checkout of the FuchsLabs website source. Its earlier HANDOFF says it was a pending archive-based website update. Do not overwrite the live website from that whole directory or assume it is a fresh mirror of the server.
 
 Read-only inspection of its deployment sources establishes the intended layout: `deploy/fuchslabs-update.sh` builds `/opt/fuchslabs/app/dist`, creates timestamped `/srv/fuchslabs/releases/<stamp>` and atomically switches `/srv/fuchslabs/current`. The public domain is served through Caddy/NPMplus. The update timer can replace a release, so copying only into `current` would not persist.
 
