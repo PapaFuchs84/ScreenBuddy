@@ -188,6 +188,14 @@ int main(int argc,char** argv) {
         const auto low=render::hud_palette(system,dark);
         CHECK(same(low.bg,Color{255,255,255})&&render::contrast(low.text,low.bg)>=4.5);
         CHECK(render::contrast(low.primary,low.bg)>=1.8&&!same(low.primary,low.secondary));
+        // Middle grey and a background equal to the warning colour stay readable (text 4.5:1, warning 3:1 on both surfaces).
+        for(const char* bgHex:{"#808080","#F0B232","#000000","#FFFFFF"}) {
+            render::Theme warm=dark;warm.warn={240,178,50};
+            system["hud_color_background"]=bgHex;system["hud_color_primary"]="";system["hud_color_secondary"]="";
+            const auto g=render::hud_palette(system,warm);
+            const auto worst=[&](Color col){return std::min(render::contrast(col,g.bg),render::contrast(col,g.panel));};
+            CHECK(worst(g.text)>=4.5);CHECK(worst(g.muted)>=3.0);CHECK(worst(g.warn)>=3.0);
+        }
         // Unknown mode behaves like the design default.
         system["hud_colors"]=42;
         const auto fallback=render::hud_palette(system,dark);

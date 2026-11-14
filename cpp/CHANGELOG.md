@@ -2,7 +2,7 @@
 
 ## 2.12.0 – 2026-11-14
 
-Prüfstatus / Test status 2.12.0: 25 C++-Suiten/suites 0 Fehler/failures (3556 Kern/core, 1877 Layout-UI, 4221 Snapshots, 2101 Plugin-Snapshots, 448 Companion, 119 HUD, 2144 Custom, 845 Schedule, 290 Game); Integration: Installer 2, App-Companion 40, Standalone ok.
+Prüfstatus / Test status 2.12.0: 25 C++-Suiten/suites 0 Fehler/failures (3556 Kern/core, 1877 Layout-UI, 4221 Snapshots, 2101 Plugin-Snapshots, 448 Companion, 152 HUD, 2144 Custom, 845 Schedule, 290 Game); Integration: Installer 2, App-Companion 40, Standalone ok.
 
 - HUD-Farben / HUD colours: `system.hud_colors` = `theme` (Standard, aus dem aktiven Design) | `neon` | `custom` mit `hud_color_primary`/`_secondary`/`_background` (#RRGGBB, leer = Design); Kontrastschutz für Text und Akzente; neues `Form::color`-Feld. `system.hud_colors` = `theme` (default, from the active design) | `neon` | `custom` with primary/secondary/background (#RRGGBB, empty = design); contrast guard for text and accents.
 

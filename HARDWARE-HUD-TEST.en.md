@@ -59,7 +59,7 @@ Under **Settings → Display → Animations** the global animation rate can be s
 
 ## Limits and test status
 
-**Test status 2.12.0 (integrated build):** 25 C++ test suites without failures, including 3556 core regression, 1877 layout UI, 4221 built-in snapshots with hit maps, 2101 plugin snapshots, 448 Companion (including the USB output thread), 119 Hardware HUD, 2144 custom-view, 845 plugin-scheduling and 290 game checks. Isolated integration: installer preservation (2), app Companion integration (40) and standalone distribution passed. In addition, four Codex review rounds; their findings are fixed.
+**Test status 2.12.0 (integrated build):** 25 C++ test suites without failures, including 3556 core regression, 1877 layout UI, 4221 built-in snapshots with hit maps, 2101 plugin snapshots, 448 Companion (including the USB output thread), 152 Hardware HUD, 2144 custom-view, 845 plugin-scheduling and 290 game checks. Isolated integration: installer preservation (2), app Companion integration (40) and standalone distribution passed. In addition, ten Codex review rounds (Windows app, Companion app, documentation); all release-relevant findings are fixed.
 
 
 **Physically tested:**

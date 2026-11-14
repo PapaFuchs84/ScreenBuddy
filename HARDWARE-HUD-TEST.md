@@ -59,7 +59,7 @@ Unter **Einstellungen → Anzeige → Animationen** lässt sich die globale Anim
 
 ## Grenzen und Prüfstatus
 
-**Prüfstatus 2.12.0 (integrierter Build):** 25 C++-Testsuiten ohne Fehler, darunter 3556 Kernregression, 1877 Layout-UI, 4221 eingebaute Snapshots mit Trefferkarten, 2101 Plugin-Snapshots, 448 Companion (einschließlich USB-Ausgabethread), 119 Hardware-HUD, 2144 eigene Ansichten, 845 Plugin-Zeitplanung und 290 Game-Prüfungen. Isolierte Integration: Installer-Erhalt (2), App-Companion-Integration (40) und Standalone-Distribution bestanden. Zusätzlich vier Codex-Reviewrunden; deren Befunde sind behoben.
+**Prüfstatus 2.12.0 (integrierter Build):** 25 C++-Testsuiten ohne Fehler, darunter 3556 Kernregression, 1877 Layout-UI, 4221 eingebaute Snapshots mit Trefferkarten, 2101 Plugin-Snapshots, 448 Companion (einschließlich USB-Ausgabethread), 152 Hardware-HUD, 2144 eigene Ansichten, 845 Plugin-Zeitplanung und 290 Game-Prüfungen. Isolierte Integration: Installer-Erhalt (2), App-Companion-Integration (40) und Standalone-Distribution bestanden. Zusätzlich zehn Codex-Reviewrunden (Windows-App, Companion-App, Doku); alle Befunde mit Release-Relevanz sind behoben.
 
 
 **Physisch geprüft:**

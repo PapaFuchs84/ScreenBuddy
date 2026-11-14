@@ -1809,7 +1809,9 @@ TextField* Form::text(Card& card, const char* sec, const char* key, Text label, 
     return w;
 }
 ColorField* Form::color(Card& card, const char* sec, const char* key, Text label, Text desc) {
+    const Text name = label;
     auto w = card.row<ColorField>(std::move(label), std::move(desc), as_text(value(sec, key)));
+    w->field.name = name;   // the inner edit announces its own row, not a generic "Color value"
     bindings_.push_back({sec, key, Kind::Color, w});
     return w;
 }

@@ -233,9 +233,24 @@ HudPalette hud_palette(const ojson& system, const Theme& skin) {
         if (auto c = parse_color(text("hud_color_secondary"))) p.secondary = *c;
     }
     // Keep values and labels readable on any background, including light skins and custom colours.
-    if (contrast(p.text, p.bg) < 4.5) p.text = fl::theme::readable_on(p.bg);
-    if (contrast(p.muted, p.bg) < 2.5) p.muted = mix(p.text, p.bg, .35f);
-    if (contrast(p.panel, p.bg) > 1.6 || p.panel == p.bg) p.panel = mix(p.bg, p.text, .05f);
+    // Panels are finalised first; text, labels and the warning colour must hold on both surfaces.
+    const Color readable = fl::theme::readable_on(p.bg);
+    if (contrast(p.panel, p.bg) > 1.6 || p.panel == p.bg) p.panel = mix(p.bg, readable, .05f);
+    const auto worst = [&](Color c) { return std::min(contrast(c, p.bg), contrast(c, p.panel)); };
+    const auto best = [&](Color preferred, std::initializer_list<Color> others, double needed) {
+        if (worst(preferred) >= needed) return preferred;
+        Color pick = preferred;
+        for (Color c : others) if (worst(c) > worst(pick)) pick = c;
+        return pick;
+    };
+    p.text = best(p.text, {readable, Color{0, 0, 0}, Color{255, 255, 255}}, 4.5);
+    // A panel shaded towards the text colour would eat its contrast: shade it the other way instead.
+    if (contrast(p.text, p.panel) < 4.5) {
+        const Color away = contrast(p.text, Color{0, 0, 0}) > contrast(p.text, Color{255, 255, 255}) ? Color{0, 0, 0} : Color{255, 255, 255};
+        p.panel = mix(p.bg, away, .06f);
+    }
+    p.muted = best(p.muted, {mix(p.text, p.bg, .3f), mix(p.text, p.bg, .15f), p.text}, 3.0);
+    p.warn = best(p.warn, {Color{200, 30, 30}, Color{255, 107, 94}, mix(p.warn, p.text, .5f), p.text}, 3.0);
     for (Color* accent : {&p.primary, &p.secondary})
         if (contrast(*accent, p.bg) < 1.8) *accent = mix(*accent, p.text, .55f);
     if (p.secondary == p.primary) p.secondary = mix(p.primary, p.text, .45f);
