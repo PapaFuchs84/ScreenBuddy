@@ -203,6 +203,7 @@ void SerialDisplay::set_orientation() {
 
 void SerialDisplay::connect() {
     std::lock_guard lk(mu_);
+    close_port();   // a failed transfer may leave the exclusive handle open
     open();
     if (reset_on_start_) {
         // Wie die Referenz: Reset, danach meldet sich das Gerät ggf. an neuem Port

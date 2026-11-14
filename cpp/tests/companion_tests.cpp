@@ -20,6 +20,7 @@
 #include <atomic>
 #include <cerrno>
 #include <chrono>
+#include <condition_variable>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -1338,38 +1339,52 @@ static void test_hud_transport_rate() {
 }
 
 // USB transfers (~0.5 s) run on a FramePump worker: submitting never waits for
-// the slow output, only the newest pending frame is sent, and a full-frame
-// request survives replacement by newer partial frames.
+// the slow output, only the newest pending frame is sent, a full-frame request
+// survives replacement by newer partial frames, and a replaced frame never runs
+// its done callback. Handshakes (no fixed sleeps) keep this deterministic.
 static void test_frame_pump() {
     using namespace std::chrono;
     std::mutex m;
+    std::condition_variable cv;
+    int entered = 0, released = 0, done_calls = 0;
     std::vector<std::pair<int, bool>> got;  // (first pixel, full)
+    const auto wait_for = [&](auto ready) {
+        std::unique_lock lk(m);
+        return cv.wait_for(lk, seconds(10), ready);  // deadlock guard only
+    };
     {
         fl::FramePump pump([&](const fl::FramePump::Job& job) {
-            std::this_thread::sleep_for(milliseconds(150));  // slow serial transfer
-            std::lock_guard lk(m);
+            std::unique_lock lk(m);
+            const int index = entered++;
             got.push_back({job.frame.px.empty() ? -1 : int(job.frame.px[0]), job.full});
+            cv.notify_all();
+            cv.wait(lk, [&] { return released > index; });  // blocked "serial transfer"
+            lk.unlock();
+            if (job.done) job.done();  // as App::transfer does after each attempt
         });
         auto frame = [](uint32_t v) { fl::Image image(4, 2); std::fill(image.px.begin(), image.px.end(), v); return image; };
-        pump.submit({frame(1), false, false});
-        std::this_thread::sleep_for(milliseconds(30));  // worker now inside the slow send
+        auto counted = [&] { return [&] { std::lock_guard lk(m); ++done_calls; }; };
+        pump.submit({frame(1), false, false, counted()});
+        CHECK(wait_for([&] { return entered == 1; }));  // worker is inside the transfer
         const auto start = steady_clock::now();
-        pump.submit({frame(2), true, false});
-        for (uint32_t i = 3; i <= 50; ++i) pump.submit({frame(i), false, false});
-        const double submit_ms = duration<double, std::milli>(steady_clock::now() - start).count();
-        CHECK(submit_ms < 50);  // 49 submits while a 150 ms transfer runs
+        pump.submit({frame(2), true, false, counted()});
+        for (uint32_t i = 3; i <= 50; ++i) pump.submit({frame(i), false, false, counted()});
+        CHECK(duration<double>(steady_clock::now() - start).count() < 2.0);  // never waited for the blocked transfer
         CHECK(pump.busy());
-        for (int i = 0; i < 100 && pump.busy(); ++i) std::this_thread::sleep_for(milliseconds(10));
+        CHECK_EQ(pump.replaced(), uint64_t(48));
+        { std::lock_guard lk(m); ++released; } cv.notify_all();
+        CHECK(wait_for([&] { return entered == 2; }));
+        { std::lock_guard lk(m); ++released; } cv.notify_all();
+        for (int i = 0; i < 1000 && pump.busy(); ++i) std::this_thread::sleep_for(milliseconds(5));
         CHECK(!pump.busy());
         CHECK_EQ(pump.sent(), uint64_t(2));
-        CHECK_EQ(pump.replaced(), uint64_t(48));
-        pump.submit({frame(60), false, false});
-        std::this_thread::sleep_for(milliseconds(20));
-        pump.submit({frame(61), false, false});  // pending at stop: dropped; in-flight finishes
-        const auto stop_start = steady_clock::now();
-        pump.stop();
-        CHECK(duration<double>(steady_clock::now() - stop_start).count() < 1.0);
-        pump.submit({frame(70), false, false});  // ignored after stop
+        pump.submit({frame(60), false, false, counted()});
+        CHECK(wait_for([&] { return entered == 3; }));
+        pump.submit({frame(61), false, false, counted()});  // pending at stop: dropped
+        std::thread release([&] { std::this_thread::sleep_for(milliseconds(50)); { std::lock_guard lk(m); ++released; } cv.notify_all(); });
+        pump.stop();  // waits for the in-flight frame 60
+        release.join();
+        pump.submit({frame(70), false, false, counted()});  // ignored after stop
     }
     std::lock_guard lk(m);
     CHECK_EQ(got.size(), size_t(3));
@@ -1379,8 +1394,8 @@ static void test_frame_pump() {
         CHECK(got[1].second);         // sticky full request from frame 2
         CHECK_EQ(got[2].first, 60);
     }
+    CHECK_EQ(done_calls, 3);  // replaced/dropped frames never publish targets
 }
-
 int main(int argc, char** argv) {
     const bool offline = argc == 2 && std::string(argv[1]) == "--offline";
     test_crypto();

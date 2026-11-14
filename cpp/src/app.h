@@ -211,7 +211,7 @@ private:
     void device_tap(const std::string& id, int x, int y, int w, int h);
     std::string friends_message();
     bool connect_display();
-    void output(const Image& frame, bool transition, const ojson& navigation);
+    void output(const Image& frame, bool transition, const ojson& navigation, std::function<void()> done = {});
     void transfer(const FramePump::Job& job);   // synchronous send (serial: on the pump worker)
     void display_loop();
     bool tap_at(int x, int y, bool secondary = false, int w = 0, int h = 0);
@@ -226,6 +226,10 @@ private:
     // Serial transfers run here so Companion rendering never waits for USB.
     // Declared after out_ (destroyed first); ~App and shutdown stop it explicitly.
     std::unique_ptr<FramePump> serial_pump_;
+    // Cached redraws also run for the settings preview; only the display thread
+    // may update a view's animation/scheduling state.
+    std::atomic<std::thread::id> display_thread_{};
+    bool on_display_thread() const { return std::this_thread::get_id() == display_thread_.load(); }
     bool serial_output() const { return out_ && !out_->is_monitor() && out_.get() != (Output*)companion_; }
     std::unique_ptr<NetworkDisplay> companion_output_;  // zusätzlich zum USB-Display/Bildschirm
     NetworkDisplay* companion_ = nullptr;               // out_ (Ausgabe „network“) oder companion_output_

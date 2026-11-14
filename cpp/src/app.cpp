@@ -937,8 +937,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             auto snapshot=ai_->model().snapshot(std::time(nullptr));
             auto selected=builtin_layouts_->get(key,device);
             auto arrangement=selected.overlay;
-            out.push_back({key,1,[snapshot,arrangement,view](int,RendererSet& rs){
-                if (view) view->track_ai_animation(snapshot, "", mono(), true);
+            out.push_back({key,1,[this,snapshot,arrangement,view](int,RendererSet& rs){
+                if (view && on_display_thread()) view->track_ai_animation(snapshot, "", mono(), true);
                 return arrangement ? rs.ai.render_arranged(snapshot,*arrangement,mono(),std::time(nullptr)).image
                                    : rs.ai.render(snapshot,mono(),std::time(nullptr));
             }});
@@ -1036,7 +1036,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         const auto now=std::time(nullptr);const auto snap=ai_->model().snapshot(now);
                         auto overlay=custom::single_builtin(tile,layout);
                         if(!overlay || !ai::tile_present(snap,tile.block) || !custom::visible(tile,ai::tile_values(snap,now))) return {};
-                        if (view && (tile.block == "ai.claude" || tile.block == "ai.codex"))
+                        if (view && on_display_thread() && (tile.block == "ai.claude" || tile.block == "ai.codex"))
                             view->track_ai_animation(snap, tile.block.substr(3), tick, false);
                         return custom::TileDraw{rs.ai.render_arranged(snap,*overlay,tick,now).image};
                     }
@@ -1075,7 +1075,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         auto snap=spotify_->snapshot();
                         if(!custom::visible(tile,{{"playing",snap.playing},{"title",snap.title},{"artist",snap.artist}})) return {};
                         std::vector<float> levels;bool simulated=false;
-                        if (view && snap.playing && (tile.block == "spotify.pegel" || tile.block == "spotify.fortschritt"))
+                        if (view && on_display_thread() && snap.playing && (tile.block == "spotify.pegel" || tile.block == "spotify.fortschritt"))
                             view->animating = true;
                         if(tile.block=="spotify.pegel" && meter_ && snap.playing) {
                             meter_->touch(audio::amp_seed(snap.title,snap.artist));levels=meter_->levels();simulated=meter_->simulated();
@@ -1331,7 +1331,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             spotify::Snapshot snap = spotify_->snapshot();
             const std::string amp_color = cfg_["spotify"].value("amp_color", std::string("level"));
             PageEntry pe{key, 1, [this, snap, amp_color, view](int, RendererSet& rs) {
-                if (view && snap.playing) view->animating = true;
+                if (view && snap.playing && on_display_thread()) view->animating = true;
                 std::vector<float> lv;
                 bool sim = false;
                 // Erst beim Zeichnen einer sichtbaren Kachel aktivieren, nicht beim Auflisten aller Seiten.
@@ -1361,7 +1361,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             auto arrangement=selected.overlay;
             if(arrangement && r.spotify.uses_arrangement(*arrangement)) {
                 auto draw=[this,snap,amp_color,arrangement,view](RendererSet& rs) {
-                    if (view && snap.playing) view->animating = true;
+                    if (view && snap.playing && on_display_thread()) view->animating = true;
                     std::vector<float> levels;bool simulated=false;
                     if(meter_ && snap.playing) {meter_->touch(audio::amp_seed(snap.title,snap.artist));levels=meter_->levels();simulated=meter_->simulated();}
                     const auto mode=audio::parse_amp_color(amp_color);
@@ -1499,7 +1499,7 @@ bool App::connect_display() {
     return true;
 }
 
-void App::output(const Image& frame, bool transition, const ojson& navigation) {
+void App::output(const Image& frame, bool transition, const ojson& navigation, std::function<void()> done) {
     {
         std::lock_guard lk(mu_);
         last_frame_ = frame;
@@ -1510,7 +1510,7 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
         std::string png = encode_png(frame);
         f.write(png.data(), (std::streamsize)png.size());
     }
-    if (!out_ || !display_ok()) return;
+    if (!out_ || !display_ok()) { if (done) done(); return; }
     // Teil-Updates übertragen nur geänderte Bänder; ein verlorenes Datenpaket bliebe sonst als Streifen stehen.
     // Deshalb bei jedem Seitenwechsel und alle 5 Minuten ein Vollbild.
     double now = mono();
@@ -1524,13 +1524,17 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
         // USB transfers take ~0.5 s per animated frame. Hand the newest frame
         // to the worker instead of stalling Companion rendering in this loop.
         if (!serial_pump_) serial_pump_ = std::make_unique<FramePump>([this](const FramePump::Job& job) { transfer(job); });
-        serial_pump_->submit({frame, full, playback});
+        serial_pump_->submit({frame, full, playback, std::move(done)});
         return;
     }
-    transfer({frame, full, playback});
+    transfer({frame, full, playback, std::move(done)});
 }
 
 void App::transfer(const FramePump::Job& job) {
+    struct Done { const std::function<void()>& f; ~Done() { if (f) f(); } } done{job.done};
+    // After a failed transfer the display loop owns reconnecting; a frame queued
+    // before the failure must not reopen the port behind its back.
+    if (!display_ok()) return;
     if (job.full) out_->invalidate();
     try {
         // A slow serial transfer still displays this playback page. Keep the
@@ -1682,6 +1686,13 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     live = live || (now - view.last_render >= .1 && meter_ && spotify_ && spotify_->snapshot().playing &&
                     (std::count(view.current.begin(), view.current.end(), "spotify") > 0 ||
                      (meter_->active() && std::any_of(view.current.begin(),view.current.end(),[](const auto& key){return key.starts_with("custom:");}))));
+    // Data notifications (e.g. audio levels) mark everything dirty. An animating
+    // view still renders at most at the selected rate; navigation and resizes
+    // are not delayed.
+    if (dirty && view.animating && view.step == 0 && view.size == size && view.area == area) {
+        const double next_frame = view.last_render + 1.0 / animation_fps(cfg_);
+        if (now < next_frame) { dirty = false; view.next_deadline = std::min(view.next_deadline, next_frame); }
+    }
     if (!plugins::schedule::should_render(dirty,due,live,view.step,view.size!=size || view.area!=area,view.minute!=minute,now,view.next_deadline)) return out;
     if (view.size!=size || view.area!=area) { for (auto& [plugin,zones]:view.cycles) plugins::schedule::reset(zones,false,true); view.fade_caches.clear(); }
     { std::lock_guard lk(view.next_mu); view.frame_next_requests.clear(); view.frame_next_requests.swap(view.next_requests); }
@@ -1782,6 +1793,16 @@ void App::render_view(bool secondary, bool dirty) {
     auto& settings = phone ? cfg_["companion"] : dp_;
     RenderOut r = render_core(view, size, settings.value("page_seconds", 15), phone, nullptr, dirty, !secondary);
     if (r.skipped) return;
+    if (!secondary && serial_output()) {
+        // Touch targets follow the frame the USB worker actually transferred;
+        // a replaced (never sent) frame never publishes its targets.
+        auto taps = std::make_shared<std::vector<touch::Tile>>(std::move(r.taps));
+        output(r.frame, r.switched, r.navigation, [this, taps, area = r.area] {
+            std::lock_guard taps_lock(tap_mu_);
+            touch::stabilize_plugins(*taps,tap_tiles_,mono()); tap_tiles_ = std::move(*taps); tap_area_ = area;
+        });
+        return;
+    }
     std::lock_guard lk(tap_mu_);
     if (secondary) {
         // Snapshot and its touch targets are published together.
@@ -1910,6 +1931,7 @@ void App::device_tap(const std::string& id, int x, int y, int w, int h) {
     mark_dirty();
 }
 void App::display_loop() {
+    display_thread_ = std::this_thread::get_id();
     double next_try = 0, companion_try = 0;
     if (out_) connect_display();
     double wait_deadline = plugins::schedule::never;

@@ -23,6 +23,7 @@ public:
         Image frame;
         bool full = false;      // send the complete image (page change, periodic refresh)
         bool playback = false;  // visible Spotify playback while transferring
+        std::function<void()> done;  // after the send attempt; never for a replaced frame
     };
     using Send = std::function<void(const Job&)>;
 
