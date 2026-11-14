@@ -58,9 +58,10 @@ public:
     void screen_off() override;
     void close() override;
 
-    TransferStats transfer() const override { std::lock_guard lk(mu_); return stats_; }
-    std::string layout_id() const override { std::lock_guard lk(mu_); return port_id_; }
-    std::string layout_name() const override { std::lock_guard lk(mu_);return "USB-Display · "+resolved_port_; }
+    // Readable while a transfer holds mu_ (the display loop must not wait for USB).
+    TransferStats transfer() const override { std::lock_guard lk(info_mu_); return stats_; }
+    std::string layout_id() const override { std::lock_guard lk(info_mu_); return port_id_; }
+    std::string layout_name() const override { std::lock_guard lk(info_mu_);return "USB-Display · "+resolved_port_; }
     static std::optional<std::string> find_port();
     static std::string rgb565le(const Image& img, int y0, int y1);
 
@@ -81,7 +82,8 @@ private:
     int band_height_ = 8;
     void* handle_ = nullptr;
     std::optional<Image> last_frame_;
-    mutable std::mutex mu_;
+    mutable std::mutex mu_;        // port handle, last_frame_, whole transfers
+    mutable std::mutex info_mu_;   // stats_, port_id_, resolved_port_ (never held during I/O)
     TransferStats stats_;
 };
 
@@ -180,7 +182,7 @@ public:
     std::function<void(const std::string&)> on_device_pages;      // eigene Seitenliste eines Geräts geändert
     void set_independent(bool on);
     bool independent() const { return independent_; }
-    void show_for(const std::string& device, const Image& frame, const ojson& navigation = ojson());   // Bild nur für dieses Gerät
+    void show_for(const std::string& device, const Image& frame, const ojson& navigation = ojson(), int animation_fps = 0);   // Bild nur für dieses Gerät
     std::optional<Image> frame_for(const std::string& device);      // aktuelles Bild dieses Geräts (nur im unabhängigen Betrieb), für die Vorschau
     void forget_device(const std::string& device);                  // Bild verwerfen (Gerät getrennt)
     std::vector<std::string> client_ids();                          // IDs der gerade verbundenen Geräte

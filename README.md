@@ -1,8 +1,8 @@
 <div align="center">
 
-Store-Ausgabe in Vorbereitung: [Microsoft Store / Companion-Build](docs/STORE-DISTRIBUTION.md). Noch keine Store-Veröffentlichung.
+Store-Ausgabe „ScreenBuddy by FuchsLabs“: [Microsoft Store](https://apps.microsoft.com/detail/9P03461RLGG0) · [Hinweise zur Store-Ausgabe](docs/STORE-DISTRIBUTION.md). [App-Datenschutz](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
 
-**Companion 1.1.0 (Release `companion-v1.1.0`):** dunkles Standard-Design und optionale Automatik für den gekoppelten PC. Einrichtung, Freigaben und Geräteprüfgrenzen: [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110).
+**Companion 1.1.1 (Release `companion-v1.1.1`):** Fehlerkorrekturen für die Automatik und flüssige Anzeige bei hohen Bildraten; seit 1.1.0 dunkles Standard-Design und optionale Automatik für den gekoppelten PC. Einrichtung, Freigaben und Geräteprüfgrenzen: [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110).
 
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
@@ -18,7 +18,7 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.11.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.12.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -34,6 +34,8 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
 
+**Neu in 2.12.0 (14.11.2026):** optionales **Hardware-HUD** für die Systemseite (Neon-Vektorgrafik, automatisch wechselnde Seiten Übersicht/GPU/CPU, Layouts für breite, normale und Hochkant-Displays), CPU-Package-Leistung in Watt aus HWiNFO und eine globale Animationsrate unter **Einstellungen → Anzeige → Animationen**, 5 bis 60, Standard 30 (`display.animation_fps`). Sie gilt für sichtbare Animationen einschließlich Hardware-HUD, KI-Status, Spotify und Übergängen; statische Seiten behalten ihren eigenen Takt, Sensoren werden nicht häufiger abgefragt. Das serielle USB-Display überträgt in einem eigenen Thread und bremst den Companion nicht mehr. Dazu erscheint Companion 1.1.1 mit Fehlerkorrekturen. [Hardware-HUD: Bedienung, Grenzen und Prüfstatus](HARDWARE-HUD-TEST.md) · [historische Bildratenanalyse](HARDWARE-HUD-FPS-ANALYSE.md) · [Changelog](CHANGELOG.md)
+
 **Neu in 2.10.0 (07.11.2026):** Plugin-Seiten mit Zonen-Layout (Manifest v2), Dichtestufen, bedingte Anzeige, Wechselfeld, Tap-Ziele mit Link-Freigabe (standardmäßig aus), Sperrzone pro Gerät, eingebaute Seiten über den gemeinsamen Rahmen und ein Seiten-Editor sowie ein Touch-Ziel je Kachel unter **Seiten → Eigene Ansichten**. Dazu Standard-Theme `material-orange`, Spotify „zuletzt gespielt“ und BF6-Eintrag per ID. Die Companion-App bleibt 1.0.3. Hardware- und Geräteabnahme nur teilweise live; Einzelheiten in den Release-Notizen. [Release-Notizen 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.md)
 
 **Game-Mode (neu in 2.10.0):** Spielerkennung, optionales Logo-Intro (2,5 s) und eine eigene Ansicht für das gewählte Display. [Einrichtung, Messwertgrenzen und Prüfstand](docs/GAME-MODE.md).
@@ -44,7 +46,7 @@ Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C
 
 **Neu in 2.9.5:** Menü mit Ansicht, Seiten und App; **Farben & Design unter Ansicht**, inklusive direkter Installation signierter Store-Themes. [Menü und Theme-Anleitung](docs/NAVIGATION.md).
 
-**Neu in 2.9.4:** Streaming-Film oder -Serie antippen öffnet die passende TMDB-Infoseite am PC im Browser; Cover auf der Spotify-Seite antippen öffnet die Spotify-App am PC. TMDB-Key-Beantragung mit einfachen Feldbeispielen. [Release-Notizen 2.9.4](docs/RELEASE-NOTES-2.9.4.md). Neue Tabs folgen der Browsereinstellung; auf Meanmachine mit Chrome geprüft.
+**Neu in 2.9.4:** Streaming-Film oder -Serie antippen öffnet die passende TMDB-Infoseite am PC im Browser; Cover auf der Spotify-Seite antippen öffnet die Spotify-App am PC. TMDB-Key-Beantragung mit einfachen Feldbeispielen. [Release-Notizen 2.9.4](docs/RELEASE-NOTES-2.9.4.md). Neue Tabs folgen der Browsereinstellung; auf dem Windows-Test-PC mit Chrome geprüft.
 
 **Neu in 2.9.3:** PlayStation-Freunde in der gemeinsamen Freundesliste (Marke „P“, Online-Status und gespieltes Spiel). Sony bietet dafür keine offizielle Schnittstelle: Die Funktion nutzt den NPSSO-Code der PlayStation-Anmeldung, ist **inoffiziell**, **optional**, **standardmäßig aus** und geschieht **auf eigenes Risiko** (Sony kann sie jederzeit ändern oder das Konto einschränken). Der Code wird DPAPI-verschlüsselt gespeichert und nur an Sony gesendet; ein Autorisierungscode mit Punkt (`v3.…`) wird akzeptiert. [Release-Notizen 2.9.3](docs/RELEASE-NOTES-2.9.3.md).
 
@@ -78,8 +80,8 @@ Alle drei Designsysteme erhalten eigene Hell-/Dunkel-Paletten; sechs Beispiele u
 
 | Seite | Inhalt | Quelle | Aktualisierung |
 |---|---|---|---|
-| **System** | CPU (Last, Takt, Temperatur, Lüfter), GPU (Last, Temperatur, Lüfter, VRAM), RAM, Datenträger, Netzwerk mit Verlauf | Windows-APIs, `nvidia-smi`, HWiNFO-Shared-Memory | jede Sekunde |
-| **Freunde** | Discord, Steam, Xbox und (neu in 2.9.3, optional) PlayStation in einer Liste; dieselbe Person erscheint nur einmal | eigener Discord-Bot, Steam Web API, [OpenXBL](https://xbl.io), PlayStation nur über Sonys inoffizielle Schnittstelle (NPSSO-Code, Standard: aus) | sofort / 1 min / 3 min / 2 min |
+| **System** | CPU (Last, Takt, Temperatur, Lüfter), GPU (Last, Temperatur, Lüfter, VRAM), RAM, Datenträger, Netzwerk mit Verlauf | Windows-APIs, GPU-Werte über NVIDIA NVML beziehungsweise AMD ADL (verfügbare Messwerte hängen von GPU und Treiber ab), HWiNFO-Shared-Memory | quellenabhängig: CPU, RAM und Netzwerk etwa jede Sekunde, GPU/HWiNFO etwa alle 2 s |
+| **Freunde** | Discord, Steam, Xbox und (neu in 2.9.3, optional) PlayStation in einer Liste; Konten lassen sich manuell verknüpfen, gleiche Namen werden automatisch zusammengeführt (abschaltbar) | eigener Discord-Bot, Steam Web API, [OpenXBL](https://xbl.io), PlayStation nur über Sonys inoffizielle Schnittstelle (NPSSO-Code, Standard: aus) | sofort / 1 min / 3 min / 2 min |
 | **Discord-Freunde** | Status, Aktivität, Avatar | eigener Discord-Bot | sofort |
 | **Battlefield 6 · Rangliste** | eingetragene EA-Freunde nach Rang, mit Abzeichen, K/D und Siegquote | [gametools.network](https://api.gametools.network) | 15 min |
 | **Blog-Updates** | neuester Beitrag je Blog; den Feed findet die App selbst | RSS/Atom | 30 min |
@@ -93,7 +95,7 @@ Alle drei Designsysteme erhalten eigene Hell-/Dunkel-Paletten; sechs Beispiele u
 Dazu kommen:
 
 - **Natives Windows-Einstellungsfenster** (Direct2D/DirectWrite, ohne WebView2) mit Live-Vorschau, Seitenreihenfolge, Verbindungsstatus je Plattform und aufklappbaren Hilfen neben jedem Schlüsselfeld. Der lokale Dienst unter `http://127.0.0.1:8765/` stellt die lokale Schnittstelle sowie die Anleitung unter `/anleitung` und die Plugin-Werkstatt unter `/plugin-werkstatt` bereit; die Companion-Verbindung läuft getrennt über Port 8777.
-- **Ersteinrichtung ohne Vorkenntnisse**: erkennt das Display, beendet und deaktiviert auf Wunsch die Hersteller-App, Autostart ohne Administratorrechte
+- **Ersteinrichtung ohne Vorkenntnisse**: erkennt das Display, beendet auf Wunsch die Hersteller-App, Autostart ohne Administratorrechte. Den Autostart der Hersteller-App deaktiviert nur die Standalone-Ausgabe; in der Store-Ausgabe verwaltest du ihn außerhalb der App (Windows-Aufgabenplanung)
 - **Plugin-Store** (ab 2.6.0, abschaltbar): signierter Store mit Prüfung vor der Installation; Plugins bleiben aus, bis du sie aktivierst. Mehr: [Plugin-Store und Plugins](docs/FUNKTIONEN.md#plugin-store-und-plugins-ab-260)
 - **Android-Companion** (ab 2.3.0, mehrere Geräte ab 2.7.0): Handy oder Tablet als weitere Anzeige, Kopplung per QR-Code oder PIN. Mehr: [Companion](docs/FUNKTIONEN.md#android-companion-app-ab-230-mehrere-geräte-ab-270)
 - **Design**: FuchsLabs-CI in Hell oder Dunkel, **An Windows anpassen** (Hell/Dunkel und Akzentfarbe, live) oder **eigene Themes** (JSON, Editor mit Kontrastwarnung, Import/Export), siehe [docs/THEMES.md](docs/THEMES.md)
@@ -103,8 +105,9 @@ Dazu kommen:
 - **Deutsch oder Englisch**: Einstellungsseite, Display und Infobereich lassen sich umschalten; beim ersten Start folgt die Sprache Windows
 - **Bebilderte Anleitung** zum Durchklicken, verständlich auch für Kinder, in der EXE eingebettet auf Deutsch und Englisch
 - **Seiten weiterschalten** per Knopfdruck (Companion-Seite der Einstellungen): [Beschreibung](docs/FUNKTIONEN.md#ansichten-durchblättern-ab-204)
-- **Update-Hinweis** (abschaltbar): meldet höchstens einmal am Tag eine neue GitHub-Version, installiert aber nie selbst
-- **Eine EXE** für Installation, Updates und Deinstallation
+- **Update-Hinweis** (Standalone-Ausgabe, abschaltbar): meldet höchstens einmal am Tag eine neue GitHub-Version, installiert aber nie selbst
+- **Eine EXE** (Standalone-Ausgabe) für Installation, Updates und Deinstallation
+- **Store-Ausgabe**: Updates und Deinstallation über Windows/Microsoft Store, Daten im `LocalState` des Pakets; keine GitHub-Updateprüfung
 
 ## Bilder
 
@@ -128,7 +131,7 @@ Alle Bilder zeigen Beispieldaten einer Testinstanz. Die Display-Bilder oben stam
 
 ## Schnellstart
 
-1. **ScreenBuddy.exe** aus dem [neuesten Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) herunterladen. Die Windows-EXE ist unsigniert; mit `SHA256SUMS.txt` prüfen. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
+1. Die Store-Ausgabe über den [Microsoft Store](https://apps.microsoft.com/detail/9P03461RLGG0) installieren. Alternativ die Standalone-Ausgabe **ScreenBuddy.exe** aus dem [neuesten Release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest) herunterladen: nur als vertrauenswürdig signierte und zeitgestempelte Auslieferung verwenden (Dateieigenschaften → Digitale Signaturen) und zusätzlich mit `SHA256SUMS.txt` prüfen. Frühere Standalone-Releases waren teils unsigniert (historisch). Die Schritte 3 bis 5 beschreiben die Standalone-Ausgabe. Die Companion-App für Android ist ein separater Download (Version siehe Release-Seite).
 2. Windows 10/11 x64 verwenden. Ab Version 2.5 wird **keine** Microsoft Edge WebView2 Runtime mehr benötigt; die frühere Version 2.3.0 braucht sie noch.
 3. Display anschließen, EXE starten und den Installer abschließen. Standardziel: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, ohne Administratorrechte.
 4. Bei der ersten Einrichtung öffnet sich ein **eigenes Windowsfenster**. Gewünschte Seiten aktivieren und die Datenquellen einrichten, dann **Speichern & anwenden**.
@@ -147,13 +150,13 @@ Für einen HDMI-/USB-C-Touchscreen unter **Anzeige** den vorgesehenen Monitor w�
 | Xbox | Schlüssel von [OpenXBL](https://xbl.io) | kostenlose Stufe |
 | PlayStation (optional, inoffiziell) | NPSSO-Code deiner PlayStation-Anmeldung; läuft nach etwa zwei Monaten ab, wirkt wie ein Passwort, Nutzung auf eigenes Risiko | kostenlos |
 | Battlefield 6 | nur die EA-IDs deiner Freunde | kostenlos |
-| CPU-Temperatur und Lüfter | [HWiNFO64](https://www.hwinfo.com/), eingerichtet mit `hwinfo-einrichten.bat` | kostenlos |
+| CPU-Temperatur, Lüfter und CPU-Watt | [HWiNFO64](https://www.hwinfo.com/) mit aktivierter Shared-Memory-Ausgabe und passenden Sensoren, eingerichtet mit `hwinfo-einrichten.bat` | kostenlos; in der kostenlosen Ausgabe ist Shared Memory laut [HWiNFO-Lizenzübersicht](https://www.hwinfo.com/licenses/) auf 12 Stunden begrenzt |
 
 Ein automatischer EA-Freundesabruf ist bewusst nicht eingebaut (keine offizielle Schnittstelle). PlayStation-Freunde gibt es nur über Sonys inoffizielle Schnittstelle (NPSSO-Code, auf eigenes Risiko; Sony kann sie jederzeit ändern oder das Konto einschränken). Sie ist optional und standardmäßig aus.
 
 ## Konfiguration
 
-Alles lässt sich in der Einstellungsseite einstellen. Die reguläre Installation speichert `config.toml` und `usb-display.log` unter `%LOCALAPPDATA%\FuchsLabs\USB-Display`. Eigene Pfade per `-c` und `--log` haben Vorrang. Ein Auszug:
+Alles lässt sich in der Einstellungsseite einstellen. Die reguläre Installation der Standalone-Ausgabe speichert `config.toml` und `usb-display.log` unter `%LOCALAPPDATA%\FuchsLabs\USB-Display`; die Store-Ausgabe verwendet den `LocalState`-Ordner des Pakets. Eigene Pfade per `-c` und `--log` haben Vorrang. Ein Auszug:
 
 ```toml
 [display]
@@ -207,7 +210,7 @@ Tokens und Schlüssel stehen dort nur verschlüsselt (`dpapi:…`). Alle Schlüs
 | 3,5"-USB-Display 480 × 320 („Revision A“) | USB (serielle Schnittstelle, 115200 Baud) | wird automatisch gefunden; COM-Port bei Bedarf von Hand |
 | Zusatzbildschirm beliebiger Größe (Beispiel in den Tests: 1920 × 720) | HDMI oder USB-C (DisplayPort) | randloses Vollbild auf dem gewählten Bildschirm, optional Touch |
 | Android-Handy oder -Tablet (Android 8+) | WLAN/USB-Tethering, Companion-App | mehrere Geräte möglich |
-| GPU-Werte | Nvidia mit Treiber (`nvidia-smi`) | andere GPUs zeigen „–“ |
+| GPU-Werte | NVIDIA (NVML) beziehungsweise AMD (ADL), jeweils mit Treiber | verfügbare Messwerte hängen von GPU und Treiber ab; fehlende Werte zeigen „–“ |
 
 ## Selbst bauen und entwickeln
 
@@ -238,18 +241,18 @@ Der C++-Build installiert die Abhängigkeiten aus dem festgelegten vcpkg-Manifes
 
 ## Sicherheit und Datenschutz
 
-- Läuft **ohne Administratorrechte**, ohne Telemetrie, ohne Konto. Die einzige App-eigene Anfrage ohne deine Datenquellen ist der abschaltbare Update-Hinweis an die öffentlichen GitHub-Releases (höchstens 1× am Tag, ohne Schlüssel).
+- Läuft **ohne Administratorrechte**, ohne Telemetrie, ohne Konto. Neben den eingerichteten Datenquellen kann der abschaltbare Plugin-/Theme-Katalog Netzwerkzugriffe auslösen. Die Standalone-Ausgabe fragt für den abschaltbaren Update-Hinweis die öffentlichen GitHub-Releases ab (höchstens 1× am Tag, ohne Schlüssel); Updates der Store-Ausgabe verwaltet Microsoft.
 - Zugangsdaten werden mit **Windows-DPAPI** verschlüsselt gespeichert, nie protokolliert und nie an den Browser gegeben.
 - Der lokale Dienst ist **nur auf `127.0.0.1`** erreichbar und gegen DNS-Rebinding, CSRF und Einbetten in fremde Seiten geschützt.
-- Alle Verbindungen laufen über HTTPS mit Zertifikatsprüfung; Pakete sind auf genaue Versionen festgelegt.
+- HTTPS-Verbindungen prüfen Zertifikate. Home Assistant und RSS können konfigurierte HTTP-Adressen verwenden (Home Assistant nimmt ohne Schema-Angabe HTTP an); der Companion verwendet TLS mit Zertifikat-Pinning. Pakete sind auf genaue Versionen festgelegt.
 
-Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md); er ist kein vollständiger Audit der C++-Version. Aktuelle Validierung: das [Testprotokoll](cpp/TESTPROTOKOLL.md) enthält den Eintrag „Release 2.9.4“ (31.10.2026); die Release-Notizen zu 2.9.x stehen unter [Dokumente](#dokumente). Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
+Historischer Python-1.x-Prüfbericht: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md); er ist kein vollständiger Audit der C++-Version. Aktueller Prüfstatus 2.12.0: [Hardware-HUD-Prüfseite](HARDWARE-HUD-TEST.md#grenzen-und-prüfstatus) und [Changelog](CHANGELOG.md). Frühere Prüfungen: das [Testprotokoll](cpp/TESTPROTOKOLL.md) enthält den Eintrag „Release 2.9.4“ (31.10.2026); die Release-Notizen zu 2.9.x stehen unter [Dokumente](#dokumente). Eine Lücke meldest du wie in [`SECURITY.md`](SECURITY.md) beschrieben, bitte nicht als öffentliches Issue.
 
 ## Testphase und Rückmeldungen
 
 Die App ist in der Testphase. Fehler und Ideen bitte über **Issues → New issue** mit den Vorlagen „Fehlerbericht“ oder „Idee oder Rückmeldung“ melden. Wo das Protokoll `usb-display.log` liegt und was nie mitgeschickt werden darf, steht in [`TESTPHASE.md`](TESTPHASE.md).
 
-**Prüfstand 2.9.4:** Release-Build und automatisierte Suiten grün (3327 Kernprüfungen), zwei Installerchecks, 39 App-Integrations- und 17 Mehrgeräteprüfungen. Nach Update auf Meanmachine: korrekte neue Chrome-Tabs für Film und Serie sowie Spotify-Cover-Absprung mit echten Redmi-ADB-Tipps bestätigt; TMDB-Hilfe DE/EN visuell geprüft. Konfiguration nach Tests bytegleich zurückgestellt. Physische Finger, Pixel/TV und weitere Browser nicht geprüft. [Details](docs/RELEASE-NOTES-2.9.4.md).
+**Prüfstand 2.9.4:** Release-Build und automatisierte Suiten grün (3327 Kernprüfungen), zwei Installerchecks, 39 App-Integrations- und 17 Mehrgeräteprüfungen. Nach Update auf dem Windows-Test-PC: korrekte neue Chrome-Tabs für Film und Serie sowie Spotify-Cover-Absprung mit echten Redmi-ADB-Tipps bestätigt; TMDB-Hilfe DE/EN visuell geprüft. Konfiguration nach Tests bytegleich zurückgestellt. Physische Finger, Pixel/TV und weitere Browser nicht geprüft. [Details](docs/RELEASE-NOTES-2.9.4.md).
 
 **Prüfstand 2.9.3:** Release-Build mit allen eingebauten Suiten grün (u. a. 1357 Kern-, 119 TMDB-, 251 Plugin-, 127 Store-, 140 Transport-, 135 Settings-, 361 Companion-Prüfungen, zwei Installerchecks); die EXE meldet 2.9.3; auf dem Echtsystem waren COM7 verbunden und der Companion-Server gestartet, Redmi und Android-TV zeigten Seiten (adb-Screenshots). PlayStation live lieferte mit frischem Code ein Konto. **Nicht geprüft:** PlayStation-Status/Spiel auf den Geräten, Store-Installation/-Update über die Oberfläche und physische Abnahme. Einzelheiten und Grenzen: [Testprotokoll](cpp/TESTPROTOKOLL.md). Vorheriger Stand: [Release-Notizen 2.8](docs/RELEASE-NOTES-2.8.md) (1.507 Prüfungen). Ältere Prüfstände: [Historie](docs/PRUEFSTAND-HISTORIE.md).
 
@@ -266,8 +269,9 @@ Alle Dokumente nach Zielgruppe: [`docs/README.md`](docs/README.md). Die wichtigs
 | [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) | Architektur für Entwickler |
 | [`docs/PLUGIN-SYSTEM.md`](docs/PLUGIN-SYSTEM.md) | Plugin-Anleitung ([English](docs/PLUGIN-SYSTEM.en.md)), [Tutorial](docs/PLUGIN-TUTORIAL.md), [Store-Bedingungen](docs/PLUGIN-STORE-BEDINGUNGEN.md) |
 | [`docs/GAME-MODE.md`](docs/GAME-MODE.md) | Game-Mode im Entwicklungszweig: Einrichtung und Messwertgrenzen ([English](docs/GAME-MODE.en.md)) |
+| [`HARDWARE-HUD-TEST.md`](HARDWARE-HUD-TEST.md) | Hardware-HUD und Animationsrate (neu in 2.12.0; [English](HARDWARE-HUD-TEST.en.md)) |
 | [`docs/COMPANION.md`](docs/COMPANION.md) | Companion einrichten ([English](docs/COMPANION.en.md)) |
-| [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | Release-Notizen der aktuellen Version 2.10.0 |
+| [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | Release-Notizen zur früheren Version 2.10.0 |
 | [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | Release-Notizen 2.9.5 (frühere: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
 | [`CHANGELOG.md`](CHANGELOG.md) | Änderungen je Version ([English](CHANGELOG.en.md)) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Mitarbeiten ([English](CONTRIBUTING.en.md)) |

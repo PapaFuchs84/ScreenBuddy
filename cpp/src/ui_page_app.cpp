@@ -64,7 +64,8 @@ public:
         autostart_->enabled = false;
         autostart_->on_change = [this] { apply_autostart(); };
         Card* vendor = root.add<Card>(T(L"Hersteller-Software des Displays", L"Display vendor software"),
-            T(L"Die mitgelieferte Software des Displays belegt sonst den Anschluss. Beenden und Autostart abschalten wirken sofort.",
+            distribution::packaged()?T(L"Die mitgelieferte Software des Displays kann den Anschluss belegen. Beenden wirkt sofort; den Autostart verwaltest du außerhalb von ScreenBuddy.",
+              L"The display's bundled software may occupy the port. Stopping it applies immediately; manage its autostart outside ScreenBuddy."):T(L"Die mitgelieferte Software des Displays belegt sonst den Anschluss. Beenden und Autostart abschalten wirken sofort.",
               L"The display's bundled software would otherwise occupy the port. Stopping it and disabling its autostart apply immediately."));
         vendor_state_ = vendor->row<Label>(T(L"Status", L"Status"), Text(), T(L"Wird geladen …", L"Loading …"), Font::Small, Label::Muted);
         auto vendor_row = vendor->add<ButtonRow>();
@@ -72,6 +73,19 @@ public:
         vendor_off_ = vendor_row->add(T(L"Autostart der Hersteller-App abschalten", L"Disable vendor app autostart"), Button::Secondary,
                                       [this] { vendor_action(false); });
         vendor_stop_->enabled = vendor_off_->enabled = false;
+        if (distribution::packaged()) vendor->add<Note>(T(
+            L"Den Autostart der Hersteller-App bitte außerhalb von ScreenBuddy in der Windows-Aufgabenplanung abschalten; gegebenenfalls einen Administrator darum bitten.",
+            L"Disable the vendor app's autostart outside ScreenBuddy in Windows Task Scheduler; ask an administrator if needed."));
+        if (distribution::packaged()) {
+            Card* help = root.add<Card>(T(L"Hilfe & Datenschutz", L"Help & privacy"));
+            auto links = help->add<ButtonRow>();
+            links->add(T(L"Datenschutzerklärung", L"Privacy policy"), Button::Secondary, [] {
+                ShellExecuteW(nullptr, L"open", L"https://fuchslabs.duckdns.org/screenbuddy/privacy/", nullptr, nullptr, SW_SHOWNORMAL);
+            });
+            links->add(T(L"Support", L"Support"), Button::Secondary, [] {
+                ShellExecuteW(nullptr, L"open", L"https://fuchslabs.duckdns.org/screenbuddy/support/", nullptr, nullptr, SW_SHOWNORMAL);
+            });
+        }
         Card* credits = root.add<Card>(T(L"Nachweise", L"Credits"),
             T(L"Datenquellen der Seite „Streaming-Neustarts“", L"Data sources of the “New on streaming” page"));
         credits->add<Note>(Text(L"This product uses the TMDB API but is not endorsed or certified by TMDB."));
@@ -132,7 +146,7 @@ private:
                     : T(L"Nicht aktiv, kein Autostart – alles in Ordnung.", L"Not running, no autostart – all fine.");
                 vendor_state_->tone = running || autostart ? Label::Danger : Label::Success;
                 vendor_stop_->enabled = running && !locked;
-                vendor_off_->enabled = autostart && !locked;
+                vendor_off_->enabled = autostart && !locked && !distribution::packaged();
                 host_->relayout();
             };
         });

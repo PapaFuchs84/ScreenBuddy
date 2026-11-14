@@ -191,6 +191,21 @@ static std::optional<double> pick(const std::vector<Reading>& readings, uint32_t
     return std::nullopt;
 }
 
+std::optional<double> cpu_package_watts(const std::vector<Reading>& readings) {
+    // Use original English labels even when HWiNFO displays translated/custom names.
+    // Exact matches avoid silently showing a GPU package, VRM rail or per-core reading.
+    for (const char* wanted : {"cpu package power", "cpu package power (smu)", "cpu package", "cpu ppt", "cpu power"}) {
+        for (const auto& r : readings) {
+            if (r.type != SENSOR_POWER || casefold(trim(r.unit)) != "w" ||
+                !std::isfinite(r.value) || r.value < 0 ||
+                casefold(r.sensor).find("cpu") == std::string::npos) continue;
+            const auto label = casefold(trim(r.label_orig.empty() ? r.label : r.label_orig));
+            if (label == wanted) return r.value;
+        }
+    }
+    return std::nullopt;
+}
+
 static std::string process_name(uint32_t pid) {
     if (!pid) return {};
     HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
@@ -536,13 +551,14 @@ void SysMonitor::sample_hwinfo() {
     SysSnapshot& s = snap_;
     auto r = hwinfo_readings();
     s.hwinfo = r.has_value();
-    s.cpu_temp.reset();s.cpu_fan.reset();s.disk_temp.reset();hw_fps_.reset();hw_frametime_.reset();hw_low_.reset();
+    s.cpu_temp.reset();s.cpu_fan.reset();s.cpu_watts.reset();s.disk_temp.reset();hw_fps_.reset();hw_frametime_.reset();hw_low_.reset();
     if (!r || r->empty()) return;
     const auto presentmon = presentmon_values(*r, process_name(game_pid_.load()));
     hw_fps_ = presentmon.fps; hw_frametime_ = presentmon.frametime_ms; hw_low_ = presentmon.low;
     s.cpu_temp = pick(*r, SENSOR_TEMP, {cpu_temp_sensor_, "CPU (Tctl/Tdie)", "CPU Package", "CPU Die (average)", "CPU"});
     s.cpu_fan = pick(*r, SENSOR_FAN,
                      {cpu_fan_sensor_, "CPU", "CPU_OPT", "AIO Pump", "AIO Pumpe", "Pumpe", "Chassis1"});
+    s.cpu_watts = cpu_package_watts(*r);
     std::vector<Reading> disk;
     for (auto& x : *r) {
         auto seg = split(x.sensor, "[").back();

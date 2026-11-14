@@ -1,8 +1,8 @@
 <div align="center">
 
-Store edition in preparation: [Microsoft Store / Companion build](docs/STORE-DISTRIBUTION.en.md). No Store publication yet.
+Store edition “ScreenBuddy by FuchsLabs”: [Microsoft Store](https://apps.microsoft.com/detail/9P03461RLGG0) · [notes on the Store edition](docs/STORE-DISTRIBUTION.en.md). [App privacy](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
 
-**Companion 1.1.0 (release `companion-v1.1.0`):** a dark default design and optional automatic mode for the paired PC. Setup, permissions and device-validation limits: [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110).
+**Companion 1.1.1 (release `companion-v1.1.1`):** fixes for automatic mode and smooth display at high frame rates; since 1.1.0 a dark default design and optional automatic mode for the paired PC. Setup, permissions and device-validation limits: [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110).
 
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
@@ -18,7 +18,7 @@ AI usage: separate confirmed real-account opt-ins default to off. Claude and Cod
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.11.0-F77F00)
+![Version](https://img.shields.io/badge/version-2.12.0-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -34,6 +34,8 @@ AI usage: separate confirmed real-account opt-ins default to off. Claude and Cod
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
 
+**New in 2.12.0 (14 November 2026):** an optional **Hardware HUD** for the System page (neon vector graphics, automatically rotating Overview/GPU/CPU pages, layouts for wide, regular and portrait displays), CPU package power in watts from HWiNFO, and a global animation rate under **Settings → Display → Animations**, 5 to 60, default 30 (`display.animation_fps`). It covers visible animation including the Hardware HUD, AI status, Spotify and transitions; static pages retain their own cadence and sensors are not polled more often. The serial USB display transfers in its own thread and no longer slows the Companion. Companion 1.1.1 ships alongside with bug fixes. [Hardware HUD: usage, limits and test status](HARDWARE-HUD-TEST.en.md) · [historical frame-rate analysis](HARDWARE-HUD-FPS-ANALYSE.en.md) · [Changelog](CHANGELOG.en.md)
+
 **New in 2.10.0 (07.11.2026):** plugin pages with a zone layout (manifest v2), density levels, conditional display, cycling zones, tap targets with link consent (off by default), keepout per device, built-in pages on the shared frame, a page editor and a touch target per tile under **Pages → Custom views**. Also the default theme `material-orange`, Spotify “last played” and BF6 entries by ID. The Companion app stays 1.0.3. Hardware and device acceptance only partly live; see the release notes for details. [Release notes 2.10.0](docs/RELEASE-NOTES-2.10.0.md) · [Changelog](CHANGELOG.en.md)
 
 **Game Mode (new in 2.10.0):** game detection, optional logo intro (2.5 s) and a custom view on the selected display. [Setup, measurement limits and validation](docs/GAME-MODE.en.md).
@@ -44,7 +46,7 @@ A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary sc
 
 **New in 2.9.5:** View, Pages and App navigation; **Colors & design under View**, including signed store-theme installation. [Menu and theme guide](docs/NAVIGATION.en.md).
 
-**New in 2.9.4:** tap a streaming movie or series to open its TMDB details in the PC browser; tap Spotify cover art to open the Spotify desktop app. TMDB key application explained with field examples. [Release notes 2.9.4](docs/RELEASE-NOTES-2.9.4.md). New tabs follow browser settings; verified with Chrome on Meanmachine.
+**New in 2.9.4:** tap a streaming movie or series to open its TMDB details in the PC browser; tap Spotify cover art to open the Spotify desktop app. TMDB key application explained with field examples. [Release notes 2.9.4](docs/RELEASE-NOTES-2.9.4.md). New tabs follow browser settings; verified with Chrome on the Windows test PC.
 
 **New in 2.9.3:** PlayStation friends in the combined friends list (badge “P”, online status and current game). Sony offers no official interface for this: the feature uses the NPSSO code of your PlayStation sign-in, is **unofficial**, **optional**, **off by default** and **at your own risk** (Sony may change it at any time or restrict the account). The code is stored DPAPI-encrypted and sent only to Sony; an authorisation code with a dot (`v3.…`) is accepted. [Release notes 2.9.3](docs/RELEASE-NOTES-2.9.3.md).
 
@@ -78,8 +80,8 @@ All three design systems have paired light/dark palettes, six examples and a nat
 
 | Page | Content | Source | Refresh |
 |---|---|---|---|
-| **System** | CPU (load, clock, temperature, fan), GPU (load, temperature, fan, VRAM), RAM, drive, network with history | Windows APIs, `nvidia-smi`, HWiNFO shared memory | every second |
-| **Friends** | Discord, Steam, Xbox and (new in 2.9.3, optional) PlayStation in one list; each person appears only once | your own Discord bot, Steam Web API, [OpenXBL](https://xbl.io), PlayStation only via Sony’s unofficial interface (NPSSO code, default: off) | instant / 1 min / 3 min / 2 min |
+| **System** | CPU (load, clock, temperature, fan), GPU (load, temperature, fan, VRAM), RAM, drive, network with history | Windows APIs, GPU readings via NVIDIA NVML or AMD ADL (available readings depend on the GPU and driver), HWiNFO shared memory | depends on the source: CPU, RAM and network about every second, GPU/HWiNFO about every 2 s |
+| **Friends** | Discord, Steam, Xbox and (new in 2.9.3, optional) PlayStation in one list; accounts can be linked manually, matching names are merged automatically (can be switched off) | your own Discord bot, Steam Web API, [OpenXBL](https://xbl.io), PlayStation only via Sony’s unofficial interface (NPSSO code, default: off) | instant / 1 min / 3 min / 2 min |
 | **Discord friends** | status, activity, avatar | your own Discord bot | instant |
 | **Battlefield 6 · Leaderboard** | the EA friends you add, ranked, with badge, K/D and win rate | [gametools.network](https://api.gametools.network) | 15 min |
 | **Blog updates** | newest post per blog; the app finds the feed itself | RSS/Atom | 30 min |
@@ -93,7 +95,7 @@ All three design systems have paired light/dark palettes, six examples and a nat
 Plus:
 
 - **Native Windows settings window** (Direct2D/DirectWrite, no WebView2) with live preview, page order, connection status per platform and fold-out help next to every key field. The local service at `http://127.0.0.1:8765/` provides the local API, the guide at `/anleitung` and the Plugin Workshop at `/plugin-werkstatt`; the Companion connection runs separately on port 8777.
-- **First-run setup without prior knowledge**: detects the display, closes and disables the vendor app if you want, autostart without admin rights
+- **First-run setup without prior knowledge**: detects the display, closes the vendor app if you want, autostart without admin rights. Only the standalone edition disables the vendor app's autostart; in the Store edition you manage it outside the app (Windows Task Scheduler)
 - **Plugin store** (from 2.6.0, can be switched off): signed store with checks before installation; plugins stay off until you enable them. More: [Plugin store and plugins](docs/FEATURES.en.md#plugin-store-and-plugins-from-260)
 - **Android Companion** (from 2.3.0, several devices from 2.7.0): phone or tablet as an additional display, pairing via QR code or PIN. More: [Companion](docs/FEATURES.en.md#android-companion-app-from-230-multiple-devices-from-270)
 - **Design**: FuchsLabs style in light or dark, **match Windows** (light/dark and accent colour, live) or **custom themes** (JSON, editor with contrast warning, import/export), see [docs/THEMES.md](docs/THEMES.md)
@@ -103,8 +105,9 @@ Plus:
 - **German or English**: the settings page, display and tray menu can be switched; on first start the language follows Windows
 - **Illustrated guide** to click through, easy enough for kids, embedded in the EXE in English and German
 - **Step through pages** with a button (Companion page of the settings): [description](docs/FEATURES.en.md#browse-views-from-204)
-- **Update notice** (can be turned off): reports a new GitHub version at most once a day, but never installs by itself
-- **Single EXE** for installation, updates and uninstallation
+- **Update notice** (standalone edition, can be turned off): reports a new GitHub version at most once a day, but never installs by itself
+- **Single EXE** (standalone edition) for installation, updates and uninstallation
+- **Store edition**: updates and uninstallation through Windows/Microsoft Store, data in the package's `LocalState`; no GitHub update check
 
 ## Pictures
 
@@ -128,7 +131,7 @@ All pictures show sample data from a test instance. The display pictures above a
 
 ## Quick start
 
-1. Download **ScreenBuddy.exe** from the [latest release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest). The Windows EXE is unsigned; verify it against `SHA256SUMS.txt`. The Companion app for Android is a separate download (see the release page for its version).
+1. Install the Store edition from the [Microsoft Store](https://apps.microsoft.com/detail/9P03461RLGG0). Alternatively download the standalone edition **ScreenBuddy.exe** from the [latest release](https://github.com/PapaFuchs84/ScreenBuddy/releases/latest): use it only as a trusted, signed and timestamped delivery (file properties → Digital Signatures) and additionally verify it against `SHA256SUMS.txt`. Some earlier standalone releases were unsigned (historical). Steps 3 to 5 describe the standalone edition. The Companion app for Android is a separate download (see the release page for its version).
 2. Use Windows 10/11 x64. From version 2.5 onwards **no** Microsoft Edge WebView2 runtime is required; the earlier version 2.3.0 still needs it.
 3. Connect the display, run the EXE and complete the installer. Default location: `%LOCALAPPDATA%\FuchsLabs\USB-Display`, without administrator rights.
 4. On first setup, settings open in their own Windows window. Choose **EN** with the **DE | EN** switch at the top right of the settings window, then **Save & apply**.
@@ -147,13 +150,13 @@ For an HDMI/USB-C touchscreen, choose the intended monitor under **Display**. If
 | Xbox | a key from [OpenXBL](https://xbl.io) | free tier |
 | PlayStation (optional, unofficial) | the NPSSO code of your PlayStation sign-in; expires after about two months, works like a password, use at your own risk | free |
 | Battlefield 6 | just your friends' EA IDs | free |
-| CPU temperature and fan | [HWiNFO64](https://www.hwinfo.com/), set up with `hwinfo-einrichten.bat` | free |
+| CPU temperature, fan and CPU watts | [HWiNFO64](https://www.hwinfo.com/) with shared-memory output enabled and suitable sensors, set up with `hwinfo-einrichten.bat` | free; in the free edition shared memory is limited to 12 hours according to the [HWiNFO licence overview](https://www.hwinfo.com/licenses/) |
 
 An automatic EA friend list is deliberately not included (no official API). PlayStation friends are only available through Sony’s unofficial interface (NPSSO code, at your own risk; Sony may change it at any time or restrict the account). It is optional and off by default.
 
 ## Configuration
 
-Everything can be set on the settings page. The regular installation stores `config.toml` and `usb-display.log` in `%LOCALAPPDATA%\FuchsLabs\USB-Display`. Custom `-c` and `--log` paths override this. An excerpt:
+Everything can be set on the settings page. The regular installation of the standalone edition stores `config.toml` and `usb-display.log` in `%LOCALAPPDATA%\FuchsLabs\USB-Display`; the Store edition uses the package's `LocalState` folder. Custom `-c` and `--log` paths override this. An excerpt:
 
 ```toml
 [display]
@@ -210,7 +213,7 @@ Tokens and keys are only stored encrypted (`dpapi:…`). All keys with their def
 | 3.5" USB display 480 × 320 (“revision A”) | USB (serial, 115200 baud) | found automatically; COM port can be set by hand |
 | Second screen of any size (example in the tests: 1920 × 720) | HDMI or USB-C (DisplayPort) | borderless full screen on the chosen screen, optional touch |
 | Android phone or tablet (Android 8+) | Wi-Fi/USB tethering, Companion app | several devices possible |
-| GPU stats | Nvidia with driver (`nvidia-smi`) | other GPUs show “–” |
+| GPU stats | NVIDIA (NVML) or AMD (ADL), each with its driver | available readings depend on the GPU and driver; missing values show “–” |
 
 ## Building and development
 
@@ -241,18 +244,18 @@ App translations are in `cpp/src/i18n.cpp`, native page text under `cpp/src/ui_p
 
 ## Security and privacy
 
-- Runs **without admin rights**, no telemetry, no account. The only request of its own besides your data sources is the update notice to the public GitHub releases (can be turned off; at most once a day, no key).
+- Runs **without admin rights**, no telemetry, no account. Besides the data sources you set up, the plugin/theme catalogue (can be switched off) can cause network access. The standalone edition queries the public GitHub releases for the update notice (can be turned off; at most once a day, no key); updates of the Store edition are managed by Microsoft.
 - Credentials are stored encrypted with **Windows DPAPI**, never logged and never sent to the browser.
 - The local service is **only reachable on `127.0.0.1`** and protected against DNS rebinding, CSRF and framing by other sites.
-- All connections use HTTPS with certificate checks; packages are pinned to exact versions.
+- HTTPS connections verify certificates. Home Assistant and RSS can use configured HTTP addresses (Home Assistant assumes HTTP when no scheme is given); the Companion uses TLS with certificate pinning. Packages are pinned to exact versions.
 
-Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current validation: the [test record](cpp/TESTPROTOKOLL.md) (German) has the entry “Release 2.9.4” (31 October 2026); the 2.9.x release notes are listed under [Documents](#documents). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
+Historical Python 1.x review: [`SICHERHEITSREVIEW.md`](SICHERHEITSREVIEW.md) (German); it is not a complete C++ audit. Current test status for 2.12.0: [Hardware HUD test page](HARDWARE-HUD-TEST.en.md#limits-and-test-status) and [changelog](CHANGELOG.en.md). Earlier validation: the [test record](cpp/TESTPROTOKOLL.md) (German) has the entry “Release 2.9.4” (31 October 2026); the 2.9.x release notes are listed under [Documents](#documents). Report a vulnerability as described in [`SECURITY.en.md`](SECURITY.en.md), please not as a public issue.
 
 ## Testing and feedback
 
 The app is in testing. Please report bugs and ideas via **Issues → New issue** using the “Bug report” or “Idea or feedback” forms. Where to find the log `usb-display.log` and what must never be sent: [`TESTPHASE.en.md`](TESTPHASE.en.md).
 
-**Validation of 2.9.4:** release build and automated suites green (3327 core checks), two installer checks, 39 app integration and 17 multiple-device checks. After upgrading Meanmachine, real Redmi ADB taps opened correct new Chrome tabs for a movie/series and restored Spotify via cover art. TMDB help visually checked in DE/EN. Original configuration restored byte-identically. Physical finger input, Pixel/TV and other browsers not tested. [Details](docs/RELEASE-NOTES-2.9.4.md).
+**Validation of 2.9.4:** release build and automated suites green (3327 core checks), two installer checks, 39 app integration and 17 multiple-device checks. After upgrading the Windows test PC, real Redmi ADB taps opened correct new Chrome tabs for a movie/series and restored Spotify via cover art. TMDB help visually checked in DE/EN. Original configuration restored byte-identically. Physical finger input, Pixel/TV and other browsers not tested. [Details](docs/RELEASE-NOTES-2.9.4.md).
 
 **Validation of 2.9.3:** release build green with all built-in suites (among them 1357 core, 119 TMDB, 251 plugin, 127 store, 140 transport, 135 settings and 361 Companion checks, plus two installer checks); the EXE reports 2.9.3; on the real system COM7 was connected and the Companion server started, Redmi and Android TV showed pages (adb screenshots). PlayStation live returned one account with a fresh code. **Not verified:** PlayStation status/game on the devices, store install/update through the UI, and physical acceptance. Details and limits: [test record](cpp/TESTPROTOKOLL.md) (German). Previous state: [release notes 2.8](docs/RELEASE-NOTES-2.8.md) (1,507 checks). Earlier results: [history](docs/PRUEFSTAND-HISTORIE.md) (German).
 
@@ -266,8 +269,9 @@ All documents by audience (German): [`docs/README.md`](docs/README.md). The most
 | [`docs/FEATURES.en.md`](docs/FEATURES.en.md) | features in detail ([Deutsch](docs/FUNKTIONEN.md)) |
 | [`docs/PLUGIN-SYSTEM.en.md`](docs/PLUGIN-SYSTEM.en.md) | plugin guide ([Deutsch](docs/PLUGIN-SYSTEM.md)), [tutorial](docs/PLUGIN-TUTORIAL.en.md), [store terms](docs/PLUGIN-STORE-TERMS.md) |
 | [`docs/GAME-MODE.en.md`](docs/GAME-MODE.en.md) | Development Game Mode: setup and measurement limits ([Deutsch](docs/GAME-MODE.md)) |
+| [`HARDWARE-HUD-TEST.en.md`](HARDWARE-HUD-TEST.en.md) | Hardware HUD and animation rate (new in 2.12.0; [Deutsch](HARDWARE-HUD-TEST.md)) |
 | [`docs/COMPANION.en.md`](docs/COMPANION.en.md) | Companion setup ([Deutsch](docs/COMPANION.md)) |
-| [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | release notes 2.10.0 (German/English) |
+| [`docs/RELEASE-NOTES-2.10.0.md`](docs/RELEASE-NOTES-2.10.0.md) | release notes for the earlier version 2.10.0 (German/English) |
 | [`docs/RELEASE-NOTES-2.9.5.md`](docs/RELEASE-NOTES-2.9.5.md) | release notes 2.9.5 (German/English; earlier: [2.9.4](docs/RELEASE-NOTES-2.9.4.md), [2.9.2](docs/RELEASE-NOTES-2.9.2.md), [2.9.1](docs/RELEASE-NOTES-2.9.1.md), [2.9](docs/RELEASE-NOTES-2.9.md)) |
 | [`CHANGELOG.en.md`](CHANGELOG.en.md) | changes per version ([Deutsch](CHANGELOG.md)) |
 | [`CONTRIBUTING.en.md`](CONTRIBUTING.en.md) | contributing ([Deutsch](CONTRIBUTING.md)) |

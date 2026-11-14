@@ -24,6 +24,7 @@
 #include "gfx.h"
 #include "models.h"
 #include "output.h"
+#include "frame_pump.h"
 #include "device_profile.h"
 #include "device_overlays.h"
 #include "plugin_store.h"
@@ -144,6 +145,9 @@ private:
         double next_deadline = plugins::schedule::never;
         bool animating = false;
         std::optional<double> render_ms;
+        double last_render = -plugins::schedule::never;
+        std::map<std::string, std::pair<uint64_t, double>> ai_motion;
+        void track_ai_animation(const ai::Snapshot& snapshot, const std::string& provider, double tick, bool transitions);
         std::vector<std::string> next_requests;
         std::vector<std::string> frame_next_requests; // nur Anzeige-Thread
         std::mutex next_mu;
@@ -207,7 +211,8 @@ private:
     void device_tap(const std::string& id, int x, int y, int w, int h);
     std::string friends_message();
     bool connect_display();
-    void output(const Image& frame, bool transition, const ojson& navigation);
+    void output(const Image& frame, bool transition, const ojson& navigation, std::function<void()> done = {});
+    void transfer(const FramePump::Job& job);   // synchronous send (serial: on the pump worker)
     void display_loop();
     bool tap_at(int x, int y, bool secondary = false, int w = 0, int h = 0);
     void companion_tap(int x, int y, int w, int h);
@@ -218,7 +223,15 @@ private:
     ojson dp_;
     std::filesystem::path cfg_path_;
     std::unique_ptr<Output> out_;
-    std::unique_ptr<NetworkDisplay> companion_output_;   // zusätzlich zum USB-Display/Bildschirm
+    // Serial transfers run here so Companion rendering never waits for USB.
+    // Declared after out_ (destroyed first); ~App and shutdown stop it explicitly.
+    std::unique_ptr<FramePump> serial_pump_;
+    // Cached redraws also run for the settings preview; only the display thread
+    // may update a view's animation/scheduling state.
+    std::atomic<std::thread::id> display_thread_{};
+    bool on_display_thread() const { const auto owner = display_thread_.load(); return owner == std::thread::id{} || owner == std::this_thread::get_id(); }   // before the loop starts no other thread schedules
+    bool serial_output() const { return out_ && !out_->is_monitor() && out_.get() != (Output*)companion_; }
+    std::unique_ptr<NetworkDisplay> companion_output_;  // zusätzlich zum USB-Display/Bildschirm
     NetworkDisplay* companion_ = nullptr;               // out_ (Ausgabe „network“) oder companion_output_
     std::optional<std::filesystem::path> preview_dir_;
     bool show_settings_on_start_ = false;
@@ -247,7 +260,7 @@ private:
     std::mutex stop_threads_mu_;
     std::vector<std::jthread> stop_threads_;
     std::optional<Image> last_frame_, companion_frame_;
-    ojson companion_navigation_;
+    ojson companion_navigation_ = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
     ojson navigation_ = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
     bool display_ok_;
     std::string display_error_;

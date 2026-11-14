@@ -680,10 +680,12 @@ public:
                      std::vector<std::string> values, std::vector<Text> labels);
     Combo* combo(Card& card, const char* sec, const char* key, Text label, Text desc,
                  std::vector<std::string> values, std::vector<Text> labels);
+    // #RRGGBB or empty; empty keeps the documented default (e.g. the skin colour).
+    ColorField* color(Card& card, const char* sec, const char* key, Text label, Text desc = {});
     void collect(ojson& patch) const;  // wirft Invalid
     const ojson& value(const char* sec, const char* key) const;
 private:
-    enum class Kind { Toggle, Text, Secret, Number, List, Slider, Segment, Combo };
+    enum class Kind { Toggle, Text, Secret, Number, List, Slider, Segment, Combo, Color };
     struct Binding { std::string sec, key; Kind kind; Widget* w; int minimum = 0, maximum = 0; std::vector<std::string> values; };
     Host* host_ = nullptr;
     std::vector<Binding> bindings_;

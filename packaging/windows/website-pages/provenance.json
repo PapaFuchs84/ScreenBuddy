@@ -1,0 +1,29 @@
+{
+  "generatedFrom": "reviewed local Markdown, no deployment",
+  "files": [
+    {
+      "source": "APP-PRIVACY.de.md",
+      "sha256": "ad58ba122a8304d526df139a7d6d00c04fc46817f3b732b4096fd5258165532f"
+    },
+    {
+      "source": "APP-PRIVACY.en.md",
+      "sha256": "fe437c3a2bc6cfd7a7d2e368f0a837ff73ea4e3cd779ab1d8e55f401f8ff6781"
+    },
+    {
+      "output": "screenbuddy/privacy/index.html",
+      "sha256": "c948b103bc8259dee107fccc574afcde5d80865e5710c92f6f0552b0e2582eca"
+    },
+    {
+      "source": "APP-SUPPORT.de.md",
+      "sha256": "9babc273a3a33c0d0985bdf974f328976ea16569644a779036c6692ec0389ee6"
+    },
+    {
+      "source": "APP-SUPPORT.en.md",
+      "sha256": "3412560f8c342966786439465bd70d7b56b96e1e790e961d9aa6c4c0292be360"
+    },
+    {
+      "output": "screenbuddy/support/index.html",
+      "sha256": "f20a1a23eb4ba2619db09a1f40ccb3599acf6a3a66fe5494deecdf5c4b0362e2"
+    }
+  ]
+}

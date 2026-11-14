@@ -18,12 +18,14 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import de.fuchslabs.display.protocol.ProbePolicy
+import de.fuchslabs.display.protocol.RetryBackoff
 import de.fuchslabs.display.protocol.StandbyPresence
 
 /**
  * Bereitschaftsdienst ("Automatik"): sucht per mDNS den gekoppelten PC. Erscheint er, wird die Anzeige geoeffnet
- * und der Bildschirm eingeschaltet; verschwindet er (ScreenBuddy beendet, mDNS-Abmeldung), wird nach kurzer
- * Karenzzeit die Anzeige geschlossen und der Bildschirm gesperrt.
+ * und der Bildschirm eingeschaltet. Verschwindet die mDNS-Ankuendigung, wird der PC per TCP nachgeprueft; erst nach
+ * wiederholt fehlgeschlagener Probe beginnt die Karenzzeit, nach der die Anzeige geschlossen wird. Gesperrt wird nur,
+ * wenn die Automatik die Anzeige selbst geoeffnet hat und diese noch im Vordergrund ist.
  */
 class StandbyService : Service() {
     private val main = Handler(Looper.getMainLooper())
@@ -34,6 +36,10 @@ class StandbyService : Service() {
     private val policy = ProbePolicy()
     private var probing = false
     private val goneTask = Runnable { onPcGone() }
+    private val probeRetryTask = Runnable { runProbe() }
+    private val discoveryBackoff = RetryBackoff(DISCOVERY_RETRY_MIN_MS, DISCOVERY_RETRY_MAX_MS)
+    private var discoveryRetryAt = 0L
+    private val discoveryRetryTask = Runnable { ensureDiscovery() }
 
     override fun onBind(i: Intent?): IBinder? = null
 
@@ -46,14 +52,14 @@ class StandbyService : Service() {
         active = true
         if (target != paired) {
             main.removeCallbacks(goneTask)
+            main.removeCallbacks(probeRetryTask)
             presence.reset()
             policy.reset()
-            discovery?.stop(); discovery = null
+            stopDiscovery()
             target = paired
         }
-        if (discovery == null) {
-            discovery = Discovery(this) { list -> onFound(list) }.also { it.start() }
-        }
+        // Jeder Dienststart (auch der Probe-Alarm) holt eine fehlgeschlagene Suche nach, sobald ihre Wartezeit um ist.
+        ensureDiscovery()
         // Gesperrte Geraete (z. B. Redmi 8) empfangen oft kein mDNS: zusaetzlich periodisch per TCP pruefen.
         scheduleProbe()
         runProbe()
@@ -65,11 +71,45 @@ class StandbyService : Service() {
         active = false
         cancelProbe()
         main.removeCallbacks(goneTask)
+        main.removeCallbacks(probeRetryTask)
         presence.reset()
         policy.reset()
-        discovery?.stop(); discovery = null
+        stopDiscovery()
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(2)
         super.onDestroy()
+    }
+
+    /** Startet die mDNS-Suche, falls sie nicht laeuft und keine Wartezeit nach einem Fehlschlag offen ist. */
+    private fun ensureDiscovery() {
+        if (!isEnabled()) return
+        val d = discovery ?: Discovery(this, onRunning = { onDiscoveryRunning(it) }) { list -> onFound(list) }
+            .also { discovery = it }
+        if (d.isRunning || SystemClock.elapsedRealtime() < discoveryRetryAt) return
+        main.removeCallbacks(discoveryRetryTask)
+        if (!d.start()) scheduleDiscoveryRetry()
+    }
+
+    private fun stopDiscovery() {
+        main.removeCallbacks(discoveryRetryTask)
+        discoveryBackoff.reset()
+        discoveryRetryAt = 0L
+        discovery?.stop(); discovery = null
+    }
+
+    private fun onDiscoveryRunning(running: Boolean) {
+        if (running) { discoveryBackoff.reset(); discoveryRetryAt = 0L; return }
+        Log.d(TAG, "Discovery ended unexpectedly")
+        scheduleDiscoveryRetry()
+    }
+
+    /** Begrenzter Backoff, solange die Automatik aktiv ist; die TCP-Probe deckt die Zwischenzeit ab. */
+    private fun scheduleDiscoveryRetry() {
+        if (!isEnabled()) return
+        val delay = discoveryBackoff.next()
+        discoveryRetryAt = SystemClock.elapsedRealtime() + delay
+        Log.d(TAG, "Discovery retry in ${delay} ms")
+        main.removeCallbacks(discoveryRetryTask)
+        main.postDelayed(discoveryRetryTask, delay)
     }
 
     private fun onFound(list: List<FoundPc>) {
@@ -77,8 +117,12 @@ class StandbyService : Service() {
         val p = target ?: return
         val here = list.any { it.host == p.host && it.port == p.port }
         Log.d(TAG, "Discovery update: count=${list.size}, pairedMatch=$here")
-        policy.onMdns(here)
-        applyPresence(here)
+        // Bei ausgeschaltetem Bildschirm kann die Liste veraltet sein: dann loescht sie keine fehlgeschlagenen Proben.
+        policy.onMdns(here, (getSystemService(POWER_SERVICE) as PowerManager).isInteractive)
+        if (here) { applyPresence(true); return }
+        // Fehlende mDNS-Ankuendigung (auch nach einem Suchfehler) ist allein kein Beleg fuer Abwesenheit:
+        // sofort per TCP nachpruefen. Die Karenzzeit beginnt erst nach der Schwelle fehlgeschlagener Proben.
+        if (policy.lossNeedsProbe(presence.present)) runProbe()
     }
 
     private fun applyPresence(here: Boolean) {
@@ -100,7 +144,8 @@ class StandbyService : Service() {
         val i = Intent(this, DisplayActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         try {
             if (Build.VERSION.SDK_INT < 29 || Settings.canDrawOverlays(this)) {
-                startActivity(i)
+                // Nur dieser Weg kennzeichnet die Anzeige als von der Automatik geoeffnet (Voraussetzung fuer das Sperren).
+                startActivity(Intent(i).putExtra(DisplayActivity.EXTRA_AUTO, true))
                 // Nur beim automatischen Oeffnen wecken, nicht fuer die Benachrichtigung.
                 wakeScreen()
                 return
@@ -116,11 +161,14 @@ class StandbyService : Service() {
 
     private fun onPcGone() {
         if (!isEnabled() || !presence.expire(SystemClock.elapsedRealtime())) return
-        Log.d(TAG, "Presence grace expired; closing display")
+        // Vor dem Schliessen lesen: Sperren nur, wenn die Automatik die Anzeige selbst geoeffnet hat und diese
+        // noch im Vordergrund ist. Nur eine Benachrichtigung oder eine verlassene Anzeige sperrt das Geraet nicht.
+        val lock = DisplayActivity.autoDisplayInForeground
+        Log.d(TAG, "Presence grace expired; closing display, lock=$lock")
         sendBroadcast(Intent(ACTION_CLOSE).setPackage(packageName))
         (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(2)
         // Telefon: sperren (Geraeteadmin). Android TV: kein App-Weg, Anzeige schliesst nur.
-        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)) ScreenAdmin.lockNow(this)
+        if (lock && !packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)) ScreenAdmin.lockNow(this)
     }
 
     private fun probePendingIntent(): PendingIntent = PendingIntent.getForegroundService(
@@ -141,6 +189,7 @@ class StandbyService : Service() {
 
     private fun runProbe() {
         val p = target ?: return
+        main.removeCallbacks(probeRetryTask)
         if (probing || !isEnabled()) return
         // Bei ausgeschaltetem Bildschirm ist mDNS auf manchen Geraeten blind: dann gilt es nicht als Beleg.
         val interactive = (getSystemService(POWER_SERVICE) as PowerManager).isInteractive
@@ -154,13 +203,22 @@ class StandbyService : Service() {
             val ok = PcProbe.reachable(p.host, p.port)
             main.post {
                 probing = false
-                try { if (lock?.isHeld == true) lock.release() } catch (_: Exception) {}
-                if (!isEnabled() || target != p) return@post
+                val current = isEnabled() && target == p
+                val verdict = if (current) policy.onProbe(ok, interactive) else null
+                // Angezeigter PC mit fehlgeschlagener Probe unter der Schwelle: bald erneut pruefen, statt bis zum
+                // naechsten Alarm im Ungewissen zu bleiben. Der zeitlich begrenzte Wakelock ueberbrueckt die Pause.
+                val retry = current && verdict == null && policy.needsQuickRetry(presence.present, interactive)
+                if (!retry) try { if (lock?.isHeld == true) lock.release() } catch (_: Exception) {}
+                if (!current) return@post
                 Log.d(TAG, "Probe ${p.host}:${p.port} reachable=$ok")
-                when (policy.onProbe(ok, interactive)) {
+                when (verdict) {
                     true -> applyPresence(true)
-                    false -> applyPresence(false)
-                    null -> {}
+                    false -> {
+                        applyPresence(false)
+                        // Waehrend der Karenzzeit noch einmal nachsehen: ein wieder erreichbarer PC bricht das Schliessen ab.
+                        if (presence.present) main.postDelayed(probeRetryTask, PROBE_RECHECK_MS)
+                    }
+                    null -> if (retry) main.postDelayed(probeRetryTask, PROBE_RETRY_MS)
                 }
             }
         }.start()
@@ -190,6 +248,10 @@ class StandbyService : Service() {
         private const val ACTION_PROBE = "de.fuchslabs.display.PROBE"
         private const val PROBE_INTERVAL_MS = 60_000L
         private const val PROBE_LOCK_MS = 8_000L
+        private const val PROBE_RETRY_MS = 3_000L
+        private const val PROBE_RECHECK_MS = 10_000L
+        private const val DISCOVERY_RETRY_MIN_MS = 5_000L
+        private const val DISCOVERY_RETRY_MAX_MS = 300_000L
         private const val CHANNEL_STANDBY = "standby"; private const val CHANNEL_ALERT = "alert"
         fun sync(ctx: Context) {
             val s = Store(ctx)

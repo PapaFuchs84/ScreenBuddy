@@ -1,6 +1,40 @@
 # Changelog
 
-## Unreleased
+## 2.12.0 – 2026-11-14
+
+Prüfstatus / Test status 2.12.0: 25 C++-Suiten/suites 0 Fehler/failures (3556 Kern/core, 1877 Layout-UI, 4221 Snapshots, 2101 Plugin-Snapshots, 448 Companion, 152 HUD, 2144 Custom, 845 Schedule, 290 Game); Integration: Installer 2, App-Companion 40, Standalone ok.
+
+- HUD-Farben / HUD colours: `system.hud_colors` = `theme` (Standard, aus dem aktiven Design) | `neon` | `custom` mit `hud_color_primary`/`_secondary`/`_background` (#RRGGBB, leer = Design); Kontrastschutz für Text und Akzente; neues `Form::color`-Feld. `system.hud_colors` = `theme` (default, from the active design) | `neon` | `custom` with primary/secondary/background (#RRGGBB, empty = design); contrast guard for text and accents.
+
+- Hardware-HUD / Hardware HUD: Optionale HUD-Ansicht der Systemseite (Einstellung unter „System“) mit Neon-Vektorgrafik, automatisch wechselnden Seiten Übersicht/GPU/CPU, Lüfter-/Ring-/Pulsanimationen und Layouts für breite, normale und Hochkant-Displays; gemessene Textbreiten und Umbrüche verhindern überlappende Beschriftungen. Optional HUD view for the System page (setting under “System”) with neon vector graphics, auto-rotating Overview/GPU/CPU pages, fan/ring/pulse animations and layouts for wide, normal and portrait displays; measured text widths and wrapping prevent overlapping labels.
+
+- CPU-Leistung / CPU power: CPU-Package-Leistung in Watt aus geeigneten HWiNFO-Sensoren (Typ Power, Einheit W); fehlende oder ungültige Werte bleiben unbekannt („--“). CPU package power in watts from suitable HWiNFO sensors (type Power, unit W); missing or invalid values stay unknown (“--”).
+
+- Animationsrate / Animation rate: Globaler Schlüssel `display.animation_fps` (5–60, Standard 30; Einstellungen → Anzeige → Animationen) taktet sichtbare Animationen: HUD, aktive KI-Pulse/Zeilenübergänge, laufende Spotify-Seite und Pegel-/Fortschrittskacheln, animierte eigene Ansichten, Game-Intro, Plugin-Überblendungen. Statische Ansichten behalten ihre langsame Aktualisierung, Sensoren werden nicht häufiger abgefragt. `system.hardware_hud_fps` wird migriert; ein ausdrücklicher globaler Wert hat Vorrang. Global key `display.animation_fps` (5–60, default 30; Settings → Display → Animations) paces visible animations: HUD, active AI pulses/row transitions, the playing Spotify page and level/progress tiles, animated custom views, Game intro, plugin fades. Static views keep their slow refresh and sensors are not polled more often. `system.hardware_hud_fps` is migrated; an explicit global value wins.
+
+- Companion: Am PC getaktete Animationen erhalten keine zweite Transportverzögerung; statische Seiten bleiben bei 5 fps und werden nicht mehr neu gezeichnet, nur weil die Hauptanzeige schnell animiert. Protokoll und Android-App unverändert (Companion 1.1.0). PC-paced animations get no second transport delay; static pages stay at 5 fps and are no longer redrawn merely because the main display animates quickly. Wire protocol and Android app unchanged (Companion 1.1.0).
+
+- USB-Display / USB display (seriell/serial Rev. A, 480 × 320): Eigener Ausgabethread mit Übergabe des neuesten Bildes; eine langsame Übertragung (je nach Bildinhalt, beim HUD etwa 1,7 s) blockiert das Companion-Rendering nicht mehr, serielle Animationen folgen der gemessenen Übertragungszeit statt einer festen Ein-Sekunden-Pause. Dedicated output thread with a latest-frame handoff; a slow transfer (depending on content, about 1.7 s for the HUD) no longer blocks Companion rendering, and serial animations follow the measured transfer time instead of a fixed one-second pause.
+
+- Prüfgrenzen / Test limits: Physisch geprüft sind Redmi 8 (Android 14, USB-Tunnel, Zielraten 5/30/60) und das serielle Rev.-A-Display an COM7 (Routing/Übertragung, keine optische Bildratenmessung). Nicht geprüft: echtes Spotify-Konto/Wiedergabesteuerung, echtes Spielen, WLAN/LAN, Hintergrund/Neustart/Langzeit/Akku/Temperatur. Physically tested: Redmi 8 (Android 14, USB tunnel, targets 5/30/60) and the serial Rev. A display on COM7 (routing/transfer, no optical frame-rate measurement). Not tested: real Spotify account/playback control, real gameplay, Wi-Fi/LAN, background/restart/long-term/battery/thermal. Gemeinsame Abnahme / joint USB + Companion acceptance:
+Gemeinsame Abnahme / Joint acceptance (14.11.2026, COM7 + Redmi 8): Companion 30/60 allein/alone 21,4/22,9, mit USB-System/with USB system 19,9/25,5, mit USB-HUD/with USB HUD 20,6/26,2 UI-Neuzeichnungen/s / UI redraws/s; HUD auf seriellem Panel/on serial panel ≈0,6 fps (≈1,7 s Transfer).
+
+Die folgenden Store-Einträge waren bereits im Microsoft-Store-Paket 2.11.0.0 enthalten und erscheinen erstmals als reguläre Version 2.12.0. / The following Store entries were already contained in the Microsoft Store package 2.11.0.0 and appear for the first time as regular version 2.12.0.
+
+- Windows-Testumgebung / Windows test environment: `tests/Run-ReleaseChecks.ps1` startet den unveränderten vollständigen Runner auf einem temporären privaten Desktop ohne sichtbaren Desktopwechsel. Die Geräteeditor-Prüfung pumpt Aufgaben bis zu einem tatsächlichen UI-Leerlauf und prüft „Übernehmen“ auf Aktivierung. No assertions or goldens are removed; real HWND input paths remain exercised independently of other applications.
+
+- Companion-Start / Companion startup: Initialer Navigationszustand ist wie bei der Hauptanzeige ein leeres Objektmodell statt JSON-`null`; die bestehende App-Integration prüft zusätzlich den Objektvertrag während des Starts. Initial navigation uses the same empty object state as the primary display instead of JSON `null`; app integration also checks the startup object contract.
+
+- Store-Ausgabe / Store edition: „Hilfe & Datenschutz“ in „Updates & Autostart“ öffnet die appbezogene Datenschutzerklärung und Supportseite von FuchsLabs im Standardbrowser. “Help & privacy” links the app-specific privacy policy and support page in the default browser.
+
+- Store-Bilder / Store images: `fl-layout-ui-tests --export-store-listing <neuer Ordner>` exportiert vier DE/EN-Beispielbilder mit dem echten nativen Seitenrenderer und protokolliert Version/Paketkontext; kein Desktopzugriff, keine echten Konten/Geräte und keine Änderung an Snapshot-Referenzen. Exports four German/English sample renders and records version/package context without desktop capture, real accounts/devices or golden changes.
+
+- Tests: Game-Mode-Iconprüfung verwendet die App neben der Test-EXE statt eines festen Buildordners. / Game Mode icon tests resolve the app beside the test executable instead of a fixed build directory.
+
+- Microsoft Store: Paketierte Builds starten weder den FPS-Gruppenhelfer noch die erhöhte Hersteller-Autostart-Abschaltung. DE/EN-Hinweise erklären die Einrichtung durch einen Administrator außerhalb der App; vorhandene ETW-Rechte und HWiNFO-FPS bleiben verfügbar. Die Paketprüfung kontrolliert beide gesperrten Einstiegspunkte ohne Änderungen an Windows-Gruppen oder Aufgaben.
+- Microsoft Store: Packaged builds do not launch the FPS group helper or elevated vendor-startup changes. German/English guidance explains administrator setup outside the app; existing ETW permissions and HWiNFO FPS remain available. The package probe checks blocked entry points without changing Windows groups or tasks.
+
+## Frühere Einträge / Earlier entries
 
 BF6: Spieler-ID im Eintrag (`Name#ID`, `Name@psn#ID`, ab 6 Ziffern), Abfrage per `playerid`, Auto-Heilung (ID aus Namenssuche im Speicher und in `config.toml`), Rückfall über `/bf6/player`-Suche und Namensvarianten; „Prüfen“ liefert `id`, Web-Link nutzt `/playerid/`. Neue Tests für `parse_entry_full`, `pick_search_id` und Touch-Ziele.
 

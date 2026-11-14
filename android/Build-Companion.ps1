@@ -16,9 +16,9 @@ try {
     & "$($tools.FullName)/apksigner.bat" verify --verbose --print-certs $apk
     if ($LASTEXITCODE) { throw 'APK signature verification failed' }
     New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
-    $destination = Join-Path $OutputDirectory 'ScreenBuddy-Companion-1.1.0.apk'
+    $destination = Join-Path $OutputDirectory 'ScreenBuddy-Companion-1.1.1.apk'
     Copy-Item -LiteralPath $apk -Destination $destination -Force
     $hash = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant()
-    "$hash  ScreenBuddy-Companion-1.1.0.apk" | Set-Content -LiteralPath (Join-Path $OutputDirectory 'SHA256SUMS.txt') -Encoding ascii
+    "$hash  ScreenBuddy-Companion-1.1.1.apk" | Set-Content -LiteralPath (Join-Path $OutputDirectory 'SHA256SUMS.txt') -Encoding ascii
     Write-Output $destination
 } finally { Pop-Location }

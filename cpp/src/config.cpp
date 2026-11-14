@@ -41,14 +41,15 @@ const ojson& defaults() {
         j["discord"] = {{"enabled", true}, {"token", ""}, {"guild_ids", ojson::array()}, {"friend_ids", ojson::array()},
                         {"ignore_ids", ojson::array()}, {"show_offline", false}};
         j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}, {"brightness", 50}, {"reset_on_start", true},
-                        {"page_seconds", 15}, {"pages", PAGES}, {"visible_pages", PAGES}, {"title", "Discord-Freunde"},
+                        {"page_seconds", 15}, {"animation_fps", 30}, {"pages", PAGES}, {"visible_pages", PAGES}, {"title", "Discord-Freunde"},
                         {"screen_off_on_exit", true}, {"theme", theme::DEFAULT_ID},
                         // Ausgabe: serial = USB-Display (3,5"), monitor = HDMI/USB-C-Bildschirm als Vollbildfenster
                         {"output", "serial"}, {"monitor", ""}, {"touch", true},
                         // Eigene Farben (theme = "eigen"): Vorlage plus #RRGGBB-Werte; leer = Farbe der Vorlage
                         {"color_base", "hell"}, {"color_bg", ""}, {"color_card", ""}, {"color_header", ""},
                         {"color_accent", ""}, {"color_text", ""}, {"color_muted", ""}};
-        j["system"] = {{"enabled", true}, {"title", "System"}, {"net_adapter", ""}, {"net_unit", "bit"},
+        j["system"] = {{"enabled", true}, {"hardware_hud", false}, {"hardware_hud_fps", 30},
+                       {"hud_colors", "theme"}, {"hud_color_primary", ""}, {"hud_color_secondary", ""}, {"hud_color_background", ""}, {"title", "System"}, {"net_adapter", ""}, {"net_unit", "bit"},
                        {"disk", "C:"}, {"cpu_temp_sensor", ""}, {"cpu_fan_sensor", ""}};
         j["friends"] = {{"enabled", false}, {"title", "Freunde"}, {"include_discord", true}, {"auto_merge", true},
                         {"show_offline", false}, {"steam_api_key", ""}, {"steam_id", ""}, {"xbox_api_key", ""}, {"psn_npsso", ""},
@@ -76,6 +77,8 @@ const ojson& defaults() {
 
 // (min, max) für Zahlenwerte
 static const std::map<Key, std::pair<long long, long long>> LIMITS = {
+    {{"display", "animation_fps"}, {5, 60}},
+    {{"system", "hardware_hud_fps"}, {5, 60}},
     {{"display", "brightness"}, {0, 100}}, {{"display", "page_seconds"}, {3, 600}},
     {{"bf6", "refresh_minutes"}, {5, 240}}, {{"rss", "refresh_minutes"}, {10, 720}},
     {{"streaming", "max_items"}, {1, tmdb::MAX_ITEMS}}, {{"streaming", "refresh_minutes"}, {tmdb::MIN_REFRESH_MINUTES, 720}},
@@ -86,6 +89,7 @@ static const std::map<Key, std::pair<long long, long long>> LIMITS = {
 static const std::map<Key, std::vector<std::string>> CHOICES = {
     {{"display", "orientation"}, {"landscape", "reverse_landscape", "portrait", "reverse_portrait"}},
     {{"system", "net_unit"}, {"bit", "byte"}},
+    {{"system", "hud_colors"}, {"theme", "neon", "custom"}},
     {{"display", "color_base"}, {"hell", "dunkel"}},
     {{"display", "output"}, {"serial", "monitor", "network"}},
     {{"ui", "language"}, {"de", "en"}},
@@ -147,6 +151,9 @@ static ojson read_toml(const std::filesystem::path& path) {
     return from_toml(t);
 }
 
+// The legacy HUD-only rate is retained as an import alias for local test configurations.
+static void import_animation_fps(ojson& cfg, const ojson& provided);
+
 ojson load(const std::filesystem::path& path) {
     ojson cfg = defaults();
     std::error_code ec;
@@ -160,6 +167,8 @@ ojson load(const std::filesystem::path& path) {
             if (!cfg.contains(sec)) cfg[sec] = ojson::object();
             for (auto& [k, v] : vals.items()) cfg[sec][k] = v;
         }
+        // Inspect the user document rather than defaults: an old explicit 60 must survive migration.
+        import_animation_fps(cfg, user);
     }
     for (auto& [sec, key] : SECRETS) cfg[sec][key] = secure::unprotect(py_str(cfg[sec].value(key, ojson(""))));
     // Seiten, die eine ältere Konfiguration noch nicht kennt (z. B. "friends"), hinten anhängen
@@ -231,6 +240,12 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
         throw std::invalid_argument("Ja/Nein erwartet");
     }
     if (def.is_number_integer()) {
+        if (k == Key{"display", "animation_fps"} || k == Key{"system", "hardware_hud_fps"}) {
+            const double rate = to_number(value);
+            if (!std::isfinite(rate)) throw std::invalid_argument("Endliche Zahl erwartet / finite number required");
+            // Clamp before conversion so a huge numeric input cannot overflow the integer conversion.
+            return static_cast<long long>(std::clamp(std::trunc(rate), 5., 60.));
+        }
         long long v = (long long)std::trunc(to_number(value));
         if (auto it = LIMITS.find(k); it != LIMITS.end()) v = std::clamp(v, it->second.first, it->second.second);
         return v;
@@ -329,7 +344,7 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
         throw std::invalid_argument("erlaubt: material-orange, cupertino, fluent, hell, dunkel, windows, custom:<id>");
     if (auto it = CHOICES.find(k); it != CHOICES.end() && !std::count(it->second.begin(), it->second.end(), v))
         throw std::invalid_argument("erlaubt: " + join(it->second, ", "));
-    if (sec == "display" && is_color_key(key) && !v.empty()) {
+    if (((sec == "display" && is_color_key(key)) || (sec == "system" && key.rfind("hud_color_", 0) == 0)) && !v.empty()) {
         static const std::regex rx("#[0-9a-fA-F]{6}");
         if (!std::regex_match(v, rx)) throw std::invalid_argument("Farbe als #RRGGBB erwartet");
         for (auto& c : v) c = (char)toupper((unsigned char)c);
@@ -337,9 +352,25 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
     return v;
 }
 
+static void import_animation_fps(ojson& cfg, const ojson& provided) {
+    if (!provided.is_object()) return;
+    const ojson* rate = nullptr;
+    if (provided.contains("display") && provided["display"].is_object() && provided["display"].contains("animation_fps"))
+        rate = &provided["display"]["animation_fps"];
+    else if (provided.contains("system") && provided["system"].is_object() && provided["system"].contains("hardware_hud_fps"))
+        rate = &provided["system"]["hardware_hud_fps"];
+    if (!rate) return;
+    const auto normalized = coerce("display", "animation_fps", *rate, defaults()["display"]["animation_fps"],
+                                   defaults()["display"]["animation_fps"]);
+    cfg["display"]["animation_fps"] = normalized;
+    // Keep saved/public legacy aliases consistent, so older local test builds retain the chosen rate.
+    cfg["system"]["hardware_hud_fps"] = normalized;
+}
+
 ojson merge(const ojson& cfg, const ojson& incoming) {
     ojson out = cfg;
     if (!incoming.is_object()) return out;
+    import_animation_fps(out, cfg);
     const ojson& d = defaults();
     for (auto& [sec, vals] : incoming.items()) {
         if (!d.contains(sec) || !vals.is_object()) continue;
@@ -353,6 +384,8 @@ ojson merge(const ojson& cfg, const ojson& incoming) {
             }
         }
     }
+    // Precedence depends on the explicit patch keys, never on JSON section iteration order.
+    import_animation_fps(out, incoming);
     // Companion-Server und Einstellungsseite brauchen verschiedene Ports; 8765 bleibt der Einstellungsseite vorbehalten
     long long cport = out["companion"].value("port", 8777LL), uport = out["ui"].value("port", 8765LL);
     bool companion_used = out["companion"].value("enabled", false) || out["display"].value("output", "serial") == "network";
@@ -437,13 +470,15 @@ static void write_file(const std::filesystem::path& p, const std::string& data) 
 }
 
 void save(const std::filesystem::path& path, const ojson& cfg) {
+    ojson normalized = cfg;
+    import_animation_fps(normalized, cfg);
     std::vector<std::string> lines = {"# ScreenBuddy – wird von der Einstellungsoberfläche geschrieben.",
                                       "# Von Hand ändern ist möglich; die App danach neu starten.", ""};
     for (auto& [sec, keys] : defaults().items()) {
         lines.push_back("# " + HEADERS.at(sec));
         lines.push_back("[" + sec + "]");
         for (auto& [key, def] : keys.items()) {
-            ojson val = (cfg.contains(sec) && cfg[sec].contains(key)) ? cfg[sec][key] : def;
+            ojson val = (normalized.contains(sec) && normalized[sec].contains(key)) ? normalized[sec][key] : def;
             if (is_secret(sec, key)) val = secure::protect(py_str(val));
             lines.push_back(key + " = " + toml_value(val));
         }

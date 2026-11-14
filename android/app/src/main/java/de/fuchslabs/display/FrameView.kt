@@ -12,11 +12,12 @@ import androidx.core.view.WindowInsetsCompat
 import de.fuchslabs.display.protocol.DpadNavigation
 import de.fuchslabs.display.protocol.Letterbox
 import de.fuchslabs.display.protocol.Protocol
+import de.fuchslabs.display.protocol.GenerationSlot
 import de.fuchslabs.display.protocol.ImageLimits
+import de.fuchslabs.display.protocol.LatestSlot
 import de.fuchslabs.display.protocol.SwipeClassifier
 import de.fuchslabs.display.protocol.SwipeDir
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 
 /** Zeichnet das JPEG-Frame mit Letterbox und sendet Taps in Renderkoordinaten. */
@@ -91,23 +92,57 @@ class FrameView(ctx: Context) : View(ctx) {
     fun setRenderSize(w: Int, h: Int) { rw = w; rh = h; invalidate() }
 
     private val decoder = Executors.newSingleThreadExecutor { r -> Thread(r, "frame-decode").apply { isDaemon = true } }
-    private val latest = AtomicReference<ByteArray?>()
+    /** Neuestes noch nicht dekodiertes Frame, zusammen mit der Epoche, in der es angenommen wurde. */
+    private val latest = GenerationSlot<ByteArray>()
 
-    /** Nimmt das Frame an; Decodierung im Hintergrund, nur das neueste Frame wird dekodiert. */
+    private class Decoded(val epoch: Int, val bitmap: Bitmap, val bg: Int)
+    /** Hoechstens ein dekodiertes, noch nicht angezeigtes Bild und hoechstens eine geplante Uebergabe. */
+    private val decoded = LatestSlot<Decoded>()
+    /** Wird von [clearPending] erhoeht; Bilder aus einer frueheren Epoche werden nicht mehr angezeigt. */
+    @Volatile private var epoch = 0
+    /** Epoche des angezeigten Bildes; nur Main-Thread. Tippen zaehlt erst, wenn ein Bild des aktuellen Ziels sichtbar ist. */
+    private var shownEpoch = -1
+    private val showDecoded = Runnable {
+        val d = decoded.take() ?: return@Runnable
+        if (d.epoch != epoch) { d.bitmap.recycle(); return@Runnable }
+        // Das bisher angezeigte Bitmap wird nicht recycelt: der letzte Zeichenvorgang kann es noch referenzieren.
+        bmp = d.bitmap; bgColor = d.bg or Color.BLACK; shownEpoch = d.epoch; invalidate()
+    }
+
+    /**
+     * Nimmt das Frame an; Decodierung im Hintergrund, nur das neueste Frame wird dekodiert. Die Epoche wird hier
+     * vergeben und bleibt am Frame: ein noch fuer ein frueheres Ziel geplanter Decoder kann ein neues Frame
+     * dadurch nicht der alten Epoche zuordnen. Nur auf dem Main-Thread aufrufen.
+     */
     fun setFrame(jpeg: ByteArray) {
         if (!ImageLimits.bytesOk(jpeg.size)) return
-        if (latest.getAndSet(jpeg) == null) decoder.execute { decodeLatest() }
+        if (latest.offer(epoch, jpeg)) decoder.execute { decodeLatest() }
+    }
+
+    /**
+     * Verwirft wartende, noch nicht angezeigte Bilder (Stopp oder Zielwechsel). Das angezeigte Bild bleibt stehen.
+     * Nur auf dem Main-Thread aufrufen.
+     */
+    fun clearPending() {
+        epoch++ // zuerst: ein gerade laufender Decoder liefert danach nichts mehr aus
+        latest.advance(epoch) // wartendes Frame der alten Epoche verwerfen
+        removeCallbacks(showDecoded)
+        decoded.clear { it.bitmap.recycle() } // nie angezeigt, daher gefahrlos
     }
 
     private fun decodeLatest() {
-        val jpeg = latest.getAndSet(null) ?: return
+        // Frame und Epoche gemeinsam entnehmen: massgeblich ist die Epoche bei setFrame(), nicht die beim Dekodieren.
+        val f = latest.take() ?: return
+        val e = f.generation
+        val jpeg = f.value
         try {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, bounds)
             if (!ImageLimits.dimsOk(bounds.outWidth, bounds.outHeight)) return
             val b = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size) ?: return
             val bg = b.getPixel(0, 0) // Letterbox-Hintergrund = Randfarbe des Bildes
-            post { bmp = b; bgColor = bg or Color.BLACK; invalidate() }
+            // Ein ueberholtes, nie angezeigtes Bitmap sofort freigeben statt je Bild ein Runnable aufzustauen.
+            if (decoded.offer(Decoded(e, b, bg)) { it.bitmap.recycle() }) post(showDecoded)
         } catch (_: Exception) {} catch (_: OutOfMemoryError) {}
     }
 
@@ -137,6 +172,8 @@ class FrameView(ctx: Context) : View(ctx) {
         when (e.actionMasked) {
             MotionEvent.ACTION_UP -> if (!swiped && abs(e.x - downX) < slop && abs(e.y - downY) < slop) {
                 val shown = bmp ?: return true
+                // Nach einem Zielwechsel zeigt das stehende Bild noch den vorherigen PC: kein Tippen dorthin weiterleiten.
+                if (shownEpoch != epoch) return true
                 if (shown.width != rw || shown.height != rh) return true
                 val lb = Letterbox.compute(contentWidth, contentHeight, rw, rh)
                 lb.toRender(e.x - insL, e.y - insT)?.let { (x, y) -> onTouchRender?.invoke(x, y) }

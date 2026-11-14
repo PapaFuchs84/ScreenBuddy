@@ -3,12 +3,14 @@ param(
     [Parameter(Mandatory)][string]$IdentityName,
     [Parameter(Mandatory)][string]$Publisher,
     [string]$PublisherDisplayName = 'FuchsLabs',
+    [string]$DisplayName = 'ScreenBuddy',
     [string]$Version,
     [string]$Executable = "$PSScriptRoot/../../cpp/dist/ScreenBuddy.exe",
     [string]$OutputDirectory = "$PSScriptRoot/../../dist/windows",
     [string]$CertificateThumbprint
 )
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($DisplayName)) { throw 'A nonblank reserved product DisplayName is required.' }
 if (!(Test-Path -LiteralPath $Executable)) { throw "Build the release EXE first: $Executable" }
 $exe = (Resolve-Path -LiteralPath $Executable).Path
 $actual = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
@@ -32,7 +34,7 @@ Copy-Item -Path "$PSScriptRoot/Assets/*.png" -Destination "$stage/Assets"
 Copy-Item -LiteralPath "$PSScriptRoot/../../LICENSE" -Destination "$stage/LICENSE.txt"
 Copy-Item -LiteralPath "$PSScriptRoot/../../THIRD-PARTY-NOTICES.md" -Destination "$stage/THIRD-PARTY-NOTICES.md"
 $manifest = Get-Content -LiteralPath "$PSScriptRoot/AppxManifest.xml.in" -Raw
-foreach ($item in @{IDENTITY=$IdentityName;PUBLISHER=$Publisher;PUBLISHER_DISPLAY=$PublisherDisplayName;VERSION=$Version}.GetEnumerator()) {
+foreach ($item in @{IDENTITY=$IdentityName;PUBLISHER=$Publisher;PUBLISHER_DISPLAY=$PublisherDisplayName;DISPLAY_NAME=$DisplayName;VERSION=$Version}.GetEnumerator()) {
     $manifest = $manifest.Replace("@$($item.Key)@", [Security.SecurityElement]::Escape($item.Value))
 }
 [IO.File]::WriteAllText("$stage/AppxManifest.xml", $manifest, [Text.UTF8Encoding]::new($false))

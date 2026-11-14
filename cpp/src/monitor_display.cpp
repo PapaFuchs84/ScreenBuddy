@@ -223,6 +223,8 @@ void MonitorDisplay::fullscreen(bool show) {
 }
 
 void MonitorDisplay::hide_taskbars(bool hide) {
+    // A local rectangle preview must leave the desktop taskbar available.
+    if (test_instance() && GetEnvironmentVariableW(L"FUCHSLABS_TEST_RECT", nullptr, 0)) return;
     HWND hwnd = (HWND)hwnd_.load();
     if (hide && hwnd) {
         HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONULL);

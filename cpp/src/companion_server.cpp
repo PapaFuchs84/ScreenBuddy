@@ -537,7 +537,13 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
     while (open && !stop_ && !c->kick) {
         // Nur warten, wenn weder OpenSSL noch der Socket (Lese-Budget ausgeschöpft) sofort etwas liefern.
         // Ein unvollständiger Rahmen im Parser ist kein Grund, nicht zu warten (sonst Dauerschleife).
-        if (!more && SSL_pending(ssl) == 0) wait_sock(s, false, 50);
+        int animation_fps = 0;
+        if (authed && independent() && hooks_.frame_rate_for) {
+            try { animation_fps = hooks_.frame_rate_for(c->device_id); } catch (...) {}
+        }
+        const int poll_ms = animation_fps >= 5 && animation_fps <= MAX_ANIMATION_FPS
+            ? std::min(50, std::max(5, 500 / animation_fps)) : 50;
+        if (!more && SSL_pending(ssl) == 0) wait_sock(s, false, poll_ms);
         // Lesen mit Budget: nie mehr als READ_BUDGET je Durchlauf und nie mehr als MAX_BUFFERED ungeparst
         bool closed = false;
         size_t got = 0;
@@ -719,9 +725,15 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
             last_ping = t;
         }
         uint64_t seq = seq_;
-        if (gate.due(seq, t)) {
+        const bool per_device = independent() && hooks_.encode_frame_for;
+        // Publication may have switched from animation to a static page while waiting.
+        // Poll pacing may be stale for one loop, but the send gate must use fresh metadata.
+        int current_animation_fps = 0;
+        if (per_device && hooks_.frame_rate_for) {
+            try { current_animation_fps = hooks_.frame_rate_for(c->device_id); } catch (...) {}
+        }
+        if (gate.due(seq, t, current_animation_fps)) {
             std::shared_ptr<const Frame> jpeg;
-            const bool per_device = independent() && hooks_.encode_frame_for;
             if (per_device) {
                 // Eigenes Bild dieses Geräts; die App liefert es zwischengespeichert, die Version verhindert Doppelsendungen.
                 Frame data;
@@ -757,7 +769,7 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
                 if (!send_raw(ws_frame(Op::Binary, frame_payload(jpeg->jpeg)))) break;
                 sent_version = per_device ? jpeg->version : 0;
             }
-            gate.sent(seq, t);
+            gate.sent(seq, now()); // static-page pacing uses send completion; animations use sequence dedup only
         }
     }
     if (stop_ && open) send_raw(ws_close_frame(1001, "shutdown"));

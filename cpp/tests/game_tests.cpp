@@ -5,6 +5,7 @@
 #include "render_game.h"
 #include "custom_view_editor.h"
 #include "config.h"
+#include "util.h"
 #include <windows.h>
 #include <fstream>
 #include <chrono>
@@ -78,8 +79,10 @@ int main(){try {
  std::filesystem::create_directories(package/L"Assets");
  {std::ofstream f(package/L"AppxManifest.xml");f<<R"(<Package><Applications><Application Executable="game.exe"><uap:VisualElements Square44x44Logo="Assets/logo.png"/></Application></Applications></Package>)";}
  for(auto size:{44,256}){auto bytes=fl::encode_png(fl::Image(size,size,{20,40,60}));std::ofstream f(package/L"Assets"/(size==44?L"logo.png":L"logo.targetsize-256.png"),std::ios::binary);f.write(bytes.data(),bytes.size());}
- auto exe_icon=executable_icon(std::filesystem::current_path()/L"cpp/build/screenbuddy-release/ScreenBuddy.exe");check(exe_icon && exe_icon->w==256);
- for(auto id:{"gog:example","ubisoft:example"}){Game local;local.id=id;local.executable=std::filesystem::current_path()/L"cpp/build/screenbuddy-release/ScreenBuddy.exe";check(bool(cache.load(local)));}
+ // Use the app from this test build, independent of the build folder and cwd.
+ const auto app_exe=fl::exe_path().parent_path()/L"ScreenBuddy.exe";
+ auto exe_icon=executable_icon(app_exe);check(exe_icon && exe_icon->w==256);
+ for(auto id:{"gog:example","ubisoft:example"}){Game local;local.id=id;local.executable=app_exe;check(bool(cache.load(local)));}
  Game packaged;packaged.id="xbox:example";packaged.executable=package/L"game.exe";check(bool(cache.load(packaged)));
  auto asset=package_logo(package/L"game.exe");check(asset && asset->w==256);check(!package_logo(package/L"other.exe"));
  std::filesystem::remove_all(package);

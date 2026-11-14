@@ -104,6 +104,7 @@ bool vendor_autostart_enabled() {
 }
 
 bool vendor_disable_autostart() {
+    if (distribution::packaged()) return false;
     std::wstring args = L"/Change /TN \"" + std::wstring(VENDOR_TASK) + L"\" /DISABLE";
     auto rc = (INT_PTR)ShellExecuteW(nullptr, L"runas", L"schtasks.exe", args.c_str(), nullptr, SW_HIDE);
     return rc > 32;

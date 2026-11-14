@@ -1,43 +1,55 @@
 {
-  "appVersion": "2.9.6",
-  "packageIdentity": "local-test",
-  "capture": "Native window screenshots exported losslessly to PNG; isolated sample configuration; no connected hardware. Connection badge is from no-LCD test mode.",
+  "appVersion": "2.11.0",
+  "packageVersion": "2.11.0.0",
+  "packageIdentity": "FuchsLabs.ScreenBuddy.ListingValidation",
+  "deploymentMode": "developer-registration; local test identity, not official Store identity",
+  "captureDate": "2026-11-10",
+  "capture": "Native Page/TreeCanvas renderer, isolated synthetic fixtures, no window/desktop capture",
+  "sourceBase": "7b8d0c1 with local Store preparation changes",
+  "captureAppSha256": "b78e2dc576beea84c169b888349ce1cb80ca594d9403dea43f0dff8eeab2a466",
+  "captureRendererSha256": "805829f4481b5ddd4e1a25b4e60c28a8e7f5fe49df93f48ecba03352a69ae517",
+  "fontPrerequisite": "Roboto 3.016; current installed snapshot test prerequisite",
+  "privacySupportControlsVerified": true,
+  "sampleDataOnly": true,
+  "hardwareEvidence": false,
+  "note": "Actual native page/widget renders in a developer-registered package context; hidden test host with synthetic monitor, sample metrics and forced inactive FPS permission. No desktop capture, connected hardware, real accounts or live game measurements. No image compositing, resizing or edits.",
   "images": [
     {
-      "file": "de-overview.png",
-      "width": 3440,
-      "height": 1392,
-      "sha256": "f7d15e72ecb032acb6e5ba4ae1bf6e3cb92a7730c177b7c15f0b3f607a218b5a",
+      "file": "de-game-mode.png",
+      "width": 1600,
+      "height": 1200,
+      "sha256": "4883f978fd9b0a5ce91d12d122186c2396482786415b9ffd6f823dd227d26252",
       "language": "de",
       "sampleDataOnly": true,
       "hardwareEvidence": false
     },
     {
-      "file": "de-updates.png",
-      "width": 3440,
-      "height": 1392,
-      "sha256": "2794ddc21054f98af425487448225bbf5fed70c06efad27703e13260fcc9ef8f",
+      "file": "de-editor.png",
+      "width": 1600,
+      "height": 1200,
+      "sha256": "49f80d3b75458335c44e82378a4c9570b7b64fd0127ed2f7f1ffb7fa1d985b6d",
       "language": "de",
       "sampleDataOnly": true,
       "hardwareEvidence": false
     },
     {
-      "file": "en-overview.png",
-      "width": 3440,
-      "height": 1392,
-      "sha256": "d7c7c9e70f489e9dde09bca43b7f37ace16f1b60fe1d4650c98ea1a128b1679e",
+      "file": "en-game-mode.png",
+      "width": 1600,
+      "height": 1200,
+      "sha256": "dd5e0a39731d5574578cbcd1fef85a8c62be99ef97605b6133c9416bdb4c9d46",
       "language": "en",
       "sampleDataOnly": true,
       "hardwareEvidence": false
     },
     {
-      "file": "en-updates.png",
-      "width": 3440,
-      "height": 1392,
-      "sha256": "512b7cb3dc24e3cdceba86fd96b17af90d1e1f5eaed9d07fe9851e5b6c14d207",
+      "file": "en-editor.png",
+      "width": 1600,
+      "height": 1200,
+      "sha256": "47c7289ea3f13e6af8afe5eac5ae29f1c0f1fc7e03fa91742d7c9eb3a6b6a9c2",
       "language": "en",
       "sampleDataOnly": true,
       "hardwareEvidence": false
     }
-  ]
+  ],
+  "finalBinaryRerenderVerified": true
 }

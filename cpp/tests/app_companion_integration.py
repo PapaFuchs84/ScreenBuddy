@@ -119,6 +119,7 @@ enabled = true
             return
         status=wait_for(lambda:(x if (x:=api('/api/companion/status')).get('running') else None))
         if mode=='selection':
+            check(isinstance(api('/api/companion/pages'),dict),'Companion navigation stays an object during startup')
             wait_for(lambda:api('/api/companion/pages').get('total')==1)
             check(api('/api/pages')['current']==['system'],'Primary selection contains only system')
             check(api('/api/companion/pages')['current']==['friends'],'Companion selection contains only friends')

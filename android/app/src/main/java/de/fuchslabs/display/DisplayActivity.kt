@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import de.fuchslabs.display.protocol.AutoOwnership
 import de.fuchslabs.display.protocol.orientationFor
 
 /** Vollbild-Anzeige: immersiv, Bildschirm bleibt an, Auto-Reconnect. Extras: pairing (Kopplung) optional. */
@@ -30,12 +31,20 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
     private var pairingPin: String? = null
     private var lastBack = 0L
     private var trustDialog: AlertDialog? = null
+    private var fatalDialog: AlertDialog? = null
     private var dpadHintShown = false
+    private var started = false
+    /** Die Automatik (StandbyService) hat diese Anzeige in den Vordergrund geholt. */
+    private var autoOpened = false
+    private val token = Any()
     private val isTv: Boolean by lazy { packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = Store(this)
+        // Nach einem Neuaufbau (z. B. Sprachwechsel) gilt die zuletzt wirksame Zuordnung, nicht ein spaeter
+        // eingetroffener Automatik-Intent.
+        autoOpened = savedInstanceState?.getBoolean(STATE_AUTO) ?: intent.getBooleanExtra(EXTRA_AUTO, false)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         frameView = FrameView(this)
         status = TextView(this).apply {
@@ -82,15 +91,53 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         override fun onReceive(c: android.content.Context, i: Intent) { finishAndRemoveTask() }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_AUTO, autoOpened)
+    }
+
     override fun onStart() {
         super.onStart()
+        started = true
+        if (autoOpened) autoForeground = token
         startClient()
     }
 
     override fun onStop() {
+        started = false
+        if (autoForeground === token) autoForeground = null
+        stopClient()
+        super.onStop()
+    }
+
+    /**
+     * singleTask: ein weiterer Start trifft die vorhandene Instanz. Ein neues Ziel (Kopplung mit Host/PIN/
+     * Fingerabdruck oder die gespeicherte Verbindung statt einer laufenden Kopplung) ersetzt die bisherige Verbindung.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val auto = intent.getBooleanExtra(EXTRA_AUTO, false)
+        // Die Automatik darf eine laufende Kopplung nicht abbrechen.
+        if (auto && pairingPin != null) return
+        setIntent(intent)
+        // Eine manuell geoeffnete, bereits sichtbare Anzeige bleibt manuell: die Automatik hat sie nicht in den
+        // Vordergrund geholt und darf das Geraet beim Verschwinden des PCs deshalb nicht sperren.
+        autoOpened = AutoOwnership.afterNewIntent(auto, autoOpened, started)
+        intent.putExtra(EXTRA_AUTO, autoOpened) // gespeicherter Intent spiegelt die wirksame Zuordnung
+        if (autoOpened && started) autoForeground = token
+        else if (!autoOpened && autoForeground === token) autoForeground = null
+        // Gleiches gespeichertes Ziel und der Client laeuft bereits: nichts neu aufzubauen.
+        if (!intent.hasExtra(EXTRA_PIN) && pairingPin == null && client != null) return
+        stopClient()
+        fatalDialog?.dismiss(); fatalDialog = null
+        pairingPin = null
+        if (started) startClient() // sonst uebernimmt onStart() das neue Ziel
+    }
+
+    private fun stopClient() {
         trustDialog?.dismiss(); trustDialog = null
         client?.stop(); client = null
-        super.onStop()
+        frameView.clearPending()
     }
 
     override fun onDestroy() {
@@ -127,6 +174,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
     }
 
     private fun startClient() {
+        stopClient() // nie zwei Clients gleichzeitig (onStart und onNewIntent koennen in beiden Reihenfolgen eintreffen)
         val (sw, sh) = realSize()
         val name = Build.MODEL ?: "Android"
         val t: DisplayClient.Target
@@ -194,7 +242,8 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
             DisplayClient.Fatal.SERVER_ERROR -> getString(R.string.err_server, detail)
             DisplayClient.Fatal.INVALID_TARGET -> getString(R.string.err_input)
         }
-        AlertDialog.Builder(this).setMessage(msg)
+        fatalDialog?.dismiss()
+        fatalDialog = AlertDialog.Builder(this).setMessage(msg)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 startActivity(Intent(this, MainActivity::class.java)); finish()
             }.setCancelable(false).show()
@@ -203,5 +252,13 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
     companion object {
         const val EXTRA_HOST = "host"; const val EXTRA_PORT = "port"; const val EXTRA_FP = "fp"
         const val EXTRA_PIN = "pin"; const val EXTRA_NAME = "name"
+        /** Gesetzt vom StandbyService, wenn die Automatik die Anzeige oeffnet. */
+        const val EXTRA_AUTO = "auto"
+        private const val STATE_AUTO = "auto_opened"
+
+        /** Kennung der von der Automatik geoeffneten Instanz, solange sie zwischen onStart und onStop sichtbar ist. */
+        @Volatile private var autoForeground: Any? = null
+        /** true nur, wenn die Automatik die Anzeige geoeffnet hat und diese noch im Vordergrund ist. */
+        val autoDisplayInForeground: Boolean get() = autoForeground != null
     }
 }

@@ -1,6 +1,6 @@
 # © 2026 FuchsLabs – ScreenBuddy (C++)
 cmake_minimum_required(VERSION 3.24)
-project(ScreenBuddy VERSION 2.11.0 LANGUAGES CXX RC)
+project(ScreenBuddy VERSION 2.12.0 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,6 +26,7 @@ foreach(_lib mlspp mls_vectors hpke tls_syntax bytes)
 endforeach()
 
 set(CORE_SOURCES
+    src/render_hardware_hud.cpp
     src/game_detect.cpp src/game_logo.cpp src/game_intro.cpp src/render_game.cpp src/game_runtime.cpp src/ui_page_game_mode.cpp
     src/custom_view.cpp
     src/custom_view_editor.cpp
@@ -194,3 +195,13 @@ target_link_libraries(fl-game-tests PRIVATE flcore)
 
 # Silent test process, excluded from public release exports.
 add_executable(fl-game-dummy WIN32 tests/game_dummy.cpp)
+
+# Local Hardware HUD prototype: deterministic renderer and sensor-selection checks.
+add_executable(fl-hardware-hud-tests tests/hardware_hud_tests.cpp)
+target_link_libraries(fl-hardware-hud-tests PRIVATE flcore)
+target_link_options(fl-hardware-hud-tests PRIVATE /MANIFEST:NO)
+
+# Local sample-only device renderer/transport harness; never packaged as the application.
+add_executable(fl-crossview-test tools/crossview_test.cpp)
+target_link_libraries(fl-crossview-test PRIVATE flcore)
+target_link_options(fl-crossview-test PRIVATE /MANIFEST:NO)

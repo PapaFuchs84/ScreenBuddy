@@ -6,6 +6,8 @@
 #include <future>
 #include <winrt/Windows.Storage.h>
 #include "distribution.h"
+#include "perflog.h"
+#include "winsetup.h"
 #include "update.h"
 int wmain(int argc, wchar_t** argv) {
     if (argc < 3 || argc > 4) return 2;
@@ -16,6 +18,13 @@ int wmain(int argc, wchar_t** argv) {
         fl::update::UpdateChecker checker(report.parent_path() / L"must-not-write-update.json", {});
         auto info = checker.info();
         if (expected) {
+            // Both entry points must reject packaged elevation before inspecting or
+            // changing the supplied SID. No group membership is changed by this test.
+            if (fl::perflog::request_grant()) return 9;
+            if (fl::perflog::run_helper(L"S-1-5-21-1-2-3-1001") != ERROR_NOT_SUPPORTED) return 10;
+            info["fps_elevation_blocked"] = true;
+            if (fl::winsetup::vendor_disable_autostart()) return 11;
+            info["vendor_elevation_blocked"] = true;
             winrt::init_apartment();
             auto data = std::async(std::launch::async, [] { return fl::distribution::data_dir(); }).get();
             auto local = std::filesystem::path(winrt::Windows::Storage::ApplicationData::Current().LocalFolder().Path().c_str());

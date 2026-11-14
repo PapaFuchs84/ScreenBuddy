@@ -2,7 +2,9 @@
 
 [Deutsch](STORE-DISTRIBUTION.md)
 
-The Microsoft Store edition is being prepared as MSIX. Companion 1.1.0 is a separate release distributed as a signed sideload APK. The scripts neither upload to a store nor create an account.
+ScreenBuddy is available in the Microsoft Store as “ScreenBuddy by FuchsLabs” (Store ID `9P03461RLGG0`); the first certified edition was 2.11.0. Companion 1.1.0 is a separate release distributed only as a signed sideload APK; the APK 1.0.4 below is historical preparation. The scripts neither upload to a store nor create an account.
+
+**Historical, 10 November (2.11.0):** The complete original native runner passed **25/25 suites** (plus Game Mode 290 and custom-view 2,144 checks). WACK reported overall PASS and 13/13 required tests; one optional S-mode warning remains documented. Sanitized evidence: `packaging/windows/validation-summary-20261110.json`.
 
 ## Build and package Windows
 
@@ -14,13 +16,19 @@ After developer verification and name reservation, use the exact product identit
 ./packaging/windows/Build-Msix.ps1 -IdentityName FuchsLabs.ScreenBuddy.Test -Publisher 'CN=ScreenBuddy Development' -Executable ./cpp/build/screenbuddy-release/ScreenBuddy.exe
 ```
 
-The script checks EXE/package version agreement (default 2.9.6.0), stages only the two executables, logos and license notices, and validates with MakeAppx. Without a certificate the output is unsigned. Local installation requires a matching trusted test certificate; `-CertificateThumbprint` uses an existing certificate in the current user's certificate store. The script creates no certificate and installs no trust. Microsoft signs the final Store package. Do not submit the local test identity to the Store.
+The script checks EXE/package version agreement (derived from the EXE automatically; 2.11.0 uses 2.11.0.0), stages only the two executables, logos and license notices, and validates with MakeAppx. Without a certificate the output is unsigned. Local installation requires a matching trusted test certificate; `-CertificateThumbprint` uses an existing certificate in the current user's certificate store. The script creates no certificate and installs no trust. Microsoft signs the final Store package. Do not submit the local test identity to the Store.
 
 ## Runtime behavior
 
 Package identity is detected at runtime. Packaged apps bypass the standalone installer/uninstaller and GitHub update checks. The update button opens Microsoft's Store update page. Automatic updates and timing depend on Windows/Store settings. Configuration, pairing data, plugins and themes use the package family's `LocalState`. No private configuration, logs or signing keys are bundled.
 
 Startup uses an initially disabled StartupTask and a separate launcher passing `--autostart`. Users enable it in ScreenBuddy; Windows policy or manual disabling may prevent this. The standalone Registry startup entry is not modified. Both editions share the same instance mutex, so close the running edition before switching.
+
+### FPS permission in the Store package
+
+The Store package does not elevate for FPS setup and refuses the `--grant-perflog` helper. “Check FPS permission” explains the manual path: an administrator adds the Windows user to the “Performance Log Users” group; then sign out and in once. Existing ETW permissions and HWiNFO FPS remain usable. The manifest does not request the additional `allowElevation` capability.
+
+The Store package also does not elevate to disable vendor-app autostart. That button is disabled; the app directs users to Windows Task Scheduler and an administrator if needed. Stopping a running vendor process with existing user privileges remains available.
 
 ## Import an existing installation
 
@@ -33,7 +41,9 @@ Close both editions. Find the installed package family using `Get-AppxPackage`. 
 
 Launching may already have created `config.toml`; back it up and move it aside before import. Check paths, pairing and integrations afterwards. To return to standalone, close the Store edition and launch the original installation. Its files remain unchanged.
 
-## Companion APK
+## Companion APK (historical preparation from 1 November)
+
+Use the [current releases](https://github.com/PapaFuchs84/ScreenBuddy/releases) and [Companion guide](https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/COMPANION.en.md) for current downloads and optional automation from 1.1.0. The build details below record the earlier 1.0.4 preparation; they do not recommend installing an older APK over a newer one.
 
 Use JDK 21, Android SDK 36, AGP 8.10.1 and Gradle 8.11.1. Application ID is `de.fuchslabs.display`, minSdk 26, targetSdk 36, version 1.1.0 / code 9. Setup uses insets for system bars, cutouts and the keyboard. Android 16 large-screen behavior can override orientation preferences; test rendering and touch on tablets/TVs. The new automatic mode defaults to off; permissions and test limits are in the [Companion guide](COMPANION.en.md#automatic-mode-companion-110).
 
@@ -66,10 +76,34 @@ The second command requires Windows developer mode to already be enabled. It use
 
 ## Nach Kontoaktivierung / After account activation
 
-Copy `packaging/windows/store-identity.example.json` to a local JSON file, replace all three fields with the reserved product identity, then run:
+Copy `packaging/windows/store-identity.example.json` to a local JSON file, replace all identity fields with the reserved product identity, then run:
 
 ```powershell
 ./packaging/windows/Prepare-Store.ps1 -IdentityFile ./store-identity.json -BuildDirectory ./cpp/build/store
 ```
 
-Placeholders and known local-test identities are rejected. The command creates the submission MSIX, listing draft and SHA-256, without uploading. Complete identity verification, product reservation, public privacy/support URLs, rating, hardware acceptance and Microsoft certification before publication.
+Placeholders and known local-test identities are rejected. The command creates the submission MSIX, listing draft, screenshots with provenance manifest, ListingAssets and SHA-256, without uploading. The checksum file names only the MSIX just built; older MSIX files left in the output directory are not part of this submission. Existing destination directories named `Screenshots` or `ListingAssets` are rejected before building to prevent merging obsolete or private images; use a fresh directory via `-OutputDirectory`. Four current DE/EN sample images in `Screenshots/` use the actual native Page/TreeCanvas renderer under a temporary developer package identity (1600 × 1200), with visual/language review and provenance. They show Game Mode and the editor with sample data, not desktop captures or device/account acceptance. Complete identity verification, product reservation, public privacy/support URLs, rating, hardware acceptance and Microsoft certification before publication.
+
+## Account status on 9 November 2026
+
+Personal Microsoft account sign-in works. After selecting Individual developer, the portal blocks setup because the account is disabled and directs activation requests to `reportap@microsoft.com`. No new developer account or product reservation was created and no official identity was obtained. The local email draft `packaging/windows/ACCOUNT-REACTIVATION-DRAFT.txt` has not been sent.
+
+## Current validation on 9 November 2026
+
+The current Windows x64 Release build and subsequent UI rebuild passed. Local MSIX validation with a test identity passed MakeAppx, startup enable/restore, import WhatIf/overwrite protection and a synthetic update from 2.11.0.0 to 2.11.1.0 retaining LocalState; the test package was removed. The packaged probe confirms both FPS and vendor-autostart elevation blocks without changing Windows groups or tasks. Evidence: `cpp/build/msix-checks-20261109/results.json`, `before-update.json`, `after-update.json`. All 25 native release suites were attempted using continuation logs: 23 passed. Layout UI reported 1,864 passing checks and ten golden mismatches. A comparison using unchanged production-source variants from 7b8d0c1 reproduced all ten mismatches; all 77 rendered PNG files were SHA-256 byte-identical to the Store build. The baseline comparison also had six additional focus/keyboard failures under the active desktop (1,858 passes / 16 failures). The ten golden mismatches therefore predate these Store changes; the suite remains failing and reference images have not been changed. Evidence: `cpp/build/layout-base-audit/layout-base-result.txt` and `comparison.json`. Builtin snapshots exited 2 because sandbox DirectWrite cannot see the installed per-user Roboto font (a documented test-environment condition); no product/font change was made. Additional passes: core checks (3,556), custom views (2,144), Companion integration (39) and two installer-preservation cases. Interactive WACK validation was deferred while the desktop was in use. The initial native-window capture attempt failed without saving an image. Four current DE/EN samples were then generated with the actual native renderer under a developer package and visually checked; manifest and captions distinguish these UI samples from desktop captures and hardware evidence. The separate Game Mode suite initially failed on a hardcoded test-build path. After correcting that fixture, all 290 checks passed (`cpp/build/game-tests-20261109-rerun.txt`); no production Game Mode code was changed. This does not replace signed Store servicing, physical acceptance or Microsoft certification.
+
+## Current account and public pages on 10 November 2026
+
+Partner Center now shows the Windows developer program as registered/active; the owner-selected Store title `ScreenBuddy by FuchsLabs` is reserved (Store ID `9P03461RLGG0`); exact official values are recorded in `packaging/windows/STORE-LISTING.md`. The disabled-account observation from 9 November is historical. The bilingual app-specific [privacy](https://fuchslabs.duckdns.org/screenbuddy/privacy/) and [support](https://fuchslabs.duckdns.org/screenbuddy/support/) pages are public: HTTPS 200 and exact SHA-256 matches to reviewed files were confirmed on 10 November (`packaging/windows/website-pages/deployment-verification.json`). The packaged app provides matching Help & privacy buttons. Actual agreement, IARC and certification steps must be completed in Partner Center; prepared form data/reviewer notes are in `packaging/windows/STORE-FORMS-DRAFT.md` and `CERTIFICATION-NOTES.md`.
+
+`DisplayName` in the identity file must match the reserved Store title exactly (`ScreenBuddy by FuchsLabs`). `PublisherDisplayName` remains the exact Microsoft value `Herbst`. Older identity files without `DisplayName` retain `ScreenBuddy` for legacy local validation; set this field explicitly for the current submission. The build script XML-escapes the title into product properties, app display name and StartupTask.
+
+## Official package and WACK on 10 November
+
+The official `ScreenBuddy-2.11.0.0-x64.msix` has SHA-256 `d050177351a490e56d84ff4b61235466e7ba1bf111d2f2e3774a046165d7f6f7` and contains the verified Windows executable `b78e2dc5…`. Package fields match the reserved identity and title “ScreenBuddy by FuchsLabs”; Microsoft signs during Store certification. WACK actually ran under this official developer-package identity: overall PASS, no partial run, all 13 required tests passed. Ten optional tests passed; Blocked executables reported process-launch/CLI-name references. Microsoft describes this Desktop Bridge test as optional Windows S-mode information rather than a Store-onboarding criterion. Neither 24/24 nor full S-mode support is claimed. Sanitized evidence: `cpp/build/wack-official-20261110/sanitized-summary.json`. Raw XML containing system details stays local. The installed app was restarted with `--autostart` after manual Quit and verified running; the artificial developer test package was removed. No certificate trust or user configuration was changed.
+
+[Microsoft: Desktop Bridge required/optional tests](https://learn.microsoft.com/en-us/windows/uwp/debug-test-perf/windows-desktop-bridge-app-tests).
+
+## Portal state on 11 November 2026
+
+The active draft is `1152921505702369346` for Store ID `9P03461RLGG0`. Microsoft Developer Agreement 8.11 was accepted after explicit owner approval and verified in the portal. Properties is Complete: Utilities + tools, no misleading subcategory and no MR/OneDrive-backup/game-recording/alternate-drive declarations. Both app pages now include the approved Companion 1.1 automation/permission disclosures, with deployment and HTTPS hashes verified. Pricing is Complete at 0 EUR. Listings, live IARC and package upload are still being handled in the portal. Successful upload, certification submission or public Store publication will be reported only after the portal confirms them.

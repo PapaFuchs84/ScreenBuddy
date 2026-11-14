@@ -52,6 +52,83 @@ class ProbePolicyTest {
         assertEquals(false, p.onProbe(false, mdnsReliable = false))
     }
 
+    @Test fun mdnsLossOfPresentPcOnlyRequestsProbe() {
+        val p = ProbePolicy()
+        p.onMdns(true)
+        assertFalse(p.lossNeedsProbe(true))
+        p.onMdns(false)
+        assertTrue(p.lossNeedsProbe(true))
+        assertFalse(p.lossNeedsProbe(false)) // nothing to close while not present
+        assertTrue(p.shouldProbe(true))
+    }
+
+    @Test fun reachablePcSurvivesMdnsLoss() {
+        val p = ProbePolicy()
+        val presence = StandbyPresence()
+        assertEquals(true, p.onProbe(true))
+        presence.update(true, 0L)
+        p.onMdns(false) // discovery failed or announcement lost
+        assertTrue(p.lossNeedsProbe(presence.present))
+        assertEquals(true, p.onProbe(true))
+        assertFalse(p.needsQuickRetry(presence.present))
+        assertNull(presence.missingSinceMs) // no closing countdown was started
+    }
+
+    @Test fun countdownStartsOnlyAfterFailedProbeThreshold() {
+        val p = ProbePolicy(3)
+        val presence = StandbyPresence()
+        presence.update(true, 0L)
+        p.onMdns(false)
+        assertFalse(p.needsQuickRetry(true)) // no failed probe yet
+        assertNull(p.onProbe(false))
+        assertTrue(p.needsQuickRetry(true))
+        assertNull(p.onProbe(false))
+        assertTrue(p.needsQuickRetry(true))
+        assertNull(presence.missingSinceMs)
+        assertEquals(false, p.onProbe(false))
+        assertFalse(p.needsQuickRetry(true)) // threshold reached: the grace countdown takes over
+        presence.update(false, 9_000L)
+        assertEquals(20_000L, presence.remainingGraceMs(9_000L))
+    }
+
+    @Test fun quickRetryOnlyForPresentUnvouchedPc() {
+        val p = ProbePolicy()
+        assertNull(p.onProbe(false))
+        assertFalse(p.needsQuickRetry(false)) // absent PC: the periodic probe is enough
+        assertTrue(p.needsQuickRetry(true))
+        p.onMdns(true, mdnsReliable = false) // screen off: possibly stale, clears nothing
+        assertFalse(p.needsQuickRetry(true)) // would vouch if it were reliable
+        assertTrue(p.needsQuickRetry(true, mdnsReliable = false))
+        p.onMdns(true) // reliable sighting vouches and clears the failure
+        assertFalse(p.needsQuickRetry(true))
+        assertFalse(p.needsQuickRetry(true, mdnsReliable = false))
+    }
+
+    @Test fun mdnsSightingResetsEarlierProbeFailure() {
+        val p = ProbePolicy()
+        assertNull(p.onProbe(false)) // failed probe
+        p.onMdns(true)               // mDNS positive, no probe runs meanwhile
+        p.onMdns(false)              // mDNS loss
+        assertNull(p.onProbe(false)) // first unvouched failure again: must NOT reach the threshold
+        assertEquals(false, p.onProbe(false))
+    }
+
+    @Test fun unreliableMdnsSightingDoesNotResetFailures() {
+        val p = ProbePolicy()
+        assertNull(p.onProbe(false, mdnsReliable = false))
+        p.onMdns(true, mdnsReliable = false) // screen off: stale list
+        assertEquals(false, p.onProbe(false, mdnsReliable = false))
+    }
+
+    @Test fun failuresWhileMdnsVouchesDoNotShortenThreshold() {
+        val p = ProbePolicy()
+        p.onMdns(true)
+        repeat(5) { assertNull(p.onProbe(false)) }
+        p.onMdns(false)
+        assertNull(p.onProbe(false))
+        assertEquals(false, p.onProbe(false))
+    }
+
     @Test fun resetClearsState() {
         val p = ProbePolicy()
         p.onMdns(true)

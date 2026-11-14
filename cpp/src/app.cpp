@@ -1,4 +1,5 @@
 #include "render_game.h"
+#include "render_hardware_hud.h"
 // © 2026 FuchsLabs
 #include "app.h"
 #include "custom_view.h"
@@ -270,6 +271,44 @@ static bool b(const ojson& j, const char* k, bool def = false) {
 }
 static std::string s(const ojson& j, const char* k, const char* def = "") {
     return j.contains(k) && j[k].is_string() ? j[k].get<std::string>() : std::string(def);
+}
+
+static int animation_fps(const ojson& cfg) {
+    return std::clamp(cfg["display"].value("animation_fps", 30), 5, 60);
+}
+
+static void configure_animation_budget(plugins::schedule::Budget& budget, int fps) {
+    using namespace plugins::schedule;
+    // Serial reveal/cut decisions retain their measured transfer budget.
+    if (budget.shape != Shape::fade || budget.steps < 2 || budget.step_seconds <= 0) return;
+    const double duration = budget.steps * budget.step_seconds;
+    budget.steps = std::clamp(int(std::lround(duration * fps)), 2, 36);
+    budget.step_seconds = duration / budget.steps;
+}
+
+void App::ViewState::track_ai_animation(const ai::Snapshot& snapshot, const std::string& provider,
+                                       double tick, bool transitions) {
+    uint64_t fingerprint = 14695981039346656037ULL;
+    bool selected = false, active = false;
+    const auto byte = [&](uint8_t value) { fingerprint = (fingerprint ^ value) * 1099511628211ULL; };
+    const auto text = [&](std::string_view value) { for (const unsigned char value_byte : value) byte(value_byte); byte(255); };
+    const auto inspect = [&](const ai::Session& session) {
+        if (!provider.empty() && session.provider != provider) return;
+        selected = true;
+        text(session.provider); text(session.id); text(session.state);
+        for (int shift = 0; shift < 64; shift += 8) byte(uint8_t(session.revision >> shift));
+        active = active || session.state == "working" || session.state == "waiting";
+    };
+    for (const auto& session : snapshot.sessions) inspect(session);
+    for (const auto& [key, session] : snapshot.representatives) inspect(session);
+    if (!selected) fingerprint = 0;
+    auto& motion = ai_motion[provider];
+    // Removing an older idle row may leave the maximum visible revision unchanged.
+    if (motion.first != fingerprint) {
+        motion.first = fingerprint;
+        motion.second = tick + .7;
+    }
+    animating = animating || active || (transitions && tick < motion.second);
 }
 
 App::App(ojson cfg, std::filesystem::path cfg_path, std::unique_ptr<Output> out, std::optional<std::filesystem::path> preview_dir, bool show_settings_on_start)
@@ -621,6 +660,7 @@ bool App::touch_enabled() const {
 }
 
 App::~App() {
+    serial_pump_.reset();   // its worker uses App state; stop it before anything else goes away
     { std::lock_guard lock(stop_threads_mu_); stop_threads_.clear(); }
     if (update_) update_->stop();
     if (ha_) ha_->stop();
@@ -895,13 +935,13 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
     for (auto& key : (forced_custom.empty()?active_pages(companion,pages_override):std::vector<std::string>{forced_custom})) {
         if(key=="ai") {
             auto snapshot=ai_->model().snapshot(std::time(nullptr));
-            if(view && std::count(view->current.begin(),view->current.end(),"ai")) {
-                view->animating=true;view->next_deadline=std::min(view->next_deadline,tick+.1);
-            }
             auto selected=builtin_layouts_->get(key,device);
             auto arrangement=selected.overlay;
-            out.push_back({key,1,[snapshot,arrangement](int,RendererSet& rs){return arrangement?
-                rs.ai.render_arranged(snapshot,*arrangement,mono(),std::time(nullptr)).image:rs.ai.render(snapshot,mono(),std::time(nullptr));}});
+            out.push_back({key,1,[this,snapshot,arrangement,view](int,RendererSet& rs){
+                if (view && on_display_thread()) view->track_ai_animation(snapshot, "", mono(), true);
+                return arrangement ? rs.ai.render_arranged(snapshot,*arrangement,mono(),std::time(nullptr)).image
+                                   : rs.ai.render(snapshot,mono(),std::time(nullptr));
+            }});
             continue;
         }
         if(view && builtin::find(key)) {
@@ -961,19 +1001,26 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         plugins::DrawOut drawn;
                         if(cycling) {
                             using namespace plugins::schedule;
-                            auto& state=view->cycles[cycle_key];
-                            if(view->cycle_generations[cycle_key]!=std::pair{installed->generation,installed->layout_revision}) {reset(state,true,false);view->fade_caches.erase(cycle_key);}
-                            view->cycle_generations[cycle_key]={installed->generation,installed->layout_revision};
+                            // Cached redraws also run for the settings preview (other thread):
+                            // they draw from a fresh local cycle and never touch live scheduling.
+                            const bool live_state=on_display_thread();
+                            std::map<std::string,ZoneState> preview_state;
+                            auto& state=live_state?view->cycles[cycle_key]:preview_state;
+                            if(live_state) {
+                                if(view->cycle_generations[cycle_key]!=std::pair{installed->generation,installed->layout_revision}) {reset(state,true,false);view->fade_caches.erase(cycle_key);}
+                                view->cycle_generations[cycle_key]={installed->generation,installed->layout_revision};
+                            }
                             ZoneInput input{tile.zone.id,Mode::first_available,cycle->transition=="fade",{}};
                             for(const auto& widget:widgets) {auto found=std::find_if(page.widgets.begin(),page.widgets.end(),[&](const auto& w){return w.id==widget.id;});input.entries.push_back({widget.id,widget.seconds,found!=page.widgets.end() && !found->missing});}
                             std::vector<std::string> requests;
-                            if(std::find(view->frame_next_requests.begin(),view->frame_next_requests.end(),installed->manifest.id+"/"+cycle_key)!=view->frame_next_requests.end())requests.push_back(tile.zone.id);
+                            if(live_state && std::find(view->frame_next_requests.begin(),view->frame_next_requests.end(),installed->manifest.id+"/"+cycle_key)!=view->frame_next_requests.end())requests.push_back(tile.zone.id);
                             auto kind=phone?OutputKind::companion:!out_?OutputKind::none:out_->is_monitor()?OutputKind::monitor:OutputKind::serial;
                             auto transfer=phone || !out_?TransferStats{}:out_->transfer();
-                            auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,view->render_ms.value_or(0),h,w,companion_?companion_->client_ids().size():0);
+                            auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,live_state?view->render_ms.value_or(0):0,h,w,companion_?companion_->client_ids().size():0); configure_animation_budget(budget, animation_fps(cfg_));
                             auto choices=advance({input},state,tick,budget,requests);
-                            view->next_deadline=std::min(view->next_deadline,choices.next_deadline);view->animating=view->animating || choices.animating;
-                            auto& cache=view->fade_caches[cycle_key];if(!cache)cache=std::make_shared<plugins::FadeCache>();
+                            if(live_state) {view->next_deadline=std::min(view->next_deadline,choices.next_deadline);view->animating=view->animating || choices.animating;}
+                            std::shared_ptr<plugins::FadeCache> preview_cache;
+                            auto& cache=live_state?view->fade_caches[cycle_key]:preview_cache;if(!cache)cache=std::make_shared<plugins::FadeCache>();
                             std::map<std::string,std::shared_ptr<plugins::FadeCache>> caches{{manifest.id,cache}};
                             drawn=plugins::draw_choices_out(page,w,h,choices.zones,caches);
                             // An explicit next override covers the same published zone, including transition guards.
@@ -996,7 +1043,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         const auto now=std::time(nullptr);const auto snap=ai_->model().snapshot(now);
                         auto overlay=custom::single_builtin(tile,layout);
                         if(!overlay || !ai::tile_present(snap,tile.block) || !custom::visible(tile,ai::tile_values(snap,now))) return {};
-                        if(view) {view->animating=true;view->next_deadline=std::min(view->next_deadline,tick+.1);}
+                        if (view && on_display_thread() && (tile.block == "ai.claude" || tile.block == "ai.codex"))
+                            view->track_ai_animation(snap, tile.block.substr(3), tick, false);
                         return custom::TileDraw{rs.ai.render_arranged(snap,*overlay,tick,now).image};
                     }
                     if(tile.source=="homeassistant" && ha_ && ha_->has_data()) {
@@ -1034,6 +1082,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                         auto snap=spotify_->snapshot();
                         if(!custom::visible(tile,{{"playing",snap.playing},{"title",snap.title},{"artist",snap.artist}})) return {};
                         std::vector<float> levels;bool simulated=false;
+                        if (view && on_display_thread() && snap.playing && (tile.block == "spotify.pegel" || tile.block == "spotify.fortschritt"))
+                            view->animating = true;
                         if(tile.block=="spotify.pegel" && meter_ && snap.playing) {
                             meter_->touch(audio::amp_seed(snap.title,snap.artist));levels=meter_->levels();simulated=meter_->simulated();
                         }
@@ -1124,9 +1174,14 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             if (view && manifest.layout && std::any_of(manifest.layout->zones.begin(),manifest.layout->zones.end(),[](const auto& z){return z.cycle.has_value();})) {
                 entry.prepare = [this,view,tick,phone,page,manifest,generation=installed->generation,layout_revision=installed->layout_revision,tile_width=r.width,tile_height=r.height](PageEntry& entry) {
                     using namespace plugins::schedule;
-                    auto& state=view->cycles[manifest.id];
-                    if (view->cycle_generations[manifest.id]!=std::pair{generation,layout_revision}) { plugins::schedule::reset(state,true,false); view->fade_caches.erase(manifest.id); }
-                    view->cycle_generations[manifest.id]={generation,layout_revision};
+                    // Settings-preview redraws run on another thread: fresh local cycle, no live scheduling.
+                    const bool live_state=on_display_thread();
+                    std::map<std::string,ZoneState> preview_state;
+                    auto& state=live_state?view->cycles[manifest.id]:preview_state;
+                    if (live_state) {
+                        if (view->cycle_generations[manifest.id]!=std::pair{generation,layout_revision}) { plugins::schedule::reset(state,true,false); view->fade_caches.erase(manifest.id); }
+                        view->cycle_generations[manifest.id]={generation,layout_revision};
+                    }
                     std::vector<ZoneInput> inputs;
                     for (const auto& z:manifest.layout->zones) if (z.cycle) {
                         ZoneInput input{z.id,z.cycle->mode=="rotate" ? Mode::rotate : Mode::first_available,z.cycle->transition=="fade",{}};
@@ -1147,18 +1202,21 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
                     for(const auto& zone:geometry.zones)
                         if(std::any_of(inputs.begin(),inputs.end(),[&](const auto& input){return input.zone==zone.id;}))
                             zone_rows=std::max(zone_rows,int(std::ceil(zone.area.height*scale)));
-                    auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,view->render_ms.value_or(0),zone_rows,view->size.first,
-                        companion_ ? companion_->client_ids().size() : 0);
+                    auto budget=budget_for(kind,transfer.bytes_per_second,transfer.last_seconds,live_state?view->render_ms.value_or(0):0,zone_rows,live_state?view->size.first:tile_width,
+                        companion_ ? companion_->client_ids().size() : 0); configure_animation_budget(budget, animation_fps(cfg_));
                     std::vector<std::string> requests;
                     const auto prefix=manifest.id+"/";
-                    for(const auto& request:view->frame_next_requests)
+                    if (live_state) for(const auto& request:view->frame_next_requests)
                         if(request.starts_with(prefix)) requests.push_back(request.substr(prefix.size()));
                     auto result=advance(inputs,state,tick,budget,requests);
-                    if (std::any_of(state.begin(),state.end(),[&](const auto& pair){return pair.second.fade && pair.second.fade->start==tick;}))
-                        view->fade_caches.erase(manifest.id);
-                    view->next_deadline=std::min(view->next_deadline,result.next_deadline);
-                    view->animating=view->animating || result.animating;
-                    auto& cache=view->fade_caches[manifest.id]; if (!cache) cache=std::make_shared<plugins::FadeCache>();
+                    std::shared_ptr<plugins::FadeCache> preview_cache;
+                    if (live_state) {
+                        if (std::any_of(state.begin(),state.end(),[&](const auto& pair){return pair.second.fade && pair.second.fade->start==tick;}))
+                            view->fade_caches.erase(manifest.id);
+                        view->next_deadline=std::min(view->next_deadline,result.next_deadline);
+                        view->animating=view->animating || result.animating;
+                    }
+                    auto& cache=live_state?view->fade_caches[manifest.id]:preview_cache; if (!cache) cache=std::make_shared<plugins::FadeCache>();
                     std::map<std::string,std::shared_ptr<plugins::FadeCache>> caches{{manifest.id,cache}};
                     entry.plugin_draw=[page,choices=result.zones,caches,generation](RendererSet& rs) mutable {
                         auto out=plugins::draw_choices_out(page,rs.width,rs.height,choices,caches);
@@ -1170,6 +1228,13 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             }
             out.push_back(std::move(entry));
         } else if (key == "system") {
+            if (b(cfg_["system"], "hardware_hud")) {
+                // HUD fills the system page; ordinary card hit targets do not apply.
+                out.push_back({key, 1, [this](int, RendererSet& rs) {
+                    return render::hardware_hud(rs.width, rs.height, sys_->snapshot(), mono(), 8, render::hud_palette(cfg_["system"], render::theme()));
+                }});
+                continue;
+            }
             PageEntry pe{key, 1, [this](int, RendererSet& rs) { return rs.system.render(sys_->snapshot()); }};
             // Tippen auf RAM / Datenträger / Netzwerk öffnet das passende Windows-Werkzeug bzw. den Geschwindigkeitstest
             for (int zone : {render::SysRenderer::ZONE_RAM, render::SysRenderer::ZONE_DISK, render::SysRenderer::ZONE_NET})
@@ -1280,7 +1345,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
         } else if (key == "spotify") {
             spotify::Snapshot snap = spotify_->snapshot();
             const std::string amp_color = cfg_["spotify"].value("amp_color", std::string("level"));
-            PageEntry pe{key, 1, [this, snap, amp_color](int, RendererSet& rs) {
+            PageEntry pe{key, 1, [this, snap, amp_color, view](int, RendererSet& rs) {
+                if (view && snap.playing && on_display_thread()) view->animating = true;
                 std::vector<float> lv;
                 bool sim = false;
                 // Erst beim Zeichnen einer sichtbaren Kachel aktivieren, nicht beim Auflisten aller Seiten.
@@ -1309,7 +1375,8 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             auto selected=builtin_layouts_->get(key,device);
             auto arrangement=selected.overlay;
             if(arrangement && r.spotify.uses_arrangement(*arrangement)) {
-                auto draw=[this,snap,amp_color,arrangement](RendererSet& rs) {
+                auto draw=[this,snap,amp_color,arrangement,view](RendererSet& rs) {
+                    if (view && snap.playing && on_display_thread()) view->animating = true;
                     std::vector<float> levels;bool simulated=false;
                     if(meter_ && snap.playing) {meter_->touch(audio::amp_seed(snap.title,snap.artist));levels=meter_->levels();simulated=meter_->simulated();}
                     const auto mode=audio::parse_amp_color(amp_color);
@@ -1397,7 +1464,7 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
                 keys.push_back(p.key);
                 touch::Tile tile{boxes[k], p.key == "rss", p.targets ? p.targets(idx, renderers_for(boxes[k].w, boxes[k].h)) : touch::Rows{}};
                 tile.ha = p.key == "homeassistant";
-                tile.sys = p.key == "system";
+                tile.sys = p.key == "system" && !b(cfg_["system"], "hardware_hud");
                 tile.spotify = p.key == "spotify";
                 tile.streaming = p.key == "streaming";
                 tile.cells = p.actions;
@@ -1447,7 +1514,7 @@ bool App::connect_display() {
     return true;
 }
 
-void App::output(const Image& frame, bool transition, const ojson& navigation) {
+void App::output(const Image& frame, bool transition, const ojson& navigation, std::function<void()> done) {
     {
         std::lock_guard lk(mu_);
         last_frame_ = frame;
@@ -1458,14 +1525,32 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
         std::string png = encode_png(frame);
         f.write(png.data(), (std::streamsize)png.size());
     }
-    if (!out_ || !display_ok()) return;
+    if (!out_ || !display_ok()) { if (done) done(); return; }
     // Teil-Updates übertragen nur geänderte Bänder; ein verlorenes Datenpaket bliebe sonst als Streifen stehen.
     // Deshalb bei jedem Seitenwechsel und alle 5 Minuten ein Vollbild.
     double now = mono();
-    if (transition || now - last_full_ > 300) {
-        out_->invalidate();
-        last_full_ = now;
+    const bool full = transition || now - last_full_ > 300;
+    if (full) last_full_ = now;
+    // Decided on the display thread; the transfer worker must not read view state.
+    const bool playback = meter_ && spotify_ && spotify_->snapshot().playing &&
+        (std::count(primary_view_.current.begin(), primary_view_.current.end(), "spotify") ||
+         (meter_->active() && std::any_of(primary_view_.current.begin(),primary_view_.current.end(),[](const auto& key){return key.starts_with("custom:");})));
+    if (serial_output()) {
+        // USB transfers take ~0.5 s per animated frame. Hand the newest frame
+        // to the worker instead of stalling Companion rendering in this loop.
+        if (!serial_pump_) serial_pump_ = std::make_unique<FramePump>([this](const FramePump::Job& job) { transfer(job); });
+        serial_pump_->submit({frame, full, playback, std::move(done)});
+        return;
     }
+    transfer({frame, full, playback, std::move(done)});
+}
+
+void App::transfer(const FramePump::Job& job) {
+    struct Done { const std::function<void()>& f; ~Done() { if (f) f(); } } done{job.done};
+    // After a failed transfer the display loop owns reconnecting; a frame queued
+    // before the failure must not reopen the port behind its back.
+    if (!display_ok()) return;
+    if (job.full) out_->invalidate();
     try {
         // A slow serial transfer still displays this playback page. Keep the
         // meter alive until it completes, including exception cleanup.
@@ -1473,11 +1558,8 @@ void App::output(const Image& frame, bool transition, const ojson& navigation) {
             audio::LevelMeter* meter;
             explicit PlaybackTransfer(audio::LevelMeter* m) : meter(m) { if (meter) meter->visible_transfer(true); }
             ~PlaybackTransfer() { if (meter) { meter->touch(); meter->visible_transfer(false); } }
-        } playback_transfer(meter_ && spotify_ && spotify_->snapshot().playing &&
-                            (std::count(primary_view_.current.begin(), primary_view_.current.end(), "spotify") ||
-                             (meter_->active() && std::any_of(primary_view_.current.begin(),primary_view_.current.end(),[](const auto& key){return key.starts_with("custom:");})))
-                            ? meter_.get() : nullptr);
-        int rows = out_->show(frame);
+        } playback_transfer(job.playback ? meter_.get() : nullptr);
+        int rows = out_->show(job.frame);
         auto transfer = out_->transfer();
         LOGD("app", "%d Zeilen, %.0f ms, %.0f kB/s", rows, transfer.last_seconds*1000, transfer.bytes_per_second.value_or(0)/1000);
     } catch (const std::exception& e) {
@@ -1551,6 +1633,13 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                                 const std::vector<std::string>* pages_override, bool dirty, bool register_redraw, const std::string& id) {
     RenderOut out;
     const double now = mono();
+    const auto frame_interval = [&] {
+        const double desired = 1.0 / animation_fps(cfg_);
+        if (phone || !out_ || out_->is_monitor() || out_.get() == companion_) return desired;
+        // Serial writes are synchronous; pace native animation to the measured
+        // previous transfer plus a short controller idle period, not a fixed 1 s.
+        return std::max(desired, .05 + std::max(0.0, out_->transfer().last_seconds));
+    };
     auto profile = profile_for(phone, id);
     auto area = device::usable(size, profile);
     auto inset = profile.physical_rotates ? device::to_frame(profile.keepout_physical, profile.orientation) : profile.keepout_physical;
@@ -1580,6 +1669,10 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         if(resizing && !entering){view.game_intro.reset();view.cycles.clear();view.fade_caches.clear();}
         view.step.exchange(0);
         {std::lock_guard lock(view.next_mu);view.page_request.clear();view.frame_next_requests.clear();view.frame_next_requests.swap(view.next_requests);}
+        // Data notifications do not push an animating game view past the selected rate.
+        if(dirty && !changed && !resizing && view.animating && now<view.last_render+1.0/animation_fps(cfg_)) {
+            dirty=false;view.next_deadline=std::min(view.next_deadline,view.last_render+1.0/animation_fps(cfg_));
+        }
         if(!dirty && !changed && !resizing && now<view.next_deadline)return out;
         view.next_deadline=plugins::schedule::never;view.animating=false;
         std::lock_guard lock(render::mutex());
@@ -1589,25 +1682,36 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             auto drawn=draw(pages,{{0,0,area.w,area.h}},0,size,area);
             out.frame=std::move(drawn.frame);out.taps=std::move(drawn.taps);
             if(view.game_intro.active(now)) {auto content=view.game_intro.draw(content_frame(out.frame),game_snapshot.logo,game_snapshot.game->name,now);out.frame=device::compose_view(content,size,area,render::theme().bg);out.taps.clear();view.animating=true;}
-            view.next_deadline=std::min(view.next_deadline,now+(view.animating?.05:1.));
+            view.next_deadline=std::min(view.next_deadline,now+(view.animating?frame_interval():1.));
             view.current={key};view.size=size;view.area=area;out.skipped=false;out.switched=changed;
             out.navigation={{"index",0},{"total",1},{"visible",1},{"current",view.current},{"can_step",false},{"game_mode",true}};
-            view.previous_frame=out.frame;return out;
+            view.last_render=now;view.previous_frame=out.frame;return out;
         }
     }
     if(view.game_active){view.game_active=false;view.game_intro.reset();view.page=view.saved_page;view.switched=now-(view.game_entered-view.saved_switched);view.current.clear();dirty=true;}
     bool due = now - view.switched >= page_seconds;
     auto minute = clock_hhmm();
-    bool live = std::count(view.current.begin(), view.current.end(), "system") > 0;
+    // The animated HUD has its own per-output deadline. Leaving it in the
+    // unconditional live path would redraw slower outputs on every monitor wake.
+    bool live = std::count(view.current.begin(), view.current.end(), "system") > 0 &&
+                !b(cfg_["system"], "hardware_hud");
     live = live || std::count(view.current.begin(),view.current.end(),"ai") > 0;
     for(const auto& key:view.current) if(key.starts_with("custom:")) {
         if(auto doc=custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7))) for(const auto& tile:doc->effective(id).tiles) if(tile.source=="ai" || tile.source=="system") live=true;
     }
+    live = live && now - view.last_render >= .5;
     // Keep visible playback alive even when silent capture publishes no changes.
     // Otherwise the 3 s activity lease expires before the 4 s simulation delay.
-    live = live || (meter_ && spotify_ && spotify_->snapshot().playing &&
+    live = live || (now - view.last_render >= std::max(.1, 1.0 / animation_fps(cfg_)) && meter_ && spotify_ && spotify_->snapshot().playing &&
                     (std::count(view.current.begin(), view.current.end(), "spotify") > 0 ||
                      (meter_->active() && std::any_of(view.current.begin(),view.current.end(),[](const auto& key){return key.starts_with("custom:");}))));
+    // Data notifications (e.g. audio levels) mark everything dirty. An animating
+    // view still renders at most at the selected rate; navigation and resizes
+    // are not delayed.
+    if (dirty && view.animating && view.step == 0 && view.size == size && view.area == area) {
+        const double next_frame = view.last_render + 1.0 / animation_fps(cfg_);
+        if (now < next_frame) { dirty = false; view.next_deadline = std::min(view.next_deadline, next_frame); }
+    }
     if (!plugins::schedule::should_render(dirty,due,live,view.step,view.size!=size || view.area!=area,view.minute!=minute,now,view.next_deadline)) return out;
     if (view.size!=size || view.area!=area) { for (auto& [plugin,zones]:view.cycles) plugins::schedule::reset(zones,false,true); view.fade_caches.clear(); }
     { std::lock_guard lk(view.next_mu); view.frame_next_requests.clear(); view.frame_next_requests.swap(view.next_requests); }
@@ -1625,12 +1729,19 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         std::lock_guard rl(render::mutex());
         // Bound cached renderer sets when a resizable window reports many intermediate sizes.
         if (sets_.size() > 16) sets_.clear();
-        auto boxes = render::tile_layout(area.w, area.h);
+        // A dedicated HUD system page uses the full width instead of automatic
+        // side-by-side page cards, including on very wide case displays.
+        const auto layout = [&](int count = 99) {
+            return b(cfg_["system"], "hardware_hud") && active.size() == 1 && active.front() == "system"
+                ? std::vector<render::Box>{{0, 0, area.w, area.h}}
+                : render::tile_layout(area.w, area.h, count);
+        };
+        auto boxes = layout();
         auto pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone, phone ? (id.empty()?"network":id) : primary_layout_id());
         int total = 0;
         for (auto& p : pages) total += p.n;
         if (0 < total && total < (int)boxes.size()) {
-            boxes = render::tile_layout(area.w, area.h, total);
+            boxes = layout(total);
             pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone, phone ? (id.empty()?"network":id) : primary_layout_id());
             total = 0; for (auto& p : pages) total += p.n;
         }
@@ -1676,10 +1787,21 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             out.navigation = {{"index", start}, {"total", total}, {"visible", cols}, {"current", keys}, {"can_step", total > cols}};
         }
     }
+    const bool hud_visible = b(cfg_["system"], "hardware_hud") &&
+        std::count(view.current.begin(), view.current.end(), "system") > 0;
+    view.animating = view.animating || hud_visible;
+    if (view.animating) {
+        const bool fast_output = phone || !out_ || out_->is_monitor();
+        if (fast_output) view.next_deadline = std::min(view.next_deadline, now + frame_interval());
+        else if (hud_visible || view.next_deadline == plugins::schedule::never)
+            view.next_deadline = std::min(view.next_deadline, now + frame_interval());
+        // Serial plugin reveal/cut steps retain their measured transfer budget.
+    }
+    view.last_render = now;
     if (out.switched) view.switched = mono();
     view.render_ms = ewma(view.render_ms,(mono()-now)*1000);
     view.previous_frame=out.frame;
-    LOGD("app", "Renderzeit %.1f ms",view.render_ms.value_or(0));
+    LOGD("app", "Renderzeit %.1f ms (%s, %dx%d)", view.render_ms.value_or(0), phone ? "Companion" : "Primary", size.first, size.second);
     return out;
 }
 
@@ -1690,6 +1812,16 @@ void App::render_view(bool secondary, bool dirty) {
     auto& settings = phone ? cfg_["companion"] : dp_;
     RenderOut r = render_core(view, size, settings.value("page_seconds", 15), phone, nullptr, dirty, !secondary);
     if (r.skipped) return;
+    if (!secondary && serial_output()) {
+        // Touch targets follow the frame the USB worker actually transferred;
+        // a replaced (never sent) frame never publishes its targets.
+        auto taps = std::make_shared<std::vector<touch::Tile>>(std::move(r.taps));
+        output(r.frame, r.switched, r.navigation, [this, taps, area = r.area] {
+            std::lock_guard taps_lock(tap_mu_);
+            touch::stabilize_plugins(*taps,tap_tiles_,mono()); tap_tiles_ = std::move(*taps); tap_area_ = area;
+        });
+        return;
+    }
     std::lock_guard lk(tap_mu_);
     if (secondary) {
         // Snapshot and its touch targets are published together.
@@ -1733,7 +1865,7 @@ void App::render_devices(bool dirty) {
         if (r.skipped) { first = false; continue; }
         {
             std::lock_guard lk(dev_mu_);
-            companion_->show_for(id, r.frame, r.navigation);
+            companion_->show_for(id, r.frame, r.navigation, d->view.animating ? animation_fps(cfg_) : 0);
             touch::stabilize_plugins(r.taps,d->taps,mono());
             d->frame = r.frame; d->area = r.area; d->taps = std::move(r.taps); d->navigation = r.navigation;
         }
@@ -1818,6 +1950,7 @@ void App::device_tap(const std::string& id, int x, int y, int w, int h) {
     mark_dirty();
 }
 void App::display_loop() {
+    display_thread_ = std::this_thread::get_id();
     double next_try = 0, companion_try = 0;
     if (out_) connect_display();
     double wait_deadline = plugins::schedule::never;
@@ -1864,7 +1997,22 @@ void App::display_loop() {
         { std::lock_guard lk(dev_mu_); for (const auto& [id,d]:devices_) if (companion_) { deadlines.push_back(d->view.next_deadline); animating=animating || d->view.animating; } }
         bool metering=meter_ && meter_->active() && (meter_->available() || meter_->simulated());
         auto wake=plugins::schedule::wake_at(mono(),deadlines,animating,metering);
-        for (int i=0;i<int(std::lround(wake.min_gap/.05)) && !stop_;++i) Sleep(50);
+        if (animating) {
+            // Animated views share the selected rate; static views retain
+            // their own polling cadence even when another output wakes early.
+            const double clock = mono();
+            double rest = std::min(wake.min_gap, .5 / animation_fps(cfg_));
+            for (const double deadline : deadlines)
+                if (deadline != plugins::schedule::never) rest = std::min(rest, std::max(.001, deadline - clock));
+            const double rest_until = clock + rest;
+            while (!stop_) {
+                const int remaining = int(std::ceil((rest_until - mono()) * 1000));
+                if (remaining <= 0) break;
+                Sleep(DWORD(std::min(50, remaining)));
+            }
+        } else {
+            for (int i=0;i<int(std::lround(wake.min_gap/.05)) && !stop_;++i) Sleep(50);
+        }
         wait_deadline=std::all_of(deadlines.begin(),deadlines.end(),[](double d){return d==plugins::schedule::never;})
             ? plugins::schedule::never : plugins::schedule::wake_at(mono(),deadlines,animating,metering).wait_until;
     }
@@ -2263,6 +2411,8 @@ void App::run() {
     }
     if (update_) update_->start();
     display_loop();
+    // Finish an in-flight USB transfer before services (meter) stop and before screen off/close.
+    serial_pump_.reset();
     plugin_worker.request_stop();
     if (plugin_worker.joinable()) plugin_worker.join();
     store_worker.request_stop();

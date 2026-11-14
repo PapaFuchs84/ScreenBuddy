@@ -1,0 +1,51 @@
+{
+  "verifiedAtUTC": "2026-11-10T20:13:55.070476+00:00",
+  "activeRelease": "/srv/fuchslabs/releases/20261109T155247Z",
+  "persistentSource": "/opt/fuchslabs/app/public/screenbuddy",
+  "routes": [
+    {
+      "url": "https://fuchslabs.duckdns.org/screenbuddy/privacy/",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "sha256": "c948b103bc8259dee107fccc574afcde5d80865e5710c92f6f0552b0e2582eca",
+      "matchesReviewedFile": true,
+      "bilingualSections": true,
+      "companion110AutomationDisclosure": true
+    },
+    {
+      "url": "https://fuchslabs.duckdns.org/screenbuddy/support/",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "sha256": "f20a1a23eb4ba2619db09a1f40ccb3599acf6a3a66fe5494deecdf5c4b0362e2",
+      "matchesReviewedFile": true,
+      "bilingualSections": true,
+      "companion110AutomationDisclosure": true
+    }
+  ],
+  "otherWebsiteFilesChanged": false,
+  "scope": "Only app privacy/support routes, reviewed Companion 1.1 automation/permissions amendment",
+  "explicitUserApproval": true,
+  "automaticReviewRejectionResolved": "Same reviewed helper transferred only after explicit destination/scope approval",
+  "backupDirectory": "/opt/fuchslabs/app-docs-backups/20261110-companion110-e25beecfeec04cfea3c7d27855fe14c8",
+  "previousVerifiedRevision": {
+    "verifiedAtUTC": "2026-11-10T15:10:46.044182+00:00",
+    "routes": [
+      {
+        "url": "https://fuchslabs.duckdns.org/screenbuddy/privacy/",
+        "httpStatus": 200,
+        "contentType": "text/html; charset=utf-8",
+        "sha256": "52e87fda868d9414b82724ede9663b45a78511d09d4bca0ee49d92c4788ba85c",
+        "matchesReviewedFile": true,
+        "bilingualSections": true
+      },
+      {
+        "url": "https://fuchslabs.duckdns.org/screenbuddy/support/",
+        "httpStatus": 200,
+        "contentType": "text/html; charset=utf-8",
+        "sha256": "3e5a69f9043aeb3d26942b3bcd77fe27f3835a745367c0d67fdcf8ed4f57bf40",
+        "matchesReviewedFile": true,
+        "bilingualSections": true
+      }
+    ]
+  }
+}

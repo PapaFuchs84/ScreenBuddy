@@ -5,12 +5,12 @@
  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
  IgnorableNamespaces="uap desktop rescap">
  <Identity Name="@IDENTITY@" Publisher="@PUBLISHER@" Version="@VERSION@" ProcessorArchitecture="x64" />
- <Properties><DisplayName>ScreenBuddy</DisplayName><PublisherDisplayName>@PUBLISHER_DISPLAY@</PublisherDisplayName><Logo>Assets\StoreLogo.png</Logo></Properties>
+ <Properties><DisplayName>@DISPLAY_NAME@</DisplayName><PublisherDisplayName>@PUBLISHER_DISPLAY@</PublisherDisplayName><Logo>Assets\StoreLogo.png</Logo></Properties>
  <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" /></Dependencies>
  <Resources><Resource Language="de-de"/><Resource Language="en-us"/></Resources>
  <Applications><Application Id="ScreenBuddy" Executable="ScreenBuddy.exe" EntryPoint="Windows.FullTrustApplication">
- <uap:VisualElements DisplayName="ScreenBuddy" Description="ScreenBuddy – displays for your PC" BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
- <Extensions><desktop:Extension Category="windows.startupTask" Executable="ScreenBuddyStartup.exe" EntryPoint="Windows.FullTrustApplication"><desktop:StartupTask TaskId="ScreenBuddyStartup" Enabled="false" DisplayName="ScreenBuddy" /></desktop:Extension></Extensions>
+ <uap:VisualElements DisplayName="@DISPLAY_NAME@" Description="ScreenBuddy – displays for your PC" BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
+ <Extensions><desktop:Extension Category="windows.startupTask" Executable="ScreenBuddyStartup.exe" EntryPoint="Windows.FullTrustApplication"><desktop:StartupTask TaskId="ScreenBuddyStartup" Enabled="false" DisplayName="@DISPLAY_NAME@" /></desktop:Extension></Extensions>
  </Application></Applications>
  <Capabilities><rescap:Capability Name="runFullTrust" /></Capabilities>
 </Package>

@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "perflog.h"
+#include "distribution.h"
 #include "util.h"
 #include <windows.h>
 #include <wmistr.h>
@@ -62,6 +63,8 @@ Access access(){
     return in_group?Access::NeedsRelogin:Access::NotMember;
 }
 bool request_grant(){
+    // Store packages do not declare the restricted allowElevation capability.
+    if(distribution::packaged())return false;
     auto user=current_user_sid();if(user.empty())return false;
     std::wstring parameters=L"--grant-perflog "+user;
     auto exe=exe_path().wstring();
@@ -73,6 +76,8 @@ bool request_grant(){
 bool test_override_active(){return test_override.has_value();}
 void set_test_override(Access value){test_override=value;}
 int run_helper(const std::wstring& user_sid){
+    // Reject direct helper invocations as well as the UI route in packaged builds.
+    if(distribution::packaged())return ERROR_NOT_SUPPORTED;
     // Only a syntactically valid user SID is accepted (S-1-5-21-... domain/local account or Microsoft/Azure account), never well-known groups.
     PSID sid=nullptr;if(user_sid.rfind(L"S-1-5-21-",0)!=0 && user_sid.rfind(L"S-1-12-1-",0)!=0)return 2;
     if(!ConvertStringSidToSidW(user_sid.c_str(),&sid))return 2;

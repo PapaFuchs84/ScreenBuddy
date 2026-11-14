@@ -84,6 +84,14 @@ build.bat
 
 Dependencies are linked statically, including D++ and OpenSSL. OpenSSL on Windows loads trust roots from the Windows certificate store. The D++ vcpkg overlay records the corresponding build option and patches.
 
+For the complete 25-suite Windows check while using the same PC, run the original test runner on a temporary private desktop. The visible desktop stays active; no test assertions or image references are skipped or replaced. Use a fresh output directory. Snapshot comparisons require registered Roboto fonts, not just files in the user font folder; see [snapshot prerequisites](tests/builtin-snapshots/README.md).
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/Run-ReleaseChecks.ps1 -BuildDirectory build/screenbuddy-release -OutputDirectory build/release-checks-private
+```
+
+The execution policy argument applies only to this launched PowerShell process. The wrapper changes no machine policy and does not switch desktops. `-LayoutOnly` runs the existing native layout suite through the same isolation; the default launches unchanged `tests/run_release_checks.py` and all 25 suites. Results and console output stay in the chosen build directory.
+
 Run `build\fl-monitor-tests.exe window` only for a controlled visible secondary-monitor test; it injects touch events and closes its test windows afterwards. This does not validate physical touch hardware.
 
 ## Diagnostics

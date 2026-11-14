@@ -4,6 +4,51 @@
 
 All notable changes to the app. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
 
+## [2.12.0] - 2026-11-14
+
+Companion 1.1.1 is released alongside (bug fixes, protocol unchanged; 1.1.0 keeps working). Feature page: [Hardware HUD](HARDWARE-HUD-TEST.en.md).
+
+**Test status 2.12.0 (integrated build):** 25 C++ test suites without failures, including 3556 core regression, 1877 layout UI, 4221 built-in snapshots with hit maps, 2101 plugin snapshots, 448 Companion (including the USB output thread), 152 Hardware HUD, 2144 custom-view, 845 plugin-scheduling and 290 game checks. Isolated integration: installer preservation (2), app Companion integration (40) and standalone distribution passed. In addition, ten Codex review rounds (Windows app, Companion app, documentation); all release-relevant findings are fixed.
+
+Physically tested: a real Redmi 8 (Android 14) as Companion over a USB tunnel at targets 5/30/60 (active AI about 4.9/21.3/26.2 UI redraws/s; normal system page about 0.6/s), portrait/landscape, swiping and automatic rotation without overlaps; a real serial Rev. A USB display on COM7 with routing/transfer checks (no optical panel frame-rate measurement). Not tested: a real Spotify account and playback control, real gameplay, Wi-Fi/LAN, background operation, restart, and long-term, battery and thermal behaviour.
+
+Joint USB display + Companion acceptance:
+Passed on 14 Nov 2026 with the same app (2.12.0 build), a real Rev. A USB display on COM7 and a real Redmi 8 as Companion over a USB tunnel, 10 seconds each: Companion with active AI at target 30/60 alone 21.4/22.9 UI redraws/s, together with the normal USB system page 19.9/25.5, and together with the Hardware HUD on the USB display 20.6/26.2. The USB display no longer slows the Companion down. The HUD itself only reaches about 0.6 frames/s on the serial panel because of its bandwidth (nearly full frames, about 1.7 s per transfer); the normal system page about 1.9 updates/s. Short foreground measurement, no optical panel measurement.
+
+### Added
+
+- **Hardware HUD:** optional view for the System page (setting under **System**) with vector graphics, automatically rotating Overview/GPU/CPU pages and fan, ring and pulse animations. Separate layouts for wide, normal and portrait displays; text widths are measured and wrapped so labels do not overlap. Colours follow the active design by default, with classic neon or custom primary, secondary and background colours as options; insufficient contrast is adjusted automatically.
+- **CPU power in watts:** CPU package power from suitable HWiNFO power sensors (type Power, unit W). Missing or invalid values stay unknown (“--”); nothing is estimated.
+- **Global animation rate:** **Settings → Display → Animations** (`display.animation_fps`), 5–60, default 30. Applies to visible animations: hardware HUD, active AI pulses and row transitions, the playing Spotify page with level/progress tiles, animated custom views, the Game intro and plugin fades.
+
+### Changed
+
+- Static views keep their own slow refresh; the animation rate does not make sensors poll more often. The former local key `system.hardware_hud_fps` is migrated; an explicitly configured global value takes precedence.
+- Companion: PC-paced animations get no second transport delay; normal static Companion pages stay limited to 5 fps. Static Companion tiles are no longer redrawn merely because the main display animates quickly.
+- USB display (serial, Rev. A, 480 × 320): transfers run in their own output thread with a latest-frame handoff. A slow USB transfer (depending on image content; about 1.7 s per transfer for the HUD) no longer blocks Companion rendering; serial animations are paced by the measured transfer time instead of a fixed one-second pause.
+
+### Fixed
+
+The following Store fixes were already contained in the Microsoft Store package 2.11.0.0 and appear for the first time as regular version 2.12.0.
+
+- Windows checks: a temporary private test desktop isolates real HWND keyboard tests from other applications; the device-editor fixture waits for an updated idle state after preview work before applying. Image references and behavioral assertions are preserved.
+- Microsoft Store: reserved title “ScreenBuddy by FuchsLabs”, exact official package identity and configurable XML-escaped DisplayName; bilingual app privacy/support prepared and published, without a public unsigned EXE release.
+- Companion: page navigation returns an object with an empty page list during startup instead of `null`, keeping API queries valid between server startup and the first Companion frame.
+- Game Mode tests use ScreenBuddy.exe beside the test executable instead of a hardcoded build directory, allowing checks against alternative build folders.
+- Store edition: vendor autostart is managed outside the app using Windows Task Scheduler; ScreenBuddy does not launch elevated scheduler commands.
+- Store edition: FPS setup does not launch an elevated helper; “Check FPS permission” explains administrator-assisted permission setup. Existing ETW permissions and HWiNFO measurements remain usable.
+- Store preparation based on 2.11.0: checksums cover only the newly built MSIX; screenshots with provenance manifest and listing logos are copied with it. Documented the current account block and remaining submission steps.
+
+## [Companion 1.1.1] - 2026-11-14
+
+- Android app 1.1.1 (versionCode 10): bug fixes for 1.1.0. Protocol and application ID stay unchanged; compatible with ScreenBuddy 2.12.0 and older.
+- Bounded frame hand-over: received and decoded frames no longer wait individually in the main thread's queue. Each stage holds at most one waiting frame and one scheduled hand-over; superseded frames are discarded and waiting ones are cleared on stop. This prevents growing memory use and latency at high frame rates with a busy UI.
+- Automatic mode: a missing mDNS announcement or a failed mDNS discovery no longer starts the 20-second grace period immediately. The app checks by TCP right away instead and starts the grace period only after two consecutive failed checks; a reachable PC keeps its display.
+- Automatic mode: the screen is locked only when automatic mode opened the display itself and that display is still in the foreground when it closes, no longer after a mere notification.
+- Automatic mode: a failed or system-terminated mDNS discovery is restarted at growing intervals (5 seconds up to at most 5 minutes).
+- Pairing: a new pairing (host, PIN, fingerprint) is applied even when the display is already open; the previous connection and an open fingerprint dialog are closed first.
+- Tested: 56 JVM tests of the protocol module and the Kotlin debug compile. Not tested: devices (Redmi, Pixel, Android TV); no APK was signed or installed. Details: [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110).
+
 ## [Companion 1.1.0] - 2026-11-09
 
 - Android app 1.1.0 (versionCode 9): dark default design with orange accents; protocol and application ID stay unchanged. Separate release `companion-v1.1.0` (APK only), independent of the ScreenBuddy version.

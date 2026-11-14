@@ -31,6 +31,9 @@ inline constexpr double LOCK_SECONDS = 300;         // Dauer der Sperre
 inline constexpr double PING_SECONDS = 5;
 inline constexpr double DEAD_SECONDS = 15;
 inline constexpr double MIN_FRAME_SECONDS = 0.2;    // höchstens 5 Bilder/s
+// A trusted animation producer already paces publication; metadata is never client supplied.
+inline constexpr int MAX_ANIMATION_FPS = 60;
+inline constexpr bool producer_paced_animation(int animation_fps) { return animation_fps >= 5 && animation_fps <= MAX_ANIMATION_FPS; }
 inline constexpr size_t MAX_DEVICES = 8;
 inline constexpr size_t MAX_DEVICE_PAGES = 64;      // Einträge in der eigenen Seitenliste eines Geräts
 inline constexpr size_t MAX_TEXT_MESSAGE = 16 * 1024;
@@ -148,10 +151,14 @@ private:
     double locked_until_ = 0;
 };
 
-// Bilder nur bei Änderung und höchstens alle MIN_FRAME_SECONDS; das erste Bild sofort.
+// Changed frames only: normal pages use 5 fps. Trusted producer-paced animated frames
+// avoid a redundant transport timer; their source remains bounded at MAX_ANIMATION_FPS.
 class FrameGate {
 public:
-    bool due(uint64_t seq, double now) const { return seq != 0 && seq != sent_ && (!any_ || now - last_ >= MIN_FRAME_SECONDS - 1e-9); }
+    bool due(uint64_t seq, double now, int animation_fps = 0) const {
+        return seq != 0 && seq != sent_ &&
+            (!any_ || producer_paced_animation(animation_fps) || now - last_ >= MIN_FRAME_SECONDS - 1e-9);
+    }
     void sent(uint64_t seq, double now) { sent_ = seq; last_ = now; any_ = true; }
     void reset() { sent_ = 0; any_ = false; }
 

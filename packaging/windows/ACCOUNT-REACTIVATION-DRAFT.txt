@@ -1,0 +1,17 @@
+UNSENT DRAFT / NICHT VERSENDETER ENTWURF
+
+To: reportap@microsoft.com
+Subject: Reactivation request for Microsoft Store developer account
+
+Hello Microsoft Store support,
+
+I would like to reactivate my Microsoft Store developer account to publish ScreenBuddy, a Windows desktop application developed as a private hobby project.
+
+On 9 November 2026, I could sign in to storedeveloper.microsoft.com with my personal Microsoft account, but after selecting Individual developer the onboarding page displayed a disabled-account message and directed me to this email address to request activation.
+
+Please review the account status and let me know which steps are required for reactivation. I can complete any necessary identity verification through your official secure process.
+
+Account: [supply the Microsoft account email when sending]
+Publisher: [supply existing publisher ID if available]
+
+Thank you.
