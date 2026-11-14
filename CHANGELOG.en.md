@@ -55,7 +55,7 @@ The following Store fixes were already contained in the Microsoft Store package 
 - Optional automatic mode (off by default): discovers the paired PC through mDNS and opens the display where Android and granted permissions allow it. After detected absence, closes the display following a 20-second grace period; phones can additionally lock the screen with device-administrator permission. Android TV only closes the display.
 - mDNS discovery holds a Wi-Fi multicast lock only while searching and releases it on stop/failure. This is intended to allow background reception on devices filtering multicast; device behaviour is described below. Continuous automatic-mode discovery may increase battery consumption.
 - Fallback for locked devices: because e.g. the Redmi 8 receives no mDNS with the screen off, automatic mode also checks via an alarm (roughly every one to two minutes), whether the paired PC is reachable by TCP on its companion port (no TLS/PIN/data). Android may delay these alarms in idle mode.
-- Setup, permissions, background restrictions and test limits are described in the [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110). Tested: Redmi 8 (with the screen off, auto-off after about 2.5 minutes, auto-on after about 74 seconds, one run each). Not tested: Pixel; Android TV without a real PC start/stop.
+- Setup, permissions, background restrictions and test limits are described in the [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110). Tested: Redmi 8 (with the screen off, auto-off after about 2.5 minutes, auto-on after about 74 seconds, one run each). Pixel: tested by Basti himself, reported to work (no measurements). Not tested: Android TV without a real PC start/stop.
 
 ## [2.11.0] - 2026-11-08
 
