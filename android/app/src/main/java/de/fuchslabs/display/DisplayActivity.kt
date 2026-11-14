@@ -74,6 +74,12 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
             }
         })
         hideSystemUi()
+        androidx.core.content.ContextCompat.registerReceiver(this, closeReceiver,
+            android.content.IntentFilter(StandbyService.ACTION_CLOSE), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
+    }
+
+    private val closeReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: android.content.Context, i: Intent) { finishAndRemoveTask() }
     }
 
     override fun onStart() {
@@ -85,6 +91,11 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         trustDialog?.dismiss(); trustDialog = null
         client?.stop(); client = null
         super.onStop()
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(closeReceiver)
+        super.onDestroy()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -166,6 +177,7 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
         val port = intent.getIntExtra(EXTRA_PORT, 8777)
         val name = intent.getStringExtra(EXTRA_NAME) ?: host
         store.savePaired(PairedPc(host, port, fingerprint, name, key))
+        StandbyService.sync(this)
         Toast.makeText(this, getString(R.string.paired_ok, name), Toast.LENGTH_SHORT).show()
         // Danach normale Anmeldung mit Schluessel (Protokoll: "Danach hello mit key").
         client?.stop(); client = null

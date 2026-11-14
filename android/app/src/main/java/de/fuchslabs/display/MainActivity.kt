@@ -54,8 +54,7 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         store = Store(this)
         val text = getColor(R.color.ui_text); val textSec = getColor(R.color.ui_text_secondary); val onPrimary = getColor(R.color.ui_on_primary); val bg = getColor(R.color.ui_bg)
-        val night = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        androidx.core.view.WindowInsetsControllerCompat(window, window.decorView).apply { isAppearanceLightStatusBars = !night; isAppearanceLightNavigationBars = !night }
+        androidx.core.view.WindowInsetsControllerCompat(window, window.decorView).apply { isAppearanceLightStatusBars = false; isAppearanceLightNavigationBars = false }
         val dp = resources.displayMetrics.density
         fun pad(v: View, p: Int) = v.setPadding((p * dp).toInt(), (p * dp).toInt(), (p * dp).toInt(), (p * dp).toInt())
         fun label(s: Int) = TextView(this).apply { setText(s); setTextColor(text); textSize = 16f; typeface = Typeface.DEFAULT_BOLD; setPadding((4 * dp).toInt(), (20 * dp).toInt(), (4 * dp).toInt(), (6 * dp).toInt()) }
@@ -114,11 +113,24 @@ class MainActivity : AppCompatActivity() {
         }
         col.addView(sw1)
         col.addView(TextView(this).apply { setText(R.string.setting_launcher_desc); setTextColor(textSec); textSize = 14f; pad(this, 4) })
-        col.addView(Switch(this).apply {
+        val bootSwitch = Switch(this).apply {
             setTextColor(text); minHeight = (48 * dp).toInt(); setText(R.string.setting_boot); isChecked = store.bootStart
             setOnCheckedChangeListener { _, on -> store.bootStart = on }
-        })
-        forgetBtn = secondary(getString(R.string.btn_forget)) { store.forget(); sw1.isChecked = false; refresh() }
+        }
+        col.addView(bootSwitch)
+        col.addView(label(R.string.section_auto))
+        val autoSwitch = Switch(this).apply {
+            setTextColor(text); minHeight = (48 * dp).toInt(); setText(R.string.setting_auto); isChecked = store.autoMode
+            setOnCheckedChangeListener { _, on -> store.autoMode = on; if (on) requestAutoPermissions(); StandbyService.sync(this@MainActivity) }
+        }
+        col.addView(autoSwitch)
+        col.addView(TextView(this).apply { setText(R.string.setting_auto_desc); setTextColor(textSec); textSize = 14f; pad(this, 4) })
+        col.addView(gap(secondary(getString(R.string.btn_perm_overlay)) { openOverlaySettings() }))
+        if (!isTv) col.addView(gap(secondary(getString(R.string.btn_perm_admin)) { requestAdmin() }))
+        col.addView(gap(secondary(getString(R.string.btn_perm_battery)) { openBatterySettings() }))
+        forgetBtn = secondary(getString(R.string.btn_forget)) {
+            store.forget(); sw1.isChecked = false; bootSwitch.isChecked = false; autoSwitch.isChecked = false; refresh()
+        }
         col.addView(gap(forgetBtn, 20))
 
         val scroll = ScrollView(this).apply { setBackgroundColor(bg); isFillViewport = true; addView(col) }
@@ -136,7 +148,7 @@ class MainActivity : AppCompatActivity() {
         discovery = Discovery(this) { found = it; refresh() }
     }
 
-    override fun onStart() { super.onStart(); discovery.start(); refresh() }
+    override fun onStart() { super.onStart(); discovery.start(); refresh(); try { StandbyService.sync(this) } catch (_: Exception) {} }
     override fun onStop() { discovery.stop(); super.onStop() }
 
     private fun refresh() {
@@ -181,6 +193,26 @@ class MainActivity : AppCompatActivity() {
         if (on) // Oeffnet den Android-Dialog zur Auswahl der Standard-Home-App.
             try { startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
     }
+
+    private fun requestAutoPermissions() {
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 7)
+    }
+
+    private fun openOverlaySettings() = try {
+        startActivity(Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:$packageName")))
+    } catch (_: Exception) { toast(R.string.err_settings) }
+
+    private fun requestAdmin() = try {
+        startActivity(Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+            .putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, ScreenAdmin.component(this))
+            .putExtra(android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION, getString(R.string.admin_explain)))
+    } catch (_: Exception) { toast(R.string.err_settings) }
+
+    private fun openBatterySettings() = try {
+        startActivity(Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+    } catch (_: Exception) { toast(R.string.err_settings) }
 
     private fun toast(r: Int) = Toast.makeText(this, r, Toast.LENGTH_LONG).show()
 }

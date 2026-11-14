@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.FuchsLabs" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <style name="Theme.FuchsLabs" parent="Theme.AppCompat.NoActionBar">
         <item name="colorPrimary">@color/ui_primary</item>
         <item name="colorPrimaryDark">@color/ui_bg</item>
         <item name="colorAccent">@color/ui_primary</item>

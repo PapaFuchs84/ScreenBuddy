@@ -2,6 +2,8 @@
 
 Store-Ausgabe „ScreenBuddy by FuchsLabs“ in Vorbereitung: [Microsoft Store / Companion-Build](docs/STORE-DISTRIBUTION.md). Noch keine Store-Veröffentlichung. [App-Datenschutz](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
 
+**Companion 1.1.0 (Release `companion-v1.1.0`):** dunkles Standard-Design und optionale Automatik für den gekoppelten PC. Einrichtung, Freigaben und Geräteprüfgrenzen: [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110).
+
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
 

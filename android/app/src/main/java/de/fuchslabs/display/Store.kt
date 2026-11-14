@@ -23,11 +23,21 @@ class Store(private val ctx: Context) {
             .putString("name", p.name).putString("key_enc", KeyVault.encrypt(p.key)).apply()
     }
 
-    fun forget() { sp.edit().clear().apply(); KeyVault.delete(); setLauncherEnabled(false) }
+    fun forget() {
+        sp.edit().clear().apply()
+        StandbyService.sync(ctx)
+        KeyVault.delete()
+        setLauncherEnabled(false)
+    }
 
     var bootStart: Boolean
         get() = sp.getBoolean("boot", false)
         set(v) { sp.edit().putBoolean("boot", v).apply() }
+
+    /** Automatik: Bereitschaftsdienst oeffnet die Anzeige, wenn der PC erscheint, und sperrt sie, wenn er endet. */
+    var autoMode: Boolean
+        get() = sp.getBoolean("auto", false)
+        set(v) { sp.edit().putBoolean("auto", v).apply() }
 
     /** "landscape" (Standard, sensorLandscape), "auto" (Sensor) oder "portrait". */
     var orientation: String

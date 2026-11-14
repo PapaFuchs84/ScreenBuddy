@@ -2,9 +2,9 @@
 
 [Deutsch](STORE-DISTRIBUTION.md)
 
-This Store preparation is based on ScreenBuddy 2.11.0. MSIX publication remains pending; the Companion app has a separate delivery path. The APK 1.0.4 below is historical preparation. Upstream `origin/main` now contains Companion 1.1.0 (`4b39e04`, checked 10 November); this Windows Store work does not build or publish Android releases. The scripts neither upload to a store nor create an account.
+ScreenBuddy is available in the Microsoft Store as “ScreenBuddy by FuchsLabs” (Store ID `9P03461RLGG0`); the first certified edition was 2.11.0. Companion 1.1.0 is a separate release distributed only as a signed sideload APK; the APK 1.0.4 below is historical preparation. The scripts neither upload to a store nor create an account.
 
-**Current, 10 November:** The “ScreenBuddy by FuchsLabs” Store draft is reserved and the official-identity package is built. The complete original native runner passed **25/25 suites** (plus Game Mode 290 and custom-view 2,144 checks). WACK reports overall PASS and 13/13 required tests; one optional S-mode warning remains documented. Sanitized evidence: `packaging/windows/validation-summary-20261110.json`. This does not claim Microsoft certification, signed Store delivery or fresh physical-device acceptance.
+**Historical, 10 November (2.11.0):** The complete original native runner passed **25/25 suites** (plus Game Mode 290 and custom-view 2,144 checks). WACK reported overall PASS and 13/13 required tests; one optional S-mode warning remains documented. Sanitized evidence: `packaging/windows/validation-summary-20261110.json`.
 
 ## Build and package Windows
 
@@ -45,9 +45,9 @@ Launching may already have created `config.toml`; back it up and move it aside b
 
 Use the [current releases](https://github.com/PapaFuchs84/ScreenBuddy/releases) and [Companion guide](https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/COMPANION.en.md) for current downloads and optional automation from 1.1.0. The build details below record the earlier 1.0.4 preparation; they do not recommend installing an older APK over a newer one.
 
-Use JDK 21, Android SDK 36, AGP 8.10.1 and Gradle 8.11.1. Application ID is `de.fuchslabs.display`, minSdk 26, targetSdk 36, version 1.0.4 / code 8. Setup uses insets for system bars, cutouts and the keyboard. Android 16 large-screen behavior can override orientation preferences; test rendering and touch on tablets/TVs.
+Use JDK 21, Android SDK 36, AGP 8.10.1 and Gradle 8.11.1. Application ID is `de.fuchslabs.display`, minSdk 26, targetSdk 36, version 1.1.0 / code 9. Setup uses insets for system bars, cutouts and the keyboard. Android 16 large-screen behavior can override orientation preferences; test rendering and touch on tablets/TVs. The new automatic mode defaults to off; permissions and test limits are in the [Companion guide](COMPANION.en.md#automatic-mode-companion-110).
 
-Set `SCREENBUDDY_SIGNING_PROPERTIES` to the established private signing properties file outside the repository and run `./android/Build-Companion.ps1`. This runs protocol tests, release lint and signature verification, then writes `dist/android/ScreenBuddy-Companion-1.0.4.apk` and SHA-256. Updating existing release APKs requires the same signing key and application ID. Do not silently uninstall debug installations.
+Set `SCREENBUDDY_SIGNING_PROPERTIES` to the established private signing properties file outside the repository and run `./android/Build-Companion.ps1`. This runs protocol tests, release lint and signature verification, then writes `dist/android/ScreenBuddy-Companion-1.1.0.apk` and SHA-256. Updating existing release APKs requires the same signing key and application ID. Do not silently uninstall debug installations.
 
 Play publication is deferred. A future AAB can be built with `:app:bundleRelease`; Play App Signing, privacy/data safety declarations and any required closed testing need separate preparation before upload.
 

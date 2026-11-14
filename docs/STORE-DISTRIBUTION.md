@@ -2,9 +2,9 @@
 
 [English](STORE-DISTRIBUTION.en.md)
 
-Diese Store-Vorbereitung basiert auf ScreenBuddy 2.11.0. Die Veröffentlichung der MSIX-Ausgabe ist noch offen; die Companion-App bleibt ein separater Auslieferungsweg. Die unten beschriebene APK 1.0.4 ist historische Vorbereitung. Upstream `origin/main` enthält inzwischen Companion 1.1.0 (`4b39e04`, am 10. November geprüft); diese Windows-Store-Arbeit baut oder veröffentlicht keine Android-Version. Kein automatischer Upload und keine Kontoerstellung sind Bestandteil der Buildskripte.
+ScreenBuddy ist im Microsoft Store als „ScreenBuddy by FuchsLabs“ (Store-ID `9P03461RLGG0`) erhältlich; die erste zertifizierte Ausgabe war 2.11.0. Companion 1.1.0 ist ein separates Release und wird ausschließlich als signierte APK ausgeliefert; die unten beschriebene APK 1.0.4 ist historische Vorbereitung. Kein automatischer Upload und keine Kontoerstellung sind Bestandteil der Buildskripte.
 
-**Aktuell, 10. November:** Der Store-Entwurf „ScreenBuddy by FuchsLabs“ ist reserviert; das Paket mit offizieller Identität ist gebaut. Der vollständige ursprüngliche native Testlauf bestand **25/25 Suiten** (zusätzlich Game-Mode 290 und Eigene Ansichten 2.144 Prüfungen). WACK meldet insgesamt PASS und 13/13 Pflichtprüfungen; ein optionaler S-Modus-Hinweis bleibt dokumentiert. Bereinigte Belege: `packaging/windows/validation-summary-20261110.json`. Microsoft-Zertifizierung, signierte Store-Auslieferung und eine neue physische Geräteabnahme werden damit nicht behauptet.
+**Historisch, 10. November (2.11.0):** Der vollständige ursprüngliche native Testlauf bestand **25/25 Suiten** (zusätzlich Game-Mode 290 und Eigene Ansichten 2.144 Prüfungen). WACK meldete insgesamt PASS und 13/13 Pflichtprüfungen; ein optionaler S-Modus-Hinweis bleibt dokumentiert. Bereinigte Belege: `packaging/windows/validation-summary-20261110.json`.
 
 ## Windows bauen und paketieren
 
@@ -45,9 +45,9 @@ Ein Start kann bereits `config.toml` erzeugen. In diesem Fall die Store-Konfigur
 
 Für aktuelle Companion-Downloads und die optionale Automatik ab 1.1.0 die [aktuellen Releases](https://github.com/PapaFuchs84/ScreenBuddy/releases) und [Companion-Anleitung](https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/COMPANION.md) verwenden. Die folgenden Buildangaben dokumentieren die damalige 1.0.4-Vorbereitung und sind keine Empfehlung, eine ältere APK über eine neuere zu installieren.
 
-JDK 21, Android SDK 36, AGP 8.10.1 und Gradle 8.11.1. App-ID `de.fuchslabs.display`, minSdk 26, targetSdk 36, Version 1.0.4 / Code 8. Einrichtung berücksichtigt Systemleisten, Kamera-Ausschnitt und Bildschirmtastatur. Android-16-Großbildschirmregeln können Orientierungsvorgaben übersteuern; Darstellung und Touch müssen auf Tablet/TV geprüft werden.
+JDK 21, Android SDK 36, AGP 8.10.1 und Gradle 8.11.1. App-ID `de.fuchslabs.display`, minSdk 26, targetSdk 36, Version 1.1.0 / Code 9. Einrichtung berücksichtigt Systemleisten, Kamera-Ausschnitt und Bildschirmtastatur. Android-16-Großbildschirmregeln können Orientierungsvorgaben übersteuern; Darstellung und Touch müssen auf Tablet/TV geprüft werden. Die neue Automatik ist standardmäßig aus; Berechtigungen und Prüfgrenzen stehen in der [Companion-Anleitung](COMPANION.md#automatik-companion-110).
 
-`SCREENBUDDY_SIGNING_PROPERTIES` verweist auf die bisherige private Signing-Datei außerhalb des Repositorys. Dann `./android/Build-Companion.ps1` ausführen. Das Skript prüft Protokolltests, Release-Lint und APK-Signatur und erzeugt `dist/android/ScreenBuddy-Companion-1.0.4.apk` mit SHA-256. Gleichbleibende App-ID und gleicher Release-Schlüssel sind Voraussetzung für Updates vorhandener Release-APKs. Debug-Installationen nicht ungefragt deinstallieren.
+`SCREENBUDDY_SIGNING_PROPERTIES` verweist auf die bisherige private Signing-Datei außerhalb des Repositorys. Dann `./android/Build-Companion.ps1` ausführen. Das Skript prüft Protokolltests, Release-Lint und APK-Signatur und erzeugt `dist/android/ScreenBuddy-Companion-1.1.0.apk` mit SHA-256. Gleichbleibende App-ID und gleicher Release-Schlüssel sind Voraussetzung für Updates vorhandener Release-APKs. Debug-Installationen nicht ungefragt deinstallieren.
 
 Play-Veröffentlichung ist ausdrücklich vertagt. Ein späteres AAB kann mit `:app:bundleRelease` erstellt werden; Play App Signing, Datenschutz-/Datensicherheitsangaben und gegebenenfalls geschlossene Tests sind vor einem Upload gesondert vorzubereiten.
 
