@@ -44,6 +44,7 @@ int main(int argc, char** argv) {
     SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);   // less noise from background work
     gfx_init();
     i18n::set_lang(std::getenv("FL_BENCH_LANG") ? std::getenv("FL_BENCH_LANG") : "de");   // FL_BENCH_LANG=en measures the English UI
+    if (const char* theme = std::getenv("FL_BENCH_THEME")) render::apply_theme({{"theme", theme}});   // e.g. "dunkel"
     if (argc > 2 && std::string(argv[1]) == "transition") {
         // Writes HUD-scan/slide/fade frames System -> AI as PNGs into argv[2] and times them.
         // Optional: FL_BENCH_THEME (e.g. "dunkel"), FL_BENCH_SIZE ("720x1520" for portrait).
@@ -135,6 +136,7 @@ int main(int argc, char** argv) {
     const int frames = argc > 1 ? std::max(5, std::atoi(argv[1])) : 60;
     const std::string out_path = argc > 2 ? argv[2] : "";
     render::apply_theme(config::defaults()["display"]);
+    if (const char* theme = std::getenv("FL_BENCH_THEME")) render::apply_theme({{"theme", theme}});   // after the default, so it applies here too
 
     auto sys = render::samples::system();
     auto sp = render::samples::spotify();
