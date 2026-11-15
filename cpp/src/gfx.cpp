@@ -12,6 +12,7 @@
 #include <cstring>
 #include <map>
 #include <mutex>
+#include <unordered_map>
 #include <stdexcept>
 
 #include "brand.h"
@@ -97,8 +98,21 @@ const FontInfo& font_info(const Font& f) {
 }
 
 ComPtr<IDWriteTextLayout> layout(const std::wstring& w, const FontInfo& fi) {
+    // Animated pages draw the same labels every frame; shaping them again each time was a large
+    // share of the frame. Layouts are immutable here (no ranges, no wrapping changes), so a small
+    // per-thread cache keyed by format and text is safe. The entry keeps its format alive, so a
+    // recycled format pointer can never hit a stale layout.
+    struct Entry { ComPtr<IDWriteTextFormat> fmt; ComPtr<IDWriteTextLayout> layout; };
+    thread_local std::unordered_map<std::wstring, Entry> cache;
+    const IDWriteTextFormat* fp = fi.fmt.Get();
+    std::wstring key;
+    key.assign(reinterpret_cast<const wchar_t*>(&fp), sizeof(fp) / sizeof(wchar_t));
+    key += w;
+    if (auto it = cache.find(key); it != cache.end()) return it->second.layout;
     ComPtr<IDWriteTextLayout> l;
     check(g_dw->CreateTextLayout(w.c_str(), (UINT32)w.size(), fi.fmt.Get(), 100000.f, 10000.f, &l), "Textlayout");
+    if (cache.size() >= 1024) cache.clear();   // bounded: changing values (clock, counters) must not grow it forever
+    cache.emplace(std::move(key), Entry{fi.fmt, l});
     return l;
 }
 
@@ -497,20 +511,32 @@ void Canvas::line(const std::vector<PointF>& in, Color c, float width) {
         d_->rt->FillRectangle(r, d_->brush(c));
         return;
     }
-    ComPtr<ID2D1PathGeometry> g;
-    g_d2d->CreatePathGeometry(&g);
-    ComPtr<ID2D1GeometrySink> sink;
-    g->Open(&sink);
-    sink->BeginFigure(D2D1::Point2F(pts[0].x + .5f, pts[0].y + .5f), D2D1_FIGURE_BEGIN_HOLLOW);
-    for (size_t i = 1; i < pts.size(); ++i) sink->AddLine(D2D1::Point2F(pts[i].x + .5f, pts[i].y + .5f));
-    sink->EndFigure(D2D1_FIGURE_END_OPEN);
-    sink->Close();
-    ComPtr<ID2D1StrokeStyle> style;
-    g_d2d->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT,
-                                                         D2D1_LINE_JOIN_ROUND),
-                             nullptr, 0, &style);
+    // Glowing wires stroke the same path several times in a row (wide halo, then core): the
+    // geometry of the previous call is reused when the points match, and the stroke style is
+    // created once per thread instead of per line.
+    thread_local std::vector<PointF> last_pts;
+    thread_local ComPtr<ID2D1PathGeometry> last_geometry;
+    thread_local ComPtr<ID2D1StrokeStyle> style;
+    const bool same = last_geometry && last_pts.size() == pts.size() &&
+                      std::equal(pts.begin(), pts.end(), last_pts.begin(), [](const PointF& a, const PointF& b) { return a.x == b.x && a.y == b.y; });
+    if (!same) {
+        ComPtr<ID2D1PathGeometry> g;
+        g_d2d->CreatePathGeometry(&g);
+        ComPtr<ID2D1GeometrySink> sink;
+        g->Open(&sink);
+        sink->BeginFigure(D2D1::Point2F(pts[0].x + .5f, pts[0].y + .5f), D2D1_FIGURE_BEGIN_HOLLOW);
+        for (size_t i = 1; i < pts.size(); ++i) sink->AddLine(D2D1::Point2F(pts[i].x + .5f, pts[i].y + .5f));
+        sink->EndFigure(D2D1_FIGURE_END_OPEN);
+        sink->Close();
+        last_geometry = g;
+        last_pts = pts;
+    }
+    if (!style)
+        g_d2d->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT,
+                                                             D2D1_LINE_JOIN_ROUND),
+                                 nullptr, 0, &style);
     d_->rt->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-    d_->rt->DrawGeometry(g.Get(), d_->brush(c), width, style.Get());
+    d_->rt->DrawGeometry(last_geometry.Get(), d_->brush(c), width, style.Get());
 }
 
 void Canvas::polygon(const std::vector<PointF>& in, Color fill) {

@@ -16,3 +16,8 @@
 | 13 | Companion-Verbindung wird bei neuem Bild geweckt (statt 8-ms-Abfrage) | (s. 12) | | | gleichmäßigere Abstände, bis 8 ms weniger Verzögerung |
 | 14 | Einzelkachel und Vollbildfläche ohne Bildkopie (`compose`/`compose_view` mit Verschieben), Gerätebild verschoben statt kopiert | (s. 12) | | | 2–3 Kopien à 4–16 MB weniger je Bild |
 | 15 | JPEG: BGR selbst packen statt WIC-Konverter | – | – | – | verworfen: 1920×720 3,7 -> 3,8 ms, Pad 11,3 -> 11,4 ms (Kodierer dominiert) |
+| 16 | HUD-Grundraster einmal je Größe zeichnen und als Bild einsetzen | – | – | – | verworfen: Bitmap-Zeichnen teurer als die Pfade (1920×720 3,4 -> 4,2 ms, Pad 7,0 -> 8,5 ms) |
+| 17 | DirectWrite-Textlayouts je Thread zwischenspeichern (Format + Text, max. 1024) | 54,1 | 52,8 | 54,5 | KI 1920×720 2,49 -> 1,72 ms, HUD 3,41 -> 2,75 ms, 480×320 etwa halbiert (Messung R17–R18 gemeinsam) |
+| 18 | Fester Animationstakt ab der Soll-Frist statt ab der verspäteten Weckzeit | (s. 17) | | | Host 57,3 -> 59–60 Bilder/s (Timer-Überschwingen summierte sich) |
+| 19 | `Canvas::line`: Pfad des vorigen Aufrufs wiederverwenden (Glühleitungen zeichnen denselben Pfad dreimal), Strichstil einmal je Thread | – | – | – | HUD Pad 6,63 -> 5,98 ms, 480×320 1,39 -> 1,33 ms; Codex-Prüfung ohne Befund |
+| – | Fehlerbehebung Game-Mode: Ziel-Display-Liste unterscheidet gleichnamige Geräte (ID-Ende) und zeigt verbunden/offline; Logwarnung, wenn ein erkanntes Spiel kein verbundenes Ziel hat | | | | Ursache beim Nutzer: Redmi neu gekoppelt (neue ID), Game-Mode zeigte auf die alte Kopplung; Codex-Befunde (3) umgesetzt |

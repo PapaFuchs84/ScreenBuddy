@@ -1649,6 +1649,15 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         // previous transfer plus a short controller idle period, not a fixed 1 s.
         return std::max(desired, .05 + std::max(0.0, out_->transfer().last_seconds));
     };
+    // Fixed animation cadence: the next frame is due one interval after the previous ideal
+    // frame time, not after the (slightly late) wake-up. Otherwise ~1 ms of timer overshoot per
+    // frame accumulates and 60/s becomes ~57/s. Falls back to "now" after a stall.
+    const auto paced_deadline = [&](ViewState& v, double t) {
+        const double interval = frame_interval();
+        const bool on_time = v.cadence > 0 && t >= v.cadence - interval * .5 && t - v.cadence < interval;
+        v.cadence = (on_time ? v.cadence : t) + interval;
+        return v.cadence;
+    };
     auto profile = profile_for(phone, id);
     const double m_profile = mono();
     auto area = device::usable(size, profile);
@@ -1724,7 +1733,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                                                  game::intro_colors(render::hud_palette(cfg_["system"],render::theme())));
                 out.frame=device::compose_view(std::move(content),size,area,render::theme().bg);out.taps.clear();view.animating=true;}
             else apply_transition(changed);   // without the intro the game view sweeps in like a page
-            view.next_deadline=std::min(view.next_deadline,now+(view.animating?frame_interval():1.));
+            view.next_deadline=std::min(view.next_deadline,view.animating?paced_deadline(view,now):now+1.);
             view.current={key};view.size=size;view.area=area;out.skipped=false;out.switched=changed;
             out.navigation={{"index",0},{"total",1},{"visible",1},{"current",view.current},{"can_step",false},{"game_mode",true}};
             view.last_render=now;view.previous_frame=out.frame;return out;
@@ -1872,9 +1881,8 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     view.animating = view.animating || hud_visible;
     if (view.animating) {
         const bool fast_output = phone || !out_ || out_->is_monitor();
-        if (fast_output) view.next_deadline = std::min(view.next_deadline, now + frame_interval());
-        else if (hud_visible || view.next_deadline == plugins::schedule::never)
-            view.next_deadline = std::min(view.next_deadline, now + frame_interval());
+        if (fast_output || hud_visible || view.next_deadline == plugins::schedule::never)
+            view.next_deadline = std::min(view.next_deadline, paced_deadline(view, now));
         // Serial plugin reveal/cut steps retain their measured transfer budget.
     }
     view.last_render = now;
@@ -2078,6 +2086,26 @@ void App::display_loop() {
             if(companion_output_) render_view(true,dirty);
         }
         if(companion_ && !indep) render_devices(dirty);
+        // A detected game whose target display is not connected would silently show nothing
+        // (e.g. the phone was re-paired and got a new ID): say so once per game.
+        if(game_ && b(cfg_["game_mode"],"enabled")) {
+            const auto g=game_->snapshot();
+            if(g.game && g.generation!=game_target_checked_) {
+                const auto target=s(cfg_["game_mode"],"target_display");
+                const auto clients=companion_?companion_->client_ids():std::vector<std::string>{};
+                const bool local_out=out_ && out_.get()!=companion_;
+                const bool primary=target=="primary" || target==primary_layout_id();
+                // "primary" is the local display when there is one, otherwise the network output.
+                const bool reachable=primary?(local_out?display_ok():!clients.empty())
+                    :target=="network"?!clients.empty():std::find(clients.begin(),clients.end(),target)!=clients.end();
+                // Re-checked every loop while the game runs; reported once per game when unreachable.
+                if(!reachable) {
+                    game_target_checked_=g.generation;
+                    LOGW("game", "Game-Mode: %s erkannt, aber Ziel-Display %s ist nicht verbunden (neu gekoppelt? In den Einstellungen unter Game-Mode das Ziel-Display neu wählen)",
+                         g.game->name.c_str(), target.c_str());
+                }
+            }
+        }
         std::vector<double> deadlines;
         bool animating=false;
         if (!indep || (out_ && out_.get()!=companion_)) { deadlines.push_back(primary_view_.next_deadline); animating=primary_view_.animating; }

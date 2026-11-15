@@ -151,6 +151,7 @@ private:
         std::map<std::string,std::shared_ptr<plugins::FadeCache>> fade_caches;
         std::map<std::string,std::pair<uint64_t,uint64_t>> cycle_generations;
         double next_deadline = plugins::schedule::never;
+        double cadence = -1;   // ideal time of the next animation frame (fixed rate, wake-up lateness does not accumulate)
         bool animating = false;
         std::optional<double> render_ms;
         double last_render = -plugins::schedule::never;
@@ -247,6 +248,7 @@ private:
     std::mutex dev_mu_;                      // devices_
     std::map<std::string, std::unique_ptr<DeviceState>> devices_;
     bool was_independent_ = false;
+    uint64_t game_target_checked_ = 0;   // game generation whose target display was checked (one log line per game)
     touch::PluginAccess plugin_access(const std::string& id);
     void execute_plugin(const touch::PluginDecision& decision);
     void queue_custom_page(const std::string& page, bool phone, const std::string& device);
