@@ -216,8 +216,10 @@ void NetworkDisplay::connect() {
             image = slot->image;
             version = slot->version;
         }
+        const double encode_start = mono();
         auto jpeg = std::make_shared<const companion::Server::Frame>(
             companion::Server::Frame{encode_jpeg(image, 0.8f), image.w, image.h, version});
+        LOGD("companion", "JPEG %.1f ms (%dx%d, %zu kB)", (mono() - encode_start) * 1000, image.w, image.h, jpeg->jpeg.size() / 1024);
         {
             std::lock_guard lk(mu_);
             if (slot->version == version) slot->jpeg = jpeg;

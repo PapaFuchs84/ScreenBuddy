@@ -778,7 +778,7 @@ std::vector<std::string> App::active_pages(bool companion, const std::vector<std
         const std::string key = p.get<std::string>();
         const bool is_plugin = key.rfind("plugin:", 0) == 0;
         if (key.starts_with("custom:")) {
-            if (!custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7))) continue;
+            if (!custom::cached_view(cfg_path_.parent_path()/L"views",key.substr(7))) continue;
         } else if (is_plugin ? std::find(plugin_keys.begin(), plugin_keys.end(), key) == plugin_keys.end() : !have[key]) continue;
         if (is_plugin) listed.push_back(key);
         if (chosen(key)) out.push_back(key);
@@ -787,7 +787,7 @@ std::vector<std::string> App::active_pages(bool companion, const std::vector<std
     // Eine eigene Geräteliste ist dagegen verbindlich: was dort fehlt, wird auf dem Gerät nicht gezeigt.
     if (!pages_override) for (const auto& key : plugin_keys)
         if (std::find(listed.begin(), listed.end(), key) == listed.end()) out.push_back(key);
-    if(!pages_override) for(const auto& view:custom::Store(cfg_path_.parent_path()/L"views").list()) {
+    if(!pages_override) for(const auto& view:*custom::cached_views(cfg_path_.parent_path()/L"views")) {
         auto key="custom:"+view.id;
         if(std::none_of(order.begin(),order.end(),[&](const auto& p){return p==key;})) out.push_back(key);
     }
@@ -952,7 +952,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             }
         }
         if (key.starts_with("custom:")) {
-            auto custom_view=custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7));
+            auto custom_view=custom::cached_view(cfg_path_.parent_path()/L"views",key.substr(7));
             if(!custom_view) continue;
             PageEntry entry{key,1,{}};
             const auto allowed_pages=active_pages(phone,pages_override);
@@ -1641,6 +1641,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         return std::max(desired, .05 + std::max(0.0, out_->transfer().last_seconds));
     };
     auto profile = profile_for(phone, id);
+    const double m_profile = mono();
     auto area = device::usable(size, profile);
     auto inset = profile.physical_rotates ? device::to_frame(profile.keepout_physical, profile.orientation) : profile.keepout_physical;
     if (area == device::Area{0,0,size.first,size.second} &&
@@ -1651,12 +1652,13 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     out.area = area;
     // The override never mutates the configured rotation or normal page index.
     const auto game_snapshot=game_?game_->snapshot():game::Snapshot{};
+    const double m_game = mono();
     const auto& game_cfg=cfg_["game_mode"];
     const auto target=s(game_cfg,"target_display");
     const bool primary_target=(target=="primary" || (!phone && target==primary_layout_id()));
     const bool selected=primary_target?(&view==&primary_view_ || (phone && out_.get()==companion_ && !companion_output_)):(phone && !id.empty() && id==target);
     const auto key=s(game_cfg,"view");
-    auto document=game_snapshot.game && selected && key.starts_with("custom:")?custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7)):std::nullopt;
+    auto document=game_snapshot.game && selected && key.starts_with("custom:")?custom::cached_view(cfg_path_.parent_path()/L"views",key.substr(7)):std::nullopt;
     auto content_frame=[&](const Image& source){Image content(area.w,area.h,Color{});if(source.w!=size.first || source.h!=size.second)return content;
         for(int y=0;y<area.h;++y)std::copy_n(source.px.begin()+size_t(y+area.y)*source.w+area.x,area.w,content.px.begin()+size_t(y)*area.w);return content;};
     if(document) {
@@ -1697,7 +1699,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                 !b(cfg_["system"], "hardware_hud");
     live = live || std::count(view.current.begin(),view.current.end(),"ai") > 0;
     for(const auto& key:view.current) if(key.starts_with("custom:")) {
-        if(auto doc=custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7))) for(const auto& tile:doc->effective(id).tiles) if(tile.source=="ai" || tile.source=="system") live=true;
+        if(auto doc=custom::cached_view(cfg_path_.parent_path()/L"views",key.substr(7))) for(const auto& tile:doc->effective(id).tiles) if(tile.source=="ai" || tile.source=="system") live=true;
     }
     live = live && now - view.last_render >= .5;
     // Keep visible playback alive even when silent capture publishes no changes.
@@ -1712,6 +1714,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         const double next_frame = view.last_render + 1.0 / animation_fps(cfg_);
         if (now < next_frame) { dirty = false; view.next_deadline = std::min(view.next_deadline, next_frame); }
     }
+    const double m_live = mono();
     if (!plugins::schedule::should_render(dirty,due,live,view.step,view.size!=size || view.area!=area,view.minute!=minute,now,view.next_deadline)) return out;
     if (view.size!=size || view.area!=area) { for (auto& [plugin,zones]:view.cycles) plugins::schedule::reset(zones,false,true); view.fade_caches.clear(); }
     { std::lock_guard lk(view.next_mu); view.frame_next_requests.clear(); view.frame_next_requests.swap(view.next_requests); }
@@ -1724,9 +1727,13 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     std::vector<Friend> friends, people;
     if (discord_ && std::count(active.begin(), active.end(), "discord")) friends = discord_->friends();
     if (friends_) people = friends_->people();
+    const double m_active = mono();
+    LOGD("app", "Vorlauf: Profil %.1f, Spiel %.1f, Live %.1f, Seiten/Freunde %.1f ms", (m_profile - now) * 1000, (m_game - m_profile) * 1000, (m_live - m_game) * 1000, (m_active - m_live) * 1000);
     out.navigation = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
+    double t_locked = now, t_pages = now, t_drawn = now;
     {
         std::lock_guard rl(render::mutex());
+        t_locked = mono();
         // Bound cached renderer sets when a resizable window reports many intermediate sizes.
         if (sets_.size() > 16) sets_.clear();
         // A dedicated HUD system page uses the full width instead of automatic
@@ -1737,14 +1744,19 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                 : render::tile_layout(area.w, area.h, count);
         };
         auto boxes = layout();
+        const double t_layout = mono();
         auto pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone, phone ? (id.empty()?"network":id) : primary_layout_id());
+        const double t_list1 = mono();
         int total = 0;
         for (auto& p : pages) total += p.n;
+        double t_list2 = t_list1;
         if (0 < total && total < (int)boxes.size()) {
             boxes = layout(total);
             pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone, phone ? (id.empty()?"network":id) : primary_layout_id());
             total = 0; for (auto& p : pages) total += p.n;
+            t_list2 = mono();
         }
+        LOGD("app", "Seitenaufbau: Raster %.1f, Liste %.1f, zweite Liste %.1f ms", (t_layout - t_locked) * 1000, (t_list1 - t_layout) * 1000, (t_list2 - t_list1) * 1000);
         std::string requested;
         {std::lock_guard lk(view.next_mu);requested.swap(view.page_request);}
         int requested_index=-1,offset_requested=0;
@@ -1782,7 +1794,9 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                 std::lock_guard lk(mu_);
                 redraw_ = [this, pages, boxes, start, size, area] { return draw(pages, boxes, start, size, area).frame; };
             }
+            t_pages = mono();
             auto [f, keys, targets] = draw(pages, boxes, start, size, area);
+            t_drawn = mono();
             out.frame = std::move(f); view.current = keys; out.taps = std::move(targets);
             out.navigation = {{"index", start}, {"total", total}, {"visible", cols}, {"current", keys}, {"can_step", total > cols}};
         }
@@ -1802,6 +1816,11 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     view.render_ms = ewma(view.render_ms,(mono()-now)*1000);
     view.previous_frame=out.frame;
     LOGD("app", "Renderzeit %.1f ms (%s, %dx%d)", view.render_ms.value_or(0), phone ? "Companion" : "Primary", size.first, size.second);
+    // Per-frame breakdown for smoothness work (debug log only): wait for the render lock,
+    // page list, draw+compose, and the rest (state copies) of this frame.
+    LOGD("app", "Bildzeit %.1f ms: Sperre %.1f, Seiten %.1f, Zeichnen %.1f, Rest %.1f (%s)", (mono() - now) * 1000,
+         (t_locked - now) * 1000, (t_pages - t_locked) * 1000, (t_drawn - t_pages) * 1000, (mono() - std::max(t_drawn, t_locked)) * 1000,
+         phone ? "Companion" : "Primary");
     return out;
 }
 

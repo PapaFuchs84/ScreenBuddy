@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cmath>
 #include <fstream>
+#include <map>
 #include <set>
 namespace fl::custom {
 namespace {
@@ -239,7 +240,11 @@ std::optional<View> Store::get(const std::string& id) const {
     std::string bytes;if(!read_bounded(directory_/(id+".view.json"),bytes,file_limit)) return {};
     auto v=parse(bytes);return v && v->id==id?v:std::nullopt;
 }
+namespace {
+std::atomic<uint64_t> g_store_generation{1};   // bumped by every save/erase in this process
+}
 std::string Store::save(const View& v) {
+    g_store_generation.fetch_add(1);
     std::string bytes;try {bytes=to_json(v).dump();} catch(...) {return "Invalid custom view.";}
     if(!parse(bytes)) return "Invalid custom view.";
     std::lock_guard lock(mutex_);
@@ -271,6 +276,7 @@ std::vector<View> Store::list() const {
     return result;
 }
 std::string Store::erase(const std::string& id) {
+    g_store_generation.fetch_add(1);
     std::lock_guard lock(mutex_);
     if(!valid_id(id) || !plain_path(directory_)) return "Unsafe view path.";
     std::error_code exists_error;if(!fs::exists(directory_,exists_error) && !exists_error)return "";
@@ -280,6 +286,52 @@ std::string Store::erase(const std::string& id) {
     std::error_code ec;
     fs::remove(backup,ec);if(ec) return "Could not remove view backup.";
     fs::remove(path,ec);return ec?"Could not remove view.":"";
+}
+std::shared_ptr<const std::vector<View>> cached_views(const fs::path& directory) {
+    struct Entry { uint64_t generation = 0; std::chrono::steady_clock::time_point checked; std::string signature;
+                   std::shared_ptr<const std::vector<View>> views; };
+    static std::mutex mutex;
+    static std::map<fs::path, Entry> cache;
+    const auto now = std::chrono::steady_clock::now();
+    const uint64_t generation = g_store_generation.load();
+    {
+        std::lock_guard lock(mutex);
+        auto it = cache.find(directory);
+        if (it != cache.end() && it->second.views && it->second.generation == generation &&
+            now - it->second.checked < std::chrono::milliseconds(500)) return it->second.views;
+    }
+    // Cheap change signature: names, sizes and write times of the view files only.
+    std::string signature;
+    std::error_code ec;
+    std::vector<std::string> parts;
+    for (fs::directory_iterator it(directory, ec), end; !ec && it != end; it.increment(ec)) {
+        const auto name = it->path().filename().string();
+        if (!name.ends_with(".view.json")) continue;
+        std::error_code e1, e2;
+        const auto size = it->file_size(e1);
+        const auto time = it->last_write_time(e2).time_since_epoch().count();
+        parts.push_back(name + ":" + std::to_string(e1 ? 0 : size) + ":" + std::to_string(e2 ? 0 : time));
+    }
+    std::sort(parts.begin(), parts.end());
+    for (const auto& part : parts) signature += part + "|";
+    {
+        std::lock_guard lock(mutex);
+        auto& entry = cache[directory];
+        if (entry.views && entry.generation == generation && entry.signature == signature) {
+            entry.checked = now;
+            return entry.views;
+        }
+    }
+    auto views = std::make_shared<const std::vector<View>>(Store(directory).list());
+    std::lock_guard lock(mutex);
+    if (cache.size() > 8) cache.clear();
+    cache[directory] = {generation, now, signature, views};
+    return views;
+}
+std::optional<View> cached_view(const fs::path& directory, const std::string& id) {
+    const auto views = cached_views(directory);
+    for (const auto& view : *views) if (view.id == id) return view;
+    return std::nullopt;
 }
 plugins::zones::Layout tile_layout(const Tile& t,const Layout& l) {return {l.columns,l.rows,{t.zone}};}
 std::optional<builtin::Overlay> single_builtin(const Tile& t,const Layout& l) {
