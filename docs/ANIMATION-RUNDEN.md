@@ -25,3 +25,4 @@
 | 21 | Recycling-Allokator für Bildpuffer ab 1 MB (Mikromessung: frischer Puffer +0,8–2,4 ms) | – | – | – | verworfen: im Renderpfad kein Gewinn messbar (HUD Pad 5,98 -> 6,46–6,66 ms), Typumbau ohne Nutzen |
 | 22 | Benchmark robuster: hohe Priorität, drei Durchgänge je Fall (bester zählt), Summenzeile TOTAL als Hauptkennzahl | – | – | – | Baseline TOTAL Rendern 31,8 ms (Summe aller 12 Fälle); Codex-Befund (Werte aus einem Durchgang) umgesetzt |
 | 23 | `Canvas::finish()` kopiert direkt aus dem gesperrten WIC-Bitmap statt Nullfüllen + CopyPixels | – | – | – | TOTAL 31,8 -> 25,4 ms (−20 %); Codex ohne Befund, alle Tests grün |
+| 24 | JPEG: Kodierer liest über eine eigene `IWICBitmapSource` direkt aus dem Bild statt aus einer WIC-Vollkopie | – | – | – | TOTAL JPEG 61,1 -> 44,6 ms (−27 %); Codex: 2 Überlauf-Befunde in CopyPixels umgesetzt |

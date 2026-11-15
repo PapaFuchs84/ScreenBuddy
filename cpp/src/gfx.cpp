@@ -8,6 +8,7 @@
 #include <wincodec.h>
 #include <wrl/client.h>
 
+#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <map>
@@ -115,6 +116,45 @@ ComPtr<IDWriteTextLayout> layout(const std::wstring& w, const FontInfo& fi) {
     cache.emplace(std::move(key), Entry{fi.fmt, l});
     return l;
 }
+
+// Read-only WIC view of an Image without copying it (the encoder pulls rows straight from the
+// frame buffer). The image must outlive every use of the source; encode_jpeg() guarantees that.
+class ImageSource final : public IWICBitmapSource {
+public:
+    explicit ImageSource(const Image& img) : img_(img) {}
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** out) override {
+        if (!out) return E_POINTER;
+        if (riid == __uuidof(IUnknown) || riid == __uuidof(IWICBitmapSource)) { *out = static_cast<IWICBitmapSource*>(this); AddRef(); return S_OK; }
+        *out = nullptr;
+        return E_NOINTERFACE;
+    }
+    ULONG STDMETHODCALLTYPE AddRef() override { return ++refs_; }
+    ULONG STDMETHODCALLTYPE Release() override { const ULONG r = --refs_; if (!r) delete this; return r; }
+    HRESULT STDMETHODCALLTYPE GetSize(UINT* w, UINT* h) override {
+        if (!w || !h) return E_INVALIDARG;
+        *w = UINT(img_.w); *h = UINT(img_.h); return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE GetPixelFormat(WICPixelFormatGUID* f) override { if (!f) return E_INVALIDARG; *f = GUID_WICPixelFormat32bppPBGRA; return S_OK; }
+    HRESULT STDMETHODCALLTYPE GetResolution(double* x, double* y) override { if (!x || !y) return E_INVALIDARG; *x = *y = 96; return S_OK; }
+    HRESULT STDMETHODCALLTYPE CopyPalette(IWICPalette*) override { return WINCODEC_ERR_PALETTEUNAVAILABLE; }
+    HRESULT STDMETHODCALLTYPE CopyPixels(const WICRect* rc, UINT stride, UINT size, BYTE* dst) override {
+        if (!dst) return E_INVALIDARG;
+        const WICRect all{0, 0, img_.w, img_.h};
+        const WICRect r = rc ? *rc : all;
+        // Overflow-safe bounds: compare against the remaining extent, compute sizes in 64 bit.
+        if (r.X < 0 || r.Y < 0 || r.Width < 0 || r.Height < 0 || r.X > img_.w || r.Y > img_.h ||
+            r.Width > img_.w - r.X || r.Height > img_.h - r.Y) return E_INVALIDARG;
+        const uint64_t row = uint64_t(r.Width) * 4;
+        if (uint64_t(stride) < row || (r.Height > 0 && uint64_t(size) < uint64_t(stride) * uint64_t(r.Height - 1) + row)) return E_INVALIDARG;
+        for (int y = 0; y < r.Height; ++y)
+            std::memcpy(dst + size_t(y) * stride, img_.px.data() + size_t(r.Y + y) * img_.w + r.X, size_t(row));
+        return S_OK;
+    }
+private:
+    ~ImageSource() = default;
+    const Image& img_;
+    std::atomic<ULONG> refs_{1};
+};
 
 ComPtr<IWICBitmap> wic_from(const Image& img) {
     ComPtr<IWICBitmap> b;
@@ -248,10 +288,11 @@ std::string encode_jpeg(const Image& img, float quality) {
     check(frame->SetSize(img.w, img.h), "JPEG");
     WICPixelFormatGUID pf = GUID_WICPixelFormat24bppBGR;
     check(frame->SetPixelFormat(&pf), "JPEG");
-    auto bmp = wic_from(img);
+    ComPtr<IWICBitmapSource> src;
+    src.Attach(new ImageSource(img));   // no full-frame copy into a WIC bitmap
     ComPtr<IWICFormatConverter> conv;
     check(g_wic->CreateFormatConverter(&conv), "Konverter");
-    check(conv->Initialize(bmp.Get(), pf, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom), "Konverter");
+    check(conv->Initialize(src.Get(), pf, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom), "Konverter");
     check(frame->WriteSource(conv.Get(), nullptr), "JPEG");
     check(frame->Commit(), "JPEG");
     check(enc->Commit(), "JPEG");
