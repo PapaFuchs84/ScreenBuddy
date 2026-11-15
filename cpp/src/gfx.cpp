@@ -156,14 +156,6 @@ private:
     std::atomic<ULONG> refs_{1};
 };
 
-ComPtr<IWICBitmap> wic_from(const Image& img) {
-    ComPtr<IWICBitmap> b;
-    check(g_wic->CreateBitmapFromMemory(img.w, img.h, GUID_WICPixelFormat32bppPBGRA, img.w * 4,
-                                        (UINT)(img.px.size() * 4), (BYTE*)img.px.data(), &b),
-          "Bild");
-    return b;
-}
-
 Image image_from(IWICBitmapSource* src) {
     UINT w = 0, h = 0;
     src->GetSize(&w, &h);
@@ -249,7 +241,8 @@ std::string encode_png(const Image& img) {
         if ((p >> 24) != 255) { opaque = false; break; }
     WICPixelFormatGUID pf = opaque ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA;
     check(frame->SetPixelFormat(&pf), "PNG");
-    auto bmp = wic_from(img);
+    ComPtr<IWICBitmapSource> bmp;
+    bmp.Attach(new ImageSource(img));   // read straight from the image, no full-frame WIC copy
     ComPtr<IWICFormatConverter> conv;
     check(g_wic->CreateFormatConverter(&conv), "Konverter");
     check(conv->Initialize(bmp.Get(), pf, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom), "Konverter");
@@ -310,7 +303,8 @@ std::string encode_jpeg(const Image& img, float quality) {
 Image resize(const Image& img, int w, int h) {
     ensure_com();
     if (img.w == w && img.h == h) return img;
-    auto bmp = wic_from(img);
+    ComPtr<IWICBitmapSource> bmp;
+    bmp.Attach(new ImageSource(img));   // read straight from the image, no full-frame WIC copy
     ComPtr<IWICBitmapScaler> sc;
     check(g_wic->CreateBitmapScaler(&sc), "Skalierer");
     // Verkleinern: Fant (flächenmittelnd, wie Lanczos sauber ohne Moiré); Vergrößern: hochwertig kubisch

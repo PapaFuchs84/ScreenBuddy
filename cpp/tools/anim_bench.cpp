@@ -68,6 +68,17 @@ int main(int argc, char** argv) {
         CoUninitialize();
         return 0;
     }
+    if (argc > 1 && std::string(argv[1]) == "codec") {
+        // PNG encode (settings preview) and resize (logos, covers) of a full frame; best of three passes.
+        render::AiRenderer aiR(1920, 720);
+        const Image frame = aiR.render(render::samples::ai_status(), 1.0, render::samples::CLOCK);
+        const auto best = [](auto&& fn) { double b = 1e9; for (int pass = 0; pass < 3; ++pass) { auto t0 = clock_type::now(); for (int i = 0; i < 20; ++i) fn(); b = std::min(b, std::chrono::duration<double, std::milli>(clock_type::now() - t0).count() / 20); } return b; };
+        const double png = best([&] { (void)encode_png(frame); });
+        const double down = best([&] { (void)resize(frame, 960, 360); });
+        std::printf("codec png %.2f ms, resize %.2f ms (1920x720)\n", png, down);
+        CoUninitialize();
+        return 0;
+    }
     if (argc > 1 && std::string(argv[1]) == "game") {
         // Game-Mode cockpit (template view, 8 tiles) drawn like the app does: one source call per tile.
         const auto logo = std::make_shared<const Image>(fox_image(256, false));

@@ -26,3 +26,5 @@
 | 22 | Benchmark robuster: hohe Priorität, drei Durchgänge je Fall (bester zählt), Summenzeile TOTAL als Hauptkennzahl | – | – | – | Baseline TOTAL Rendern 31,8 ms (Summe aller 12 Fälle); Codex-Befund (Werte aus einem Durchgang) umgesetzt |
 | 23 | `Canvas::finish()` kopiert direkt aus dem gesperrten WIC-Bitmap statt Nullfüllen + CopyPixels | – | – | – | TOTAL 31,8 -> 25,4 ms (−20 %); Codex ohne Befund, alle Tests grün |
 | 24 | JPEG: Kodierer liest über eine eigene `IWICBitmapSource` direkt aus dem Bild statt aus einer WIC-Vollkopie | – | – | – | TOTAL JPEG 61,1 -> 44,6 ms (−27 %); Codex: 2 Überlauf-Befunde in CopyPixels umgesetzt |
+| (Messung) | Gerätekontrolle nach R24 | 56,3 | 52,8 | 52,1 | Host 59,6–60 Bilder/s; Bildzeit HUD 6,8 -> 5,3 ms, JPEG 3,2 -> 2,2 ms; Rest der Lücke liegt im Telefon (Dekodieren/Anzeige) |
+| 25 | PNG-Kodierung (Einstellungsvorschau) und `resize()` lesen ebenfalls ohne WIC-Vollkopie; `wic_from` entfernt | – | – | – | 1920×720: resize 3,3 -> 1,6 ms, PNG 19,6 -> 17,4 ms (neuer Messmodus `codec`); Codex ohne Befund, Tests grün |
