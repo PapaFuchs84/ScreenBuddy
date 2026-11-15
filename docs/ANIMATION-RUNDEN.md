@@ -42,3 +42,13 @@
 | 37 | Kantenglättungsmodus nur bei Änderung setzen (Direct2D-Zustandswechsel) | – | – | – | verworfen: A/B/A bester Lauf 45,7 / 46,0 / 45,8 ms (kein Unterschied) |
 | 38 | JPEG-Farbunterabtastung explizit 4:2:0 | – | – | – | verworfen: Ausgabe byte-gleich (66 290 Bytes) – WIC nutzt 4:2:0 bereits; Messmodus `codec` zeigt jetzt JPEG-Zeit und -Größe |
 | (Messung) | Gerätekontrolle nach R38 | 55,2 | 52,5 | 49,7 | Host 59,3–60 Bilder/s bei allen animierten Fällen, Bildzeit 4–6 ms, JPEG 2,1–2,2 ms; Rotation mit Übergängen: Host 42,9 (Seiten ohne Animation zwischen den Übergängen); Rest der Lücke liegt im Telefon |
+
+### Companion-App (Android, Messung mit Test-App `…hudtest` auf dem Redmi 8, 15 s je Fall)
+
+Basis Companion 1.1.1: UI 53,5 / 51,9 / 50,9 Bilder/s, Ruckel-Bilder 9 / 4 / 7 (HUD / KI / eigene Ansicht).
+
+| Runde | Änderung | HUD | KI | eigene Ansicht | Bemerkung |
+|---|---|---|---|---|---|
+| 39 | JPEG als Hardware-Bitmap dekodieren (kein Textur-Upload je Bild) | 38,8 | 40,9 | 39,9 | verworfen: auf dem Redmi 8 deutlich langsamer |
+| 40 | Bitmaps wiederverwenden (`inBitmap`, Pool), Freigabe erst nach abgeschlossenem Zeichenlauf | 52,2 | 50,8 | 53,7 | Ruckel-Bilder 20 -> 0 in 15 s; Bildrate gleich |
+| 41 | Bis zu 2 dekodierte Bilder puffern und je Bildschirmaktualisierung (Choreographer) eines zeigen statt nur das neueste | 59,5 | 59,1 | 58,6 | Rotation 32,6 -> 44,3; höchstens ein Bild (~16 ms) mehr Verzögerung; Codex: 5 Befunde in 2 Durchgängen umgesetzt |

@@ -14,7 +14,6 @@ import de.fuchslabs.display.protocol.Letterbox
 import de.fuchslabs.display.protocol.Protocol
 import de.fuchslabs.display.protocol.GenerationSlot
 import de.fuchslabs.display.protocol.ImageLimits
-import de.fuchslabs.display.protocol.LatestSlot
 import de.fuchslabs.display.protocol.SwipeClassifier
 import de.fuchslabs.display.protocol.SwipeDir
 import java.util.concurrent.Executors
@@ -96,17 +95,91 @@ class FrameView(ctx: Context) : View(ctx) {
     private val latest = GenerationSlot<ByteArray>()
 
     private class Decoded(val epoch: Int, val bitmap: Bitmap, val bg: Int)
-    /** Hoechstens ein dekodiertes, noch nicht angezeigtes Bild und hoechstens eine geplante Uebergabe. */
-    private val decoded = LatestSlot<Decoded>()
+    /**
+     * Hoechstens zwei dekodierte, noch nicht angezeigte Bilder. Sie werden im Takt der Bildschirmaktualisierung
+     * (Choreographer) einzeln gezeigt: Bilder, die mit Netzwerk-Schwankung dicht hintereinander ankommen, fallen so
+     * nicht mehr weg, sondern verteilen sich auf die naechsten Aktualisierungen. Zugriff nur unter synchronized(queue).
+     */
+    private val queue = ArrayDeque<Decoded>()
+    private var showScheduled = false   // nur Main-Thread
     /** Wird von [clearPending] erhoeht; Bilder aus einer frueheren Epoche werden nicht mehr angezeigt. */
     @Volatile private var epoch = 0
     /** Epoche des angezeigten Bildes; nur Main-Thread. Tippen zaehlt erst, wenn ein Bild des aktuellen Ziels sichtbar ist. */
     private var shownEpoch = -1
-    private val showDecoded = Runnable {
-        val d = decoded.take() ?: return@Runnable
-        if (d.epoch != epoch) { d.bitmap.recycle(); return@Runnable }
-        // Das bisher angezeigte Bitmap wird nicht recycelt: der letzte Zeichenvorgang kann es noch referenzieren.
+    private val showNext = android.view.Choreographer.FrameCallback {
+        showScheduled = false
+        freeDrawnOut()
+        var d: Decoded? = null
+        var more = false
+        synchronized(queue) {
+            while (queue.isNotEmpty()) {
+                val q = queue.removeFirst()
+                if (q.epoch == epoch) { d = q; break } else release(q.bitmap)
+            }
+            more = queue.isNotEmpty()
+        }
+        d?.let { show(it) }
+        if (more) scheduleShow()
+    }
+    private val scheduleShowRunnable = Runnable { scheduleShow() }
+
+    /** Nur Main-Thread. */
+    private fun scheduleShow() {
+        if (showScheduled) return
+        showScheduled = true
+        android.view.Choreographer.getInstance().postFrameCallback(showNext)
+    }
+
+    private fun show(d: Decoded) {
+        // Ein nie gezeichnetes Bitmap kann sofort zurueck. Das zuletzt gezeichnete bleibt, bis ein ersetzender
+        // Zeichenlauf abgeschlossen ist (siehe onDraw/freeDrawnOut).
+        val old = bmp
         bmp = d.bitmap; bgColor = d.bg or Color.BLACK; shownEpoch = d.epoch; invalidate()
+        if (old != null && old !== lastDrawn) release(old)
+    }
+
+    /**
+     * Gibt Bitmaps frei, die ein frueherer Zeichenlauf abgeloest hat. Laeuft im Choreographer-Takt, also erst
+     * nachdem der vorherige Zeichenlauf samt Abgleich mit dem Render-Thread fertig ist.
+     */
+    // Eigener Aufraeum-Takt: gibt abgeloeste Bitmaps auch frei, wenn danach kein weiteres Bild mehr kommt.
+    // Wird von clearPending() bewusst nicht entfernt.
+    private var cleanupScheduled = false   // nur Main-Thread
+    private val cleanup = android.view.Choreographer.FrameCallback { cleanupScheduled = false; freeDrawnOut() }
+    private fun scheduleCleanup() {
+        if (cleanupScheduled) return
+        cleanupScheduled = true
+        android.view.Choreographer.getInstance().postFrameCallback(cleanup)
+    }
+
+    private fun freeDrawnOut() {
+        if (drawnOut.isEmpty()) return
+        for (b in drawnOut) if (b !== bmp && b !== lastDrawn) release(b)
+        drawnOut.clear()
+    }
+
+    // Bitmaps werden wiederverwendet (inBitmap) statt je Bild neu angelegt: bei 60 Bildern/s sind das sonst
+    // bis zu 4–8 MB je Bild fuer die Speicherbereinigung, die auf schwachen Geraeten sichtbar ruckelt.
+    private val pool = ArrayDeque<Bitmap>()       // freie, veraenderbare Bitmaps; Zugriff nur unter synchronized(pool)
+    private val drawnOut = ArrayList<Bitmap>()    // von einem Zeichenlauf abgeloest, Freigabe im naechsten Takt; Main-Thread
+    private var lastDrawn: Bitmap? = null         // nur Main-Thread
+
+    private fun obtain(w: Int, h: Int): Bitmap? {
+        val stale = ArrayList<Bitmap>()
+        val hit = synchronized(pool) {
+            // Andere Groessen (z. B. nach Drehung oder verspaeteter Rueckgabe) bei jedem Zugriff verdraengen.
+            val it = pool.iterator()
+            while (it.hasNext()) { val b = it.next(); if (b.width != w || b.height != h || !b.isMutable || b.isRecycled) { it.remove(); stale.add(b) } }
+            pool.removeFirstOrNull()
+        }
+        stale.forEach { it.recycle() }
+        return hit
+    }
+
+    private fun release(b: Bitmap) {
+        if (b.isRecycled) return
+        if (b.isMutable) synchronized(pool) { if (pool.size < 3) { pool.addLast(b); return } }
+        b.recycle()
     }
 
     /**
@@ -126,8 +199,10 @@ class FrameView(ctx: Context) : View(ctx) {
     fun clearPending() {
         epoch++ // zuerst: ein gerade laufender Decoder liefert danach nichts mehr aus
         latest.advance(epoch) // wartendes Frame der alten Epoche verwerfen
-        removeCallbacks(showDecoded)
-        decoded.clear { it.bitmap.recycle() } // nie angezeigt, daher gefahrlos
+        removeCallbacks(scheduleShowRunnable)
+        if (showScheduled) { android.view.Choreographer.getInstance().removeFrameCallback(showNext); showScheduled = false }
+        val dropped = synchronized(queue) { val l = queue.toList(); queue.clear(); l }
+        dropped.forEach { release(it.bitmap) } // nie angezeigt, daher gefahrlos wiederverwendbar
     }
 
     private fun decodeLatest() {
@@ -139,10 +214,18 @@ class FrameView(ctx: Context) : View(ctx) {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, bounds)
             if (!ImageLimits.dimsOk(bounds.outWidth, bounds.outHeight)) return
-            val b = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size) ?: return
+            val reuse = obtain(bounds.outWidth, bounds.outHeight)
+            val opts = BitmapFactory.Options().apply { inMutable = true; inBitmap = reuse }
+            val b = (try { BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, opts) } catch (_: IllegalArgumentException) { null })
+                ?: run { reuse?.let { release(it) }; BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, BitmapFactory.Options().apply { inMutable = true }) } ?: return
             val bg = b.getPixel(0, 0) // Letterbox-Hintergrund = Randfarbe des Bildes
-            // Ein ueberholtes, nie angezeigtes Bitmap sofort freigeben statt je Bild ein Runnable aufzustauen.
-            if (decoded.offer(Decoded(e, b, bg)) { it.bitmap.recycle() }) post(showDecoded)
+            // Hoechstens zwei warten; ein drittes verdraengt das aelteste (nie angezeigt, daher gefahrlos zurueck).
+            val drop = synchronized(queue) {
+                queue.addLast(Decoded(e, b, bg))
+                if (queue.size > 2) queue.removeFirst() else null
+            }
+            drop?.let { release(it.bitmap) }
+            post(scheduleShowRunnable)
         } catch (_: Exception) {} catch (_: OutOfMemoryError) {}
     }
 
@@ -153,6 +236,10 @@ class FrameView(ctx: Context) : View(ctx) {
 
     override fun onDraw(c: Canvas) {
         val b = bmp ?: return
+        if (lastDrawn !== b) {
+            lastDrawn?.let { drawnOut.add(it); scheduleCleanup() }
+            lastDrawn = b
+        }
         c.drawColor(bgColor)
         val lb = Letterbox.compute(contentWidth, contentHeight, b.width.coerceAtLeast(1), b.height.coerceAtLeast(1))
         val ox = insL.toFloat(); val oy = insT.toFloat()
