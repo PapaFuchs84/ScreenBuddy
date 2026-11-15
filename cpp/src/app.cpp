@@ -860,6 +860,17 @@ std::pair<int, int> App::size() const {
 }
 
 std::optional<Image> App::last_frame(bool companion) {
+    // The shared Companion view (main or secondary output) and the first device both publish into the
+    // Companion preview. Since page transitions animate the shared view for a moment, it could overwrite
+    // the device frame. The Companion preview follows the first connected device, as render_devices intends.
+    if (companion && companion_ && (companion_output_ || out_.get() == companion_)) {
+        const auto ids = companion_->client_ids();
+        if (!ids.empty()) {
+            std::lock_guard dl(dev_mu_);
+            if (auto it = devices_.find(ids.front()); it != devices_.end() && it->second && !it->second->frame.empty())
+                return it->second->frame;
+        }
+    }
     std::lock_guard lk(mu_);
     return companion && companion_output_ ? companion_frame_ : last_frame_;
 }
