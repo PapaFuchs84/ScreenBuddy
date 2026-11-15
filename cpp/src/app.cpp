@@ -1671,7 +1671,8 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     // Page transition (monitor and Companion; the serial panel keeps instant cuts because
     // every intermediate frame would cost a multi-second transfer there). Also used when the
     // Game-Mode view comes in without the logo intro.
-    const auto apply_transition = [&](bool switched) {
+    // locked: the caller already holds render::mutex() (the theme is only read under that lock).
+    const auto apply_transition = [&](bool switched, bool locked = false) {
         const std::string kind = s(dp_, "page_transition", "auto");
         const bool smooth_output = phone || (out_ && out_->is_monitor());
         const bool same_size = !view.previous_frame.empty() && view.previous_frame.w == out.frame.w && view.previous_frame.h == out.frame.h;
@@ -1688,7 +1689,9 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                 // Default: HUD scan in the Hardware-HUD colours (design, neon or custom).
                 const auto style = kind == "slide" ? render::PageTransition::Slide
                                  : kind == "fade" ? render::PageTransition::Fade : render::PageTransition::Hud;
-                const auto palette = render::hud_palette(cfg_["system"], render::theme());
+                render::HudPalette palette;
+                if (locked) palette = render::hud_palette(cfg_["system"], render::theme());
+                else { std::lock_guard theme_lock(render::mutex()); palette = render::hud_palette(cfg_["system"], render::theme()); }
                 out.frame = render::page_transition(view.transition_from, out.frame, progress, style, view.transition_dir,
                                                     palette.primary, palette.secondary,
                                                     render::transition_shade(palette.bg, palette.text));
@@ -1702,7 +1705,8 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     const auto& game_cfg=cfg_["game_mode"];
     const auto target=s(game_cfg,"target_display");
     const bool primary_target=(target=="primary" || (!phone && target==primary_layout_id()));
-    const bool selected=primary_target?(&view==&primary_view_ || (phone && out_.get()==companion_ && !companion_output_)):(phone && !id.empty() && id==target);
+    // "network" (offered in the target list) means every Companion view; otherwise one paired device by ID.
+    const bool selected=primary_target?(&view==&primary_view_ || (phone && out_.get()==companion_ && !companion_output_)):(phone && (target=="network" || (!id.empty() && id==target)));
     const auto key=s(game_cfg,"view");
     auto document=game_snapshot.game && selected && key.starts_with("custom:")?custom::cached_view(cfg_path_.parent_path()/L"views",key.substr(7)):std::nullopt;
     auto content_frame=[&](const Image& source){Image content(area.w,area.h,Color{});if(source.w!=size.first || source.h!=size.second)return content;
@@ -1732,7 +1736,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             if(view.game_intro.active(now)) {auto content=view.game_intro.draw(content_frame(out.frame),game_snapshot.logo,game_snapshot.game->name,now,
                                                  game::intro_colors(render::hud_palette(cfg_["system"],render::theme())));
                 out.frame=device::compose_view(std::move(content),size,area,render::theme().bg);out.taps.clear();view.animating=true;}
-            else apply_transition(changed);   // without the intro the game view sweeps in like a page
+            else apply_transition(changed, true);   // without the intro the game view sweeps in like a page (render lock held)
             view.next_deadline=std::min(view.next_deadline,view.animating?paced_deadline(view,now):now+1.);
             view.current={key};view.size=size;view.area=area;out.skipped=false;out.switched=changed;
             out.navigation={{"index",0},{"total",1},{"visible",1},{"current",view.current},{"can_step",false},{"game_mode",true}};
