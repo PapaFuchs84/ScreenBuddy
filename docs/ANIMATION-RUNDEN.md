@@ -28,3 +28,4 @@
 | 24 | JPEG: Kodierer liest über eine eigene `IWICBitmapSource` direkt aus dem Bild statt aus einer WIC-Vollkopie | – | – | – | TOTAL JPEG 61,1 -> 44,6 ms (−27 %); Codex: 2 Überlauf-Befunde in CopyPixels umgesetzt |
 | (Messung) | Gerätekontrolle nach R24 | 56,3 | 52,8 | 52,1 | Host 59,6–60 Bilder/s; Bildzeit HUD 6,8 -> 5,3 ms, JPEG 3,2 -> 2,2 ms; Rest der Lücke liegt im Telefon (Dekodieren/Anzeige) |
 | 25 | PNG-Kodierung (Einstellungsvorschau) und `resize()` lesen ebenfalls ohne WIC-Vollkopie; `wic_from` entfernt | – | – | – | 1920×720: resize 3,3 -> 1,6 ms, PNG 19,6 -> 17,4 ms (neuer Messmodus `codec`); Codex ohne Befund, Tests grün |
+| 26 | Übersetzungen (englische Oberfläche) je Thread merken statt jede Zahl erneut durch alle Regex-Muster zu schicken | – | – | – | Englisch TOTAL 27,1 -> 22,7 ms (−16 %), 480×320 KI 0,88 -> 0,44 ms; Deutsch unverändert; Codex ohne Befund, Tests grün |

@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);   // less noise from background work
     gfx_init();
-    i18n::set_lang("de");
+    i18n::set_lang(std::getenv("FL_BENCH_LANG") ? std::getenv("FL_BENCH_LANG") : "de");   // FL_BENCH_LANG=en measures the English UI
     if (argc > 2 && std::string(argv[1]) == "transition") {
         // Writes HUD-scan/slide/fade frames System -> AI (1520x720) as PNGs into argv[2] and times them.
         auto sys = render::samples::system(); auto ai = render::samples::ai_status();

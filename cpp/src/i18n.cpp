@@ -271,7 +271,18 @@ static std::string translate(const std::string& text) {
     return text;
 }
 
-std::string tr(const std::string& text) { return g_lang == "de" ? text : translate(text); }
+std::string tr(const std::string& text) {
+    if (g_lang == "de") return text;
+    // Pages draw the same strings every frame; values not in the dictionary would otherwise run
+    // through all regex patterns again each time. translate() is deterministic, so a bounded
+    // per-thread memo is exact.
+    thread_local std::unordered_map<std::string, std::string> memo;
+    if (auto it = memo.find(text); it != memo.end()) return it->second;
+    std::string out = translate(text);
+    if (memo.size() >= 4096) memo.clear();
+    memo.emplace(text, out);
+    return out;
+}
 std::string to_english(const std::string& text) { return translate(text); }
 
 }  // namespace fl::i18n
