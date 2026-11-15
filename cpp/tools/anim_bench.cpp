@@ -45,9 +45,13 @@ int main(int argc, char** argv) {
     gfx_init();
     i18n::set_lang(std::getenv("FL_BENCH_LANG") ? std::getenv("FL_BENCH_LANG") : "de");   // FL_BENCH_LANG=en measures the English UI
     if (argc > 2 && std::string(argv[1]) == "transition") {
-        // Writes HUD-scan/slide/fade frames System -> AI (1520x720) as PNGs into argv[2] and times them.
+        // Writes HUD-scan/slide/fade frames System -> AI as PNGs into argv[2] and times them.
+        // Optional: FL_BENCH_THEME (e.g. "dunkel"), FL_BENCH_SIZE ("720x1520" for portrait).
+        if (const char* theme = std::getenv("FL_BENCH_THEME")) render::apply_theme({{"theme", theme}});
+        int tw = 1520, th = 720;
+        if (const char* size = std::getenv("FL_BENCH_SIZE")) std::sscanf(size, "%dx%d", &tw, &th);
         auto sys = render::samples::system(); auto ai = render::samples::ai_status();
-        render::SysRenderer sysR(1520, 720, "System", "bit"); render::AiRenderer aiR(1520, 720);
+        render::SysRenderer sysR(tw, th, "System", "bit"); render::AiRenderer aiR(tw, th);
         const Image a = sysR.render(sys, render::samples::CLOCK), b = aiR.render(ai, 1.0, render::samples::CLOCK);
         const auto design = render::hud_palette(config::defaults()["system"], render::theme());
         const auto neon = render::hud_neon_palette();
@@ -63,7 +67,7 @@ int main(int argc, char** argv) {
                 if (i % 2 == 1) { const auto png = encode_png(f); std::ofstream(std::string(argv[2]) + "/" + name + "-" + std::to_string(i) + ".png", std::ios::binary).write(png.data(), png.size()); }
             }
             const Stat s = stat(ms);
-            std::printf("transition %-6s avg %.2f ms p95 %.2f ms (1520x720)\n", name, s.avg, s.p95);
+            std::printf("transition %-6s avg %.2f ms p95 %.2f ms (%dx%d)\n", name, s.avg, s.p95, tw, th);
         }
         CoUninitialize();
         return 0;
