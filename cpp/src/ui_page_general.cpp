@@ -122,6 +122,10 @@ public:
         form_.number(*animation, "display", "animation_fps", T(L"Animationsrate (Bilder/s)", L"Animation rate (frames/s)"),
             T(L"5 bis 60 Bilder/s. Höhere Werte benötigen mehr Rechenleistung und bei Companion mehr Netzwerkbandbreite. Die erreichbare Rate hängt von Gerät und Verbindung ab.",
               L"5 to 60 frames/s. Higher values use more processing power and, with Companion, more network bandwidth. The achievable rate depends on the device and connection."), 5, 60);
+        form_.segment(*animation, "display", "page_transition", T(L"Seitenübergang", L"Page transition"),
+            T(L"Automatisch: Wischen und Tippen schieben die Seite, der automatische Wechsel blendet über. Gilt für Bildschirm und Companion; das USB-Display wechselt ohne Übergang.",
+              L"Automatic: swipes and taps slide the page, automatic rotation crossfades. Applies to monitors and Companion; the USB display switches without a transition."),
+            {"auto", "fade", "slide", "none"}, {T(L"Automatisch", L"Automatic"), T(L"Überblenden", L"Fade"), T(L"Schieben", L"Slide"), T(L"Aus", L"Off")});
         Card* keepout = root.add<Card>(T(L"Sperrzone", L"Keepout"),
             T(L"Pixel am physischen Rand (USB: natives Hochformat). Monitor folgt Windows; keine Software-Drehung. Nach Speichern zeigt die Vorschau den Rand.",
               L"Pixels at the physical edge (USB: native portrait). Monitor follows Windows; no software rotation. After saving, the preview shows the border."));

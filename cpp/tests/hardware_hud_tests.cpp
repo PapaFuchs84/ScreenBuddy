@@ -205,6 +205,26 @@ int main(int argc,char** argv) {
         if(!out.empty()) for(const auto& [name,palette]:std::vector<std::pair<std::string,render::HudPalette>>{{"theme-dark",t},{"theme-light",lt},{"custom",c}})
             save(out/("sample-colours-"+name+".png"),render::hardware_hud(1200,360,snap,9,8,palette));
     }
+    // Page transitions: endpoints exact, fade blends, slide moves in the navigation direction.
+    {
+        Image a(40,10,Color{200,0,0}),b2(40,10,Color{0,0,200});
+        CHECK(cfg["display"]["page_transition"]=="auto");
+        for(const char* kind:{"auto","fade","slide","none"}) CHECK(config::merge(cfg,{{"display",{{"page_transition",kind}}}})["display"]["page_transition"]==kind);
+        bool rejected=false;try{(void)config::merge(cfg,{{"display",{{"page_transition","spin"}}}});}catch(const std::exception&){rejected=true;}
+        CHECK(rejected);
+        for(bool slide:{false,true}) for(int dir:{1,-1}) {
+            CHECK(render::page_transition(a,b2,0,slide,dir).px==a.px);
+            CHECK(render::page_transition(a,b2,1,slide,dir).px==b2.px);
+        }
+        const auto mid=render::page_transition(a,b2,.5,false,1);
+        const uint32_t p=mid.px[0];CHECK(((p>>16)&255)>90&&((p>>16)&255)<110&&(p&255)>90&&(p&255)<110);
+        const auto right=render::page_transition(a,b2,.5,true,1),left=render::page_transition(a,b2,.5,true,-1);
+        CHECK(right.px[0]==a.px[0]&&right.px[39]==b2.px[0]);   // new page enters from the right
+        CHECK(left.px[0]==b2.px[0]&&left.px[39]==a.px[0]);     // previous page enters from the left
+        Image c(30,10,Color{1,2,3});CHECK(render::page_transition(a,c,.5,false,1).px==c.px);   // size change: no blend
+        double last=-1;bool monotonic=true;for(int i=0;i<=20;++i){const auto f=render::page_transition(a,b2,i/20.,false,1);const double v=f.px[0]&255;monotonic=monotonic&&v>=last;last=v;}
+        CHECK(monotonic);
+    }
     std::printf("Hardware HUD: %d passed, %d failed\n",passed,failed);CoUninitialize();return failed?1:0;
 }
 

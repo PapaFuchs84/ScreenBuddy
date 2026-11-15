@@ -220,6 +220,42 @@ Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Ima
     return img;
 }
 
+Image page_transition(const Image& from, const Image& to, double progress, bool slide, int direction) {
+    if (from.w != to.w || from.h != to.h || to.empty()) return to;
+    const double p = std::clamp(progress, 0.0, 1.0);
+    const double eased = p < .5 ? 4 * p * p * p : 1 - std::pow(-2 * p + 2, 3) / 2;   // ease-in-out cubic
+    Image out(to.w, to.h);
+    const size_t w = size_t(to.w);
+    if (slide) {
+        const size_t d = std::min(w, size_t(std::lround(eased * to.w)));   // pixels the old page has moved
+        for (int y = 0; y < to.h; ++y) {
+            const uint32_t* a = &from.px[size_t(y) * w];
+            const uint32_t* b = &to.px[size_t(y) * w];
+            uint32_t* o = &out.px[size_t(y) * w];
+            if (direction >= 0) {   // old page leaves to the left, new page enters from the right
+                std::copy(a + d, a + w, o);
+                std::copy(b, b + d, o + (w - d));
+            } else {                // old page leaves to the right, new page enters from the left
+                std::copy(b + (w - d), b + w, o);
+                std::copy(a, a + (w - d), o + d);
+            }
+        }
+        return out;
+    }
+    const uint32_t t = uint32_t(std::lround(eased * 256)), u = 256 - t;
+    const uint32_t* a = from.px.data();
+    const uint32_t* b = to.px.data();
+    uint32_t* o = out.px.data();
+    const size_t n = to.px.size();
+    for (size_t i = 0; i < n; ++i) {
+        const uint32_t x = a[i], y = b[i];
+        const uint32_t rb = (((x & 0x00FF00FFu) * u + (y & 0x00FF00FFu) * t) >> 8) & 0x00FF00FFu;
+        const uint32_t ag = ((((x >> 8) & 0x00FF00FFu) * u + ((y >> 8) & 0x00FF00FFu) * t)) & 0xFF00FF00u;
+        o[i] = rb | ag;
+    }
+    return out;
+}
+
 float scale_for(int w, int h) {
     return w >= h ? std::min(w / 480.f, h / 320.f) : std::min(w / 320.f, h / 480.f);
 }

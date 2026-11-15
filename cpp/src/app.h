@@ -125,7 +125,9 @@ public:
                                     std::pair<int,int> dimensions, std::string& error);
     std::optional<Image> custom_preview(const custom::View& view, const std::string& device, std::pair<int,int> dimensions);
     std::vector<custom::Tile> custom_palette();
-    void render_primary_for_test() { render_view(false, true); }   // Testnaht: ein synchroner Zeichendurchlauf ohne Anzeige-Thread
+    // Testnaht: ein synchroner Zeichendurchlauf ohne Anzeige-Thread. Ein ausdrücklicher Testaufruf
+    // zeichnet sofort, auch wenn die Animationsrate eine Datenmeldung sonst kurz zurückstellen würde.
+    void render_primary_for_test() { primary_view_.last_render = -plugins::schedule::never; render_view(false, true); }
     spotify::SpotifyClient* spotify() { return spotify_.get(); }   // nullptr = Seite aus oder keine Client-ID
     NetworkDisplay* companion() { return companion_; }  // Companion-App (Android); nullptr = aus
 
@@ -134,6 +136,11 @@ private:
     struct ViewState {
         game::Intro game_intro;
         Image previous_frame;
+        // Page transition: the outgoing frame and when/how the change started (start < 0: none).
+        Image transition_from;
+        double transition_start = -1;
+        int transition_dir = 1;        // +1 next page (slides left), -1 previous page
+        bool transition_manual = false; // swipe/tap navigation (slides) vs automatic rotation (fades)
         uint64_t game_generation=0;
         bool game_active=false;
         double game_entered=0, saved_switched=0;

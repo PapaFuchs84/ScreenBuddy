@@ -1713,7 +1713,9 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     // Data notifications (e.g. audio levels) mark everything dirty. An animating
     // view still renders at most at the selected rate; navigation and resizes
     // are not delayed.
-    if (dirty && view.animating && view.step == 0 && view.size == size && view.area == area) {
+    bool navigation_pending = false;
+    { std::lock_guard lk(view.next_mu); navigation_pending = !view.page_request.empty() || !view.next_requests.empty(); }
+    if (dirty && !navigation_pending && view.animating && view.step == 0 && view.size == size && view.area == area) {
         const double next_frame = view.last_render + 1.0 / animation_fps(cfg_);
         if (now < next_frame) { dirty = false; view.next_deadline = std::min(view.next_deadline, next_frame); }
     }
@@ -1774,6 +1776,8 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             if (due || step) {
                 if (total > cols) {
                     out.switched = true;
+                    view.transition_dir = step < 0 ? -1 : 1;
+                    view.transition_manual = step != 0;
                     view.page = (((view.page + (step ? step : 1) * cols) % total) + total) % total;
                 }
                 view.switched = mono();
@@ -1802,6 +1806,28 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             t_drawn = mono();
             out.frame = std::move(f); view.current = keys; out.taps = std::move(targets);
             out.navigation = {{"index", start}, {"total", total}, {"visible", cols}, {"current", keys}, {"can_step", total > cols}};
+        }
+    }
+    // Page transition (monitor and Companion; the serial panel keeps instant cuts because
+    // every intermediate frame would cost a multi-second transfer there).
+    {
+        const std::string kind = s(dp_, "page_transition", "auto");
+        const bool smooth_output = phone || (out_ && out_->is_monitor());
+        const bool same_size = !view.previous_frame.empty() && view.previous_frame.w == out.frame.w && view.previous_frame.h == out.frame.h;
+        if (out.switched && kind != "none" && smooth_output && same_size) {
+            view.transition_from = view.previous_frame;
+            view.transition_start = now;
+        }
+        if (view.transition_start >= 0) {
+            const double progress = (now - view.transition_start) / render::PAGE_TRANSITION_SECONDS;
+            if (progress >= 1 || view.transition_from.w != out.frame.w || view.transition_from.h != out.frame.h) {
+                view.transition_from = {};
+                view.transition_start = -1;
+            } else {
+                const bool slide = kind == "slide" || (kind == "auto" && view.transition_manual);
+                out.frame = render::page_transition(view.transition_from, out.frame, progress, slide, view.transition_dir);
+                view.animating = true;
+            }
         }
     }
     const bool hud_visible = b(cfg_["system"], "hardware_hud") &&

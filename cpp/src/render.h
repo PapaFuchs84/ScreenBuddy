@@ -52,6 +52,10 @@ struct BuiltinDrawOut { Image image; std::vector<BuiltinTarget> targets; };
 // Breite Leisten (z. B. 1920 × 720) zeigen mehrere Seiten nebeneinander. Rückgabe: je Kachel x, y, Breite, Höhe.
 std::vector<Box> tile_layout(int w, int h, int pages = 99);
 Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Image>& frames);
+// Page change animation: progress 0..1 (eased inside); slide moves both pages horizontally
+// (direction +1: new page enters from the right), otherwise a crossfade. Same-size frames.
+inline constexpr double PAGE_TRANSITION_SECONDS = 0.35;
+Image page_transition(const Image& from, const Image& to, double progress, bool slide, int direction);
 float scale_for(int w, int h);
 
 extern const std::map<std::string, int> STATUS_ORDER;
