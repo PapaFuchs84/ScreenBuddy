@@ -38,3 +38,6 @@
 | 33 | `blend_rect` (Intro-Ausblendung, Plugin-Überblendungen) ebenfalls über SSE2 | – | – | – | verworfen: Intro 1520×720 3,00–3,07 ms und Pad 10,6–10,7 ms unverändert (gepackte Variante aus R10 reicht) |
 | 34 | Spiel-Intro: abgedunkelte Seite zeilenweise per SSE2, transparente Overlay-Viererblöcke übersprungen | – | – | – | verworfen: Intro 1520×720 2,95–3,10 ms, Pad 10,6–10,7 ms unverändert (Kosten liegen im Direct2D-Rastern) |
 | 35 | Game-Mode-Cockpit gestalterisch an den HUD-Stil angeglichen: Eckklammern je Kachel, kräftiger auf der FPS-Hauptkachel; kleine Kacheln ohne | – | – | – | Kosten im Rauschen (Cockpit 1520×720 p95 3,9 ms); Codex: 2 Befunde umgesetzt (kleine Kacheln, Benchmark-Design) |
+| 36 | Schriftsuche je Thread vor der globalen, gesperrten Map | – | – | – | verworfen: A/B 45,7 -> 46,5 ms (im Rauschen) |
+| 37 | Kantenglättungsmodus nur bei Änderung setzen (Direct2D-Zustandswechsel) | – | – | – | verworfen: A/B/A bester Lauf 45,7 / 46,0 / 45,8 ms (kein Unterschied) |
+| 38 | JPEG-Farbunterabtastung explizit 4:2:0 | – | – | – | verworfen: Ausgabe byte-gleich (66 290 Bytes) – WIC nutzt 4:2:0 bereits; Messmodus `codec` zeigt jetzt JPEG-Zeit und -Größe |

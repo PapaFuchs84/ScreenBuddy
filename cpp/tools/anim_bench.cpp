@@ -79,6 +79,9 @@ int main(int argc, char** argv) {
         const Image frame = aiR.render(render::samples::ai_status(), 1.0, render::samples::CLOCK);
         const auto best = [](auto&& fn) { double b = 1e9; for (int pass = 0; pass < 3; ++pass) { auto t0 = clock_type::now(); for (int i = 0; i < 20; ++i) fn(); b = std::min(b, std::chrono::duration<double, std::milli>(clock_type::now() - t0).count() / 20); } return b; };
         const double png = best([&] { (void)encode_png(frame); });
+        const double jpg = best([&] { (void)encode_jpeg(frame, 0.8f); });
+        const size_t jpeg_bytes = encode_jpeg(frame, 0.8f).size();
+        std::printf("codec jpeg %.2f ms, %zu bytes (1920x720)\n", jpg, jpeg_bytes);
         const double down = best([&] { (void)resize(frame, 960, 360); });
         std::printf("codec png %.2f ms, resize %.2f ms (1920x720)\n", png, down);
         CoUninitialize();
