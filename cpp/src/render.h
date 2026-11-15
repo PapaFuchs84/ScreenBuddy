@@ -52,6 +52,7 @@ struct BuiltinDrawOut { Image image; std::vector<BuiltinTarget> targets; };
 // Breite Leisten (z. B. 1920 × 720) zeigen mehrere Seiten nebeneinander. Rückgabe: je Kachel x, y, Breite, Höhe.
 std::vector<Box> tile_layout(int w, int h, int pages = 99);
 Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Image>& frames);
+Image compose(int w, int h, const std::vector<Box>& boxes, std::vector<Image>&& frames);
 // Page change animation: progress 0..1 (eased inside). Same-size frames; progress <= 0 returns
 // `from`, >= 1 returns `to` exactly. Direction +1: the new page comes from the right.
 //  - Hud:   HUD scan in the Hardware-HUD style: a glowing scan line (accent) sweeps across and

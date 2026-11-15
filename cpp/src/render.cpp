@@ -220,6 +220,10 @@ Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Ima
     for (size_t i = 0; i < frames.size() && i < boxes.size(); ++i) paste(img, frames[i], boxes[i].x, boxes[i].y);
     return img;
 }
+Image compose(int w, int h, const std::vector<Box>& boxes, std::vector<Image>&& frames) {
+    if (frames.size() == 1) return std::move(frames[0]);   // single tile: no 4-16 MB copy per frame
+    return compose(w, h, boxes, static_cast<const std::vector<Image>&>(frames));
+}
 
 Color transition_shade(Color hud_bg, Color hud_text) {
     const Color black{0, 0, 0};

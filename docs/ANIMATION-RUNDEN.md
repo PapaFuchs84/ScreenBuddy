@@ -12,3 +12,7 @@
 | 9 | Game-Intro im HUD-Stil (Raster, Klammern, Scanstrahl, Ladebalken), Logo-Zoom gerastert/gecacht, HUD-Elemente auf transparenter Fläche | – | – | – | Intro Pad 2534×1574: 21,2 -> 13,7 ms (p95 42,8 -> 16,7); 1520×720: 6,1 -> 3,8 ms |
 | 10 | `blend_rect` mit gepackten Kanälen (bit-identisch) | – | – | – | Intro-Ausblendung Pad p95 27 -> 19 ms; wirkt auch bei Plugin-Überblendungen |
 | 11 | Spielansicht ohne Intro und Rückkehr aus dem Spiel mit Seitenübergang; Cockpit-Logo je Thread gecacht | – | – | – | vorher harter Schnitt; Cockpit 1520×720 15 ms, Pad 79 ms (Basis für R12) |
+| 12 | `CanvasWindow`: Kacheln eigener Ansichten zeichnen nur ihren Ausschnitt statt einer ganzen Seite (eingebaute Quellen; Plugins unverändert) | 52,3 | 51,8 | 52,5 | Redmi eigene Ansicht Zeichnen 19,0 -> 4,4 ms; Cockpit p95 1520×720 13,3 -> 6,9 ms, Pad 64 -> 14 ms (Messung R12–R14 gemeinsam) |
+| 13 | Companion-Verbindung wird bei neuem Bild geweckt (statt 8-ms-Abfrage) | (s. 12) | | | gleichmäßigere Abstände, bis 8 ms weniger Verzögerung |
+| 14 | Einzelkachel und Vollbildfläche ohne Bildkopie (`compose`/`compose_view` mit Verschieben), Gerätebild verschoben statt kopiert | (s. 12) | | | 2–3 Kopien à 4–16 MB weniger je Bild |
+| 15 | JPEG: BGR selbst packen statt WIC-Konverter | – | – | – | verworfen: 1920×720 3,7 -> 3,8 ms, Pad 11,3 -> 11,4 ms (Kodierer dominiert) |

@@ -367,7 +367,10 @@ void Server::accept_loop() {
     }
 }
 
-void Server::frame_changed() { ++seq_; }
+void Server::frame_changed() {
+    { std::lock_guard lk(wake_mu_); ++seq_; }
+    wake_cv_.notify_all();
+}
 
 json Server::clients() {
     json arr = json::array();
@@ -532,7 +535,7 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
     };
     bool authed = false;
     FrameGate gate;
-    uint64_t sent_version = 0;
+    uint64_t sent_version = 0, observed_seq = 0;
     bool open = true, more = false;
     while (open && !stop_ && !c->kick) {
         // Nur warten, wenn weder OpenSSL noch der Socket (Lese-Budget ausgeschöpft) sofort etwas liefern.
@@ -543,7 +546,17 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
         }
         const int poll_ms = animation_fps >= 5 && animation_fps <= MAX_ANIMATION_FPS
             ? std::min(50, std::max(5, 500 / animation_fps)) : 50;
-        if (!more && SSL_pending(ssl) == 0) wait_sock(s, false, poll_ms);
+        if (!more && SSL_pending(ssl) == 0) {
+            if (authed && animation_fps >= 5) {
+                // Animation: a new frame wakes the connection at once (up to 8 ms earlier than the poll
+                // tick at 60/s, and evenly paced). Incoming data is checked first and at least every poll_ms.
+                if (!wait_sock(s, false, 0)) {
+                    std::unique_lock lk(wake_mu_);
+                    wake_cv_.wait_for(lk, std::chrono::milliseconds(poll_ms),
+                                      [&] { return seq_ != observed_seq || stop_ || c->kick; });
+                }
+            } else wait_sock(s, false, poll_ms);
+        }
         // Lesen mit Budget: nie mehr als READ_BUDGET je Durchlauf und nie mehr als MAX_BUFFERED ungeparst
         bool closed = false;
         size_t got = 0;
@@ -725,6 +738,7 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
             last_ping = t;
         }
         uint64_t seq = seq_;
+        observed_seq = seq;
         const bool per_device = independent() && hooks_.encode_frame_for;
         // Publication may have switched from animation to a static page while waiting.
         // Poll pacing may be stale for one loop, but the send gate must use fresh metadata.

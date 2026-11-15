@@ -35,6 +35,7 @@ Area usable(std::pair<int, int> frame, const Profile& profile);
 std::optional<std::pair<int, int>> to_content(const Area& area, int x, int y);
 Image place(const Image& content, std::pair<int, int> frame, const Area& area, Color bg);
 Image compose_view(const Image& content, std::pair<int, int> frame, const Area& area, Color bg);
+Image compose_view(Image&& content, std::pair<int, int> frame, const Area& area, Color bg);
 void shift_tiles(std::vector<touch::Tile>& tiles, const Area& area);
 // Ohne Ziel wird step genutzt. Ein Randtipp wird vollständig verbraucht.
 struct Tap { bool blocked; int x = 0, y = 0, step = 0; };

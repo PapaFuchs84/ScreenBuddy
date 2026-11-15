@@ -388,9 +388,17 @@ DrawOut draw_out(const View& v,const std::string& device,int w,int h,const DrawT
         const auto target_plan=plugins::zones::plan({8,36,lw-16,lh-54},tile_layout(t,l),{},6);
         if(target_plan.zones.empty()) continue;
         const auto a=target_plan.zones.front().area;
-        auto drawn=source(t,l,w,h);if(!drawn || drawn->image.w!=w || drawn->image.h!=h) continue;auto image=&drawn->image;
         int x0=std::clamp(int(std::round(a.x*s)),0,w),x1=std::clamp(int(std::round((a.x+a.width)*s)),0,w);
         int y0=std::clamp(int(std::round(a.y*s)),0,h),y1=std::clamp(int(std::round((a.y+a.height)*s)),0,h);
+        // Built-in sources draw a whole page; only the tile is kept. A canvas window lets the page
+        // canvas render just the tile (same pixels), instead of a full page per tile.
+        std::optional<TileDraw> drawn;bool windowed=false;
+        if(!plugin && x1>x0 && y1>y0) {
+            CanvasWindow window(w,h,x0,y0,x1-x0,y1-y0);
+            drawn=source(t,l,w,h);
+            windowed=window.used() && drawn && drawn->image.w==x1-x0 && drawn->image.h==y1-y0;
+        } else drawn=source(t,l,w,h);
+        if(!drawn || (!windowed && (drawn->image.w!=w || drawn->image.h!=h))) continue;auto image=&drawn->image;
         // Use precisely the composition transform for all source hit rectangles.
         const int sx0=plugin?std::clamp(int(std::round(source_area.x*s)),0,w):x0;
         const int sy0=plugin?std::clamp(int(std::round(source_area.y*s)),0,h):y0;
@@ -409,7 +417,10 @@ DrawOut draw_out(const View& v,const std::string& device,int w,int h,const DrawT
             for(auto target:drawn->targets) {target.rect_px=map(target.rect_px);if(target.rect_px.w>0 && target.rect_px.h>0)out.targets.push_back(std::move(target));}
             for(auto target:drawn->plugin) {target.rect_px=map(target.rect_px);if(target.rect_px.w>0 && target.rect_px.h>0) {target.block=v.id+"/"+t.zone.id+"/"+target.block;out.plugin.push_back(std::move(target));}}
         }
-        if(!plugin) {
+        if(windowed) {
+            const int tw=x1-x0;
+            for(int y=y0;y<y1;++y) std::copy_n(image->px.begin()+size_t(y-y0)*tw,tw,result.px.begin()+size_t(y)*w+x0);
+        } else if(!plugin) {
             for(int y=y0;y<y1;++y) std::copy(image->px.begin()+size_t(y)*w+x0,image->px.begin()+size_t(y)*w+x1,result.px.begin()+size_t(y)*w+x0);
         } else {
             const int sx0=std::clamp(int(std::round(source_area.x*s)),0,w),sy0=std::clamp(int(std::round(source_area.y*s)),0,h);

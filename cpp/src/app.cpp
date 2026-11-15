@@ -1482,10 +1482,11 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
         }
     }
     const double compose_start = mono();
-    auto image = render::compose(area.w, area.h, boxes, frames);
+    const size_t tile_count = frames.size();
+    auto image = render::compose(area.w, area.h, boxes, std::move(frames));
     device::shift_tiles(taps, area);
-    auto composed = device::compose_view(image, size, area, render::theme().bg);
-    LOGD("app", "Komposition %.1f ms (%zu Kacheln)", (mono() - compose_start) * 1000, frames.size());
+    auto composed = device::compose_view(std::move(image), size, area, render::theme().bg);
+    LOGD("app", "Komposition %.1f ms (%zu Kacheln)", (mono() - compose_start) * 1000, tile_count);
     return {std::move(composed), keys, taps};
 }
 
@@ -1721,7 +1722,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             out.frame=std::move(drawn.frame);out.taps=std::move(drawn.taps);
             if(view.game_intro.active(now)) {auto content=view.game_intro.draw(content_frame(out.frame),game_snapshot.logo,game_snapshot.game->name,now,
                                                  game::intro_colors(render::hud_palette(cfg_["system"],render::theme())));
-                out.frame=device::compose_view(content,size,area,render::theme().bg);out.taps.clear();view.animating=true;}
+                out.frame=device::compose_view(std::move(content),size,area,render::theme().bg);out.taps.clear();view.animating=true;}
             else apply_transition(changed);   // without the intro the game view sweeps in like a page
             view.next_deadline=std::min(view.next_deadline,now+(view.animating?frame_interval():1.));
             view.current={key};view.size=size;view.area=area;out.skipped=false;out.switched=changed;
@@ -1951,13 +1952,14 @@ void App::render_devices(bool dirty) {
             std::lock_guard lk(dev_mu_);
             companion_->show_for(id, r.frame, r.navigation, d->view.animating ? animation_fps(cfg_) : 0);
             touch::stabilize_plugins(r.taps,d->taps,mono());
-            d->frame = r.frame; d->area = r.area; d->taps = std::move(r.taps); d->navigation = r.navigation;
+            d->area = r.area; d->taps = std::move(r.taps); d->navigation = r.navigation;
         }
         if (first) {   // Vorschau und Seitennavigation der Einstellungen folgen dem ersten Gerät
             std::lock_guard state(mu_);
             if (companion_output_) { companion_frame_ = r.frame; companion_navigation_ = r.navigation; }
             else { last_frame_ = r.frame; navigation_ = r.navigation; }
         }
+        { std::lock_guard lk(dev_mu_); d->frame = std::move(r.frame); }   // last use: move instead of a 4-16 MB copy
         first = false;
     }
     std::vector<std::string> gone;

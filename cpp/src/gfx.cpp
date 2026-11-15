@@ -375,16 +375,32 @@ struct Canvas::Impl {
 namespace {
 constexpr size_t POOL_PIXEL_LIMIT = 3ull * 2560 * 1600;
 thread_local std::vector<std::unique_ptr<Canvas::Impl>> t_pool;
+struct WindowState { int pw = 0, ph = 0, x = 0, y = 0, w = 0, h = 0; bool active = false, used = false; };
+thread_local WindowState t_window;
 }
+
+CanvasWindow::CanvasWindow(int page_w, int page_h, int x, int y, int w, int h) {
+    // Only a proper sub-rectangle inside the page; anything else leaves canvases untouched.
+    const bool valid = w > 0 && h > 0 && x >= 0 && y >= 0 && x + w <= page_w && y + h <= page_h;
+    t_window = {page_w, page_h, x, y, w, h, valid, false};
+}
+CanvasWindow::~CanvasWindow() { t_window = {}; }
+bool CanvasWindow::used() const { return t_window.used; }
 
 Canvas::Canvas(int w, int h, float s, Color bg, uint8_t bg_alpha) : s_(s) {
     gfx_init();
+    float ox = 0, oy = 0;
+    if (t_window.active && !t_window.used && w == t_window.pw && h == t_window.ph) {
+        ox = float(t_window.x); oy = float(t_window.y); w = t_window.w; h = t_window.h;
+        t_window.used = true;
+    }
+    const auto origin = D2D1::Matrix3x2F::Translation(-ox, -oy);
     for (auto it = t_pool.begin(); it != t_pool.end(); ++it)
         if ((*it)->w == w && (*it)->h == h) { d_ = std::move(*it); t_pool.erase(it); break; }
     if (d_) {
         d_->clips = 0;
         d_->done = false;
-        d_->rt->SetTransform(D2D1::Matrix3x2F::Identity());
+        d_->rt->SetTransform(origin);
         d_->rt->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     } else {
         d_ = std::make_unique<Impl>();
@@ -401,6 +417,7 @@ Canvas::Canvas(int w, int h, float s, Color bg, uint8_t bg_alpha) : s_(s) {
         if (SUCCEEDED(g_dw->CreateCustomRenderingParams(1.8f, 0.5f, 0.f, DWRITE_PIXEL_GEOMETRY_FLAT,
                                                         DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC, &rp)))
             d_->rt->SetTextRenderingParams(rp.Get());
+        d_->rt->SetTransform(origin);
     }
     d_->rt->BeginDraw();
     d_->rt->Clear(col(bg, bg_alpha / 255.f));
