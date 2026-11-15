@@ -4,6 +4,28 @@
 
 All notable changes to the app. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
 
+## [2.12.1] - 2026-11-15
+
+Companion 1.1.2 is released alongside (smoother display, protocol unchanged; older Companion versions keep working). Measurement log of all 50 optimisation rounds (German): [animation rounds](docs/ANIMATION-RUNDEN.md).
+
+**Test status 2.12.1:** 25 C++ test suites without failures (including 3556 core regression, 4221 built-in snapshots with hit maps, 2101 plugin snapshots, 448 Companion, 183 Hardware HUD, 2144 custom-view, 845 plugin-scheduling, 290 game); Companion: 72 protocol tests, lint and build. Codex reviewed every kept round and finally the whole branch; all findings are fixed. Not part of this run: the layout UI suite (private test desktop only) and the isolated Python integration steps.
+
+Measured on a real Redmi 8 (Android 14) as Companion over a USB tunnel with an isolated test instance and test app, target rate 60, 15 s each: displayed frames/s Hardware HUD 18.0 → 59.3, AI status 22.9 → 59.2, custom view 14.7 → 58.1; 0–2 janky frames. The PC delivers 59–60 frames/s at 3–6 ms per frame and just over 2 ms JPEG. Not tested: Pad, Pixel, TV, Wi-Fi, real gaming, long-term operation.
+
+### Added
+
+- **Page transitions** for monitor and Companion: **Settings → Display → Animations → Page transition** (`display.page_transition`: `auto` | `fade` | `slide` | `none`). The default is an HUD scan in the Hardware HUD colours (scan beam, grid, ruler ticks, corner brackets, circuit pulses). The serial USB display still switches without a transition.
+- Game Mode: game intro in the HUD style (grid, converging corner brackets, scan beam, loading bar); cockpit tiles with HUD corner brackets (also for the same system tiles in custom views); without the intro and when leaving the game the view glides with the page transition.
+
+### Changed
+
+- Smoothness (excerpt): fixed animation cadence (previously about 57 instead of 60 frames/s), custom-view tiles draw only their own area, Companion connections wake immediately on a new frame, text, translations, covers, avatars and logos are no longer prepared again on every frame, JPEG/PNG without an extra full copy, fades with SSE2.
+- Game Mode: the target-display list tells same-named devices apart (end of the device ID) and shows “connected”/“offline”. A detected game without a connected target display is logged as a warning.
+
+### Fixed
+
+- Game Mode showed nothing after a phone was re-paired, because the target still pointed at the old pairing and the list named both entries the same (detection itself was not affected).
+- Game Mode target “Network” selected no device in independent Companion mode.
 ## [2.12.0] - 2026-11-14
 
 Companion 1.1.1 is released alongside (bug fixes, protocol unchanged; 1.1.0 keeps working). Feature page: [Hardware HUD](HARDWARE-HUD-TEST.en.md).

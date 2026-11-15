@@ -2,7 +2,7 @@
 
 Store edition “ScreenBuddy by FuchsLabs”: [Microsoft Store](https://apps.microsoft.com/detail/9P03461RLGG0) · [notes on the Store edition](docs/STORE-DISTRIBUTION.en.md). [App privacy](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
 
-**Companion 1.1.1 (release `companion-v1.1.1`):** fixes for automatic mode and smooth display at high frame rates; since 1.1.0 a dark default design and optional automatic mode for the paired PC. Setup, permissions and device-validation limits: [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110).
+**Companion 1.1.2 (release `companion-v1.1.2`):** smooth display at up to 60 frames/s (bitmaps are reused, frames are shown in step with the screen refresh; on a Redmi 8 about 59 instead of 52 frames/s and hardly any stutter); 1.1.1 brought fixes for automatic mode; since 1.1.0 a dark default design and optional automatic mode for the paired PC. Setup, permissions and device-validation limits: [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110).
 
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
@@ -33,6 +33,8 @@ AI usage: separate confirmed real-account opt-ins default to off. Claude and Cod
 </div>
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
+
+**New in 2.12.1 (15 November 2026):** much **smoother animations** and new **page transitions** (default: an HUD scan in the style of the Hardware HUD; alternatively fade, slide or off, **Settings → Display → Animations**). The PC now delivers a steady up to 60 frames/s; on a Redmi 8 with Companion 1.1.2 the displayed rate rises from about 18/23/15 in 2.12.0 to 59/59/58 frames/s (Hardware HUD/AI status/custom view). Game Mode: intro and cockpit in the HUD style, a transition into the game and back; the target-display list tells same-named (re-paired) devices apart and shows connected/offline. Measurement log of all 50 rounds (German): [animation rounds](docs/ANIMATION-RUNDEN.md) · [Changelog](CHANGELOG.en.md)
 
 **New in 2.12.0 (14 November 2026):** an optional **Hardware HUD** for the System page (neon vector graphics, automatically rotating Overview/GPU/CPU pages, layouts for wide, regular and portrait displays), CPU package power in watts from HWiNFO, and a global animation rate under **Settings → Display → Animations**, 5 to 60, default 30 (`display.animation_fps`). It covers visible animation including the Hardware HUD, AI status, Spotify and transitions; static pages retain their own cadence and sensors are not polled more often. The serial USB display transfers in its own thread and no longer slows the Companion. Companion 1.1.1 ships alongside with bug fixes. [Hardware HUD: usage, limits and test status](HARDWARE-HUD-TEST.en.md) · [historical frame-rate analysis](HARDWARE-HUD-FPS-ANALYSE.en.md) · [Changelog](CHANGELOG.en.md)
 

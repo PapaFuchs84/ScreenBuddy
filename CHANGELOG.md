@@ -4,6 +4,28 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
+## [2.12.1] - 2026-11-15
+
+Passend dazu erscheint Companion 1.1.2 (flüssigere Anzeige, Protokoll unverändert; ältere Companion-Versionen funktionieren weiter). Messprotokoll aller 50 Optimierungsrunden: [Animations-Runden](docs/ANIMATION-RUNDEN.md).
+
+**Prüfstatus 2.12.1:** 25 C++-Testsuiten ohne Fehler (u. a. 3556 Kernregression, 4221 eingebaute Snapshots mit Trefferkarten, 2101 Plugin-Snapshots, 448 Companion, 183 Hardware-HUD, 2144 eigene Ansichten, 845 Plugin-Zeitplanung, 290 Game); Companion: 72 Protokolltests, Lint und Build. Codex hat jede behaltene Runde und abschließend den ganzen Branch geprüft; alle Befunde sind umgesetzt. Nicht in diesem Lauf: Layout-UI-Suite (nur auf dem privaten Testdesktop) und die isolierten Python-Integrationsschritte.
+
+Gemessen am echten Redmi 8 (Android 14) als Companion über USB-Tunnel mit isolierter Testinstanz und Test-App, Zielrate 60, je 15 s: angezeigte Bilder/s Hardware-HUD 18,0 → 59,3, KI-Status 22,9 → 59,2, eigene Ansicht 14,7 → 58,1; 0–2 Ruckel-Bilder. Der PC liefert 59–60 Bilder/s bei 3–6 ms Bildzeit und gut 2 ms JPEG. Nicht geprüft: Pad, Pixel, TV, WLAN, echtes Spielen, Langzeitbetrieb.
+
+### Hinzugefügt
+
+- **Seitenübergänge** für Monitor und Companion: **Einstellungen → Anzeige → Animationen → Seitenübergang** (`display.page_transition`: `auto` | `fade` | `slide` | `none`). Standard ist ein HUD-Scan in den Farben des Hardware-HUD (Scanstrahl, Raster, Lineal-Ticks, Eckklammern, Schaltkreis-Impulse). Das serielle USB-Display wechselt weiter ohne Übergang.
+- Game-Mode: Spiel-Intro im HUD-Stil (Raster, zusammenlaufende Eckklammern, Scanstrahl, Ladebalken); Cockpit-Kacheln mit HUD-Eckklammern (gilt auch für dieselben Systemkacheln in eigenen Ansichten); ohne Intro und beim Verlassen des Spiels gleitet die Ansicht mit dem Seitenübergang.
+
+### Geändert
+
+- Flüssigkeit (Auszug): fester Animationstakt (vorher etwa 57 statt 60 Bilder/s), Kacheln eigener Ansichten zeichnen nur ihren Ausschnitt, Companion-Verbindungen werden bei neuem Bild sofort geweckt, Text, Übersetzungen, Cover, Avatare und Logos werden nicht mehr in jedem Bild neu aufbereitet, JPEG/PNG ohne zusätzliche Vollkopie, Überblenden mit SSE2.
+- Game-Mode: Die Ziel-Display-Liste unterscheidet gleichnamige Geräte (Endung der Geräte-ID) und zeigt „verbunden“/„offline“. Ein erkanntes Spiel ohne verbundenes Ziel-Display steht als Warnung im Log.
+
+### Behoben
+
+- Game-Mode zeigte nach dem Neukoppeln eines Telefons nichts an, weil das Ziel noch auf die alte Kopplung zeigte und die Liste beide Einträge gleich benannte (Erkennung selbst war nicht betroffen).
+- Game-Mode-Ziel „Netzwerk“ wählte im unabhängigen Companion-Betrieb kein Gerät.
 ## [2.12.0] - 2026-11-14
 
 Passend dazu erscheint Companion 1.1.1 (Fehlerkorrekturen, Protokoll unverändert; 1.1.0 funktioniert weiter). Funktionsseite: [Hardware-HUD](HARDWARE-HUD-TEST.md).

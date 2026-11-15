@@ -56,3 +56,8 @@ Basis Companion 1.1.1: UI 53,5 / 51,9 / 50,9 Bilder/s, Ruckel-Bilder 9 / 4 / 7 (
 | 43 | Prüfrunde: Bildschirmfotos während der Seitenrotation, Speicher der Test-App | – | – | – | keine Artefakte; PSS 158 MB, davon Grafik 50 MB; Rotation 43,7 UI-Bilder/s, p50 9 ms |
 | 44 | Prüfrunde Hochformat (Größenwechsel im Bitmap-Pool) | 59,4 | – | 58,5 | keine Ruckel-Bilder, p50 9 ms / p90 10 ms; Darstellung korrekt |
 | 45 | Decoder-Thread mit Anzeige-Priorität | 59,7 | 59,2 | 58,7 | verworfen: im Rauschen (Rotation 39,8 statt 44,3 schwankt mit dem Wechselzeitpunkt) |
+| 46 | Abnahme: alle 25 C++-Testsuiten mit Version 2.12.1 | – | – | – | 0 Fehler (3556 Kern, 4221 Snapshots, 2101 Plugin-Snapshots, 448 Companion, 183 HUD, 2144 eigene Ansichten, 845 Zeitplanung, 290 Game u. a.) |
+| 47 | Abnahme Companion 1.1.2: 72 Protokolltests, Lint, Debug-Build | – | – | – | bestanden |
+| 48 | Codex-Gesamtprüfung des Branches | – | – | – | 3 Befunde umgesetzt: Design-Lesen im Übergang unter der Zeichensperre, Game-Mode-Ziel „Netzwerk“ wählt Companion-Ansichten, Doku |
+| 49 | Gerätekontrolle mit den Endständen (Host 2.12.1, Companion 1.1.2) | 59,3 | 59,2 | 58,1 | 0–2 Ruckel-Bilder in 15 s, p50 9 ms; Host Zeichnen 2,7–3,8 ms, JPEG 2,1–2,2 ms; Rotation 38,9 (Inhalt zwischen den Übergängen statisch) |
+| 50 | Abnahme Doku: Codex prüft README, Changelogs, Companion-README, Hardware-HUD-Seite, Store-Text und dieses Protokoll gegen Code und Messwerte | – | – | – | 3 Befunde umgesetzt (Runde 50 ergänzt, Store-Text ohne unbelegte „ohne Wartezeit“-Aussage, Companion-Versionsgeschichte) |

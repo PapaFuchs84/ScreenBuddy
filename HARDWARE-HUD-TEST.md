@@ -59,6 +59,8 @@ Unter **Einstellungen → Anzeige → Animationen** lässt sich die globale Anim
 
 ## Grenzen und Prüfstatus
 
+**Neu in 2.12.1 – Flüssigkeit und Seitenübergänge:** Seitenwechsel auf Monitor und Companion laufen standardmäßig als HUD-Scan in den HUD-Farben (Scanstrahl, Raster, Lineal-Ticks, Eckklammern, Schaltkreis-Impulse; wahlweise Überblenden, Schieben oder aus unter **Einstellungen → Anzeige → Animationen**). Das HUD selbst zeichnet sich schneller; am Redmi 8 mit Companion 1.1.2 zeigt es bei Ziel 60 etwa 59 statt 18 Bilder/s (2.12.0). Das serielle USB-Display wechselt weiterhin ohne Übergang. Alle Messungen und Runden: [Animations-Runden](docs/ANIMATION-RUNDEN.md).
+
 **Prüfstatus 2.12.0 (integrierter Build):** 25 C++-Testsuiten ohne Fehler, darunter 3556 Kernregression, 1877 Layout-UI, 4221 eingebaute Snapshots mit Trefferkarten, 2101 Plugin-Snapshots, 448 Companion (einschließlich USB-Ausgabethread), 152 Hardware-HUD, 2144 eigene Ansichten, 845 Plugin-Zeitplanung und 290 Game-Prüfungen. Isolierte Integration: Installer-Erhalt (2), App-Companion-Integration (40) und Standalone-Distribution bestanden. Zusätzlich zehn Codex-Reviewrunden (Windows-App, Companion-App, Doku); alle Befunde mit Release-Relevanz sind behoben.
 
 

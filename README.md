@@ -2,7 +2,7 @@
 
 Store-Ausgabe „ScreenBuddy by FuchsLabs“: [Microsoft Store](https://apps.microsoft.com/detail/9P03461RLGG0) · [Hinweise zur Store-Ausgabe](docs/STORE-DISTRIBUTION.md). [App-Datenschutz](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
 
-**Companion 1.1.1 (Release `companion-v1.1.1`):** Fehlerkorrekturen für die Automatik und flüssige Anzeige bei hohen Bildraten; seit 1.1.0 dunkles Standard-Design und optionale Automatik für den gekoppelten PC. Einrichtung, Freigaben und Geräteprüfgrenzen: [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110).
+**Companion 1.1.2 (Release `companion-v1.1.2`):** flüssige Anzeige mit bis zu 60 Bildern/s (Bitmaps werden wiederverwendet, Anzeige im Bildschirmtakt; auf einem Redmi 8 etwa 59 statt 52 Bilder/s und kaum noch Ruckler); 1.1.1 brachte Fehlerkorrekturen für die Automatik; seit 1.1.0 dunkles Standard-Design und optionale Automatik für den gekoppelten PC. Einrichtung, Freigaben und Geräteprüfgrenzen: [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110).
 
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
@@ -33,6 +33,8 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 </div>
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
+
+**Neu in 2.12.1 (15.11.2026):** deutlich **flüssigere Animationen** und neue **Seitenübergänge** (Standard: HUD-Scan im Stil des Hardware-HUD; wahlweise Überblenden, Schieben oder aus, **Einstellungen → Anzeige → Animationen**). Der PC liefert jetzt stabil bis zu 60 Bilder/s; auf einem Redmi 8 mit Companion 1.1.2 steigt die angezeigte Bildrate gegenüber 2.12.0 von etwa 18/23/15 auf 59/59/58 Bilder/s (Hardware-HUD/KI-Status/eigene Ansicht). Game-Mode: Intro und Cockpit im HUD-Stil, Übergang ins Spiel und zurück; die Ziel-Display-Liste unterscheidet gleichnamige (neu gekoppelte) Geräte und zeigt verbunden/offline. Messprotokoll aller 50 Runden: [Animations-Runden](docs/ANIMATION-RUNDEN.md) · [Changelog](CHANGELOG.md)
 
 **Neu in 2.12.0 (14.11.2026):** optionales **Hardware-HUD** für die Systemseite (Neon-Vektorgrafik, automatisch wechselnde Seiten Übersicht/GPU/CPU, Layouts für breite, normale und Hochkant-Displays), CPU-Package-Leistung in Watt aus HWiNFO und eine globale Animationsrate unter **Einstellungen → Anzeige → Animationen**, 5 bis 60, Standard 30 (`display.animation_fps`). Sie gilt für sichtbare Animationen einschließlich Hardware-HUD, KI-Status, Spotify und Übergängen; statische Seiten behalten ihren eigenen Takt, Sensoren werden nicht häufiger abgefragt. Das serielle USB-Display überträgt in einem eigenen Thread und bremst den Companion nicht mehr. Dazu erscheint Companion 1.1.1 mit Fehlerkorrekturen. [Hardware-HUD: Bedienung, Grenzen und Prüfstatus](HARDWARE-HUD-TEST.md) · [historische Bildratenanalyse](HARDWARE-HUD-FPS-ANALYSE.md) · [Changelog](CHANGELOG.md)
 
