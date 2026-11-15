@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <emmintrin.h>
 #include <limits>
 #include <regex>
 
@@ -252,6 +253,39 @@ Image compose(int w, int h, const std::vector<Box>& boxes, std::vector<Image>&& 
     return compose(w, h, boxes, static_cast<const std::vector<Image>&>(frames));
 }
 
+namespace {
+// o[i] = per channel (a*(256-t) + b*t) >> 8 for t in 0..256 – bit-identical to the scalar packed
+// lerp used below (each 16-bit lane stays <= 65280). SSE2 mixes four pixels per step.
+// a == nullptr uses the constant colour c instead of a[i].
+void lerp_span(const uint32_t* a, uint32_t c, const uint32_t* b, uint32_t* o, size_t n, uint32_t t) {
+    const __m128i zero = _mm_setzero_si128();
+    const __m128i tv = _mm_set1_epi16(short(t)), uv = _mm_set1_epi16(short(256 - t));
+    const __m128i cv = _mm_set1_epi32(int(c));
+    const __m128i c_lo = _mm_mullo_epi16(_mm_unpacklo_epi8(cv, zero), uv), c_hi = _mm_mullo_epi16(_mm_unpackhi_epi8(cv, zero), uv);
+    size_t i = 0;
+    for (; i + 4 <= n; i += 4) {
+        const __m128i bv = _mm_loadu_si128(reinterpret_cast<const __m128i*>(b + i));
+        __m128i lo = _mm_mullo_epi16(_mm_unpacklo_epi8(bv, zero), tv), hi = _mm_mullo_epi16(_mm_unpackhi_epi8(bv, zero), tv);
+        if (a) {
+            const __m128i av = _mm_loadu_si128(reinterpret_cast<const __m128i*>(a + i));
+            lo = _mm_add_epi16(lo, _mm_mullo_epi16(_mm_unpacklo_epi8(av, zero), uv));
+            hi = _mm_add_epi16(hi, _mm_mullo_epi16(_mm_unpackhi_epi8(av, zero), uv));
+        } else {
+            lo = _mm_add_epi16(lo, c_lo);
+            hi = _mm_add_epi16(hi, c_hi);
+        }
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(o + i), _mm_packus_epi16(_mm_srli_epi16(lo, 8), _mm_srli_epi16(hi, 8)));
+    }
+    const uint32_t u = 256 - t;
+    for (; i < n; ++i) {
+        const uint32_t x = a ? a[i] : c, y = b[i];
+        const uint32_t rb = (((x & 0x00FF00FFu) * u + (y & 0x00FF00FFu) * t) >> 8) & 0x00FF00FFu;
+        const uint32_t ag = ((((x >> 8) & 0x00FF00FFu) * u + ((y >> 8) & 0x00FF00FFu) * t)) & 0xFF00FF00u;
+        o[i] = rb | ag;
+    }
+}
+}  // namespace
+
 Color transition_shade(Color hud_bg, Color hud_text) {
     const Color black{0, 0, 0};
     if (contrast(hud_bg, black) < 3.5) return hud_bg;            // dark HUD: power down into its own background
@@ -288,7 +322,7 @@ Image page_transition(const Image& from, const Image& to, double progress, PageT
     if (style == PageTransition::Fade) {
         const double eased = p < .5 ? 4 * p * p * p : 1 - std::pow(-2 * p + 2, 3) / 2;
         const uint32_t t = uint32_t(std::lround(eased * 256));
-        for (size_t i = 0; i < to.px.size(); ++i) out.px[i] = lerp(from.px[i], to.px[i], t);
+        lerp_span(from.px.data(), 0, to.px.data(), out.px.data(), to.px.size(), t);
         return out;
     }
     // HUD scan in the Hardware-HUD look: the outgoing page powers down behind a grid of scan rows,
@@ -353,7 +387,7 @@ Image page_transition(const Image& from, const Image& to, double progress, PageT
         const uint32_t row_dim = (y % 3 == 0) ? dim_scan : dim;
         if (grid_row) for (int x = old_lo; x < old_hi; ++x) o[x] = lerp(lerp(sh, a[x], row_dim), a1, 40);
         else {
-            for (int x = old_lo; x < old_hi; ++x) o[x] = lerp(sh, a[x], row_dim);
+            if (old_hi > old_lo) lerp_span(nullptr, sh, a + old_lo, o + old_lo, size_t(old_hi - old_lo), row_dim);
             const int gx0 = old_lo + (grid - old_lo % grid) % grid;
             for (int x = gx0; x < old_hi; x += grid) o[x] = lerp(o[x], a1, 34);
         }

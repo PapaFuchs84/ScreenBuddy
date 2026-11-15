@@ -233,6 +233,15 @@ int main(int argc,char** argv) {
         CHECK(accent);
         const auto back=render::page_transition(big,next,.5,render::PageTransition::Hud,-1,Color{0,255,0},Color{255,255,0});
         CHECK((back.px[size_t(30)*200+0]&255)>150);                   // previous page comes from the left
+        // Fade (SSE2 path) equals the per-channel mix exactly, including the scalar tail of odd widths.
+        Image fa(37,5),fb(37,5);uint32_t seed=12345;
+        for(size_t i=0;i<fa.px.size();++i){seed=seed*1664525u+1013904223u;fa.px[i]=seed|0xFF000000u;seed=seed*1664525u+1013904223u;fb.px[i]=seed|0xFF000000u;}
+        for(double pr:{.1,.37,.5,.83}){
+            const auto mixed=render::page_transition(fa,fb,pr,render::PageTransition::Fade,1);
+            const double e=pr<.5?4*pr*pr*pr:1-std::pow(-2*pr+2,3)/2;const uint32_t t=uint32_t(std::lround(e*256));bool same=true;
+            for(size_t i=0;i<fa.px.size();++i){uint32_t ex=0;for(int sh=0;sh<32;sh+=8)ex|=((((fa.px[i]>>sh)&255u)*(256u-t)+((fb.px[i]>>sh)&255u)*t)>>8)<<sh;same=same&&mixed.px[i]==ex;}
+            CHECK(same);
+        }
     }
     std::printf("Hardware HUD: %d passed, %d failed\n",passed,failed);CoUninitialize();return failed?1:0;
 }
