@@ -41,3 +41,4 @@
 | 36 | Schriftsuche je Thread vor der globalen, gesperrten Map | – | – | – | verworfen: A/B 45,7 -> 46,5 ms (im Rauschen) |
 | 37 | Kantenglättungsmodus nur bei Änderung setzen (Direct2D-Zustandswechsel) | – | – | – | verworfen: A/B/A bester Lauf 45,7 / 46,0 / 45,8 ms (kein Unterschied) |
 | 38 | JPEG-Farbunterabtastung explizit 4:2:0 | – | – | – | verworfen: Ausgabe byte-gleich (66 290 Bytes) – WIC nutzt 4:2:0 bereits; Messmodus `codec` zeigt jetzt JPEG-Zeit und -Größe |
+| (Messung) | Gerätekontrolle nach R38 | 55,2 | 52,5 | 49,7 | Host 59,3–60 Bilder/s bei allen animierten Fällen, Bildzeit 4–6 ms, JPEG 2,1–2,2 ms; Rotation mit Übergängen: Host 42,9 (Seiten ohne Animation zwischen den Übergängen); Rest der Lücke liegt im Telefon |
