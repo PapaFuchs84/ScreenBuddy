@@ -81,6 +81,12 @@ const Image& scaled(const ImagePtr& src, int w, int h) {
     return cache.back().out;
 }
 
+// thumbnail() semantics (keep aspect ratio, only shrink) through the same cache.
+const Image& fitted(const ImagePtr& src, int max_w, int max_h) {
+    if (src->w <= max_w && src->h <= max_h) return *src;
+    const double r = std::min((double)max_w / src->w, (double)max_h / src->h);
+    return scaled(src, std::max(1, (int)std::lround(src->w * r)), std::max(1, (int)std::lround(src->h * r)));
+}
 }  // namespace
 
 const std::map<std::string, int> STATUS_ORDER = {{"online", 0}, {"idle", 1}, {"dnd", 2}, {"offline", 3}};
@@ -886,7 +892,7 @@ public:
         float ix = x + 30;
         if (p.rank_icon && !p.rank_icon->empty()) {
             int n = pyround_i((AVATAR + 4) * r.s);
-            Image icon = thumbnail(*p.rank_icon, n, n);
+            const Image& icon = fitted(p.rank_icon, n, n);
             float iw = icon.w / r.s, ih = icon.h / r.s;  // logische Größe
             d.image(icon, ix + (float)floordiv(AVATAR + 4 - iw, 2), cy - (float)floordiv(ih, 2));
         } else if (p.rank) {
@@ -930,7 +936,7 @@ public:
         float ix = 30;
         if (p.rank_icon && !p.rank_icon->empty()) {
             int n = pyround_i((AVATAR + 4) * r.s);
-            Image icon = thumbnail(*p.rank_icon, n, n);
+            const Image& icon = fitted(p.rank_icon, n, n);
             float iw = icon.w / r.s, ih = icon.h / r.s;  // logische Größe
             d.image(icon, ix + (float)floordiv(AVATAR + 4 - iw, 2), cy - (float)floordiv(ih, 2));
         } else if (p.rank) {

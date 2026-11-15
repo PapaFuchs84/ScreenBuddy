@@ -140,6 +140,8 @@ int main(int argc, char** argv) {
     auto sp = render::samples::spotify();
     sp.cover = std::make_shared<const Image>(fox_image(640, false));   // realistic cover (scaled on every frame before R29)
     auto friends = render::samples::friends();
+    auto players = render::samples::players();
+    for (size_t i = 0; i < players.size(); ++i) players[i].rank_icon = std::make_shared<const Image>(fox_image(256, true));   // rank emblems arrive larger than drawn
     for (size_t i = 0; i < friends.size(); ++i) friends[i].avatar = std::make_shared<const Image>(fox_image(128 + int(i), i % 2 == 0));   // Discord avatars are 128 px
     auto ai = render::samples::ai_status();
     const std::time_t clock = render::samples::CLOCK;
@@ -156,6 +158,7 @@ int main(int argc, char** argv) {
         render::SpotifyRenderer spR(size.w, size.h, "Spotify");
         render::AiRenderer aiR(size.w, size.h);
         render::Renderer frR(size.w, size.h, "Discord-Freunde");
+        render::Bf6Renderer bfR(size.w, size.h, "Battlefield 6");
         const auto palette = render::hud_neon_palette();
         const std::vector<std::pair<const char*, std::function<Image(double)>>> views = {
             {"hud", [&](double t) { return render::hardware_hud(size.w, size.h, sys, t, 8, palette); }},
@@ -166,6 +169,7 @@ int main(int argc, char** argv) {
              }},
             {"system", [&](double) { return sysR.render(sys, clock); }},
             {"friends", [&](double) { return frR.render_friends(friends, 0, true, "", clock); }},
+            {"bf6", [&](double) { return bfR.render(players, 0, clock, clock); }},
         };
         for (const auto& [name, draw] : views) {
             // Three passes; the pass with the lowest render average counts (background load on a
