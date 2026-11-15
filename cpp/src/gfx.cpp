@@ -346,6 +346,7 @@ struct Canvas::Impl {
     int brush_count = 0, next_evict = 0;
     int clips = 0;  // offene clip_push()-Aufrufe
     bool done = false;
+    bool ok = true;  // false after a failed EndDraw: the surface is not pooled again
 
     ID2D1SolidColorBrush* brush(Color c) {
         uint32_t k = (uint32_t)c.r << 16 | (uint32_t)c.g << 8 | (uint32_t)c.b;
@@ -368,30 +369,54 @@ struct Canvas::Impl {
     }
 };
 
-Canvas::Canvas(int w, int h, float s, Color bg, uint8_t bg_alpha) : d_(std::make_unique<Impl>()), s_(s) {
+// Per-thread pool of finished drawing surfaces (WIC bitmap + render target + brushes).
+// Animated views redraw the same sizes many times per second; recreating a 4-megapixel
+// software target for every frame cost more than drawing into it. Bounded by pixel count.
+namespace {
+constexpr size_t POOL_PIXEL_LIMIT = 3ull * 2560 * 1600;
+thread_local std::vector<std::unique_ptr<Canvas::Impl>> t_pool;
+}
+
+Canvas::Canvas(int w, int h, float s, Color bg, uint8_t bg_alpha) : s_(s) {
     gfx_init();
-    d_->w = w;
-    d_->h = h;
-    check(g_wic->CreateBitmap(w, h, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &d_->bmp), "Bild");
-    auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_SOFTWARE,
-                                              D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-                                              96.f, 96.f);
-    check(g_d2d->CreateWicBitmapRenderTarget(d_->bmp.Get(), props, &d_->rt), "Zeichenfläche");
-    // Graustufen-Glättung: das Display hat keine Subpixel, ClearType gäbe Farbsäume
-    d_->rt->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
-    ComPtr<IDWriteRenderingParams> rp;
-    if (SUCCEEDED(g_dw->CreateCustomRenderingParams(1.8f, 0.5f, 0.f, DWRITE_PIXEL_GEOMETRY_FLAT,
-                                                    DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC, &rp)))
-        d_->rt->SetTextRenderingParams(rp.Get());
+    for (auto it = t_pool.begin(); it != t_pool.end(); ++it)
+        if ((*it)->w == w && (*it)->h == h) { d_ = std::move(*it); t_pool.erase(it); break; }
+    if (d_) {
+        d_->clips = 0;
+        d_->done = false;
+        d_->rt->SetTransform(D2D1::Matrix3x2F::Identity());
+        d_->rt->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+    } else {
+        d_ = std::make_unique<Impl>();
+        d_->w = w;
+        d_->h = h;
+        check(g_wic->CreateBitmap(w, h, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &d_->bmp), "Bild");
+        auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_SOFTWARE,
+                                                  D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+                                                  96.f, 96.f);
+        check(g_d2d->CreateWicBitmapRenderTarget(d_->bmp.Get(), props, &d_->rt), "Zeichenfläche");
+        // Graustufen-Glättung: das Display hat keine Subpixel, ClearType gäbe Farbsäume
+        d_->rt->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+        ComPtr<IDWriteRenderingParams> rp;
+        if (SUCCEEDED(g_dw->CreateCustomRenderingParams(1.8f, 0.5f, 0.f, DWRITE_PIXEL_GEOMETRY_FLAT,
+                                                        DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC, &rp)))
+            d_->rt->SetTextRenderingParams(rp.Get());
+    }
     d_->rt->BeginDraw();
     d_->rt->Clear(col(bg, bg_alpha / 255.f));
 }
 
 Canvas::~Canvas() {
+    if (!d_) return;
+    bool ok = true;
     if (!d_->done) {
         while (d_->clips > 0) clip_pop();
-        d_->rt->EndDraw();
+        ok = SUCCEEDED(d_->rt->EndDraw());   // D2DERR_RECREATE_TARGET etc.: do not reuse
     }
+    size_t pooled = 0;
+    for (const auto& entry : t_pool) pooled += size_t(entry->w) * entry->h;
+    const size_t mine = size_t(d_->w) * d_->h;
+    if (ok && d_->ok && pooled + mine <= POOL_PIXEL_LIMIT) t_pool.push_back(std::move(d_));
 }
 
 void Canvas::rectangle(float x0, float y0, float x1, float y1, Color fill) {
@@ -577,7 +602,7 @@ int Canvas::clip_depth() const { return d_->done ? 0 : d_->clips; }
 Image Canvas::finish() {
     if (!d_->done) {
         while (d_->clips > 0) clip_pop();
-        d_->rt->EndDraw();
+        d_->ok = SUCCEEDED(d_->rt->EndDraw());
         d_->done = true;
     }
     return image_from(d_->bmp.Get());

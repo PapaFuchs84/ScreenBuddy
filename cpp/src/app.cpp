@@ -2,6 +2,9 @@
 #include "render_hardware_hud.h"
 // © 2026 FuchsLabs
 #include "app.h"
+#include <windows.h>
+#include <timeapi.h>
+#pragma comment(lib, "winmm.lib")
 #include "custom_view.h"
 #include <set>
 #include <cmath>
@@ -1969,6 +1972,8 @@ void App::device_tap(const std::string& id, int x, int y, int w, int h) {
     mark_dirty();
 }
 void App::display_loop() {
+    bool timer_boost = false;
+    struct TimerRelease { bool& on; ~TimerRelease() { if (on) timeEndPeriod(1); } } timer_release{timer_boost};
     display_thread_ = std::this_thread::get_id();
     double next_try = 0, companion_try = 0;
     if (out_) connect_display();
@@ -2016,6 +2021,13 @@ void App::display_loop() {
         { std::lock_guard lk(dev_mu_); for (const auto& [id,d]:devices_) if (companion_) { deadlines.push_back(d->view.next_deadline); animating=animating || d->view.animating; } }
         bool metering=meter_ && meter_->active() && (meter_->available() || meter_->simulated());
         auto wake=plugins::schedule::wake_at(mono(),deadlines,animating,metering);
+        // Windows waits (Sleep, condition variables) default to a ~15.6 ms tick: a 60 fps
+        // deadline then slips to every second tick (about 32 fps). Raise the timer
+        // resolution only while something animates (process-local on Windows 11).
+        if (animating != timer_boost) {
+            if (animating) timeBeginPeriod(1); else timeEndPeriod(1);
+            timer_boost = animating;
+        }
         if (animating) {
             // Animated views share the selected rate; static views retain
             // their own polling cadence even when another output wakes early.

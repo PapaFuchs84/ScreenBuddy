@@ -85,9 +85,9 @@ public:
     int clip_depth() const;  // offene clip_push()-Aufrufe (für das Wiederherstellen nach einem Fehler)
 
     Image finish();
+    struct Impl;   // public only so the per-thread surface pool in gfx.cpp can hold it
 
 private:
-    struct Impl;
     std::unique_ptr<Impl> d_;
     float s_;
 };
