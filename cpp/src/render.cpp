@@ -64,12 +64,20 @@ struct InitTheme {
 // 60/s: keep the last few scaled copies per thread instead of a high-quality resize every frame.
 // The weak pointer makes a replaced source image a miss even if its address is reused.
 const Image& scaled(const ImagePtr& src, int w, int h) {
+    // Up to 48 entries and 16 MB: a friends page shows many small avatars, a music page one large cover.
     struct Entry { std::weak_ptr<const Image> src; const Image* key = nullptr; int w = 0, h = 0; Image out; };
     thread_local std::vector<Entry> cache;
+    thread_local size_t bytes = 0;
     for (auto& e : cache)
         if (e.key == src.get() && e.w == w && e.h == h && e.src.lock() == src) return e.out;
-    if (cache.size() >= 8) cache.erase(cache.begin());
-    cache.push_back({src, src.get(), w, h, resize(*src, w, h)});
+    Image out = resize(*src, w, h);
+    const size_t need = out.px.size() * 4;
+    while (!cache.empty() && (cache.size() >= 48 || bytes + need > (size_t(16) << 20))) {
+        bytes -= cache.front().out.px.size() * 4;
+        cache.erase(cache.begin());
+    }
+    bytes += need;
+    cache.push_back({src, src.get(), w, h, std::move(out)});
     return cache.back().out;
 }
 
@@ -632,7 +640,7 @@ void Renderer::FriendRowBlock::avatar(Canvas& d, const Friend& f, float x, float
     float op = faded ? 0.45f * 0.45f : 1.f;
     int size = pyround_i(AVATAR * renderer_.s);
     if (f.avatar && !f.avatar->empty()) {
-        d.round_image(*f.avatar, x, y, size, op);
+        d.round_image(scaled(f.avatar, size, size), x, y, size, op);   // pre-scaled: round_image then only copies
         return;
     }
     // Platzhalter: Initiale auf Orange
