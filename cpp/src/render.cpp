@@ -60,6 +60,19 @@ struct InitTheme {
     InitTheme() { set_theme("hell"); }
 } g_init_theme;
 
+// Covers and logos only change with the track or the source, but animated pages redraw at up to
+// 60/s: keep the last few scaled copies per thread instead of a high-quality resize every frame.
+// The weak pointer makes a replaced source image a miss even if its address is reused.
+const Image& scaled(const ImagePtr& src, int w, int h) {
+    struct Entry { std::weak_ptr<const Image> src; const Image* key = nullptr; int w = 0, h = 0; Image out; };
+    thread_local std::vector<Entry> cache;
+    for (auto& e : cache)
+        if (e.key == src.get() && e.w == w && e.h == h && e.src.lock() == src) return e.out;
+    if (cache.size() >= 8) cache.erase(cache.begin());
+    cache.push_back({src, src.get(), w, h, resize(*src, w, h)});
+    return cache.back().out;
+}
+
 }  // namespace
 
 const std::map<std::string, int> STATUS_ORDER = {{"online", 0}, {"idle", 1}, {"dnd", 2}, {"offline", 3}};
@@ -1774,7 +1787,7 @@ public:
             if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
             if (logos && li != none && li->second && !li->second->empty()) {
                 const int px = pyround_i(LOGO_SIZE * s);
-                d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
+                d.image(scaled(li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
                 lx += LOGO_SIZE + 4;
             } else {
                 const std::string& ab = it.providers[k];
@@ -1812,7 +1825,7 @@ public:
             if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
             if (logos && li != none && li->second && !li->second->empty()) {
                 const int px = pyround_i(LOGO_SIZE * s);
-                d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
+                d.image(scaled(li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
                 lx += LOGO_SIZE + 4;
             } else {
                 const std::string& ab = it.providers[k];
@@ -2224,7 +2237,7 @@ public:
             d.rounded_rectangle(l.cover_x, l.cover_y, l.cover_x + l.cover_size, l.cover_y + l.cover_size, 8, t.card);
             if (snap.cover && !snap.cover->empty()) {
                 int px = std::max(1, pyround_i(l.cover_size * s));
-                d.image(resize(*snap.cover, px, px), l.cover_x, l.cover_y);
+                d.image(scaled(snap.cover, px, px), l.cover_x, l.cover_y);
             } else {
                 d.text(l.cover_x + l.cover_size / 2, l.cover_y + l.cover_size / 2, "♪", r.font(40, true), t.muted, "mm");
             }

@@ -138,6 +138,7 @@ int main(int argc, char** argv) {
 
     auto sys = render::samples::system();
     auto sp = render::samples::spotify();
+    sp.cover = std::make_shared<const Image>(fox_image(640, false));   // realistic cover (scaled on every frame before R29)
     auto ai = render::samples::ai_status();
     const std::time_t clock = render::samples::CLOCK;
     std::vector<float> bars(16, .5f);
