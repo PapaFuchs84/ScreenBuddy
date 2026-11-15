@@ -1459,11 +1459,13 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
                 plugins::DrawOut plugin_out;
                 std::vector<touch::ArrangedTarget> arranged_targets;
                 auto& renderer=renderers_for(boxes[k].w,boxes[k].h);
+                const double page_start=mono();
                 custom::DrawOut custom_out;
                 if(p.custom_draw) {custom_out=p.custom_draw(renderer);frames.push_back(std::move(custom_out.image));arranged_targets=std::move(custom_out.targets);plugin_out.targets=std::move(custom_out.plugin);}
                 else if(p.builtin_draw) { auto out=p.builtin_draw(idx,renderer); frames.push_back(std::move(out.first)); arranged_targets=std::move(out.second); }
                 else if(p.plugin_draw) { plugin_out=p.plugin_draw(renderer);frames.push_back(std::move(plugin_out.image)); }
                 else frames.push_back(p.fn(idx,renderer));
+                LOGD("app", "Seite %s gezeichnet in %.1f ms (%dx%d)", p.key.c_str(), (mono()-page_start)*1000, boxes[k].w, boxes[k].h);
                 keys.push_back(p.key);
                 touch::Tile tile{boxes[k], p.key == "rss", p.targets ? p.targets(idx, renderers_for(boxes[k].w, boxes[k].h)) : touch::Rows{}};
                 tile.ha = p.key == "homeassistant";
@@ -1479,9 +1481,12 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
             idx -= p.n;
         }
     }
+    const double compose_start = mono();
     auto image = render::compose(area.w, area.h, boxes, frames);
     device::shift_tiles(taps, area);
-    return {device::compose_view(image, size, area, render::theme().bg), keys, taps};
+    auto composed = device::compose_view(image, size, area, render::theme().bg);
+    LOGD("app", "Komposition %.1f ms (%zu Kacheln)", (mono() - compose_start) * 1000, frames.size());
+    return {std::move(composed), keys, taps};
 }
 
 Image App::welcome(std::pair<int, int> size) {
@@ -1804,6 +1809,26 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             t_pages = mono();
             auto [f, keys, targets] = draw(pages, boxes, start, size, area);
             t_drawn = mono();
+            // First frame at this size: draw every other built-in page once off-screen so the
+            // first real switch to it does not pay one-time font/layout/bitmap costs (35-220 ms).
+            // Plugin and custom pages are skipped: their draw functions advance zone cycles.
+            if (view.warmed_size != size) {
+                view.warmed_size = size;
+                const double warm_start = mono();
+                int index = 0;
+                for (auto& entry : pages) {
+                    for (int sub = 0; sub < entry.n; ++sub, ++index) {
+                        if (std::count(keys.begin(), keys.end(), entry.key) || entry.plugin_draw || entry.custom_draw || entry.prepare) continue;
+                        try {
+                            auto& renderer = renderers_for(boxes[0].w, boxes[0].h);
+                            if (entry.builtin_draw) (void)entry.builtin_draw(sub, renderer);
+                            else if (entry.fn) (void)entry.fn(sub, renderer);
+                        } catch (const std::exception& e) { LOGD("app", "Vorwärmen %s: %s", entry.key.c_str(), e.what()); }
+                        break;   // one sub-page per entry is enough to warm its fonts and assets
+                    }
+                }
+                LOGD("app", "Seiten vorgewärmt in %.1f ms (%dx%d)", (mono() - warm_start) * 1000, size.first, size.second);
+            }
             out.frame = std::move(f); view.current = keys; out.taps = std::move(targets);
             out.navigation = {{"index", start}, {"total", total}, {"visible", cols}, {"current", keys}, {"can_step", total > cols}};
         }

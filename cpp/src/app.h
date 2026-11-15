@@ -141,6 +141,7 @@ private:
         double transition_start = -1;
         int transition_dir = 1;        // +1 next page (slides left), -1 previous page
         bool transition_manual = false; // swipe/tap navigation (slides) vs automatic rotation (fades)
+        std::pair<int, int> warmed_size{0, 0}; // built-in pages pre-drawn once for this size (first switch without a cold hitch)
         uint64_t game_generation=0;
         bool game_active=false;
         double game_entered=0, saved_switched=0;
