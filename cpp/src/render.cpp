@@ -220,42 +220,77 @@ Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Ima
     return img;
 }
 
-Image page_transition(const Image& from, const Image& to, double progress, bool slide, int direction) {
+Image page_transition(const Image& from, const Image& to, double progress, PageTransition style, int direction,
+                      Color accent, Color accent2) {
     if (from.w != to.w || from.h != to.h || to.empty()) return to;
-    const double p = std::clamp(progress, 0.0, 1.0);
-    const double eased = p < .5 ? 4 * p * p * p : 1 - std::pow(-2 * p + 2, 3) / 2;   // ease-in-out cubic
-    Image out(to.w, to.h);
+    if (progress <= 0) return from;
+    if (progress >= 1) return to;
+    const double p = progress;
     const size_t w = size_t(to.w);
-    if (slide) {
-        const size_t d = std::min(w, size_t(std::lround(eased * to.w)));   // pixels the old page has moved
+    Image out;
+    out.w = to.w; out.h = to.h; out.px.resize(to.px.size());
+    if (style == PageTransition::Slide) {
+        const double eased = p < .5 ? 4 * p * p * p : 1 - std::pow(-2 * p + 2, 3) / 2;   // ease-in-out cubic
+        const size_t d = std::min(w, size_t(std::lround(eased * to.w)));
         for (int y = 0; y < to.h; ++y) {
             const uint32_t* a = &from.px[size_t(y) * w];
             const uint32_t* b = &to.px[size_t(y) * w];
             uint32_t* o = &out.px[size_t(y) * w];
-            if (direction >= 0) {   // old page leaves to the left, new page enters from the right
-                std::copy(a + d, a + w, o);
-                std::copy(b, b + d, o + (w - d));
-            } else {                // old page leaves to the right, new page enters from the left
-                std::copy(b + (w - d), b + w, o);
-                std::copy(a, a + (w - d), o + d);
-            }
+            if (direction >= 0) { std::copy(a + d, a + w, o); std::copy(b, b + d, o + (w - d)); }
+            else { std::copy(b + (w - d), b + w, o); std::copy(a, a + (w - d), o + d); }
         }
         return out;
     }
-    const uint32_t t = uint32_t(std::lround(eased * 256)), u = 256 - t;
-    const uint32_t* a = from.px.data();
-    const uint32_t* b = to.px.data();
-    uint32_t* o = out.px.data();
-    const size_t n = to.px.size();
-    for (size_t i = 0; i < n; ++i) {
-        const uint32_t x = a[i], y = b[i];
+    const auto lerp = [](uint32_t x, uint32_t y, uint32_t t) {   // t 0..256 towards y
+        const uint32_t u = 256 - t;
         const uint32_t rb = (((x & 0x00FF00FFu) * u + (y & 0x00FF00FFu) * t) >> 8) & 0x00FF00FFu;
         const uint32_t ag = ((((x >> 8) & 0x00FF00FFu) * u + ((y >> 8) & 0x00FF00FFu) * t)) & 0xFF00FF00u;
-        o[i] = rb | ag;
+        return rb | ag;
+    };
+    if (style == PageTransition::Fade) {
+        const double eased = p < .5 ? 4 * p * p * p : 1 - std::pow(-2 * p + 2, 3) / 2;
+        const uint32_t t = uint32_t(std::lround(eased * 256));
+        for (size_t i = 0; i < to.px.size(); ++i) out.px[i] = lerp(from.px[i], to.px[i], t);
+        return out;
+    }
+    // HUD scan. The line accelerates in and settles out (ease-in-out quint) like the HUD sweep.
+    const double eased = p < .5 ? 16 * p * p * p * p * p : 1 - std::pow(-2 * p + 2, 5) / 2;
+    const double scan = direction >= 0 ? (1 - eased) * to.w : eased * to.w;   // x of the scan line
+    const int line = int(std::lround(scan));
+    const double glow = std::max(6.0, to.w * .018);        // half width of the line glow
+    const double trail = std::max(24.0, to.w * .09);       // afterglow behind the line (new page side)
+    const uint32_t a1 = 0xFF000000u | uint32_t(accent.r) << 16 | uint32_t(accent.g) << 8 | accent.b;
+    const uint32_t a2 = 0xFF000000u | uint32_t(accent2.r) << 16 | uint32_t(accent2.g) << 8 | accent2.b;
+    const uint32_t dim = uint32_t(std::lround(256 * (1 - .38 * std::min(1.0, eased * 1.6))));   // old page dims ahead
+    const uint32_t black = 0xFF000000u;
+    const int tick_every = std::max(14, to.h / 18), tick_len = std::max(4, int(glow * 1.6));
+    for (int y = 0; y < to.h; ++y) {
+        const uint32_t* a = &from.px[size_t(y) * w];
+        const uint32_t* b = &to.px[size_t(y) * w];
+        uint32_t* o = &out.px[size_t(y) * w];
+        const bool scan_row = (y & 3) == 0;   // faint scan rows over the outgoing page
+        const bool tick_row = y % tick_every < 2;
+        for (int x = 0; x < to.w; ++x) {
+            const bool revealed = direction >= 0 ? x >= line : x < line;
+            const double dist = std::abs(x - scan);
+            uint32_t px;
+            if (revealed) {
+                px = b[x];
+                if (dist < trail) px = lerp(px, a1, uint32_t(64 * (1 - dist / trail) * (1 - dist / trail)));   // afterglow
+            } else {
+                px = lerp(black, a[x], scan_row ? dim * 3 / 4 : dim);
+            }
+            if (dist < glow) {   // bright core with soft glow
+                const double k = 1 - dist / glow;
+                px = lerp(px, a1, uint32_t(256 * k * k));
+                if (dist < 1.5) px = lerp(px, 0xFFFFFFFFu, 150);
+            }
+            if (tick_row && dist >= glow * .5 && dist < glow * .5 + tick_len && !revealed) px = lerp(px, a2, 210);
+            o[x] = px;
+        }
     }
     return out;
 }
-
 float scale_for(int w, int h) {
     return w >= h ? std::min(w / 480.f, h / 320.f) : std::min(w / 320.f, h / 480.f);
 }

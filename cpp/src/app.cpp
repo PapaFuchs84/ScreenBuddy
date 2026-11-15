@@ -1849,8 +1849,12 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                 view.transition_from = {};
                 view.transition_start = -1;
             } else {
-                const bool slide = kind == "slide" || (kind == "auto" && view.transition_manual);
-                out.frame = render::page_transition(view.transition_from, out.frame, progress, slide, view.transition_dir);
+                // Default: HUD scan in the Hardware-HUD colours (design, neon or custom).
+                const auto style = kind == "slide" ? render::PageTransition::Slide
+                                 : kind == "fade" ? render::PageTransition::Fade : render::PageTransition::Hud;
+                const auto palette = render::hud_palette(cfg_["system"], render::theme());
+                out.frame = render::page_transition(view.transition_from, out.frame, progress, style, view.transition_dir,
+                                                    palette.primary, palette.secondary);
                 view.animating = true;
             }
         }

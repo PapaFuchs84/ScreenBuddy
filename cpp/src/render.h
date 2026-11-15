@@ -52,10 +52,16 @@ struct BuiltinDrawOut { Image image; std::vector<BuiltinTarget> targets; };
 // Breite Leisten (z. B. 1920 × 720) zeigen mehrere Seiten nebeneinander. Rückgabe: je Kachel x, y, Breite, Höhe.
 std::vector<Box> tile_layout(int w, int h, int pages = 99);
 Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Image>& frames);
-// Page change animation: progress 0..1 (eased inside); slide moves both pages horizontally
-// (direction +1: new page enters from the right), otherwise a crossfade. Same-size frames.
-inline constexpr double PAGE_TRANSITION_SECONDS = 0.35;
-Image page_transition(const Image& from, const Image& to, double progress, bool slide, int direction);
+// Page change animation: progress 0..1 (eased inside). Same-size frames; progress <= 0 returns
+// `from`, >= 1 returns `to` exactly. Direction +1: the new page comes from the right.
+//  - Hud:   HUD scan in the Hardware-HUD style: a glowing scan line (accent) sweeps across and
+//           reveals the new page; ahead of it the old page dims under faint scan rows, the line
+//           carries tick marks (accent2) and leaves a short afterglow.
+//  - Slide: both pages move horizontally.  - Fade: crossfade.
+enum class PageTransition { Hud, Slide, Fade };
+inline constexpr double PAGE_TRANSITION_SECONDS = 0.45;
+Image page_transition(const Image& from, const Image& to, double progress, PageTransition style, int direction,
+                      Color accent = {58, 228, 245}, Color accent2 = {222, 78, 240});
 float scale_for(int w, int h);
 
 extern const std::map<std::string, int> STATUS_ORDER;

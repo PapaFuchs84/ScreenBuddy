@@ -39,6 +39,27 @@ int main(int argc, char** argv) {
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     gfx_init();
     i18n::set_lang("de");
+    if (argc > 2 && std::string(argv[1]) == "transition") {
+        // Writes HUD-scan/slide/fade frames System -> AI (1520x720) as PNGs into argv[2] and times them.
+        auto sys = render::samples::system(); auto ai = render::samples::ai_status();
+        render::SysRenderer sysR(1520, 720, "System", "bit"); render::AiRenderer aiR(1520, 720);
+        const Image a = sysR.render(sys, render::samples::CLOCK), b = aiR.render(ai, 1.0, render::samples::CLOCK);
+        const auto pal = render::hud_palette(config::defaults()["system"], render::theme());
+        const std::pair<const char*, render::PageTransition> styles[] = {{"hud", render::PageTransition::Hud}, {"slide", render::PageTransition::Slide}, {"fade", render::PageTransition::Fade}};
+        for (const auto& [name, style] : styles) {
+            std::vector<double> ms;
+            for (int i = 1; i < 10; ++i) {
+                auto t0 = clock_type::now();
+                Image f = render::page_transition(a, b, i / 10.0, style, 1, pal.primary, pal.secondary);
+                ms.push_back(std::chrono::duration<double, std::milli>(clock_type::now() - t0).count());
+                if (i % 2 == 1) { const auto png = encode_png(f); std::ofstream(std::string(argv[2]) + "/" + name + "-" + std::to_string(i) + ".png", std::ios::binary).write(png.data(), png.size()); }
+            }
+            const Stat s = stat(ms);
+            std::printf("transition %-6s avg %.2f ms p95 %.2f ms (1520x720)\n", name, s.avg, s.p95);
+        }
+        CoUninitialize();
+        return 0;
+    }
     const int frames = argc > 1 ? std::max(5, std::atoi(argv[1])) : 60;
     const std::string out_path = argc > 2 ? argv[2] : "";
     render::apply_theme(config::defaults()["display"]);
