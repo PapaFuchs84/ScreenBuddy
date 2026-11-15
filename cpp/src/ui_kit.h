@@ -693,7 +693,6 @@ private:
 };
 
 // Platzhalterkarte „noch nicht nativ“ für künftige Seiten (aktuell von keiner Seite genutzt).
-Card* placeholder(Host& host, Column& root, Text title, Text text);
 
 // Entfernte Widgets (Column::clear) erst nach der laufenden Nachricht löschen; die Nachrichtenschleife ruft flush_retired.
 void retire(std::vector<WidgetPtr>& items);

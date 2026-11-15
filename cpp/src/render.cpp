@@ -2042,8 +2042,6 @@ BuiltinDrawOut StreamRenderer::render_arranged(StreamState state,const std::vect
 
 
 // ---------- Home Assistant ----------
-static bool toggle_domain_name(const std::string& id) { return ha::toggle_domain(id); }
-static std::string ha_format_value(const std::string& s) { return ha::format_value(s); }
 
 HaRenderer::HaRenderer(int w_, int h_, std::string t) : Renderer(w_, h_, std::move(t)) {
     f_value = font(38, true);
@@ -2099,17 +2097,17 @@ void HaRenderer::cell(Canvas& d, const Cell& c, const HaEntity& e, bool compact)
         d.text(c.x0 + 10, cy - 4, e.state == "nicht gefunden" ? "nicht gefunden" : "Nicht verfügbar", f_unit, t.muted, "lm");
         return;
     }
-    bool is_switch = e.toggle || (toggle_domain_name(e.id) && (e.state == "on" || e.state == "off"));
+    bool is_switch = e.toggle || (ha::toggle_domain(e.id) && (e.state == "on" || e.state == "off"));
     if (is_switch) {
         // Schiebeschalter: Orange = an
         float tw = compact ? 40.f : 52.f, th = compact ? 22.f : 28.f, x = static_cast<float>(c.x0 + 12), y = cy - th / 2.f;
         d.rounded_rectangle(x, y, x + tw, y + th, th / 2, e.on ? t.bar : t.line);
         float r = th / 2 - 3, kx = e.on ? x + tw - th / 2 : x + th / 2;
         d.ellipse(kx - r, cy - r, kx + r, cy + r, e.on ? t.head_text : t.muted);
-        d.text(x + tw + 12, cy, (e.on ? ha_format_value("on") : ha_format_value("off")), compact ? f_value_small : f_value, e.on ? t.text : t.muted, "lm");
+        d.text(x + tw + 12, cy, (e.on ? ha::format_value("on") : ha::format_value("off")), compact ? f_value_small : f_value, e.on ? t.text : t.muted, "lm");
         return;
     }
-    std::string v = fit(d, ha_format_value(e.state), compact ? f_value_small : f_value, cw - 20);
+    std::string v = fit(d, ha::format_value(e.state), compact ? f_value_small : f_value, cw - 20);
     const Font& vf = compact ? f_value_small : f_value;
     d.text(c.x0 + 10, cy, v, vf, t.text, "lm");
     if (!e.unit.empty())

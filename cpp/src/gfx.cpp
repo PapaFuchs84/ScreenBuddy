@@ -529,11 +529,13 @@ void Canvas::ellipse_outline(float x0, float y0, float x1, float y1, Color c, fl
 void Canvas::line(const std::vector<PointF>& in, Color c, float width) {
     if (in.size() < 2) return;
     float s = s_;
-    std::vector<PointF> pts = in;
+    std::vector<PointF> scaled;
     if (s != 1) {
-        for (auto& p : pts) { p.x = pyround(p.x * s); p.y = pyround(p.y * s); }
+        scaled = in;
+        for (auto& p : scaled) { p.x = pyround(p.x * s); p.y = pyround(p.y * s); }
         width = std::max(1.f, pyround(width * s));
     }
+    const std::vector<PointF>& pts = s != 1 ? scaled : in;
     // Waagerechte/senkrechte Strecken pixelgenau wie Pillow (Pixelreihe einschließlich Endpunkt)
     if (pts.size() == 2 && (pts[0].x == pts[1].x || pts[0].y == pts[1].y)) {
         float half = std::floor((width - 1) / 2);
@@ -638,8 +640,9 @@ void Canvas::image(const Image& img, float x, float y, float opacity) {
 
 void Canvas::round_image(const Image& img, float x, float y, int dsz, float opacity) {
     if (img.empty()) return;
-    Image sc = resize(img, dsz, dsz);
-    auto b = d_->bitmap(sc);
+    Image resized;
+    if (img.w != dsz || img.h != dsz) resized = resize(img, dsz, dsz);
+    auto b = d_->bitmap(resized.empty() ? img : resized);
     float px = pyround(x * s_), py = pyround(y * s_);
     ComPtr<ID2D1BitmapBrush> br;
     check(d_->rt->CreateBitmapBrush(b.Get(), &br), "Pinsel");
