@@ -84,7 +84,12 @@ Image draw_metric(const custom::Tile& tile,const custom::Layout& layout,int w,in
     constexpr float K=0.045f;
     if(key=="game_logo" && logo && !logo->empty()) {
         const float fit=std::min(content_w*scale/logo->w,(bottom-top)*scale/logo->h);
-        if(fit>0){auto image=resize(*logo,std::max(1,int(logo->w*fit)),std::max(1,int(logo->h*fit)));c.image(image,cx-image.w/scale/2,top+((bottom-top)-image.h/scale)/2);}
+        // The logo only changes with the game or tile size: keep the resized copy per thread instead of resizing every frame.
+        struct LogoCache{std::weak_ptr<const Image> src;int w=0,h=0;Image out;};
+        thread_local LogoCache cached;
+        const int lw=std::max(1,int(logo->w*fit)),lh=std::max(1,int(logo->h*fit));
+        if(fit>0){if(cached.src.lock()!=logo || cached.w!=lw || cached.h!=lh){cached.out=resize(*logo,lw,lh);cached.src=logo;cached.w=lw;cached.h=lh;}
+            const auto& image=cached.out;c.image(image,cx-image.w/scale/2,top+((bottom-top)-image.h/scale)/2);}
     }
     else if(ringed){
         const bool wide=a.width>=a.height*1.25f;   // wide: number left, ring right-aligned; square: number inside the ring

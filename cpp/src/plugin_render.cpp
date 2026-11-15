@@ -470,13 +470,19 @@ Image draw_page_with(const Page& page, int width, int height, bool sample, const
 // Pixelrechtecke bleiben auf die Bildgrenzen beschränkt; außerhalb bleibt B.
 void blend_rect(Image& dst, const Image& from, const Image& to, zones::Rect r, float mix) {
     if (from.w != to.w || from.h != to.h || dst.w != to.w || dst.h != to.h) return;
-    int weight = int(std::clamp(mix,0.f,1.f)*256);
-    for (int y=std::max(0,int(std::floor(r.y))); y<std::min(dst.h,int(std::ceil(r.y+r.height))); ++y)
-        for (int x=std::max(0,int(std::floor(r.x))); x<std::min(dst.w,int(std::ceil(r.x+r.width))); ++x) {
-            size_t i=size_t(y)*dst.w+x; uint32_t pixel=0;
-            for (int shift=0;shift<32;shift+=8) pixel |= (((from.px[i]>>shift & 255)*(256-weight)+(to.px[i]>>shift & 255)*weight)/256)<<shift;
-            dst.px[i]=pixel;
+    const uint32_t weight = uint32_t(std::clamp(mix,0.f,1.f)*256), keep = 256-weight;
+    // Two channels per multiply (bit-identical to the per-channel (a*(256-w)+b*w)/256: each 16-bit lane stays <= 65280).
+    const int x0=std::max(0,int(std::floor(r.x))), x1=std::min(dst.w,int(std::ceil(r.x+r.width)));
+    for (int y=std::max(0,int(std::floor(r.y))); y<std::min(dst.h,int(std::ceil(r.y+r.height))); ++y) {
+        const size_t row=size_t(y)*dst.w;
+        const uint32_t* a=from.px.data()+row; const uint32_t* b=to.px.data()+row; uint32_t* o=dst.px.data()+row;
+        for (int x=x0; x<x1; ++x) {
+            const uint32_t p=a[x], q=b[x];
+            const uint32_t rb=(((p&0x00FF00FFu)*keep+(q&0x00FF00FFu)*weight)>>8)&0x00FF00FFu;
+            const uint32_t ag=(((p>>8)&0x00FF00FFu)*keep+((q>>8)&0x00FF00FFu)*weight)&0xFF00FF00u;
+            o[x]=rb|ag;
         }
+    }
 }
 void reveal_rect(Image& dst, const Image& from, const Image& to, zones::Rect r, float mix) {
     if (from.w != to.w || from.h != to.h || dst.w != to.w || dst.h != to.h) return;

@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <regex>
 
@@ -220,8 +221,14 @@ Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Ima
     return img;
 }
 
+Color transition_shade(Color hud_bg, Color hud_text) {
+    const Color black{0, 0, 0};
+    if (contrast(hud_bg, black) < 3.5) return hud_bg;            // dark HUD: power down into its own background
+    return contrast(hud_text, black) < 3.5 ? mix(hud_text, black, .35) : Color{8, 12, 22};
+}
+
 Image page_transition(const Image& from, const Image& to, double progress, PageTransition style, int direction,
-                      Color accent, Color accent2) {
+                      Color accent, Color accent2, Color shade) {
     if (from.w != to.w || from.h != to.h || to.empty()) return to;
     if (progress <= 0) return from;
     if (progress >= 1) return to;
@@ -253,40 +260,112 @@ Image page_transition(const Image& from, const Image& to, double progress, PageT
         for (size_t i = 0; i < to.px.size(); ++i) out.px[i] = lerp(from.px[i], to.px[i], t);
         return out;
     }
-    // HUD scan. The line accelerates in and settles out (ease-in-out quint) like the HUD sweep.
+    // HUD scan in the Hardware-HUD look: the outgoing page powers down behind a grid of scan rows,
+    // a neon scan beam with ruler ticks and corner brackets sweeps across, circuit traces pulse
+    // out of the beam into the incoming page and leave a short afterglow. The beam accelerates
+    // in and settles out (ease-in-out quint) like the HUD sweep. Work is row based: plain copy on
+    // the new side, one blend per pixel on the old side, per-pixel effects only near the beam.
+    const int W = to.w, H = to.h;
     const double eased = p < .5 ? 16 * p * p * p * p * p : 1 - std::pow(-2 * p + 2, 5) / 2;
-    const double scan = direction >= 0 ? (1 - eased) * to.w : eased * to.w;   // x of the scan line
-    const int line = int(std::lround(scan));
-    const double glow = std::max(6.0, to.w * .018);        // half width of the line glow
-    const double trail = std::max(24.0, to.w * .09);       // afterglow behind the line (new page side)
-    const uint32_t a1 = 0xFF000000u | uint32_t(accent.r) << 16 | uint32_t(accent.g) << 8 | accent.b;
-    const uint32_t a2 = 0xFF000000u | uint32_t(accent2.r) << 16 | uint32_t(accent2.g) << 8 | accent2.b;
-    const uint32_t dim = uint32_t(std::lround(256 * (1 - .38 * std::min(1.0, eased * 1.6))));   // old page dims ahead
-    const uint32_t black = 0xFF000000u;
-    const int tick_every = std::max(14, to.h / 18), tick_len = std::max(4, int(glow * 1.6));
-    for (int y = 0; y < to.h; ++y) {
+    const double scan = direction >= 0 ? (1 - eased) * W : eased * W;   // x of the scan beam
+    const int line = std::clamp(int(std::lround(scan)), 0, W);
+    const int back = direction >= 0 ? 1 : -1;            // +x points from the beam into the new page
+    const auto argb = [](Color c) { return 0xFF000000u | uint32_t(c.r) << 16 | uint32_t(c.g) << 8 | c.b; };
+    const uint32_t a1 = argb(accent), a2 = argb(accent2), sh = argb(shade);
+    const uint32_t core = lerp(a1, 0xFFFFFFFFu, 90);   // hot core that still reads as the accent colour
+    const double unit = std::max(1.0, std::min(W / 480.0, H / 320.0));   // HUD scale
+    const int glow = std::max(5, int(std::lround(W * .012)));             // half width of the beam glow
+    const int trail = std::max(28, int(std::lround(W * .11)));            // afterglow on the new page
+    // Old page dims towards the HUD shade; strongest in the middle of the sweep, never fully dark.
+    const uint32_t dim = uint32_t(std::lround(256 * (1 - .46 * std::min(1.0, eased * 1.8))));
+    const uint32_t dim_scan = dim * 7 / 10;
+    const int grid = std::max(16, int(std::lround(24 * unit)));
+    const int x0 = std::max(0, line - trail - glow - 2), x1 = std::min(W, line + trail + glow + 2);
+    // Per-column weights of the beam band (computed once per frame).
+    std::vector<uint16_t> glow_w(size_t(x1 - x0)), after_w(size_t(x1 - x0));
+    for (int x = x0; x < x1; ++x) {
+        const double d = (x + .5 - scan) * back;          // >0: new page side
+        const double ad = std::abs(d);
+        double g = ad < glow ? (1 - ad / glow) : 0; g *= g;
+        glow_w[size_t(x - x0)] = uint16_t(std::lround(256 * g));
+        const double t = d > 0 && d < trail ? 1 - d / trail : 0;
+        after_w[size_t(x - x0)] = uint16_t(std::lround(72 * t * t * (1 - .5 * eased)));
+    }
+    // Ruler ticks ahead of the beam (minor every tick_every rows, major every fourth).
+    const int tick_every = std::max(12, int(std::lround(18 * unit)));
+    const int tick_minor = std::max(4, int(std::lround(7 * unit))), tick_major = tick_minor * 2 + 2;
+    // Corner brackets on the beam, a rail behind it and circuit traces into the new page.
+    const int br_len = std::max(10, int(std::lround(26 * unit))), br_th = std::max(2, int(std::lround(2 * unit)));
+    const int br_pad = std::max(3, int(std::lround(6 * unit)));
+    const int rail = line + back * std::max(4, glow * 2);
+    constexpr int TRACES = 6;
+    int trace_y[TRACES], trace_len[TRACES];
+    double trace_head[TRACES];
+    for (int i = 0; i < TRACES; ++i) {
+        const double jitter = std::sin(i * 12.9898) * .5 + .5;
+        trace_y[i] = int(H * (i + .35 + .3 * jitter) / TRACES);
+        // Traces grow out of the beam and retract in the last third so the new page lands clean.
+        trace_len[i] = int(trail * (1.1 + 1.6 * jitter) * std::min({1.0, p * 4, (1 - p) * 3}));
+        trace_head[i] = std::fmod(p * (2.2 + 1.3 * jitter) + jitter, 1.0);   // pulse position 0..1 along the trace
+    }
+    const int trace_th = std::max(2, int(std::lround(1.4 * unit)));
+    const int head_len = std::max(4, int(std::lround(9 * unit)));
+    for (int y = 0; y < H; ++y) {
         const uint32_t* a = &from.px[size_t(y) * w];
         const uint32_t* b = &to.px[size_t(y) * w];
         uint32_t* o = &out.px[size_t(y) * w];
-        const bool scan_row = (y & 3) == 0;   // faint scan rows over the outgoing page
-        const bool tick_row = y % tick_every < 2;
-        for (int x = 0; x < to.w; ++x) {
-            const bool revealed = direction >= 0 ? x >= line : x < line;
-            const double dist = std::abs(x - scan);
-            uint32_t px;
-            if (revealed) {
-                px = b[x];
-                if (dist < trail) px = lerp(px, a1, uint32_t(64 * (1 - dist / trail) * (1 - dist / trail)));   // afterglow
-            } else {
-                px = lerp(black, a[x], scan_row ? dim * 3 / 4 : dim);
-            }
-            if (dist < glow) {   // bright core with soft glow
-                const double k = 1 - dist / glow;
-                px = lerp(px, a1, uint32_t(256 * k * k));
-                if (dist < 1.5) px = lerp(px, 0xFFFFFFFFu, 150);
-            }
-            if (tick_row && dist >= glow * .5 && dist < glow * .5 + tick_len && !revealed) px = lerp(px, a2, 210);
+        // 1) New page side: straight copy.  2) Old page side: powered down HUD grid.
+        const int new_lo = direction >= 0 ? line : 0, new_hi = direction >= 0 ? W : line;
+        const int old_lo = direction >= 0 ? 0 : line, old_hi = direction >= 0 ? line : W;
+        if (new_hi > new_lo) std::memcpy(o + new_lo, b + new_lo, size_t(new_hi - new_lo) * 4);
+        const bool grid_row = y % grid == 0;
+        const uint32_t row_dim = (y % 3 == 0) ? dim_scan : dim;
+        if (grid_row) for (int x = old_lo; x < old_hi; ++x) o[x] = lerp(lerp(sh, a[x], row_dim), a1, 40);
+        else {
+            for (int x = old_lo; x < old_hi; ++x) o[x] = lerp(sh, a[x], row_dim);
+            const int gx0 = old_lo + (grid - old_lo % grid) % grid;
+            for (int x = gx0; x < old_hi; x += grid) o[x] = lerp(o[x], a1, 34);
+        }
+        // 3) Beam band: afterglow on the new side, neon glow and white-hot core.
+        for (int x = x0; x < x1; ++x) {
+            uint32_t px = o[x];
+            const uint32_t aw = after_w[size_t(x - x0)], gw = glow_w[size_t(x - x0)];
+            if (aw) px = lerp(px, (y & 1) ? a1 : a2, aw);
+            if (gw) px = lerp(px, a1, gw);
             o[x] = px;
+        }
+        for (int x = std::max(0, line - 1); x < std::min(W, line + 1); ++x) o[x] = core;
+        if (rail >= 0 && rail < W && (y >> 2) % 3 != 2) o[rail] = lerp(o[rail], a2, 190);   // dashed rail
+        // 4) Ruler ticks on the old side of the beam.
+        if (y % tick_every < 2) {
+            const int len = (y / tick_every) % 4 == 0 ? tick_major : tick_minor;
+            for (int k = glow / 2; k < glow / 2 + len; ++k) {
+                const int x = line - back * k;
+                if (x >= 0 && x < W) o[x] = lerp(o[x], a2, 220);
+            }
+        }
+        // 5) Corner brackets at the top and bottom of the beam.
+        const bool top = y >= br_pad && y < br_pad + br_th, bottom = y >= H - br_pad - br_th && y < H - br_pad;
+        const bool stem = (y >= br_pad && y < br_pad + br_len) || (y >= H - br_pad - br_len && y < H - br_pad);
+        if (top || bottom)
+            for (int k = 0; k < br_len; ++k) { const int x = line - back * (glow + k); if (x >= 0 && x < W) o[x] = lerp(o[x], a2, 235); }
+        else if (stem)
+            for (int k = 0; k < br_th; ++k) { const int x = line - back * (glow + br_len - 1 - k); if (x >= 0 && x < W) o[x] = lerp(o[x], a2, 235); }
+        // 6) Circuit traces with travelling pulses on the new side.
+        for (int i = 0; i < TRACES; ++i) {
+            if (y < trace_y[i] || y >= trace_y[i] + trace_th || trace_len[i] <= 0) continue;
+            const int start = line + back * glow, len = trace_len[i];
+            const int head = int(trace_head[i] * len);
+            for (int k = 0; k < len; ++k) {
+                const int x = start + back * k;
+                if (x < 0 || x >= W) break;
+                const double fade = 1 - double(k) / len;
+                uint32_t px = lerp(o[x], a1, uint32_t(40 + 170 * fade));
+                if (k >= head && k < head + head_len) px = lerp(px, core, 240);
+                o[x] = px;
+            }
+            const int node = start + back * len;   // end node
+            for (int k = -trace_th - 1; k <= trace_th + 1; ++k) { const int x = node + k; if (x >= 0 && x < W) o[x] = lerp(o[x], a2, 220); }
         }
     }
     return out;

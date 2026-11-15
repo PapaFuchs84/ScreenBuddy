@@ -61,7 +61,10 @@ Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Ima
 enum class PageTransition { Hud, Slide, Fade };
 inline constexpr double PAGE_TRANSITION_SECONDS = 0.45;
 Image page_transition(const Image& from, const Image& to, double progress, PageTransition style, int direction,
-                      Color accent = {58, 228, 245}, Color accent2 = {222, 78, 240});
+                      Color accent = {58, 228, 245}, Color accent2 = {222, 78, 240}, Color shade = {5, 8, 18});
+// Dark shade the HUD scan dims the outgoing page towards: the HUD background on dark palettes,
+// a deep tone of the text colour on light ones (keeps the "powering down" look on light skins).
+Color transition_shade(Color hud_bg, Color hud_text);
 float scale_for(int w, int h);
 
 extern const std::map<std::string, int> STATUS_ORDER;

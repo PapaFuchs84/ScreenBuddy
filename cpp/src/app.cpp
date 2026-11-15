@@ -1658,6 +1658,34 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         view.keepout_warning = mono();
     }
     out.area = area;
+    // Page transition (monitor and Companion; the serial panel keeps instant cuts because
+    // every intermediate frame would cost a multi-second transfer there). Also used when the
+    // Game-Mode view comes in without the logo intro.
+    const auto apply_transition = [&](bool switched) {
+        const std::string kind = s(dp_, "page_transition", "auto");
+        const bool smooth_output = phone || (out_ && out_->is_monitor());
+        const bool same_size = !view.previous_frame.empty() && view.previous_frame.w == out.frame.w && view.previous_frame.h == out.frame.h;
+        if (switched && kind != "none" && smooth_output && same_size) {
+            view.transition_from = view.previous_frame;
+            view.transition_start = now;
+        }
+        if (view.transition_start >= 0) {
+            const double progress = (now - view.transition_start) / render::PAGE_TRANSITION_SECONDS;
+            if (progress >= 1 || view.transition_from.w != out.frame.w || view.transition_from.h != out.frame.h) {
+                view.transition_from = {};
+                view.transition_start = -1;
+            } else {
+                // Default: HUD scan in the Hardware-HUD colours (design, neon or custom).
+                const auto style = kind == "slide" ? render::PageTransition::Slide
+                                 : kind == "fade" ? render::PageTransition::Fade : render::PageTransition::Hud;
+                const auto palette = render::hud_palette(cfg_["system"], render::theme());
+                out.frame = render::page_transition(view.transition_from, out.frame, progress, style, view.transition_dir,
+                                                    palette.primary, palette.secondary,
+                                                    render::transition_shade(palette.bg, palette.text));
+                view.animating = true;
+            }
+        }
+    };
     // The override never mutates the configured rotation or normal page index.
     const auto game_snapshot=game_?game_->snapshot():game::Snapshot{};
     const double m_game = mono();
@@ -1672,7 +1700,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     if(document) {
         const bool entering=!view.game_active;
         const bool changed=entering || view.game_generation!=game_snapshot.generation;
-        if(entering){view.game_entered=now;view.saved_switched=view.switched;view.saved_page=view.page;}
+        if(entering){view.transition_dir=1;view.game_entered=now;view.saved_switched=view.switched;view.saved_page=view.page;}
         if(changed){view.game_active=true;view.game_generation=game_snapshot.generation;
             if(b(game_cfg,"intro",true))view.game_intro.begin(content_frame(view.previous_frame),now,b(game_cfg,"reduce_motion"));else view.game_intro.reset();}
         const bool resizing=view.size!=size || view.area!=area;
@@ -1691,14 +1719,18 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             // draw() shares the existing keepout and arranged-touch transform.
             auto drawn=draw(pages,{{0,0,area.w,area.h}},0,size,area);
             out.frame=std::move(drawn.frame);out.taps=std::move(drawn.taps);
-            if(view.game_intro.active(now)) {auto content=view.game_intro.draw(content_frame(out.frame),game_snapshot.logo,game_snapshot.game->name,now);out.frame=device::compose_view(content,size,area,render::theme().bg);out.taps.clear();view.animating=true;}
+            if(view.game_intro.active(now)) {auto content=view.game_intro.draw(content_frame(out.frame),game_snapshot.logo,game_snapshot.game->name,now,
+                                                 game::intro_colors(render::hud_palette(cfg_["system"],render::theme())));
+                out.frame=device::compose_view(content,size,area,render::theme().bg);out.taps.clear();view.animating=true;}
+            else apply_transition(changed);   // without the intro the game view sweeps in like a page
             view.next_deadline=std::min(view.next_deadline,now+(view.animating?frame_interval():1.));
             view.current={key};view.size=size;view.area=area;out.skipped=false;out.switched=changed;
             out.navigation={{"index",0},{"total",1},{"visible",1},{"current",view.current},{"can_step",false},{"game_mode",true}};
             view.last_render=now;view.previous_frame=out.frame;return out;
         }
     }
-    if(view.game_active){view.game_active=false;view.game_intro.reset();view.page=view.saved_page;view.switched=now-(view.game_entered-view.saved_switched);view.current.clear();dirty=true;}
+    bool leaving_game=false;   // the normal page sweeps back in over the game view
+    if(view.game_active){leaving_game=true;view.game_active=false;view.transition_dir=-1;view.game_intro.reset();view.page=view.saved_page;view.switched=now-(view.game_entered-view.saved_switched);view.current.clear();dirty=true;}
     bool due = now - view.switched >= page_seconds;
     auto minute = clock_hhmm();
     // The animated HUD has its own per-output deadline. Leaving it in the
@@ -1833,32 +1865,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             out.navigation = {{"index", start}, {"total", total}, {"visible", cols}, {"current", keys}, {"can_step", total > cols}};
         }
     }
-    // Page transition (monitor and Companion; the serial panel keeps instant cuts because
-    // every intermediate frame would cost a multi-second transfer there).
-    {
-        const std::string kind = s(dp_, "page_transition", "auto");
-        const bool smooth_output = phone || (out_ && out_->is_monitor());
-        const bool same_size = !view.previous_frame.empty() && view.previous_frame.w == out.frame.w && view.previous_frame.h == out.frame.h;
-        if (out.switched && kind != "none" && smooth_output && same_size) {
-            view.transition_from = view.previous_frame;
-            view.transition_start = now;
-        }
-        if (view.transition_start >= 0) {
-            const double progress = (now - view.transition_start) / render::PAGE_TRANSITION_SECONDS;
-            if (progress >= 1 || view.transition_from.w != out.frame.w || view.transition_from.h != out.frame.h) {
-                view.transition_from = {};
-                view.transition_start = -1;
-            } else {
-                // Default: HUD scan in the Hardware-HUD colours (design, neon or custom).
-                const auto style = kind == "slide" ? render::PageTransition::Slide
-                                 : kind == "fade" ? render::PageTransition::Fade : render::PageTransition::Hud;
-                const auto palette = render::hud_palette(cfg_["system"], render::theme());
-                out.frame = render::page_transition(view.transition_from, out.frame, progress, style, view.transition_dir,
-                                                    palette.primary, palette.secondary);
-                view.animating = true;
-            }
-        }
-    }
+    apply_transition(out.switched || leaving_game);
     const bool hud_visible = b(cfg_["system"], "hardware_hud") &&
         std::count(view.current.begin(), view.current.end(), "system") > 0;
     view.animating = view.animating || hud_visible;

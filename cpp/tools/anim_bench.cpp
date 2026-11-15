@@ -8,6 +8,10 @@
 #include "render.h"
 #include "render_hardware_hud.h"
 #include "page_samples.h"
+#include "game_intro.h"
+#include "render_game.h"
+#include "custom_view.h"
+#include "custom_view_editor.h"
 #include "i18n.h"
 #include "util.h"
 #include <algorithm>
@@ -44,18 +48,70 @@ int main(int argc, char** argv) {
         auto sys = render::samples::system(); auto ai = render::samples::ai_status();
         render::SysRenderer sysR(1520, 720, "System", "bit"); render::AiRenderer aiR(1520, 720);
         const Image a = sysR.render(sys, render::samples::CLOCK), b = aiR.render(ai, 1.0, render::samples::CLOCK);
-        const auto pal = render::hud_palette(config::defaults()["system"], render::theme());
-        const std::pair<const char*, render::PageTransition> styles[] = {{"hud", render::PageTransition::Hud}, {"slide", render::PageTransition::Slide}, {"fade", render::PageTransition::Fade}};
-        for (const auto& [name, style] : styles) {
+        const auto design = render::hud_palette(config::defaults()["system"], render::theme());
+        const auto neon = render::hud_neon_palette();
+        struct Variant { const char* name; render::PageTransition style; const render::HudPalette* pal; };
+        const Variant styles[] = {{"hud", render::PageTransition::Hud, &design}, {"hudneon", render::PageTransition::Hud, &neon},
+                                  {"slide", render::PageTransition::Slide, &design}, {"fade", render::PageTransition::Fade, &design}};
+        for (const auto& [name, style, pal] : styles) {
             std::vector<double> ms;
             for (int i = 1; i < 10; ++i) {
                 auto t0 = clock_type::now();
-                Image f = render::page_transition(a, b, i / 10.0, style, 1, pal.primary, pal.secondary);
+                Image f = render::page_transition(a, b, i / 10.0, style, 1, pal->primary, pal->secondary, render::transition_shade(pal->bg, pal->text));
                 ms.push_back(std::chrono::duration<double, std::milli>(clock_type::now() - t0).count());
                 if (i % 2 == 1) { const auto png = encode_png(f); std::ofstream(std::string(argv[2]) + "/" + name + "-" + std::to_string(i) + ".png", std::ios::binary).write(png.data(), png.size()); }
             }
             const Stat s = stat(ms);
             std::printf("transition %-6s avg %.2f ms p95 %.2f ms (1520x720)\n", name, s.avg, s.p95);
+        }
+        CoUninitialize();
+        return 0;
+    }
+    if (argc > 1 && std::string(argv[1]) == "game") {
+        // Game-Mode cockpit (template view, 8 tiles) drawn like the app does: one source call per tile.
+        const auto logo = std::make_shared<const Image>(fox_image(256, false));
+        auto view = custom::game_mode_template("bench");
+        SysSnapshot snap; snap.fps = 120; snap.gpu_pct = 97; snap.cpu_pct = 41; snap.frametime_ms = 8.3; snap.ping_ms = 12; snap.gpu_mem_used = 7000; snap.gpu_mem_total = 12288;
+        for (int i = 0; i < 60; ++i) { snap.fps_hist.push_back(120 + 8 * std::sin(i / 4.0)); snap.frametime_hist.push_back(8.3 + std::sin(i / 5.0)); }
+        for (const auto& [w, h] : std::vector<std::pair<int, int>>{{1520, 720}, {1920, 720}, {2534, 1574}}) {
+            std::vector<double> ms;
+            Image last;
+            for (int i = 0; i < 40; ++i) {
+                auto t0 = clock_type::now();
+                last = custom::draw(view, "", w, h, [&](const custom::Tile& t, const custom::Layout& l, int tw, int th) -> std::optional<Image> {
+                    return game::draw_metric(t, l, tw, th, snap, "Battlefield 6", 3600 + i / 30.0, logo); });
+                ms.push_back(std::chrono::duration<double, std::milli>(clock_type::now() - t0).count());
+            }
+            const Stat s = stat(ms);
+            std::printf("game %dx%d avg %.2f ms p95 %.2f ms\n", w, h, s.avg, s.p95);
+            if (argc > 2) { const auto png = encode_png(last); std::ofstream(std::string(argv[2]) + "/game-" + std::to_string(w) + ".png", std::ios::binary).write(png.data(), png.size()); }
+        }
+        CoUninitialize();
+        return 0;
+    }
+    if (argc > 2 && std::string(argv[1]) == "intro") {
+        // Game-Mode intro: times every frame of the 2.5 s intro at 60 fps and writes key frames as PNGs.
+        const auto logo = std::make_shared<const Image>(fox_image(512, false));
+        const auto pal = render::hud_neon_palette();
+        for (const auto& [w, h] : std::vector<std::pair<int, int>>{{1520, 720}, {2534, 1574}}) {
+            auto sys = render::samples::system(); auto ai = render::samples::ai_status();
+            render::SysRenderer sysR(w, h, "System", "bit"); render::AiRenderer aiR(w, h);
+            const Image prev = aiR.render(ai, 1.0, render::samples::CLOCK), target = sysR.render(sys, render::samples::CLOCK);
+            game::Intro intro;
+            intro.begin(prev, 0, false);
+            std::vector<double> ms;
+            for (int i = 0; i <= 150; ++i) {
+                const double t = i / 60.0;
+                auto t0 = clock_type::now();
+                Image f = intro.draw(target, logo, "Battlefield 6", t, game::intro_colors(pal));
+                ms.push_back(std::chrono::duration<double, std::milli>(clock_type::now() - t0).count());
+                if (w == 1520 && (i == 12 || i == 40 || i == 70 || i == 100 || i == 130)) {
+                    const auto png = encode_png(f);
+                    std::ofstream(std::string(argv[2]) + "/intro-" + std::to_string(i) + ".png", std::ios::binary).write(png.data(), png.size());
+                }
+            }
+            const Stat s = stat(ms);
+            std::printf("intro %dx%d avg %.2f ms p95 %.2f ms max %.2f ms\n", w, h, s.avg, s.p95, s.max);
         }
         CoUninitialize();
         return 0;
