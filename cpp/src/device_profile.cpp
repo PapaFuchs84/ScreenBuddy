@@ -48,6 +48,11 @@ Image place(const Image& content, std::pair<int, int> frame, const Area& area, C
 Image compose_view(const Image& content, std::pair<int, int> frame, const Area& area, Color bg) {
     return place(content, frame, area, bg);
 }
+Image compose_view(Image&& content, std::pair<int, int> frame, const Area& area, Color bg) {
+    // Full-frame content (no keep-out zone) is handed through without a per-frame copy.
+    if (area == Area{0, 0, frame.first, frame.second} && content.w == frame.first && content.h == frame.second) return std::move(content);
+    return place(content, frame, area, bg);
+}
 
 void shift_tiles(std::vector<touch::Tile>& tiles, const Area& area) {
     for (auto& tile : tiles) {

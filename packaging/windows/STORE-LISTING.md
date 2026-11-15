@@ -2,7 +2,15 @@
 
 ## Status
 
-### 2.12.0 (aktuell / current)
+### 2.12.1 (aktuell / current)
+
+Package `ScreenBuddy-2.12.1.0-x64.msix`, identity `49510Herbst.ScreenBuddybyFuchsLabs`, version 2.12.1.0. Prepared on 15 November 2026; upload, certification and publication are open until recorded here. The “what's new” texts below target 2.12.1; description, features and keywords are unchanged from 2.12.0. Screenshots unchanged (2.11.0 renders).
+
+Paket `ScreenBuddy-2.12.1.0-x64.msix`, Identität `49510Herbst.ScreenBuddybyFuchsLabs`, Version 2.12.1.0. Vorbereitet am 15.11.2026; Upload, Zertifizierung und Veröffentlichung sind offen, bis sie hier vermerkt sind. Die Texte „Neues in dieser Version“ gelten für 2.12.1; Beschreibung, Funktionen und Stichwörter unverändert gegenüber 2.12.0. Beispielbilder unverändert (2.11.0).
+
+### 2.12.0 (eingereicht / submitted)
+
+Submitted on 15 November 2026 as submission 2; certification was in progress when 2.12.1 was prepared. / Am 15.11.2026 als Einreichung 2 eingereicht; bei Vorbereitung von 2.12.1 lief die Zertifizierung noch.
 
 Package `ScreenBuddy-2.12.0.0-x64.msix`, identity `49510Herbst.ScreenBuddybyFuchsLabs`, version 2.12.0.0. Not yet submitted at the time of writing (14 November 2026): package upload, certification and publication of this update are open. The description, product features, keywords and “what's new” text below target Windows 2.12.0. Never publish placeholders. The Companion download URL is fixed in the listing text below and is not an open input. Screenshots/ contains four 2.11.0 German/English native settings/editor renders at 1600 × 1200; no 2.12.0 images have been added. They use actual Page/TreeCanvas code under a temporary developer package identity with sample data, not desktop captures or physical-device evidence; see provenance and captions.
 
@@ -105,16 +113,15 @@ GUT ZU WISSEN
 
 USB-Display; Systemmonitor; Hardware-Monitor; Zweitbildschirm; Game-Mode FPS; Sensoranzeige HWiNFO; Android-Companion
 
-### Neues in dieser Version (2.12.0; höchstens 1500 Zeichen)
+### Neues in dieser Version (2.12.1; höchstens 1500 Zeichen)
 
 ```text
-Neu in 2.12.0:
-• Hardware-HUD: optionale animierte Ansicht für die Systemseite in den Farben deines Designs, als Neon oder in eigenen Farben, mit automatisch wechselnden Seiten Übersicht, GPU und CPU, animierten Lüftern, Ringen und Impulsen sowie Layouts für breite, normale und Hochkant-Displays. Einschalten in den Einstellungen bei der Systemseite.
-• CPU-Leistung in Watt aus passenden HWiNFO-Sensoren. Fehlende Werte bleiben unbekannt („--“).
-• Globale Animationsrate: Einstellungen → Anzeige → Animationen, 5 bis 60, Standard 30. Gilt für sichtbare Animationen wie Hardware-HUD, KI-Status, Spotify, eigene Ansichten, Game-Intro und Plugin-Überblendungen. Statische Seiten und die Sensorabfrage bleiben unverändert sparsam.
-• Companion: Animationen kommen ohne zusätzliche Verzögerung an; statische Seiten werden nicht unnötig neu gezeichnet. Dazu gibt es die Companion-App 1.1.1 mit Fehlerkorrekturen; 1.1.0 funktioniert weiter.
-• USB-Display: Die Übertragung läuft in einem eigenen Thread und bremst die Companion-Anzeige nicht mehr.
-• Store-Ausgabe: Hinweise zu FPS-Berechtigung und Hersteller-Autostart, Links zu Hilfe und Datenschutz sowie kleinere Korrekturen.
+Neu in 2.12.1:
+• Deutlich flüssigere Animationen: Der PC liefert jetzt stabil bis zu 60 Bilder/s, viele Seiten zeichnen sich spürbar schneller, neue Bilder wecken die Companion-Verbindung unmittelbar.
+• Neue Seitenübergänge: standardmäßig ein HUD-Scan im Stil des Hardware-HUD, wahlweise Überblenden, Schieben oder aus (Einstellungen → Anzeige → Animationen).
+• Game-Mode: Intro und Cockpit im HUD-Stil; das Spiel gleitet mit einem Übergang herein und wieder hinaus. Die Ziel-Display-Liste unterscheidet gleichnamige, neu gekoppelte Geräte und zeigt, ob sie verbunden sind.
+• Companion-App 1.1.2: Anzeige mit bis zu 60 Bildern/s und kaum noch Rucklern; ältere Versionen funktionieren weiter.
+• Fehlerkorrekturen im Game-Mode.
 ```
 
 ## English
@@ -208,16 +215,15 @@ GOOD TO KNOW
 
 USB display; system monitor; hardware monitor; second screen; game mode FPS; HWiNFO sensor display; Android companion
 
-### What's new in this version (2.12.0; at most 1500 characters)
+### What's new in this version (2.12.1; at most 1500 characters)
 
 ```text
-New in 2.12.0:
-• Hardware HUD: optional animated view for the System page in your design's colours, as neon or in custom colours, with automatically rotating Overview, GPU and CPU pages, animated fans, rings and pulses, and layouts for wide, regular and portrait displays. Enable it in settings next to the system page.
-• CPU power in watts from suitable HWiNFO sensors. Missing values stay unknown (“--”).
-• Global animation rate: Settings → Display → Animations, 5 to 60, default 30. Applies to visible animations such as the Hardware HUD, AI status, Spotify, custom views, the Game intro and plugin fades. Static pages and sensor polling stay as economical as before.
-• Companion: animations arrive without an extra delay; static pages are not redrawn unnecessarily. Companion app 1.1.1 adds bug fixes; 1.1.0 keeps working.
-• USB display: transfers run in their own thread and no longer slow down the Companion display.
-• Store edition: guidance on FPS permission and vendor autostart, help and privacy links, and minor fixes.
+New in 2.12.1:
+• Much smoother animations: the PC now delivers a steady up to 60 frames/s, many pages draw noticeably faster, and new frames wake the Companion connection immediately.
+• New page transitions: by default an HUD scan in the style of the Hardware HUD; alternatively fade, slide or off (Settings → Display → Animations).
+• Game Mode: intro and cockpit in the HUD style; the game glides in and out with a transition. The target-display list tells same-named, re-paired devices apart and shows whether they are connected.
+• Companion app 1.1.2: display at up to 60 frames/s with hardly any stutter; older versions keep working.
+• Game Mode bug fixes.
 ```
 
 ## Certification notes

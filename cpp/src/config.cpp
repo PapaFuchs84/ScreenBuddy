@@ -41,7 +41,7 @@ const ojson& defaults() {
         j["discord"] = {{"enabled", true}, {"token", ""}, {"guild_ids", ojson::array()}, {"friend_ids", ojson::array()},
                         {"ignore_ids", ojson::array()}, {"show_offline", false}};
         j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}, {"brightness", 50}, {"reset_on_start", true},
-                        {"page_seconds", 15}, {"animation_fps", 30}, {"pages", PAGES}, {"visible_pages", PAGES}, {"title", "Discord-Freunde"},
+                        {"page_seconds", 15}, {"animation_fps", 30}, {"page_transition", "auto"}, {"pages", PAGES}, {"visible_pages", PAGES}, {"title", "Discord-Freunde"},
                         {"screen_off_on_exit", true}, {"theme", theme::DEFAULT_ID},
                         // Ausgabe: serial = USB-Display (3,5"), monitor = HDMI/USB-C-Bildschirm als Vollbildfenster
                         {"output", "serial"}, {"monitor", ""}, {"touch", true},
@@ -91,6 +91,7 @@ static const std::map<Key, std::vector<std::string>> CHOICES = {
     {{"system", "net_unit"}, {"bit", "byte"}},
     {{"system", "hud_colors"}, {"theme", "neon", "custom"}},
     {{"display", "color_base"}, {"hell", "dunkel"}},
+    {{"display", "page_transition"}, {"auto", "fade", "slide", "none"}},
     {{"display", "output"}, {"serial", "monitor", "network"}},
     {{"ui", "language"}, {"de", "en"}},
     {{"ui", "settings_theme"}, {"auto", "hell", "dunkel", "windows"}},

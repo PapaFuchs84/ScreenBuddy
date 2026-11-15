@@ -2,6 +2,9 @@
 #include "render_hardware_hud.h"
 // © 2026 FuchsLabs
 #include "app.h"
+#include <windows.h>
+#include <timeapi.h>
+#pragma comment(lib, "winmm.lib")
 #include "custom_view.h"
 #include <set>
 #include <cmath>
@@ -778,7 +781,7 @@ std::vector<std::string> App::active_pages(bool companion, const std::vector<std
         const std::string key = p.get<std::string>();
         const bool is_plugin = key.rfind("plugin:", 0) == 0;
         if (key.starts_with("custom:")) {
-            if (!custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7))) continue;
+            if (!custom::cached_view(cfg_path_.parent_path()/L"views",key.substr(7))) continue;
         } else if (is_plugin ? std::find(plugin_keys.begin(), plugin_keys.end(), key) == plugin_keys.end() : !have[key]) continue;
         if (is_plugin) listed.push_back(key);
         if (chosen(key)) out.push_back(key);
@@ -787,7 +790,7 @@ std::vector<std::string> App::active_pages(bool companion, const std::vector<std
     // Eine eigene Geräteliste ist dagegen verbindlich: was dort fehlt, wird auf dem Gerät nicht gezeigt.
     if (!pages_override) for (const auto& key : plugin_keys)
         if (std::find(listed.begin(), listed.end(), key) == listed.end()) out.push_back(key);
-    if(!pages_override) for(const auto& view:custom::Store(cfg_path_.parent_path()/L"views").list()) {
+    if(!pages_override) for(const auto& view:*custom::cached_views(cfg_path_.parent_path()/L"views")) {
         auto key="custom:"+view.id;
         if(std::none_of(order.begin(),order.end(),[&](const auto& p){return p==key;})) out.push_back(key);
     }
@@ -857,6 +860,17 @@ std::pair<int, int> App::size() const {
 }
 
 std::optional<Image> App::last_frame(bool companion) {
+    // The shared Companion view (main or secondary output) and the first device both publish into the
+    // Companion preview. Since page transitions animate the shared view for a moment, it could overwrite
+    // the device frame. The Companion preview follows the first connected device, as render_devices intends.
+    if (companion && companion_ && (companion_output_ || out_.get() == companion_)) {
+        const auto ids = companion_->client_ids();
+        if (!ids.empty()) {
+            std::lock_guard dl(dev_mu_);
+            if (auto it = devices_.find(ids.front()); it != devices_.end() && it->second && !it->second->frame.empty())
+                return it->second->frame;
+        }
+    }
     std::lock_guard lk(mu_);
     return companion && companion_output_ ? companion_frame_ : last_frame_;
 }
@@ -952,7 +966,7 @@ std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, c
             }
         }
         if (key.starts_with("custom:")) {
-            auto custom_view=custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7));
+            auto custom_view=custom::cached_view(cfg_path_.parent_path()/L"views",key.substr(7));
             if(!custom_view) continue;
             PageEntry entry{key,1,{}};
             const auto allowed_pages=active_pages(phone,pages_override);
@@ -1456,11 +1470,13 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
                 plugins::DrawOut plugin_out;
                 std::vector<touch::ArrangedTarget> arranged_targets;
                 auto& renderer=renderers_for(boxes[k].w,boxes[k].h);
+                const double page_start=mono();
                 custom::DrawOut custom_out;
                 if(p.custom_draw) {custom_out=p.custom_draw(renderer);frames.push_back(std::move(custom_out.image));arranged_targets=std::move(custom_out.targets);plugin_out.targets=std::move(custom_out.plugin);}
                 else if(p.builtin_draw) { auto out=p.builtin_draw(idx,renderer); frames.push_back(std::move(out.first)); arranged_targets=std::move(out.second); }
                 else if(p.plugin_draw) { plugin_out=p.plugin_draw(renderer);frames.push_back(std::move(plugin_out.image)); }
                 else frames.push_back(p.fn(idx,renderer));
+                LOGD("app", "Seite %s gezeichnet in %.1f ms (%dx%d)", p.key.c_str(), (mono()-page_start)*1000, boxes[k].w, boxes[k].h);
                 keys.push_back(p.key);
                 touch::Tile tile{boxes[k], p.key == "rss", p.targets ? p.targets(idx, renderers_for(boxes[k].w, boxes[k].h)) : touch::Rows{}};
                 tile.ha = p.key == "homeassistant";
@@ -1476,9 +1492,13 @@ App::DrawResult App::draw(const std::vector<PageEntry>& pages, const std::vector
             idx -= p.n;
         }
     }
-    auto image = render::compose(area.w, area.h, boxes, frames);
+    const double compose_start = mono();
+    const size_t tile_count = frames.size();
+    auto image = render::compose(area.w, area.h, boxes, std::move(frames));
     device::shift_tiles(taps, area);
-    return {device::compose_view(image, size, area, render::theme().bg), keys, taps};
+    auto composed = device::compose_view(std::move(image), size, area, render::theme().bg);
+    LOGD("app", "Komposition %.1f ms (%zu Kacheln)", (mono() - compose_start) * 1000, tile_count);
+    return {std::move(composed), keys, taps};
 }
 
 Image App::welcome(std::pair<int, int> size) {
@@ -1640,7 +1660,17 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         // previous transfer plus a short controller idle period, not a fixed 1 s.
         return std::max(desired, .05 + std::max(0.0, out_->transfer().last_seconds));
     };
+    // Fixed animation cadence: the next frame is due one interval after the previous ideal
+    // frame time, not after the (slightly late) wake-up. Otherwise ~1 ms of timer overshoot per
+    // frame accumulates and 60/s becomes ~57/s. Falls back to "now" after a stall.
+    const auto paced_deadline = [&](ViewState& v, double t) {
+        const double interval = frame_interval();
+        const bool on_time = v.cadence > 0 && t >= v.cadence - interval * .5 && t - v.cadence < interval;
+        v.cadence = (on_time ? v.cadence : t) + interval;
+        return v.cadence;
+    };
     auto profile = profile_for(phone, id);
+    const double m_profile = mono();
     auto area = device::usable(size, profile);
     auto inset = profile.physical_rotates ? device::to_frame(profile.keepout_physical, profile.orientation) : profile.keepout_physical;
     if (area == device::Area{0,0,size.first,size.second} &&
@@ -1649,20 +1679,53 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         view.keepout_warning = mono();
     }
     out.area = area;
+    // Page transition (monitor and Companion; the serial panel keeps instant cuts because
+    // every intermediate frame would cost a multi-second transfer there). Also used when the
+    // Game-Mode view comes in without the logo intro.
+    // locked: the caller already holds render::mutex() (the theme is only read under that lock).
+    const auto apply_transition = [&](bool switched, bool locked = false) {
+        const std::string kind = s(dp_, "page_transition", "auto");
+        const bool smooth_output = phone || (out_ && out_->is_monitor());
+        const bool same_size = !view.previous_frame.empty() && view.previous_frame.w == out.frame.w && view.previous_frame.h == out.frame.h;
+        if (switched && kind != "none" && smooth_output && same_size) {
+            view.transition_from = view.previous_frame;
+            view.transition_start = now;
+        }
+        if (view.transition_start >= 0) {
+            const double progress = (now - view.transition_start) / render::PAGE_TRANSITION_SECONDS;
+            if (progress >= 1 || view.transition_from.w != out.frame.w || view.transition_from.h != out.frame.h) {
+                view.transition_from = {};
+                view.transition_start = -1;
+            } else {
+                // Default: HUD scan in the Hardware-HUD colours (design, neon or custom).
+                const auto style = kind == "slide" ? render::PageTransition::Slide
+                                 : kind == "fade" ? render::PageTransition::Fade : render::PageTransition::Hud;
+                render::HudPalette palette;
+                if (locked) palette = render::hud_palette(cfg_["system"], render::theme());
+                else { std::lock_guard theme_lock(render::mutex()); palette = render::hud_palette(cfg_["system"], render::theme()); }
+                out.frame = render::page_transition(view.transition_from, out.frame, progress, style, view.transition_dir,
+                                                    palette.primary, palette.secondary,
+                                                    render::transition_shade(palette.bg, palette.text));
+                view.animating = true;
+            }
+        }
+    };
     // The override never mutates the configured rotation or normal page index.
     const auto game_snapshot=game_?game_->snapshot():game::Snapshot{};
+    const double m_game = mono();
     const auto& game_cfg=cfg_["game_mode"];
     const auto target=s(game_cfg,"target_display");
     const bool primary_target=(target=="primary" || (!phone && target==primary_layout_id()));
-    const bool selected=primary_target?(&view==&primary_view_ || (phone && out_.get()==companion_ && !companion_output_)):(phone && !id.empty() && id==target);
+    // "network" (offered in the target list) means every Companion view; otherwise one paired device by ID.
+    const bool selected=primary_target?(&view==&primary_view_ || (phone && out_.get()==companion_ && !companion_output_)):(phone && (target=="network" || (!id.empty() && id==target)));
     const auto key=s(game_cfg,"view");
-    auto document=game_snapshot.game && selected && key.starts_with("custom:")?custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7)):std::nullopt;
+    auto document=game_snapshot.game && selected && key.starts_with("custom:")?custom::cached_view(cfg_path_.parent_path()/L"views",key.substr(7)):std::nullopt;
     auto content_frame=[&](const Image& source){Image content(area.w,area.h,Color{});if(source.w!=size.first || source.h!=size.second)return content;
         for(int y=0;y<area.h;++y)std::copy_n(source.px.begin()+size_t(y+area.y)*source.w+area.x,area.w,content.px.begin()+size_t(y)*area.w);return content;};
     if(document) {
         const bool entering=!view.game_active;
         const bool changed=entering || view.game_generation!=game_snapshot.generation;
-        if(entering){view.game_entered=now;view.saved_switched=view.switched;view.saved_page=view.page;}
+        if(entering){view.transition_dir=1;view.game_entered=now;view.saved_switched=view.switched;view.saved_page=view.page;}
         if(changed){view.game_active=true;view.game_generation=game_snapshot.generation;
             if(b(game_cfg,"intro",true))view.game_intro.begin(content_frame(view.previous_frame),now,b(game_cfg,"reduce_motion"));else view.game_intro.reset();}
         const bool resizing=view.size!=size || view.area!=area;
@@ -1681,14 +1744,18 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             // draw() shares the existing keepout and arranged-touch transform.
             auto drawn=draw(pages,{{0,0,area.w,area.h}},0,size,area);
             out.frame=std::move(drawn.frame);out.taps=std::move(drawn.taps);
-            if(view.game_intro.active(now)) {auto content=view.game_intro.draw(content_frame(out.frame),game_snapshot.logo,game_snapshot.game->name,now);out.frame=device::compose_view(content,size,area,render::theme().bg);out.taps.clear();view.animating=true;}
-            view.next_deadline=std::min(view.next_deadline,now+(view.animating?frame_interval():1.));
+            if(view.game_intro.active(now)) {auto content=view.game_intro.draw(content_frame(out.frame),game_snapshot.logo,game_snapshot.game->name,now,
+                                                 game::intro_colors(render::hud_palette(cfg_["system"],render::theme())));
+                out.frame=device::compose_view(std::move(content),size,area,render::theme().bg);out.taps.clear();view.animating=true;}
+            else apply_transition(changed, true);   // without the intro the game view sweeps in like a page (render lock held)
+            view.next_deadline=std::min(view.next_deadline,view.animating?paced_deadline(view,now):now+1.);
             view.current={key};view.size=size;view.area=area;out.skipped=false;out.switched=changed;
             out.navigation={{"index",0},{"total",1},{"visible",1},{"current",view.current},{"can_step",false},{"game_mode",true}};
             view.last_render=now;view.previous_frame=out.frame;return out;
         }
     }
-    if(view.game_active){view.game_active=false;view.game_intro.reset();view.page=view.saved_page;view.switched=now-(view.game_entered-view.saved_switched);view.current.clear();dirty=true;}
+    bool leaving_game=false;   // the normal page sweeps back in over the game view
+    if(view.game_active){leaving_game=true;view.game_active=false;view.transition_dir=-1;view.game_intro.reset();view.page=view.saved_page;view.switched=now-(view.game_entered-view.saved_switched);view.current.clear();dirty=true;}
     bool due = now - view.switched >= page_seconds;
     auto minute = clock_hhmm();
     // The animated HUD has its own per-output deadline. Leaving it in the
@@ -1697,7 +1764,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                 !b(cfg_["system"], "hardware_hud");
     live = live || std::count(view.current.begin(),view.current.end(),"ai") > 0;
     for(const auto& key:view.current) if(key.starts_with("custom:")) {
-        if(auto doc=custom::Store(cfg_path_.parent_path()/L"views").get(key.substr(7))) for(const auto& tile:doc->effective(id).tiles) if(tile.source=="ai" || tile.source=="system") live=true;
+        if(auto doc=custom::cached_view(cfg_path_.parent_path()/L"views",key.substr(7))) for(const auto& tile:doc->effective(id).tiles) if(tile.source=="ai" || tile.source=="system") live=true;
     }
     live = live && now - view.last_render >= .5;
     // Keep visible playback alive even when silent capture publishes no changes.
@@ -1708,10 +1775,13 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     // Data notifications (e.g. audio levels) mark everything dirty. An animating
     // view still renders at most at the selected rate; navigation and resizes
     // are not delayed.
-    if (dirty && view.animating && view.step == 0 && view.size == size && view.area == area) {
+    bool navigation_pending = false;
+    { std::lock_guard lk(view.next_mu); navigation_pending = !view.page_request.empty() || !view.next_requests.empty(); }
+    if (dirty && !navigation_pending && view.animating && view.step == 0 && view.size == size && view.area == area) {
         const double next_frame = view.last_render + 1.0 / animation_fps(cfg_);
         if (now < next_frame) { dirty = false; view.next_deadline = std::min(view.next_deadline, next_frame); }
     }
+    const double m_live = mono();
     if (!plugins::schedule::should_render(dirty,due,live,view.step,view.size!=size || view.area!=area,view.minute!=minute,now,view.next_deadline)) return out;
     if (view.size!=size || view.area!=area) { for (auto& [plugin,zones]:view.cycles) plugins::schedule::reset(zones,false,true); view.fade_caches.clear(); }
     { std::lock_guard lk(view.next_mu); view.frame_next_requests.clear(); view.frame_next_requests.swap(view.next_requests); }
@@ -1724,9 +1794,13 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     std::vector<Friend> friends, people;
     if (discord_ && std::count(active.begin(), active.end(), "discord")) friends = discord_->friends();
     if (friends_) people = friends_->people();
+    const double m_active = mono();
+    LOGD("app", "Vorlauf: Profil %.1f, Spiel %.1f, Live %.1f, Seiten/Freunde %.1f ms", (m_profile - now) * 1000, (m_game - m_profile) * 1000, (m_live - m_game) * 1000, (m_active - m_live) * 1000);
     out.navigation = {{"index", 0}, {"total", 0}, {"visible", 0}, {"current", ojson::array()}, {"can_step", false}};
+    double t_locked = now, t_pages = now, t_drawn = now;
     {
         std::lock_guard rl(render::mutex());
+        t_locked = mono();
         // Bound cached renderer sets when a resizable window reports many intermediate sizes.
         if (sets_.size() > 16) sets_.clear();
         // A dedicated HUD system page uses the full width instead of automatic
@@ -1737,14 +1811,19 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                 : render::tile_layout(area.w, area.h, count);
         };
         auto boxes = layout();
+        const double t_layout = mono();
         auto pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone, phone ? (id.empty()?"network":id) : primary_layout_id());
+        const double t_list1 = mono();
         int total = 0;
         for (auto& p : pages) total += p.n;
+        double t_list2 = t_list1;
         if (0 < total && total < (int)boxes.size()) {
             boxes = layout(total);
             pages = page_list(friends, people, renderers_for(boxes[0].w, boxes[0].h), phone, pages_override, &view, now, phone, phone ? (id.empty()?"network":id) : primary_layout_id());
             total = 0; for (auto& p : pages) total += p.n;
+            t_list2 = mono();
         }
+        LOGD("app", "Seitenaufbau: Raster %.1f, Liste %.1f, zweite Liste %.1f ms", (t_layout - t_locked) * 1000, (t_list1 - t_layout) * 1000, (t_list2 - t_list1) * 1000);
         std::string requested;
         {std::lock_guard lk(view.next_mu);requested.swap(view.page_request);}
         int requested_index=-1,offset_requested=0;
@@ -1759,6 +1838,8 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
             if (due || step) {
                 if (total > cols) {
                     out.switched = true;
+                    view.transition_dir = step < 0 ? -1 : 1;
+                    view.transition_manual = step != 0;
                     view.page = (((view.page + (step ? step : 1) * cols) % total) + total) % total;
                 }
                 view.switched = mono();
@@ -1782,19 +1863,41 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                 std::lock_guard lk(mu_);
                 redraw_ = [this, pages, boxes, start, size, area] { return draw(pages, boxes, start, size, area).frame; };
             }
+            t_pages = mono();
             auto [f, keys, targets] = draw(pages, boxes, start, size, area);
+            t_drawn = mono();
+            // First frame at this size: draw every other built-in page once off-screen so the
+            // first real switch to it does not pay one-time font/layout/bitmap costs (35-220 ms).
+            // Plugin and custom pages are skipped: their draw functions advance zone cycles.
+            if (view.warmed_size != size) {
+                view.warmed_size = size;
+                const double warm_start = mono();
+                int index = 0;
+                for (auto& entry : pages) {
+                    for (int sub = 0; sub < entry.n; ++sub, ++index) {
+                        if (std::count(keys.begin(), keys.end(), entry.key) || entry.plugin_draw || entry.custom_draw || entry.prepare) continue;
+                        try {
+                            auto& renderer = renderers_for(boxes[0].w, boxes[0].h);
+                            if (entry.builtin_draw) (void)entry.builtin_draw(sub, renderer);
+                            else if (entry.fn) (void)entry.fn(sub, renderer);
+                        } catch (const std::exception& e) { LOGD("app", "Vorwärmen %s: %s", entry.key.c_str(), e.what()); }
+                        break;   // one sub-page per entry is enough to warm its fonts and assets
+                    }
+                }
+                LOGD("app", "Seiten vorgewärmt in %.1f ms (%dx%d)", (mono() - warm_start) * 1000, size.first, size.second);
+            }
             out.frame = std::move(f); view.current = keys; out.taps = std::move(targets);
             out.navigation = {{"index", start}, {"total", total}, {"visible", cols}, {"current", keys}, {"can_step", total > cols}};
         }
     }
+    apply_transition(out.switched || leaving_game);
     const bool hud_visible = b(cfg_["system"], "hardware_hud") &&
         std::count(view.current.begin(), view.current.end(), "system") > 0;
     view.animating = view.animating || hud_visible;
     if (view.animating) {
         const bool fast_output = phone || !out_ || out_->is_monitor();
-        if (fast_output) view.next_deadline = std::min(view.next_deadline, now + frame_interval());
-        else if (hud_visible || view.next_deadline == plugins::schedule::never)
-            view.next_deadline = std::min(view.next_deadline, now + frame_interval());
+        if (fast_output || hud_visible || view.next_deadline == plugins::schedule::never)
+            view.next_deadline = std::min(view.next_deadline, paced_deadline(view, now));
         // Serial plugin reveal/cut steps retain their measured transfer budget.
     }
     view.last_render = now;
@@ -1802,6 +1905,11 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     view.render_ms = ewma(view.render_ms,(mono()-now)*1000);
     view.previous_frame=out.frame;
     LOGD("app", "Renderzeit %.1f ms (%s, %dx%d)", view.render_ms.value_or(0), phone ? "Companion" : "Primary", size.first, size.second);
+    // Per-frame breakdown for smoothness work (debug log only): wait for the render lock,
+    // page list, draw+compose, and the rest (state copies) of this frame.
+    LOGD("app", "Bildzeit %.1f ms: Sperre %.1f, Seiten %.1f, Zeichnen %.1f, Rest %.1f (%s)", (mono() - now) * 1000,
+         (t_locked - now) * 1000, (t_pages - t_locked) * 1000, (t_drawn - t_pages) * 1000, (mono() - std::max(t_drawn, t_locked)) * 1000,
+         phone ? "Companion" : "Primary");
     return out;
 }
 
@@ -1867,13 +1975,14 @@ void App::render_devices(bool dirty) {
             std::lock_guard lk(dev_mu_);
             companion_->show_for(id, r.frame, r.navigation, d->view.animating ? animation_fps(cfg_) : 0);
             touch::stabilize_plugins(r.taps,d->taps,mono());
-            d->frame = r.frame; d->area = r.area; d->taps = std::move(r.taps); d->navigation = r.navigation;
+            d->area = r.area; d->taps = std::move(r.taps); d->navigation = r.navigation;
         }
         if (first) {   // Vorschau und Seitennavigation der Einstellungen folgen dem ersten Gerät
             std::lock_guard state(mu_);
             if (companion_output_) { companion_frame_ = r.frame; companion_navigation_ = r.navigation; }
             else { last_frame_ = r.frame; navigation_ = r.navigation; }
         }
+        { std::lock_guard lk(dev_mu_); d->frame = std::move(r.frame); }   // last use: move instead of a 4-16 MB copy
         first = false;
     }
     std::vector<std::string> gone;
@@ -1950,6 +2059,8 @@ void App::device_tap(const std::string& id, int x, int y, int w, int h) {
     mark_dirty();
 }
 void App::display_loop() {
+    bool timer_boost = false;
+    struct TimerRelease { bool& on; ~TimerRelease() { if (on) timeEndPeriod(1); } } timer_release{timer_boost};
     display_thread_ = std::this_thread::get_id();
     double next_try = 0, companion_try = 0;
     if (out_) connect_display();
@@ -1990,6 +2101,26 @@ void App::display_loop() {
             if(companion_output_) render_view(true,dirty);
         }
         if(companion_ && !indep) render_devices(dirty);
+        // A detected game whose target display is not connected would silently show nothing
+        // (e.g. the phone was re-paired and got a new ID): say so once per game.
+        if(game_ && b(cfg_["game_mode"],"enabled")) {
+            const auto g=game_->snapshot();
+            if(g.game && g.generation!=game_target_checked_) {
+                const auto target=s(cfg_["game_mode"],"target_display");
+                const auto clients=companion_?companion_->client_ids():std::vector<std::string>{};
+                const bool local_out=out_ && out_.get()!=companion_;
+                const bool primary=target=="primary" || target==primary_layout_id();
+                // "primary" is the local display when there is one, otherwise the network output.
+                const bool reachable=primary?(local_out?display_ok():!clients.empty())
+                    :target=="network"?!clients.empty():std::find(clients.begin(),clients.end(),target)!=clients.end();
+                // Re-checked every loop while the game runs; reported once per game when unreachable.
+                if(!reachable) {
+                    game_target_checked_=g.generation;
+                    LOGW("game", "Game-Mode: %s erkannt, aber Ziel-Display %s ist nicht verbunden (neu gekoppelt? In den Einstellungen unter Game-Mode das Ziel-Display neu wählen)",
+                         g.game->name.c_str(), target.c_str());
+                }
+            }
+        }
         std::vector<double> deadlines;
         bool animating=false;
         if (!indep || (out_ && out_.get()!=companion_)) { deadlines.push_back(primary_view_.next_deadline); animating=primary_view_.animating; }
@@ -1997,6 +2128,13 @@ void App::display_loop() {
         { std::lock_guard lk(dev_mu_); for (const auto& [id,d]:devices_) if (companion_) { deadlines.push_back(d->view.next_deadline); animating=animating || d->view.animating; } }
         bool metering=meter_ && meter_->active() && (meter_->available() || meter_->simulated());
         auto wake=plugins::schedule::wake_at(mono(),deadlines,animating,metering);
+        // Windows waits (Sleep, condition variables) default to a ~15.6 ms tick: a 60 fps
+        // deadline then slips to every second tick (about 32 fps). Raise the timer
+        // resolution only while something animates (process-local on Windows 11).
+        if (animating != timer_boost) {
+            if (animating) timeBeginPeriod(1); else timeEndPeriod(1);
+            timer_boost = animating;
+        }
         if (animating) {
             // Animated views share the selected rate; static views retain
             // their own polling cadence even when another output wakes early.

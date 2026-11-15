@@ -1,6 +1,6 @@
 # © 2026 FuchsLabs – ScreenBuddy (C++)
 cmake_minimum_required(VERSION 3.24)
-project(ScreenBuddy VERSION 2.12.0 LANGUAGES CXX RC)
+project(ScreenBuddy VERSION 2.12.1 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -202,6 +202,11 @@ target_link_libraries(fl-hardware-hud-tests PRIVATE flcore)
 target_link_options(fl-hardware-hud-tests PRIVATE /MANIFEST:NO)
 
 # Local sample-only device renderer/transport harness; never packaged as the application.
+# Animation smoothness benchmark (synthetic samples only; never packaged).
+add_executable(fl-anim-bench EXCLUDE_FROM_ALL tools/anim_bench.cpp)
+target_link_libraries(fl-anim-bench PRIVATE flcore)
+target_link_options(fl-anim-bench PRIVATE /MANIFEST:NO)
+
 add_executable(fl-crossview-test tools/crossview_test.cpp)
 target_link_libraries(fl-crossview-test PRIVATE flcore)
 target_link_options(fl-crossview-test PRIVATE /MANIFEST:NO)

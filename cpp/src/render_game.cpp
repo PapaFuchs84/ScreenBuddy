@@ -42,6 +42,17 @@ Image draw_metric(const custom::Tile& tile,const custom::Layout& layout,int w,in
     if(hero){c.rounded_rectangle(a.x,a.y,a.x+a.width-1,a.y+a.height-1,8,mix_color(theme.card,theme.accent,.55f));c.rounded_rectangle(a.x+1.5f,a.y+1.5f,a.x+a.width-2.5f,a.y+a.height-2.5f,6.5f,theme.card);}
     else c.rounded_rectangle(a.x,a.y,a.x+a.width-1,a.y+a.height-1,8,theme.card);
     c.rounded_rectangle(a.x,a.y+a.height*.32f,a.x+2.5f,a.y+a.height*.68f,1.2f,theme.accent);   // accent stripe, vertically centred
+    // HUD corner brackets (as in the game intro and the HUD scan transition); brighter on the FPS hero tile.
+    // Drawn before the content (which wins where they meet) and left out on small tiles.
+    if(a.width>=90 && a.height>=60) {
+        const float in=4,arm=std::clamp(std::min(a.width,a.height)*(hero?.14f:.09f),6.f,hero?22.f:14.f),th=hero?2.f:1.f;
+        const Color col=hero?theme.accent:mix_color(theme.card,theme.accent,.55f);
+        const float l=a.x+in,r=a.x+a.width-1-in,t=a.y+in,b=a.y+a.height-1-in;
+        c.rectangle(l,t,l+arm,t+th-1,col);c.rectangle(l,t,l+th-1,t+arm,col);
+        c.rectangle(r-arm,t,r,t+th-1,col);c.rectangle(r-th+1,t,r,t+arm,col);
+        c.rectangle(l,b-th+1,l+arm,b,col);c.rectangle(l,b-arm,l+th-1,b,col);
+        c.rectangle(r-arm,b-th+1,r,b,col);c.rectangle(r-th+1,b-arm,r,b,col);
+    }
     c.clip_push(a.x+3,a.y+3,a.x+a.width-4,a.y+a.height-4);
     std::string title=tile.block;for(const auto& b:builtin::find("system")->blocks)if(b.id==tile.block)title=i18n::lang()=="en"?b.label.en:b.label.de;
     if(snapshot.fps_reason=="hwinfo_presentmon"){if(key=="fps")title="FPS · HWiNFO";else if(key=="fps_low")title="FPS · 1 % Low · HWiNFO";else if(key=="frametime")title="Frametime · HWiNFO";}
@@ -84,7 +95,12 @@ Image draw_metric(const custom::Tile& tile,const custom::Layout& layout,int w,in
     constexpr float K=0.045f;
     if(key=="game_logo" && logo && !logo->empty()) {
         const float fit=std::min(content_w*scale/logo->w,(bottom-top)*scale/logo->h);
-        if(fit>0){auto image=resize(*logo,std::max(1,int(logo->w*fit)),std::max(1,int(logo->h*fit)));c.image(image,cx-image.w/scale/2,top+((bottom-top)-image.h/scale)/2);}
+        // The logo only changes with the game or tile size: keep the resized copy per thread instead of resizing every frame.
+        struct LogoCache{std::weak_ptr<const Image> src;int w=0,h=0;Image out;};
+        thread_local LogoCache cached;
+        const int lw=std::max(1,int(logo->w*fit)),lh=std::max(1,int(logo->h*fit));
+        if(fit>0){if(cached.src.lock()!=logo || cached.w!=lw || cached.h!=lh){cached.out=resize(*logo,lw,lh);cached.src=logo;cached.w=lw;cached.h=lh;}
+            const auto& image=cached.out;c.image(image,cx-image.w/scale/2,top+((bottom-top)-image.h/scale)/2);}
     }
     else if(ringed){
         const bool wide=a.width>=a.height*1.25f;   // wide: number left, ring right-aligned; square: number inside the ring

@@ -49,7 +49,25 @@ public:
         form_=Form(host);auto card=root.add<Card>(Text(L"Game-Mode"));
         form_.toggle(*card,"game_mode","enabled",T(L"Game-Mode aktivieren",L"Enable Game-Mode"));
         std::vector<std::string> ids{"primary"};std::vector<Text> labels{T(L"Primäre Ausgabe",L"Primary output")};
-        if(host.plugins().layout_displays)for(const auto& d:host.plugins().layout_displays()){auto id=d.value("id",std::string());if(id.empty() || std::find(ids.begin(),ids.end(),id)!=ids.end())continue;ids.push_back(id);labels.emplace_back(widen(d.value("name",id)));}
+        if(host.plugins().layout_displays){
+            const auto displays=host.plugins().layout_displays();
+            // A re-paired phone gets a new ID but keeps its name: without a hint both entries read
+            // "Redmi 8" and the old, never-connecting pairing can stay selected unnoticed.
+            for(const auto& d:displays){auto id=d.value("id",std::string());if(id.empty() || std::find(ids.begin(),ids.end(),id)!=ids.end())continue;
+                const auto name=d.value("name",id);
+                // Shortest ID ending (at least 4 characters) that tells same-named entries apart;
+                // endings, because monitor IDs share the "monitor:" prefix.
+                std::vector<std::string> twins;for(const auto& o:displays)if(o.value("name",std::string())==name)twins.push_back(o.value("id",std::string()));
+                std::wstring label=widen(name);
+                if(twins.size()>1){
+                    size_t n=std::min<size_t>(4,id.size());
+                    const auto tail=[](const std::string& s,size_t k){return s.substr(s.size()-std::min(k,s.size()));};
+                    while(n<id.size() && std::count_if(twins.begin(),twins.end(),[&](const auto& o){return tail(o,n)==tail(id,n);})>1)++n;
+                    label+=L" (…"+widen(tail(id,n))+L")";
+                }
+                const bool online=d.value("online",false);
+                ids.push_back(id);labels.push_back(online?Text(label+L" · verbunden",label+L" · connected"):Text(label+L" · offline"));}
+        }
         auto current=form_.value("game_mode","target_display").get<std::string>();if(std::find(ids.begin(),ids.end(),current)==ids.end()){ids.push_back(current);labels.emplace_back(widen(current)+L" (offline)");}
         form_.combo(*card,"game_mode","target_display",T(L"Ziel-Display",L"Target display"),{},ids,labels);
         ids={""};labels={T(L"Ansicht wählen",L"Choose a view")};for(const auto& view:custom::Store(host.app().cfg_path().parent_path()/L"views").list()){ids.push_back("custom:"+view.id);labels.emplace_back(widen(view.name));}

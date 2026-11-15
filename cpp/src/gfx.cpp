@@ -8,10 +8,12 @@
 #include <wincodec.h>
 #include <wrl/client.h>
 
+#include <atomic>
 #include <cmath>
 #include <cstring>
 #include <map>
 #include <mutex>
+#include <unordered_map>
 #include <stdexcept>
 
 #include "brand.h"
@@ -97,18 +99,62 @@ const FontInfo& font_info(const Font& f) {
 }
 
 ComPtr<IDWriteTextLayout> layout(const std::wstring& w, const FontInfo& fi) {
+    // Animated pages draw the same labels every frame; shaping them again each time was a large
+    // share of the frame. Layouts are immutable here (no ranges, no wrapping changes), so a small
+    // per-thread cache keyed by format and text is safe. The entry keeps its format alive, so a
+    // recycled format pointer can never hit a stale layout.
+    struct Entry { ComPtr<IDWriteTextFormat> fmt; ComPtr<IDWriteTextLayout> layout; };
+    thread_local std::unordered_map<std::wstring, Entry> cache;
+    const IDWriteTextFormat* fp = fi.fmt.Get();
+    std::wstring key;
+    key.assign(reinterpret_cast<const wchar_t*>(&fp), sizeof(fp) / sizeof(wchar_t));
+    key += w;
+    if (auto it = cache.find(key); it != cache.end()) return it->second.layout;
     ComPtr<IDWriteTextLayout> l;
     check(g_dw->CreateTextLayout(w.c_str(), (UINT32)w.size(), fi.fmt.Get(), 100000.f, 10000.f, &l), "Textlayout");
+    if (cache.size() >= 1024) cache.clear();   // bounded: changing values (clock, counters) must not grow it forever
+    cache.emplace(std::move(key), Entry{fi.fmt, l});
     return l;
 }
 
-ComPtr<IWICBitmap> wic_from(const Image& img) {
-    ComPtr<IWICBitmap> b;
-    check(g_wic->CreateBitmapFromMemory(img.w, img.h, GUID_WICPixelFormat32bppPBGRA, img.w * 4,
-                                        (UINT)(img.px.size() * 4), (BYTE*)img.px.data(), &b),
-          "Bild");
-    return b;
-}
+// Read-only WIC view of an Image without copying it (the encoder pulls rows straight from the
+// frame buffer). The image must outlive every use of the source; encode_jpeg() guarantees that.
+class ImageSource final : public IWICBitmapSource {
+public:
+    explicit ImageSource(const Image& img) : img_(img) {}
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** out) override {
+        if (!out) return E_POINTER;
+        if (riid == __uuidof(IUnknown) || riid == __uuidof(IWICBitmapSource)) { *out = static_cast<IWICBitmapSource*>(this); AddRef(); return S_OK; }
+        *out = nullptr;
+        return E_NOINTERFACE;
+    }
+    ULONG STDMETHODCALLTYPE AddRef() override { return ++refs_; }
+    ULONG STDMETHODCALLTYPE Release() override { const ULONG r = --refs_; if (!r) delete this; return r; }
+    HRESULT STDMETHODCALLTYPE GetSize(UINT* w, UINT* h) override {
+        if (!w || !h) return E_INVALIDARG;
+        *w = UINT(img_.w); *h = UINT(img_.h); return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE GetPixelFormat(WICPixelFormatGUID* f) override { if (!f) return E_INVALIDARG; *f = GUID_WICPixelFormat32bppPBGRA; return S_OK; }
+    HRESULT STDMETHODCALLTYPE GetResolution(double* x, double* y) override { if (!x || !y) return E_INVALIDARG; *x = *y = 96; return S_OK; }
+    HRESULT STDMETHODCALLTYPE CopyPalette(IWICPalette*) override { return WINCODEC_ERR_PALETTEUNAVAILABLE; }
+    HRESULT STDMETHODCALLTYPE CopyPixels(const WICRect* rc, UINT stride, UINT size, BYTE* dst) override {
+        if (!dst) return E_INVALIDARG;
+        const WICRect all{0, 0, img_.w, img_.h};
+        const WICRect r = rc ? *rc : all;
+        // Overflow-safe bounds: compare against the remaining extent, compute sizes in 64 bit.
+        if (r.X < 0 || r.Y < 0 || r.Width < 0 || r.Height < 0 || r.X > img_.w || r.Y > img_.h ||
+            r.Width > img_.w - r.X || r.Height > img_.h - r.Y) return E_INVALIDARG;
+        const uint64_t row = uint64_t(r.Width) * 4;
+        if (uint64_t(stride) < row || (r.Height > 0 && uint64_t(size) < uint64_t(stride) * uint64_t(r.Height - 1) + row)) return E_INVALIDARG;
+        for (int y = 0; y < r.Height; ++y)
+            std::memcpy(dst + size_t(y) * stride, img_.px.data() + size_t(r.Y + y) * img_.w + r.X, size_t(row));
+        return S_OK;
+    }
+private:
+    ~ImageSource() = default;
+    const Image& img_;
+    std::atomic<ULONG> refs_{1};
+};
 
 Image image_from(IWICBitmapSource* src) {
     UINT w = 0, h = 0;
@@ -195,7 +241,8 @@ std::string encode_png(const Image& img) {
         if ((p >> 24) != 255) { opaque = false; break; }
     WICPixelFormatGUID pf = opaque ? GUID_WICPixelFormat24bppBGR : GUID_WICPixelFormat32bppBGRA;
     check(frame->SetPixelFormat(&pf), "PNG");
-    auto bmp = wic_from(img);
+    ComPtr<IWICBitmapSource> bmp;
+    bmp.Attach(new ImageSource(img));   // read straight from the image, no full-frame WIC copy
     ComPtr<IWICFormatConverter> conv;
     check(g_wic->CreateFormatConverter(&conv), "Konverter");
     check(conv->Initialize(bmp.Get(), pf, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom), "Konverter");
@@ -234,10 +281,11 @@ std::string encode_jpeg(const Image& img, float quality) {
     check(frame->SetSize(img.w, img.h), "JPEG");
     WICPixelFormatGUID pf = GUID_WICPixelFormat24bppBGR;
     check(frame->SetPixelFormat(&pf), "JPEG");
-    auto bmp = wic_from(img);
+    ComPtr<IWICBitmapSource> src;
+    src.Attach(new ImageSource(img));   // no full-frame copy into a WIC bitmap
     ComPtr<IWICFormatConverter> conv;
     check(g_wic->CreateFormatConverter(&conv), "Konverter");
-    check(conv->Initialize(bmp.Get(), pf, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom), "Konverter");
+    check(conv->Initialize(src.Get(), pf, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom), "Konverter");
     check(frame->WriteSource(conv.Get(), nullptr), "JPEG");
     check(frame->Commit(), "JPEG");
     check(enc->Commit(), "JPEG");
@@ -255,7 +303,8 @@ std::string encode_jpeg(const Image& img, float quality) {
 Image resize(const Image& img, int w, int h) {
     ensure_com();
     if (img.w == w && img.h == h) return img;
-    auto bmp = wic_from(img);
+    ComPtr<IWICBitmapSource> bmp;
+    bmp.Attach(new ImageSource(img));   // read straight from the image, no full-frame WIC copy
     ComPtr<IWICBitmapScaler> sc;
     check(g_wic->CreateBitmapScaler(&sc), "Skalierer");
     // Verkleinern: Fant (flächenmittelnd, wie Lanczos sauber ohne Moiré); Vergrößern: hochwertig kubisch
@@ -346,6 +395,7 @@ struct Canvas::Impl {
     int brush_count = 0, next_evict = 0;
     int clips = 0;  // offene clip_push()-Aufrufe
     bool done = false;
+    bool ok = true;  // false after a failed EndDraw: the surface is not pooled again
 
     ID2D1SolidColorBrush* brush(Color c) {
         uint32_t k = (uint32_t)c.r << 16 | (uint32_t)c.g << 8 | (uint32_t)c.b;
@@ -368,30 +418,71 @@ struct Canvas::Impl {
     }
 };
 
-Canvas::Canvas(int w, int h, float s, Color bg, uint8_t bg_alpha) : d_(std::make_unique<Impl>()), s_(s) {
+// Per-thread pool of finished drawing surfaces (WIC bitmap + render target + brushes).
+// Animated views redraw the same sizes many times per second; recreating a 4-megapixel
+// software target for every frame cost more than drawing into it. Bounded by pixel count.
+namespace {
+constexpr size_t POOL_PIXEL_LIMIT = 3ull * 2560 * 1600;
+thread_local std::vector<std::unique_ptr<Canvas::Impl>> t_pool;
+struct WindowState { int pw = 0, ph = 0, x = 0, y = 0, w = 0, h = 0; bool active = false, used = false; };
+thread_local WindowState t_window;
+}
+
+CanvasWindow::CanvasWindow(int page_w, int page_h, int x, int y, int w, int h) {
+    // Only a proper sub-rectangle inside the page; anything else leaves canvases untouched.
+    const bool valid = w > 0 && h > 0 && x >= 0 && y >= 0 && x + w <= page_w && y + h <= page_h;
+    t_window = {page_w, page_h, x, y, w, h, valid, false};
+}
+CanvasWindow::~CanvasWindow() { t_window = {}; }
+bool CanvasWindow::used() const { return t_window.used; }
+
+Canvas::Canvas(int w, int h, float s, Color bg, uint8_t bg_alpha) : s_(s) {
     gfx_init();
-    d_->w = w;
-    d_->h = h;
-    check(g_wic->CreateBitmap(w, h, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &d_->bmp), "Bild");
-    auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_SOFTWARE,
-                                              D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-                                              96.f, 96.f);
-    check(g_d2d->CreateWicBitmapRenderTarget(d_->bmp.Get(), props, &d_->rt), "Zeichenfläche");
-    // Graustufen-Glättung: das Display hat keine Subpixel, ClearType gäbe Farbsäume
-    d_->rt->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
-    ComPtr<IDWriteRenderingParams> rp;
-    if (SUCCEEDED(g_dw->CreateCustomRenderingParams(1.8f, 0.5f, 0.f, DWRITE_PIXEL_GEOMETRY_FLAT,
-                                                    DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC, &rp)))
-        d_->rt->SetTextRenderingParams(rp.Get());
+    float ox = 0, oy = 0;
+    if (t_window.active && !t_window.used && w == t_window.pw && h == t_window.ph) {
+        ox = float(t_window.x); oy = float(t_window.y); w = t_window.w; h = t_window.h;
+        t_window.used = true;
+    }
+    const auto origin = D2D1::Matrix3x2F::Translation(-ox, -oy);
+    for (auto it = t_pool.begin(); it != t_pool.end(); ++it)
+        if ((*it)->w == w && (*it)->h == h) { d_ = std::move(*it); t_pool.erase(it); break; }
+    if (d_) {
+        d_->clips = 0;
+        d_->done = false;
+        d_->rt->SetTransform(origin);
+        d_->rt->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+    } else {
+        d_ = std::make_unique<Impl>();
+        d_->w = w;
+        d_->h = h;
+        check(g_wic->CreateBitmap(w, h, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, &d_->bmp), "Bild");
+        auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_SOFTWARE,
+                                                  D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+                                                  96.f, 96.f);
+        check(g_d2d->CreateWicBitmapRenderTarget(d_->bmp.Get(), props, &d_->rt), "Zeichenfläche");
+        // Graustufen-Glättung: das Display hat keine Subpixel, ClearType gäbe Farbsäume
+        d_->rt->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+        ComPtr<IDWriteRenderingParams> rp;
+        if (SUCCEEDED(g_dw->CreateCustomRenderingParams(1.8f, 0.5f, 0.f, DWRITE_PIXEL_GEOMETRY_FLAT,
+                                                        DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC, &rp)))
+            d_->rt->SetTextRenderingParams(rp.Get());
+        d_->rt->SetTransform(origin);
+    }
     d_->rt->BeginDraw();
     d_->rt->Clear(col(bg, bg_alpha / 255.f));
 }
 
 Canvas::~Canvas() {
+    if (!d_) return;
+    bool ok = true;
     if (!d_->done) {
         while (d_->clips > 0) clip_pop();
-        d_->rt->EndDraw();
+        ok = SUCCEEDED(d_->rt->EndDraw());   // D2DERR_RECREATE_TARGET etc.: do not reuse
     }
+    size_t pooled = 0;
+    for (const auto& entry : t_pool) pooled += size_t(entry->w) * entry->h;
+    const size_t mine = size_t(d_->w) * d_->h;
+    if (ok && d_->ok && pooled + mine <= POOL_PIXEL_LIMIT) t_pool.push_back(std::move(d_));
 }
 
 void Canvas::rectangle(float x0, float y0, float x1, float y1, Color fill) {
@@ -455,20 +546,32 @@ void Canvas::line(const std::vector<PointF>& in, Color c, float width) {
         d_->rt->FillRectangle(r, d_->brush(c));
         return;
     }
-    ComPtr<ID2D1PathGeometry> g;
-    g_d2d->CreatePathGeometry(&g);
-    ComPtr<ID2D1GeometrySink> sink;
-    g->Open(&sink);
-    sink->BeginFigure(D2D1::Point2F(pts[0].x + .5f, pts[0].y + .5f), D2D1_FIGURE_BEGIN_HOLLOW);
-    for (size_t i = 1; i < pts.size(); ++i) sink->AddLine(D2D1::Point2F(pts[i].x + .5f, pts[i].y + .5f));
-    sink->EndFigure(D2D1_FIGURE_END_OPEN);
-    sink->Close();
-    ComPtr<ID2D1StrokeStyle> style;
-    g_d2d->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT,
-                                                         D2D1_LINE_JOIN_ROUND),
-                             nullptr, 0, &style);
+    // Glowing wires stroke the same path several times in a row (wide halo, then core): the
+    // geometry of the previous call is reused when the points match, and the stroke style is
+    // created once per thread instead of per line.
+    thread_local std::vector<PointF> last_pts;
+    thread_local ComPtr<ID2D1PathGeometry> last_geometry;
+    thread_local ComPtr<ID2D1StrokeStyle> style;
+    const bool same = last_geometry && last_pts.size() == pts.size() &&
+                      std::equal(pts.begin(), pts.end(), last_pts.begin(), [](const PointF& a, const PointF& b) { return a.x == b.x && a.y == b.y; });
+    if (!same) {
+        ComPtr<ID2D1PathGeometry> g;
+        g_d2d->CreatePathGeometry(&g);
+        ComPtr<ID2D1GeometrySink> sink;
+        g->Open(&sink);
+        sink->BeginFigure(D2D1::Point2F(pts[0].x + .5f, pts[0].y + .5f), D2D1_FIGURE_BEGIN_HOLLOW);
+        for (size_t i = 1; i < pts.size(); ++i) sink->AddLine(D2D1::Point2F(pts[i].x + .5f, pts[i].y + .5f));
+        sink->EndFigure(D2D1_FIGURE_END_OPEN);
+        sink->Close();
+        last_geometry = g;
+        last_pts = pts;
+    }
+    if (!style)
+        g_d2d->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT,
+                                                             D2D1_LINE_JOIN_ROUND),
+                                 nullptr, 0, &style);
     d_->rt->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-    d_->rt->DrawGeometry(g.Get(), d_->brush(c), width, style.Get());
+    d_->rt->DrawGeometry(last_geometry.Get(), d_->brush(c), width, style.Get());
 }
 
 void Canvas::polygon(const std::vector<PointF>& in, Color fill) {
@@ -577,8 +680,26 @@ int Canvas::clip_depth() const { return d_->done ? 0 : d_->clips; }
 Image Canvas::finish() {
     if (!d_->done) {
         while (d_->clips > 0) clip_pop();
-        d_->rt->EndDraw();
+        d_->ok = SUCCEEDED(d_->rt->EndDraw());
         d_->done = true;
+    }
+    // Copy straight out of the locked surface: one pass, instead of zero-filling a new
+    // buffer and letting CopyPixels overwrite it (the zero fill alone is a full-frame write).
+    {
+        WICRect r{0, 0, d_->w, d_->h};
+        ComPtr<IWICBitmapLock> lock;
+        UINT stride = 0, size = 0;
+        BYTE* data = nullptr;
+        if (SUCCEEDED(d_->bmp->Lock(&r, WICBitmapLockRead, &lock)) && SUCCEEDED(lock->GetStride(&stride)) &&
+            SUCCEEDED(lock->GetDataPointer(&size, &data)) && data && stride == UINT(d_->w) * 4 &&
+            size >= size_t(d_->w) * d_->h * 4) {
+            Image out;
+            out.w = d_->w;
+            out.h = d_->h;
+            const auto* px = reinterpret_cast<const uint32_t*>(data);
+            out.px.assign(px, px + size_t(d_->w) * d_->h);
+            return out;
+        }
     }
     return image_from(d_->bmp.Get());
 }

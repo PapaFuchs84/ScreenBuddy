@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.12.1 – 2026-11-15
+
+Prüfstatus / Test status 2.12.1: 25 C++-Suiten/suites 0 Fehler/failures (3556 Kern/core, 4221 Snapshots, 2101 Plugin-Snapshots, 448 Companion, 183 HUD, 2144 Custom, 845 Schedule, 290 Game); Companion 1.1.2: 72 Protokoll/protocol, Lint, Build. Protokoll / log: `docs/ANIMATION-RUNDEN.md` (50 Runden/rounds).
+
+- Seitenübergänge / page transitions: `display.page_transition` = `auto` (HUD-Scan, Standard/default) | `fade` | `slide` | `none`; `render::page_transition`, `render::transition_shade`; serielles Display ohne Übergang / serial display without transitions.
+- Flüssigkeit / smoothness: `CanvasWindow` (Kachel-Ausschnitt/tile area), fester Takt/fixed cadence (`ViewState::cadence`), Companion-Weckruf per condition_variable, Textlayout-Cache je Thread/per thread, Übersetzungs-Memo/translation memo, `ImageSource` (WIC ohne Kopie/without copy), Skalier-Cache/scaling cache (`scaled`/`fitted`), SSE2-Fade, `Canvas::finish` aus gesperrtem Bitmap/from locked bitmap.
+- Game-Mode: HUD-Intro (`game::IntroColors`), Cockpit-Eckklammern/corner brackets, Übergang hinein/heraus/transition in/out; Ziel-Display-Liste mit ID-Ende und verbunden/offline; Logwarnung bei unerreichbarem Ziel; Ziel `network` wählt Companion-Ansichten / selects Companion views.
+- Benchmark: `fl-anim-bench [40|transition|intro|game|codec]`, `FL_BENCH_LANG`, `FL_BENCH_THEME`, `FL_BENCH_SIZE`.
 ## 2.12.0 – 2026-11-14
 
 Prüfstatus / Test status 2.12.0: 25 C++-Suiten/suites 0 Fehler/failures (3556 Kern/core, 1877 Layout-UI, 4221 Snapshots, 2101 Plugin-Snapshots, 448 Companion, 152 HUD, 2144 Custom, 845 Schedule, 290 Game); Integration: Installer 2, App-Companion 40, Standalone ok.

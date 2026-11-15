@@ -85,11 +85,24 @@ public:
     int clip_depth() const;  // offene clip_push()-Aufrufe (für das Wiederherstellen nach einem Fehler)
 
     Image finish();
+    struct Impl;   // public only so the per-thread surface pool in gfx.cpp can hold it
 
 private:
-    struct Impl;
     std::unique_ptr<Impl> d_;
     float s_;
+};
+
+// Draw only a window of a page. While a CanvasWindow is alive on this thread, the first Canvas
+// created with exactly the page size renders just the window (the same pixels the full page has
+// there; drawing is translated by -x/-y) and its finish() returns an image of the window size.
+// Custom views use it: every tile source draws a whole page, but only its own tile is kept.
+class CanvasWindow {
+public:
+    CanvasWindow(int page_w, int page_h, int x, int y, int w, int h);
+    ~CanvasWindow();
+    CanvasWindow(const CanvasWindow&) = delete;
+    CanvasWindow& operator=(const CanvasWindow&) = delete;
+    bool used() const;  // a canvas took the window
 };
 
 // Fuchs-Logo als eigenes Bild (Tray, Installer)

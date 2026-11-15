@@ -89,6 +89,9 @@ private:
     std::thread accept_thread_;
     std::atomic<bool> running_{false}, stop_{false};
     std::atomic<uint64_t> seq_{0};
+    // Wakes animating connections as soon as a new frame is published (instead of a poll tick).
+    std::mutex wake_mu_;
+    std::condition_variable wake_cv_;
     std::mutex mu_;
     std::list<std::pair<std::shared_ptr<Conn>, std::thread>> workers_;
     void reap(bool all);

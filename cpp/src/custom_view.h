@@ -6,6 +6,9 @@
 #include "touch.h"
 #include <filesystem>
 #include <functional>
+#include <memory>
+#include <optional>
+#include <vector>
 #include <mutex>
 namespace fl::custom {
 using plugins::Json;
@@ -43,6 +46,12 @@ private:
     std::filesystem::path directory_;
     mutable std::mutex mutex_;
 };
+// Render-path cache over Store::list(): reuses parsed views while the files are unchanged
+// (name, size, write time; checked at most every 0.5 s). Saves and deletions through Store in
+// this process refresh it immediately. Avoids re-reading every view file for every frame.
+std::shared_ptr<const std::vector<View>> cached_views(const std::filesystem::path& directory);
+std::optional<View> cached_view(const std::filesystem::path& directory, const std::string& id);
+
 // Validated single-block contract; complete-page status requirements stay unchanged.
 std::optional<builtin::Overlay> single_builtin(const Tile& tile, const Layout& layout);
 plugins::zones::Layout tile_layout(const Tile& tile, const Layout& layout);

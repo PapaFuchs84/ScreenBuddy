@@ -205,6 +205,44 @@ int main(int argc,char** argv) {
         if(!out.empty()) for(const auto& [name,palette]:std::vector<std::pair<std::string,render::HudPalette>>{{"theme-dark",t},{"theme-light",lt},{"custom",c}})
             save(out/("sample-colours-"+name+".png"),render::hardware_hud(1200,360,snap,9,8,palette));
     }
+    // Page transitions: endpoints exact, fade blends, slide moves in the navigation direction.
+    {
+        Image a(40,10,Color{200,0,0}),b2(40,10,Color{0,0,200});
+        CHECK(cfg["display"]["page_transition"]=="auto");
+        for(const char* kind:{"auto","fade","slide","none"}) CHECK(config::merge(cfg,{{"display",{{"page_transition",kind}}}})["display"]["page_transition"]==kind);
+        bool rejected=false;try{(void)config::merge(cfg,{{"display",{{"page_transition","spin"}}}});}catch(const std::exception&){rejected=true;}
+        CHECK(rejected);
+        for(auto style:{render::PageTransition::Hud,render::PageTransition::Fade,render::PageTransition::Slide}) for(int dir:{1,-1}) {
+            CHECK(render::page_transition(a,b2,0,style,dir).px==a.px);
+            CHECK(render::page_transition(a,b2,1,style,dir).px==b2.px);
+        }
+        const auto mid=render::page_transition(a,b2,.5,render::PageTransition::Fade,1);
+        const uint32_t p=mid.px[0];CHECK(((p>>16)&255)>90&&((p>>16)&255)<110&&(p&255)>90&&(p&255)<110);
+        const auto right=render::page_transition(a,b2,.5,render::PageTransition::Slide,1),left=render::page_transition(a,b2,.5,render::PageTransition::Slide,-1);
+        CHECK(right.px[0]==a.px[0]&&right.px[39]==b2.px[0]);   // new page enters from the right
+        CHECK(left.px[0]==b2.px[0]&&left.px[39]==a.px[0]);     // previous page enters from the left
+        Image c(30,10,Color{1,2,3});CHECK(render::page_transition(a,c,.5,render::PageTransition::Hud,1).px==c.px);   // size change: no blend
+        double last=-1;bool monotonic=true;for(int i=0;i<=20;++i){const auto f=render::page_transition(a,b2,i/20.,render::PageTransition::Fade,1);const double v=f.px[0]&255;monotonic=monotonic&&v>=last;last=v;}
+        CHECK(monotonic);
+        // HUD scan: new page revealed behind the line in the paging direction, line in the accent colour.
+        Image big(200,60,Color{200,0,0}),next(200,60,Color{0,0,200});
+        const auto scan=render::page_transition(big,next,.5,render::PageTransition::Hud,1,Color{0,255,0},Color{255,255,0});
+        CHECK((scan.px[size_t(30)*200+199]&255)>150);                 // right edge already shows the new page
+        CHECK(((scan.px[size_t(30)*200+2]>>16)&255)<200);             // old page dimmed ahead of the line
+        bool accent=false;for(int x=0;x<200;++x){const uint32_t q=scan.px[size_t(30)*200+x];if(((q>>8)&255)>200&&((q>>16)&255)<120)accent=true;}
+        CHECK(accent);
+        const auto back=render::page_transition(big,next,.5,render::PageTransition::Hud,-1,Color{0,255,0},Color{255,255,0});
+        CHECK((back.px[size_t(30)*200+0]&255)>150);                   // previous page comes from the left
+        // Fade (SSE2 path) equals the per-channel mix exactly, including the scalar tail of odd widths.
+        Image fa(37,5),fb(37,5);uint32_t seed=12345;
+        for(size_t i=0;i<fa.px.size();++i){seed=seed*1664525u+1013904223u;fa.px[i]=seed|0xFF000000u;seed=seed*1664525u+1013904223u;fb.px[i]=seed|0xFF000000u;}
+        for(double pr:{.1,.37,.5,.83}){
+            const auto mixed=render::page_transition(fa,fb,pr,render::PageTransition::Fade,1);
+            const double e=pr<.5?4*pr*pr*pr:1-std::pow(-2*pr+2,3)/2;const uint32_t t=uint32_t(std::lround(e*256));bool same=true;
+            for(size_t i=0;i<fa.px.size();++i){uint32_t ex=0;for(int sh=0;sh<32;sh+=8)ex|=((((fa.px[i]>>sh)&255u)*(256u-t)+((fb.px[i]>>sh)&255u)*t)>>8)<<sh;same=same&&mixed.px[i]==ex;}
+            CHECK(same);
+        }
+    }
     std::printf("Hardware HUD: %d passed, %d failed\n",passed,failed);CoUninitialize();return failed?1:0;
 }
 

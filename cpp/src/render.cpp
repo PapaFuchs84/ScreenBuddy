@@ -9,6 +9,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <emmintrin.h>
 #include <limits>
 #include <regex>
 
@@ -59,6 +61,33 @@ struct InitTheme {
     InitTheme() { set_theme("hell"); }
 } g_init_theme;
 
+// Covers and logos only change with the track or the source, but animated pages redraw at up to
+// 60/s: keep the last few scaled copies per thread instead of a high-quality resize every frame.
+// The weak pointer makes a replaced source image a miss even if its address is reused.
+const Image& scaled(const ImagePtr& src, int w, int h) {
+    // Up to 48 entries and 16 MB: a friends page shows many small avatars, a music page one large cover.
+    struct Entry { std::weak_ptr<const Image> src; const Image* key = nullptr; int w = 0, h = 0; Image out; };
+    thread_local std::vector<Entry> cache;
+    thread_local size_t bytes = 0;
+    for (auto& e : cache)
+        if (e.key == src.get() && e.w == w && e.h == h && e.src.lock() == src) return e.out;
+    Image out = resize(*src, w, h);
+    const size_t need = out.px.size() * 4;
+    while (!cache.empty() && (cache.size() >= 48 || bytes + need > (size_t(16) << 20))) {
+        bytes -= cache.front().out.px.size() * 4;
+        cache.erase(cache.begin());
+    }
+    bytes += need;
+    cache.push_back({src, src.get(), w, h, std::move(out)});
+    return cache.back().out;
+}
+
+// thumbnail() semantics (keep aspect ratio, only shrink) through the same cache.
+const Image& fitted(const ImagePtr& src, int max_w, int max_h) {
+    if (src->w <= max_w && src->h <= max_h) return *src;
+    const double r = std::min((double)max_w / src->w, (double)max_h / src->h);
+    return scaled(src, std::max(1, (int)std::lround(src->w * r)), std::max(1, (int)std::lround(src->h * r)));
+}
 }  // namespace
 
 const std::map<std::string, int> STATUS_ORDER = {{"online", 0}, {"idle", 1}, {"dnd", 2}, {"offline", 3}};
@@ -219,7 +248,193 @@ Image compose(int w, int h, const std::vector<Box>& boxes, const std::vector<Ima
     for (size_t i = 0; i < frames.size() && i < boxes.size(); ++i) paste(img, frames[i], boxes[i].x, boxes[i].y);
     return img;
 }
+Image compose(int w, int h, const std::vector<Box>& boxes, std::vector<Image>&& frames) {
+    if (frames.size() == 1) return std::move(frames[0]);   // single tile: no 4-16 MB copy per frame
+    return compose(w, h, boxes, static_cast<const std::vector<Image>&>(frames));
+}
 
+namespace {
+// o[i] = per channel (a*(256-t) + b*t) >> 8 for t in 0..256 – bit-identical to the scalar packed
+// lerp used below (each 16-bit lane stays <= 65280). SSE2 mixes four pixels per step.
+// a == nullptr uses the constant colour c instead of a[i].
+void lerp_span(const uint32_t* a, uint32_t c, const uint32_t* b, uint32_t* o, size_t n, uint32_t t) {
+    const __m128i zero = _mm_setzero_si128();
+    const __m128i tv = _mm_set1_epi16(short(t)), uv = _mm_set1_epi16(short(256 - t));
+    const __m128i cv = _mm_set1_epi32(int(c));
+    const __m128i c_lo = _mm_mullo_epi16(_mm_unpacklo_epi8(cv, zero), uv), c_hi = _mm_mullo_epi16(_mm_unpackhi_epi8(cv, zero), uv);
+    size_t i = 0;
+    for (; i + 4 <= n; i += 4) {
+        const __m128i bv = _mm_loadu_si128(reinterpret_cast<const __m128i*>(b + i));
+        __m128i lo = _mm_mullo_epi16(_mm_unpacklo_epi8(bv, zero), tv), hi = _mm_mullo_epi16(_mm_unpackhi_epi8(bv, zero), tv);
+        if (a) {
+            const __m128i av = _mm_loadu_si128(reinterpret_cast<const __m128i*>(a + i));
+            lo = _mm_add_epi16(lo, _mm_mullo_epi16(_mm_unpacklo_epi8(av, zero), uv));
+            hi = _mm_add_epi16(hi, _mm_mullo_epi16(_mm_unpackhi_epi8(av, zero), uv));
+        } else {
+            lo = _mm_add_epi16(lo, c_lo);
+            hi = _mm_add_epi16(hi, c_hi);
+        }
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(o + i), _mm_packus_epi16(_mm_srli_epi16(lo, 8), _mm_srli_epi16(hi, 8)));
+    }
+    const uint32_t u = 256 - t;
+    for (; i < n; ++i) {
+        const uint32_t x = a ? a[i] : c, y = b[i];
+        const uint32_t rb = (((x & 0x00FF00FFu) * u + (y & 0x00FF00FFu) * t) >> 8) & 0x00FF00FFu;
+        const uint32_t ag = ((((x >> 8) & 0x00FF00FFu) * u + ((y >> 8) & 0x00FF00FFu) * t)) & 0xFF00FF00u;
+        o[i] = rb | ag;
+    }
+}
+}  // namespace
+
+Color transition_shade(Color hud_bg, Color hud_text) {
+    const Color black{0, 0, 0};
+    if (contrast(hud_bg, black) < 3.5) return hud_bg;            // dark HUD: power down into its own background
+    return contrast(hud_text, black) < 3.5 ? mix(hud_text, black, .35) : Color{8, 12, 22};
+}
+
+Image page_transition(const Image& from, const Image& to, double progress, PageTransition style, int direction,
+                      Color accent, Color accent2, Color shade) {
+    if (from.w != to.w || from.h != to.h || to.empty()) return to;
+    if (progress <= 0) return from;
+    if (progress >= 1) return to;
+    const double p = progress;
+    const size_t w = size_t(to.w);
+    Image out;
+    out.w = to.w; out.h = to.h; out.px.resize(to.px.size());
+    if (style == PageTransition::Slide) {
+        const double eased = p < .5 ? 4 * p * p * p : 1 - std::pow(-2 * p + 2, 3) / 2;   // ease-in-out cubic
+        const size_t d = std::min(w, size_t(std::lround(eased * to.w)));
+        for (int y = 0; y < to.h; ++y) {
+            const uint32_t* a = &from.px[size_t(y) * w];
+            const uint32_t* b = &to.px[size_t(y) * w];
+            uint32_t* o = &out.px[size_t(y) * w];
+            if (direction >= 0) { std::copy(a + d, a + w, o); std::copy(b, b + d, o + (w - d)); }
+            else { std::copy(b + (w - d), b + w, o); std::copy(a, a + (w - d), o + d); }
+        }
+        return out;
+    }
+    const auto lerp = [](uint32_t x, uint32_t y, uint32_t t) {   // t 0..256 towards y
+        const uint32_t u = 256 - t;
+        const uint32_t rb = (((x & 0x00FF00FFu) * u + (y & 0x00FF00FFu) * t) >> 8) & 0x00FF00FFu;
+        const uint32_t ag = ((((x >> 8) & 0x00FF00FFu) * u + ((y >> 8) & 0x00FF00FFu) * t)) & 0xFF00FF00u;
+        return rb | ag;
+    };
+    if (style == PageTransition::Fade) {
+        const double eased = p < .5 ? 4 * p * p * p : 1 - std::pow(-2 * p + 2, 3) / 2;
+        const uint32_t t = uint32_t(std::lround(eased * 256));
+        lerp_span(from.px.data(), 0, to.px.data(), out.px.data(), to.px.size(), t);
+        return out;
+    }
+    // HUD scan in the Hardware-HUD look: the outgoing page powers down behind a grid of scan rows,
+    // a neon scan beam with ruler ticks and corner brackets sweeps across, circuit traces pulse
+    // out of the beam into the incoming page and leave a short afterglow. The beam accelerates
+    // in and settles out (ease-in-out quint) like the HUD sweep. Work is row based: plain copy on
+    // the new side, one blend per pixel on the old side, per-pixel effects only near the beam.
+    const int W = to.w, H = to.h;
+    const double eased = p < .5 ? 16 * p * p * p * p * p : 1 - std::pow(-2 * p + 2, 5) / 2;
+    const double scan = direction >= 0 ? (1 - eased) * W : eased * W;   // x of the scan beam
+    const int line = std::clamp(int(std::lround(scan)), 0, W);
+    const int back = direction >= 0 ? 1 : -1;            // +x points from the beam into the new page
+    const auto argb = [](Color c) { return 0xFF000000u | uint32_t(c.r) << 16 | uint32_t(c.g) << 8 | c.b; };
+    const uint32_t a1 = argb(accent), a2 = argb(accent2), sh = argb(shade);
+    const uint32_t core = lerp(a1, 0xFFFFFFFFu, 90);   // hot core that still reads as the accent colour
+    const double unit = std::max(1.0, std::min(W / 480.0, H / 320.0));   // HUD scale
+    const int glow = std::max(5, int(std::lround(W * .012)));             // half width of the beam glow
+    const int trail = std::max(28, int(std::lround(W * .11)));            // afterglow on the new page
+    // Old page dims towards the HUD shade; strongest in the middle of the sweep, never fully dark.
+    const uint32_t dim = uint32_t(std::lround(256 * (1 - .46 * std::min(1.0, eased * 1.8))));
+    const uint32_t dim_scan = dim * 7 / 10;
+    const int grid = std::max(16, int(std::lround(24 * unit)));
+    const int x0 = std::max(0, line - trail - glow - 2), x1 = std::min(W, line + trail + glow + 2);
+    // Per-column weights of the beam band (computed once per frame).
+    std::vector<uint16_t> glow_w(size_t(x1 - x0)), after_w(size_t(x1 - x0));
+    for (int x = x0; x < x1; ++x) {
+        const double d = (x + .5 - scan) * back;          // >0: new page side
+        const double ad = std::abs(d);
+        double g = ad < glow ? (1 - ad / glow) : 0; g *= g;
+        glow_w[size_t(x - x0)] = uint16_t(std::lround(256 * g));
+        const double t = d > 0 && d < trail ? 1 - d / trail : 0;
+        after_w[size_t(x - x0)] = uint16_t(std::lround(72 * t * t * (1 - .5 * eased)));
+    }
+    // Ruler ticks ahead of the beam (minor every tick_every rows, major every fourth).
+    const int tick_every = std::max(12, int(std::lround(18 * unit)));
+    const int tick_minor = std::max(4, int(std::lround(7 * unit))), tick_major = tick_minor * 2 + 2;
+    // Corner brackets on the beam, a rail behind it and circuit traces into the new page.
+    const int br_len = std::max(10, int(std::lround(26 * unit))), br_th = std::max(2, int(std::lround(2 * unit)));
+    const int br_pad = std::max(3, int(std::lround(6 * unit)));
+    const int rail = line + back * std::max(4, glow * 2);
+    constexpr int TRACES = 6;
+    int trace_y[TRACES], trace_len[TRACES];
+    double trace_head[TRACES];
+    for (int i = 0; i < TRACES; ++i) {
+        const double jitter = std::sin(i * 12.9898) * .5 + .5;
+        trace_y[i] = int(H * (i + .35 + .3 * jitter) / TRACES);
+        // Traces grow out of the beam and retract in the last third so the new page lands clean.
+        trace_len[i] = int(trail * (1.1 + 1.6 * jitter) * std::min({1.0, p * 4, (1 - p) * 3}));
+        trace_head[i] = std::fmod(p * (2.2 + 1.3 * jitter) + jitter, 1.0);   // pulse position 0..1 along the trace
+    }
+    const int trace_th = std::max(2, int(std::lround(1.4 * unit)));
+    const int head_len = std::max(4, int(std::lround(9 * unit)));
+    for (int y = 0; y < H; ++y) {
+        const uint32_t* a = &from.px[size_t(y) * w];
+        const uint32_t* b = &to.px[size_t(y) * w];
+        uint32_t* o = &out.px[size_t(y) * w];
+        // 1) New page side: straight copy.  2) Old page side: powered down HUD grid.
+        const int new_lo = direction >= 0 ? line : 0, new_hi = direction >= 0 ? W : line;
+        const int old_lo = direction >= 0 ? 0 : line, old_hi = direction >= 0 ? line : W;
+        if (new_hi > new_lo) std::memcpy(o + new_lo, b + new_lo, size_t(new_hi - new_lo) * 4);
+        const bool grid_row = y % grid == 0;
+        const uint32_t row_dim = (y % 3 == 0) ? dim_scan : dim;
+        if (grid_row) for (int x = old_lo; x < old_hi; ++x) o[x] = lerp(lerp(sh, a[x], row_dim), a1, 40);
+        else {
+            if (old_hi > old_lo) lerp_span(nullptr, sh, a + old_lo, o + old_lo, size_t(old_hi - old_lo), row_dim);
+            const int gx0 = old_lo + (grid - old_lo % grid) % grid;
+            for (int x = gx0; x < old_hi; x += grid) o[x] = lerp(o[x], a1, 34);
+        }
+        // 3) Beam band: afterglow on the new side, neon glow and white-hot core.
+        for (int x = x0; x < x1; ++x) {
+            uint32_t px = o[x];
+            const uint32_t aw = after_w[size_t(x - x0)], gw = glow_w[size_t(x - x0)];
+            if (aw) px = lerp(px, (y & 1) ? a1 : a2, aw);
+            if (gw) px = lerp(px, a1, gw);
+            o[x] = px;
+        }
+        for (int x = std::max(0, line - 1); x < std::min(W, line + 1); ++x) o[x] = core;
+        if (rail >= 0 && rail < W && (y >> 2) % 3 != 2) o[rail] = lerp(o[rail], a2, 190);   // dashed rail
+        // 4) Ruler ticks on the old side of the beam.
+        if (y % tick_every < 2) {
+            const int len = (y / tick_every) % 4 == 0 ? tick_major : tick_minor;
+            for (int k = glow / 2; k < glow / 2 + len; ++k) {
+                const int x = line - back * k;
+                if (x >= 0 && x < W) o[x] = lerp(o[x], a2, 220);
+            }
+        }
+        // 5) Corner brackets at the top and bottom of the beam.
+        const bool top = y >= br_pad && y < br_pad + br_th, bottom = y >= H - br_pad - br_th && y < H - br_pad;
+        const bool stem = (y >= br_pad && y < br_pad + br_len) || (y >= H - br_pad - br_len && y < H - br_pad);
+        if (top || bottom)
+            for (int k = 0; k < br_len; ++k) { const int x = line - back * (glow + k); if (x >= 0 && x < W) o[x] = lerp(o[x], a2, 235); }
+        else if (stem)
+            for (int k = 0; k < br_th; ++k) { const int x = line - back * (glow + br_len - 1 - k); if (x >= 0 && x < W) o[x] = lerp(o[x], a2, 235); }
+        // 6) Circuit traces with travelling pulses on the new side.
+        for (int i = 0; i < TRACES; ++i) {
+            if (y < trace_y[i] || y >= trace_y[i] + trace_th || trace_len[i] <= 0) continue;
+            const int start = line + back * glow, len = trace_len[i];
+            const int head = int(trace_head[i] * len);
+            for (int k = 0; k < len; ++k) {
+                const int x = start + back * k;
+                if (x < 0 || x >= W) break;
+                const double fade = 1 - double(k) / len;
+                uint32_t px = lerp(o[x], a1, uint32_t(40 + 170 * fade));
+                if (k >= head && k < head + head_len) px = lerp(px, core, 240);
+                o[x] = px;
+            }
+            const int node = start + back * len;   // end node
+            for (int k = -trace_th - 1; k <= trace_th + 1; ++k) { const int x = node + k; if (x >= 0 && x < W) o[x] = lerp(o[x], a2, 220); }
+        }
+    }
+    return out;
+}
 float scale_for(int w, int h) {
     return w >= h ? std::min(w / 480.f, h / 320.f) : std::min(w / 320.f, h / 480.f);
 }
@@ -465,7 +680,7 @@ void Renderer::FriendRowBlock::avatar(Canvas& d, const Friend& f, float x, float
     float op = faded ? 0.45f * 0.45f : 1.f;
     int size = pyround_i(AVATAR * renderer_.s);
     if (f.avatar && !f.avatar->empty()) {
-        d.round_image(*f.avatar, x, y, size, op);
+        d.round_image(scaled(f.avatar, size, size), x, y, size, op);   // pre-scaled: round_image then only copies
         return;
     }
     // Platzhalter: Initiale auf Orange
@@ -711,7 +926,7 @@ public:
         float ix = x + 30;
         if (p.rank_icon && !p.rank_icon->empty()) {
             int n = pyround_i((AVATAR + 4) * r.s);
-            Image icon = thumbnail(*p.rank_icon, n, n);
+            const Image& icon = fitted(p.rank_icon, n, n);
             float iw = icon.w / r.s, ih = icon.h / r.s;  // logische Größe
             d.image(icon, ix + (float)floordiv(AVATAR + 4 - iw, 2), cy - (float)floordiv(ih, 2));
         } else if (p.rank) {
@@ -755,7 +970,7 @@ public:
         float ix = 30;
         if (p.rank_icon && !p.rank_icon->empty()) {
             int n = pyround_i((AVATAR + 4) * r.s);
-            Image icon = thumbnail(*p.rank_icon, n, n);
+            const Image& icon = fitted(p.rank_icon, n, n);
             float iw = icon.w / r.s, ih = icon.h / r.s;  // logische Größe
             d.image(icon, ix + (float)floordiv(AVATAR + 4 - iw, 2), cy - (float)floordiv(ih, 2));
         } else if (p.rank) {
@@ -1620,7 +1835,7 @@ public:
             if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
             if (logos && li != none && li->second && !li->second->empty()) {
                 const int px = pyround_i(LOGO_SIZE * s);
-                d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
+                d.image(scaled(li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
                 lx += LOGO_SIZE + 4;
             } else {
                 const std::string& ab = it.providers[k];
@@ -1658,7 +1873,7 @@ public:
             if (logos && (size_t)k < it.provider_ids.size()) li = logos->find(it.provider_ids[k]);
             if (logos && li != none && li->second && !li->second->empty()) {
                 const int px = pyround_i(LOGO_SIZE * s);
-                d.image(resize(*li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
+                d.image(scaled(li->second, px, px), lx, y + 32 - LOGO_SIZE / 2.f);
                 lx += LOGO_SIZE + 4;
             } else {
                 const std::string& ab = it.providers[k];
@@ -2070,7 +2285,7 @@ public:
             d.rounded_rectangle(l.cover_x, l.cover_y, l.cover_x + l.cover_size, l.cover_y + l.cover_size, 8, t.card);
             if (snap.cover && !snap.cover->empty()) {
                 int px = std::max(1, pyround_i(l.cover_size * s));
-                d.image(resize(*snap.cover, px, px), l.cover_x, l.cover_y);
+                d.image(scaled(snap.cover, px, px), l.cover_x, l.cover_y);
             } else {
                 d.text(l.cover_x + l.cover_size / 2, l.cover_y + l.cover_size / 2, "♪", r.font(40, true), t.muted, "mm");
             }
