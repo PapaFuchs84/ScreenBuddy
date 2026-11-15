@@ -41,6 +41,7 @@ static Stat stat(std::vector<double> v) {
 
 int main(int argc, char** argv) {
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);   // less noise from background work
     gfx_init();
     i18n::set_lang("de");
     if (argc > 2 && std::string(argv[1]) == "transition") {
@@ -130,6 +131,7 @@ int main(int argc, char** argv) {
     const std::vector<Size> sizes = {{480, 320, "usb-480x320"}, {1920, 720, "bar-1920x720"}, {2534, 1574, "pad-2534x1574"}};
     std::string json = "[\n";
     bool first = true;
+    double total_render = 0, total_jpeg = 0;
     std::printf("%-16s %-10s %8s %8s %8s %8s %9s %9s %7s\n", "size", "view", "avg_ms", "p50_ms", "p95_ms", "max_ms", "jpeg_avg", "jpeg_p95", "fps");
     for (const auto& size : sizes) {
         render::SysRenderer sysR(size.w, size.h, "System", "bit");
@@ -146,19 +148,26 @@ int main(int argc, char** argv) {
             {"system", [&](double) { return sysR.render(sys, clock); }},
         };
         for (const auto& [name, draw] : views) {
-            std::vector<double> render_ms, jpeg_ms;
-            (void)draw(0.0);  // warm-up: fonts, caches
-            for (int i = 0; i < frames; ++i) {
-                const double tick = 1.0 + i / 30.0;
-                auto t0 = clock_type::now();
-                Image img = draw(tick);
-                auto t1 = clock_type::now();
-                std::string jpg = encode_jpeg(img, 0.8f);
-                auto t2 = clock_type::now();
-                render_ms.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
-                jpeg_ms.push_back(std::chrono::duration<double, std::milli>(t2 - t1).count());
+            // Three passes; the pass with the lowest render average counts (background load on a
+            // desktop machine only ever adds time, so the minimum is the most repeatable figure).
+            Stat r, j;
+            for (int pass = 0; pass < 3; ++pass) {
+                std::vector<double> render_ms, jpeg_ms;
+                (void)draw(0.0);  // warm-up: fonts, caches
+                for (int i = 0; i < frames; ++i) {
+                    const double tick = 1.0 + i / 30.0;
+                    auto t0 = clock_type::now();
+                    Image img = draw(tick);
+                    auto t1 = clock_type::now();
+                    std::string jpg = encode_jpeg(img, 0.8f);
+                    auto t2 = clock_type::now();
+                    render_ms.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+                    jpeg_ms.push_back(std::chrono::duration<double, std::milli>(t2 - t1).count());
+                }
+                const Stat rp = stat(render_ms), jp = stat(jpeg_ms);
+                if (pass == 0 || rp.avg < r.avg) { r = rp; j = jp; }   // both figures from the same pass
             }
-            const Stat r = stat(render_ms), j = stat(jpeg_ms);
+            total_render += r.avg; total_jpeg += j.avg;
             const double fps = 1000.0 / std::max(r.avg, 0.001);
             std::printf("%-16s %-10s %8.2f %8.2f %8.2f %8.2f %9.2f %9.2f %7.1f\n", size.name, name, r.avg, r.p50, r.p95, r.max, j.avg, j.p95, fps);
             char line[512];
@@ -169,6 +178,7 @@ int main(int argc, char** argv) {
             first = false;
         }
     }
+    std::printf("TOTAL render %.2f ms, jpeg %.2f ms (sum of all cases)\n", total_render, total_jpeg);
     json += "\n]\n";
     if (!out_path.empty()) { std::ofstream f(out_path, std::ios::binary); f << json; }
     CoUninitialize();

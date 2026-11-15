@@ -21,3 +21,7 @@
 | 18 | Fester Animationstakt ab der Soll-Frist statt ab der verspäteten Weckzeit | (s. 17) | | | Host 57,3 -> 59–60 Bilder/s (Timer-Überschwingen summierte sich) |
 | 19 | `Canvas::line`: Pfad des vorigen Aufrufs wiederverwenden (Glühleitungen zeichnen denselben Pfad dreimal), Strichstil einmal je Thread | – | – | – | HUD Pad 6,63 -> 5,98 ms, 480×320 1,39 -> 1,33 ms; Codex-Prüfung ohne Befund |
 | – | Fehlerbehebung Game-Mode: Ziel-Display-Liste unterscheidet gleichnamige Geräte (ID-Ende) und zeigt verbunden/offline; Logwarnung, wenn ein erkanntes Spiel kein verbundenes Ziel hat | | | | Ursache beim Nutzer: Redmi neu gekoppelt (neue ID), Game-Mode zeigte auf die alte Kopplung; Codex-Befunde (3) umgesetzt |
+| 20 | Pinsel-Cache je Zeichenfläche 16 -> 64 Farben | – | – | – | verworfen: im Rauschen, eher schlechter (HUD 1920×720 2,71 -> 2,87–2,94 ms) |
+| 21 | Recycling-Allokator für Bildpuffer ab 1 MB (Mikromessung: frischer Puffer +0,8–2,4 ms) | – | – | – | verworfen: im Renderpfad kein Gewinn messbar (HUD Pad 5,98 -> 6,46–6,66 ms), Typumbau ohne Nutzen |
+| 22 | Benchmark robuster: hohe Priorität, drei Durchgänge je Fall (bester zählt), Summenzeile TOTAL als Hauptkennzahl | – | – | – | Baseline TOTAL Rendern 31,8 ms (Summe aller 12 Fälle); Codex-Befund (Werte aus einem Durchgang) umgesetzt |
+| 23 | `Canvas::finish()` kopiert direkt aus dem gesperrten WIC-Bitmap statt Nullfüllen + CopyPixels | – | – | – | TOTAL 31,8 -> 25,4 ms (−20 %); Codex ohne Befund, alle Tests grün |

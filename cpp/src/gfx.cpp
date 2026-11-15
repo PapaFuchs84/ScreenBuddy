@@ -648,6 +648,24 @@ Image Canvas::finish() {
         d_->ok = SUCCEEDED(d_->rt->EndDraw());
         d_->done = true;
     }
+    // Copy straight out of the locked surface: one pass, instead of zero-filling a new
+    // buffer and letting CopyPixels overwrite it (the zero fill alone is a full-frame write).
+    {
+        WICRect r{0, 0, d_->w, d_->h};
+        ComPtr<IWICBitmapLock> lock;
+        UINT stride = 0, size = 0;
+        BYTE* data = nullptr;
+        if (SUCCEEDED(d_->bmp->Lock(&r, WICBitmapLockRead, &lock)) && SUCCEEDED(lock->GetStride(&stride)) &&
+            SUCCEEDED(lock->GetDataPointer(&size, &data)) && data && stride == UINT(d_->w) * 4 &&
+            size >= size_t(d_->w) * d_->h * 4) {
+            Image out;
+            out.w = d_->w;
+            out.h = d_->h;
+            const auto* px = reinterpret_cast<const uint32_t*>(data);
+            out.px.assign(px, px + size_t(d_->w) * d_->h);
+            return out;
+        }
+    }
     return image_from(d_->bmp.Get());
 }
 
