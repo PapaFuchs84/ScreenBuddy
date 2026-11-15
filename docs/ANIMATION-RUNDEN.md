@@ -52,3 +52,7 @@ Basis Companion 1.1.1: UI 53,5 / 51,9 / 50,9 Bilder/s, Ruckel-Bilder 9 / 4 / 7 (
 | 39 | JPEG als Hardware-Bitmap dekodieren (kein Textur-Upload je Bild) | 38,8 | 40,9 | 39,9 | verworfen: auf dem Redmi 8 deutlich langsamer |
 | 40 | Bitmaps wiederverwenden (`inBitmap`, Pool), Freigabe erst nach abgeschlossenem Zeichenlauf | 52,2 | 50,8 | 53,7 | Ruckel-Bilder 20 -> 0 in 15 s; Bildrate gleich |
 | 41 | Bis zu 2 dekodierte Bilder puffern und je Bildschirmaktualisierung (Choreographer) eines zeigen statt nur das neueste | 59,5 | 59,1 | 58,6 | Rotation 32,6 -> 44,3; höchstens ein Bild (~16 ms) mehr Verzögerung; Codex: 5 Befunde in 2 Durchgängen umgesetzt |
+| 42 | Überzeichnen entfernt (View-Hintergrund und `drawColor` unter dem vollflächigen Bild) | 59,5 | 58,9 | 58,0 | verworfen: gegenüber R41 (59,3 / 58,5 / 58,3) nicht unterscheidbar; Messskript zeigt jetzt Bildzeit-Perzentile (p50 9–10 ms) |
+| 43 | Prüfrunde: Bildschirmfotos während der Seitenrotation, Speicher der Test-App | – | – | – | keine Artefakte; PSS 158 MB, davon Grafik 50 MB; Rotation 43,7 UI-Bilder/s, p50 9 ms |
+| 44 | Prüfrunde Hochformat (Größenwechsel im Bitmap-Pool) | 59,4 | – | 58,5 | keine Ruckel-Bilder, p50 9 ms / p90 10 ms; Darstellung korrekt |
+| 45 | Decoder-Thread mit Anzeige-Priorität | 59,7 | 59,2 | 58,7 | verworfen: im Rauschen (Rotation 39,8 statt 44,3 schwankt mit dem Wechselzeitpunkt) |
