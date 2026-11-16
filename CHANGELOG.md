@@ -7,6 +7,9 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ## [Unveröffentlicht]
 
 - Store-Version: Beim ersten Start werden Einstellungen, Kopplungen, Spotify-Anmeldung, Ansichten, Themes und Plugins der EXE-Installation automatisch übernommen (nichts wird überschrieben).
+- Companion: Seitenübergänge werden auf dem Gerät animiert (Fähigkeit `xfade1`, Nachricht `transition`, Protokoll siehe `docs/COMPANION-PROTOKOLL.md`): der PC sendet nur das Zielbild, das Gerät zeichnet HUD-Scan, Slide oder Fade bildschirmsynchron. Ältere Companion-Apps behalten die bisherigen serverseitigen Zwischenbilder.
+- Standard der Animationsrate für neue Installationen: 60 statt 30 Bilder/s (gespeicherte Werte bleiben unverändert).
+- Diagnose: `SB_FRAME_TRACE=<Datei>` schreibt pro gesendetem Frame Zeiten (Auswertung: `cpp/tools/frame_trace_stats.py`); Frame-Raster ohne Drift bei Datenmeldungen während Animationen.
 
 ## [2.12.1] - 2026-11-15
 
