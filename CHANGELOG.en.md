@@ -4,6 +4,10 @@
 
 All notable changes to the app. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+- Store edition: on first launch, settings, pairings, Spotify sign-in, views, themes and plugins from the standalone install are imported automatically (nothing is overwritten).
+
 ## [2.12.1] - 2026-11-15
 
 Companion 1.1.2 is released alongside (smoother display, protocol unchanged; older Companion versions keep working). Measurement log of all 50 optimisation rounds (German): [animation rounds](docs/ANIMATION-RUNDEN.md).

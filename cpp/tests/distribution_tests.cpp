@@ -10,6 +10,27 @@
 #include "winsetup.h"
 #include "update.h"
 int wmain(int argc, wchar_t** argv) {
+    if (argc == 3 && std::wstring(argv[1]) == L"import") {
+        // Offline-Test der Store-Übernahme: argv[2] = leeres Arbeitsverzeichnis.
+        namespace fs = std::filesystem;
+        fs::path root(argv[2]), src = root / L"src", dst = root / L"dst";
+        fs::create_directories(src / L"views"); fs::create_directories(src / L"themes"); fs::create_directories(dst);
+        std::ofstream(src / L"config.toml") << "[ui]\nlanguage = \"de\"\n";
+        std::ofstream(src / L"companion.json") << "{\"version\":1}";
+        std::ofstream(src / L"spotify.token") << "dpapi:x";
+        std::ofstream(src / L"views" / L"a.view.json") << "{}";
+        std::ofstream(src / L"themes" / L"t.json") << "{}";
+        std::ofstream(src / L"usb-display.log") << "log";
+        if (!fl::distribution::import_standalone(src, dst)) return 20;
+        for (const wchar_t* f : {L"config.toml", L"companion.json", L"spotify.token", L"views/a.view.json", L"themes/t.json"})
+            if (!fs::exists(dst / f)) return 21;
+        if (fs::exists(dst / L"usb-display.log")) return 22;           // Logs werden nicht übernommen
+        std::ofstream(dst / L"config.toml") << "user";
+        std::ofstream(src / L"config.toml") << "changed";
+        if (fl::distribution::import_standalone(src, dst)) return 23;  // zweiter Lauf: nichts überschreiben
+        std::ifstream in(dst / L"config.toml"); std::string s; in >> s;
+        return s == "user" ? 0 : 24;
+    }
     if (argc < 3 || argc > 4) return 2;
     bool expected = std::wstring(argv[1]) == L"packaged";
     try {
