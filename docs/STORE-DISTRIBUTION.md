@@ -32,6 +32,8 @@ Auch das Abschalten des Hersteller-App-Autostarts wird im Store-Paket nicht erh�
 
 ## Vorhandene Installation übernehmen
 
+Beim ersten Start der Store-Version werden vorhandene Einstellungen der EXE-Installation (`%LOCALAPPDATA%\FuchsLabs\USB-Display`) automatisch übernommen, sofern im Store-`LocalState` noch keine `config.toml` existiert: `config.toml`, `companion.json`, `spotify.token`, `views`, `themes`, `plugins`, `plugin-settings`. Es wird nichts überschrieben, die Quelle bleibt unverändert, Verknüpfungen (Symlinks) werden ignoriert. Ist bereits eine Store-Konfiguration vorhanden, greift das Importscript unten weiterhin manuell.
+
 Beide Programme schließen. Die Paketfamilie mit `Get-AppxPackage` ermitteln. Das Importscript kopiert nur Konfiguration, Kopplungen, Plugins und Themes, ohne bestehende Zieldaten zu überschreiben; die Quelle bleibt erhalten. Verschlüsselte Geheimnisse sind nur im bisherigen Windows-Benutzerkonto verwendbar. Keine Daten an andere Nutzer weitergeben.
 
 ```powershell

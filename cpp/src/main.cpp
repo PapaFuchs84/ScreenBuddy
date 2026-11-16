@@ -199,6 +199,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     fs::path data = data_dir();
     if (args.log) log_init(*args.log, args.verbose);
     else log_init((args.install || args.uninstall || args.finish_dir ? install_dir() : data) / L"usb-display.log", args.verbose);
+    if (distribution::packaged() && !args.config && !test_instance()) distribution::import_standalone(distribution::standalone_dir(), data);   // Store-Erststart: EXE-Einstellungen übernehmen
     // Sprache für Installer-Fenster: wie Windows (Deutsch, sonst Englisch)
     i18n::set_lang((GetUserDefaultUILanguage() & 0x3FF) == 0x07 ? "de" : "en");
 

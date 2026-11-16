@@ -32,6 +32,8 @@ The Store package also does not elevate to disable vendor-app autostart. That bu
 
 ## Import an existing installation
 
+On first launch, the Store edition automatically imports existing standalone settings (`%LOCALAPPDATA%\FuchsLabs\USB-Display`) when the Store `LocalState` has no `config.toml` yet: `config.toml`, `companion.json`, `spotify.token`, `views`, `themes`, `plugins`, `plugin-settings`. Nothing is overwritten, the source stays unchanged, and links (symlinks) are ignored. If a Store configuration already exists, the import script below still applies manually.
+
 Close both editions. Find the installed package family using `Get-AppxPackage`. The explicit import script copies configuration, pairings, plugins and themes without overwriting destination data or altering the source. DPAPI-protected secrets remain tied to the original Windows user.
 
 ```powershell

@@ -4,6 +4,10 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+- Store-Version: Beim ersten Start werden Einstellungen, Kopplungen, Spotify-Anmeldung, Ansichten, Themes und Plugins der EXE-Installation automatisch übernommen (nichts wird überschrieben).
+
 ## [2.12.1] - 2026-11-15
 
 Passend dazu erscheint Companion 1.1.2 (flüssigere Anzeige, Protokoll unverändert; ältere Companion-Versionen funktionieren weiter). Messprotokoll aller 50 Optimierungsrunden: [Animations-Runden](docs/ANIMATION-RUNDEN.md).
