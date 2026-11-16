@@ -209,6 +209,7 @@ struct Server::Conn {
     std::mutex mu;
     bool authed = false;
     std::string device_id, name;
+    std::vector<std::string> caps;       // aus dem hello (geschützt durch mu)
 };
 
 Server::Server(Options opt, Store& store, Hooks hooks)
@@ -383,6 +384,15 @@ json Server::clients() {
     return arr;
 }
 
+bool Server::device_has_cap(const std::string& id, const std::string& cap) {
+    std::lock_guard lk(mu_);
+    for (auto& [c, t] : workers_) {
+        std::lock_guard ck(c->mu);
+        if (c->authed && !c->done && c->device_id == id && std::find(c->caps.begin(), c->caps.end(), cap) != c->caps.end()) return true;
+    }
+    return false;
+}
+
 void Server::drop_device(const std::string& id) {
     std::lock_guard lk(mu_);
     for (auto& [c, t] : workers_) {
@@ -537,7 +547,9 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
     bool authed = false;
     FrameGate gate;
     FrameTrace& trace = FrameTrace::get();   // SB_FRAME_TRACE; off by default
-    uint64_t sent_version = 0, observed_seq = 0;
+    uint64_t sent_version = 0, observed_seq = 0, sent_transition_id = 0;
+    bool xfade = false;              // Client hat xfade1 gemeldet: Übergänge laufen auf dem Gerät
+    TransitionHold transition_hold;  // Frame-Versand ruht während dessen Animation (ms + 80 ms)
     bool open = true, more = false;
     while (open && !stop_ && !c->kick) {
         // Nur warten, wenn weder OpenSSL noch der Socket (Lese-Budget ausgeschöpft) sofort etwas liefern.
@@ -673,7 +685,10 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
                             std::lock_guard ck(c->mu);
                             c->authed = true;
                             c->name = name.empty() ? "Android" : name;
+                            c->caps = cm.caps;
                         }
+                        xfade = cm.has_cap(CAP_XFADE1);
+                        transition_hold.reset();
                         authed = was_authed = true;
                         resize(cm.w, cm.h);
                         send_text(msg_ready(sent_w, sent_h));
@@ -748,7 +763,10 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
         if (per_device && hooks_.frame_rate_for) {
             try { current_animation_fps = hooks_.frame_rate_for(c->device_id); } catch (...) {}
         }
-        if (gate.due(seq, t, current_animation_fps)) {
+        // Geräteseitiger Übergang läuft: nichts senden, nichts verwerfen. Der Frame bleibt fällig (seq != gesendet),
+        // danach geht der neueste hinaus; die Versionsprüfung unten lässt ein unverändertes Bild weg.
+        const bool held = xfade && transition_hold.holding(t);
+        if (!held && gate.due(seq, t, current_animation_fps)) {
             const int64_t trace_encode_start = trace.enabled() ? FrameTrace::now_us() : 0;
             std::shared_ptr<const Frame> jpeg;
             if (per_device) {
@@ -779,9 +797,20 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
             }
             const bool unchanged = per_device && jpeg->version && jpeg->version == sent_version;
             if (!unchanged && jpeg && !jpeg->jpeg.empty()) {
-                if (sent_w != jpeg->w || sent_h != jpeg->h) {
+                // Übergangsnachricht nur mit xfade1, nur pro Gerät, nur für einen neuen Übergang, nie für das erste Bild
+                // einer Verbindung (kein "von") und nie bei Größenwechsel (der Client hat kein passendes "von").
+                const bool same_size = sent_w == jpeg->w && sent_h == jpeg->h;
+                const bool announce = per_device && xfade && jpeg->transition && jpeg->transition->id != sent_transition_id &&
+                                      sent_version != 0 && same_size;
+                if (!same_size) {
                     if (!send_text(msg_ready(jpeg->w, jpeg->h))) break;
                     sent_w = jpeg->w; sent_h = jpeg->h;
+                }
+                if (announce) {
+                    if (!send_text(msg_transition(*jpeg->transition))) break;   // unmittelbar vor dem Zielbild
+                    sent_transition_id = jpeg->transition->id;
+                    transition_hold.begin(now(), jpeg->transition->ms);
+                    if (trace.enabled()) trace.record_transition(c->device_id, seq, jpeg->transition->ms, jpeg->transition->style);
                 }
                 const int64_t trace_send_start = trace.enabled() ? FrameTrace::now_us() : 0;
                 if (!send_raw(ws_frame(Op::Binary, frame_payload(jpeg->jpeg)))) break;

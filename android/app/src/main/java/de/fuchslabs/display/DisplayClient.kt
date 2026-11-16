@@ -27,7 +27,8 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
         fun onUnverifiedFingerprint(fp: String, trust: () -> Unit)
         fun onPaired(key: String, fingerprint: String)
         fun onReady(w: Int, h: Int)
-        fun onFrame(jpeg: ByteArray)
+        /** [transition] != null: dieses Bild ist das Ziel eines vom Server angekuendigten Seitenuebergangs. */
+        fun onFrame(jpeg: ByteArray, transition: ServerMessage.Transition?)
         fun onFatal(kind: Fatal, detail: String)
     }
     enum class State { CONNECTING, CONNECTED, RECONNECTING, STOPPED }
@@ -46,7 +47,13 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
     private var sentW = target.screenW // zuletzt dem Server mitgeteilte Groesse (hello bzw. resize)
     private var sentH = target.screenH
 
-    private class PendingFrame(val gate: HandshakeGate, val payload: ByteArray)
+    /**
+     * "transition" wird auf dem Netzwerk-Thread an das naechste Binaerbild gehaengt (gleicher Thread, gleiche
+     * Reihenfolge wie beim Server), nicht ueber einen eigenen Handler-Post: so kann ein bereits geplantes
+     * Zustell-Runnable die Nachricht nie hinter ihr Zielbild setzen.
+     */
+    private val transitions = TransitionCarrier()
+    private class PendingFrame(val gate: HandshakeGate, val payload: ByteArray, val transition: ServerMessage.Transition?)
     /**
      * Hoechstens ein noch nicht zugestelltes Bild und hoechstens eine geplante Zustellung. Jedes Bild traegt die
      * Generation seiner Verbindung; ein verspaeteter Callback einer frueheren Verbindung kann das wartende Bild
@@ -56,13 +63,17 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
     private val deliverFrame = Runnable {
         val f = pendingFrame.take() ?: return@Runnable
         val p = f.value
-        if (f.generation == generation && p.gate.acceptFrame()) { lastRx = now(); listener.onFrame(p.payload) }
+        if (f.generation == generation && p.gate.acceptFrame()) {
+            lastRx = now()
+            listener.onFrame(p.payload, if (transitions.delivered(p.transition)) p.transition else null)
+        }
     }
 
     /** Macht alle bisherigen Callbacks ungueltig; Bilder frueherer Generationen werden ab jetzt abgewiesen. */
     private fun nextGeneration(): Int {
         val g = ++generation
         pendingFrame.advance(g)
+        transitions.clear()
         return g
     }
 
@@ -140,6 +151,12 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
                 }
             }
             override fun onMessage(webSocket: WebSocket, text: String) {
+                val tr = ServerMessage.parse(text)
+                if (tr is ServerMessage.Transition) {
+                    // Nur bis zum naechsten Binaerbild merken; vor "ready" wird das Bild ohnehin abgewiesen.
+                    transitions.onTransition(tr, android.os.SystemClock.elapsedRealtime())
+                    return
+                }
                 main.post { if (gen == generation) handleText(webSocket, text, tm, g) }
             }
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
@@ -148,7 +165,8 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
                 // Nur das neueste Bild wartet auf den Main-Thread; ein ueberholtes wird verworfen, statt
                 // je Bild ein eigenes Runnable samt Nutzdaten aufzustauen.
                 // Ein Bild einer aelteren Generation wird abgewiesen und ueberschreibt nie ein neueres.
-                if (pendingFrame.offer(gen, PendingFrame(g, f.payload))) main.post(deliverFrame)
+                val tx = transitions.onFrame(android.os.SystemClock.elapsedRealtime())
+                if (pendingFrame.offer(gen, PendingFrame(g, f.payload, tx))) main.post(deliverFrame)
             }
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { webSocket.close(1000, null) }
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {

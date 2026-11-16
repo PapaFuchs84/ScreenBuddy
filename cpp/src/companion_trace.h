@@ -66,6 +66,21 @@ public:
                std::to_string(gap_us) + ',' + (r.animating ? '1' : '0') + '\n';
     }
 
+    // Übergangsnachricht (xfade1) als eigene Kommentarzeile "#transition,ts_us,device,seq,ms,style" direkt vor der
+    // Zeile des Zielbilds; die Spalten der Frame-Zeilen und ihre Lücken bleiben unberührt.
+    static std::string format_transition(int64_t ts_us, const std::string& device, uint64_t seq, int ms, const std::string& style) {
+        std::string dev = device, st = style;
+        for (char& c : dev) if (c == ',' || c == '\n' || c == '\r' || c == '"') c = '_';
+        for (char& c : st) if (c == ',' || c == '\n' || c == '\r' || c == '"') c = '_';
+        return "#transition," + std::to_string(ts_us) + ',' + dev + ',' + std::to_string(seq) + ',' + std::to_string(ms) + ',' + st + '\n';
+    }
+    void record_transition(const std::string& device, uint64_t seq, int ms, const std::string& style) {
+        if (!on_) return;
+        const std::string line = format_transition(now_us(), device, seq, ms, style);
+        std::lock_guard lk(mu_);
+        std::fwrite(line.data(), 1, line.size(), file_);
+    }
+
     void record(const Row& r) {
         if (!on_) return;
         std::lock_guard lk(mu_);

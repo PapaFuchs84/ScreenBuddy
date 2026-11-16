@@ -197,6 +197,8 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
 
     // --- DisplayClient.Listener (Main-Thread) ---
     override fun onState(state: DisplayClient.State) {
+        // Verbindungsabbruch/Neuaufbau: laufenden Uebergang sauber beenden (Zielbild bzw. letztes Bild bleibt stehen).
+        if (state != DisplayClient.State.CONNECTED) frameView.abortTransition()
         status.visibility = if (state == DisplayClient.State.CONNECTED) View.GONE else View.VISIBLE
         status.setText(when (state) {
             DisplayClient.State.CONNECTING -> if (pairingPin != null) R.string.status_pairing else R.string.status_connecting
@@ -234,7 +236,8 @@ class DisplayActivity : AppCompatActivity(), DisplayClient.Listener {
     }
 
     override fun onReady(w: Int, h: Int) = frameView.setRenderSize(w, h)
-    override fun onFrame(jpeg: ByteArray) = frameView.setFrame(jpeg)
+    override fun onFrame(jpeg: ByteArray, transition: de.fuchslabs.display.protocol.ServerMessage.Transition?) =
+        frameView.setFrame(jpeg, transition)
 
     override fun onFatal(kind: DisplayClient.Fatal, detail: String) {
         val msg = when (kind) {

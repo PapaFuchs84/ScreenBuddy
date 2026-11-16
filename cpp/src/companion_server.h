@@ -36,7 +36,8 @@ public:
         double handshake_seconds = HANDSHAKE_SECONDS;  // TLS + Upgrade + hello, ab accept() (Tests: kürzer)
     };
     // version != 0: nur senden, wenn neu (je Gerät); render_us: Zeichendauer dieses Frames (nur Telemetrie, 0 = unbekannt)
-    struct Frame { std::string jpeg; int w = 480, h = 320; uint64_t version = 0; int64_t render_us = 0; };
+    // transition: gehört zu diesem Zielbild; wird nur an Verbindungen mit Fähigkeit xfade1 gesendet (Transition::id dedupliziert)
+    struct Frame { std::string jpeg; int w = 480, h = 320; uint64_t version = 0; int64_t render_us = 0; std::optional<Transition> transition; };
     struct Hooks {
         std::function<Frame()> encode_frame;           // pixels and dimensions from the same snapshot
         std::function<void(int, int)> on_resize;       // authenticated resolution owner only
@@ -71,6 +72,7 @@ public:
     Pairing& pairing() { return pairing_; }
     json clients();                      // verbundene, angemeldete Geräte
     void drop_device(const std::string& id);  // Verbindung eines entfernten Geräts trennen
+    bool device_has_cap(const std::string& id, const std::string& cap);  // angemeldetes Gerät hat im hello diese Fähigkeit gemeldet
 
 private:
     struct Conn;

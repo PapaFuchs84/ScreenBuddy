@@ -1685,7 +1685,33 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         const std::string kind = s(dp_, "page_transition", "auto");
         const bool smooth_output = phone || (out_ && out_->is_monitor());
         const bool same_size = !view.previous_frame.empty() && view.previous_frame.w == out.frame.w && view.previous_frame.h == out.frame.h;
+        const auto style_of = [&] {
+            return kind == "slide" ? render::PageTransition::Slide : kind == "fade" ? render::PageTransition::Fade : render::PageTransition::Hud;
+        };
+        const auto palette_now = [&] {
+            if (locked) return render::hud_palette(cfg_["system"], render::theme());
+            std::lock_guard theme_lock(render::mutex());
+            return render::hud_palette(cfg_["system"], render::theme());
+        };
         if (switched && kind != "none" && smooth_output && same_size) {
+            // Capable device (xfade1): no intermediate frames here. The target frame goes out with a transition
+            // message and the device animates itself; the transport then pauses this device for ms + 80 ms.
+            // Everything else (old app, monitor, serial panel) keeps the server-computed frames below.
+            if (phone && !id.empty() && companion_ && companion_->device_has_cap(id, companion::CAP_XFADE1)) {
+                const auto palette = palette_now();
+                const auto rgb = [](Color c) { return companion::Rgb{c.r, c.g, c.b}; };
+                companion::Transition t;
+                const auto style = style_of();
+                t.style = style == render::PageTransition::Slide ? "slide" : style == render::PageTransition::Fade ? "fade" : "hud";
+                t.dir = view.transition_dir < 0 ? -1 : 1;
+                t.ms = int(std::lround(render::PAGE_TRANSITION_SECONDS * 1000));
+                t.accent = rgb(palette.primary); t.accent2 = rgb(palette.secondary);
+                t.shade = rgb(render::transition_shade(palette.bg, palette.text));
+                out.transition = t;
+                view.transition_from = {};
+                view.transition_start = -1;
+                return;
+            }
             view.transition_from = view.previous_frame;
             view.transition_start = now;
         }
@@ -1696,11 +1722,8 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
                 view.transition_start = -1;
             } else {
                 // Default: HUD scan in the Hardware-HUD colours (design, neon or custom).
-                const auto style = kind == "slide" ? render::PageTransition::Slide
-                                 : kind == "fade" ? render::PageTransition::Fade : render::PageTransition::Hud;
-                render::HudPalette palette;
-                if (locked) palette = render::hud_palette(cfg_["system"], render::theme());
-                else { std::lock_guard theme_lock(render::mutex()); palette = render::hud_palette(cfg_["system"], render::theme()); }
+                const auto style = style_of();
+                const render::HudPalette palette = palette_now();
                 out.frame = render::page_transition(view.transition_from, out.frame, progress, style, view.transition_dir,
                                                     palette.primary, palette.secondary,
                                                     render::transition_shade(palette.bg, palette.text));
@@ -1974,7 +1997,7 @@ void App::render_devices(bool dirty) {
         {
             std::lock_guard lk(dev_mu_);
             companion_->show_for(id, r.frame, r.navigation, d->view.animating ? animation_fps(cfg_) : 0,
-                                 int64_t((mono() - render_start) * 1e6));
+                                 int64_t((mono() - render_start) * 1e6), r.transition);
             touch::stabilize_plugins(r.taps,d->taps,mono());
             d->area = r.area; d->taps = std::move(r.taps); d->navigation = r.navigation;
         }

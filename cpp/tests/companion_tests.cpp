@@ -282,6 +282,63 @@ static void test_messages() {
     CHECK_EQ(clean_name("Ä\xC3"), "Ä");  // abgeschnittenes UTF-8-Zeichen fällt weg
 }
 
+// Fähigkeit xfade1: caps-Parsing, Nachrichtenformat, Zurückhalte-Logik (ohne Netz)
+static void test_transition_unit() {
+    // caps im hello: optional, tolerant, ändert die key/pin-Regel nicht
+    auto with = parse_client(R"({"t":"hello","v":1,"pin":"123456","caps":["xfade1","future2","xfade1",7,"BAD CAP","",null]})");
+    CHECK(with.type == ClientMsg::Type::Hello);
+    CHECK(with.has_cap(CAP_XFADE1) && with.has_cap("future2") && !with.has_cap("BAD CAP"));
+    CHECK_EQ(with.caps.size(), (size_t)2);   // Duplikat, Nicht-Strings, ungültige Namen fallen still weg
+    auto none = parse_client(R"({"t":"hello","v":1,"key":"abc"})");   // alter Client: kein Feld
+    CHECK(none.type == ClientMsg::Type::Hello && none.caps.empty() && !none.has_cap(CAP_XFADE1));
+    CHECK(parse_client(R"({"t":"hello","v":1,"key":"a","caps":["xfade1"]})").type == ClientMsg::Type::Hello);
+    CHECK(parse_client(R"({"t":"hello","v":1,"key":"a","pin":"1","caps":["xfade1"]})").type == ClientMsg::Type::Invalid);  // Regel bleibt
+    CHECK(parse_client(R"({"t":"hello","v":1})").type == ClientMsg::Type::Invalid);
+    auto odd = parse_client(R"({"t":"hello","v":1,"pin":"1","caps":"xfade1"})");   // kein Array: ignoriert, kein Fehler
+    CHECK(odd.type == ClientMsg::Type::Hello && odd.caps.empty());
+    auto odd2 = parse_client(R"({"t":"hello","v":1,"pin":"1","caps":{"xfade1":true}})");
+    CHECK(odd2.type == ClientMsg::Type::Hello && odd2.caps.empty());
+    std::string many = R"({"t":"hello","v":1,"pin":"1","caps":[)";
+    for (int i = 0; i < 40; ++i) many += (i ? "," : "") + std::string("\"c") + std::to_string(i) + "\"";
+    many += "]}";
+    CHECK_EQ(parse_client(many).caps.size(), MAX_CAPS);
+    CHECK(parse_client(R"({"t":"hello","v":1,"pin":"1","caps":[")" + std::string(33, 'a') + R"("]})").caps.empty());
+    // Protokollversion bleibt 1
+    CHECK_EQ(PROTOCOL_VERSION, 1);
+
+    // Nachrichtenformat: Feldreihenfolge, Farben #RRGGBB (Großbuchstaben)
+    CHECK_EQ(hex_color(Rgb{0, 15, 255}), "#000FFF");
+    CHECK_EQ(hex_color(Rgb{0x12, 0xAB, 0xcd}), "#12ABCD");
+    Transition t;
+    t.style = "hud"; t.dir = 1; t.ms = 450;
+    t.accent = {0, 229, 255}; t.accent2 = {255, 0, 170}; t.shade = {8, 12, 22};
+    CHECK_EQ(msg_transition(t), R"({"t":"transition","style":"hud","dir":1,"ms":450,"accent":"#00E5FF","accent2":"#FF00AA","shade":"#080C16"})");
+    t.style = "slide"; t.dir = -1;
+    CHECK_EQ(msg_transition(t), R"({"t":"transition","style":"slide","dir":-1,"ms":450,"accent":"#00E5FF","accent2":"#FF00AA","shade":"#080C16"})");
+    t.style = "fade"; t.dir = 5; t.ms = 300;
+    {
+        auto j = json::parse(msg_transition(t));
+        CHECK(j["style"] == "fade" && j["dir"] == 1 && j["ms"] == 300 && j["t"] == "transition");
+        CHECK(!j.contains("id"));   // id ist serverintern
+    }
+    t.style = "spin";   // unbekannter Stil fällt auf hud zurück, nie ein ungültiger Wert auf der Leitung
+    CHECK(json::parse(msg_transition(t))["style"] == "hud");
+
+    // Zurückhalten: ms + 80 ms ab Versand, danach frei; reset hebt auf
+    TransitionHold hold;
+    CHECK(!hold.holding(100.0));
+    hold.begin(100.0, 450);
+    CHECK(hold.holding(100.0));
+    CHECK(hold.holding(100.0 + 0.529));
+    CHECK(!hold.holding(100.0 + 0.531));
+    CHECK_EQ(TRANSITION_HOLD_EXTRA_MS, 80);
+    hold.reset();
+    CHECK(!hold.holding(100.1));
+    // Telemetrie: eigene Kommentarzeile, Frame-Spalten unverändert
+    CHECK_EQ(FrameTrace::format_transition(5, "a,b", 7, 450, "hud"), "#transition,5,a_b,7,450,hud\n");
+    CHECK_EQ(std::string(FrameTrace::header()), "ts_us,device,seq,render_us,encode_us,send_us,bytes,gap_us,animating\n");
+}
+
 static void test_pairing_uri_qr() {
     std::string fp(64, 'a');
     CHECK_EQ(pair_uri("192.168.1.20", 8777, fp, "012345"), "fuchslabs://pair?host=192.168.1.20&port=8777&fp=" + fp + "&pin=012345");
@@ -1353,6 +1410,121 @@ static void test_independent(bool offline = false) {
     for (int i = 0; i < 4 && last != "SHARED"; ++i) last = frame_of(b);
     CHECK_EQ(last, "SHARED");
 }
+// xfade1 über den echten Server: Reihenfolge, Zurückhalten, Fallback für Geräte ohne Fähigkeit
+static void test_transition_server() {
+#ifdef _WIN32
+    WSADATA wsa; WSAStartup(MAKEWORD(2, 2), &wsa);
+#endif
+    auto path = tmpfile("fl-companion-xfade.json");
+    Store store(path, enc, dec, [] { return 1.0; });
+    store.load();
+    std::mutex mu;
+    std::atomic<uint64_t> version{1};
+    std::optional<Transition> current;   // wie NetworkDisplay: klebt am Frame, bis ein neuer Übergang kommt
+    { Transition first; first.id = 100; first.ms = 300; current = first; }
+    Server::Hooks hooks;
+    hooks.encode = [] { return std::string("SHARED"); };
+    hooks.independent = [] { return true; };
+    hooks.encode_frame_for = [&](const std::string&) {
+        Server::Frame f;
+        std::lock_guard lk(mu);
+        f.jpeg = "V" + std::to_string(version.load());
+        f.w = 300; f.h = 200; f.version = version;
+        f.transition = current;
+        return f;
+    };
+    int port = 0;
+    auto srv = start_on_random_port(store, hooks, port);
+    CHECK(srv != nullptr);
+    if (!srv) return;
+    srv->frame_changed();
+    auto pair_client = [&](Client& c, const std::string& name, const std::string& caps, std::string& id) {
+        auto code = srv->pairing().start();
+        if (!code || !c.open(port)) return false;
+        c.send(R"({"t":"hello","v":1,"pin":")" + code->pin + R"(","w":300,"h":200,"name":")" + name + "\"" + caps + "}");
+        if (!c.recv()) return false;   // paired
+        if (!c.recv()) return false;   // ready
+        for (auto& cl : srv->clients()) if (cl["name"] == name) id = cl["id"];
+        return !id.empty();
+    };
+    Client a, b;
+    std::string ida, idb;
+    CHECK(pair_client(a, "Neu", R"(,"caps":["xfade1"])", ida));
+    CHECK(pair_client(b, "Alt", "", idb));   // alter Client: kein caps-Feld
+    CHECK(srv->device_has_cap(ida, CAP_XFADE1));
+    CHECK(!srv->device_has_cap(idb, CAP_XFADE1));
+    CHECK(!srv->device_has_cap("unbekannt", CAP_XFADE1));
+    // Alle Nachrichten bis einschließlich des nächsten Binärframes
+    auto until_frame = [](Client& c) {
+        std::vector<WsMessage> msgs;
+        for (int i = 0; i < 8; ++i) {
+            auto m = c.recv();
+            if (!m) break;
+            msgs.push_back(*m);
+            if (m->op == Op::Binary) break;
+        }
+        return msgs;
+    };
+    auto is_transition = [](const WsMessage& m) { return m.op == Op::Text && m.payload.find("\"transition\"") != std::string::npos; };
+    auto count_transitions = [&](const std::vector<WsMessage>& v) { int n = 0; for (auto& m : v) n += is_transition(m); return n; };
+    // Erstes Bild einer Verbindung: nie eine Übergangsnachricht (der Client hat kein "von"), auch wenn eines anhängt
+    auto a1 = until_frame(a), b1 = until_frame(b);
+    CHECK(!a1.empty() && a1.back().op == Op::Binary && a1.back().payload.substr(1) == "V1" && count_transitions(a1) == 0);
+    CHECK(!b1.empty() && b1.back().op == Op::Binary && count_transitions(b1) == 0);
+    // Seitenwechsel: Zielbild V2 mit Übergang (id 101, 300 ms)
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));   // statisches 5-fps-Tor des Geräts offen
+    Transition tr;
+    tr.style = "slide"; tr.dir = -1; tr.ms = 300; tr.id = 101;
+    tr.accent = {1, 2, 3}; tr.accent2 = {255, 254, 253}; tr.shade = {8, 12, 22};
+    {
+        std::lock_guard lk(mu); current = tr; ++version;
+    }
+    srv->frame_changed();
+    const auto sent_at = std::chrono::steady_clock::now();
+    auto a2 = until_frame(a), b2 = until_frame(b);
+    // Gerät mit xfade1: Übergangsnachricht unmittelbar vor dem Binärframe, genaues Format
+    CHECK_EQ(a2.size(), (size_t)2);
+    if (a2.size() == 2) {
+        CHECK(a2[0].op == Op::Text && a2[0].payload == R"({"t":"transition","style":"slide","dir":-1,"ms":300,"accent":"#010203","accent2":"#FFFEFD","shade":"#080C16"})");
+        CHECK(a2[1].op == Op::Binary && a2[1].payload.substr(1) == "V2");
+    }
+    // Gerät ohne Fähigkeit: nur das Bild, keine Übergangsnachricht (heutiges Verhalten)
+    CHECK(!b2.empty() && b2.back().op == Op::Binary && count_transitions(b2) == 0);
+    // Zurückhalten: während ms + 80 ms kein Frame an das xfade1-Gerät, nichts geht verloren
+    {
+        std::lock_guard lk(mu); ++version;   // V3 (ohne neuen Übergang: gleiche id 101 klebt)
+    }
+    srv->frame_changed();
+    std::this_thread::sleep_for(std::chrono::milliseconds(120));
+    a.send(R"({"t":"ping"})");
+    auto pong = a.recv();
+    CHECK(pong && pong->op == Op::Text && pong->payload == msg_pong());   // nur die Antwort, kein Binary dazwischen
+    auto b3 = until_frame(b);   // das Gerät ohne Fähigkeit wird nicht ausgebremst
+    CHECK(!b3.empty() && b3.back().op == Op::Binary && b3.back().payload.substr(1) == "V3");
+    CHECK(std::chrono::steady_clock::now() - sent_at < std::chrono::milliseconds(370));   // vor Ende der Pause (380 ms)
+    auto a3 = until_frame(a);   // nach der Pause der neueste Frame, ohne wiederholte Übergangsnachricht
+    const auto waited = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - sent_at).count();
+    CHECK(!a3.empty() && a3.back().op == Op::Binary && a3.back().payload.substr(1) == "V3");
+    CHECK(count_transitions(a3) == 0);
+    CHECK(waited >= 340);    // ms + 80 abzüglich Messtoleranz
+    CHECK(waited < 1500);
+    // Unverändertes Bild nach der Pause: nichts mehr
+    srv->frame_changed();
+    std::this_thread::sleep_for(std::chrono::milliseconds(400));
+    a.send(R"({"t":"ping"})");
+    auto idle = a.recv();
+    CHECK(idle && idle->op == Op::Text && idle->payload == msg_pong());
+    // Neuer Übergang (id 102) wird wieder angekündigt
+    tr.id = 102; tr.style = "hud"; tr.dir = 1;
+    {
+        std::lock_guard lk(mu); current = tr; ++version;
+    }
+    srv->frame_changed();
+    auto a4 = until_frame(a);
+    CHECK_EQ(a4.size(), (size_t)2);
+    if (a4.size() == 2) CHECK(is_transition(a4[0]) && json::parse(a4[0].payload)["style"] == "hud" && a4[1].op == Op::Binary);
+}
+
 // HUD rate is a server-side per-device hint; normal pages retain the default gate.
 static void test_hud_transport_rate() {
 #ifdef _WIN32
@@ -1484,6 +1656,7 @@ int main(int argc, char** argv) {
     test_handshake();
     test_frames();
     test_messages();
+    test_transition_unit();
     test_pairing_uri_qr();
     test_pairing();
     test_gate();
@@ -1493,7 +1666,7 @@ int main(int argc, char** argv) {
     test_corrupt_keepout();
     test_identity();
     test_frame_pump();
-    if (!offline) { test_server(); test_server_hardening(); test_resize_swipe(); test_hud_transport_rate(); }
+    if (!offline) { test_server(); test_server_hardening(); test_resize_swipe(); test_hud_transport_rate(); test_transition_server(); }
     test_independent(offline);
     if (offline) std::printf("OFFLINE: TLS server, server hardening, resize/swipe and independent server integration NOT RUN (network forbidden).\n");
     std::printf("%d Prüfungen ok, %d Fehler\n", g_ok, g_fail);

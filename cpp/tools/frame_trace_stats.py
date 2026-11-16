@@ -32,7 +32,9 @@ def percentile(values, p):
 def load(path):
     rows = []
     with open(path, newline="", encoding="utf-8") as handle:
-        for line_no, rec in enumerate(csv.DictReader(handle), start=2):
+        # "#transition,..."-Zeilen (Übergangsnachricht an Geräte mit xfade1) sind keine Frame-Zeilen
+        lines = (ln for ln in handle if not ln.startswith("#"))
+        for line_no, rec in enumerate(csv.DictReader(lines), start=2):
             try:
                 rows.append({
                     "ts": int(rec["ts_us"]), "device": rec["device"], "seq": int(rec["seq"]),

@@ -137,6 +137,8 @@ struct NetworkDisplay::DeviceFrame {
     uint64_t version = 0;
     std::shared_ptr<const companion::Server::Frame> jpeg;  // zu version passend, träge erzeugt
     ojson navigation;                                       // Seitenposition für die Statusanzeige
+    std::optional<companion::Transition> transition;        // Übergang zum aktuellen/jüngsten Zielbild (xfade1)
+    double transition_expires = 0;                          // mono(); danach nicht mehr senden (veraltet)
 };
 
 NetworkDisplay::NetworkDisplay(int port, int settings_port, std::filesystem::path store, int w, int h)
@@ -214,7 +216,11 @@ void NetworkDisplay::connect() {
             auto it = device_frames_.find(device);
             if (it == device_frames_.end() || it->second->image.empty()) return companion::Server::Frame{};
             slot = it->second;
-            if (slot->jpeg && slot->jpeg->version == slot->version) return *slot->jpeg;
+            if (slot->jpeg && slot->jpeg->version == slot->version) {
+                companion::Server::Frame cached = *slot->jpeg;
+                if (slot->transition && mono() < slot->transition_expires) cached.transition = slot->transition;
+                return cached;
+            }
             image = slot->image;
             version = slot->version;
             render_us = slot->render_us;
@@ -223,11 +229,15 @@ void NetworkDisplay::connect() {
         auto jpeg = std::make_shared<const companion::Server::Frame>(
             companion::Server::Frame{encode_jpeg(image, 0.8f), image.w, image.h, version, render_us});
         LOGD("companion", "JPEG %.1f ms (%dx%d, %zu kB)", (mono() - encode_start) * 1000, image.w, image.h, jpeg->jpeg.size() / 1024);
+        std::optional<companion::Transition> transition;
         {
             std::lock_guard lk(mu_);
             if (slot->version == version) slot->jpeg = jpeg;
+            if (slot->transition && mono() < slot->transition_expires) transition = slot->transition;
         }
-        return *jpeg;
+        companion::Server::Frame out = *jpeg;
+        out.transition = transition;   // nicht im Zwischenspeicher: gilt nur, solange der Übergang aktuell ist
+        return out;
     };
     hooks.on_resize_for = [this](const std::string& device, int w, int h) { store_->set_device_size(device,w,h); if (on_device_resize) on_device_resize(device, w, h); };
     hooks.on_swipe_for = [this](const std::string& device, int dir) { if (on_device_swipe) on_device_swipe(device, dir); };
@@ -307,7 +317,13 @@ void NetworkDisplay::set_independent(bool on) {
         if (auto srv = server()) srv->frame_changed();   // Clients holen ihr Bild neu
 }
 
-void NetworkDisplay::show_for(const std::string& device, const Image& frame, const ojson& navigation, int animation_fps, int64_t render_us) {
+bool NetworkDisplay::device_has_cap(const std::string& device, const std::string& cap) {
+    auto srv = server();
+    return srv && srv->device_has_cap(device, cap);
+}
+
+void NetworkDisplay::show_for(const std::string& device, const Image& frame, const ojson& navigation, int animation_fps, int64_t render_us,
+                              const std::optional<companion::Transition>& transition) {
     {
         std::lock_guard lk(mu_);
         auto& slot = device_frames_[device];
@@ -319,6 +335,11 @@ void NetworkDisplay::show_for(const std::string& device, const Image& frame, con
         slot->image = frame;
         slot->version = ++frame_version_;
         slot->jpeg.reset();
+        if (transition) {
+            slot->transition = transition;
+            slot->transition->id = ++transition_id_;
+            slot->transition_expires = mono() + 1.5;   // deckt Versandpause eines laufenden Übergangs ab
+        }
     }
     if (auto srv = server()) srv->frame_changed();
 }
@@ -367,6 +388,7 @@ void NetworkDisplay::screen_off() {
             if (slot->image.empty()) continue;
             slot->image = Image(slot->image.w, slot->image.h, Color{0, 0, 0});
             slot->animation_fps = 0;
+            slot->transition.reset();
             slot->version = ++frame_version_;
             slot->jpeg.reset();
         }
