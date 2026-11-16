@@ -65,7 +65,10 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
         val p = f.value
         if (f.generation == generation && p.gate.acceptFrame()) {
             lastRx = now()
+            // Erst jetzt, nach Generations- und Gate-Pruefung, wird die Nachricht verbraucht.
             listener.onFrame(p.payload, if (transitions.delivered(p.transition)) p.transition else null)
+        } else {
+            transitions.discard(p.transition) // abgewiesenes Bild vererbt seine Nachricht nicht
         }
     }
 
@@ -73,7 +76,7 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
     private fun nextGeneration(): Int {
         val g = ++generation
         pendingFrame.advance(g)
-        transitions.clear()
+        transitions.advance(g)
         return g
     }
 
@@ -153,8 +156,8 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
             override fun onMessage(webSocket: WebSocket, text: String) {
                 val tr = ServerMessage.parse(text)
                 if (tr is ServerMessage.Transition) {
-                    // Nur bis zum naechsten Binaerbild merken; vor "ready" wird das Bild ohnehin abgewiesen.
-                    transitions.onTransition(tr, android.os.SystemClock.elapsedRealtime())
+                    // Nur bis zum naechsten Binaerbild merken, nur dieser Verbindung (gen) und nur nach "ready".
+                    if (g.acceptTransition()) transitions.onTransition(tr, android.os.SystemClock.elapsedRealtime(), gen)
                     return
                 }
                 main.post { if (gen == generation) handleText(webSocket, text, tm, g) }
@@ -165,8 +168,11 @@ class DisplayClient(private val target: Target, private val listener: Listener) 
                 // Nur das neueste Bild wartet auf den Main-Thread; ein ueberholtes wird verworfen, statt
                 // je Bild ein eigenes Runnable samt Nutzdaten aufzustauen.
                 // Ein Bild einer aelteren Generation wird abgewiesen und ueberschreibt nie ein neueres.
-                val tx = transitions.onFrame(android.os.SystemClock.elapsedRealtime())
-                if (pendingFrame.offer(gen, PendingFrame(g, f.payload, tx))) main.post(deliverFrame)
+                // Die Nachricht wird hier nur zugeordnet (an diese Generation gebunden); verbraucht oder verworfen
+                // wird sie erst in deliverFrame nach Generations-/Gate-Pruefung.
+                val tx = transitions.onFrame(android.os.SystemClock.elapsedRealtime(), gen)
+                val pf = PendingFrame(g, f.payload, tx)
+                if (pendingFrame.offer(gen, pf) { dropped -> if (dropped.transition !== tx) transitions.discard(dropped.transition) }) main.post(deliverFrame)
             }
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { webSocket.close(1000, null) }
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {

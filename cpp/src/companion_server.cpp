@@ -386,11 +386,14 @@ json Server::clients() {
 
 bool Server::device_has_cap(const std::string& id, const std::string& cap) {
     std::lock_guard lk(mu_);
+    bool any = false;
     for (auto& [c, t] : workers_) {
         std::lock_guard ck(c->mu);
-        if (c->authed && !c->done && c->device_id == id && std::find(c->caps.begin(), c->caps.end(), cap) != c->caps.end()) return true;
+        if (!c->authed || c->done || c->device_id != id) continue;
+        if (std::find(c->caps.begin(), c->caps.end(), cap) == c->caps.end()) return false;
+        any = true;
     }
-    return false;
+    return any;
 }
 
 void Server::drop_device(const std::string& id) {
@@ -546,6 +549,7 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
     };
     bool authed = false;
     FrameGate gate;
+    std::shared_ptr<const Frame> last_sent;   // zuletzt gesendetes Bild dieser Verbindung (nur Einzelgeräte-Betrieb)
     FrameTrace& trace = FrameTrace::get();   // SB_FRAME_TRACE; off by default
     uint64_t sent_version = 0, observed_seq = 0, sent_transition_id = 0;
     bool xfade = false;              // Client hat xfade1 gemeldet: Übergänge laufen auf dem Gerät
@@ -766,7 +770,15 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
         // Geräteseitiger Übergang läuft: nichts senden, nichts verwerfen. Der Frame bleibt fällig (seq != gesendet),
         // danach geht der neueste hinaus; die Versionsprüfung unten lässt ein unverändertes Bild weg.
         const bool held = xfade && transition_hold.holding(t);
-        if (!held && gate.due(seq, t, current_animation_fps)) {
+        // Zielbild einer neuen Transition: sofort, nicht erst am statischen Tor (sonst ~200 ms Verzug nach dem Wisch)
+        bool urgent = false;
+        if (per_device && xfade && hooks_.transition_id_for) {
+            try {
+                const uint64_t tid = hooks_.transition_id_for(c->device_id);
+                urgent = tid != 0 && tid != sent_transition_id;
+            } catch (...) {}
+        }
+        if (!held && gate.due(seq, t, current_animation_fps, urgent)) {
             const int64_t trace_encode_start = trace.enabled() ? FrameTrace::now_us() : 0;
             std::shared_ptr<const Frame> jpeg;
             if (per_device) {
@@ -796,7 +808,14 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
                 jpeg = jpeg_;
             }
             const bool unchanged = per_device && jpeg->version && jpeg->version == sent_version;
-            if (!unchanged && jpeg && !jpeg->jpeg.empty()) {
+            // Doppel-Wisch (A→B nicht mehr gesendet, zurück nach A): trägt das Zielbild eine Transition, sein Inhalt ist aber
+            // der des zuletzt gesendeten Bildes, wäre ein Übergang A→A ein Flackern. Nichts senden; die Transition gilt als verbraucht.
+            const bool same_content = per_device && !unchanged && jpeg->transition && last_sent && last_sent->w == jpeg->w &&
+                                      last_sent->h == jpeg->h && !jpeg->jpeg.empty() && last_sent->jpeg == jpeg->jpeg;
+            if (same_content) {
+                sent_version = jpeg->version;
+                sent_transition_id = jpeg->transition->id;
+            } else if (!unchanged && jpeg && !jpeg->jpeg.empty()) {
                 // Übergangsnachricht nur mit xfade1, nur pro Gerät, nur für einen neuen Übergang, nie für das erste Bild
                 // einer Verbindung (kein "von") und nie bei Größenwechsel (der Client hat kein passendes "von").
                 const bool same_size = sent_w == jpeg->w && sent_h == jpeg->h;
@@ -815,6 +834,10 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
                 const int64_t trace_send_start = trace.enabled() ? FrameTrace::now_us() : 0;
                 if (!send_raw(ws_frame(Op::Binary, frame_payload(jpeg->jpeg)))) break;
                 sent_version = per_device ? jpeg->version : 0;
+                // Jede Transition, die an einem versandten Bild hängt, gilt als verbraucht – auch wenn sie nicht angekündigt wurde
+                // (erstes Bild, Größenwechsel, Gerät ohne xfade1). Sonst klebt sie bis zum Ablauf und träfe ein späteres Bild.
+                if (per_device && jpeg->transition) sent_transition_id = jpeg->transition->id;
+                if (per_device) last_sent = jpeg;
                 if (trace.enabled()) {
                     const int64_t done = FrameTrace::now_us();
                     trace.record({done, c->device_id, seq, jpeg->render_us, trace_send_start - trace_encode_start, done - trace_send_start,

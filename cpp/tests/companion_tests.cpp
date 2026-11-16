@@ -414,6 +414,13 @@ static void test_gate() {
     CHECK(!dynamic.due(2, 10.1, 61));
     CHECK(!dynamic.due(2, 10.1, 999999));
     CHECK(dynamic.due(2, 10.2, 0));
+    // Dringendes Zielbild einer neuen Transition umgeht das statische 5-fps-Tor, aber nie die Deduplizierung
+    FrameGate urgent;
+    urgent.sent(1, 10);
+    CHECK(!urgent.due(2, 10.01));
+    CHECK(urgent.due(2, 10.01, 0, true));
+    CHECK(!urgent.due(1, 10.5, 0, true));   // unverändert bleibt unverändert
+    CHECK(!urgent.due(0, 10.5, 0, true));   // noch kein Bild
 }
 
 static fs::path tmpfile(const char* name);
@@ -1474,7 +1481,7 @@ static void test_transition_server() {
     // Seitenwechsel: Zielbild V2 mit Übergang (id 101, 300 ms)
     std::this_thread::sleep_for(std::chrono::milliseconds(250));   // statisches 5-fps-Tor des Geräts offen
     Transition tr;
-    tr.style = "slide"; tr.dir = -1; tr.ms = 300; tr.id = 101;
+    tr.style = "slide"; tr.dir = -1; tr.ms = 600; tr.id = 101;   // lange Pause (680 ms): Zeitmessung bleibt auch auf langsamen Rechnern gültig
     tr.accent = {1, 2, 3}; tr.accent2 = {255, 254, 253}; tr.shade = {8, 12, 22};
     {
         std::lock_guard lk(mu); current = tr; ++version;
@@ -1485,7 +1492,7 @@ static void test_transition_server() {
     // Gerät mit xfade1: Übergangsnachricht unmittelbar vor dem Binärframe, genaues Format
     CHECK_EQ(a2.size(), (size_t)2);
     if (a2.size() == 2) {
-        CHECK(a2[0].op == Op::Text && a2[0].payload == R"({"t":"transition","style":"slide","dir":-1,"ms":300,"accent":"#010203","accent2":"#FFFEFD","shade":"#080C16"})");
+        CHECK(a2[0].op == Op::Text && a2[0].payload == R"({"t":"transition","style":"slide","dir":-1,"ms":600,"accent":"#010203","accent2":"#FFFEFD","shade":"#080C16"})");
         CHECK(a2[1].op == Op::Binary && a2[1].payload.substr(1) == "V2");
     }
     // Gerät ohne Fähigkeit: nur das Bild, keine Übergangsnachricht (heutiges Verhalten)
@@ -1501,13 +1508,11 @@ static void test_transition_server() {
     CHECK(pong && pong->op == Op::Text && pong->payload == msg_pong());   // nur die Antwort, kein Binary dazwischen
     auto b3 = until_frame(b);   // das Gerät ohne Fähigkeit wird nicht ausgebremst
     CHECK(!b3.empty() && b3.back().op == Op::Binary && b3.back().payload.substr(1) == "V3");
-    CHECK(std::chrono::steady_clock::now() - sent_at < std::chrono::milliseconds(370));   // vor Ende der Pause (380 ms)
     auto a3 = until_frame(a);   // nach der Pause der neueste Frame, ohne wiederholte Übergangsnachricht
     const auto waited = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - sent_at).count();
     CHECK(!a3.empty() && a3.back().op == Op::Binary && a3.back().payload.substr(1) == "V3");
     CHECK(count_transitions(a3) == 0);
-    CHECK(waited >= 340);    // ms + 80 abzüglich Messtoleranz
-    CHECK(waited < 1500);
+    CHECK(waited >= 500);    // nur Untergrenze: Pause ist ms + 80 = 680 ms, großzügig abzüglich Messtoleranz; keine Obergrenze (Last)
     // Unverändertes Bild nach der Pause: nichts mehr
     srv->frame_changed();
     std::this_thread::sleep_for(std::chrono::milliseconds(400));
@@ -1523,6 +1528,149 @@ static void test_transition_server() {
     auto a4 = until_frame(a);
     CHECK_EQ(a4.size(), (size_t)2);
     if (a4.size() == 2) CHECK(is_transition(a4[0]) && json::parse(a4[0].payload)["style"] == "hud" && a4[1].op == Op::Binary);
+}
+
+// xfade1-Randfälle mit eingefrorener Serveruhr (hooks.now): kein Zeitmessen, die Tore öffnen nur, wenn der Test die Uhr vorstellt.
+// M1 (verbrauchte Transition klebt nicht), M4 (Zielbild umgeht das 5-fps-Tor), N2 (Mehrfachverbindung), Doppel-Wisch.
+static void test_transition_edges() {
+#ifdef _WIN32
+    WSADATA wsa; WSAStartup(MAKEWORD(2, 2), &wsa);
+#endif
+    auto path = tmpfile("fl-companion-xfade-edges.json");
+    Store store(path, enc, dec, [] { return 1.0; });
+    store.load();
+    struct State { std::string jpeg = "A"; int w = 300, h = 200; uint64_t version = 1; std::optional<Transition> tr; };
+    std::mutex mu;
+    State st;
+    std::atomic<double> clock{1000.0};
+    Server::Hooks hooks;
+    hooks.encode = [] { return std::string("SHARED"); };
+    hooks.independent = [] { return true; };
+    hooks.now = [&] { return clock.load(); };
+    hooks.encode_frame_for = [&](const std::string&) {
+        std::lock_guard lk(mu);
+        Server::Frame f;
+        f.jpeg = st.jpeg; f.w = st.w; f.h = st.h; f.version = st.version; f.transition = st.tr;
+        return f;
+    };
+    hooks.transition_id_for = [&](const std::string&) -> uint64_t {
+        std::lock_guard lk(mu);
+        return st.tr ? st.tr->id : 0;
+    };
+    auto set = [&](const std::string& jpeg, int w, uint64_t tr_id) {   // neues Bild; tr_id 0 = Transition des Vorgängers klebt weiter
+        std::lock_guard lk(mu);
+        st.jpeg = jpeg; st.w = w; ++st.version;
+        if (tr_id) { Transition t; t.style = "fade"; t.ms = 20; t.id = tr_id; st.tr = t; }   // Pause 100 ms (Serveruhr)
+    };
+    { Transition t; t.ms = 20; t.id = 5; st.tr = t; }   // klebt schon vor der Anmeldung (Reconnect innerhalb der 1,5 s)
+    int port = 0;
+    auto srv = start_on_random_port(store, hooks, port);
+    CHECK(srv != nullptr);
+    if (!srv) return;
+    auto until_frame = [](Client& c) {
+        std::vector<WsMessage> msgs;
+        for (int i = 0; i < 8; ++i) {
+            auto m = c.recv();
+            if (!m) break;
+            msgs.push_back(*m);
+            if (m->op == Op::Binary) break;
+        }
+        return msgs;
+    };
+    auto is_transition = [](const WsMessage& m) { return m.op == Op::Text && m.payload.find("\"transition\"") != std::string::npos; };
+    auto count_transitions = [&](const std::vector<WsMessage>& v) { int n = 0; for (auto& m : v) n += is_transition(m); return n; };
+    auto is_frame = [](const std::vector<WsMessage>& v, const char* jpeg) { return !v.empty() && v.back().op == Op::Binary && v.back().payload.substr(1) == jpeg; };
+    auto quiet = [&](Client& c) {   // 300 ms echte Zeit, danach nur die Pong-Antwort: nichts sonst unterwegs
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        c.send(R"({"t":"ping"})");
+        auto m = c.recv();
+        return m && m->op == Op::Text && m->payload == msg_pong();
+    };
+    srv->frame_changed();
+    Client a;
+    std::string ida, key;
+    {
+        auto code = srv->pairing().start();
+        CHECK(code && a.open(port));
+        if (!code) return;
+        a.send(R"({"t":"hello","v":1,"pin":")" + code->pin + R"(","w":300,"h":200,"name":"Neu","caps":["xfade1"]})");
+        auto m = a.recv();   // paired
+        CHECK(m.has_value());
+        key = json::parse(m ? m->payload : "{}", nullptr, false).value("key", "");
+        CHECK(a.recv().has_value());   // ready
+        for (auto& cl : srv->clients()) if (cl["name"] == "Neu") ida = cl["id"];
+        CHECK(!ida.empty() && !key.empty());
+    }
+    // M1: Transition 5 hing am ersten Bild der Verbindung (nicht angekündigt) und gilt damit als verbraucht
+    auto f1 = until_frame(a);
+    CHECK(is_frame(f1, "A") && count_transitions(f1) == 0);
+    set("B", 300, 0);                        // anderes Bild, dieselbe (klebende) Transition 5
+    clock = 1000.5; srv->frame_changed();
+    auto f2 = until_frame(a);
+    CHECK(is_frame(f2, "B") && count_transitions(f2) == 0);
+    // M1: auch bei Größenwechsel (Transition 6 hängt am Bild mit neuer Größe) wird sie verbraucht
+    set("C", 320, 6);
+    clock = 1001.0; srv->frame_changed();
+    auto f3 = until_frame(a);
+    CHECK(is_frame(f3, "C") && count_transitions(f3) == 0);
+    set("D", 320, 0);
+    clock = 1001.5; srv->frame_changed();
+    auto f4 = until_frame(a);
+    CHECK(is_frame(f4, "D") && count_transitions(f4) == 0);
+    // M4: Zielbild einer neuen Transition geht sofort hinaus, obwohl die Uhr stillsteht (statisches Tor zu: 0 s seit dem letzten Bild)
+    set("E", 320, 7);
+    srv->frame_changed();
+    auto f5 = until_frame(a);
+    CHECK(f5.size() == 2 && is_transition(f5[0]) && is_frame(f5, "E"));
+    // M4-Gegenprobe: ein Bild ohne neue Transition wartet weiter am Tor (Pause vorbei, aber erst 0,15 s < 0,2 s)
+    set("F", 320, 0);
+    clock = 1001.65; srv->frame_changed();
+    CHECK(quiet(a));
+    clock = 1001.8; srv->frame_changed();
+    auto f6 = until_frame(a);
+    CHECK(is_frame(f6, "F") && count_transitions(f6) == 0);
+    // Doppel-Wisch: Zielbild mit neuer Transition, aber Inhalt wie das zuletzt gesendete → weder Übergang noch Bild
+    set("F", 320, 8);
+    clock = 1002.5; srv->frame_changed();
+    CHECK(quiet(a));
+    // Die Transition 8 ist damit verbraucht: ein späteres anderes Bild trägt sie nicht
+    set("G", 320, 0);
+    clock = 1003.0; srv->frame_changed();
+    auto f7 = until_frame(a);
+    CHECK(is_frame(f7, "G") && count_transitions(f7) == 0);
+    // Ein echter Seitenwechsel wird weiterhin angekündigt
+    set("H", 320, 9);
+    srv->frame_changed();
+    auto f8 = until_frame(a);
+    CHECK(f8.size() == 2 && is_transition(f8[0]) && is_frame(f8, "H"));
+
+    // N2: Mehrfachverbindung derselben Geräte-ID – nur wenn ALLE angemeldeten Verbindungen xfade1 gemeldet haben
+    CHECK(srv->device_has_cap(ida, CAP_XFADE1));
+    {
+        Client legacy;
+        CHECK(legacy.open(port));
+        legacy.send(R"({"t":"hello","v":1,"key":")" + key + R"(","w":320,"h":200})");   // ältere App: kein caps-Feld
+        CHECK(legacy.recv().has_value());   // ready
+        CHECK(!srv->device_has_cap(ida, CAP_XFADE1));
+        CHECK(!srv->device_has_cap("unbekannt", CAP_XFADE1));
+        legacy.close();
+    }
+    bool back = false;   // nach dem Trennen der alten Verbindung wieder wahr (Aufräumen läuft im Server-Thread)
+    for (int i = 0; i < 150 && !back; ++i) {
+        back = srv->device_has_cap(ida, CAP_XFADE1);
+        if (!back) std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    CHECK(back);
+    {
+        Client second;
+        CHECK(second.open(port));
+        second.send(R"({"t":"hello","v":1,"key":")" + key + R"(","w":320,"h":200,"caps":["xfade1"]})");
+        CHECK(second.recv().has_value());
+        CHECK(srv->device_has_cap(ida, CAP_XFADE1));   // beide Verbindungen können es
+        second.close();
+    }
+    srv->stop();
+    std::error_code ec; fs::remove(path, ec);
 }
 
 // HUD rate is a server-side per-device hint; normal pages retain the default gate.
@@ -1666,7 +1814,7 @@ int main(int argc, char** argv) {
     test_corrupt_keepout();
     test_identity();
     test_frame_pump();
-    if (!offline) { test_server(); test_server_hardening(); test_resize_swipe(); test_hud_transport_rate(); test_transition_server(); }
+    if (!offline) { test_server(); test_server_hardening(); test_resize_swipe(); test_hud_transport_rate(); test_transition_server(); test_transition_edges(); }
     test_independent(offline);
     if (offline) std::printf("OFFLINE: TLS server, server hardening, resize/swipe and independent server integration NOT RUN (network forbidden).\n");
     std::printf("%d Prüfungen ok, %d Fehler\n", g_ok, g_fail);

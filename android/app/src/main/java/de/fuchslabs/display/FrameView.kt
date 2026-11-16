@@ -144,7 +144,13 @@ class FrameView(ctx: Context) : View(ctx) {
     private class Anim(val tx: ServerMessage.Transition, val from: Bitmap, val d: Decoded, val bgFrom: Int, val hud: HudPainter?) {
         val clock = TransitionClock(tx.ms)
         var progress = 0.0
+        // Randlos-Untergrund wie in onDraw: Randpixel beider Bilder laufen bis an die Bildschirmkanten (einmal je Uebergang).
+        val fromShader = BitmapShader(from, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        val toShader = BitmapShader(d.bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        var shaderScale = Float.NaN; var shaderLeft = Float.NaN; var shaderTop = Float.NaN
     }
+    private val bleedMatrix = Matrix()
+    private val bleedToPaint = Paint(Paint.FILTER_BITMAP_FLAG).apply { isFilterBitmap = true }
     private var anim: Anim? = null   // nur Main-Thread
     private val animPaint = Paint(Paint.FILTER_BITMAP_FLAG).apply { isFilterBitmap = true }
     private val srcR = Rect(); private val dstR = Rect()
@@ -158,10 +164,37 @@ class FrameView(ctx: Context) : View(ctx) {
         if (from.width != to.width || from.height != to.height) return false
         if (contentWidth <= 0 || contentHeight <= 0 || !isShown) return false
         pins.pin(from); pins.pin(to)
-        val hud = if (tx.style == TransitionStyle.HUD) HudPainter(to.width, to.height, tx) else null
+        val hud = if (tx.style == TransitionStyle.HUD) takeHudPrep(tx, to.width, to.height) else null
         anim = Anim(tx, from, d, bgColor, hud)
         tickTransition(frameTimeNanos) // Fortschritt 0 im selben Takt
         return true
+    }
+
+    /**
+     * HudPainter (Shader, Kachel-Bitmap, Rasterlinien) wird schon beim Eintreffen der Transition-Nachricht auf dem
+     * Decoder-Thread vorbereitet, vor dem Dekodieren des Zielbildes (FIFO-Executor); der erste Animationstakt baut
+     * dann nichts mehr auf. Das Bild hat bei einem Uebergang die Groesse des angezeigten Bildes.
+     */
+    private class HudPrep(val tx: ServerMessage.Transition, val w: Int, val h: Int, val task: java.util.concurrent.FutureTask<HudPainter>)
+    private var hudPrep: HudPrep? = null   // nur Main-Thread
+
+    private fun prepareHud(tx: ServerMessage.Transition) {
+        hudPrep = null
+        val b = bmp ?: return
+        if (tx.style != TransitionStyle.HUD || b.isRecycled) return
+        val w = b.width; val h = b.height
+        val task = java.util.concurrent.FutureTask<HudPainter> { HudPainter(w, h, tx) }
+        hudPrep = HudPrep(tx, w, h, task)
+        decoder.execute(task)
+    }
+
+    private fun takeHudPrep(tx: ServerMessage.Transition, w: Int, h: Int): HudPainter {
+        val p = hudPrep
+        hudPrep = null
+        if (p != null && p.tx === tx && p.w == w && p.h == h) {
+            try { return p.task.get() } catch (_: Exception) {}
+        } else p?.task?.cancel(false)
+        return HudPainter(w, h, tx) // Rueckfall (z. B. Groesse hat sich geaendert)
     }
 
     private fun tickTransition(frameTimeNanos: Long) {
@@ -176,6 +209,7 @@ class FrameView(ctx: Context) : View(ctx) {
     /** Beendet einen laufenden Uebergang sofort und zeigt das Zielbild (Abbruch bei Abriss, Resize, Pause, Zielwechsel). */
     fun abortTransition() {
         arming.clear()
+        hudPrep?.task?.cancel(false); hudPrep = null
         if (anim != null) finishTransition()
     }
 
@@ -267,7 +301,7 @@ class FrameView(ctx: Context) : View(ctx) {
         if (!ImageLimits.bytesOk(jpeg.size)) return
         val seq = ++frameSeq
         // Dieses Bild (oder ein neueres, falls es ueberholt wird) ist das Ziel des angekuendigten Uebergangs.
-        if (transition != null) arming.arm(transition, seq, SystemClock.uptimeMillis())
+        if (transition != null) { arming.arm(transition, seq, SystemClock.uptimeMillis()); prepareHud(transition) }
         if (latest.offer(epoch, Raw(seq, jpeg))) decoder.execute { decodeLatest() }
     }
 
@@ -300,6 +334,7 @@ class FrameView(ctx: Context) : View(ctx) {
             val b = (try { BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, opts) } catch (_: IllegalArgumentException) { null })
                 ?: run { reuse?.let { release(it) }; BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, BitmapFactory.Options().apply { inMutable = true }) } ?: return
             val bg = b.getPixel(0, 0) // Letterbox-Hintergrund = Randfarbe des Bildes
+            b.prepareToDraw() // Textur-Upload jetzt auf dem Decoder-Thread statt im ersten Zeichentakt
             // Hoechstens zwei warten; ein drittes verdraengt das aelteste (nie angezeigt, daher gefahrlos zurueck).
             val drop = synchronized(queue) {
                 queue.addLast(Decoded(e, b, bg, seq))
@@ -343,12 +378,6 @@ class FrameView(ctx: Context) : View(ctx) {
         c.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bleedPaint)
     }
 
-    private fun mixColor(x: Int, y: Int, t: Double): Int {
-        val u = t.coerceIn(0.0, 1.0)
-        fun ch(s: Int) = (((x shr s) and 0xFF) * (1 - u) + ((y shr s) and 0xFF) * u + .5).toInt()
-        return Color.rgb(ch(16), ch(8), ch(0))
-    }
-
     /** Zeichnet den Uebergang nur mit Canvas-Primitiven (Clip, drawBitmap, Verlaeufe); Geometrie in Bildpixeln. */
     private fun drawTransition(c: Canvas, a: Anim) {
         val from = a.from; val to = a.d.bitmap
@@ -358,8 +387,21 @@ class FrameView(ctx: Context) : View(ctx) {
         val e = TransitionMath.eased(tx.style, a.progress)
         // "von" wird gezeichnet: fuer die Freigabe-Abfolge als zuletzt gezeichnet vormerken (siehe onDraw).
         if (lastDrawn !== from) { lastDrawn?.let { drawnOut.add(it); scheduleCleanup() }; lastDrawn = from }
-        c.drawColor(mixColor(a.bgFrom, a.d.bg or Color.BLACK, e))
         val lb = Letterbox.compute(contentWidth, contentHeight, bw.coerceAtLeast(1), bh.coerceAtLeast(1))
+        // Untergrund wie onDraw (Randlos per BitmapShader): Start = Normaldarstellung des alten, Ende = die des neuen Bildes.
+        // Dazwischen blendet der Rand-Bleed des neuen Bildes ueber den des alten; die Bildflaeche selbst zeichnet das Folgende.
+        if (a.shaderScale != lb.scale || a.shaderLeft != insL + lb.left || a.shaderTop != insT + lb.top) {
+            a.shaderScale = lb.scale; a.shaderLeft = insL + lb.left; a.shaderTop = insT + lb.top
+            bleedMatrix.setScale(lb.scale, lb.scale); bleedMatrix.postTranslate(a.shaderLeft, a.shaderTop)
+            a.fromShader.setLocalMatrix(bleedMatrix); a.toShader.setLocalMatrix(bleedMatrix)
+        }
+        bleedPaint.shader = a.fromShader
+        c.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bleedPaint)
+        if (e > 0.0) {
+            bleedToPaint.shader = a.toShader
+            bleedToPaint.alpha = TransitionMath.fadeAlpha(e)
+            c.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bleedToPaint)
+        }
         c.save()
         c.translate(insL + lb.left, insT + lb.top)
         c.scale(lb.scale, lb.scale)

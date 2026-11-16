@@ -212,7 +212,7 @@ object ImageLimits {
 class HandshakeGate {
     enum class Phase { CONNECTING, AWAITING_TRUST, HELLO_SENT, READY, CLOSED }
 
-    var phase = Phase.CONNECTING
+    @Volatile var phase = Phase.CONNECTING
         private set
 
     /** TLS/WebSocket offen. true = hello sofort senden; false = Nutzerfreigabe abwarten. */
@@ -238,12 +238,17 @@ class HandshakeGate {
             is ServerMessage.Paired, is ServerMessage.Error, ServerMessage.Ping, ServerMessage.Pong -> true
             else -> false
         }
-        Phase.READY -> m is ServerMessage.Ping || m is ServerMessage.Pong || m is ServerMessage.Error || m is ServerMessage.Ready ||
-            m is ServerMessage.Transition
+        Phase.READY -> m is ServerMessage.Ping || m is ServerMessage.Pong || m is ServerMessage.Error || m is ServerMessage.Ready
         else -> false
     }
 
     fun acceptFrame() = phase == Phase.READY
+
+    /**
+     * "transition" gilt nur nach ready. Wird (anders als [acceptText], das den Main-Thread voraussetzt) auf dem
+     * Netzwerk-Thread gelesen, daher ist [phase] volatil.
+     */
+    fun acceptTransition() = phase == Phase.READY
 
     /** Watchdog (Ping/Stille-Erkennung) ist waehrend des Trust-Prompts pausiert. */
     fun watchdogActive() = phase == Phase.HELLO_SENT || phase == Phase.READY

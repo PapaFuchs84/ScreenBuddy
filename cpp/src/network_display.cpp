@@ -239,6 +239,12 @@ void NetworkDisplay::connect() {
         out.transition = transition;   // nicht im Zwischenspeicher: gilt nur, solange der Übergang aktuell ist
         return out;
     };
+    hooks.transition_id_for = [this](const std::string& device) -> uint64_t {
+        std::lock_guard lk(mu_);
+        auto it = device_frames_.find(device);
+        if (it == device_frames_.end() || !it->second->transition || mono() >= it->second->transition_expires) return 0;
+        return it->second->transition->id;
+    };
     hooks.on_resize_for = [this](const std::string& device, int w, int h) { store_->set_device_size(device,w,h); if (on_device_resize) on_device_resize(device, w, h); };
     hooks.on_swipe_for = [this](const std::string& device, int dir) { if (on_device_swipe) on_device_swipe(device, dir); };
     hooks.on_touch_frame_for = [this](const std::string& device, int x, int y, int w, int h) {

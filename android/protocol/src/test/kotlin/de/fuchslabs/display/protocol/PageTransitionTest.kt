@@ -55,11 +55,20 @@ class PageTransitionTest {
     @Test fun unknownTypesStillIgnoredAndTransitionOnlyAfterReady() {
         assertEquals(ServerMessage.Unknown("zzz"), ServerMessage.parse("""{"t":"zzz"}"""))
         val g = HandshakeGate(); g.onOpen(false)
-        assertFalse(g.acceptText(tx())) // vor ready nicht
+        assertFalse(g.acceptText(tx())); assertFalse(g.acceptTransition()) // vor ready nicht
         assertTrue(g.acceptText(ServerMessage.Ready(480, 320)))
-        assertTrue(g.acceptText(tx()))
+        assertTrue(g.acceptTransition())
+        assertFalse(g.acceptText(tx())) // Transition laeuft ueber acceptTransition (Netzwerk-Thread), nicht ueber den Textpfad
         assertFalse(g.acceptText(ServerMessage.Unknown("zzz")))
         assertFalse(g.acceptText(null))
+        g.close(); assertFalse(g.acceptTransition())
+    }
+
+    @Test fun transitionNotAcceptedBeforeReadyOrAfterClose() {
+        val g = HandshakeGate()
+        assertFalse(g.acceptTransition())
+        g.onOpen(true); assertFalse(g.acceptTransition())
+        g.trust(); assertFalse(g.acceptTransition())
     }
 
     // ---- Easing / Geometrie ----
@@ -187,6 +196,74 @@ class PageTransitionTest {
         assertTrue(c.delivered(t))   // C wird zugestellt
         assertFalse(c.delivered(t))  // ein spaeter noch zugestelltes B animiert nicht erneut
         assertNull(c.onFrame(30))
+    }
+
+    @Test fun carrierUndeliveredAlsoExpiresAfterTimeout() {
+        val c = TransitionCarrier(1000)
+        val t = tx()
+        c.onTransition(t, 0)
+        assertSame(t, c.onFrame(10))      // Zielbild, nicht zugestellt
+        assertSame(t, c.onFrame(1000))    // genau an der Grenze noch gueltig
+        assertNull(c.onFrame(1001))       // danach erbt kein spaeteres Bild die Nachricht
+        assertNull(c.onFrame(1002))
+        val t2 = tx()
+        c.onTransition(t2, 2000)
+        assertSame(t2, c.onFrame(2010))
+        assertNull(c.onFrame(3500))
+    }
+
+    @Test fun carrierDiscardedFrameDoesNotPassMessageOn() {
+        val c = TransitionCarrier()
+        val t = tx()
+        c.onTransition(t, 0)
+        assertSame(t, c.onFrame(10))
+        c.discard(t)                      // Bild abgewiesen (Gate/Generation)
+        assertNull(c.onFrame(20))
+        // ein discard gilt nur der eigenen Nachricht
+        val a = tx(); val b = tx()
+        c.onTransition(a, 100); assertSame(a, c.onFrame(110))
+        c.onTransition(b, 120)
+        c.discard(a)
+        assertSame(b, c.onFrame(130))
+    }
+
+    @Test fun carrierIgnoresOtherGenerations() {
+        val c = TransitionCarrier()
+        c.advance(5)
+        val old = tx(); val cur = tx()
+        c.onTransition(old, 0, 4)         // verspaeteter Callback der alten Verbindung
+        assertNull(c.onFrame(1, 5))
+        c.onTransition(cur, 2, 5)
+        assertNull(c.onFrame(3, 4))       // altes Bild nimmt die neue Nachricht nicht mit
+        assertSame(cur, c.onFrame(4, 5))
+    }
+
+    @Test fun carrierAdvanceDropsWaitingAndUndelivered() {
+        val c = TransitionCarrier()
+        val t = tx()
+        c.onTransition(t, 0, 0)
+        assertSame(t, c.onFrame(1, 0))
+        c.advance(1)
+        assertNull(c.onFrame(2, 1))
+        c.onTransition(tx(), 3, 1)
+        c.advance(2)
+        assertNull(c.onFrame(4, 2))
+        assertNull(c.onFrame(5, 1)) // alte Generation bleibt ausgesperrt
+    }
+
+    @Test fun carrierFrameBeforeReadyScenarioLeavesNothing() {
+        // Netzwerk-Thread haengt an, Main-Thread weist das Bild ab (Phase != READY) und verwirft die Nachricht.
+        val g = HandshakeGate(); g.onOpen(false)
+        val c = TransitionCarrier(); c.advance(1)
+        val t = tx()
+        if (g.acceptTransition()) c.onTransition(t, 0, 1)   // vor ready: gar nicht erst abgelegt
+        assertNull(c.onFrame(1, 1))
+        g.acceptText(ServerMessage.Ready(480, 320))
+        c.onTransition(t, 2, 1)
+        val tx1 = c.onFrame(3, 1)
+        assertTrue(g.acceptFrame())                         // Bild wird akzeptiert
+        assertTrue(c.delivered(tx1))
+        assertNull(c.onFrame(4, 1))
     }
 
     @Test fun carrierClearDropsEverything() {

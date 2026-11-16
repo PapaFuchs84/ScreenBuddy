@@ -117,18 +117,32 @@ object TransitionMath {
  * nicht ausgeliefertes, behaelt es die Nachricht ("nur das neueste").
  */
 class TransitionCarrier(private val timeoutMs: Long = 1000) {
+    private var current = 0 // Generation der aktuellen Verbindung; Aufrufe anderer Generationen werden ignoriert
     private var waiting: ServerMessage.Transition? = null
     private var waitingAt = 0L
     private var undelivered: ServerMessage.Transition? = null
+    private var undeliveredAt = 0L // Eingangszeit der Nachricht: auch eine weitergereichte Nachricht verfaellt nach [timeoutMs]
     private var lastDelivered: ServerMessage.Transition? = null
 
-    @Synchronized fun onTransition(t: ServerMessage.Transition, nowMs: Long) { waiting = t; waitingAt = nowMs }
+    /** Neue Verbindung: verwirft alles und ignoriert ab jetzt Aufrufe aelterer Generationen. */
+    @Synchronized fun advance(generation: Int) { clear(); current = generation }
 
-    /** Neues Binaerbild eingetroffen: liefert die zugehoerige Nachricht (oder null). */
-    @Synchronized fun onFrame(nowMs: Long): ServerMessage.Transition? {
+    @Synchronized fun onTransition(t: ServerMessage.Transition, nowMs: Long, generation: Int = current) {
+        if (generation != current) return
+        waiting = t; waitingAt = nowMs
+    }
+
+    /**
+     * Neues Binaerbild eingetroffen: liefert die zugehoerige Nachricht (oder null). Die Nachricht ist erst mit
+     * [delivered] verbraucht; wird das Bild abgewiesen, muss der Aufrufer [discard] rufen.
+     */
+    @Synchronized fun onFrame(nowMs: Long, generation: Int = current): ServerMessage.Transition? {
+        if (generation != current) return null
         val w = waiting
         waiting = null
-        if (w != null && nowMs - waitingAt <= timeoutMs) undelivered = w
+        if (w != null) {
+            if (nowMs - waitingAt <= timeoutMs) { undelivered = w; undeliveredAt = waitingAt } else undelivered = null
+        } else if (undelivered != null && nowMs - undeliveredAt > timeoutMs) undelivered = null
         return undelivered
     }
 
@@ -139,6 +153,13 @@ class TransitionCarrier(private val timeoutMs: Long = 1000) {
         if (lastDelivered === t) return false
         lastDelivered = t
         return true
+    }
+
+    /** Das Bild mit [t] wurde abgewiesen (alte Generation, vor ready): die Nachricht darf nicht auf spaetere Bilder uebergehen. */
+    @Synchronized fun discard(t: ServerMessage.Transition?) {
+        if (t == null) return
+        if (undelivered === t) undelivered = null
+        if (waiting === t) waiting = null
     }
 
     @Synchronized fun clear() { waiting = null; undelivered = null; lastDelivered = null }

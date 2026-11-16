@@ -180,9 +180,11 @@ private:
 // avoid a redundant transport timer; their source remains bounded at MAX_ANIMATION_FPS.
 class FrameGate {
 public:
-    bool due(uint64_t seq, double now, int animation_fps = 0) const {
+    // urgent: Zielbild einer neuen Seitenübergangs-Ankündigung (xfade1) – wartet nicht am statischen 5-fps-Tor,
+    // sonst käme der Übergang ~200 ms nach dem Wisch. Unveränderte Bilder (seq == gesendet) bleiben ausgeschlossen.
+    bool due(uint64_t seq, double now, int animation_fps = 0, bool urgent = false) const {
         return seq != 0 && seq != sent_ &&
-            (!any_ || producer_paced_animation(animation_fps) || now - last_ >= MIN_FRAME_SECONDS - 1e-9);
+            (urgent || !any_ || producer_paced_animation(animation_fps) || now - last_ >= MIN_FRAME_SECONDS - 1e-9);
     }
     void sent(uint64_t seq, double now) { sent_ = seq; last_ = now; any_ = true; }
     void reset() { sent_ = 0; any_ = false; }
