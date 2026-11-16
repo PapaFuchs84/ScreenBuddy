@@ -540,11 +540,12 @@ void SysMonitor::sample_gpu() {
 void SysMonitor::sample_ping() {
     auto& s=snap_;s.ping_ms.reset();s.jitter_ms.reset();if(ping_target_.empty())return;
     IN_ADDR address{};if(InetPtonW(AF_INET,widen(ping_target_).c_str(),&address)!=1)return;
-    HANDLE h=IcmpCreateFile();if(h==INVALID_HANDLE_VALUE)return;
+    // ICMP-Handle einmal je Sampling-Thread anlegen statt jede Sekunde neu
+    struct IcmpHandle{HANDLE h=IcmpCreateFile();~IcmpHandle(){if(h!=INVALID_HANDLE_VALUE)IcmpCloseHandle(h);}};
+    thread_local IcmpHandle icmp;HANDLE h=icmp.h;if(h==INVALID_HANDLE_VALUE)return;
     char request[]="ScreenBuddy";std::vector<unsigned char> buffer(sizeof(ICMP_ECHO_REPLY)+sizeof request+8);
     DWORD count=IcmpSendEcho(h,address.S_un.S_addr,request,sizeof request,nullptr,buffer.data(),DWORD(buffer.size()),200);
     if(count){auto reply=reinterpret_cast<ICMP_ECHO_REPLY*>(buffer.data());if(reply->Status==IP_SUCCESS){s.ping_ms=reply->RoundTripTime;if(ping_previous_)s.jitter_ms=std::abs(*s.ping_ms-*ping_previous_);ping_previous_=s.ping_ms;}else ping_previous_.reset();}else ping_previous_.reset();
-    IcmpCloseHandle(h);
 }
 
 void SysMonitor::sample_hwinfo() {

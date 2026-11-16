@@ -1905,14 +1905,6 @@ void Form::collect(ojson& patch) const {
 }
 
 // ---------------------------------------------------------------- Helfer
-Card* placeholder(Host& host, Column& root, Text title, Text text) {
-    Card* card = root.add<Card>(std::move(title), std::move(text));
-    card->placeholder = true;
-    card->add<Note>(T(L"Noch nicht nativ umgesetzt.", L"Not native yet."), Note::Soon);
-    (void)host;  // der frühere Übergangsweg ins Browser-Fenster ist entfernt (alle Seiten sind nativ)
-    return card;
-}
-
 std::wstring source_title(const std::string& key, bool en) {
     if (key == "ai") return en ? L"AI Status" : L"KI-Status";
     if (key == "system") return L"System";

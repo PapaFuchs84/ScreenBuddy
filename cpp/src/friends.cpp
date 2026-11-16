@@ -780,13 +780,17 @@ ojson FriendsHub::all_accounts() {
     }
     if (discord_)
         for (auto& m : discord_->member_list()) out.push_back({{"platform", "discord"}, {"id", m["id"]}, {"name", m["name"]}});
-    std::stable_sort(out.begin(), out.end(), [](const ojson& a, const ojson& b) {
-        auto ka = casefold(a["name"].get<std::string>()), kb = casefold(b["name"].get<std::string>());
-        if (ka != kb) return ka < kb;
-        return a["platform"].get<std::string>() < b["platform"].get<std::string>();
+    // Sortierschlüssel (casefold) einmal je Eintrag statt je Vergleich
+    struct Keyed { std::string name, platform; ojson* item; };
+    std::vector<Keyed> keyed;
+    keyed.reserve(out.size());
+    for (auto& x : out) keyed.push_back({casefold(x["name"].get<std::string>()), x["platform"].get<std::string>(), &x});
+    std::stable_sort(keyed.begin(), keyed.end(), [](const Keyed& a, const Keyed& b) {
+        if (a.name != b.name) return a.name < b.name;
+        return a.platform < b.platform;
     });
     ojson res = ojson::array();
-    for (auto& x : out) res.push_back(x);
+    for (auto& k : keyed) res.push_back(std::move(*k.item));
     return res;
 }
 
