@@ -20,6 +20,7 @@
 #include <atomic>
 #include <cerrno>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <cstdio>
 #include <filesystem>
@@ -31,6 +32,8 @@
 
 #include "companion.h"
 #include "companion_server.h"
+#include "companion_trace.h"
+#include "frame_pacing.h"
 #include "frame_pump.h"
 
 using namespace fl::companion;
@@ -354,6 +357,84 @@ static void test_gate() {
     CHECK(!dynamic.due(2, 10.1, 61));
     CHECK(!dynamic.due(2, 10.1, 999999));
     CHECK(dynamic.due(2, 10.2, 0));
+}
+
+static fs::path tmpfile(const char* name);
+
+static void test_frame_pacing() {
+    const double iv = 1.0 / 60;
+    // Fixed grid: wake-up lateness (even a 15.6 ms timer tick) never shifts later frames.
+    {
+        double cadence = -1, t = 100;
+        double grid = fl::pacing::advance(cadence, t, iv);   // first frame aligns to "now"
+        CHECK(std::abs(grid - (100 + iv)) < 1e-12);
+        std::mt19937 rng(7);
+        std::uniform_real_distribution<double> late(0.0, 0.0156);
+        for (int i = 2; i <= 600; ++i) {
+            t = grid + late(rng);                   // woke up late (< one interval)
+            grid = fl::pacing::advance(cadence, t, iv);
+        }
+        CHECK(std::abs(grid - (100 + 600 * iv)) < 1e-9);   // exactly 600 intervals later: no accumulated drift
+    }
+    // Contrast: the old rule (last render + interval) drifts by the mean lateness per frame.
+    {
+        double t = 100;
+        std::mt19937 rng(7);
+        std::uniform_real_distribution<double> late(0.0, 0.0156);
+        for (int i = 0; i < 600; ++i) t = t + iv + late(rng);
+        CHECK(t > 100 + 600 * iv + 1.0);
+    }
+    // Stall (more than one interval late) or a very early call re-aligns instead of bursting to catch up.
+    {
+        double cadence = 10, grid = fl::pacing::advance(cadence, 10 + 3 * iv, iv);
+        CHECK(std::abs(grid - (10 + 4 * iv)) < 1e-12);
+        cadence = 10;
+        grid = fl::pacing::advance(cadence, 10 - 0.9 * iv, iv);
+        CHECK(std::abs(grid - (10 - 0.9 * iv + iv)) < 1e-12);
+        cadence = 10;   // within half an interval early still keeps the grid
+        grid = fl::pacing::advance(cadence, 10 - 0.4 * iv, iv);
+        CHECK(std::abs(grid - (10 + iv)) < 1e-12);
+    }
+    // Data-notification throttle: grid time when valid, otherwise last render + interval.
+    CHECK(std::abs(fl::pacing::earliest_next(10 + iv, 10.002, iv) - (10 + iv)) < 1e-12);   // not late-biased (10.002 + iv)
+    CHECK(std::abs(fl::pacing::earliest_next(-1, 10.002, iv) - (10.002 + iv)) < 1e-12);
+    CHECK(std::abs(fl::pacing::earliest_next(5, 10.002, iv) - (10.002 + iv)) < 1e-12);       // stale grid
+    CHECK(std::abs(fl::pacing::earliest_next(20, 10.002, iv) - (10.002 + iv)) < 1e-12);      // grid of another rate
+}
+
+static void test_frame_trace() {
+    // Off by default: nothing is opened or written.
+    FrameTrace off;
+    CHECK(!off.enabled());
+    off.record({1, "dev", 1, 0, 0, 0, 0, true});
+    FrameTrace missing(fs::path(fs::temp_directory_path() / "fl-no-such-dir-xyz" / "t.csv").string());
+    CHECK(!missing.enabled());
+    // Enabled: header once, one line per frame, gap relative to the device's previous frame.
+    auto path = tmpfile("fl-frame-trace-test.csv");
+    {
+        FrameTrace trace(path.string());
+        CHECK(trace.enabled());
+        trace.record({1000000, "a,b", 1, 2000, 3600, 150, 20480, true});
+        trace.record({1016667, "other", 2, 1700, 3900, 140, 21000, true});
+        trace.record({1016700, "a,b", 3, 1800, 4000, 160, 20000, true});
+        trace.record({1050000, "a,b", 4, 0, 0, 100, 18000, false});
+    }
+    {
+        FrameTrace again(path.string());   // appending to a non-empty file adds no second header
+    }
+    std::ifstream in(path);
+    std::vector<std::string> lines;
+    for (std::string l; std::getline(in, l);) lines.push_back(l);
+    CHECK(lines.size() == 5);
+    if (lines.size() == 5) {
+        CHECK(lines[0] == "ts_us,device,seq,render_us,encode_us,send_us,bytes,gap_us,animating");
+        CHECK(lines[1] == "1000000,a_b,1,2000,3600,150,20480,-1,1");
+        CHECK(lines[2] == "1016667,other,2,1700,3900,140,21000,-1,1");
+        CHECK(lines[3] == "1016700,a_b,3,1800,4000,160,20000,16700,1");
+        CHECK(lines[4] == "1050000,a_b,4,0,0,100,18000,33300,0");
+    }
+    std::error_code ec;
+    fs::remove(path, ec);
 }
 
 static fs::path tmpfile(const char* name) {
@@ -1406,6 +1487,8 @@ int main(int argc, char** argv) {
     test_pairing_uri_qr();
     test_pairing();
     test_gate();
+    test_frame_pacing();
+    test_frame_trace();
     test_store();
     test_corrupt_keepout();
     test_identity();

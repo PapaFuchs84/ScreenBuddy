@@ -1,5 +1,6 @@
 // © 2026 FuchsLabs
 #include "companion_server.h"
+#include "companion_trace.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -535,6 +536,7 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
     };
     bool authed = false;
     FrameGate gate;
+    FrameTrace& trace = FrameTrace::get();   // SB_FRAME_TRACE; off by default
     uint64_t sent_version = 0, observed_seq = 0;
     bool open = true, more = false;
     while (open && !stop_ && !c->kick) {
@@ -747,6 +749,7 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
             try { current_animation_fps = hooks_.frame_rate_for(c->device_id); } catch (...) {}
         }
         if (gate.due(seq, t, current_animation_fps)) {
+            const int64_t trace_encode_start = trace.enabled() ? FrameTrace::now_us() : 0;
             std::shared_ptr<const Frame> jpeg;
             if (per_device) {
                 // Eigenes Bild dieses Geräts; die App liefert es zwischengespeichert, die Version verhindert Doppelsendungen.
@@ -780,8 +783,14 @@ void Server::session(Conn& conn, void*& ssl_out, bool& was_authed) {
                     if (!send_text(msg_ready(jpeg->w, jpeg->h))) break;
                     sent_w = jpeg->w; sent_h = jpeg->h;
                 }
+                const int64_t trace_send_start = trace.enabled() ? FrameTrace::now_us() : 0;
                 if (!send_raw(ws_frame(Op::Binary, frame_payload(jpeg->jpeg)))) break;
                 sent_version = per_device ? jpeg->version : 0;
+                if (trace.enabled()) {
+                    const int64_t done = FrameTrace::now_us();
+                    trace.record({done, c->device_id, seq, jpeg->render_us, trace_send_start - trace_encode_start, done - trace_send_start,
+                                  jpeg->jpeg.size(), current_animation_fps >= 5});
+                }
             }
             gate.sent(seq, now()); // static-page pacing uses send completion; animations use sequence dedup only
         }

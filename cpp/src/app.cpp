@@ -2,6 +2,7 @@
 #include "render_hardware_hud.h"
 // © 2026 FuchsLabs
 #include "app.h"
+#include "frame_pacing.h"
 #include <windows.h>
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
@@ -277,7 +278,7 @@ static std::string s(const ojson& j, const char* k, const char* def = "") {
 }
 
 static int animation_fps(const ojson& cfg) {
-    return std::clamp(cfg["display"].value("animation_fps", 30), 5, 60);
+    return std::clamp(cfg["display"].value("animation_fps", 60), 5, 60);
 }
 
 static void configure_animation_budget(plugins::schedule::Budget& budget, int fps) {
@@ -1664,10 +1665,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     // frame time, not after the (slightly late) wake-up. Otherwise ~1 ms of timer overshoot per
     // frame accumulates and 60/s becomes ~57/s. Falls back to "now" after a stall.
     const auto paced_deadline = [&](ViewState& v, double t) {
-        const double interval = frame_interval();
-        const bool on_time = v.cadence > 0 && t >= v.cadence - interval * .5 && t - v.cadence < interval;
-        v.cadence = (on_time ? v.cadence : t) + interval;
-        return v.cadence;
+        return pacing::advance(v.cadence, t, frame_interval());
     };
     auto profile = profile_for(phone, id);
     const double m_profile = mono();
@@ -1733,8 +1731,9 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         view.step.exchange(0);
         {std::lock_guard lock(view.next_mu);view.page_request.clear();view.frame_next_requests.clear();view.frame_next_requests.swap(view.next_requests);}
         // Data notifications do not push an animating game view past the selected rate.
-        if(dirty && !changed && !resizing && view.animating && now<view.last_render+1.0/animation_fps(cfg_)) {
-            dirty=false;view.next_deadline=std::min(view.next_deadline,view.last_render+1.0/animation_fps(cfg_));
+        if(dirty && !changed && !resizing && view.animating) {
+            const double next_frame=pacing::earliest_next(view.cadence,view.last_render,1.0/animation_fps(cfg_));   // grid time, no drift
+            if(now<next_frame){dirty=false;view.next_deadline=std::min(view.next_deadline,next_frame);}
         }
         if(!dirty && !changed && !resizing && now<view.next_deadline)return out;
         view.next_deadline=plugins::schedule::never;view.animating=false;
@@ -1778,7 +1777,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     bool navigation_pending = false;
     { std::lock_guard lk(view.next_mu); navigation_pending = !view.page_request.empty() || !view.next_requests.empty(); }
     if (dirty && !navigation_pending && view.animating && view.step == 0 && view.size == size && view.area == area) {
-        const double next_frame = view.last_render + 1.0 / animation_fps(cfg_);
+        const double next_frame = pacing::earliest_next(view.cadence, view.last_render, 1.0 / animation_fps(cfg_));   // grid time, not last_render + interval
         if (now < next_frame) { dirty = false; view.next_deadline = std::min(view.next_deadline, next_frame); }
     }
     const double m_live = mono();
@@ -1969,11 +1968,13 @@ void App::render_devices(bool dirty) {
         const auto& shared=companion_output_?companion_view_:primary_view_;
         const bool page_changed=!independent() && d->view.page!=shared.page;
         if(!independent() && !d->view.game_active) { d->view.page=shared.page;d->view.switched=shared.switched; }
+        const double render_start = mono();
         RenderOut r = render_core(d->view, size, seconds, true, own ? &*own : nullptr, dirty || page_changed, false, id);
         if (r.skipped) { first = false; continue; }
         {
             std::lock_guard lk(dev_mu_);
-            companion_->show_for(id, r.frame, r.navigation, d->view.animating ? animation_fps(cfg_) : 0);
+            companion_->show_for(id, r.frame, r.navigation, d->view.animating ? animation_fps(cfg_) : 0,
+                                 int64_t((mono() - render_start) * 1e6));
             touch::stabilize_plugins(r.taps,d->taps,mono());
             d->area = r.area; d->taps = std::move(r.taps); d->navigation = r.navigation;
         }
@@ -2062,6 +2063,11 @@ void App::display_loop() {
     bool timer_boost = false;
     struct TimerRelease { bool& on; ~TimerRelease() { if (on) timeEndPeriod(1); } } timer_release{timer_boost};
     display_thread_ = std::this_thread::get_id();
+    {   // Windows 11 may ignore timeBeginPeriod for processes without a visible window (tray app); opt out of that
+        // timer-resolution throttling so the 1 ms request below is honoured. Fails harmlessly on older systems.
+        struct PowerThrottling { ULONG Version; ULONG ControlMask; ULONG StateMask; } state{1, 0x4 /* IGNORE_TIMER_RESOLUTION */, 0};
+        SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, &state, sizeof state);
+    }
     double next_try = 0, companion_try = 0;
     if (out_) connect_display();
     double wait_deadline = plugins::schedule::never;

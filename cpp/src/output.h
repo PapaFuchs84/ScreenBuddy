@@ -182,7 +182,7 @@ public:
     std::function<void(const std::string&)> on_device_pages;      // eigene Seitenliste eines Geräts geändert
     void set_independent(bool on);
     bool independent() const { return independent_; }
-    void show_for(const std::string& device, const Image& frame, const ojson& navigation = ojson(), int animation_fps = 0);   // Bild nur für dieses Gerät
+    void show_for(const std::string& device, const Image& frame, const ojson& navigation = ojson(), int animation_fps = 0, int64_t render_us = 0);   // Bild nur für dieses Gerät (render_us: nur Telemetrie)
     std::optional<Image> frame_for(const std::string& device);      // aktuelles Bild dieses Geräts (nur im unabhängigen Betrieb), für die Vorschau
     void forget_device(const std::string& device);                  // Bild verwerfen (Gerät getrennt)
     std::vector<std::string> client_ids();                          // IDs der gerade verbundenen Geräte

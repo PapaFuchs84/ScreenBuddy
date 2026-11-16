@@ -133,6 +133,7 @@ HMODULE dnsapi() {
 struct NetworkDisplay::DeviceFrame {
     Image image;
     int animation_fps = 0;
+    int64_t render_us = 0;                                  // Telemetrie (SB_FRAME_TRACE)
     uint64_t version = 0;
     std::shared_ptr<const companion::Server::Frame> jpeg;  // zu version passend, träge erzeugt
     ojson navigation;                                       // Seitenposition für die Statusanzeige
@@ -207,6 +208,7 @@ void NetworkDisplay::connect() {
         std::shared_ptr<DeviceFrame> slot;
         Image image;
         uint64_t version = 0;
+        int64_t render_us = 0;
         {
             std::lock_guard lk(mu_);
             auto it = device_frames_.find(device);
@@ -215,10 +217,11 @@ void NetworkDisplay::connect() {
             if (slot->jpeg && slot->jpeg->version == slot->version) return *slot->jpeg;
             image = slot->image;
             version = slot->version;
+            render_us = slot->render_us;
         }
         const double encode_start = mono();
         auto jpeg = std::make_shared<const companion::Server::Frame>(
-            companion::Server::Frame{encode_jpeg(image, 0.8f), image.w, image.h, version});
+            companion::Server::Frame{encode_jpeg(image, 0.8f), image.w, image.h, version, render_us});
         LOGD("companion", "JPEG %.1f ms (%dx%d, %zu kB)", (mono() - encode_start) * 1000, image.w, image.h, jpeg->jpeg.size() / 1024);
         {
             std::lock_guard lk(mu_);
@@ -304,12 +307,13 @@ void NetworkDisplay::set_independent(bool on) {
         if (auto srv = server()) srv->frame_changed();   // Clients holen ihr Bild neu
 }
 
-void NetworkDisplay::show_for(const std::string& device, const Image& frame, const ojson& navigation, int animation_fps) {
+void NetworkDisplay::show_for(const std::string& device, const Image& frame, const ojson& navigation, int animation_fps, int64_t render_us) {
     {
         std::lock_guard lk(mu_);
         auto& slot = device_frames_[device];
         if (!slot) slot = std::make_shared<DeviceFrame>();
         slot->navigation = navigation;
+        slot->render_us = render_us;
         slot->animation_fps = animation_fps >= 5 && animation_fps <= companion::MAX_ANIMATION_FPS ? animation_fps : 0;
         if (slot->image.w == frame.w && slot->image.h == frame.h && slot->image.px == frame.px) return;  // unverändert
         slot->image = frame;

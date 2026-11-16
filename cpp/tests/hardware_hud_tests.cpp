@@ -45,13 +45,14 @@ int main(int argc,char** argv) {
     CHECK(cpu_package_watts({power(SENSOR_POWER,"CPU","CPU PPT","W",88),power(SENSOR_POWER,"CPU","CPU Package Power","W",77)})==77);
     auto cfg=config::defaults();CHECK(!cfg["system"]["hardware_hud"].get<bool>());
     CHECK(config::merge(cfg,{{"system",{{"hardware_hud",true}}}})["system"]["hardware_hud"].get<bool>());
-    CHECK(cfg["system"]["hardware_hud_fps"]==30);
+    CHECK(cfg["system"]["hardware_hud_fps"]==60);   // default 60 (was 30); saved user values are never rewritten
     for(int fps:{5,10,15,20,30,60})
         CHECK(config::merge(cfg,{{"system",{{"hardware_hud_fps",fps}}}})["system"]["hardware_hud_fps"]==fps);
     CHECK(config::merge(cfg,{{"system",{{"hardware_hud_fps",4}}}})["system"]["hardware_hud_fps"]==5);
     CHECK(config::merge(cfg,{{"system",{{"hardware_hud_fps",61}}}})["system"]["hardware_hud_fps"]==60);
     // Global animation rate keeps old local HUD configurations and patches usable.
-    CHECK(cfg["display"]["animation_fps"]==30);
+    CHECK(cfg["display"]["animation_fps"]==60);
+    CHECK(config::merge(cfg,{{"display",{{"animation_fps",30}}}})["display"]["animation_fps"]==30);   // explicit 30 stays 30
     for(int fps:{5,10,15,20,30,60}) {
         auto merged=config::merge(cfg,{{"display",{{"animation_fps",fps}}}});
         CHECK(merged["display"]["animation_fps"]==fps);

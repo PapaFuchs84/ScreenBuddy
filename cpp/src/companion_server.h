@@ -35,7 +35,8 @@ public:
         int max_clients = 4;
         double handshake_seconds = HANDSHAKE_SECONDS;  // TLS + Upgrade + hello, ab accept() (Tests: kürzer)
     };
-    struct Frame { std::string jpeg; int w = 480, h = 320; uint64_t version = 0; };  // version != 0: nur senden, wenn neu (je Gerät)
+    // version != 0: nur senden, wenn neu (je Gerät); render_us: Zeichendauer dieses Frames (nur Telemetrie, 0 = unbekannt)
+    struct Frame { std::string jpeg; int w = 480, h = 320; uint64_t version = 0; int64_t render_us = 0; };
     struct Hooks {
         std::function<Frame()> encode_frame;           // pixels and dimensions from the same snapshot
         std::function<void(int, int)> on_resize;       // authenticated resolution owner only
