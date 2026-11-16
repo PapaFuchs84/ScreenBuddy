@@ -32,10 +32,17 @@ android {
             keyPassword = releaseSigning.getProperty("keyPassword")
         }
     }
-    buildTypes { release {
-        isMinifyEnabled = false
-        if (signingFile != null) signingConfig = signingConfigs.getByName("companionRelease")
-    } }
+    buildTypes {
+        // Test variant: separate package (de.fuchslabs.display.hudtest) next to the real Companion.
+        debug {
+            applicationIdSuffix = ".hudtest"
+            versionNameSuffix = "-xfade-test"
+        }
+        release {
+            isMinifyEnabled = false
+            if (signingFile != null) signingConfig = signingConfigs.getByName("companionRelease")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
