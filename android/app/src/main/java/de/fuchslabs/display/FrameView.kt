@@ -150,7 +150,8 @@ class FrameView(ctx: Context) : View(ctx) {
         var shaderScale = Float.NaN; var shaderLeft = Float.NaN; var shaderTop = Float.NaN
     }
     private val bleedMatrix = Matrix()
-    private val bleedToPaint = Paint(Paint.FILTER_BITMAP_FLAG).apply { isFilterBitmap = true }
+    private val marginShade = Paint()
+    private val bleedToPaint =Paint(Paint.FILTER_BITMAP_FLAG).apply { isFilterBitmap = true }
     private var anim: Anim? = null   // nur Main-Thread
     private val animPaint = Paint(Paint.FILTER_BITMAP_FLAG).apply { isFilterBitmap = true }
     private val srcR = Rect(); private val dstR = Rect()
@@ -395,12 +396,57 @@ class FrameView(ctx: Context) : View(ctx) {
             bleedMatrix.setScale(lb.scale, lb.scale); bleedMatrix.postTranslate(a.shaderLeft, a.shaderTop)
             a.fromShader.setLocalMatrix(bleedMatrix); a.toShader.setLocalMatrix(bleedMatrix)
         }
-        bleedPaint.shader = a.fromShader
-        c.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bleedPaint)
-        if (e > 0.0) {
-            bleedToPaint.shader = a.toShader
-            bleedToPaint.alpha = TransitionMath.fadeAlpha(e)
-            c.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bleedToPaint)
+        // Randbereich (Ausschnitt/Rundungen/Letterbox) folgt der sichtbaren Bildkante. Ein Ueberblenden der Randpixel beider
+        // Bilder passt nur beim Fade; Slide und HUD teilen den Rand an der Trennlinie wie das Bild selbst (sonst zeigen
+        // Streifen links/oben farbig den falschen Seitenrand und springen am Ende).
+        val sw = width.toFloat(); val sh = height.toFloat()
+        val sc = lb.scale
+        when (tx.style) {
+            TransitionStyle.FADE -> {
+                bleedPaint.shader = a.fromShader
+                c.drawRect(0f, 0f, sw, sh, bleedPaint)
+                if (e > 0.0) {
+                    bleedToPaint.shader = a.toShader
+                    bleedToPaint.alpha = TransitionMath.fadeAlpha(e)
+                    c.drawRect(0f, 0f, sw, sh, bleedToPaint)
+                }
+            }
+            TransitionStyle.SLIDE -> {
+                // Beide Bilder verschoben und ungeclippt (CLAMP verlaengert deren Randpixel); links der Trennlinie das linke Bild.
+                val s = TransitionMath.slide(bw, tx.dir, e)
+                val oldLeft = tx.dir >= 0
+                val split = a.shaderLeft + (if (oldLeft) s.newDstLeft else s.oldDstLeft) * sc
+                val leftShader = if (oldLeft) a.fromShader else a.toShader
+                val rightShader = if (oldLeft) a.toShader else a.fromShader
+                val leftShift = if (oldLeft) s.oldDstLeft - s.oldSrcLeft else s.newDstLeft - s.newSrcLeft
+                val rightShift = if (oldLeft) s.newDstLeft - s.newSrcLeft else s.oldDstLeft - s.oldSrcLeft
+                bleedMatrix.setScale(sc, sc); bleedMatrix.postTranslate(a.shaderLeft + leftShift * sc, a.shaderTop)
+                leftShader.setLocalMatrix(bleedMatrix)
+                bleedMatrix.setScale(sc, sc); bleedMatrix.postTranslate(a.shaderLeft + rightShift * sc, a.shaderTop)
+                rightShader.setLocalMatrix(bleedMatrix)
+                a.shaderScale = Float.NaN // Matrizen wurden veraendert: Cache fuer den Normalfall ungueltig
+                c.save(); c.clipRect(0f, 0f, split, sh)
+                bleedPaint.shader = leftShader; c.drawRect(0f, 0f, sw, sh, bleedPaint)
+                c.restore()
+                c.save(); c.clipRect(split, 0f, sw, sh)
+                bleedPaint.shader = rightShader; c.drawRect(0f, 0f, sw, sh, bleedPaint)
+                c.restore()
+            }
+            TransitionStyle.HUD -> {
+                val g = TransitionMath.hud(bw, bh, e, tx.dir)
+                val split = a.shaderLeft + g.line * sc
+                val oldLeft = tx.dir >= 0
+                // alte Seite (abgedunkelt wie im Bild) und neue Seite, jeweils bis an die Bildschirmkante
+                fun side(l: Float, r: Float, old: Boolean) {
+                    if (r <= l) return
+                    c.save(); c.clipRect(l, 0f, r, sh)
+                    bleedPaint.shader = if (old) a.fromShader else a.toShader
+                    c.drawRect(0f, 0f, sw, sh, bleedPaint)
+                    if (old) { marginShade.color = tx.shade or (0xFF shl 24); marginShade.alpha = (g.shadeAlpha * 255 + .5).toInt(); c.drawRect(0f, 0f, sw, sh, marginShade) }
+                    c.restore()
+                }
+                side(0f, split, oldLeft); side(split, sw, !oldLeft)
+            }
         }
         c.save()
         c.translate(insL + lb.left, insT + lb.top)
