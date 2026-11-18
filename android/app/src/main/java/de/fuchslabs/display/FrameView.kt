@@ -379,6 +379,22 @@ class FrameView(ctx: Context) : View(ctx) {
         c.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bleedPaint)
     }
 
+    private fun box(c: Canvas, p: Paint, x0: Float, y0: Float, x1: Float, y1: Float) { if (x1 > x0 && y1 > y0) c.drawRect(x0, y0, x1, y1, p) }
+
+    /** Zeichnet [p] nur in den Streifen ausserhalb des Rechtecks (l,t,r,b), begrenzt auf die Spalten [xl, xr). */
+    private fun strips(c: Canvas, p: Paint, xl: Float, xr: Float, l: Float, t: Float, r: Float, b: Float, w: Float, h: Float) {
+        box(c, p, xl, 0f, xr, t); box(c, p, xl, b, xr, h)
+        val y0 = maxOf(t, 0f); val y1 = minOf(b, h)
+        box(c, p, xl, y0, minOf(xr, l), y1); box(c, p, maxOf(xl, r), y0, xr, y1)
+    }
+
+    private fun hudSide(c: Canvas, a: Anim, xl: Float, xr: Float, old: Boolean, l: Float, t: Float, r: Float, b: Float, w: Float, h: Float) {
+        if (xr <= xl) return
+        bleedPaint.shader = if (old) a.fromShader else a.toShader
+        strips(c, bleedPaint, xl, xr, l, t, r, b, w, h)
+        if (old) strips(c, marginShade, xl, xr, l, t, r, b, w, h)
+    }
+
     /** Zeichnet den Uebergang nur mit Canvas-Primitiven (Clip, drawBitmap, Verlaeufe); Geometrie in Bildpixeln. */
     private fun drawTransition(c: Canvas, a: Anim) {
         val from = a.from; val to = a.d.bitmap
@@ -401,18 +417,21 @@ class FrameView(ctx: Context) : View(ctx) {
         // Streifen links/oben farbig den falschen Seitenrand und springen am Ende).
         val sw = width.toFloat(); val sh = height.toFloat()
         val sc = lb.scale
+        // Nur die Streifen ausserhalb des Bildrechtecks (Ausschnitt/Rundungen/Letterbox) brauchen den Rand-Untergrund; das Bild
+        // selbst zeichnet das Folgende. Kein Vollbild-Shader-Durchgang unter dem Bild (Fuellrate schwacher GPUs).
+        val cl = a.shaderLeft; val ct = a.shaderTop; val cr = cl + bw * sc; val cb = ct + bh * sc
         when (tx.style) {
             TransitionStyle.FADE -> {
                 bleedPaint.shader = a.fromShader
-                c.drawRect(0f, 0f, sw, sh, bleedPaint)
+                strips(c, bleedPaint, 0f, sw, cl, ct, cr, cb, sw, sh)
                 if (e > 0.0) {
                     bleedToPaint.shader = a.toShader
                     bleedToPaint.alpha = TransitionMath.fadeAlpha(e)
-                    c.drawRect(0f, 0f, sw, sh, bleedToPaint)
+                    strips(c, bleedToPaint, 0f, sw, cl, ct, cr, cb, sw, sh)
                 }
             }
             TransitionStyle.SLIDE -> {
-                // Beide Bilder verschoben und ungeclippt (CLAMP verlaengert deren Randpixel); links der Trennlinie das linke Bild.
+                // Beide Bilder verschoben (CLAMP verlaengert deren Randpixel); links der Trennlinie das linke Bild.
                 val s = TransitionMath.slide(bw, tx.dir, e)
                 val oldLeft = tx.dir >= 0
                 val split = a.shaderLeft + (if (oldLeft) s.newDstLeft else s.oldDstLeft) * sc
@@ -425,27 +444,17 @@ class FrameView(ctx: Context) : View(ctx) {
                 bleedMatrix.setScale(sc, sc); bleedMatrix.postTranslate(a.shaderLeft + rightShift * sc, a.shaderTop)
                 rightShader.setLocalMatrix(bleedMatrix)
                 a.shaderScale = Float.NaN // Matrizen wurden veraendert: Cache fuer den Normalfall ungueltig
-                c.save(); c.clipRect(0f, 0f, split, sh)
-                bleedPaint.shader = leftShader; c.drawRect(0f, 0f, sw, sh, bleedPaint)
-                c.restore()
-                c.save(); c.clipRect(split, 0f, sw, sh)
-                bleedPaint.shader = rightShader; c.drawRect(0f, 0f, sw, sh, bleedPaint)
-                c.restore()
+                bleedPaint.shader = leftShader; strips(c, bleedPaint, 0f, split, cl, ct, cr, cb, sw, sh)
+                bleedPaint.shader = rightShader; strips(c, bleedPaint, split, sw, cl, ct, cr, cb, sw, sh)
             }
             TransitionStyle.HUD -> {
                 val g = TransitionMath.hud(bw, bh, e, tx.dir)
                 val split = a.shaderLeft + g.line * sc
                 val oldLeft = tx.dir >= 0
+                marginShade.color = tx.shade or (0xFF shl 24); marginShade.alpha = (g.shadeAlpha * 255 + .5).toInt()
                 // alte Seite (abgedunkelt wie im Bild) und neue Seite, jeweils bis an die Bildschirmkante
-                fun side(l: Float, r: Float, old: Boolean) {
-                    if (r <= l) return
-                    c.save(); c.clipRect(l, 0f, r, sh)
-                    bleedPaint.shader = if (old) a.fromShader else a.toShader
-                    c.drawRect(0f, 0f, sw, sh, bleedPaint)
-                    if (old) { marginShade.color = tx.shade or (0xFF shl 24); marginShade.alpha = (g.shadeAlpha * 255 + .5).toInt(); c.drawRect(0f, 0f, sw, sh, marginShade) }
-                    c.restore()
-                }
-                side(0f, split, oldLeft); side(split, sw, !oldLeft)
+                hudSide(c, a, 0f, split, oldLeft, cl, ct, cr, cb, sw, sh)
+                hudSide(c, a, split, sw, !oldLeft, cl, ct, cr, cb, sw, sh)
             }
         }
         c.save()
@@ -478,6 +487,32 @@ class FrameView(ctx: Context) : View(ctx) {
         c.restore()
     }
 
+    /** Vorgerendertes Overlay der alten HUD-Seite (Scanzeilen + Raster); einmal je Bildgroesse und Farbe, danach nur noch gezeichnet. */
+    private object HudOverlay {
+        private var key = ""
+        private var bmp: Bitmap? = null
+        @Synchronized fun get(bw: Int, bh: Int, tx: ServerMessage.Transition, g0: TransitionMath.HudGeometry): Bitmap {
+            val k = "$bw,$bh,${tx.shade},${tx.accent}"
+            bmp?.let { if (k == key && !it.isRecycled) return it }
+            val b = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888)
+            val c = Canvas(b)
+            // Scanzeilen: jede dritte Bildzeile mit der Schattenfarbe (1x3-Kachel, in Bildpixeln wiederholt).
+            val tile = Bitmap.createBitmap(1, 3, Bitmap.Config.ARGB_8888)
+            tile.setPixel(0, 0, tx.shade or (0xFF shl 24)); tile.setPixel(0, 1, 0); tile.setPixel(0, 2, 0)
+            val scan = Paint().apply { shader = BitmapShader(tile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT); alpha = (g0.scanExtraAlpha * 255 + .5).toInt() }
+            c.drawRect(0f, 0f, bw.toFloat(), bh.toFloat(), scan)
+            val pts = ArrayList<Float>()
+            var y = 0
+            while (y < bh) { pts.add(0f); pts.add(y + .5f); pts.add(bw.toFloat()); pts.add(y + .5f); y += g0.grid }
+            var x = 0
+            while (x < bw) { pts.add(x + .5f); pts.add(0f); pts.add(x + .5f); pts.add(bh.toFloat()); x += g0.grid }
+            c.drawLines(pts.toFloatArray(), Paint().apply { color = tx.accent; alpha = 40; strokeWidth = 1f; style = Paint.Style.STROKE })
+            b.prepareToDraw()
+            key = k; bmp = b
+            return b
+        }
+    }
+
     /**
      * HUD-Scan des Servers (render.cpp, "HUD scan") mit Canvas-Primitiven: alte Seite abgedunkelt zur Schattenfarbe mit
      * Scanzeilen und Raster, Scanstrahl mit hellem Kern und quadratischem Glow, Nachleuchten und Eck-Klammern auf der Strahlkante.
@@ -488,9 +523,12 @@ class FrameView(ctx: Context) : View(ctx) {
         private val g0 = TransitionMath.hud(bw, bh, 0.0, tx.dir)
         private val back = g0.back
         private val glowM = Matrix(); private val afterM = Matrix()
-        private val shadePaint = Paint().apply { color = tx.shade or (0xFF shl 24) }
-        private val scanPaint = Paint()
-        private val gridPaint = Paint().apply { color = tx.accent; alpha = 40; strokeWidth = 1f; style = Paint.Style.STROKE }
+        // Alte Seite = Bild mit Schattenfarbe (ColorFilter SRC_ATOP, je Deckkraftstufe vorgebaut) + ein vorgerendertes Overlay
+        // aus Scanzeilen und Raster (einmal je Groesse/Farbe, siehe HudOverlay): zwei Durchgaenge statt vier, keine Allokation je Bild.
+        private val overlay: Bitmap = HudOverlay.get(bw, bh, tx, TransitionMath.hud(bw, bh, 0.0, tx.dir))
+        private val shadeFilters = arrayOfNulls<ColorFilter>(256)
+        private val fromPaint = Paint(Paint.FILTER_BITMAP_FLAG).apply { isFilterBitmap = true }
+        private val rr = Rect()
         private val glowPaint = Paint()
         private val afterPaint = Paint()
         private val corePaint = Paint().apply {
@@ -501,7 +539,6 @@ class FrameView(ctx: Context) : View(ctx) {
         private val bracketPaint = Paint().apply { color = tx.accent2; alpha = 235 }
         private val glowShader: LinearGradient
         private val afterShader: LinearGradient
-        private val gridLines: FloatArray
 
         init {
             // Quadratisch abfallender Glow: Gewicht (1-|d|/glow)^2, symmetrisch um die Strahlmitte.
@@ -520,37 +557,25 @@ class FrameView(ctx: Context) : View(ctx) {
             afterShader = LinearGradient(0f, 0f, g0.trail.toFloat(), 0f, ac, ap, Shader.TileMode.CLAMP)
             glowPaint.shader = glowShader
             afterPaint.shader = afterShader
-            // Scanzeilen: jede dritte Bildzeile mit der Schattenfarbe (1x3-Kachel, in Bildpixeln wiederholt).
-            val tile = Bitmap.createBitmap(1, 3, Bitmap.Config.ARGB_8888)
-            tile.setPixel(0, 0, tx.shade or (0xFF shl 24)); tile.setPixel(0, 1, 0); tile.setPixel(0, 2, 0)
-            scanPaint.shader = BitmapShader(tile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
-            scanPaint.alpha = (g0.scanExtraAlpha * 255 + .5).toInt()
-            // Raster der alten Seite (feste Lage, der Clip schneidet es auf die alte Seite zu).
-            val pts = ArrayList<Float>()
-            var y = 0
-            while (y < bh) { pts.add(0f); pts.add(y + .5f); pts.add(bw.toFloat()); pts.add(y + .5f); y += g0.grid }
-            var x = 0
-            while (x < bw) { pts.add(x + .5f); pts.add(0f); pts.add(x + .5f); pts.add(bh.toFloat()); x += g0.grid }
-            gridLines = pts.toFloatArray()
+            val rgb = tx.shade and 0xFFFFFF
+            val maxA = (0.46 * 255 + .5).toInt()   // groesste Schattendeckkraft (TransitionMath.hud: .46)
+            for (al in 1..maxA) shadeFilters[al] = PorterDuffColorFilter((al shl 24) or rgb, PorterDuff.Mode.SRC_ATOP)
         }
 
         fun draw(c: Canvas, from: Bitmap, to: Bitmap, g: TransitionMath.HudGeometry, eased: Double, bmpPaint: Paint) {
             val w = g.width.toFloat(); val h = g.height.toFloat()
-            // Neue Seite: unveraendert.
+            // Neue Seite: unveraendert (Teilrechteck statt Clip).
             if (g.newHi > g.newLo) {
-                c.save(); c.clipRect(g.newLo.toFloat(), 0f, g.newHi.toFloat(), h)
-                c.drawBitmap(to, 0f, 0f, bmpPaint)
-                c.restore()
+                rr.set(g.newLo, 0, g.newHi, g.height)
+                c.drawBitmap(to, rr, rr, bmpPaint)
             }
-            // Alte Seite: zur Schattenfarbe abgedunkelt, Scanzeilen, Raster.
+            // Alte Seite: zur Schattenfarbe abgedunkelt (ColorFilter), darueber Scanzeilen und Raster (Overlay).
             if (g.oldHi > g.oldLo) {
-                c.save(); c.clipRect(g.oldLo.toFloat(), 0f, g.oldHi.toFloat(), h)
-                c.drawBitmap(from, 0f, 0f, bmpPaint)
-                shadePaint.alpha = (g.shadeAlpha * 255 + .5).toInt()
-                c.drawRect(0f, 0f, w, h, shadePaint)
-                c.drawRect(0f, 0f, w, h, scanPaint)
-                c.drawLines(gridLines, gridPaint)
-                c.restore()
+                rr.set(g.oldLo, 0, g.oldHi, g.height)
+                val al = (g.shadeAlpha * 255 + .5).toInt().coerceIn(0, 255)
+                fromPaint.colorFilter = if (al > 0) shadeFilters[al] else null
+                c.drawBitmap(from, rr, rr, fromPaint)
+                c.drawBitmap(overlay, rr, rr, bmpPaint)
             }
             val line = g.line.toFloat()
             // Nachleuchten auf der neuen Seite hinter dem Strahl.
