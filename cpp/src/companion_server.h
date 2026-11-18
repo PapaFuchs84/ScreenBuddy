@@ -35,7 +35,9 @@ public:
         int max_clients = 4;
         double handshake_seconds = HANDSHAKE_SECONDS;  // TLS + Upgrade + hello, ab accept() (Tests: kürzer)
     };
-    struct Frame { std::string jpeg; int w = 480, h = 320; uint64_t version = 0; };  // version != 0: nur senden, wenn neu (je Gerät)
+    // version != 0: nur senden, wenn neu (je Gerät); render_us: Zeichendauer dieses Frames (nur Telemetrie, 0 = unbekannt)
+    // transition: gehört zu diesem Zielbild; wird nur an Verbindungen mit Fähigkeit xfade1 gesendet (Transition::id dedupliziert)
+    struct Frame { std::string jpeg; int w = 480, h = 320; uint64_t version = 0; int64_t render_us = 0; std::optional<Transition> transition; };
     struct Hooks {
         std::function<Frame()> encode_frame;           // pixels and dimensions from the same snapshot
         std::function<void(int, int)> on_resize;       // authenticated resolution owner only
@@ -48,6 +50,7 @@ public:
         std::function<bool()> independent;
         std::function<Frame(const std::string& device)> encode_frame_for;
         std::function<int(const std::string& device)> frame_rate_for; // trusted producer pacing (5..60), never controlled by client
+        std::function<uint64_t(const std::string& device)> transition_id_for;  // id des gerade gültigen Übergangs dieses Geräts (0 = keiner); macht das Zielbild "dringend" (umgeht das 5-fps-Tor)
         std::function<void(const std::string& device, int, int)> on_resize_for;
         std::function<void(const std::string& device, int)> on_swipe_for;
         std::function<void(const std::string& device, int, int, int, int)> on_touch_frame_for;
@@ -70,6 +73,9 @@ public:
     Pairing& pairing() { return pairing_; }
     json clients();                      // verbundene, angemeldete Geräte
     void drop_device(const std::string& id);  // Verbindung eines entfernten Geräts trennen
+    // Angemeldetes Gerät hat die Fähigkeit: konservativ, nur wenn ALLE angemeldeten Verbindungen dieser Geräte-ID sie im hello
+    // gemeldet haben (bei Mehrfachverbindung bekommen alle dasselbe Bild; eine ältere App darf keinen Übergang vermissen).
+    bool device_has_cap(const std::string& id, const std::string& cap);
 
 private:
     struct Conn;

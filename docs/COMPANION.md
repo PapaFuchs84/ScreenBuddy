@@ -88,3 +88,6 @@ Bedienung: [Navigation](NAVIGATION.md#geräteprofil-und-sperrzone-phase-4a-entwi
 ## Plugin-Tipps (Phase 4c, Entwicklung)
 
 Schema-2-Plugins können HTTPS-Links und den nächsten Wechselfeld-Eintrag anbieten. Links öffnen am PC, auch bei einem Tipp auf dem Handy. Die eigene Freigabe unter Einstellungen → Plugins ist standardmäßig aus und zeigt die Link-Hosts. Ziele brauchen 1,0 s Ruhe beim Companion bzw. 0,3 s beim Monitor und sind während Übergängen gesperrt; verweigerte Tipps wechseln die Seite nicht. Ohne Ziel gilt die bisherige Drittel-Regel. Android-TV erhält keine Tap-/D-Pad-Aktion. Details: [Plugin-System](PLUGIN-SYSTEM.md#tap-ziele-für-plugin-blöcke-phase-4c-entwicklung-für-2100). Physische Abnahme offen.
+
+
+Seitenübergänge können bei Companion-Geräten mit der Fähigkeit `xfade1` auf dem Gerät animiert werden (weniger Ruckeln bei WLAN-Jitter); Details im [Protokoll](COMPANION-PROTOKOLL.md). Andere Geräte erhalten weiter am PC gerechnete Übergänge.

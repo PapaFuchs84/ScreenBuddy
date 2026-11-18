@@ -53,6 +53,11 @@ sealed class ServerMessage {
     data class Ready(val w: Int, val h: Int) : ServerMessage()
     data class Paired(val key: String) : ServerMessage()
     data class Error(val code: String, val msg: String) : ServerMessage()
+    /** Seitenuebergang unmittelbar vor dem Binaerframe des Zielbilds (Faehigkeit "xfade1"). Farben als opakes ARGB. */
+    data class Transition(
+        val style: TransitionStyle, val dir: Int, val ms: Int,
+        val accent: Int, val accent2: Int, val shade: Int,
+    ) : ServerMessage()
     object Ping : ServerMessage()
     object Pong : ServerMessage()
     data class Unknown(val type: String) : ServerMessage()
@@ -70,10 +75,30 @@ sealed class ServerMessage {
                 "error" -> Error(o.optString("code", "unknown"), o.optString("msg", ""))
                 "ping" -> Ping
                 "pong" -> Pong
+                "transition" -> parseTransition(o)
                 "" -> null
                 else -> Unknown(t)
             }
         } catch (e: JSONException) { null }
+
+        const val TRANSITION_MAX_MS = 3000
+        private const val DEFAULT_ACCENT = "#00C8FF"
+        private const val DEFAULT_ACCENT2 = "#0078FF"
+        private const val DEFAULT_SHADE = "#0E1628"
+
+        /** Stil, dir (1/-1) und ms (1..3000) sind Pflicht und streng geprueft; fehlende Farben nehmen Vorgaben, falsche verwerfen die Nachricht. */
+        private fun parseTransition(o: JSONObject): ServerMessage? {
+            val style = (o.opt("style") as? String)?.let { TransitionStyle.fromWire(it) } ?: return null
+            val dir = (o.opt("dir") as? Number)?.toInt()?.takeIf { it == 1 || it == -1 } ?: return null
+            val msRaw = (o.opt("ms") as? Number)?.toDouble() ?: return null
+            if (msRaw.isNaN() || msRaw < 1.0 || msRaw > TRANSITION_MAX_MS) return null
+            fun color(key: String, def: String): Int? =
+                if (!o.has(key)) TransitionMath.parseColor(def) else TransitionMath.parseColor(o.opt(key) as? String)
+            val accent = color("accent", DEFAULT_ACCENT) ?: return null
+            val accent2 = color("accent2", DEFAULT_ACCENT2) ?: return null
+            val shade = color("shade", DEFAULT_SHADE) ?: return null
+            return Transition(style, dir, msRaw.toInt(), accent, accent2, shade)
+        }
     }
 }
 
@@ -95,6 +120,7 @@ object ClientMessage {
 
     private fun hello(w: Int, h: Int, name: String) =
         JSONObject().put("t", "hello").put("v", Protocol.VERSION).put("w", w).put("h", h).put("name", name)
+            .put("caps", org.json.JSONArray().put(CAP_XFADE1))
 }
 
 enum class SwipeDir(val wire: String) { LEFT("left"), RIGHT("right") }
@@ -186,7 +212,7 @@ object ImageLimits {
 class HandshakeGate {
     enum class Phase { CONNECTING, AWAITING_TRUST, HELLO_SENT, READY, CLOSED }
 
-    var phase = Phase.CONNECTING
+    @Volatile var phase = Phase.CONNECTING
         private set
 
     /** TLS/WebSocket offen. true = hello sofort senden; false = Nutzerfreigabe abwarten. */
@@ -217,6 +243,12 @@ class HandshakeGate {
     }
 
     fun acceptFrame() = phase == Phase.READY
+
+    /**
+     * "transition" gilt nur nach ready. Wird (anders als [acceptText], das den Main-Thread voraussetzt) auf dem
+     * Netzwerk-Thread gelesen, daher ist [phase] volatil.
+     */
+    fun acceptTransition() = phase == Phase.READY
 
     /** Watchdog (Ping/Stille-Erkennung) ist waehrend des Trust-Prompts pausiert. */
     fun watchdogActive() = phase == Phase.HELLO_SENT || phase == Phase.READY

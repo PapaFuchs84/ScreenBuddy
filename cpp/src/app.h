@@ -187,6 +187,7 @@ private:
         std::vector<touch::Tile> taps;
         ojson navigation;
         bool switched = false;
+        std::optional<companion::Transition> transition;   // device-side page transition (xfade1) to this frame
     };
     struct PageEntry {
         std::string key;

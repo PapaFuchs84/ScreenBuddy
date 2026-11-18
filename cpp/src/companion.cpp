@@ -425,6 +425,20 @@ ClientMsg parse_client(const std::string& text) {
             m.error = "genau eines von key und pin erwartet";
             return m;
         }
+        // Optionale Fähigkeiten: unbekannte/ungültige Einträge werden still ignoriert (nie ein Fehler), die
+        // genau-eines-von-key/pin-Regel bleibt unberührt.
+        if (j.contains("caps") && j["caps"].is_array()) {
+            for (const auto& cap : j["caps"]) {
+                if (m.caps.size() >= MAX_CAPS) break;
+                if (!cap.is_string()) continue;
+                const std::string name_cap = cap.get<std::string>();
+                const bool plain = !name_cap.empty() && name_cap.size() <= MAX_CAP_LENGTH &&
+                    std::all_of(name_cap.begin(), name_cap.end(), [](unsigned char ch) {
+                        return (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-';
+                    });
+                if (plain && std::find(m.caps.begin(), m.caps.end(), name_cap) == m.caps.end()) m.caps.push_back(name_cap);
+            }
+        }
         if (has_key) m.key = j["key"].get<std::string>().substr(0, 128);
         if (has_pin) m.pin = j["pin"].get<std::string>().substr(0, 16);
         m.type = ClientMsg::Type::Hello;
@@ -465,6 +479,21 @@ std::string msg_error(const std::string& code, const std::string& msg) {
 std::string msg_ping() { return R"({"t":"ping"})"; }
 std::string msg_pong() { return R"({"t":"pong"})"; }
 std::string frame_payload(const std::string& jpeg) { return std::string(1, (char)FRAME_JPEG) + jpeg; }
+
+bool ClientMsg::has_cap(const std::string& cap) const { return std::find(caps.begin(), caps.end(), cap) != caps.end(); }
+
+std::string hex_color(Rgb c) {
+    static const char hex[] = "0123456789ABCDEF";
+    std::string out = "#";
+    for (uint8_t v : {c.r, c.g, c.b}) { out += hex[v >> 4]; out += hex[v & 15]; }
+    return out;
+}
+
+std::string msg_transition(const Transition& t) {
+    const std::string style = t.style == "slide" || t.style == "fade" ? t.style : "hud";
+    return json{{"t", "transition"}, {"style", style}, {"dir", t.dir < 0 ? -1 : 1}, {"ms", t.ms},
+                {"accent", hex_color(t.accent)}, {"accent2", hex_color(t.accent2)}, {"shade", hex_color(t.shade)}}.dump();
+}
 
 // ---------- Kopplung ----------
 static std::string pct(const std::string& s) {

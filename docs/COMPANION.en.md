@@ -86,3 +86,6 @@ Usage: [navigation](NAVIGATION.en.md#device-profile-and-keepout-phase-4a-develop
 ## Plugin taps (Phase 4c, development)
 
 Schema 2 plugins can offer HTTPS links and the next cycling-zone entry. Links open on the PC, including taps from a phone. The separate grant in Settings → Plugins defaults to off and displays the link hosts. Targets require 1.0 s stability on Companion or 0.3 s on a monitor and are blocked during transitions; denied taps do not navigate. Areas without a target retain thirds navigation. Android TV gains no tap/D-pad action. See the [plugin system](PLUGIN-SYSTEM.en.md#tap-targets-for-plugin-blocks-phase-4c-development-for-2100). Physical acceptance is pending.
+
+
+On Companion devices with the `xfade1` capability, page transitions can be animated on the device (less stutter under Wi-Fi jitter); details in the [protocol](COMPANION-PROTOKOLL.md). Other devices keep receiving PC-computed transitions.

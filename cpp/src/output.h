@@ -16,6 +16,7 @@
 
 #include "config.h"
 #include "gfx.h"
+#include "companion_transition.h"
 
 namespace fl {
 namespace device { struct Insets; }
@@ -182,7 +183,11 @@ public:
     std::function<void(const std::string&)> on_device_pages;      // eigene Seitenliste eines Geräts geändert
     void set_independent(bool on);
     bool independent() const { return independent_; }
-    void show_for(const std::string& device, const Image& frame, const ojson& navigation = ojson(), int animation_fps = 0);   // Bild nur für dieses Gerät
+    // Bild nur für dieses Gerät (render_us: nur Telemetrie). transition: Übergang zu genau diesem Bild für Geräte mit xfade1
+    // (der Server sendet ihn vor dem Zielbild; er bleibt kurz gültig, falls ein neueres Bild das Zielbild überholt).
+    void show_for(const std::string& device, const Image& frame, const ojson& navigation = ojson(), int animation_fps = 0, int64_t render_us = 0,
+                  const std::optional<companion::Transition>& transition = std::nullopt);
+    bool device_has_cap(const std::string& device, const std::string& cap);   // Fähigkeit aus dem hello des verbundenen Geräts
     std::optional<Image> frame_for(const std::string& device);      // aktuelles Bild dieses Geräts (nur im unabhängigen Betrieb), für die Vorschau
     void forget_device(const std::string& device);                  // Bild verwerfen (Gerät getrennt)
     std::vector<std::string> client_ids();                          // IDs der gerade verbundenen Geräte
@@ -222,6 +227,7 @@ private:
     std::atomic<bool> independent_{false};
     std::map<std::string, std::shared_ptr<DeviceFrame>> device_frames_;  // geschützt durch mu_
     uint64_t frame_version_ = 0;                                          // geschützt durch mu_
+    uint64_t transition_id_ = 0;                                          // geschützt durch mu_
     struct Tap { std::string device; bool per_device = false; int x = 0, y = 0, w = 0, h = 0; };
     std::mutex tap_mu_;
     std::condition_variable tap_cv_;

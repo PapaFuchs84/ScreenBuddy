@@ -3,6 +3,7 @@
 // WebSocket-Rahmen und -Handshake, JSON-Nachrichten, PIN-Kopplung mit Sperre, Gerätespeicher, Kopplungs-URI und
 // QR-Code als SVG. Kein Windows-Code: läuft auch in den Linux-Tests (cpp/tests/companion_tests.cpp).
 #pragma once
+#include "companion_transition.h"
 #include "device_profile.h"
 
 #include <cstddef>
@@ -105,10 +106,16 @@ private:
 };
 
 // ---------- Nachrichten ----------
+// Fähigkeiten, die ein Client im hello unter "caps" meldet (optional; alte Clients senden sie nicht, alte Server
+// ignorieren sie). xfade1: Der Client animiert Seitenübergänge selbst (Nachricht "transition" vor dem Zielbild).
+inline constexpr size_t MAX_CAPS = 16;
+inline constexpr size_t MAX_CAP_LENGTH = 32;
 struct ClientMsg {
     enum class Type { Hello, Touch, Swipe, Resize, Ping, Pong, Unknown, Invalid } type = Type::Invalid;
     int v = 0, w = 0, h = 0, x = 0, y = 0, dir = 0;
     std::string key, pin, name, error;
+    std::vector<std::string> caps;   // nur bei hello; eindeutig, begrenzt, nur Zeichen [a-z0-9_-]
+    bool has_cap(const std::string& cap) const;
 };
 std::pair<int, int> render_size(int w, int h);  // bounded, aspect-preserving client resolution
 ClientMsg parse_client(const std::string& text);
@@ -119,6 +126,24 @@ std::string msg_ping();
 std::string msg_pong();
 std::string frame_payload(const std::string& jpeg);  // Byte 0 = 1 (JPEG), danach die Daten
 std::string clean_name(const std::string& name);     // Gerätename: ohne Steuerzeichen, höchstens 40 Zeichen
+
+// ---------- Geräteseitiger Seitenübergang (Fähigkeit xfade1) ----------
+// Server -> Client, Text-Nachricht unmittelbar VOR dem Binärframe des Zielbilds:
+//   {"t":"transition","style":"hud"|"slide"|"fade","dir":1|-1,"ms":450,"accent":"#RRGGBB","accent2":"#RRGGBB","shade":"#RRGGBB"}
+// Der Client animiert vom zuletzt angezeigten Bild zum nächsten empfangenen Binärframe.
+// (Rgb, Transition, CAP_XFADE1, TRANSITION_HOLD_EXTRA_MS: companion_transition.h)
+std::string hex_color(Rgb c);                       // "#RRGGBB", Großbuchstaben
+std::string msg_transition(const Transition& t);
+// Hält den Frame-Versand eines Geräts während der geräteseitigen Animation zurück (nichts wird verworfen:
+// danach geht der neueste Frame hinaus, falls sich das Bild geändert hat).
+class TransitionHold {
+public:
+    void begin(double now, int ms) { until_ = now + (ms + TRANSITION_HOLD_EXTRA_MS) / 1000.0; }
+    bool holding(double now) const { return now < until_; }
+    void reset() { until_ = 0; }
+private:
+    double until_ = 0;
+};
 
 // ---------- Kopplung ----------
 std::string pair_uri(const std::string& host, int port, const std::string& fingerprint, const std::string& pin);
@@ -155,9 +180,11 @@ private:
 // avoid a redundant transport timer; their source remains bounded at MAX_ANIMATION_FPS.
 class FrameGate {
 public:
-    bool due(uint64_t seq, double now, int animation_fps = 0) const {
+    // urgent: Zielbild einer neuen Seitenübergangs-Ankündigung (xfade1) – wartet nicht am statischen 5-fps-Tor,
+    // sonst käme der Übergang ~200 ms nach dem Wisch. Unveränderte Bilder (seq == gesendet) bleiben ausgeschlossen.
+    bool due(uint64_t seq, double now, int animation_fps = 0, bool urgent = false) const {
         return seq != 0 && seq != sent_ &&
-            (!any_ || producer_paced_animation(animation_fps) || now - last_ >= MIN_FRAME_SECONDS - 1e-9);
+            (urgent || !any_ || producer_paced_animation(animation_fps) || now - last_ >= MIN_FRAME_SECONDS - 1e-9);
     }
     void sent(uint64_t seq, double now) { sent_ = seq; last_ = now; any_ = true; }
     void reset() { sent_ = 0; any_ = false; }

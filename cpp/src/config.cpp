@@ -41,14 +41,14 @@ const ojson& defaults() {
         j["discord"] = {{"enabled", true}, {"token", ""}, {"guild_ids", ojson::array()}, {"friend_ids", ojson::array()},
                         {"ignore_ids", ojson::array()}, {"show_offline", false}};
         j["display"] = {{"port", "AUTO"}, {"orientation", "landscape"}, {"keepout", {{"top",0},{"right",0},{"bottom",0},{"left",0}}}, {"brightness", 50}, {"reset_on_start", true},
-                        {"page_seconds", 15}, {"animation_fps", 30}, {"page_transition", "auto"}, {"pages", PAGES}, {"visible_pages", PAGES}, {"title", "Discord-Freunde"},
+                        {"page_seconds", 15}, {"animation_fps", 60}, {"page_transition", "auto"}, {"pages", PAGES}, {"visible_pages", PAGES}, {"title", "Discord-Freunde"},
                         {"screen_off_on_exit", true}, {"theme", theme::DEFAULT_ID},
                         // Ausgabe: serial = USB-Display (3,5"), monitor = HDMI/USB-C-Bildschirm als Vollbildfenster
                         {"output", "serial"}, {"monitor", ""}, {"touch", true},
                         // Eigene Farben (theme = "eigen"): Vorlage plus #RRGGBB-Werte; leer = Farbe der Vorlage
                         {"color_base", "hell"}, {"color_bg", ""}, {"color_card", ""}, {"color_header", ""},
                         {"color_accent", ""}, {"color_text", ""}, {"color_muted", ""}};
-        j["system"] = {{"enabled", true}, {"hardware_hud", false}, {"hardware_hud_fps", 30},
+        j["system"] = {{"enabled", true}, {"hardware_hud", false}, {"hardware_hud_fps", 60},
                        {"hud_colors", "theme"}, {"hud_color_primary", ""}, {"hud_color_secondary", ""}, {"hud_color_background", ""}, {"title", "System"}, {"net_adapter", ""}, {"net_unit", "bit"},
                        {"disk", "C:"}, {"cpu_temp_sensor", ""}, {"cpu_fan_sensor", ""}};
         j["friends"] = {{"enabled", false}, {"title", "Freunde"}, {"include_discord", true}, {"auto_merge", true},

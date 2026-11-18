@@ -7,6 +7,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 ## [Unreleased]
 
 - Store edition: on first launch, settings, pairings, Spotify sign-in, views, themes and plugins from the standalone install are imported automatically (nothing is overwritten).
+- Companion: page transitions are animated on the device (capability `xfade1`, message `transition`, protocol in `docs/COMPANION-PROTOKOLL.md`): the PC sends only the target frame and the device draws HUD scan, slide or fade in sync with the display. Older Companion apps keep the existing server-rendered intermediate frames.
+- Companion on TVs and large displays (from about 1.5 MP): frames are prepared as hardware bitmaps in the background, long draw stalls (over 33 ms) are largely gone (BeyondTV: frame time p99 45–54 → 25–35 ms).
+- Default animation rate for new installations: 60 instead of 30 frames/s (saved values stay unchanged).
+- Diagnostics: `SB_FRAME_TRACE=<file>` writes per-frame timings (analysis: `cpp/tools/frame_trace_stats.py`); drift-free frame grid for data updates during animations.
 
 ## [2.12.1] - 2026-11-15
 
