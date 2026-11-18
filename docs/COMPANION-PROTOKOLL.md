@@ -39,7 +39,7 @@ Historischer Implementierungsstand vom 24.10.2026: Das dort beschriebene gemeins
 - `swipe.dir`: `left` = +1, `right` = -1; aus Kompatibilität auch +1/-1 wie im auf dem Redmi getesteten Schnellfix. Nur nach Anmeldung; zusammen mit `touch` höchstens 10/s. Touch mit inzwischen veralteten Bildabmessungen wird verworfen.
 - USB/HDMI und Companion haben getrennte Seitenfilter, Navigation, Timer und Touch-Ziele. Datenquellen und Design bleiben gemeinsam. Konfiguration/Bedienung: [DE](COMPANION.md), [EN](COMPANION.en.md).
 
-## Geräteseitiger Seitenübergang (Fähigkeit `xfade1`, Stufe 3, in Entwicklung)
+## Geräteseitiger Seitenübergang (Fähigkeit `xfade1`, Stufe 3, ab ScreenBuddy 2.13.0 / Companion 1.2.0)
 
 Bisher rechnet der PC jeden Zwischenframe eines Seitenübergangs (0,45 s), kodiert ihn als JPEG und sendet ihn; bei WLAN-Jitter ruckelt das. Fähige Geräte bekommen stattdessen nur das Zielbild plus eine Übergangsnachricht und animieren selbst (display-synchron). Protokollversion bleibt `v` = 1; alte Clients und alte Server arbeiten unverändert weiter.
 
@@ -51,7 +51,7 @@ Bisher rechnet der PC jeden Zwischenframe eines Seitenübergangs (0,45 s), kodie
 - **Server pro Gerät:** Hat das Gerät `xfade1` und der Stil ist nicht `none`, entstehen für dieses Gerät keine Zwischenframes. Der Server sendet einmal Übergangsnachricht + Zielbild und hält danach den Frame-Versand dieses Geräts `ms` + 80 ms zurück (nichts wird verworfen: danach geht der neueste Frame hinaus, falls sich das Bild geändert hat). Der Server rendert in dieser Zeit nicht mit 60 fps weiter; Touch und Wischen bleiben bedienbar. Das erste Bild einer Verbindung und Bilder mit geänderter Größe bekommen nie eine Übergangsnachricht. Geräte ohne Fähigkeit (alte Companion-App, Monitor, serielles Panel) behalten das bisherige Verhalten (am PC gerechnete Zwischenframes); die Entscheidung fällt strikt pro Gerät. Spiel-Intro und andere Animationen bleiben unverändert.
 - **Telemetrie (`SB_FRAME_TRACE`):** Die Übergangsnachricht erscheint als eigene Kommentarzeile `#transition,<ts_us>,<device>,<seq>,<ms>,<style>` direkt vor der Zeile des Zielbilds; die Frame-Spalten sind unverändert (`frame_trace_stats.py` überspringt `#`-Zeilen).
 
-## Device-side page transition (capability `xfade1`, stage 3, in development)
+## Device-side page transition (capability `xfade1`, stage 3, since ScreenBuddy 2.13.0 / Companion 1.2.0)
 
 Until now the PC computed every intermediate frame of a page transition (0.45 s), JPEG-encoded it and sent it, which stutters under Wi-Fi jitter. Capable devices now receive only the target frame plus a transition message and animate on their own (display-synchronised). The protocol version stays `v` = 1; old clients and old servers keep working unchanged.
 

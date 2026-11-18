@@ -2,11 +2,15 @@
 
 ## Status
 
-### 2.12.1 (aktuell / current)
+### 2.13.0 (aktuell / current)
 
-Package `ScreenBuddy-2.12.1.0-x64.msix`, identity `49510Herbst.ScreenBuddybyFuchsLabs`, version 2.12.1.0. Prepared on 15 November 2026; upload, certification and publication are open until recorded here. The “what's new” texts below target 2.12.1; description, features and keywords are unchanged from 2.12.0. Screenshots unchanged (2.11.0 renders).
+Package `ScreenBuddy-2.13.0.0-x64.msix`, identity `49510Herbst.ScreenBuddybyFuchsLabs`, version 2.13.0.0. Prepared on 18 November 2026; upload, certification and publication are open until recorded here. The “what's new” texts below target 2.13.0; description, features and keywords are unchanged from 2.12.0. Screenshots unchanged (2.11.0 renders).
 
-Paket `ScreenBuddy-2.12.1.0-x64.msix`, Identität `49510Herbst.ScreenBuddybyFuchsLabs`, Version 2.12.1.0. Vorbereitet am 15.11.2026; Upload, Zertifizierung und Veröffentlichung sind offen, bis sie hier vermerkt sind. Die Texte „Neues in dieser Version“ gelten für 2.12.1; Beschreibung, Funktionen und Stichwörter unverändert gegenüber 2.12.0. Beispielbilder unverändert (2.11.0).
+Paket `ScreenBuddy-2.13.0.0-x64.msix`, Identität `49510Herbst.ScreenBuddybyFuchsLabs`, Version 2.13.0.0. Vorbereitet am 18.11.2026; Upload, Zertifizierung und Veröffentlichung sind offen, bis sie hier vermerkt sind. Die Texte „Neues in dieser Version“ gelten für 2.13.0; Beschreibung, Funktionen und Stichwörter unverändert gegenüber 2.12.0. Beispielbilder unverändert (2.11.0).
+
+### 2.12.1 (vorherige Version / previous version)
+
+Package `ScreenBuddy-2.12.1.0-x64.msix`, version 2.12.1.0, prepared on 15 November 2026 and submitted the same day as submission 3; its “what's new” texts are kept below for reference. / Paket `ScreenBuddy-2.12.1.0-x64.msix`, Version 2.12.1.0, vorbereitet am 15.11.2026 und am selben Tag als Einreichung 3 eingereicht; die Texte „Neues in dieser Version“ stehen unten zum Nachschlagen.
 
 ### 2.12.0 (eingereicht / submitted)
 
@@ -113,7 +117,18 @@ GUT ZU WISSEN
 
 USB-Display; Systemmonitor; Hardware-Monitor; Zweitbildschirm; Game-Mode FPS; Sensoranzeige HWiNFO; Android-Companion
 
-### Neues in dieser Version (2.12.1; höchstens 1500 Zeichen)
+### Neues in dieser Version (2.13.0; höchstens 1500 Zeichen)
+
+```text
+Neu in 2.13.0:
+• Companion-App 1.2.0: Seitenübergänge (HUD-Scan, Schieben, Überblenden) werden direkt auf dem Gerät animiert – bildschirmsynchron und robust gegen WLAN-Schwankungen. Der PC überträgt je Übergang nur noch ein Bild statt bis zu 18.
+• Auf Fernsehern und großen Anzeigen deutlich weniger lange Zeichenpausen.
+• Ältere Companion-Versionen funktionieren weiter; der PC rechnet für sie die Zwischenbilder wie bisher.
+• Store-Version: Hat sie noch keine eigenen Einstellungen, werden beim ersten Start Einstellungen, Kopplungen, Ansichten, Themes und Plugins einer vorhandenen EXE-Installation automatisch übernommen; nichts wird überschrieben.
+• Neue Installationen animieren standardmäßig mit 60 Bildern/s (gespeicherte Werte bleiben).
+```
+
+### Neues in dieser Version (2.12.1, vorherige Version; höchstens 1500 Zeichen)
 
 ```text
 Neu in 2.12.1:
@@ -215,7 +230,18 @@ GOOD TO KNOW
 
 USB display; system monitor; hardware monitor; second screen; game mode FPS; HWiNFO sensor display; Android companion
 
-### What's new in this version (2.12.1; at most 1500 characters)
+### What's new in this version (2.13.0; at most 1500 characters)
+
+```text
+New in 2.13.0:
+• Companion app 1.2.0: page transitions (HUD scan, slide, fade) are animated directly on the device – in sync with the display and robust against Wi-Fi jitter. The PC now transfers one frame per transition instead of up to 18.
+• Far fewer long draw stalls on TVs and large displays.
+• Older Companion versions keep working; the PC renders the intermediate frames for them as before.
+• Store edition: if it has no settings of its own yet, settings, pairings, views, themes and plugins from an existing standalone install are imported automatically on first launch; nothing is overwritten.
+• New installations animate at 60 frames/s by default (saved values are kept).
+```
+
+### What's new in this version (2.12.1, previous version; at most 1500 characters)
 
 ```text
 New in 2.12.1:

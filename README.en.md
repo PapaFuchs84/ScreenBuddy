@@ -2,7 +2,7 @@
 
 Store edition “ScreenBuddy by FuchsLabs”: [Microsoft Store](https://apps.microsoft.com/detail/9P03461RLGG0) · [notes on the Store edition](docs/STORE-DISTRIBUTION.en.md). [App privacy](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
 
-**Companion 1.1.2 (release `companion-v1.1.2`):** smooth display at up to 60 frames/s (bitmaps are reused, frames are shown in step with the screen refresh; on a Redmi 8 about 59 instead of 52 frames/s and hardly any stutter); 1.1.1 brought fixes for automatic mode; since 1.1.0 a dark default design and optional automatic mode for the paired PC. Setup, permissions and device-validation limits: [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110).
+**Companion 1.2.0 (release `companion-v1.2.0`):** page transitions are animated on the device (HUD scan, slide, fade; in sync with the display and robust against Wi-Fi jitter); on TVs and large displays hardware bitmaps mean hardly any long draw stalls. Older Companion versions keep working (the PC then renders the intermediate frames). 1.1.2 brought smooth display at up to 60 frames/s; 1.1.1 brought fixes for automatic mode; since 1.1.0 a dark default design and optional automatic mode for the paired PC. Setup, permissions and device-validation limits: [Companion guide](docs/COMPANION.en.md#automatic-mode-companion-110).
 
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
@@ -18,7 +18,7 @@ AI usage: separate confirmed real-account opt-ins default to off. Claude and Cod
 
 **Your second screen shows what matters to you: system stats, friends, game rankings and news.**
 
-![Version](https://img.shields.io/badge/version-2.12.1-F77F00)
+![Version](https://img.shields.io/badge/version-2.13.0-F77F00)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-testing-F77F00)
@@ -33,6 +33,8 @@ AI usage: separate confirmed real-account opt-ins default to off. Claude and Cod
 </div>
 
 A Windows app for 3.5-inch USB displays (480 × 320) and HDMI/USB-C secondary screens, including touch. It runs in the background and provides native Windows settings. The C++20 app and installer are one EXE; no Python, WebView2 or Visual C++ redistributable is required.
+
+**New in 2.13.0 (18 November 2026):** Companion 1.2.0 animates **page transitions on the device**; the PC transfers 1 instead of 13–18 frames per transition. On a Redmi 8 frame time p99 drops from 23–24 to 18–21 ms, and stutter under Wi-Fi jitter from up to 21 % to 2–5 %. On a BeyondTV set p99 drops from about 60 to 25–35 ms, frames over 33 ms from almost all to 0–6 per 30 s; live content there stays at about 15 frames/s (1080p decoding). Default animation rate for new installations is 60 frames/s. Store edition: settings from the standalone install are imported on first launch if it has none of its own yet. Measurements (German): [animation rounds](docs/ANIMATION-RUNDEN.md#2130--companion-120) · [Changelog](CHANGELOG.en.md)
 
 **New in 2.12.1 (15 November 2026):** much **smoother animations** and new **page transitions** (default: an HUD scan in the style of the Hardware HUD; alternatively fade, slide or off, **Settings → Display → Animations**). The PC now delivers a steady up to 60 frames/s; on a Redmi 8 with Companion 1.1.2 the displayed rate rises from about 18/23/15 in 2.12.0 to 59/59/58 frames/s (Hardware HUD/AI status/custom view). Game Mode: intro and cockpit in the HUD style, a transition into the game and back; the target-display list tells same-named (re-paired) devices apart and shows connected/offline. Measurement log of all 50 rounds (German): [animation rounds](docs/ANIMATION-RUNDEN.md) · [Changelog](CHANGELOG.en.md)
 
