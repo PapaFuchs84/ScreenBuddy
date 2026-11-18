@@ -28,6 +28,7 @@ import kotlin.math.abs
 
 /** Zeichnet das JPEG-Frame mit Letterbox und sendet Taps in Renderkoordinaten. */
 class FrameView(ctx: Context) : View(ctx) {
+    private companion object { const val TAG = "FrameView"; const val HW_MIN_PIXELS = 1_500_000L }
     var onTouchRender: ((Int, Int) -> Unit)? = null
     var onSwipe: ((SwipeDir) -> Unit)? = null
     /** Tatsaechliche Groesse der Rendeflaeche in Pixeln (nach Layout/Rotation). */
@@ -334,16 +335,73 @@ class FrameView(ctx: Context) : View(ctx) {
             val opts = BitmapFactory.Options().apply { inMutable = true; inBitmap = reuse }
             val b = (try { BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, opts) } catch (_: IllegalArgumentException) { null })
                 ?: run { reuse?.let { release(it) }; BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, BitmapFactory.Options().apply { inMutable = true }) } ?: return
-            val bg = b.getPixel(0, 0) // Letterbox-Hintergrund = Randfarbe des Bildes
-            b.prepareToDraw() // Textur-Upload jetzt auf dem Decoder-Thread statt im ersten Zeichentakt
+            val bg = b.getPixel(0, 0) // Letterbox-Hintergrund = Randfarbe des Bildes (vor der HW-Kopie: getPixel geht dort nicht)
+            val shown = toHardware(b) ?: b.also { it.prepareToDraw() } // Rueckfall: bisheriger Pfad
             // Hoechstens zwei warten; ein drittes verdraengt das aelteste (nie angezeigt, daher gefahrlos zurueck).
             val drop = synchronized(queue) {
-                queue.addLast(Decoded(e, b, bg, seq))
+                queue.addLast(Decoded(e, shown, bg, seq))
                 if (queue.size > 2) queue.removeFirst() else null
             }
             drop?.let { release(it.bitmap) }
             post(scheduleShowRunnable)
         } catch (_: Exception) {} catch (_: OutOfMemoryError) {}
+    }
+
+    /**
+     * Hardware-Bitmaps: Bei schwacher GPU kostete das Hochladen eines neuen Software-Bitmaps im ersten Zeichenlauf
+     * (Render-Thread) ~44 ms je Bild. copy(HARDWARE) laedt die Textur hier auf dem Decoder-Thread hoch; angezeigt wird
+     * die Hardware-Kopie, der Software-Puffer geht sofort zurueck in den inBitmap-Pool. Hardware-Bitmaps sind nicht
+     * veraenderbar und landen daher nie im Pool, sondern werden bei der Freigabe recycelt (siehe [release]).
+     * Liefert copy() null oder wirft (z. B. Emulator ohne GL), bleibt der Pfad fuer die Laufzeit der View aus.
+     */
+    @Volatile private var hwOff = false
+    private val isTv = ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+    private val debugLog = (ctx.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    private var hwStatN = 0; private var hwStatSumNs = 0L; private var hwStatMaxNs = 0L   // nur Decoder-Thread
+
+    /** Nur Decoder-Thread. Gibt bei Erfolg [sw] an den Pool zurueck; null = bisherigen Pfad mit [sw] gehen. */
+    private fun toHardware(sw: Bitmap): Bitmap? {
+        if (hwOff) return null
+        // Nur grosse Bilder (TV/1080p und mehr): Gemessen bringt der Hardware-Pfad dort den Grossteil (BeyondTV: p99
+        // 45-54 -> 25-35 ms, Frames ueber 33 ms 75-159 -> 0-6 je 30 s); bei kleinen Bildern (Redmi 8, 1445x680) kostet
+        // die Kopie mehr, als der Upload spart (p99 +3-5 ms). Fernseher nutzen ihn immer.
+        if (sw.width.toLong() * sw.height < HW_MIN_PIXELS && !isTv) return null
+        val t0 = System.nanoTime()
+        val hw = try { sw.copy(Bitmap.Config.HARDWARE, false) } catch (t: Exception) { disableHw("copy: $t"); return null }
+                 catch (t: OutOfMemoryError) { disableHw("copy: $t"); return null }
+        if (hw == null || hw.config != Bitmap.Config.HARDWARE) { hw?.recycle(); disableHw("copy lieferte ${hw?.config}"); return null }
+        val dt = System.nanoTime() - t0
+        release(sw) // nie angezeigt: gefahrlos zurueck in den Pool
+        if (debugLog) {
+            hwStatN++; hwStatSumNs += dt; if (dt > hwStatMaxNs) hwStatMaxNs = dt
+            if (hwStatN >= 60) {
+                android.util.Log.d(TAG, "copy(HARDWARE) ${hw.width}x${hw.height}: avg %.1f ms, max %.1f ms ueber %d Bilder"
+                    .format(hwStatSumNs / 1e6 / hwStatN, hwStatMaxNs / 1e6, hwStatN))
+                hwStatN = 0; hwStatSumNs = 0L; hwStatMaxNs = 0L
+            }
+        }
+        return hw
+    }
+
+    private fun disableHw(why: String) {
+        if (hwOff) return
+        hwOff = true
+        android.util.Log.w(TAG, "Hardware-Bitmaps aus, Rueckfall auf Software-Bitmaps ($why)")
+    }
+
+    private fun isHw(b: Bitmap) = b.config == Bitmap.Config.HARDWARE
+
+    /**
+     * Hardware-Bitmaps lassen sich nur auf einem hardwarebeschleunigten Canvas zeichnen; ein Software-Canvas
+     * (Software-Layer, View.draw in ein Bitmap fuer Screenshots o. Ae.) wuerde werfen. Dann nur Hintergrund. Ist die
+     * View selbst nicht beschleunigt, zusaetzlich den Hardware-Pfad abschalten (folgende Bilder kommen als Software-
+     * Bitmaps); ein einmaliges Zeichnen in ein fremdes Software-Canvas schaltet ihn nicht ab.
+     */
+    private fun blockedOnSoftwareCanvas(c: Canvas, vararg bs: Bitmap): Boolean {
+        if (c.isHardwareAccelerated || bs.none { isHw(it) }) return false
+        if (!isHardwareAccelerated) disableHw("View nicht hardwarebeschleunigt")
+        c.drawColor(bgColor)
+        return true
     }
 
     override fun onDetachedFromWindow() { abortTransition(); super.onDetachedFromWindow() }
@@ -366,6 +424,7 @@ class FrameView(ctx: Context) : View(ctx) {
             lastDrawn?.let { drawnOut.add(it); scheduleCleanup() }
             lastDrawn = b
         }
+        if (blockedOnSoftwareCanvas(c, b)) return
         c.drawColor(bgColor)
         val lb = Letterbox.compute(contentWidth, contentHeight, b.width.coerceAtLeast(1), b.height.coerceAtLeast(1))
         val ox = insL.toFloat(); val oy = insT.toFloat()
@@ -404,6 +463,7 @@ class FrameView(ctx: Context) : View(ctx) {
         val e = TransitionMath.eased(tx.style, a.progress)
         // "von" wird gezeichnet: fuer die Freigabe-Abfolge als zuletzt gezeichnet vormerken (siehe onDraw).
         if (lastDrawn !== from) { lastDrawn?.let { drawnOut.add(it); scheduleCleanup() }; lastDrawn = from }
+        if (blockedOnSoftwareCanvas(c, from, to)) return
         val lb = Letterbox.compute(contentWidth, contentHeight, bw.coerceAtLeast(1), bh.coerceAtLeast(1))
         // Untergrund wie onDraw (Randlos per BitmapShader): Start = Normaldarstellung des alten, Ende = die des neuen Bildes.
         // Dazwischen blendet der Rand-Bleed des neuen Bildes ueber den des alten; die Bildflaeche selbst zeichnet das Folgende.
