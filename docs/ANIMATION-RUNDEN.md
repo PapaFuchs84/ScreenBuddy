@@ -61,3 +61,25 @@ Basis Companion 1.1.1: UI 53,5 / 51,9 / 50,9 Bilder/s, Ruckel-Bilder 9 / 4 / 7 (
 | 48 | Codex-Gesamtprüfung des Branches | – | – | – | 3 Befunde umgesetzt: Design-Lesen im Übergang unter der Zeichensperre, Game-Mode-Ziel „Netzwerk“ wählt Companion-Ansichten, Doku |
 | 49 | Gerätekontrolle mit den Endständen (Host 2.12.1, Companion 1.1.2) | 59,3 | 59,2 | 58,1 | 0–2 Ruckel-Bilder in 15 s, p50 9 ms; Host Zeichnen 2,7–3,8 ms, JPEG 2,1–2,2 ms; Rotation 38,9 (Inhalt zwischen den Übergängen statisch) |
 | 50 | Abnahme Doku: Codex prüft README, Changelogs, Companion-README, Hardware-HUD-Seite, Store-Text und dieses Protokoll gegen Code und Messwerte | – | – | – | 3 Befunde umgesetzt (Runde 50 ergänzt, Store-Text ohne unbelegte „ohne Wartezeit“-Aussage, Companion-Versionsgeschichte) |
+
+## 2.13.0 / Companion 1.2.0
+
+Seitenübergänge animiert das Gerät selbst (Fähigkeit `xfade1`, Nachricht `transition`); alte Apps erhalten weiter die Zwischenbilder vom PC. Gemessen mit isolierter Testinstanz (eigener Port, eigene Daten) und Test-App `…hudtest`, Zielrate 60, Seitenrotation mit HUD-Scan (`auto`), Slide und Fade. Rohdaten (Traces, `gfxinfo`-Framestats, Bildschirmvideos) liegen als lokale Testdaten außerhalb des Repositorys. „alt“ = Host 2.12.1 mit Companion 1.1.2.
+
+| Runde | Messung / Änderung | Ergebnis | Bemerkung |
+|---|---|---|---|
+| 51 | Redmi 8 über USB-Tunnel, Host-Trace (`SB_FRAME_TRACE`) je 2 min | Übertragung je Übergang Ø 17 → 1 Bild (bei Rate 30: 9 → 1), Daten je Bild 79 → 56 kB | Insgesamt etwa 40 % weniger Bilder und rund 58 % weniger Daten; am Gerät über USB kein Unterschied beim Ruckeln (USB hat keine Schwankungen) |
+| 52 | Redmi 8, Bildschirmvideo mit Schwankungs-Relay (sauber / mittel / schwer), je 24 s | Stotter-Anteil alt 3–7 / 7–10 / 11–21 % → neu 2–4 / 1–5 / 2–6 % | Gleichmäßigere Schritte (Schritt-Streuung 0,7–1,3 → meist 0,4–0,7), weniger Sprung am Übergangsende; eigene Bilder je Übergang (HUD/Slide/Fade) bleiben neu bei ~18/24/14, alt fielen sie bei schwerem Jitter von 20/24/13 auf 14/13/9 |
+| 53 | Rand der Geräte-Animation folgt Trennlinie (Slide) bzw. Scanlinie (HUD) | – | vorher Randartefakt bei Slide (links ~55 px, oben ~20 px) |
+| 54 | Optimierung V1: Rand nur in Streifen zeichnen | – | Zwischenstand, in V2 aufgegangen |
+| 55 | Optimierung V2: HUD-Overlay vorgerendert, ColorFilter statt Schatten-Durchgang | Redmi Frametime p99 alt 23,0–23,9 → 19,3–21,8 ms; p50 10,8 → 6,4–7,4 ms | Janky laut `gfxinfo` 1,3–2,3 % → 1,0–2,0 %; je 2 Läufe sauber/mittel |
+| 56 | V3: alle Bilder als Hardware-Bitmap (Kopie auf dem Dekodier-Thread) | Redmi p99 20,9–26,7 ms | auf kleinen Bildern schlechter als V2 → nur für große Anzeigen |
+| 57 | BeyondTV (1080p), alte App 1.1.2, je 30 s, 2 Läufe | ~8 Bilder/s gezeichnet, p50 43–45 ms, p99 58–68 ms, Frames über 33 ms: fast alle (100 % janky) | jedes 1080p-Bild ~44 ms Zeichnen (Textur-Upload im Zeichentakt) |
+| 58 | BeyondTV, neue App ohne Hardware-Bitmaps | p99 45–54 ms, Frames über 33 ms 75–159 je 30 s | Übergänge mit 10–16 eigenen Bildern statt Standbild |
+| 59 | V4: Hardware-Bitmaps nur ab ≥ 1,5 MP oder `FEATURE_LEANBACK` (Endstand) | BeyondTV p99 25–35 ms, Frames über 33 ms 0–6 je 30 s; Redmi p99 18,5–20,4 ms | TV mit V3-Build gemessen (dort gleicher Pfad wie V4); Redmi nutzt den V2-Pfad, V4 dort ein Lauf (sauber) |
+| 60 | V5: paralleles Dekodieren (2 Threads) auf dem TV | p99 38–42 ms, Frames über 33 ms 9–15; Dekodieren ~104 ms, Live ~7 Bilder/s | verworfen |
+| 61 | Live-Inhalt zwischen den Übergängen auf dem TV | ~15 Bilder/s | Grenze ist das 1080p-JPEG-Dekodieren; 720p-Modus/Teilbereichs-Updates bewusst nicht umgesetzt |
+| 62 | Abnahme C++ | 0 Fehler | fl-companion-tests 542, fl-tests 3556, hardware-hud 184, device-profile 88, monitor 11, plugin-schedule 845 |
+| 63 | Abnahme Companion 1.2.0 | bestanden | Protokolltests (97+), `assembleDebug` |
+
+Nicht geprüft: Pixel 10 Pro, Pad, Langzeitbetrieb, echte WLAN-Verbindung (Schwankungen per Relay simuliert).

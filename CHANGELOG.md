@@ -6,11 +6,26 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unveröffentlicht]
 
-- Store-Version: Beim ersten Start werden Einstellungen, Kopplungen, Spotify-Anmeldung, Ansichten, Themes und Plugins der EXE-Installation automatisch übernommen (nichts wird überschrieben).
+## [2.13.0] - 2026-11-18
+
+Passend dazu erscheint Companion 1.2.0 (Übergänge auf dem Gerät, Hardware-Bitmaps auf Fernsehern; ältere Companion-Versionen funktionieren weiter). Messungen: [Animations-Runden](docs/ANIMATION-RUNDEN.md#2130--companion-120).
+
+**Prüfstatus 2.13.0:** C++-Testsuiten ohne Fehler: fl-companion-tests 542, fl-tests 3556, hardware-hud 184, device-profile 88, monitor 11, plugin-schedule 845. Companion 1.2.0: Protokolltests grün (97+), `assembleDebug`. Nicht in diesem Lauf: die übrigen C++-Suiten, Layout-UI-Suite, Python-Integrationsschritte.
+
+Gemessen mit isolierter Testinstanz und Test-App, Zielrate 60: Redmi 8 Frametime p99 23–24 → 18–21 ms; unter simulierten WLAN-Schwankungen Stottern bis 21 % → 2–5 %; Übertragung 1 statt 13–18 Bilder je Übergang. BeyondTV: p99 ~60 → 25–35 ms, Frames über 33 ms je 30 s fast alle → 0–6. Live-Inhalte auf dem TV bleiben bei ~15 Bildern/s (1080p-Dekodieren). Nicht geprüft: Pixel, Pad, Langzeitbetrieb.
+
+### Hinzugefügt
+
 - Companion: Seitenübergänge werden auf dem Gerät animiert (Fähigkeit `xfade1`, Nachricht `transition`, Protokoll siehe `docs/COMPANION-PROTOKOLL.md`): der PC sendet nur das Zielbild, das Gerät zeichnet HUD-Scan, Slide oder Fade bildschirmsynchron. Ältere Companion-Apps behalten die bisherigen serverseitigen Zwischenbilder.
-- Companion auf Fernsehern und großen Anzeigen (ab ca. 1,5 MP): Bilder werden im Hintergrund als Hardware-Bitmap vorbereitet, lange Zeichenpausen (über 33 ms) entfallen weitgehend (BeyondTV: Frametime p99 45–54 → 25–35 ms).
+- Store-Version: Beim ersten Start werden Einstellungen, Kopplungen, Spotify-Anmeldung, Ansichten, Themes und Plugins der EXE-Installation automatisch übernommen (nichts wird überschrieben).
+- Diagnose: `SB_FRAME_TRACE=<Datei>` schreibt pro gesendetem Frame Zeiten (Auswertung: `cpp/tools/frame_trace_stats.py`).
+
+### Geändert
+
+- Companion auf Fernsehern und großen Anzeigen (ab ca. 1,5 MP): Bilder werden im Hintergrund als Hardware-Bitmap vorbereitet, lange Zeichenpausen (über 33 ms) entfallen weitgehend.
 - Standard der Animationsrate für neue Installationen: 60 statt 30 Bilder/s (gespeicherte Werte bleiben unverändert).
-- Diagnose: `SB_FRAME_TRACE=<Datei>` schreibt pro gesendetem Frame Zeiten (Auswertung: `cpp/tools/frame_trace_stats.py`); Frame-Raster ohne Drift bei Datenmeldungen während Animationen.
+- Frame-Raster ohne Drift bei Datenmeldungen während Animationen.
+- Aufgeräumt: toter Code entfernt, weniger Bildkopien in Grafik, Freundesliste und Systemwerten.
 
 ## [2.12.1] - 2026-11-15
 
@@ -491,7 +506,8 @@ Erste Fassung als Python-Skript, danach als EXE `FuchsLabs-USB-Display-1.0.zip`.
 - Helligkeit von 50 auf 90 angehoben.
 - Ganzes Bild wird bei jedem Seitenwechsel und alle 5 Minuten neu gesendet. Ein Streifen an fester Stelle bei einfarbigen Testbildern liegt an Display oder Kabel, nicht an der App.
 
-[Unreleased]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.13.0...HEAD
+[2.13.0]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.12.1...v2.13.0
 [2.6.0]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.5.0...v2.6.0
 [2.3.0]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v2.2.0...v2.3.0
 [1.2]: https://github.com/PapaFuchs84/ScreenBuddy/compare/v1.1...v1.2

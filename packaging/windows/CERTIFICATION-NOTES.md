@@ -1,6 +1,6 @@
 # Certification notes — ScreenBuddy for Windows
 
-Review text for Partner Center, first prepared 10 November 2026 and updated 14 November 2026 for package `ScreenBuddy-2.12.0.0-x64.msix`, version 2.12.0.0, identity `49510Herbst.ScreenBuddybyFuchsLabs`. Not yet submitted at the time of writing. Do not submit the local validation identities as an official product.
+Review text for Partner Center, first prepared 10 November 2026, updated 14 November 2026 for 2.12.0.0 and 18 November 2026 for package `ScreenBuddy-2.13.0.0-x64.msix`, version 2.13.0.0, identity `49510Herbst.ScreenBuddybyFuchsLabs`. The 2.13.0.0 update is not yet submitted at the time of writing. Do not submit the local validation identities as an official product.
 
 ## English reviewer notes
 
@@ -10,7 +10,7 @@ No FuchsLabs account or reviewer credentials are required. On first launch, nati
 
 The package declares runFullTrust because the existing desktop application uses Windows desktop APIs for USB/COM and monitor output, performance information, tray UI, optional local Companion TCP/TLS communication and desktop integrations. It installs no driver, Windows service or browser extension. Its initially disabled StartupTask starts the separate ScreenBuddyStartup launcher with --autostart; the user enables startup explicitly in the application and Windows policy can override it.
 
-Store package identity is detected at runtime. The standalone installer/uninstaller and GitHub app updater are bypassed. Data uses the package's LocalState. Microsoft Store owns app updates. The package contains only the two app executables, display assets and license notices; no account files, logs, pairings, plugins or private keys are included.
+Store package identity is detected at runtime. The standalone installer/uninstaller and GitHub app updater are bypassed. Data uses the package's LocalState; on first launch, settings of an existing standalone installation are copied into LocalState once (source data is kept, existing files are not overwritten). Microsoft Store owns app updates. The package contains only the two app executables, display assets and license notices; no account files, logs, pairings, plugins or private keys are included.
 
 No allowElevation capability is requested. The packaged FPS setup refuses both UI and direct --grant-perflog elevation paths, explains administrator-assisted Performance Log Users membership setup, and continues to support existing ETW rights or HWiNFO readings. Packaged vendor-autostart changes are blocked before invoking elevated Task Scheduler commands; users manage this outside the app. Normal configuration/display operation does not require administrator rights.
 

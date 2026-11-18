@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.13.0 – 2026-11-18
+
+Prüfstatus / Test status 2.13.0: C++ 0 Fehler/failures (fl-companion-tests 542, fl-tests 3556, hardware-hud 184, device-profile 88, monitor 11, plugin-schedule 845); Companion 1.2.0: Protokolltests/protocol tests grün/green (97+), `assembleDebug`. Messungen / measurements: `docs/ANIMATION-RUNDEN.md` (Abschnitt/section 2.13.0).
+
+- Geräte-Animation / on-device transitions: hello-Fähigkeit/capability `xfade1`, Textnachricht/text message `transition` vor dem Zielbild/before the target frame; alte Apps/older apps: serverseitige Zwischenbilder/server-rendered frames (Fallback). Protokoll / protocol: `docs/COMPANION-PROTOKOLL.md`.
+- Android: Hardware-Bitmaps auf dem Dekodier-Thread/on the decode thread ab/from ≥1,5 MP oder/or `FEATURE_LEANBACK`; Rand folgt Trennlinie/Scanlinie / edge follows divider/scan line; HUD-Overlay vorgerendert/pre-rendered; Debug-Variante/variant `.hudtest`.
+- Telemetrie / telemetry: `SB_FRAME_TRACE=<Datei/file>`, `cpp/tools/frame_trace_stats.py`; Raster-Pacing ohne Drift/drift-free grid pacing.
+- `display.animation_fps` Standard/default 60 (neue Installationen/new installs).
+- Store: Übernahme der EXE-Einstellungen beim ersten Start / standalone settings imported on first launch (`distribution.cpp`).
+- Cleanup: toter Code/dead code (`ui_kit::placeholder`, `render`-Weiterleitungen/forwarders), weniger Kopien/fewer copies in gfx/friends/sysinfo.
+
 ## 2.12.1 – 2026-11-15
 
 Prüfstatus / Test status 2.12.1: 25 C++-Suiten/suites 0 Fehler/failures (3556 Kern/core, 4221 Snapshots, 2101 Plugin-Snapshots, 448 Companion, 183 HUD, 2144 Custom, 845 Schedule, 290 Game); Companion 1.1.2: 72 Protokoll/protocol, Lint, Build. Protokoll / log: `docs/ANIMATION-RUNDEN.md` (50 Runden/rounds).

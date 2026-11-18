@@ -93,7 +93,7 @@ sequenceDiagram
 
 ## 7. Verteilung
 
-Eine unsignierte `ScreenBuddy.exe` (Installer, App, Updater, Deinstaller). Standardziel `%LOCALAPPDATA%\FuchsLabs\USB-Display`. Daten: `config.toml`, `companion.json`, `usb-display.log`, `update-check.json`. Die Companion-App 1.0.3 (versionCode 7) ist ein separater Download; 1.0.4 (versionCode 8) ist nur Entwicklungsstand. Öffentliche EXE-Auslieferungen verlangen Authenticode-Signierung mit Zeitstempel (Vorbereitung 2.9.6). Für den Store ist ein MSIX-Pfad mit eigenem Datenpfad vorbereitet; eine Store-Veröffentlichung hat nicht stattgefunden. Plugins kommen aus dem Store-Repo `PapaFuchs84/ScreenBuddy-Plugins` (signierter Index, Pages).
+Eine unsignierte `ScreenBuddy.exe` (Installer, App, Updater, Deinstaller). Standardziel `%LOCALAPPDATA%\FuchsLabs\USB-Display`. Daten: `config.toml`, `companion.json`, `usb-display.log`, `update-check.json`. Die Companion-App 1.2.0 (versionCode 12) ist ein separater Download. Öffentliche EXE-Auslieferungen verlangen Authenticode-Signierung mit Zeitstempel (Vorbereitung 2.9.6). Für den Store ist ein MSIX-Pfad mit eigenem Datenpfad vorbereitet; eine Store-Veröffentlichung hat nicht stattgefunden. Plugins kommen aus dem Store-Repo `PapaFuchs84/ScreenBuddy-Plugins` (signierter Index, Pages).
 
 ## 8. Querschnitt
 

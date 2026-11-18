@@ -2,7 +2,7 @@
 
 Store-Ausgabe „ScreenBuddy by FuchsLabs“: [Microsoft Store](https://apps.microsoft.com/detail/9P03461RLGG0) · [Hinweise zur Store-Ausgabe](docs/STORE-DISTRIBUTION.md). [App-Datenschutz](https://fuchslabs.duckdns.org/screenbuddy/privacy/) · [Support](https://fuchslabs.duckdns.org/screenbuddy/support/).
 
-**Companion 1.1.2 (Release `companion-v1.1.2`):** flüssige Anzeige mit bis zu 60 Bildern/s (Bitmaps werden wiederverwendet, Anzeige im Bildschirmtakt; auf einem Redmi 8 etwa 59 statt 52 Bilder/s und kaum noch Ruckler); 1.1.1 brachte Fehlerkorrekturen für die Automatik; seit 1.1.0 dunkles Standard-Design und optionale Automatik für den gekoppelten PC. Einrichtung, Freigaben und Geräteprüfgrenzen: [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110).
+**Companion 1.2.0 (Release `companion-v1.2.0`):** Seitenübergänge werden auf dem Gerät animiert (HUD-Scan, Slide, Fade; bildschirmsynchron und robust gegen WLAN-Schwankungen); auf Fernsehern und großen Anzeigen Hardware-Bitmaps, dadurch kaum noch lange Zeichenpausen. Ältere Companion-Versionen funktionieren weiter (der PC rechnet dann die Zwischenbilder). 1.1.2 brachte flüssige Anzeige mit bis zu 60 Bildern/s; 1.1.1 brachte Fehlerkorrekturen für die Automatik; seit 1.1.0 dunkles Standard-Design und optionale Automatik für den gekoppelten PC. Einrichtung, Freigaben und Geräteprüfgrenzen: [Companion-Anleitung](docs/COMPANION.md#automatik-companion-110).
 
 
 <img src="docs/logo/fuchslabs-logo.png" alt="FuchsLabs" width="96"><br>
@@ -18,7 +18,7 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 
 **Dein Zusatzbildschirm zeigt, was dich interessiert: Systemwerte, Freunde, Spielstände und Neuigkeiten.**
 
-![Version](https://img.shields.io/badge/version-2.12.1-F77F00)
+![Version](https://img.shields.io/badge/version-2.13.0-F77F00)
 ![Plattform](https://img.shields.io/badge/plattform-Windows%2010%20%7C%2011-14213D)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white)
 ![Status](https://img.shields.io/badge/status-Testphase-F77F00)
@@ -33,6 +33,8 @@ KI-Nutzung: Getrennte bestätigte Konto-Opt-ins sind standardmäßig aus. Claude
 </div>
 
 Windows-App für 3,5-Zoll-USB-Displays (480 × 320) und zusätzliche HDMI-/USB-C-Bildschirme, auch mit Touch. Sie läuft im Hintergrund und bietet native Windows-Einstellungen. Die C++20-App enthält den Installer in derselben EXE; Python, WebView2 und ein Visual-C++-Redistributable werden nicht benötigt.
+
+**Neu in 2.13.0 (18.11.2026):** Companion 1.2.0 animiert die **Seitenübergänge auf dem Gerät**; der PC überträgt je Übergang 1 statt 13–18 Bilder. Auf einem Redmi 8 sinkt die Frametime p99 von 23–24 auf 18–21 ms, unter WLAN-Schwankungen das Stottern von bis zu 21 % auf 2–5 %. Auf einem BeyondTV-Fernseher sinkt p99 von ~60 auf 25–35 ms, Frames über 33 ms von fast allen auf 0–6 je 30 s; Live-Inhalte bleiben dort bei etwa 15 Bildern/s (1080p-Dekodieren). Animationsrate-Standard für neue Installationen 60 Bilder/s. Store-Version: Einstellungen der EXE-Installation werden beim ersten Start übernommen, sofern sie noch keine eigenen hat. Messungen: [Animations-Runden](docs/ANIMATION-RUNDEN.md#2130--companion-120) · [Changelog](CHANGELOG.md)
 
 **Neu in 2.12.1 (15.11.2026):** deutlich **flüssigere Animationen** und neue **Seitenübergänge** (Standard: HUD-Scan im Stil des Hardware-HUD; wahlweise Überblenden, Schieben oder aus, **Einstellungen → Anzeige → Animationen**). Der PC liefert jetzt stabil bis zu 60 Bilder/s; auf einem Redmi 8 mit Companion 1.1.2 steigt die angezeigte Bildrate gegenüber 2.12.0 von etwa 18/23/15 auf 59/59/58 Bilder/s (Hardware-HUD/KI-Status/eigene Ansicht). Game-Mode: Intro und Cockpit im HUD-Stil, Übergang ins Spiel und zurück; die Ziel-Display-Liste unterscheidet gleichnamige (neu gekoppelte) Geräte und zeigt verbunden/offline. Messprotokoll aller 50 Runden: [Animations-Runden](docs/ANIMATION-RUNDEN.md) · [Changelog](CHANGELOG.md)
 
