@@ -2,7 +2,11 @@
 
 ## Status
 
-### 2.13.0 (aktuell / current)
+### 2.14.0 (aktuell / current)
+
+Package `ScreenBuddy-2.14.0.0-x64.msix`, identity `49510Herbst.ScreenBuddybyFuchsLabs`, version 2.14.0.0. Prepared on 21 November 2026; upload, certification and publication are open until recorded here. The “what's new” texts below target 2.14.0; description, features and keywords are unchanged from 2.12.0. Screenshots unchanged (2.11.0 renders). / Paket `ScreenBuddy-2.14.0.0-x64.msix`, Identität `49510Herbst.ScreenBuddybyFuchsLabs`, Version 2.14.0.0. Vorbereitet am 21.11.2026; Upload, Zertifizierung und Veröffentlichung sind offen, bis sie hier vermerkt sind. Die Texte „Neues in dieser Version“ gelten für 2.14.0; Beschreibung, Funktionen und Stichwörter unverändert gegenüber 2.12.0. Beispielbilder unverändert (2.11.0).
+
+### 2.13.0 (vorherige Version / previous version)
 
 Package `ScreenBuddy-2.13.0.0-x64.msix`, identity `49510Herbst.ScreenBuddybyFuchsLabs`, version 2.13.0.0. Prepared on 18 November 2026; upload, certification and publication are open until recorded here. The “what's new” texts below target 2.13.0; description, features and keywords are unchanged from 2.12.0. Screenshots unchanged (2.11.0 renders).
 
@@ -117,7 +121,15 @@ GUT ZU WISSEN
 
 USB-Display; Systemmonitor; Hardware-Monitor; Zweitbildschirm; Game-Mode FPS; Sensoranzeige HWiNFO; Android-Companion
 
-### Neues in dieser Version (2.13.0; höchstens 1500 Zeichen)
+### Neues in dieser Version (2.14.0; höchstens 1500 Zeichen)
+
+```text
+Neu in 2.14.0:
+• Eigener Anzeigename pro Freund: In der gemeinsamen Freundesliste (Discord, Steam, Xbox, PlayStation) kannst du jedem Freund einen eigenen Namen geben. Er erscheint statt des Plattformnamens auf Display und Companion, auch bei verknüpften Personen. Einstellungen → Freunde → Anzeigenamen.
+• Die Companion-App bleibt unverändert (1.2.0); ein Update ist nicht nötig.
+```
+
+### Neues in dieser Version (2.13.0, vorherige Version; höchstens 1500 Zeichen)
 
 ```text
 Neu in 2.13.0:
@@ -230,7 +242,15 @@ GOOD TO KNOW
 
 USB display; system monitor; hardware monitor; second screen; game mode FPS; HWiNFO sensor display; Android companion
 
-### What's new in this version (2.13.0; at most 1500 characters)
+### What's new in this version (2.14.0; at most 1500 characters)
+
+```text
+New in 2.14.0:
+• Custom display name per friend: in the combined friends list (Discord, Steam, Xbox, PlayStation) you can give each friend your own name. It is shown instead of the platform name on display and Companion, also for linked people. Settings → Friends → Display names.
+• The Companion app is unchanged (1.2.0); no update needed.
+```
+
+### What's new in this version (2.13.0, previous version; at most 1500 characters)
 
 ```text
 New in 2.13.0:
