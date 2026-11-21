@@ -341,6 +341,16 @@ static void test_ui_logic() {
         al = set_alias(al, {"steam", "765", "basti"}, "");  // leer entfernt
         CHECK_EQ(al.size(), (size_t)1);
         CHECK_EQ(alias_of(al, {"steam", "765", ""}), std::string());
+        // 40 Zeichen, nicht Bytes (Umlaute); Mehrkonten-Zeile bleibt für das andere Konto erhalten
+        CHECK_EQ(from_u32(to_u32(alias_of(set_alias({}, {"steam", "9", ""}, std::string(45 * 1, 'x') + "ä"), {"steam", "9", ""}))).size(), (size_t)40);
+        std::string umlauts;
+        for (int i = 0; i < 30; ++i) umlauts += "ä";
+        CHECK_EQ(to_u32(alias_of(set_alias({}, {"steam", "9", ""}, umlauts), {"steam", "9", ""})).size(), (size_t)30);
+        auto multi = set_alias({"Max|steam:1|xbox:2"}, {"steam", "1", ""}, "");
+        CHECK_EQ(multi.size(), (size_t)1);
+        CHECK_EQ(multi[0], std::string("Max|xbox:2"));
+        CHECK_EQ(alias_of(multi, {"steam", "1", ""}), std::string());
+        CHECK_EQ(set_alias({"Max|steam:1"}, {"steam", "1", ""}, "").size(), (size_t)0);
         // friends.cpp: Alias auf verknüpfter Person (über zweites Konto), Plattformname bleibt Gruppenname sonst
         std::vector<std::string> al2 = {"Chef|xbox:b4sti"};
         auto merged = fl::friends::merge_accounts(acc, l2, false, al2);

@@ -429,11 +429,13 @@ static std::map<std::pair<std::string, std::string>, std::string> parse_aliases(
     for (auto& entry : aliases) {
         auto parts = split(entry, "|");
         for (auto& p : parts) p = trim(p);
-        if (parts.size() < 2 || parts[0].empty()) continue;
+        if (parts.size() < 2) continue;
+        const std::string alias = render::clean_text(parts[0]);  // wie Plattformnamen: ohne Emoji und Sonderzeichen
+        if (alias.empty()) continue;
         for (size_t i = 1; i < parts.size(); ++i) {
             auto c = parts[i].find(':');
             if (c == std::string::npos) continue;
-            out.emplace(std::make_pair(lower_ascii(parts[i].substr(0, c)), casefold(parts[i].substr(c + 1))), parts[0]);
+            out.emplace(std::make_pair(lower_ascii(trim(parts[i].substr(0, c))), casefold(trim(parts[i].substr(c + 1)))), alias);
         }
     }
     return out;
@@ -457,6 +459,9 @@ void apply_aliases(std::vector<Friend>& friends, const std::vector<std::string>&
                 f.name = it->second;
                 break;
             }
+    // Nur Discord-Seite: auch Verweis über den Namen (wie in merge_accounts)
+    for (auto& f : friends)
+        if (auto it = map.find({"discord", casefold(f.name)}); it != map.end() && f.ids.count("discord")) f.name = it->second;
 }
 
 std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const std::vector<std::string>& links, bool auto_merge,
@@ -533,6 +538,7 @@ std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const s
         for (size_t a : accs) {  // Anzeigename hat Vorrang (user_id oben bleibt vom Plattformnamen abhängig und damit stabil)
             auto it = alias_map.find({accounts[a].platform, casefold(accounts[a].uid)});
             if (it == alias_map.end()) it = alias_map.find({accounts[a].platform, casefold(accounts[a].name)});
+            if (it == alias_map.end() && !accounts[a].handle.empty()) it = alias_map.find({accounts[a].platform, casefold(accounts[a].handle)});
             if (it != alias_map.end()) { f.name = it->second; break; }
         }
         f.status = accounts[top].status;

@@ -127,12 +127,26 @@ std::vector<std::string> set_alias(std::vector<std::string> aliases, const Accou
     for (char c : alias)
         if (c != '|' && c != '\r' && c != '\n') clean += c;
     clean = trim(clean);
-    if (clean.size() > 40) {  // nicht mitten in einem UTF-8-Zeichen abschneiden
-        size_t n = 40;
-        while (n > 0 && (static_cast<unsigned char>(clean[n]) & 0xC0) == 0x80) --n;
-        clean = trim(clean.substr(0, n));
+    std::u32string u = to_u32(clean);  // 40 Zeichen (nicht Bytes), wie das Eingabefeld
+    if (u.size() > 40) { u.resize(40); clean = trim(from_u32(u)); }
+    // Nur den Eintrag dieses Kontos entfernen; Zeilen mit mehreren Konten behalten die übrigen
+    std::vector<std::string> kept;
+    for (const auto& l : aliases) {
+        if (!alias_line_for(l, a)) { kept.push_back(l); continue; }
+        const auto bar = l.find('|');
+        std::string rest = trim(l.substr(0, bar));
+        size_t others = 0;
+        size_t pos = bar + 1;
+        while (pos <= l.size()) {
+            size_t next = l.find('|', pos);
+            std::string part = trim(l.substr(pos, next == std::string::npos ? std::string::npos : next - pos));
+            if (casefold(part) != casefold(a.platform + ":" + a.id) && !part.empty()) { rest += "|" + part; ++others; }
+            if (next == std::string::npos) break;
+            pos = next + 1;
+        }
+        if (others) kept.push_back(rest);
     }
-    aliases.erase(std::remove_if(aliases.begin(), aliases.end(), [&](const std::string& l) { return alias_line_for(l, a); }), aliases.end());
+    aliases = std::move(kept);
     if (!clean.empty()) aliases.push_back(clean + "|" + a.platform + ":" + a.id);
     return aliases;
 }

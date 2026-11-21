@@ -300,7 +300,7 @@ static ojson coerce(const std::string& sec, const std::string& key, const ojson&
             return out;
         }
         std::vector<std::string> out;
-        const size_t cap = k == Key{"homeassistant", "entities"} ? 4 : 50;
+        const size_t cap = k == Key{"homeassistant", "entities"} ? 4 : k == Key{"friends", "aliases"} ? 200 : 50;
         for (auto& x : value) {
             std::u32string u = to_u32(trim(py_str(x)));
             if (u.size() > 200) u.resize(200);

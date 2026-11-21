@@ -215,7 +215,22 @@ private:
                     if (s.is_object() && s.contains("a") && s.contains("b")) suggestions.push_back({parse(s["a"]), parse(s["b"])});
             return [this, accounts = std::move(accounts), suggestions = std::move(suggestions)]() mutable {
                 loading_ = false;
+                // Auswahl über Plattform+ID halten (die Liste ist sortiert und kann sich beim Neuladen verschieben)
+                auto keep = [&](Combo* c) -> std::pair<std::string, std::string> {
+                    if (!c || accounts_.empty()) return {};
+                    const auto& s = accounts_[size_t(std::clamp(c->index, 0, int(accounts_.size()) - 1))];
+                    return {s.platform, s.id};
+                };
+                const auto ka = keep(a_), kb = keep(b_), kal = keep(alias_acc_);
                 accounts_ = std::move(accounts);
+                auto restore = [&](Combo* c, const std::pair<std::string, std::string>& k) {
+                    if (!c || k.first.empty()) return;
+                    for (size_t i = 0; i < accounts_.size(); ++i)
+                        if (accounts_[i].platform == k.first && accounts_[i].id == k.second) { c->index = c->original = int(i); return; }
+                };
+                restore(a_, ka);
+                restore(b_, kb);
+                restore(alias_acc_, kal);
                 suggestions_ = std::move(suggestions);
                 fill_accounts();
                 host_->relayout();
@@ -269,7 +284,12 @@ private:
             host_->toast(T(L"Bitte einen Anzeigenamen eintragen.", L"Please enter a display name."), ToastKind::Error);
             return;
         }
-        auto lines = logic::set_alias(logic::lines_of(narrow(aliases_->text())), x, name);
+        const auto current = logic::lines_of(narrow(aliases_->text()));
+        if (remove && logic::alias_of(current, x).empty()) {
+            host_->toast(T(L"Dieses Konto hat keinen Anzeigenamen.", L"This account has no display name."), ToastKind::Info);
+            return;
+        }
+        auto lines = logic::set_alias(current, x, name);
         aliases_->set_text(widen(logic::lines_join(lines)));
         alias_name_->set_text(L"");
         fill_accounts();
