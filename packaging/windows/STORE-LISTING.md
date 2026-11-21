@@ -75,7 +75,7 @@ EIGENE ANSICHTEN, PLUGINS UND DESIGN
 KOSTENLOSE ANDROID-COMPANION-APP
 Mit der kostenlosen ScreenBuddy-Companion-App wird ein Android-Handy, -Tablet oder Android-TV zur zusätzlichen Anzeige. Gekoppelt wird per QR-Code oder PIN; die Verbindung läuft verschlüsselt direkt zwischen PC und Gerät im privaten Netz oder über USB-Tethering, ohne Cloud. Der PC rendert passend zur Geräteauflösung innerhalb der Größenlimits; größere Auflösungen werden proportional verkleinert. Hoch- und Querformat werden unterstützt, und du blätterst per Wischen. Mehrere Geräte können synchron oder unabhängig laufen. Die optionale Automatik kann die Anzeige öffnen, wenn der gekoppelte PC erreichbar ist; Android-Berechtigungen und Hintergrundbeschränkungen können das verzögern oder verhindern.
 Die Companion-App ist nicht Teil dieses Store-Pakets und nicht bei Google Play erhältlich. Du lädst die APK kostenlos von GitHub und installierst sie selbst:
-Download (Companion 1.1.1): https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/companion-v1.1.1
+Download (Companion 1.2.0): https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/companion-v1.2.0
 Anleitung: https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/COMPANION.md
 
 DATENSCHUTZ UND SICHERHEIT
@@ -188,7 +188,7 @@ CUSTOM VIEWS, PLUGINS AND DESIGN
 FREE ANDROID COMPANION APP
 The free ScreenBuddy Companion app turns an Android phone, tablet or Android TV into an additional display. Pairing uses a QR code or PIN; the connection is encrypted and runs directly between PC and device on your private network or over USB tethering, without any cloud. The PC renders to the device resolution within size limits; larger resolutions are scaled down proportionally. Portrait and landscape are supported, and you change pages by swiping. Several devices can run in sync or independently. Optional automatic mode can open the display when the paired PC is reachable; Android permissions and background restrictions can delay or prevent this.
 The Companion app is not part of this Store package and is not available on Google Play. You download the APK free of charge from GitHub and install it yourself:
-Download (Companion 1.1.1): https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/companion-v1.1.1
+Download (Companion 1.2.0): https://github.com/PapaFuchs84/ScreenBuddy/releases/tag/companion-v1.2.0
 Guide: https://github.com/PapaFuchs84/ScreenBuddy/blob/main/docs/COMPANION.en.md
 
 PRIVACY AND SECURITY
