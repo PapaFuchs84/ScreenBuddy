@@ -85,7 +85,7 @@ Alle drei Designsysteme erhalten eigene Hell-/Dunkel-Paletten; sechs Beispiele u
 | Seite | Inhalt | Quelle | Aktualisierung |
 |---|---|---|---|
 | **System** | CPU (Last, Takt, Temperatur, Lüfter), GPU (Last, Temperatur, Lüfter, VRAM), RAM, Datenträger, Netzwerk mit Verlauf | Windows-APIs, GPU-Werte über NVIDIA NVML beziehungsweise AMD ADL (verfügbare Messwerte hängen von GPU und Treiber ab), HWiNFO-Shared-Memory | quellenabhängig: CPU, RAM und Netzwerk etwa jede Sekunde, GPU/HWiNFO etwa alle 2 s |
-| **Freunde** | Discord, Steam, Xbox und (neu in 2.9.3, optional) PlayStation in einer Liste; Konten lassen sich manuell verknüpfen, gleiche Namen werden automatisch zusammengeführt (abschaltbar) | eigener Discord-Bot, Steam Web API, [OpenXBL](https://xbl.io), PlayStation nur über Sonys inoffizielle Schnittstelle (NPSSO-Code, Standard: aus) | sofort / 1 min / 3 min / 2 min |
+| **Freunde** | Discord, Steam, Xbox und (neu in 2.9.3, optional) PlayStation in einer Liste; Konten lassen sich manuell verknüpfen, gleiche Namen werden automatisch zusammengeführt (abschaltbar); pro Freund ist ein eigener Anzeigename möglich | eigener Discord-Bot, Steam Web API, [OpenXBL](https://xbl.io), PlayStation nur über Sonys inoffizielle Schnittstelle (NPSSO-Code, Standard: aus) | sofort / 1 min / 3 min / 2 min |
 | **Discord-Freunde** | Status, Aktivität, Avatar | eigener Discord-Bot | sofort |
 | **Battlefield 6 · Rangliste** | eingetragene EA-Freunde nach Rang, mit Abzeichen, K/D und Siegquote | [gametools.network](https://api.gametools.network) | 15 min |
 | **Blog-Updates** | neuester Beitrag je Blog; den Feed findet die App selbst | RSS/Atom | 30 min |

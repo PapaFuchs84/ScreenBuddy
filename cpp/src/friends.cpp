@@ -423,7 +423,49 @@ static int status_order(const std::string& s) {
     return it == render::STATUS_ORDER.end() ? 9 : it->second;
 }
 
-std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const std::vector<std::string>& links, bool auto_merge) {
+// Anzeigenamen: "Alias|plattform:id" → Schlüssel (plattform, casefold(id)) → Alias. Der erste Eintrag je Konto gilt.
+static std::map<std::pair<std::string, std::string>, std::string> parse_aliases(const std::vector<std::string>& aliases) {
+    std::map<std::pair<std::string, std::string>, std::string> out;
+    for (auto& entry : aliases) {
+        auto parts = split(entry, "|");
+        for (auto& p : parts) p = trim(p);
+        if (parts.size() < 2) continue;
+        const std::string alias = render::clean_text(parts[0]);  // wie Plattformnamen: ohne Emoji und Sonderzeichen
+        if (alias.empty()) continue;
+        for (size_t i = 1; i < parts.size(); ++i) {
+            auto c = parts[i].find(':');
+            if (c == std::string::npos) continue;
+            out.emplace(std::make_pair(lower_ascii(trim(parts[i].substr(0, c))), casefold(trim(parts[i].substr(c + 1)))), alias);
+        }
+    }
+    return out;
+}
+
+std::vector<std::string> aliases_from_config(const ojson& cfg) {
+    std::vector<std::string> out;
+    if (cfg.is_object() && cfg.contains("aliases") && cfg["aliases"].is_array())
+        for (auto& a : cfg["aliases"])
+            if (a.is_string()) out.push_back(a.get<std::string>());
+    return out;
+}
+
+void apply_aliases(std::vector<Friend>& friends, const std::vector<std::string>& aliases) {
+    if (aliases.empty()) return;
+    auto map = parse_aliases(aliases);
+    if (map.empty()) return;
+    for (auto& f : friends)
+        for (auto& [plat, id] : f.ids)
+            if (auto it = map.find({plat, casefold(id)}); it != map.end()) {
+                f.name = it->second;
+                break;
+            }
+    // Nur Discord-Seite: auch Verweis über den Namen (wie in merge_accounts)
+    for (auto& f : friends)
+        if (auto it = map.find({"discord", casefold(f.name)}); it != map.end() && f.ids.count("discord")) f.name = it->second;
+}
+
+std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const std::vector<std::string>& links, bool auto_merge,
+                                   const std::vector<std::string>& aliases) {
     // Eine Zeile je Person. Reihenfolge der Regeln: manuelle Verknüpfungen, dann gleicher Name.
     std::vector<std::pair<std::string, std::vector<size_t>>> groups;
     std::set<size_t> used;
@@ -472,6 +514,7 @@ std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const s
     }
     for (size_t i = 0; i < accounts.size(); ++i)
         if (!used.count(i)) groups.push_back({accounts[i].name, {i}});
+    const auto alias_map = parse_aliases(aliases);
     std::vector<Friend> out;
     for (auto& [name, accs] : groups) {
         // Online hat Vorrang; die Aktivität stammt vom Konto, das gerade spielt
@@ -492,6 +535,12 @@ std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const s
         const Account& first = accounts[accs[0]];
         f.user_id = std::hash<std::string>{}(casefold(name) + "|" + first.platform + "|" + first.uid) & 0xFFFFFFFF;
         f.name = name;
+        for (size_t a : accs) {  // Anzeigename hat Vorrang (user_id oben bleibt vom Plattformnamen abhängig und damit stabil)
+            auto it = alias_map.find({accounts[a].platform, casefold(accounts[a].uid)});
+            if (it == alias_map.end()) it = alias_map.find({accounts[a].platform, casefold(accounts[a].name)});
+            if (it == alias_map.end() && !accounts[a].handle.empty()) it = alias_map.find({accounts[a].platform, casefold(accounts[a].handle)});
+            if (it != alias_map.end()) { f.name = it->second; break; }
+        }
         f.status = accounts[top].status;
         f.activity = (playing ? *playing : accounts[top]).activity;
         f.mobile = accounts[top].mobile;
@@ -764,7 +813,7 @@ std::vector<Friend> FriendsHub::people() {
     if (cfg_.contains("links") && cfg_["links"].is_array())
         for (auto& l : cfg_["links"])
             if (l.is_string()) links.push_back(l.get<std::string>());
-    auto people = merge_accounts(accounts, links, cbool(cfg_, "auto_merge", true));
+    auto people = merge_accounts(accounts, links, cbool(cfg_, "auto_merge", true), aliases_from_config(cfg_));
     if (!cbool(cfg_, "show_offline", false))
         people.erase(std::remove_if(people.begin(), people.end(), [](auto& p) { return p.status == "offline"; }), people.end());
     return people;

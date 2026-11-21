@@ -85,7 +85,7 @@ All three design systems have paired light/dark palettes, six examples and a nat
 | Page | Content | Source | Refresh |
 |---|---|---|---|
 | **System** | CPU (load, clock, temperature, fan), GPU (load, temperature, fan, VRAM), RAM, drive, network with history | Windows APIs, GPU readings via NVIDIA NVML or AMD ADL (available readings depend on the GPU and driver), HWiNFO shared memory | depends on the source: CPU, RAM and network about every second, GPU/HWiNFO about every 2 s |
-| **Friends** | Discord, Steam, Xbox and (new in 2.9.3, optional) PlayStation in one list; accounts can be linked manually, matching names are merged automatically (can be switched off) | your own Discord bot, Steam Web API, [OpenXBL](https://xbl.io), PlayStation only via Sony’s unofficial interface (NPSSO code, default: off) | instant / 1 min / 3 min / 2 min |
+| **Friends** | Discord, Steam, Xbox and (new in 2.9.3, optional) PlayStation in one list; accounts can be linked manually, matching names are merged automatically (can be switched off); each friend can get your own display name | your own Discord bot, Steam Web API, [OpenXBL](https://xbl.io), PlayStation only via Sony’s unofficial interface (NPSSO code, default: off) | instant / 1 min / 3 min / 2 min |
 | **Discord friends** | status, activity, avatar | your own Discord bot | instant |
 | **Battlefield 6 · Leaderboard** | the EA friends you add, ranked, with badge, K/D and win rate | [gametools.network](https://api.gametools.network) | 15 min |
 | **Blog updates** | newest post per blog; the app finds the feed itself | RSS/Atom | 30 min |

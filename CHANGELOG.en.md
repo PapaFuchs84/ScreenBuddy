@@ -6,6 +6,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+### Added
+
+- Friends: a **custom display name per friend** (Settings → Friends → Display names; config `friends.aliases`, lines `display name|platform:ID`). The name replaces the platform name on display and Companion, also for linked people and on the Discord page; removing it restores the platform name.
+
 ## [2.13.0] - 2026-11-18
 
 Companion 1.2.0 is released alongside (transitions on the device, hardware bitmaps on TVs; older Companion versions keep working). Measurements (German): [animation rounds](docs/ANIMATION-RUNDEN.md#2130--companion-120).

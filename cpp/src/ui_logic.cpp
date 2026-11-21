@@ -104,6 +104,61 @@ std::vector<std::string> link_accounts(std::vector<std::string> links, const Acc
     return links;
 }
 
+static bool alias_line_for(const std::string& line, const Account& a, std::string* alias = nullptr) {
+    const auto bar = line.find('|');
+    if (bar == std::string::npos) return false;
+    const std::string key = a.platform + ":" + a.id;
+    size_t pos = bar + 1;
+    while (pos <= line.size()) {
+        size_t next = line.find('|', pos);
+        std::string part = trim(line.substr(pos, next == std::string::npos ? std::string::npos : next - pos));
+        if (casefold(part) == casefold(key)) {
+            if (alias) *alias = trim(line.substr(0, bar));
+            return true;
+        }
+        if (next == std::string::npos) break;
+        pos = next + 1;
+    }
+    return false;
+}
+
+std::vector<std::string> set_alias(std::vector<std::string> aliases, const Account& a, const std::string& alias) {
+    std::string clean;
+    for (char c : alias)
+        if (c != '|' && c != '\r' && c != '\n') clean += c;
+    clean = trim(clean);
+    std::u32string u = to_u32(clean);  // 40 Zeichen (nicht Bytes), wie das Eingabefeld
+    if (u.size() > 40) { u.resize(40); clean = trim(from_u32(u)); }
+    // Nur den Eintrag dieses Kontos entfernen; Zeilen mit mehreren Konten behalten die übrigen
+    std::vector<std::string> kept;
+    for (const auto& l : aliases) {
+        if (!alias_line_for(l, a)) { kept.push_back(l); continue; }
+        const auto bar = l.find('|');
+        std::string rest = trim(l.substr(0, bar));
+        size_t others = 0;
+        size_t pos = bar + 1;
+        while (pos <= l.size()) {
+            size_t next = l.find('|', pos);
+            std::string part = trim(l.substr(pos, next == std::string::npos ? std::string::npos : next - pos));
+            if (casefold(part) != casefold(a.platform + ":" + a.id) && !part.empty()) { rest += "|" + part; ++others; }
+            if (next == std::string::npos) break;
+            pos = next + 1;
+        }
+        if (others) kept.push_back(rest);
+    }
+    aliases = std::move(kept);
+    if (!clean.empty()) aliases.push_back(clean + "|" + a.platform + ":" + a.id);
+    return aliases;
+}
+
+std::string alias_of(const std::vector<std::string>& aliases, const Account& a) {
+    for (const auto& l : aliases) {
+        std::string alias;
+        if (alias_line_for(l, a, &alias)) return alias;
+    }
+    return "";
+}
+
 std::string entity_id_of(const std::string& line) {
     std::string id = line.substr(0, line.find('|'));
     id = trim(id);

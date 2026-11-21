@@ -943,6 +943,12 @@ std::string App::friends_message() {
     return join(problems, " · ");
 }
 
+// Discord-Seite ohne Freundesliste: individuelle Anzeigenamen (Einstellung friends.aliases) ebenfalls anwenden
+static std::vector<Friend> with_aliases(std::vector<Friend> list, const ojson& cfg) {
+    if (cfg.contains("friends")) friends::apply_aliases(list, friends::aliases_from_config(cfg["friends"]));
+    return list;
+}
+
 std::vector<App::PageEntry> App::page_list(const std::vector<Friend>& friends, const std::vector<Friend>& people, RendererSet& r, bool companion,
                                            const std::vector<std::string>* pages_override, ViewState* view, double tick, bool phone, const std::string& device, const std::string& forced_custom) {
     // [(Name, Seitenanzahl, Zeichenfunktion(seite, zeichner))] in der eingestellten Reihenfolge
@@ -1761,7 +1767,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
         if(!dirty && !changed && !resizing && now<view.next_deadline)return out;
         view.next_deadline=plugins::schedule::never;view.animating=false;
         std::lock_guard lock(render::mutex());
-        auto pages=page_list(discord_?discord_->friends():std::vector<Friend>{},friends_?friends_->people():std::vector<Friend>{},renderers_for(area.w,area.h),phone,pages_override,&view,now,phone,phone?(id.empty()?"network":id):primary_layout_id(),key);
+        auto pages=page_list(discord_?with_aliases(discord_->friends(),cfg_):std::vector<Friend>{},friends_?friends_->people():std::vector<Friend>{},renderers_for(area.w,area.h),phone,pages_override,&view,now,phone,phone?(id.empty()?"network":id):primary_layout_id(),key);
         if(!pages.empty() && pages.front().custom_draw) {
             // draw() shares the existing keepout and arranged-touch transform.
             auto drawn=draw(pages,{{0,0,area.w,area.h}},0,size,area);
@@ -1814,7 +1820,7 @@ App::RenderOut App::render_core(ViewState& view, std::pair<int, int> size, doubl
     view.area = area;
     auto active = active_pages(phone, pages_override);
     std::vector<Friend> friends, people;
-    if (discord_ && std::count(active.begin(), active.end(), "discord")) friends = discord_->friends();
+    if (discord_ && std::count(active.begin(), active.end(), "discord")) friends = with_aliases(discord_->friends(), cfg_);
     if (friends_) people = friends_->people();
     const double m_active = mono();
     LOGD("app", "Vorlauf: Profil %.1f, Spiel %.1f, Live %.1f, Seiten/Freunde %.1f ms", (m_profile - now) * 1000, (m_game - m_profile) * 1000, (m_live - m_game) * 1000, (m_active - m_live) * 1000);

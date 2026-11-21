@@ -42,7 +42,12 @@ std::vector<Account> parse_xbox_people(const nlohmann::json& data);
 std::vector<Account> fetch_steam(const std::string& key, const std::string& steam_id);
 std::vector<Account> fetch_xbox(const std::string& key);
 std::vector<Account> fetch_psn(const std::string& npsso);  // inoffiziell: NPSSO-Code der PlayStation-Anmeldung
-std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const std::vector<std::string>& links, bool auto_merge);
+// aliases: "Anzeigename|plattform:id" je Zeile; der Anzeigename ersetzt den Plattformnamen der Person (auch bei verknüpften Konten)
+std::vector<Friend> merge_accounts(const std::vector<Account>& accounts, const std::vector<std::string>& links, bool auto_merge,
+                                   const std::vector<std::string>& aliases = {});
+// Für Listen ohne Zusammenführung (nur Discord): Name anhand f.ids ersetzen
+void apply_aliases(std::vector<Friend>& friends, const std::vector<std::string>& aliases);
+std::vector<std::string> aliases_from_config(const ojson& cfg);
 ojson suggest_links(const ojson& accounts, const std::vector<std::string>& links, bool auto_merge, size_t limit = 12);
 std::string norm(const std::string& name);
 double similarity(const std::string& a, const std::string& b);  // wie difflib.SequenceMatcher.ratio()
