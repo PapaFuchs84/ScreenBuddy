@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.14.0 – 2026-11-21
+
+- Freunde: eigener Anzeigename pro Freund / custom display name per friend (`friends.aliases`, `Anzeigename|plattform:ID`); Einstellungen → Freunde → Anzeigenamen / Settings → Friends → Display names. Prüfstatus / test status: fl-tests 3577, layout-ui 1877, companion 542, 0 Fehler/failures.
+
 ## 2.13.0 – 2026-11-18
 
 Prüfstatus / Test status 2.13.0: C++ 0 Fehler/failures (fl-companion-tests 542, fl-tests 3556, hardware-hud 184, device-profile 88, monitor 11, plugin-schedule 845); Companion 1.2.0: Protokolltests/protocol tests grün/green (97+), `assembleDebug`. Messungen / measurements: `docs/ANIMATION-RUNDEN.md` (Abschnitt/section 2.13.0).
