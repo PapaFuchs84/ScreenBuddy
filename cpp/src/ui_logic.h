@@ -28,6 +28,11 @@ struct Account {
 };
 std::vector<std::string> link_accounts(std::vector<std::string> links, const Account& a, const Account& b);
 
+// Anzeigenamen „Anzeigename|plattform:ID“ (eine Zeile je Konto). Leerer Name entfernt den Eintrag; '|' und Zeilenumbrüche
+// werden entfernt, Länge höchstens 40 Zeichen. alias_of liefert den Anzeigenamen des Kontos oder "".
+std::vector<std::string> set_alias(std::vector<std::string> aliases, const Account& a, const std::string& alias);
+std::string alias_of(const std::vector<std::string>& aliases, const Account& a);
+
 // Home-Assistant-Entitäten „sensor.x“ oder „sensor.x|Name“, höchstens max Einträge.
 // Rückgabe leer bei Erfolg, sonst Fehlerschlüssel: "invalid" | "full".
 std::string add_entity(std::vector<std::string>& lines, const std::string& id, size_t max);

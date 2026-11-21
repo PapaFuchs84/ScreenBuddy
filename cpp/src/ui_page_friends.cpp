@@ -95,6 +95,27 @@ public:
         links_ = form_.list(*merge, "friends", "links", T(L"Verknüpfungen", L"Links"),
                             T(L"Eine Person pro Zeile: Name|discord:ID|steam:ID|xbox:Name|psn:Name – hier lassen sich Einträge auch löschen",
                               L"One person per line: Name|discord:ID|steam:ID|xbox:Name|psn:Name – entries can also be deleted here"));
+        Card* alias = root.add<Card>(T(L"Anzeigenamen", L"Display names"),
+                                     T(L"Eigener Name für einen Freund statt des Plattformnamens – auf Display und Companion. "
+                                       L"Konto wählen, Namen eintippen, „Name setzen“ und mit „Speichern & anwenden“ übernehmen.",
+                                       L"Your own name for a friend instead of the platform name – on display and Companion. "
+                                       L"Pick an account, type a name, press “Set name” and apply with “Save & apply”."));
+        alias_acc_ = alias->row<Combo>(T(L"Konto", L"Account"), Text(), std::vector<Text>{T(L"– nicht geladen –", L"– not loaded –")}, 0);
+        alias_acc_->width = 320;
+        alias_acc_->track_dirty = false;
+        alias_acc_->name = T(L"Konto für Anzeigenamen", L"Account for display name");
+        alias_name_ = alias->row<TextField>(T(L"Anzeigename", L"Display name"), T(L"Höchstens 40 Zeichen", L"Up to 40 characters"), TextField::Single, L"");
+        alias_name_->track_dirty = false;
+        alias_name_->limit = 40;
+        alias_name_->width = 320;
+        alias_name_->hint = T(L"z. B. Lena", L"e.g. Lena");
+        auto alias_buttons = alias->add<ButtonRow>();
+        alias_set_ = alias_buttons->add(T(L"Name setzen", L"Set name"), Button::Primary, [this] { set_alias_selected(false); });
+        alias_clear_ = alias_buttons->add(T(L"Name entfernen", L"Remove name"), Button::Secondary, [this] { set_alias_selected(true); });
+        aliases_ = form_.list(*alias, "friends", "aliases", T(L"Alle Anzeigenamen", L"All display names"),
+                              T(L"Eine Zeile pro Konto: Anzeigename|plattform:ID (discord, steam, xbox, psn) – hier lassen sich Einträge auch löschen",
+                                L"One line per account: display name|platform:ID (discord, steam, xbox, psn) – entries can also be deleted here"),
+                              4);
         fill_accounts();
         tick(host, host.status());
     }
@@ -119,7 +140,9 @@ private:
     Label *steam_state_ = nullptr, *xbox_state_ = nullptr, *psn_state_ = nullptr, *steam_result_ = nullptr, *xbox_result_ = nullptr, *psn_result_ = nullptr, *account_info_ = nullptr;
     TextField *steam_key_ = nullptr, *steam_id_ = nullptr, *xbox_key_ = nullptr, *psn_key_ = nullptr, *links_ = nullptr;
     Button *steam_button_ = nullptr, *xbox_button_ = nullptr, *psn_button_ = nullptr, *link_ = nullptr, *accept_ = nullptr, *reject_ = nullptr;
-    Combo *a_ = nullptr, *b_ = nullptr;
+    Combo *a_ = nullptr, *b_ = nullptr, *alias_acc_ = nullptr;
+    TextField *alias_name_ = nullptr, *aliases_ = nullptr;
+    Button *alias_set_ = nullptr, *alias_clear_ = nullptr;
     ItemList* suggestions_list_ = nullptr;
     std::vector<Account> accounts_;
     std::vector<std::pair<Account, Account>> suggestions_;
@@ -214,6 +237,18 @@ private:
         if (n > 1 && b_->index == a_->index) b_->index = (a_->index + 1) % n;
         b_->original = b_->index;
         a_->enabled = b_->enabled = link_->enabled = have;
+        if (alias_acc_) {
+            const auto alias_lines = logic::lines_of(narrow(aliases_->text()));
+            std::vector<Text> alias_names;
+            for (const auto& a : accounts_) {
+                const std::string cur = logic::alias_of(alias_lines, a);
+                alias_names.push_back(Text(account_title(a) + (cur.empty() ? L"" : L" → " + widen(cur))));
+            }
+            if (alias_names.empty()) alias_names.push_back(T(L"– nicht geladen –", L"– not loaded –"));
+            alias_acc_->options = alias_names;
+            alias_acc_->index = alias_acc_->original = std::clamp(alias_acc_->index, 0, int(alias_names.size()) - 1);
+            alias_acc_->enabled = alias_set_->enabled = alias_clear_->enabled = have;
+        }
         account_info_->text = have ? Text(std::to_wstring(accounts_.size()) + L" Konten geladen.", std::to_wstring(accounts_.size()) + L" accounts loaded.")
                                    : T(L"Sobald Konten verbunden sind (Schlüssel oben, Speichern & anwenden), kannst du sie hier zusammenführen.",
                                        L"As soon as accounts are connected (keys above, Save & apply) you can merge them here.");
@@ -224,6 +259,24 @@ private:
         suggestions_list_->items = items;
         suggestions_list_->original = items;
         suggestions_list_->selected = items.empty() ? -1 : std::min(std::max(suggestions_list_->selected, 0), int(items.size()) - 1);
+    }
+
+    void set_alias_selected(bool remove) {
+        if (accounts_.empty() || !alias_acc_) return;
+        const auto& x = accounts_[size_t(std::clamp(alias_acc_->index, 0, int(accounts_.size()) - 1))];
+        const std::string name = remove ? std::string() : trim(narrow(alias_name_->text()));
+        if (!remove && name.empty()) {
+            host_->toast(T(L"Bitte einen Anzeigenamen eintragen.", L"Please enter a display name."), ToastKind::Error);
+            return;
+        }
+        auto lines = logic::set_alias(logic::lines_of(narrow(aliases_->text())), x, name);
+        aliases_->set_text(widen(logic::lines_join(lines)));
+        alias_name_->set_text(L"");
+        fill_accounts();
+        host_->toast(remove ? T(L"Anzeigename entfernt – mit „Speichern & anwenden“ übernehmen.", L"Display name removed – apply it with “Save & apply”.")
+                            : T(L"Anzeigename eingetragen – mit „Speichern & anwenden“ übernehmen.", L"Display name added – apply it with “Save & apply”."),
+                     ToastKind::Success);
+        host_->relayout();
     }
 
     void apply_link(const Account& x, const Account& y) {

@@ -53,7 +53,7 @@ const ojson& defaults() {
                        {"disk", "C:"}, {"cpu_temp_sensor", ""}, {"cpu_fan_sensor", ""}};
         j["friends"] = {{"enabled", false}, {"title", "Freunde"}, {"include_discord", true}, {"auto_merge", true},
                         {"show_offline", false}, {"steam_api_key", ""}, {"steam_id", ""}, {"xbox_api_key", ""}, {"psn_npsso", ""},
-                        {"links", ojson::array()}};
+                        {"links", ojson::array()}, {"aliases", ojson::array()}};
         j["bf6"] = {{"enabled", false}, {"players", ojson::array()}, {"refresh_minutes", 15},
                     {"title", "Battlefield 6 · Rangliste"}};
         j["rss"] = {{"enabled", false}, {"feeds", ojson::array()}, {"refresh_minutes", 30}, {"max_items", 4},
@@ -456,7 +456,7 @@ static const std::map<std::string, std::string> HEADERS = {
     {"game_mode", "Game-Mode (lokal / local)"},
     {"homeassistant", "Home Assistant (Adresse, Zugriffstoken, bis zu 4 Entitäten; Schalter nur mit Touch)"},
     {"spotify", "Spotify (Client-ID deiner Spotify-Developer-App; Anmeldung in den Einstellungen, Tokens in spotify.token; Steuern nur mit Touch und Spotify Premium)"},
-    {"friends", "Gemeinsame Freundesliste (Discord, Steam, Xbox, PlayStation); links = manuell verknüpfte Personen"},
+    {"friends", "Gemeinsame Freundesliste (Discord, Steam, Xbox, PlayStation); links = manuell verknüpfte Personen; aliases = eigene Anzeigenamen (Anzeigename|plattform:id)"},
     {"bf6", "Battlefield-6-Rangliste (EA-IDs, Konsole mit Suffix @psn / @xbox)"},
     {"rss", "Blog-Updates (RSS)"},
     {"streaming", "Streaming-Neustarts (TMDB-Key, Region, Anbieter als ID|Name; Quelle TMDB/JustWatch)"},

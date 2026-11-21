@@ -326,6 +326,41 @@ static void test_ui_logic() {
                                    {{"platform", "discord"}, {"id", "1"}, {"name", "Basti"}}});
     std::vector<fl::friends::Account> acc = {{"steam", "765", "basti"}, {"xbox", "B4sti", "B4sti"}, {"discord", "1", "Basti"}};
     CHECK_EQ(fl::friends::merge_accounts(acc, l2, false).size(), (size_t)1);
+    // Anzeigenamen
+    {
+        std::vector<std::string> al;
+        al = set_alias(al, {"steam", "765", "basti"}, "  Bastian | der Boss ");
+        CHECK_EQ(al.size(), (size_t)1);
+        CHECK_EQ(al[0], std::string("Bastian  der Boss|steam:765"));
+        CHECK_EQ(alias_of(al, {"STEAM", "765", ""}), std::string("Bastian  der Boss"));
+        al = set_alias(al, {"steam", "765", "basti"}, "Bas");  // ersetzt, kein Duplikat
+        CHECK_EQ(al.size(), (size_t)1);
+        CHECK_EQ(alias_of(al, {"steam", "765", ""}), std::string("Bas"));
+        al = set_alias(al, {"xbox", "Lena", "Lena"}, "Lenchen");
+        CHECK_EQ(al.size(), (size_t)2);
+        al = set_alias(al, {"steam", "765", "basti"}, "");  // leer entfernt
+        CHECK_EQ(al.size(), (size_t)1);
+        CHECK_EQ(alias_of(al, {"steam", "765", ""}), std::string());
+        // friends.cpp: Alias auf verknüpfter Person (über zweites Konto), Plattformname bleibt Gruppenname sonst
+        std::vector<std::string> al2 = {"Chef|xbox:b4sti"};
+        auto merged = fl::friends::merge_accounts(acc, l2, false, al2);
+        CHECK_EQ(merged.size(), (size_t)1);
+        CHECK_EQ(merged[0].name, std::string("Chef"));
+        CHECK_EQ(fl::friends::merge_accounts(acc, l2, false)[0].name, std::string("Basti"));
+        // Alias nach Handle/Name und für Einzelkonten
+        std::vector<fl::friends::Account> solo = {{"steam", "1", "Anna"}, {"discord", "2", "Ben"}};
+        auto s = fl::friends::merge_accounts(solo, {}, true, {"Annchen|steam:1", "Benni|discord:2"});
+        CHECK_EQ(s.size(), (size_t)2);
+        CHECK_EQ(s[0].name, std::string("Annchen"));
+        CHECK_EQ(s[1].name, std::string("Benni"));
+        // Nur-Discord-Liste
+        fl::Friend d;
+        d.name = "Ben";
+        d.ids["discord"] = "2";
+        std::vector<fl::Friend> dl = {d};
+        fl::friends::apply_aliases(dl, {"Benni|discord:2"});
+        CHECK_EQ(dl[0].name, std::string("Benni"));
+    }
     // Home-Assistant-Entitäten
     std::vector<std::string> ents;
     CHECK_EQ(add_entity(ents, "Sensor.Temp", 4), std::string());

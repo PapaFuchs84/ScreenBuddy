@@ -104,6 +104,47 @@ std::vector<std::string> link_accounts(std::vector<std::string> links, const Acc
     return links;
 }
 
+static bool alias_line_for(const std::string& line, const Account& a, std::string* alias = nullptr) {
+    const auto bar = line.find('|');
+    if (bar == std::string::npos) return false;
+    const std::string key = a.platform + ":" + a.id;
+    size_t pos = bar + 1;
+    while (pos <= line.size()) {
+        size_t next = line.find('|', pos);
+        std::string part = trim(line.substr(pos, next == std::string::npos ? std::string::npos : next - pos));
+        if (casefold(part) == casefold(key)) {
+            if (alias) *alias = trim(line.substr(0, bar));
+            return true;
+        }
+        if (next == std::string::npos) break;
+        pos = next + 1;
+    }
+    return false;
+}
+
+std::vector<std::string> set_alias(std::vector<std::string> aliases, const Account& a, const std::string& alias) {
+    std::string clean;
+    for (char c : alias)
+        if (c != '|' && c != '\r' && c != '\n') clean += c;
+    clean = trim(clean);
+    if (clean.size() > 40) {  // nicht mitten in einem UTF-8-Zeichen abschneiden
+        size_t n = 40;
+        while (n > 0 && (static_cast<unsigned char>(clean[n]) & 0xC0) == 0x80) --n;
+        clean = trim(clean.substr(0, n));
+    }
+    aliases.erase(std::remove_if(aliases.begin(), aliases.end(), [&](const std::string& l) { return alias_line_for(l, a); }), aliases.end());
+    if (!clean.empty()) aliases.push_back(clean + "|" + a.platform + ":" + a.id);
+    return aliases;
+}
+
+std::string alias_of(const std::vector<std::string>& aliases, const Account& a) {
+    for (const auto& l : aliases) {
+        std::string alias;
+        if (alias_line_for(l, a, &alias)) return alias;
+    }
+    return "";
+}
+
 std::string entity_id_of(const std::string& line) {
     std::string id = line.substr(0, line.find('|'));
     id = trim(id);
