@@ -6,6 +6,10 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 
 ## [Unveröffentlicht]
 
+## [2.14.0] - 2026-11-21
+
+**Prüfstatus 2.14.0:** C++-Suiten ohne Fehler: fl-tests 3577, fl-layout-ui-tests 1877, fl-companion-tests 542. Nicht geprüft: Live-Test am echten Display/Companion, übrige Suiten. Companion unverändert (1.2.0).
+
 ### Hinzugefügt
 
 - Freunde: pro Freund ein **eigener Anzeigename** (Einstellungen → Freunde → Anzeigenamen; Konfiguration `friends.aliases`, Zeilen `Anzeigename|plattform:ID`). Der Name ersetzt den Plattformnamen auf Display und Companion, auch bei verknüpften Personen und auf der Discord-Seite; entfernen stellt den Plattformnamen wieder her.

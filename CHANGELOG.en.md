@@ -6,6 +6,10 @@ All notable changes to the app. Format based on [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-11-21
+
+**Test status 2.14.0:** C++ suites without failures: fl-tests 3577, fl-layout-ui-tests 1877, fl-companion-tests 542. Not tested: live test on real display/Companion, remaining suites. Companion unchanged (1.2.0).
+
 ### Added
 
 - Friends: a **custom display name per friend** (Settings → Friends → Display names; config `friends.aliases`, lines `display name|platform:ID`). The name replaces the platform name on display and Companion, also for linked people and on the Discord page; removing it restores the platform name.
