@@ -13,6 +13,29 @@
 /* Dunkelmodus: Navy-Grund, Creme-Schrift; Orange bleibt Hauptfarbe (Seitenleiste, Knöpfe) */
 html[data-theme=dunkel]{--bg:#0e1628;--card:#14213d;--card2:#1b2b4d;--line:#27395f;--text:#fff4e6;--muted:#a9b4cb;--accent:#ff9a2e;
 --green:#3ccf7a;--red:#ff6266;--yellow:#f0b232;--field:#0e1628;--okbg:#12392a;--okline:#1f6b46;--badbg:#3b1518;--badline:#7a2a30}
+/* Vice Sunset: eigenständiges Retro-Dämmerungs-Theme (Pastell, dunkel). Keine fremden Marken, Logos oder Schriften. */
+html[data-theme=vice]{--bg:#2a2147;--card:#3b2d5f;--card2:#4a3a78;--line:#6a5a98;--text:#fff6fc;--muted:#dccfe8;--orange:#e8799f;--accent:#f3d9a4;
+--green:#8fdcae;--red:#ff8fa3;--yellow:#f3d9a4;--ink:#1a1230;--field:#2a2147;--okbg:#1d3a37;--okline:#3f7f6b;--badbg:#4a2040;--badline:#a04a78;
+--head:Bangers,Impact,Bahnschrift,"Segoe UI",sans-serif}
+html[data-theme=vice] aside{background:linear-gradient(180deg,#4a3a78,#2a2147);border-right:1px solid #ffffff30;--text:#fff6fc;--bg:#e8799f}
+html[data-theme=vice] .brand{color:#f3d9a4;text-shadow:0 2px 12px #e8799f88;letter-spacing:.04em}
+html[data-theme=vice] .brand small{color:#8fd3df;opacity:1}
+html[data-theme=vice] nav button:hover{background:#ffffff18}
+html[data-theme=vice] nav button.on{background:linear-gradient(90deg,#e8799f,#b87ab8);color:#1a1230;box-shadow:none}
+html[data-theme=vice] nav .dot{border-color:#fff6fc88}html[data-theme=vice] nav .dot.act{background:#f3d9a4;border-color:#f3d9a4}
+html[data-theme=vice] nav button,html[data-theme=vice] .btn,html[data-theme=vice] .val,html[data-theme=vice] .page .n{font-family:"Segoe UI",system-ui,sans-serif}
+html[data-theme=vice] main::before{content:"";display:block;height:150px;margin:-28px -34px 20px;background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 230' preserveAspectRatio='xMidYMax slice'><defs><linearGradient id='s' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%236c5cae'/><stop offset='.45' stop-color='%23b87ab8'/><stop offset='.75' stop-color='%23ee9aa8'/><stop offset='1' stop-color='%23f6bd96'/></linearGradient><g id='p'><path d='M0 0C6-60-4-120 8-170' fill='none' stroke='%230b0518' stroke-width='9' stroke-linecap='round'/><path d='M8-170C-20-190-50-180-70-150-40-168-20-170 8-170-10-200-30-215-48-215-26-205-10-190 8-170 14-205 36-222 58-216 38-206 22-190 8-170 40-185 70-175 86-148 60-166 34-168 8-170Z' fill='%230b0518' stroke='%230b0518' stroke-width='3' stroke-linejoin='round'/></g></defs><rect width='1000' height='230' fill='url(%23s)'/><g stroke='%230b0518' stroke-width='3'><circle cx='520' cy='175' r='95' fill='%23f3d9a4'/><g fill='%23f6bd96' stroke='none'><rect x='420' y='150' width='200' height='7'/><rect x='420' y='168' width='200' height='9'/><rect x='420' y='188' width='200' height='11'/></g></g><g fill='%237d6aa8' stroke='%230b0518' stroke-width='3'><path d='M250 230V150h26v-24h22v24h20v-50h24v50h18v30h16v-70h28v70h22V140h24v90zM640 230v-96h30v-30h22v30h26v-60h26v60h20v40h22v-24h30v140z'/></g><rect y='205' width='1000' height='25' fill='%23d8b894' stroke='%230b0518' stroke-width='4'/><use href='%23p' transform='translate(70 232) scale(.9)'/><use href='%23p' transform='translate(190 232) scale(.6)'/><use href='%23p' transform='translate(360 232) scale(.45)'/><use href='%23p' transform='translate(930 232) scale(.95)'/><use href='%23p' transform='translate(810 232) scale(.6)'/><use href='%23p' transform='translate(700 232) scale(.45)'/></svg>") center bottom/cover;border-bottom:1px solid #0b0518}
+html[data-theme=vice] h1{margin-top:-120px;position:relative;font-size:44px;font-weight:400;letter-spacing:.05em;color:#fff;-webkit-text-stroke:2px #0b0518;paint-order:stroke fill;text-shadow:3px 3px 0 #0b0518,6px 6px 0 #8fd3df;margin-bottom:86px}
+html[data-theme=vice] .sub{margin-top:-60px;position:relative}
+html[data-theme=vice] .card{box-shadow:0 8px 24px #0005;border-radius:16px}
+html[data-theme=vice] .card h3{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8fd3df;font-family:"Segoe UI",system-ui,sans-serif}
+html[data-theme=vice] .card:hover{border-color:#8fd3df88}
+html[data-theme=vice] .sw i{background:#5a4a88}html[data-theme=vice] .sw i:before{background:#fff}
+html[data-theme=vice] .btn.pri{background:#f3d9a4;border-color:#f3d9a4;color:#1a1230}
+html[data-theme=vice] .chip.warn{background:#4a3a78}
+html[data-theme=vice] input:focus,html[data-theme=vice] select:focus,html[data-theme=vice] textarea:focus{box-shadow:0 0 0 3px #e8799f55}
+html[data-theme=vice] .toast{color:#1a1230}
+@media(max-width:800px){html[data-theme=vice] main::before{margin:-20px -16px 16px;height:120px}html[data-theme=vice] h1{margin-top:-95px;font-size:32px;margin-bottom:70px}html[data-theme=vice] .sub{margin-top:-50px}}
 aside{--text:#14213d;--bg:#fff4e6}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 "Segoe UI",system-ui,sans-serif}
@@ -256,7 +279,7 @@ const EN = {
   'Laufwerk': 'Drive', 'Für Belegung und Temperatur': 'For usage and temperature', 'Sensoren': 'Sensors',
   // Design, Display
   'Hintergrund': 'Background', 'Karten': 'Cards', 'Kopfzeile & Balken': 'Header & bars', 'Akzentschrift': 'Accent text', 'Schrift': 'Text', 'Nebentext': 'Secondary text',
-  'Hell (Creme)': 'Light (cream)', 'Dunkel (Navy)': 'Dark (navy)', 'Eigene Farben': 'Custom colours', 'Vorschau mit deinen Farben': 'Preview with your colours',
+  'Hell (Creme)': 'Light (cream)', 'Dunkel (Navy)': 'Dark (navy)', 'Vice Sunset (Retro-Dämmerung)': 'Vice Sunset (retro dusk)', 'Eigene Farben': 'Custom colours', 'Vorschau mit deinen Farben': 'Preview with your colours',
   'Schrift auf Hintergrund': 'text on background', 'Schrift auf Karten': 'text on cards', 'Nebentext auf Hintergrund': 'secondary text on background',
   'Akzentschrift auf Hintergrund': 'accent text on background', 'Zurücksetzen': 'Reset',
   'Gilt für das Display. Die Vorschau zeigt die aktuelle Seite mit deinen Farben, übernommen wird erst mit „Speichern & anwenden“.': 'Applies to the display. The preview shows the current page in your colours; they take effect with “Save & apply”.',
@@ -844,12 +867,12 @@ const COLORS = [['bg', 'Hintergrund'], ['card', 'Karten'], ['header', 'Kopfzeile
   ['text', 'Schrift'], ['muted', 'Nebentext']];
 /* Die Einstellungsseite folgt der Vorlage (hell/dunkel); die eigenen Farben gelten nur fürs Display */
 const baseTheme = () => cfg.display.theme === 'eigen' ? cfg.display.color_base : cfg.display.theme;
-const applyTheme = () => { const t = baseTheme() === 'dunkel' ? 'dunkel' : 'hell';
+const applyTheme = () => { const t = baseTheme() === 'dunkel' ? 'dunkel' : baseTheme() === 'vice-sunset' ? 'vice' : 'hell';
   document.documentElement.dataset.theme = t; try { localStorage.setItem('fl_theme', t); } catch (e) {} };
 /* Sprache sofort in der Seite umschalten; Display und Infobereich folgen nach „Speichern & anwenden“ */
 function langSel() { const s = select('ui', 'language', [['de', 'Deutsch'], ['en', 'English']]);
   s.addEventListener('change', () => { setLang(cfg.ui.language); render(); }); return s; }
-function themeSel() { const s = select('display', 'theme', [['hell', 'Hell (Creme)'], ['dunkel', 'Dunkel (Navy)'], ['eigen', 'Eigene Farben']]);
+function themeSel() { const s = select('display', 'theme', [['hell', 'Hell (Creme)'], ['dunkel', 'Dunkel (Navy)'], ['vice-sunset', 'Vice Sunset (Retro-Dämmerung)'], ['eigen', 'Eigene Farben']]);
   s.addEventListener('change', () => { applyTheme(); render(); }); return s; }
 /* Kontrast nach WCAG, wie auf dem Display gerechnet (render.contrast) */
 function contrast(a, b) {

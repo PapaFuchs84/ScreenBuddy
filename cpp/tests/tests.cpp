@@ -1408,7 +1408,7 @@ static void test_standard_theme() {
         CHECK(theme::contrast(resolved.colors.text,bg)>=4.5);CHECK(theme::contrast(resolved.colors.muted,bg)>=4.5);
         CHECK(theme::contrast(resolved.colors.accent,bg)>=4.5);CHECK(theme::contrast(resolved.bar,bg)>=3);
     }
-    for(auto key:{"cupertino","fluent","hell","dunkel"}) {CHECK(theme::valid_theme_key(key));CHECK(theme::resolve(key,theme::Store(root/"themes")).found);}
+    for(auto key:{"cupertino","fluent","vice-sunset","hell","dunkel"}) {CHECK(theme::valid_theme_key(key));CHECK(theme::resolve(key,theme::Store(root/"themes")).found);}
     fs::remove_all(root);
 }
 int main(int argc, char** argv) {

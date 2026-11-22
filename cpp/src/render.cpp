@@ -187,7 +187,7 @@ void apply_theme(const ojson& dp) {
         if (auto t = theme::parse(dp["theme_inline"], err)) { set_resolved(theme::resolve_custom(*t)); return; }
     }
     const std::string key = str("theme", "hell");
-    if (key == theme::DEFAULT_ID || key == "cupertino" || key == "fluent" || key == "windows" || key.rfind("custom:", 0) == 0) {
+    if (key == theme::DEFAULT_ID || key == "cupertino" || key == "fluent" || key == theme::VICE_ID || key == "windows" || key.rfind("custom:", 0) == 0) {
         set_resolved(theme::resolve(key, theme::Store()));
     } else if (key == "eigen") {
         std::map<std::string, std::string> custom;
@@ -542,20 +542,47 @@ Image Renderer::welcome(const std::string& wtitle, const std::string& text) {
     return d.finish();
 }
 
+// Vice Sunset: Dämmerungs-Verlauf (Rosé -> Pfirsich -> Sand), gestreifte Sonne, Palmen-Silhouetten. Eigene Formen, keine fremden Marken.
+static void vice_header_scene(Canvas& d, float w, float h) {
+    const auto mix = [](Color a, Color b, float k) { return Color{uint8_t(a.r + (b.r - a.r) * k + .5f), uint8_t(a.g + (b.g - a.g) * k + .5f), uint8_t(a.b + (b.b - a.b) * k + .5f)}; };
+    const Color pink{232, 121, 159}, peach{240, 164, 124}, sand{243, 217, 164}, ink{43, 21, 66};
+    const int strips = std::max(1, int(w) / 4);
+    for (int i = 0; i < strips; ++i) {   // waagerechter Verlauf in 4-px-Streifen
+        const float k = float(i) / float(std::max(1, strips - 1));
+        d.rectangle(float(i * 4), 0, float(i * 4 + 4), h, k < .6f ? mix(pink, peach, k / .6f) : mix(peach, sand, (k - .6f) / .4f));
+    }
+    const float cx = w * .55f, cy = h * .95f, r = h * .62f;   // Sonne, unten angeschnitten, mit Streifen
+    d.ellipse(cx - r, cy - r, cx + r, cy + r, Color{255, 226, 140});
+    for (int i = 0; i < 4; ++i) d.rectangle(cx - r, cy - r * .55f + i * r * .22f, cx + r, cy - r * .55f + i * r * .22f + 1.5f + i * .8f, mix(peach, pink, .5f));
+    const auto palm = [&](float x, float sc) {   // Stamm + drei Wedel
+        d.line({{x, h}, {x + 1.5f * sc, h - 11 * sc}, {x + 1.f * sc, h - 18 * sc}}, ink, std::max(1.f, 1.6f * sc));
+        const float tx = x + 1.f * sc, ty = h - 18 * sc;
+        d.line({{tx, ty}, {tx - 9 * sc, ty + 1 * sc}, {tx - 14 * sc, ty + 6 * sc}}, ink, 1.6f);
+        d.line({{tx, ty}, {tx + 9 * sc, ty + 1 * sc}, {tx + 14 * sc, ty + 6 * sc}}, ink, 1.6f);
+        d.line({{tx, ty}, {tx - 5 * sc, ty - 6 * sc}, {tx - 9 * sc, ty - 5 * sc}}, ink, 1.6f);
+        d.line({{tx, ty}, {tx + 5 * sc, ty - 6 * sc}, {tx + 9 * sc, ty - 5 * sc}}, ink, 1.6f);
+    };
+    palm(w * .38f, .9f); palm(w * .72f, 1.f); palm(w * .8f, .7f);
+    d.rectangle(0, h - 2, w, h - 1, ink);
+}
+
 void Renderer::header(Canvas& d, std::time_t now, const std::string& info) {
     // Orange Kopfzeile mit Creme-Fuchs; Schrift in Navy (bzw. Weiß bei dunkler eigener Kopfzeilenfarbe)
     const Theme& t = g_theme;
+    const bool vice = t.style == theme::Style::Vice;
     d.rectangle(0, 0, w, HEADER_H - 1, t.style == theme::Style::FuchsLabs ? t.orange : t.bg);
-    if (t.style != theme::Style::FuchsLabs) d.line({{8, HEADER_H - 1}, {w - 8, HEADER_H - 1}}, t.line, 1);
+    if (vice) vice_header_scene(d, w, HEADER_H - 1);
+    if (t.style != theme::Style::FuchsLabs && !vice) d.line({{8, HEADER_H - 1}, {w - 8, HEADER_H - 1}}, t.line, 1);
+    const Color vink{43, 21, 66};
     float x = t.style == theme::Style::FuchsLabs ? 8.f : theme::design(t.style).spacing;
     d.fox(x, (float)((HEADER_H - ICON) / 2), pyround_i(ICON * s), false);
     x += ICON + 6;
     std::string clock = clock_hhmm(now ? now : std::time(nullptr));
-    d.text(w - 8, HEADER_H / 2, clock, f_title, t.style == theme::Style::FuchsLabs ? t.head_text : t.muted, "rm");
+    d.text(w - 8, HEADER_H / 2, clock, f_title, vice ? vink : t.style == theme::Style::FuchsLabs ? t.head_text : t.muted, "rm");
     float cx = w - 8 - d.textlength(clock, f_title) - 12;
     float title_width = cx - x - (info.empty() ? 0 : d.textlength(tr(info), f_small) + 10);
-    d.text(x, HEADER_H / 2, fit(d, tr(title), f_title, std::max(0.f, title_width)), f_title, t.style == theme::Style::FuchsLabs ? t.head_text : t.text, "lm");
-    d.text(cx, HEADER_H / 2, info, f_small, t.style == theme::Style::FuchsLabs ? t.head_text : t.muted, "rm");
+    d.text(x, HEADER_H / 2, fit(d, tr(title), f_title, std::max(0.f, title_width)), f_title, vice ? vink : t.style == theme::Style::FuchsLabs ? t.head_text : t.text, "lm");
+    d.text(cx, HEADER_H / 2, info, f_small, vice ? vink : t.style == theme::Style::FuchsLabs ? t.head_text : t.muted, "rm");
 }
 
 void Renderer::footer(Canvas& d, const std::string& left) {

@@ -230,8 +230,8 @@ private:
     void reload(const std::string& select) {
         std::vector<std::string> problems;
         themes_ = th::Store().list(&problems);
-        keys_ = {th::DEFAULT_ID, "cupertino", "fluent", "hell", "dunkel", "windows"};
-        std::vector<Text> labels = {T(L"Material Orange (dunkel, Standard)",L"Material Orange (dark, default)"),Text(L"Cupertino"),Text(L"Fluent"),T(L"Hell (FuchsLabs)", L"Light (FuchsLabs)"), T(L"Dunkel (FuchsLabs)", L"Dark (FuchsLabs)"),
+        keys_ = {th::DEFAULT_ID, "cupertino", "fluent", th::VICE_ID, "hell", "dunkel", "windows"};
+        std::vector<Text> labels = {T(L"Material Orange (dunkel, Standard)",L"Material Orange (dark, default)"),Text(L"Cupertino"),Text(L"Fluent"),Text(L"Vice Sunset"),T(L"Hell (FuchsLabs)", L"Light (FuchsLabs)"), T(L"Dunkel (FuchsLabs)", L"Dark (FuchsLabs)"),
                                     T(L"An Windows anpassen", L"Match Windows")};
         for (const auto& t : themes_) {
             keys_.push_back(std::string(th::CUSTOM_PREFIX) + t.id);
