@@ -1,6 +1,7 @@
 // © 2026 FuchsLabs – Game-Mode intro in the Hardware-HUD look; uses the premultiplied-alpha fade path.
 #include "game_intro.h"
 #include "util.h"
+#include "render.h"
 #include <algorithm>
 #include <cmath>
 namespace fl::game {
@@ -35,7 +36,18 @@ Image Intro::draw(const Image& target,const ImagePtr& logo,const std::string& na
         for(float x=std::fmod(W*.5f,step);x<W;x+=step)canvas.rectangle(x,0,x,float(H-1),grid);
         for(float y=std::fmod(H*.5f,step);y<H;y+=step)canvas.rectangle(0,y,float(W-1),y,grid);
     }
-    // Logo (zoom quantised to 8 px steps, resized only when the step changes).
+    // Vice Sunset: Retro-Szene (gestreifte Sonne am Horizont, perspektivisches Bodengitter) über dem Raster.
+    if(render::theme().style==fl::theme::Style::Vice && phase.reveal>.4f){
+        const float k=(phase.reveal-.4f)/.6f,hy=H*.64f,r=H*.34f,cx=W*.5f;
+        const Color sun=mixc(colors.bg,Color{243,217,164},.9f*k),stripe=mixc(colors.bg,colors.primary,.6f*k);
+        for(float y=hy-r;y<hy;y+=1.f){const float dy=hy-y,half=std::sqrt(std::max(0.f,r*r-(r-dy)*(r-dy)));
+            const bool band=int(dy/(r*.1f))%2==1&&dy<r*.65f;
+            if(half>0)canvas.rectangle(cx-half,y,cx+half,y+1.f,band?stripe:sun);}
+        const Color line=mixc(colors.bg,colors.secondary,.55f*k);
+        canvas.rectangle(0,hy,float(W-1),hy+1.f,line);
+        for(int i=1;i<=6;++i){const float y=hy+(H-hy)*std::pow(i/6.f,2.f);canvas.rectangle(0,y,float(W-1),y,line);}
+        for(int i=-8;i<=8;++i)canvas.line({{cx,hy},{cx+i*W*.16f,float(H)}},line,1);
+    }    // Logo (zoom quantised to 8 px steps, resized only when the step changes).
     float logo_w=0,logo_h=0,logo_x=0,logo_y=0;
     if(logo && !logo->empty()) {
         const float fit=std::min(W*.62f/logo->w,H*.42f/logo->h)*phase.scale;
