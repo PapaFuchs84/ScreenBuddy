@@ -13,5 +13,6 @@ inline constexpr const wchar_t* GUIDE_EN = L"GUIDE_HTML";
 inline constexpr const wchar_t* PLUGIN_WORKSHOP = L"PLUGIN_WORKSHOP_HTML";
 inline constexpr const wchar_t* LICENSE = L"LICENSE_TXT";
 inline constexpr const wchar_t* NOTICES = L"NOTICES_MD";
+inline constexpr const wchar_t* BANGERS_TTF = L"BANGERS_TTF";   // Schrift Bangers (SIL OFL 1.1), nur für das Vice-Sunset-Theme
 
 }  // namespace fl::res

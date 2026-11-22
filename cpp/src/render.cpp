@@ -455,6 +455,7 @@ Renderer::Renderer(int w_, int h_, std::string title_) : W(w_), H(h_), title(std
     if (s == 1) { w = (float)W; h = (float)H; }
     else { w = (float)pyround_i(W / s); h = (float)pyround_i(H / s); }
     f_title = font(17, true);
+    if (g_theme.style == theme::Style::Vice) { f_title = font(21, false); f_title.family = L"Bangers"; }   // eingebettete Comic-Schrift
     f_small = font(12);
     f_name = font(16, true);
     f_act = font(13);

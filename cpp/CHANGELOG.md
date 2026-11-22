@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Theme Vice Sunset (ice-sunset, Style::Vice): Palette, Header-Szene in render.cpp, Auswahl im Design-Dialog, Web-UI-Theme mit eingebetteter Bangers (SIL OFL) / theme with embedded Bangers font. fl-tests 3579, 0 Fehler/failures.
+- Theme Vice Sunset (ice-sunset, Style::Vice): Palette, Header-Szene in render.cpp, Auswahl im Design-Dialog, Web-UI-Theme mit eingebetteter Bangers (SIL OFL) / theme with embedded Bangers font. Bangers nativ (DirectWrite, eingebettet) / native Bangers, Retro-Szene im Game-Intro / game intro scene, Android `colors.xml` Vice. fl-tests 3581, game-tests 290, 0 Fehler/failures.
 
 ## 2.14.0 – 2026-11-21
 

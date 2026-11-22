@@ -47,6 +47,13 @@ Image Intro::draw(const Image& target,const ImagePtr& logo,const std::string& na
         canvas.rectangle(0,hy,float(W-1),hy+1.f,line);
         for(int i=1;i<=6;++i){const float y=hy+(H-hy)*std::pow(i/6.f,2.f);canvas.rectangle(0,y,float(W-1),y,line);}
         for(int i=-8;i<=8;++i)canvas.line({{cx,hy},{cx+i*W*.16f,float(H)}},line,1);
+        const Color ink=mixc(colors.bg,Color{11,5,24},k);   // Comic-Umriss und Palmen-Silhouetten
+        canvas.ellipse_outline(cx-r,hy-r*2,cx+r,hy,ink,std::max(2.f,3*unit));
+        const auto palm=[&](float x,float sc){const float u=unit*sc,ty=hy-70*u;
+            canvas.line({{x,hy},{x+4*u,hy-35*u},{x+2*u,ty}},ink,std::max(2.f,4*u));
+            for(int d=-1;d<=1;d+=2){canvas.line({{x+2*u,ty},{x+2*u+d*22*u,ty+2*u},{x+2*u+d*36*u,ty+16*u}},ink,std::max(2.f,3*u));
+                canvas.line({{x+2*u,ty},{x+2*u+d*14*u,ty-14*u},{x+2*u+d*26*u,ty-12*u}},ink,std::max(2.f,3*u));}};
+        palm(W*.12f,1.2f);palm(W*.2f,.8f);palm(W*.88f,1.2f);palm(W*.8f,.8f);
     }    // Logo (zoom quantised to 8 px steps, resized only when the step changes).
     float logo_w=0,logo_h=0,logo_x=0,logo_y=0;
     if(logo && !logo->empty()) {
@@ -68,7 +75,7 @@ Image Intro::draw(const Image& target,const ImagePtr& logo,const std::string& na
     const float title_y=logo_w>0?logo_y+logo_h+H*.07f:H*.5f;
     Font label{std::clamp(std::round(9*unit),10.f,26.f),true};
     canvas.text(W*.5f,title_y-H*.055f,"GAME MODE",label,mixc(colors.bg,colors.secondary,phase.reveal),"mm");
-    Font f{float(std::clamp(H/15,12,40)),true};auto title=name.empty()?"n/a":name;
+    Font f{float(std::clamp(H/15,12,40)),true};if(render::theme().style==fl::theme::Style::Vice){f.bold=false;f.family=L"Bangers";f.size+=6;}auto title=name.empty()?"n/a":name;
     while(title.size()>4 && canvas.textlength(title,f)>W*.85f) {auto points=to_u32(title);points.resize(points.size()-2);title=from_u32(points)+"…";}
     canvas.text(W*.5f,title_y,title,f,mixc(colors.bg,colors.text,phase.reveal),"mm");
     const float bar_w=W*.36f,bar_h=std::max(2.f,std::round(3*unit)),bar_x=(W-bar_w)/2,bar_y=title_y+H*.06f;

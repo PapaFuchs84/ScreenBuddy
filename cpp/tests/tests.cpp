@@ -1381,6 +1381,14 @@ static void test_editor_contrast() {
     kit.use_windows(true,&fixed); check(kit.theme());
 }
 // P7b-0: frische Installation, Bestandsmigration und gespeicherte Ja/Nein/keine Antwort.
+// Vice Sunset: Bangers ist als Resource eingebettet und wird geladen (Breite weicht von Segoe UI ab)
+static void test_vice_font() {
+    Canvas c(100, 30, 1, Color{0, 0, 0});
+    Font b{20, false}; b.family = L"Bangers";
+    Font s{20, false};
+    CHECK(fl::bangers_collection() != nullptr);
+    CHECK(c.textlength("Vice Sunset", b) != c.textlength("Vice Sunset", s));
+}
 static void test_standard_theme() {
     const auto root=fs::temp_directory_path()/("fl-standard-theme-"+std::to_string(GetCurrentProcessId()));
     fs::create_directories(root);const auto path=root/"config.toml";fs::remove(path);
@@ -1464,7 +1472,7 @@ int main(int argc, char** argv) {
         std::abort();
     });
     for (auto [name, fn] : {std::pair{"config", test_config}, {"secure", test_secure}, {"i18n", test_i18n}, {"rss", test_rss},
-                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"bf6-platforms", test_bf6_platforms},{"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}, {"themes", test_themes}, {"standard-theme",test_standard_theme}}) {
+                            {"urls", test_urls}, {"netguard", test_netguard}, {"friends", test_friends}, {"homeassistant", test_ha}, {"spotify", test_spotify}, {"bf6-platforms", test_bf6_platforms},{"ui-logic", test_ui_logic}, {"homeassistant-live", test_ha_live}, {"touch-targets", test_touch_targets}, {"system-touch", test_system_touch}, {"update", test_update}, {"themes", test_themes}, {"standard-theme",test_standard_theme}, {"vice-font",test_vice_font}}) {
         std::printf("· %s\n", name);
         fn();
     }
