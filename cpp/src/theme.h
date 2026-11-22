@@ -21,6 +21,7 @@ inline constexpr size_t MAX_NAME = 40;           // Zeichen (UTF-8-Bytes ≤ 4 �
 inline constexpr const char* WINDOWS_ID = "windows";
 inline constexpr const char* CUSTOM_PREFIX = "custom:";
 inline constexpr const char* DEFAULT_ID = "material-orange";
+inline constexpr const char* VICE_ID = "vice-sunset";   // eigenständiges Retro-Dämmerungs-Theme (Pastell, dunkel)
 struct DefaultPrompt {
     std::wstring title, body, yes, no;
     bool default_yes = false;
@@ -37,7 +38,7 @@ struct Palette {
     bool operator==(const Palette& o) const;
 };
 
-enum class Style { FuchsLabs, Cupertino, Fluent, Material };
+enum class Style { FuchsLabs, Cupertino, Fluent, Material, Vice };
 struct Design {
     Style style = Style::FuchsLabs;
     float card_radius = 8, button_radius = 8, spacing = 12;

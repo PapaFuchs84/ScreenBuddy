@@ -133,7 +133,9 @@ IDWriteTextFormat* Kit::format(Font f) {
         if (f == Font::Nav || f == Font::Strong) size = 16;
         if (f == Font::Tile) size = 32;
     }
-    if (FAILED(dw_->CreateTextFormat(design.style == fl::theme::Style::FuchsLabs ? s.family : design.style == fl::theme::Style::Fluent ? L"Segoe UI Variable" : L"Segoe UI", nullptr, s.weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
+    const bool vice_head = design.style == fl::theme::Style::Vice && (f == Font::H1 || f == Font::Brand) && fl::bangers_collection();
+    if (vice_head) size += 6;   // Bangers fällt kleiner aus als Bahnschrift
+    if (FAILED(dw_->CreateTextFormat(vice_head ? L"Bangers" : design.style == fl::theme::Style::FuchsLabs ? s.family : design.style == fl::theme::Style::Fluent ? L"Segoe UI Variable" : L"Segoe UI", vice_head ? fl::bangers_collection() : nullptr, vice_head ? DWRITE_FONT_WEIGHT_NORMAL : s.weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
                                      size, L"de-de", slot.GetAddressOf())))
         throw std::runtime_error("Native settings: CreateTextFormat");
     return slot.Get();

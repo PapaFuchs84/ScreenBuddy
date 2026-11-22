@@ -10,7 +10,10 @@
 #include <string>
 #include <vector>
 
+struct IDWriteFontCollection;
 namespace fl {
+// Eingebettete Schrift Bangers (nur Vice Sunset); nullptr, wenn nicht ladbar (dann Ersatzschrift)
+IDWriteFontCollection* bangers_collection();
 
 struct Color {
     uint8_t r = 0, g = 0, b = 0;

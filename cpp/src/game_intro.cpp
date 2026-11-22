@@ -1,6 +1,7 @@
 // © 2026 FuchsLabs – Game-Mode intro in the Hardware-HUD look; uses the premultiplied-alpha fade path.
 #include "game_intro.h"
 #include "util.h"
+#include "render.h"
 #include <algorithm>
 #include <cmath>
 namespace fl::game {
@@ -35,7 +36,26 @@ Image Intro::draw(const Image& target,const ImagePtr& logo,const std::string& na
         for(float x=std::fmod(W*.5f,step);x<W;x+=step)canvas.rectangle(x,0,x,float(H-1),grid);
         for(float y=std::fmod(H*.5f,step);y<H;y+=step)canvas.rectangle(0,y,float(W-1),y,grid);
     }
-    // Logo (zoom quantised to 8 px steps, resized only when the step changes).
+    // Vice Sunset: Retro-Szene (gestreifte Sonne am Horizont, perspektivisches Bodengitter) über dem Raster.
+    if(render::theme().style==fl::theme::Style::Vice && phase.reveal>.4f){
+        const float k=(phase.reveal-.4f)/.6f,hy=H*.64f,r=H*.34f,cx=W*.5f;
+        const Color sun=mixc(colors.bg,Color{243,217,164},.9f*k),stripe=mixc(colors.bg,colors.primary,.6f*k);
+        for(float y=hy-r;y<hy;y+=1.f){const float dy=hy-y,half=std::sqrt(std::max(0.f,r*r-dy*dy));   // Halbkreis (aufgehende Sonne)
+            const bool band=int(dy/(r*.1f))%2==0&&dy<r*.5f;
+            if(half>0)canvas.rectangle(cx-half,y,cx+half,y+1.f,band?stripe:sun);}
+        const Color line=mixc(colors.bg,colors.secondary,.55f*k);
+        canvas.rectangle(0,hy,float(W-1),hy+1.f,line);
+        for(int i=1;i<=6;++i){const float y=hy+(H-hy)*std::pow(i/6.f,2.f);canvas.rectangle(0,y,float(W-1),y,line);}
+        for(int i=-8;i<=8;++i)canvas.line({{cx,hy},{cx+i*W*.16f,float(H)}},line,1);
+        const Color ink=mixc(colors.bg,Color{11,5,24},k);   // Comic-Umriss und Palmen-Silhouetten
+        std::vector<PointF> arc;for(int i=0;i<=40;++i){const float a=3.14159265f*i/40;arc.push_back({cx-r*std::cos(a),hy-r*std::sin(a)});}
+        canvas.line(arc,ink,std::max(2.f,3*unit));
+        const auto palm=[&](float x,float sc){const float u=unit*sc,ty=hy-70*u;
+            canvas.line({{x,hy},{x+4*u,hy-35*u},{x+2*u,ty}},ink,std::max(2.f,4*u));
+            for(int d=-1;d<=1;d+=2){canvas.line({{x+2*u,ty},{x+2*u+d*22*u,ty+2*u},{x+2*u+d*36*u,ty+16*u}},ink,std::max(2.f,3*u));
+                canvas.line({{x+2*u,ty},{x+2*u+d*14*u,ty-14*u},{x+2*u+d*26*u,ty-12*u}},ink,std::max(2.f,3*u));}};
+        palm(W*.12f,1.2f);palm(W*.2f,.8f);palm(W*.88f,1.2f);palm(W*.8f,.8f);
+    }    // Logo (zoom quantised to 8 px steps, resized only when the step changes).
     float logo_w=0,logo_h=0,logo_x=0,logo_y=0;
     if(logo && !logo->empty()) {
         const float fit=std::min(W*.62f/logo->w,H*.42f/logo->h)*phase.scale;
@@ -56,7 +76,7 @@ Image Intro::draw(const Image& target,const ImagePtr& logo,const std::string& na
     const float title_y=logo_w>0?logo_y+logo_h+H*.07f:H*.5f;
     Font label{std::clamp(std::round(9*unit),10.f,26.f),true};
     canvas.text(W*.5f,title_y-H*.055f,"GAME MODE",label,mixc(colors.bg,colors.secondary,phase.reveal),"mm");
-    Font f{float(std::clamp(H/15,12,40)),true};auto title=name.empty()?"n/a":name;
+    Font f{float(std::clamp(H/15,12,40)),true};if(render::theme().style==fl::theme::Style::Vice){f.bold=false;f.family=L"Bangers";f.size+=6;}auto title=name.empty()?"n/a":name;
     while(title.size()>4 && canvas.textlength(title,f)>W*.85f) {auto points=to_u32(title);points.resize(points.size()-2);title=from_u32(points)+"…";}
     canvas.text(W*.5f,title_y,title,f,mixc(colors.bg,colors.text,phase.reveal),"mm");
     const float bar_w=W*.36f,bar_h=std::max(2.f,std::round(3*unit)),bar_x=(W-bar_w)/2,bar_y=title_y+H*.06f;

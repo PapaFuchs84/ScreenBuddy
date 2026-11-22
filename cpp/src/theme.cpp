@@ -27,6 +27,7 @@ Design design(Style style) {
     case Style::Cupertino: return {style, 12, 10, 16, true, false, false};
     case Style::Fluent: return {style, 8, 4, 12, false, false, true};
     case Style::Material: return {style, 20, 1000, 16, false, true, false};
+    case Style::Vice: return {style, 16, 12, 14, false, false, false};
     default: return {};
     }
 }
@@ -37,6 +38,7 @@ Palette profile_palette(Style style, bool dark) {
     if (style == Style::Fluent) return dark
         ? Palette{{32,32,32},{44,44,44},{80,80,80},{96,205,255},{96,205,255},{255,255,255},{194,194,194},{108,203,95},{255,153,164}}
         : Palette{{243,243,243},{255,255,255},{138,138,138},{0,95,184},{0,95,184},{26,26,26},{97,97,97},{16,124,16},{196,43,28}};
+    if (style == Style::Vice) return Palette{{42,33,71},{59,45,95},{122,104,168},{240,164,124},{232,121,159},{255,246,252},{220,207,232},{143,220,174},{255,143,163}};
     if (style == Style::Material) return dark
         ? Palette{{20,18,24},{33,31,38},{73,69,79},{208,188,255},{208,188,255},{230,225,229},{202,196,208},{129,199,132},{242,184,181}}
         : Palette{{254,247,255},{243,237,247},{139,135,144},{103,80,164},{103,80,164},{29,27,32},{73,69,79},{45,122,49},{179,38,30}};
@@ -47,11 +49,12 @@ const char* style_name(Style style) {
     case Style::Cupertino: return "cupertino";
     case Style::Fluent: return "fluent";
     case Style::Material: return "material";
+    case Style::Vice: return "vice";
     default: return "fuchslabs";
     }
 }
 std::optional<Style> parse_style(const std::string& value) {
-    for (auto s : {Style::FuchsLabs, Style::Cupertino, Style::Fluent, Style::Material})
+    for (auto s : {Style::FuchsLabs, Style::Cupertino, Style::Fluent, Style::Material, Style::Vice})
         if (value == style_name(s)) return s;
     return std::nullopt;
 }
@@ -312,6 +315,7 @@ std::optional<Custom> parse(const ojson& j, std::string& err) {
         if (t.name == "Cupertino-Stil") t.style = Style::Cupertino;
         else if (t.name == "Fluent-Stil") t.style = Style::Fluent;
         else if (t.name == "Material-Stil") t.style = Style::Material;
+        else if (t.name == "Vice-Sunset") t.style = Style::Vice;
     }
     t.base = j["base"].get<std::string>();
     t.dark = j["dark"].get<bool>();
@@ -339,7 +343,7 @@ ojson to_json(const Custom& t) {
         c[k] = strprintf("#%02X%02X%02X", col.r, col.g, col.b);
     }
     ojson result = {{"version", FORMAT_VERSION}, {"name", t.name}, {"base", t.base}, {"dark", t.dark}, {"colors", c}};
-    if (t.style != Style::FuchsLabs || t.name == "Cupertino-Stil" || t.name == "Fluent-Stil" || t.name == "Material-Stil")
+    if (t.style != Style::FuchsLabs || t.name == "Cupertino-Stil" || t.name == "Fluent-Stil" || t.name == "Material-Stil" || t.name == "Vice-Sunset")
         result["style"] = style_name(t.style);
     return result;
 }
@@ -532,7 +536,7 @@ bool migrate_config(ojson& cfg, const Store& store) {
 
 // ---------------------------------------------------------------- Auflösen
 bool valid_theme_key(const std::string& k) {
-    if (k == DEFAULT_ID || k == "cupertino" || k == "fluent") return true;
+    if (k == DEFAULT_ID || k == "cupertino" || k == "fluent" || k == VICE_ID) return true;
     if (k == "hell" || k == "dunkel" || k == WINDOWS_ID) return true;
     return k.rfind(CUSTOM_PREFIX, 0) == 0 && valid_id(k.substr(std::strlen(CUSTOM_PREFIX)));
 }
@@ -549,9 +553,9 @@ Resolved resolve_custom(const Custom& t) {
 
 Resolved resolve(const std::string& key, const Store& store, const WindowsSettings* ws) {
     Resolved r;
-    if (key == DEFAULT_ID || key == "cupertino" || key == "fluent") {
-        r.style = key == DEFAULT_ID ? Style::Material : key == "cupertino" ? Style::Cupertino : Style::Fluent;
-        r.dark = key == DEFAULT_ID;
+    if (key == DEFAULT_ID || key == "cupertino" || key == "fluent" || key == VICE_ID) {
+        r.style = key == DEFAULT_ID ? Style::Material : key == VICE_ID ? Style::Vice : key == "cupertino" ? Style::Cupertino : Style::Fluent;
+        r.dark = key == DEFAULT_ID || key == VICE_ID;
         r.base = r.dark ? "dunkel" : "hell";
         r.colors = profile_palette(r.style,r.dark);
         if (key == DEFAULT_ID) r.colors.header = r.colors.accent = brand::ORANGE;

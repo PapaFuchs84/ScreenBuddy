@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <d2d1.h>
 #include <dwrite.h>
+#include <dwrite_3.h>
 #include <wincodec.h>
 #include <wrl/client.h>
 
@@ -19,6 +20,7 @@
 #include "brand.h"
 #include "i18n.h"
 #include "util.h"
+#include "resources.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -62,10 +64,13 @@ const FontInfo& font_info(const Font& f) {
     if (auto it = g_fonts.find(key); it != g_fonts.end()) return it->second;
     FontInfo fi;
     ComPtr<IDWriteFontCollection> coll;
-    check(g_dw->GetSystemFontCollection(&coll, TRUE), "Schriften");
+    bool custom = false;
+    if (f.family == L"Bangers") { coll = bangers_collection(); custom = coll != nullptr; }
+    if (!coll) check(g_dw->GetSystemFontCollection(&coll, TRUE), "Schriften");
     // CI-Schrift für Titel, Namen, Zahlen: Bahnschrift SemiBold (ab Windows 10 dabei); sonst Segoe UI
     std::wstring family = !f.family.empty() ? f.family : f.bold ? L"Bahnschrift" : L"Segoe UI";
     DWRITE_FONT_WEIGHT weight = f.bold ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
+    if (custom) weight = DWRITE_FONT_WEIGHT_NORMAL;
     float size = f.bold ? f.size + 1 : f.size;  // wie Version 1.x (Bahnschrift eine Stufe größer)
     UINT32 idx = 0;
     BOOL exists = FALSE;
@@ -91,7 +96,7 @@ const FontInfo& font_info(const Font& f) {
         fi.asc = size * 0.9f;
         fi.desc = size * 0.25f;
     }
-    check(g_dw->CreateTextFormat(family.c_str(), nullptr, weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
+    check(g_dw->CreateTextFormat(family.c_str(), custom && family == L"Bangers" ? coll.Get() : nullptr, weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
                                  size, L"de-de", &fi.fmt),
           "Schriftformat");
     fi.fmt->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
@@ -169,6 +174,29 @@ Image image_from(IWICBitmapSource* src) {
 }
 
 }  // namespace
+
+// Bangers aus der EXE (RCDATA) als eigene Schriftsammlung laden (Windows 10 1703+); bei Fehlern nullptr.
+IDWriteFontCollection* bangers_collection() {
+    static std::once_flag once;
+    static ComPtr<IDWriteFontCollection> coll;
+    static ComPtr<IDWriteInMemoryFontFileLoader> loader;   // muss so lange leben wie die Sammlung
+    std::call_once(once, [] {
+        const auto data = res::get(res::BANGERS_TTF);
+        if (data.empty() || !g_dw) return;
+        ComPtr<IDWriteFactory5> f5;
+        if (FAILED(g_dw.As(&f5))) return;
+        if (FAILED(f5->CreateInMemoryFontFileLoader(&loader)) || FAILED(f5->RegisterFontFileLoader(loader.Get()))) { loader.Reset(); return; }
+        ComPtr<IDWriteFontFile> file;
+        ComPtr<IDWriteFontSetBuilder1> builder;
+        ComPtr<IDWriteFontSet> set;
+        ComPtr<IDWriteFontCollection1> c1;
+        if (FAILED(loader->CreateInMemoryFontFileReference(f5.Get(), data.data(), (UINT32)data.size(), nullptr, &file)) ||
+            FAILED(f5->CreateFontSetBuilder(&builder)) || FAILED(builder->AddFontFile(file.Get())) ||
+            FAILED(builder->CreateFontSet(&set)) || FAILED(f5->CreateFontCollectionFromFontSet(set.Get(), &c1))) return;
+        coll = c1;
+    });
+    return coll.Get();
+}
 
 Image::Image(int w_, int h_, Color c, uint8_t a) : w(w_), h(h_) {
     float fa = a / 255.f;

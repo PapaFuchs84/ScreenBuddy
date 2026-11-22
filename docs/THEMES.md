@@ -22,6 +22,14 @@ Layout-Referenzen: [Apple sidebars](https://developer.apple.com/design/human-int
 
 Quellen: [Apple HIG Foundations](https://developer.apple.com/design/human-interface-guidelines/foundations), [Fluent design tokens](https://fluent2.microsoft.design/design-tokens), [Fluent shapes](https://fluent2.microsoft.design/shapes/), [Material typography](https://m3.material.io/styles/typography/applying-type).
 
+## Vice Sunset (neu)
+
+Eingebautes, dunkles Retro-Dämmerungs-Theme: Pastell-Violett, Rosé, Pfirsich und Sand mit gedämpftem Türkis. Auswahl: Einstellungen › Farben & Design › **Vice Sunset** (Schlüssel `vice-sunset`, Profil `vice`).
+
+- **Display:** Kopfzeile mit Dämmerungsverlauf, gestreifter Sonne und Palmen-Silhouetten; Schrift in Dunkelviolett (Kontrast ≥ 4,5:1).
+- **Web-Einstellungsseite:** Hero-Szene, ruhiges Menü, Überschriften in Bangers (SIL OFL, eingebettet, Lizenz unter `cpp/res/fonts/Bangers-OFL.txt`).
+- Eigenständiger Stil: keine fremden Marken, Logos, Schriften oder Artworks. Die Szene ist eigene Vektorgrafik.
+- Stand: Display-Kopfzeile, native Auswahl und Web-UI. Das Game-Mode-Intro zeigt eine Retro-Szene (gestreifte Sonne, Bodengitter); HUD und Game-Mode übernehmen die Palette automatisch (Rosé/Pfirsich). Die Companion-App zeigt das am PC gerenderte Bild im Vice-Stil. Die native App nutzt Bangers für Titel (eingebettet, Fallback Segoe UI). Die Android-Companion-App verwendet die Vice-Farben fest in ihrer Oberfläche (`colors.xml`, mit der nächsten Companion-Version; Android-Build und Gerätetest noch offen).
 ## Auswahl
 Einstellungen › **Farben & Design**: Hell (FuchsLabs), Dunkel (FuchsLabs), **An Windows anpassen** oder eigene Themes. Die Wahl gilt für USB-Display, Bildschirm und Companion (das Bild entsteht am PC). Die Auswahl wird mit „Speichern & anwenden“ übernommen; Theme-Dateien werden sofort gespeichert.
 
@@ -71,6 +79,14 @@ Settings › **Colors & design**: Light (FuchsLabs), Dark (FuchsLabs), **Match W
 
 **Status dots**: hover the dot in the sidebar for half a second to see "Set up and switched on" (green) or "Not set up or switched off" (grey).
 
+## Vice Sunset (new)
+
+Built-in dark retro-dusk theme: pastel violet, rose, peach and sand with muted teal. Select it under Settings › Colours & design › **Vice Sunset** (key `vice-sunset`, profile `vice`).
+
+- **Display:** header with dusk gradient, striped sun and palm silhouettes; dark-violet text (contrast ≥ 4.5:1).
+- **Web settings page:** hero scene, calm menu, headings in Bangers (SIL OFL, embedded; licence in `cpp/res/fonts/Bangers-OFL.txt`).
+- Original style: no third-party brands, logos, fonts or artwork. The scene is our own vector art.
+- Status: display header, native selection and web UI. The companion app shows the PC-rendered image in Vice style. The game-mode intro shows a retro scene (striped sun, floor grid); HUD and game mode pick up the palette automatically (rose/peach). The native app uses Bangers for titles (embedded, fallback Segoe UI). The Android companion app uses the Vice colours fixed in its UI (`colors.xml`, with the next companion version; Android build and device test still open).
 ## Hell und Dunkel / Light and dark
 
 Alle drei Profile bieten getrennte helle und dunkle Referenzpaletten. Die sechs Beispiele unter `cpp/examples/themes` kombinieren denselben Aufbau mit passenden Flächen, Text-, Akzent- und Statusfarben. Der Hell/Dunkel-Schalter des nativen Fensters wechselt auch bei einem aktiven Designprofil die Palette; das Profil bleibt erhalten. Unter **Basis** im Theme-Editor lädt ein Profilwechsel die Referenzpalette und ersetzt die neun Farbwerte, danach sind eigene Anpassungen möglich. Theme-Dateien werden erst mit **Theme speichern** gesichert.

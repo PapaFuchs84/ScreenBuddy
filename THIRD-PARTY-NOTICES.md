@@ -66,3 +66,6 @@ TMDB, JustWatch, Netflix, Prime Video, Disney+, Apple TV+, WOW, RTL+, Battlefiel
 
 Das offizielle TMDB-Logo (docs/logo/tmdb.svg) stammt von https://www.themoviedb.org/about/logos-attribution und wird gemäß den TMDB-Attributionsregeln nur zur Quellenangabe verwendet. This product uses the TMDB API but is not endorsed or certified by TMDB.
 
+## Bangers (Schrift / font)
+
+Copyright 2010 The Bangers Project Authors (https://github.com/googlefonts/bangers), SIL Open Font License 1.1. Eingebettet für das Theme Vice Sunset / embedded for the Vice Sunset theme. Lizenztext / licence: [cpp/res/fonts/Bangers-OFL.txt](cpp/res/fonts/Bangers-OFL.txt).

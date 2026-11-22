@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vice Sunset – Mockup v5 (Menü ruhig, Header Comic) (Comic)</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Rubik:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0b0518;--bg:#2a2147;--card:#3b2d5f;--text:#fff6fc;--muted:#dccfe8;
+--pink:#e8799f;--cyan:#8fd3df;--orange:#f0a47c;--yellow:#f3d9a4;--green:#8fdcae;--head:Bangers,Impact,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;color:var(--text);font:500 15px/1.45 Rubik,"Segoe UI",sans-serif;
+background:radial-gradient(circle,#ffffff14 1.5px,transparent 2px) 0 0/14px 14px,var(--bg)}
+.app{display:grid;grid-template-columns:235px 1fr;min-height:100vh}
+aside{background:var(--pink);border-right:1px solid #ffffff30;padding:18px 14px;display:flex;flex-direction:column;gap:8px;
+background:linear-gradient(180deg,#4a3a78,#2a2147)}
+.brand{font:400 34px/0.9 var(--head);letter-spacing:.04em;color:var(--yellow);text-shadow:0 2px 12px #e8799f88;padding:6px 6px 14px}
+.brand small{display:block;font:700 12px Rubik;color:var(--ink);-webkit-text-stroke:0;text-shadow:none;letter-spacing:.2em;margin-top:8px}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:10px;color:var(--text);padding:10px 12px;font:600 14px Rubik;cursor:pointer}
+nav button:hover{background:#ffffff18}
+nav button.on{background:linear-gradient(90deg,#e8799f,#b87ab8);color:#1a1230}
+main{padding:0 28px 40px;overflow:hidden}
+.hero{height:230px;margin:0 -28px 26px;position:relative;border-bottom:5px solid var(--ink);overflow:hidden;
+background:linear-gradient(180deg,#7a68b8 0%,#c486b4 40%,var(--pink) 65%,var(--orange) 100%)}
+
+.scene{position:absolute;inset:0;width:100%;height:100%}
+.palm{position:absolute;bottom:-6px;font-size:130px;line-height:1;filter:brightness(0) drop-shadow(0 0 0 #000)}
+.hero h1{position:absolute;left:30px;top:22px;margin:0;font:400 64px/1 var(--head);letter-spacing:.05em;color:#fff;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;
+text-shadow:5px 5px 0 var(--ink),9px 9px 0 var(--cyan);transform:rotate(-2deg)}
+.burst{position:absolute;right:28px;top:18px;background:var(--cyan);color:var(--ink);font:400 24px var(--head);padding:14px 20px;border:4px solid var(--ink);
+clip-path:polygon(50% 0,61% 14%,79% 6%,80% 25%,98% 30%,87% 46%,100% 62%,80% 68%,79% 88%,60% 82%,50% 100%,40% 82%,21% 88%,20% 68%,0 62%,13% 46%,2% 30%,20% 25%,21% 6%,39% 14%);
+width:130px;height:130px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1;transform:rotate(10deg);border:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:22px}
+.card{background:var(--card);border:1px solid #ffffff22;border-radius:16px;padding:18px;box-shadow:0 8px 24px #0005}
+
+.card:hover{border-color:#8fd3df88;box-shadow:0 8px 28px #8fd3df22}
+h3{font:700 13px Rubik;letter-spacing:.14em;text-transform:uppercase;margin:0 0 12px;color:var(--cyan)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #ffffff1c}.row:last-child{border:0}
+.tog{width:44px;height:24px;border-radius:99px;background:#5a4a88;position:relative}.tog.on{background:var(--green)}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff}.tog.on::after{left:23px}
+.btn{font:600 14px Rubik;border:0;border-radius:10px;padding:10px 18px;color:#1a1230;background:var(--yellow);cursor:pointer;box-shadow:0 2px 10px #0004}
+.btn:active{transform:translateY(1px)}.btn.alt{background:var(--cyan)}
+.tile{border-radius:12px;padding:12px;background:#4a3a78;color:var(--text);text-align:center;border:1px solid #ffffff22}
+.tile b{display:block;font:400 40px/1 var(--head);color:var(--pink);letter-spacing:.04em}
+.tile span{font-weight:700}.tile.c b{color:var(--cyan)}
+.bubble{background:#ffffff14;border-radius:10px;padding:10px 14px;margin-bottom:14px}
+
+.sw{display:flex;gap:10px;flex-wrap:wrap}.sw i{width:40px;height:40px;border-radius:10px;border:1px solid #fff3}
+.note{margin-top:26px;color:var(--muted);font-size:13px}
+</style></head><body><div class="app">
+<aside><div class="brand">SCREEN<br>BUDDY<small>VICE SUNSET</small></div>
+<nav><button class="on">Allgemein</button><button>Display</button><button>Game-Mode</button><button>Companion</button><button>Plugins</button><button>Store</button><button>Freunde</button></nav></aside>
+<main><div class="hero"><h1 style="z-index:2">EINSTELLUNGEN!</h1><svg class="scene" viewBox="0 0 1000 230" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6c5cae"/><stop offset=".45" stop-color="#b87ab8"/><stop offset=".75" stop-color="#ee9aa8"/><stop offset="1" stop-color="#f6bd96"/></linearGradient>
+<g id="palm"><path d="M0 0 C6 -60 -4 -120 8 -170" fill="none" stroke="#0b0518" stroke-width="9" stroke-linecap="round"/>
+<path d="M8 -170 C-20 -190 -50 -180 -70 -150 C-40 -168 -20 -170 8 -170 C-10 -200 -30 -215 -48 -215 C-26 -205 -10 -190 8 -170 C14 -205 36 -222 58 -216 C38 -206 22 -190 8 -170 C40 -185 70 -175 86 -148 C60 -166 34 -168 8 -170Z" fill="#0b0518" stroke="#0b0518" stroke-width="3" stroke-linejoin="round"/></g></defs>
+<rect width="1000" height="230" fill="url(#sky)"/>
+<g stroke="#0b0518" stroke-width="3"><circle cx="520" cy="175" r="95" fill="#f3d9a4"/><g fill="#f6bd96" stroke="none"><rect x="420" y="150" width="200" height="7"/><rect x="420" y="168" width="200" height="9"/><rect x="420" y="188" width="200" height="11"/></g></g>
+<g fill="#7d6aa8" stroke="#0b0518" stroke-width="3"><path d="M250 230V150h26v-24h22v24h20v-50h24v50h18v30h16v-70h28v70h22V140h24v90zM640 230v-96h30v-30h22v30h26v-60h26v60h20v40h22v-24h30v140z"/></g>
+<rect y="205" width="1000" height="25" fill="#d8b894" stroke="#0b0518" stroke-width="4"/>
+<path d="M500 205 L420 230 M500 205 L580 230" stroke="#f3d9a4" stroke-width="4"/>
+<use href="#palm" transform="translate(70 232) scale(.9)"/><use href="#palm" transform="translate(190 232) scale(.6)"/><use href="#palm" transform="translate(360 232) scale(.45)"/>
+<use href="#palm" transform="translate(930 232) scale(.95) translate(0 0)"/><use href="#palm" transform="translate(810 232) scale(.6)"/><use href="#palm" transform="translate(700 232) scale(.45)"/>
+</svg>
+<div class="burst">NEU!<br>Neon<br>Mode</div></div>
+<div class="cards">
+<div class="card"><h3>DESIGN</h3><div class="row"><span>Theme</span><b style="color:var(--yellow)">Vice Sunset</b></div><div class="row"><span>Comic-Rahmen</span><span class="tog on"></span></div><div class="row"><span>Halftone-Raster</span><span class="tog on"></span></div></div>
+<div class="card"><h3>DISPLAY</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="tile"><b>72°</b><span>GPU</span></div><div class="tile c"><b>144</b><span>FPS</span></div></div></div>
+<div class="card"><h3>GAME-MODE</h3><div class="bubble">Bereit für den Run?</div><button class="btn">STARTEN!</button> <button class="btn alt">VORSCHAU</button></div>
+<div class="card"><h3>PALETTE</h3><div class="sw"><i style="background:#2a2147"></i><i style="background:#3b2d5f"></i><i style="background:#e8799f"></i><i style="background:#8fd3df"></i><i style="background:#f0a47c"></i><i style="background:#f3d9a4"></i></div></div>
+</div>
+<p class="note">Mockup v5 (Menü ruhig, Header Comic) · Comic: dicke Outlines, harte Schatten, Halftone, Sprechblasen, Burst-Sticker · Schrift Bangers + Rubik (SIL OFL) · eigenständig, keine fremden Marken · Palmen/Flamingo im Bau als SVG.</p>
+</main></div></body></html>
+
+
+
+
