@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Theme Vice Sunset (ice-sunset, Style::Vice): Palette, Header-Szene in render.cpp, Auswahl im Design-Dialog, Web-UI-Theme mit eingebetteter Bangers (SIL OFL) / theme with embedded Bangers font. fl-tests 3579, 0 Fehler/failures.
+
 ## 2.14.0 – 2026-11-21
 
 - Freunde: eigener Anzeigename pro Freund / custom display name per friend (`friends.aliases`, `Anzeigename|plattform:ID`); Einstellungen → Freunde → Anzeigenamen / Settings → Friends → Display names. Prüfstatus / test status: fl-tests 3577, layout-ui 1877, companion 542, 0 Fehler/failures.

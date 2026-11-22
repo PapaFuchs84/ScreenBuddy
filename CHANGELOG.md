@@ -4,6 +4,10 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
+## Unveröffentlicht
+
+- Neues Theme **Vice Sunset** (Pastell-Retro-Dämmerung): Display-Kopfzeile mit Verlauf, Sonne und Palmen, Auswahl in Farben & Design, Web-Einstellungsseite mit Hero-Szene und eingebetteter Schrift Bangers (SIL OFL). Details: [docs/THEMES.md](docs/THEMES.md).
+
 ## [Unveröffentlicht]
 
 ## [2.14.0] - 2026-11-21
