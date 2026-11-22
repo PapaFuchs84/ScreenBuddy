@@ -7,6 +7,7 @@ Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog
 ## [Unveröffentlicht]
 
 - Neues Theme **Vice Sunset** (Pastell-Retro-Dämmerung): Display-Kopfzeile mit Verlauf, Sonne und Palmen, Auswahl in Farben & Design, Web-Einstellungsseite mit Hero-Szene und eingebetteter Schrift Bangers (SIL OFL). Details: [docs/THEMES.md](docs/THEMES.md).
+
 ## [2.14.0] - 2026-11-21
 
 **Prüfstatus 2.14.0:** C++-Suiten ohne Fehler: fl-tests 3577, fl-layout-ui-tests 1877, fl-companion-tests 542. Nicht geprüft: Live-Test am echten Display/Companion, übrige Suiten. Companion unverändert (1.2.0).
