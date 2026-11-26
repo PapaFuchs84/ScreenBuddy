@@ -552,9 +552,20 @@ static void vice_header_scene(Canvas& d, float w, float h) {
         const float k = float(i) / float(std::max(1, strips - 1));
         d.rectangle(float(i * 4), 0, float(i * 4 + 4), h, k < .6f ? mix(pink, peach, k / .6f) : mix(peach, sand, (k - .6f) / .4f));
     }
-    const float cx = w * .55f, cy = h * .95f, r = h * .62f;   // Sonne, unten angeschnitten, mit Streifen
-    d.ellipse(cx - r, cy - r, cx + r, cy + r, Color{255, 226, 140});
-    for (int i = 0; i < 4; ++i) d.rectangle(cx - r, cy - r * .55f + i * r * .22f, cx + r, cy - r * .55f + i * r * .22f + 1.5f + i * .8f, mix(peach, pink, .5f));
+    // Sonne: nur der Teil oberhalb der Horizontlinie (h - 2); nichts darunter, auch nicht in den Inhalt unter der Leiste.
+    const float cx = w * .55f, cy = h - 2.f, r = h * .62f;
+    const Color sun{255, 226, 140}, band = mix(peach, pink, .5f);
+    const auto half_at = [&](float y) { const float dy = cy - y; return std::sqrt(std::max(0.f, r * r - dy * dy)); };
+    for (float y = cy - r; y < cy; y += 1.f) {   // Halbscheibe in 1-px-Zeilen
+        const float hw = half_at(y + .5f);
+        if (hw > 0) d.rectangle(cx - hw, y, cx + hw, std::min(y + 1.f, cy), sun);
+    }
+    for (int i = 0; i < 4; ++i) {   // Streifen, an der Scheibe beschnitten
+        const float y0 = cy - r * .55f + i * r * .22f, y1 = std::min(y0 + 1.5f + i * .8f, cy);
+        if (y0 >= cy) continue;
+        const float hw = half_at(y0 + .5f * (y1 - y0));
+        if (hw > 0) d.rectangle(cx - hw, y0, cx + hw, y1, band);
+    }
     const auto palm = [&](float x, float sc) {   // Stamm + drei Wedel
         d.line({{x, h}, {x + 1.5f * sc, h - 11 * sc}, {x + 1.f * sc, h - 18 * sc}}, ink, std::max(1.f, 1.6f * sc));
         const float tx = x + 1.f * sc, ty = h - 18 * sc;

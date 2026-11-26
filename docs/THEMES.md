@@ -26,7 +26,7 @@ Quellen: [Apple HIG Foundations](https://developer.apple.com/design/human-interf
 
 Eingebautes, dunkles Retro-Dämmerungs-Theme: Pastell-Violett, Rosé, Pfirsich und Sand mit gedämpftem Türkis. Auswahl: Einstellungen › Farben & Design › **Vice Sunset** (Schlüssel `vice-sunset`, Profil `vice`).
 
-- **Display:** Kopfzeile mit Dämmerungsverlauf, gestreifter Sonne und Palmen-Silhouetten; Schrift in Dunkelviolett (Kontrast ≥ 4,5:1).
+- **Display:** Kopfzeile mit Dämmerungsverlauf, gestreifter Sonne (nur oberhalb des Horizonts) und Palmen-Silhouetten; Schrift in Dunkelviolett (Kontrast ≥ 4,5:1).
 - **Web-Einstellungsseite:** Hero-Szene, ruhiges Menü, Überschriften in Bangers (SIL OFL, eingebettet, Lizenz unter `cpp/res/fonts/Bangers-OFL.txt`).
 - Eigenständiger Stil: keine fremden Marken, Logos, Schriften oder Artworks. Die Szene ist eigene Vektorgrafik.
 - Stand: Display-Kopfzeile, native Auswahl und Web-UI. Das Game-Mode-Intro zeigt eine Retro-Szene (gestreifte Sonne, Bodengitter); HUD und Game-Mode übernehmen die Palette automatisch (Rosé/Pfirsich). Die Companion-App zeigt das am PC gerenderte Bild im Vice-Stil. Die native App nutzt Bangers für Titel (eingebettet, Fallback Segoe UI). Die Android-Companion-App verwendet die Vice-Farben fest in ihrer Oberfläche (`colors.xml`, mit der nächsten Companion-Version; Android-Build und Gerätetest noch offen).
