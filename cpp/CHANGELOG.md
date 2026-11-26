@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.15.2 – 2026-11-26
+
+- KI-Status: Standardansicht mit einheitlicher oberer Leiste (AiRenderer::render ruft Renderer::header), Regressionstest in ai_status_tests.
+
 ## 2.15.1 – 2026-11-26
 
 - Einheitliche obere Leiste (Renderer::header_clock) auf Plugin-Seiten, eigenen Ansichten und im Hardware-HUD.
