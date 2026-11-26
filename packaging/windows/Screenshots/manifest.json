@@ -1,55 +1,58 @@
 {
-  "appVersion": "2.11.0",
-  "packageVersion": "2.11.0.0",
-  "packageIdentity": "FuchsLabs.ScreenBuddy.ListingValidation",
-  "deploymentMode": "developer-registration; local test identity, not official Store identity",
-  "captureDate": "2026-11-10",
-  "capture": "Native Page/TreeCanvas renderer, isolated synthetic fixtures, no window/desktop capture",
-  "sourceBase": "7b8d0c1 with local Store preparation changes",
-  "captureAppSha256": "b78e2dc576beea84c169b888349ce1cb80ca594d9403dea43f0dff8eeab2a466",
-  "captureRendererSha256": "805829f4481b5ddd4e1a25b4e60c28a8e7f5fe49df93f48ecba03352a69ae517",
-  "fontPrerequisite": "Roboto 3.016; current installed snapshot test prerequisite",
-  "privacySupportControlsVerified": true,
+  "appVersion": "2.15.0",
+  "packageVersion": "2.15.0.0",
+  "packageIdentity": "not packaged; screenshots are native synthetic renders",
+  "deploymentMode": "unpackaged capture-only mode; no Store identity",
+  "captureDate": "2026-11-22",
+  "sourceRevision": "d846b19b2a38c1df0371e07c629e3888a7919ad1",
+  "mergedRevision": "a23e8b039172e3506ab338e916220b623d0f9fd0",
+  "capture": "fl-layout-ui-tests --export-store-listing; native Page/TreeCanvas renderer; temporary fixture theme set to vice-sunset and restored after capture; no window/desktop capture",
+  "captureBinarySha256": "a5222d673bf9a75979f8a92a9cae72cfab5d75010814f077dc1f01a6d52c464a",
+  "releaseBinarySha256": "605a4f57dbb36ace1c207b00b6e944781a50ad26735523b057280f78d7ddb383",
   "sampleDataOnly": true,
   "hardwareEvidence": false,
-  "note": "Actual native page/widget renders in a developer-registered package context; hidden test host with synthetic monitor, sample metrics and forced inactive FPS permission. No desktop capture, connected hardware, real accounts or live game measurements. No image compositing, resizing or edits.",
+  "testSuitesRun": false,
+  "note": "Capture-only export mode; no test assertions or suites executed. Captures are 1600x1200 native UI renders with synthetic data, not an official Store package or device evidence.",
   "images": [
     {
       "file": "de-game-mode.png",
       "width": 1600,
       "height": 1200,
-      "sha256": "4883f978fd9b0a5ce91d12d122186c2396482786415b9ffd6f823dd227d26252",
+      "sha256": "2f5af342775c48cdc3a581a523ff7054ecc1e5227dbd68dfa059a06099819f90",
       "language": "de",
       "sampleDataOnly": true,
-      "hardwareEvidence": false
+      "hardwareEvidence": false,
+      "caption": "Deutsch: Game-Mode-Einstellungen und Beispielansicht im Vice-Sunset-Farbschema. Synthetische Beispieldaten; keine Hardware- oder Kontenmessung."
     },
     {
       "file": "de-editor.png",
       "width": 1600,
       "height": 1200,
-      "sha256": "49f80d3b75458335c44e82378a4c9570b7b64fd0127ed2f7f1ffb7fa1d985b6d",
+      "sha256": "18ee3b0a097c04165856f1e038cc6ac621794da8c2d0d999f79fda3f8df1a20c",
       "language": "de",
       "sampleDataOnly": true,
-      "hardwareEvidence": false
+      "hardwareEvidence": false,
+      "caption": "Deutsch: nativer Ansichts-Editor mit synthetischem Game-Mode-Layout, gerendert im Vice-Sunset-Farbschema."
     },
     {
       "file": "en-game-mode.png",
       "width": 1600,
       "height": 1200,
-      "sha256": "dd5e0a39731d5574578cbcd1fef85a8c62be99ef97605b6133c9416bdb4c9d46",
+      "sha256": "259aed66006b4dcd7de02b0325cc0ee8f3ab81e652e35fb4f916f03d3b7b4750",
       "language": "en",
       "sampleDataOnly": true,
-      "hardwareEvidence": false
+      "hardwareEvidence": false,
+      "caption": "English: Game Mode settings and sample view in the Vice Sunset palette. Synthetic sample data; no hardware or account measurements."
     },
     {
       "file": "en-editor.png",
       "width": 1600,
       "height": 1200,
-      "sha256": "47c7289ea3f13e6af8afe5eac5ae29f1c0f1fc7e03fa91742d7c9eb3a6b6a9c2",
+      "sha256": "d2169b50bd25958c9c22cb1fac32387c98c59a95bcf34d6b25960a0b587f9bc2",
       "language": "en",
       "sampleDataOnly": true,
-      "hardwareEvidence": false
+      "hardwareEvidence": false,
+      "caption": "English: native custom-view editor with a synthetic Game Mode layout rendered in the Vice Sunset palette."
     }
-  ],
-  "finalBinaryRerenderVerified": true
+  ]
 }
