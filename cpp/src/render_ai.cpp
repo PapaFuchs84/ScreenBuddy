@@ -39,9 +39,9 @@ Color state_color(const std::string& s,const Theme& t) {
 Image AiRenderer::render(const ai::Snapshot& snap,double tick,std::time_t now) {
     const auto& t=theme();Canvas d(W,H,s,t.bg);
     const auto small=font(10), normal=font(12), name=font(14,true);
-    d.text(10,7,"KI-Status",font(18,true),t.text);
     const auto& cm=snap.providers.at("claude");
-    d.text(w-10,12,tr("Claude Sitzung (ca.)")+": "+value(cm,"cost_session",2)+(cm["cost_session"].is_number()?" USD":""),small,t.muted,"ra");
+    // Einheitliche obere Leiste; die Sitzungskosten stehen als Info rechts neben dem Titel.
+    header(d,now,tr("Claude Sitzung (ca.)")+": "+value(cm,"cost_session",2)+(cm["cost_session"].is_number()?" USD":""));
     const float cw=(w-26)/2;
     for(int i=0;i<2;++i) {
         const std::string provider=i==0?"claude":"codex";
