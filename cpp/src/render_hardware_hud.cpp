@@ -1,6 +1,7 @@
 // © 2026 FuchsLabs
 #include "render_hardware_hud.h"
 #include "i18n.h"
+#include "util.h"
 
 #include <algorithm>
 #include <array>
@@ -257,7 +258,7 @@ HudPalette hud_palette(const ojson& system, const Theme& skin) {
     return hud_derive(p);
 }
 
-Image hardware_hud(int width,int height,const SysSnapshot& snap,double tick,int page_seconds,const HudPalette& palette) {
+Image hardware_hud(int width,int height,const SysSnapshot& snap,double tick,int page_seconds,const HudPalette& palette,const std::string& clock) {
     use(palette);
     width=std::max(width,1); height=std::max(height,1);
     tick=std::isfinite(tick)&&tick>=0?std::fmod(tick,86400.):0;
@@ -282,13 +283,12 @@ Image hardware_hud(int width,int height,const SysSnapshot& snap,double tick,int 
     }
     const float scan=float(std::fmod(tick*90.,double(std::max(w,1.f))));
     c.rectangle(scan,52,scan+1,h-36,SCAN);
-    circuit(c,{{20,38},{w*.25f,38},{w*.25f+15,23},{w-20,23}},CYAN,tick);
+    circuit(c,{{20,54},{w*.25f,54},{w*.25f+15,43},{w-20,43}},CYAN,tick);
     circuit(c,{{20,h-25},{w*.67f,h-25},{w*.67f+14,h-39},{w-20,h-39}},PINK,tick,170);
-    const Font headerFont=font(c,portrait?13.f:12.f,true);
-    c.text(24,18,fit(c,"SCREENBUDDY / HARDWARE HUD",headerFont,w-150),headerFont,CYAN,"lm");
     const std::array<const char*,3> pages{label("SYSTEMÜBERSICHT","SYSTEM OVERVIEW"),label("GPU-TELEMETRIE","GPU TELEMETRY"),label("CPU-TELEMETRIE","CPU TELEMETRY")};
-    c.text(w-24,43,pages[page],font(c,portrait?15.f:14.f,true),PINK,"rm");
-    for(int i=0;i<3;++i) c.rectangle(w-100+i*26,11,w-80+i*26,14,i==page?CYAN:DIM_C);
+    // Einheitliche Kopfleiste (Icon, Titel, Seitenname, Uhr) wie bei allen Seiten; der Seitenindikator liegt darunter.
+    render::Renderer(width,height,"Hardware-HUD",scale).header_clock(c,!clock.empty()?clock:!hud_test_clock.empty()?hud_test_clock:clock_hhmm(),pages[page]);
+    for(int i=0;i<3;++i) c.rectangle(w-100+i*26,38,w-80+i*26,41,i==page?CYAN:DIM_C);
     // A brief schematic sweep marks each page change; readings remain visible throughout.
     if(entrance<1) c.line({{20+(w-40)*entrance,58},{20+(w-40)*entrance,h-45}},mix(BG,CYAN,(1-entrance)*.6f),2);
     const float top=69,bottom=h-46,content=std::max(150.f,bottom-top);

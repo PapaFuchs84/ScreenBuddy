@@ -20,7 +20,9 @@ HudPalette hud_derive(HudPalette p);
 // Unreadable colours fall back to readable ones; invalid values are ignored.
 HudPalette hud_palette(const ojson& system, const Theme& skin);
 
+// Nur Tests: feste Uhrzeit "HH:MM" für die Kopfleiste (leer = aktuelle Uhrzeit).
+inline std::string hud_test_clock;
 // Standalone, responsive hardware HUD. Tick is monotonic seconds; data is never simulated.
 Image hardware_hud(int width, int height, const SysSnapshot& snapshot, double tick, int page_seconds = 8,
-                   const HudPalette& palette = hud_neon_palette());
+                   const HudPalette& palette = hud_neon_palette(), const std::string& clock = {});   // clock "HH:MM"; leer = aktuelle Uhrzeit
 }

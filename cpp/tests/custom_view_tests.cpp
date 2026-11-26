@@ -14,6 +14,9 @@
 using namespace fl;
 namespace fs=std::filesystem;
 static int checks=0,failures=0;
+// Ansicht ohne Kacheln: nur Hintergrund und einheitliche Kopfleiste (Titel = Ansichtsname).
+static Image blank_named(const std::string& name){custom::View v;v.name=name;return custom::draw(v,"",480,320,[](const auto&,const auto&,int,int)->std::optional<Image>{return {};});}
+static Image plain_bg(){return Image(480,320,render::theme().bg);}
 #define CHECK(x) do {++checks;if(!(x)){++failures;std::cerr<<__LINE__<<": " #x "\n";}}while(0)
 int main() try {
     auto root=fs::temp_directory_path()/("fl-custom-"+std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
@@ -88,8 +91,10 @@ int main() try {
             return renderer.render_arranged(*data,*overlay,1700000000).image;
         });
     };
+    custom::test_clock="12:00";plugins::test_clock="12:00";
     auto image=draw(v.standard,snap);
-    Image blank(480,320,render::theme().bg);CHECK(image.px!=blank.px);
+    auto blank=draw(custom::Layout{},std::nullopt);   // nur die einheitliche Kopfleiste, keine Kachel
+    CHECK(image.px!=blank.px);
     CHECK(draw(v.standard,std::nullopt).px==blank.px);
     auto overlay=custom::single_builtin(v.standard.tiles[0],v.standard);CHECK(overlay);
     CHECK(builtin::validate(*builtin::find("system"),*overlay).empty());
@@ -166,7 +171,7 @@ int main() try {
             av.standard.tiles[0].show_if=plugins::Condition{"data.claude.context","==",42};
             CHECK(app.custom_preview(av,"",{480,320})->px!=blank.px);
             av.standard.tiles[0].show_if->value=43;
-            CHECK(app.custom_preview(av,"",{480,320})->px==blank.px);
+            CHECK(app.custom_preview(av,"",{480,320})->px==blank_named("AI test").px);
             at.show_if=plugins::Condition{"data.codex.five_hour","",nullptr};CHECK(!custom::visible(at,ai::tile_values(snap,now)));
             at.show_if=plugins::Condition{"data.claude.state","==","working"};CHECK(custom::visible(at,ai::tile_values(snap,now)));
         }
@@ -174,7 +179,7 @@ int main() try {
         av.standard.tiles={custom::Tile{"ai","ai.claude",{"ai",0,0,1,1}}};
         const auto overlay=*custom::single_builtin(av.standard.tiles[0],av.standard);
         CHECK(ar.render_arranged(snap,overlay,0,now).image.px!=ar.render_arranged(snap,overlay,.4,now).image.px);
-        CHECK(ar.render_arranged(missing,overlay,0,now).image.px==blank.px);
+        CHECK(ar.render_arranged(missing,overlay,0,now).image.px==plain_bg().px);
         auto bad=custom::to_json(av);bad["layout"]["tiles"][0]["block"]="ai.private-session-id";CHECK(!custom::parse(bad.dump()));
         // App route, not just the painter: model event -> published frame -> tile page target.
         {
@@ -193,7 +198,7 @@ int main() try {
             CHECK(live.page_navigation()["current"][0]=="custom:ai-first");
             if(after) {live.open_item_at(after->w*3/4,after->h/2);live.render_primary_for_test();CHECK(live.page_navigation()["current"][0]=="custom:ai-second");}
             CHECK(live.ai_status().model().ingest(R"({"provider":"claude","session_id":"synthetic","hook_event_name":"Stop"})",std::time(nullptr)));
-            live.render_primary_for_test();CHECK(live.last_frame()->px==before->px);
+            live.render_primary_for_test();CHECK(live.last_frame()->px!=after->px);   // Kopfleiste trägt jetzt den Namen der aktuellen Ansicht ("AI second"): kein Pixelvergleich mit "before" mehr
         }
         ai::Model stopped;CHECK(stopped.ingest(R"({"provider":"claude","session_id":"sample","hook_event_name":"SessionEnd"})",now));
         CHECK(ai::tile_present(stopped.snapshot(now),"ai.claude")); // observed off is data
@@ -208,7 +213,7 @@ int main() try {
     auto entity_image=ha_renderer.render_entity(entity,{cell.x0,cell.y0,cell.x1-cell.x0,cell.y1-cell.y0});
     CHECK(entity_image.px!=blank.px);
     bool same_entity=true;for(int y=int(cell.y0);y<int(cell.y1);++y)for(int x=int(cell.x0);x<int(cell.x1);++x) same_entity=same_entity && entity_image.at(x,y)==native.at(x,y);
-    CHECK(same_entity);CHECK(ha_renderer.render_entity(entity,{cell.x0,cell.y0,cell.x1-cell.x0,cell.y1-cell.y0},0).px!=entity_image.px);CHECK(ha_renderer.render_entity(entity,{8,36,20,20}).px==blank.px);
+    CHECK(same_entity);CHECK(ha_renderer.render_entity(entity,{cell.x0,cell.y0,cell.x1-cell.x0,cell.y1-cell.y0},0).px!=entity_image.px);CHECK(ha_renderer.render_entity(entity,{8,36,20,20}).px==plain_bg().px);
     // Every content source uses the real source renderer, with additive view composition.
     for(const auto& c:builtin::catalogs()) for(const auto& b:c.blocks) {
         custom::View sample;sample.id="sample";sample.name="Sample";auto t=tile;t.source=c.key;t.block=b.id;t.zone={"tile",0,0,1,1};t.show_if.reset();sample.standard.tiles={t};
@@ -222,7 +227,7 @@ int main() try {
     auto sample_tile=tile;sample_tile.zone={"cpu",0,0,1,1};sample_tile.show_if=plugins::Condition{"data.cpu_pct","==",*render::samples::system().cpu_pct};conditional.standard.tiles={sample_tile};
     CHECK(app.custom_preview(conditional,"",{480,320})->px!=blank.px);
     conditional.standard.tiles[0].show_if->value=*render::samples::system().cpu_pct+1;
-    CHECK(app.custom_preview(conditional,"",{480,320})->px==blank.px);
+    CHECK(app.custom_preview(conditional,"",{480,320})->px==blank_named("Conditions").px);
     auto invalid_density=j;invalid_density["layout"]["tiles"][0]["density"]=3;CHECK(!custom::parse(invalid_density.dump()));
     invalid_density["layout"]["tiles"][0]["density"]=1.5;CHECK(!custom::parse(invalid_density.dump()));
     // A custom draft can hold 24 tiles; plugin documents still keep their 12-block/8-zone limits.

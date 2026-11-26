@@ -1136,6 +1136,7 @@ static int export_store_listing(const fs::path& output) {
 }
 
 int main(int argc,char** argv) {
+    custom::test_clock="12:34";render::hud_test_clock="12:34";plugins::test_clock="12:34";   // einheitliche Kopfleiste: feste Uhr für reproduzierbare Hashes
     if(argc==3 && std::string(argv[1])=="--export-store-listing") {
         try {gfx_init();return export_store_listing(fs::path(argv[2]));}
         catch(const std::exception& e){std::fprintf(stderr,"Store sample export: %s\n",e.what());return 1;}

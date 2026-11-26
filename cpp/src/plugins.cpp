@@ -725,6 +725,7 @@ namespace {
 std::string block_key(const Widget& w, size_t index) { return w.id.empty() ? "#" + std::to_string(index) : w.id; }
 Page render_page_unguarded(const Manifest& m, const RenderContext& context, const testing::DataHooks* hooks) {
     Page page{m.id, bounded(m.name), {}, false, m.layout};
+    try { page.clock = bounded(context.time); } catch (...) {}
     Json values; // null without valid settings: every settings path is then missing (null needs no allocation)
     try { values = settings_values(m, context.settings, false); }
     catch (...) { values = Json(); page.missing_data = true; }

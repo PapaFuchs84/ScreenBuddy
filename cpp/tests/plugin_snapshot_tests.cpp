@@ -95,6 +95,7 @@ ContrastInput contrast_input(const std::string& name, const theme::Resolved& r) 
 }
 
 int main(int argc, char** argv) {
+    plugins::test_clock = "12:34";   // einheitliche Kopfleiste: feste Uhr für reproduzierbare Hashes
     bool update = false;
     std::vector<std::string> positional;
     for (int i = 1; i < argc; ++i) {

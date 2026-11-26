@@ -25,7 +25,7 @@ static void save(const fs::path& path,const Image& image) {
     if(!f) throw std::runtime_error("PNG write failed");
 }
 int main(int argc,char** argv) {
-    CoInitializeEx(nullptr,COINIT_MULTITHREADED);gfx_init();i18n::set_lang("en");
+    CoInitializeEx(nullptr,COINIT_MULTITHREADED);gfx_init();i18n::set_lang("en");render::hud_test_clock="12:34";
     using namespace sysinfo;
     const auto power=[](uint32_t type,std::string sensor,std::string label,std::string unit,double value,std::string original="") {
         return Reading{type,std::move(sensor),std::move(label),std::move(unit),value,std::move(original)};
