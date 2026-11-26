@@ -4,7 +4,9 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
-## [Unveröffentlicht]
+## [2.15.1] - 2026-11-26
+
+**Prüfstatus 2.15.1:** C++-Suiten ohne Fehler: fl-tests 3581, fl-layout-ui-tests 1877, fl-custom-view-tests 2144, fl-plugin-snapshot-tests 2101, fl-builtin-snapshot-tests 4221 Bilder, fl-hardware-hud-tests 184. Live-Test mit isolierter Testinstanz: Hardware-HUD und System-Seite. Nicht geprüft: eigene Ansichten live, Vice Sunset, Display/Companion-Hardware.
 
 - **Einheitliche obere Leiste** auf allen Seiten: Plugin-Seiten, eigene Ansichten (inkl. Game-Mode-Ansicht) und das Hardware-HUD zeigen jetzt dieselbe Kopfleiste wie die eingebauten Seiten (34 px, Fuchs-Icon, Titel, Uhr, Trennlinie je Theme). Bisher hatten Plugin-Seiten eine abweichende Leiste (32 px, kleinere Schrift, ohne Icon und Uhr, in Cupertino/Fluent blau), eigene Ansichten und Game-Mode keine. Beim Hardware-HUD steht der Seitenname jetzt in der Leiste, die Seitenpunkte darunter.
 

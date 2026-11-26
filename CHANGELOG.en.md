@@ -4,7 +4,9 @@
 
 All notable changes to the app. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [2.15.1] - 2026-11-26
+
+**Test status 2.15.1:** C++ suites without failures: fl-tests 3581, fl-layout-ui-tests 1877, fl-custom-view-tests 2144, fl-plugin-snapshot-tests 2101, fl-builtin-snapshot-tests 4221 images, fl-hardware-hud-tests 184. Live test with an isolated test instance: Hardware HUD and System page. Not tested: custom views live, Vice Sunset, display/Companion hardware.
 
 - **Unified top bar** on every page: plugin pages, custom views (including the Game Mode view) and the Hardware HUD now show the same header bar as the built-in pages (34 px, fox icon, title, clock, divider per theme). Previously plugin pages had a different bar (32 px, smaller font, no icon or clock, blue in Cupertino/Fluent) and custom views and Game Mode had none. On the Hardware HUD the page name now sits in the bar with the page dots below it.
 

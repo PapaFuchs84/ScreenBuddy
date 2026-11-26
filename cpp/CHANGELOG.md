@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.15.1 – 2026-11-26
+
+- Einheitliche obere Leiste (Renderer::header_clock) auf Plugin-Seiten, eigenen Ansichten und im Hardware-HUD.
+
 ## 2.15.0 – 2026-11-22
 
 - Theme Vice Sunset (`vice-sunset`, Style::Vice): Palette, Header-Szene, Auswahl im Design-Dialog, Web-UI-Theme und Game-Mode-Intro mit Retro-Szene. Bangers eingebettet für native Titel und Web-UI (SIL OFL). Android Companion unverändert; sie zeigt das vom PC gerenderte Bild.
