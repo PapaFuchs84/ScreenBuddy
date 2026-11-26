@@ -67,7 +67,10 @@ using DrawTileOut = std::function<std::optional<TileDraw>(const Tile&,const Layo
 struct DrawOut { Image image; std::vector<touch::ArrangedTarget> targets; std::vector<touch::PluginTarget> plugin; };
 // Overrides are resolved by the caller against current pages and plugin grants.
 using Override = std::function<bool(const Tile&,render::Box,DrawOut&)>;
-DrawOut draw_out(const View&,const std::string&,int,int,const DrawTileOut&,const Override& = {});
+// Nur Tests: feste Uhrzeit "HH:MM" für die Kopfleiste (leer = aktuelle Uhrzeit).
+inline std::string test_clock;
+// clock: "HH:MM" für die Kopfleiste; leer = aktuelle Uhrzeit (Tests übergeben eine feste Zeit).
+DrawOut draw_out(const View&,const std::string&,int,int,const DrawTileOut&,const Override& = {},const std::string& clock = {});
 // Runtime context for individual touch targets (Phase 8 P8-3). Anything not
 // granted here resolves to Standard: the source's own targets stay in force.
 struct LinkGrant { std::string plugin; uint64_t generation = 0; std::function<bool(const std::string&)> allowed; };

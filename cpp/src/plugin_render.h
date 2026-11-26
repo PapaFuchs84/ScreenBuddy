@@ -8,6 +8,8 @@
 
 namespace fl::plugins {
 using PluginTarget = touch::PluginTarget;
+// Nur Tests: feste Uhrzeit "HH:MM" für die Kopfleiste, wenn die Seite keine eigene Uhr trägt (leer = aktuelle Uhrzeit).
+inline std::string test_clock;
 struct DrawOut { Image image; std::vector<PluginTarget> targets; };
 std::vector<zones::Rect> list_rows(zones::Rect area, zones::Density density, float k, bool has_label, size_t count);
 DrawOut draw_page_out(const Page&, int width, int height, const schedule::Result* selection = nullptr, bool sample = false);

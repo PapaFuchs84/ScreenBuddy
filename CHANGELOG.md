@@ -4,6 +4,10 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+- **Einheitliche obere Leiste** auf allen Seiten: Plugin-Seiten, eigene Ansichten (inkl. Game-Mode-Ansicht) und das Hardware-HUD zeigen jetzt dieselbe Kopfleiste wie die eingebauten Seiten (34 px, Fuchs-Icon, Titel, Uhr, Trennlinie je Theme). Bisher hatten Plugin-Seiten eine abweichende Leiste (32 px, kleinere Schrift, ohne Icon und Uhr, in Cupertino/Fluent blau), eigene Ansichten und Game-Mode keine. Beim Hardware-HUD steht der Seitenname jetzt in der Leiste, die Seitenpunkte darunter.
+
 ## [2.15.0] - 2026-11-22
 
 - Neues Theme **Vice Sunset**: Pastell-Dämmerung mit Palmen und Sonne auf Display und Game-Mode-Intro; auswählbar in **Farben & Design**. Native Einstellungen und Web-Oberfläche übernehmen das neue Farbschema; Bangers-Schrift ist eingebettet und lizenziert. Companion bleibt unverändert und zeigt das vom PC gerenderte Theme.

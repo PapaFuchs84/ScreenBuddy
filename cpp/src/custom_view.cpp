@@ -3,6 +3,7 @@
 #include "render.h"
 #include "plugin_render.h"
 #include "config.h"
+#include "util.h"
 #include <windows.h>
 #include <algorithm>
 #include <atomic>
@@ -370,9 +371,15 @@ std::optional<Image> draw_plugin(const Tile& tile,const Layout& layout,plugins::
     if(page.widgets.empty() || page.widgets.front().missing) return {};
     return plugins::draw_page(page,width,height);
 }
-DrawOut draw_out(const View& v,const std::string& device,int w,int h,const DrawTileOut& source,const Override& override_target) {
+DrawOut draw_out(const View& v,const std::string& device,int w,int h,const DrawTileOut& source,const Override& override_target,const std::string& clock) {
     if(w<=0 || h<=0 || w>8192 || h>8192) return {};
-    DrawOut out;out.image=Image(w,h,render::theme().bg);auto& result=out.image;const auto& l=v.effective(device);const float s=render::scale_for(w,h);
+    DrawOut out;const float s=render::scale_for(w,h);
+    {   // Einheitliche Kopfleiste wie bei allen Seiten (Titel = Name der Ansicht); Kacheln beginnen darunter.
+        Canvas base(w,h,s,render::theme().bg);
+        render::Renderer(w,h,v.name).header_clock(base,!clock.empty()?clock:!test_clock.empty()?test_clock:clock_hhmm(),"");
+        out.image=base.finish();
+    }
+    auto& result=out.image;const auto& l=v.effective(device);
     const float lw=std::round(w/s),lh=std::round(h/s);
     for(const auto& t:l.tiles) try {
         // Built-ins share this content rectangle. Plugin callbacks use a matching

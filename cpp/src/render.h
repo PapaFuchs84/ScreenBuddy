@@ -74,14 +74,15 @@ std::vector<Bf6Player> sort_players(std::vector<Bf6Player> players);
 
 class Renderer {
 public:
-    Renderer(int w, int h, std::string title);
+    Renderer(int w, int h, std::string title, float forced_scale = 0);   // forced_scale: Skalierung der Zielfläche (z. B. Hardware-HUD)
     virtual ~Renderer() = default;
 
     int rows_per_page() const;
     static int row_at(int w, int h, int y);
     int pages(size_t items) const;
     Image welcome(const std::string& title, const std::string& text);
-    Image render_friends(std::vector<Friend> friends, int page = 0, bool connected = true, const std::string& message = "",
+    // Gemeinsame obere Leiste für alle Seiten (auch Plugins, Game-Mode, Hardware-HUD); Uhr als fertiger Text "HH:MM".
+    void header_clock(Canvas& d, const std::string& clock, const std::string& info);    Image render_friends(std::vector<Friend> friends, int page = 0, bool connected = true, const std::string& message = "",
                          std::time_t now = 0);
     BuiltinDrawOut render_friends_arranged(std::vector<Friend> friends, bool connected, const std::string& message,
                                           const builtin::Overlay& overlay, int page = 0, std::time_t now = 0);

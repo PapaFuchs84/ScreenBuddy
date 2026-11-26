@@ -450,8 +450,8 @@ std::string ago(std::optional<std::time_t> d, std::time_t now) {
 }
 
 // ---------- Grundseite (Discord/Freunde) ----------
-Renderer::Renderer(int w_, int h_, std::string title_) : W(w_), H(h_), title(std::move(title_)) {
-    s = scale_for(W, H);
+Renderer::Renderer(int w_, int h_, std::string title_, float forced_scale) : W(w_), H(h_), title(std::move(title_)) {
+    s = forced_scale > 0 ? forced_scale : scale_for(W, H);
     if (s == 1) { w = (float)W; h = (float)H; }
     else { w = (float)pyround_i(W / s); h = (float)pyround_i(H / s); }
     f_title = font(17, true);
@@ -568,6 +568,10 @@ static void vice_header_scene(Canvas& d, float w, float h) {
 }
 
 void Renderer::header(Canvas& d, std::time_t now, const std::string& info) {
+    header_clock(d, clock_hhmm(now ? now : std::time(nullptr)), info);
+}
+
+void Renderer::header_clock(Canvas& d, const std::string& clock, const std::string& info) {
     // Orange Kopfzeile mit Creme-Fuchs; Schrift in Navy (bzw. Weiß bei dunkler eigener Kopfzeilenfarbe)
     const Theme& t = g_theme;
     const bool vice = t.style == theme::Style::Vice;
@@ -578,7 +582,6 @@ void Renderer::header(Canvas& d, std::time_t now, const std::string& info) {
     float x = t.style == theme::Style::FuchsLabs ? 8.f : theme::design(t.style).spacing;
     d.fox(x, (float)((HEADER_H - ICON) / 2), pyround_i(ICON * s), false);
     x += ICON + 6;
-    std::string clock = clock_hhmm(now ? now : std::time(nullptr));
     d.text(w - 8, HEADER_H / 2, clock, f_title, vice ? vink : t.style == theme::Style::FuchsLabs ? t.head_text : t.muted, "rm");
     float cx = w - 8 - d.textlength(clock, f_title) - 12;
     float title_width = cx - x - (info.empty() ? 0 : d.textlength(tr(info), f_small) + 10);

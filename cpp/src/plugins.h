@@ -146,6 +146,7 @@ struct Page {
     std::vector<std::string> hidden; // show_if was false (v2 only)
     std::vector<std::string> failed; // evaluating the block's data threw; draw_page logs these (rate-limited)
     int density_cap = 2; // transient custom-tile preference; absent from manifest/overlay JSON
+    std::string clock; // "HH:MM" der Kopfleiste (aus RenderContext::time); leer = aktuelle Uhrzeit
 };
 // Does not throw: every block is evaluated separately (a failing block is left out and listed in Page::failed,
 // the rest of the page is unaffected). A failure outside the blocks (e.g. out of memory while copying ID, title

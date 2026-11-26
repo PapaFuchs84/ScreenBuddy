@@ -449,8 +449,9 @@ Image draw_page_with(const Page& page, int width, int height, bool sample, const
     const float spacing_scale = design.spacing / 12.f;
     const float margin = 10 * spacing_scale, gap = 7 * spacing_scale, inset = 9 * spacing_scale;
     const float card_radius = design.card_radius, header = 39, footer = 19;
-    canvas.rectangle(0, 0, logical_w, 32, theme.orange);
-    canvas.text(margin, 16, fit(canvas, page.title, {16, true}, logical_w - 2 * margin), {16, true}, theme.head_text, "lm");
+    // Einheitliche Kopfleiste wie bei den eingebauten Seiten (Icon, Titel, Uhr, Trennlinie je Theme).
+    render::Renderer(width, height, page.title)
+        .header_clock(canvas, !page.clock.empty() ? page.clock : !test_clock.empty() ? test_clock : clock_hhmm(), "");
     // Blöcke, deren Datenauswertung in render_page fehlschlug, fehlen in page.widgets; hier nur der Log-Eintrag.
     for (const auto& key : page.failed) report(page.id, key, isolation::Stage::data);
     try {
