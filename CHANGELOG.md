@@ -4,7 +4,9 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
-## [Unveröffentlicht]
+## [2.15.2] - 2026-11-26
+
+**Prüfstatus 2.15.2:** C++-Suiten ohne Fehler: fl-tests 3581 (KI-Status 303), fl-layout-ui-tests 1877, fl-custom-view-tests 2144, fl-plugin-snapshot-tests 2101, fl-builtin-snapshot-tests 4221 Bilder, fl-hardware-hud-tests 184. Nicht geprüft: KI-Status live am Display/Companion.
 
 - Korrektur: Die KI-Status-Seite (Standardansicht) zeigt jetzt dieselbe obere Leiste wie alle anderen Seiten (Fuchs-Icon, Titel, Sitzungskosten, Uhr). Bisher fehlte sie dort; nur die angeordnete Ansicht hatte sie.
 

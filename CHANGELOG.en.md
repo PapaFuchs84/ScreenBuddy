@@ -4,7 +4,9 @@
 
 All notable changes to the app. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [2.15.2] - 2026-11-26
+
+**Test status 2.15.2:** C++ suites without failures: fl-tests 3581 (AI status 303), fl-layout-ui-tests 1877, fl-custom-view-tests 2144, fl-plugin-snapshot-tests 2101, fl-builtin-snapshot-tests 4221 images, fl-hardware-hud-tests 184. Not tested: AI Status live on display/Companion.
 
 - Fix: the AI Status page (default view) now shows the same top bar as every other page (fox icon, title, session cost, clock). It was missing there; only the arranged view had it.
 
