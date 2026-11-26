@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 2.15.0 – 2026-11-22
 
-- Theme Vice Sunset (ice-sunset, Style::Vice): Palette, Header-Szene in render.cpp, Auswahl im Design-Dialog, Web-UI-Theme mit eingebetteter Bangers (SIL OFL) / theme with embedded Bangers font. Bangers nativ (DirectWrite, eingebettet) / native Bangers, Retro-Szene im Game-Intro / game intro scene, Android `colors.xml` Vice. fl-tests 3581, game-tests 290, 0 Fehler/failures.
+- Theme Vice Sunset (`vice-sunset`, Style::Vice): Palette, Header-Szene, Auswahl im Design-Dialog, Web-UI-Theme und Game-Mode-Intro mit Retro-Szene. Bangers eingebettet für native Titel und Web-UI (SIL OFL). Android Companion unverändert; sie zeigt das vom PC gerenderte Bild.
+- Prüfstand aus dem bereitgestellten Übergabestand: fl-tests 3581, game-tests 290, 0 Fehler. In dieser Store-Vorbereitung nicht erneut ausgeführt.
 
 ## 2.14.0 – 2026-11-21
 

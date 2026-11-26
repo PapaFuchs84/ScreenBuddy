@@ -4,9 +4,9 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
-## [Unveröffentlicht]
+## [2.15.0] - 2026-11-22
 
-- Neues Theme **Vice Sunset** (Pastell-Retro-Dämmerung): Display-Kopfzeile mit Verlauf, Sonne und Palmen, Auswahl in Farben & Design, Web-Einstellungsseite mit Hero-Szene und eingebetteter Schrift Bangers (SIL OFL). Details: [docs/THEMES.md](docs/THEMES.md).
+- Neues Theme **Vice Sunset**: Pastell-Dämmerung mit Palmen und Sonne auf Display und Game-Mode-Intro; auswählbar in **Farben & Design**. Native Einstellungen und Web-Oberfläche übernehmen das neue Farbschema; Bangers-Schrift ist eingebettet und lizenziert. Companion bleibt unverändert und zeigt das vom PC gerenderte Theme.
 
 ## [2.14.0] - 2026-11-21
 

@@ -2,7 +2,11 @@
 
 ## Status
 
-### 2.14.0 (aktuell / current)
+### 2.15.0 (aktuell / current)
+
+Package `ScreenBuddy-2.15.0.0-x64.msix`, official identity verified in Partner Center, version 2.15.0.0. Prepared on 22 November 2026. Upload, certification and publication are pending; do not report complete until confirmed in Partner Center. The “what's new” texts below target 2.15.0. Description, features and keywords remain unchanged from 2.12.0 except for the Vice Sunset theme in Design. Four new 1600 × 1200 Vice Sunset captures with captions and provenance are in `Screenshots/`. / Paket `ScreenBuddy-2.15.0.0-x64.msix`, offizielle Identität im Partner Center geprüft, Version 2.15.0.0. Vorbereitet am 22.11.2026. Upload, Zertifizierung und Veröffentlichung stehen aus und gelten erst nach Bestätigung im Partner Center als abgeschlossen. Die Texte „Neues in dieser Version“ gelten für 2.15.0. Beschreibung, Funktionen und Stichwörter bleiben gegenüber 2.12.0 unverändert, mit Ausnahme des Vice-Sunset-Themes unter Design. Vier neue 1600 × 1200 Vice-Sunset-Aufnahmen samt Bildunterschriften und Herkunftsnachweis liegen unter `Screenshots/`.
+
+### 2.14.0 (vorherige Version / previous version)
 
 Package `ScreenBuddy-2.14.0.0-x64.msix`, identity `49510Herbst.ScreenBuddybyFuchsLabs`, version 2.14.0.0. Prepared on 21 November 2026; upload, certification and publication are open until recorded here. The “what's new” texts below target 2.14.0; description, features and keywords are unchanged from 2.12.0. Screenshots unchanged (2.11.0 renders). / Paket `ScreenBuddy-2.14.0.0-x64.msix`, Identität `49510Herbst.ScreenBuddybyFuchsLabs`, Version 2.14.0.0. Vorbereitet am 21.11.2026; Upload, Zertifizierung und Veröffentlichung sind offen, bis sie hier vermerkt sind. Die Texte „Neues in dieser Version“ gelten für 2.14.0; Beschreibung, Funktionen und Stichwörter unverändert gegenüber 2.12.0. Beispielbilder unverändert (2.11.0).
 
@@ -73,7 +77,7 @@ MUSIK, SMART HOME UND KI
 EIGENE ANSICHTEN, PLUGINS UND DESIGN
 • Eigene Ansichten: Im nativen Editor kombinierst du Einzelkacheln für System, Listen, Spotify, Home Assistant und KI im Raster zu eigenen Seiten – je Display, mit Rückgängig/Wiederholen und einem Touch-Ziel je Kachel.
 • Plugins: zusätzliche Seiten aus deklarativen Plugins mit Zonen-Layout; der integrierte, signierte Plugin-Katalog ist abschaltbar, und installierte Plugins bleiben aus, bis du sie aktivierst.
-• Design: Hell oder Dunkel, an Windows anpassen (Akzentfarbe), eigene Themes mit Editor, Import und Export sowie Designprofile im Cupertino-, Fluent- und Material-Stil.
+• Design: Hell oder Dunkel, an Windows anpassen, eigene Themes sowie Cupertino-, Fluent-, Material- und Vice-Sunset-Profile.
 • Neu: globale Animationsrate von 5 bis 60 Bildern pro Sekunde (Standard 30) unter Einstellungen → Anzeige → Animationen. Sie gilt für sichtbare Animationen wie Hardware-HUD, KI-Status, Spotify und Seitenübergänge. Der Wert ist ein Ziel, keine Garantie; das serielle USB-Display überträgt bauartbedingt deutlich langsamer.
 
 KOSTENLOSE ANDROID-COMPANION-APP
@@ -110,7 +114,7 @@ GUT ZU WISSEN
 12. KI-Status für Claude Code und Codex über lokale Hooks
 13. Eigene Ansichten: Kacheln im nativen Editor zu eigenen Seiten kombinieren, je Display
 14. Plugins mit Zonen-Layout und signiertem, abschaltbarem Plugin-Katalog
-15. Designs: Hell, Dunkel, an Windows anpassen, eigene Themes sowie Cupertino-, Fluent- und Material-Profile
+15. Designs: Hell, Dunkel, an Windows anpassen, eigene Themes sowie Cupertino-, Fluent-, Material- und Vice-Sunset-Profile
 16. Touch-Unterstützung auf Monitoren: wischen, tippen und passende Ziele öffnen
 17. Kostenlose Android-Companion-App für Handy, Tablet und Android-TV, auch mehrere Geräte gleichzeitig
 18. Native Windows-Einstellungen in Deutsch und Englisch mit Live-Vorschau und bebilderter Anleitung
@@ -121,12 +125,13 @@ GUT ZU WISSEN
 
 USB-Display; Systemmonitor; Hardware-Monitor; Zweitbildschirm; Game-Mode FPS; Sensoranzeige HWiNFO; Android-Companion
 
-### Neues in dieser Version (2.14.0; höchstens 1500 Zeichen)
+### Neues in dieser Version (2.15.0; höchstens 1500 Zeichen)
 
 ```text
-Neu in 2.14.0:
-• Eigener Anzeigename pro Freund: In der gemeinsamen Freundesliste (Discord, Steam, Xbox, PlayStation) kannst du jedem Freund einen eigenen Namen geben. Er erscheint statt des Plattformnamens auf Display und Companion, auch bei verknüpften Personen. Einstellungen → Freunde → Anzeigenamen.
-• Die Companion-App bleibt unverändert (1.2.0); ein Update ist nicht nötig.
+Neu in 2.15.0:
+• Neues Theme Vice Sunset: Pastell-Dämmerung mit Sonne und Palmen auf dem Display und im Game-Mode-Intro; wählbar unter Einstellungen → Farben & Design.
+• Native Einstellungen und Web-UI übernehmen die neue Farbpalette. Bangers-Schrift ist unter SIL OFL eingebettet.
+• Die Companion-App bleibt unverändert und zeigt das vom PC gerenderte Theme.
 ```
 
 ### Neues in dieser Version (2.13.0, vorherige Version; höchstens 1500 Zeichen)
@@ -194,7 +199,7 @@ MUSIC, SMART HOME AND AI
 CUSTOM VIEWS, PLUGINS AND DESIGN
 • Custom views: in the native editor you combine single tiles for system, lists, Spotify, Home Assistant and AI on a grid into your own pages – per display, with undo/redo and a touch target per tile.
 • Plugins: additional pages from declarative plugins with a zone layout; the integrated, signed plugin catalogue can be switched off, and installed plugins stay off until you enable them.
-• Design: light or dark, match Windows (accent colour), custom themes with editor, import and export, plus design profiles in Cupertino, Fluent and Material style.
+• Design: light or dark, match Windows, custom themes and Cupertino, Fluent, Material or Vice Sunset profiles.
 • New: global animation rate from 5 to 60 frames per second (default 30) under Settings → Display → Animations. It applies to visible animations such as the Hardware HUD, AI status, Spotify and page transitions. The value is a target, not a guarantee; the serial USB display transfers considerably more slowly by design.
 
 FREE ANDROID COMPANION APP
@@ -231,7 +236,7 @@ GOOD TO KNOW
 12. AI status for Claude Code and Codex through local hooks
 13. Custom views: combine tiles into your own pages in the native editor, per display
 14. Plugins with zone layout and a signed plugin catalogue that can be switched off
-15. Designs: light, dark, match Windows, custom themes, plus Cupertino, Fluent and Material profiles
+15. Designs: light, dark, match Windows, custom themes, plus Cupertino, Fluent, Material and Vice Sunset profiles
 16. Touch support on monitors: swipe, tap and open matching targets
 17. Free Android Companion app for phone, tablet and Android TV, including several devices at once
 18. Native Windows settings in English and German with live preview and an illustrated guide
@@ -242,12 +247,13 @@ GOOD TO KNOW
 
 USB display; system monitor; hardware monitor; second screen; game mode FPS; HWiNFO sensor display; Android companion
 
-### What's new in this version (2.14.0; at most 1500 characters)
+### What's new in this version (2.15.0; at most 1500 characters)
 
 ```text
-New in 2.14.0:
-• Custom display name per friend: in the combined friends list (Discord, Steam, Xbox, PlayStation) you can give each friend your own name. It is shown instead of the platform name on display and Companion, also for linked people. Settings → Friends → Display names.
-• The Companion app is unchanged (1.2.0); no update needed.
+New in 2.15.0:
+• New Vice Sunset theme: pastel dusk with sun and palms on the display and in the Game Mode intro; select it under Settings → Colours & design.
+• Native settings and the web UI use the new palette. Bangers font is embedded under the SIL Open Font License.
+• The Companion app is unchanged and displays the theme rendered by the PC.
 ```
 
 ### What's new in this version (2.13.0, previous version; at most 1500 characters)
