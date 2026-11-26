@@ -4,6 +4,10 @@
 
 Alle nennenswerten Änderungen an der App. Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [SemVer](https://semver.org/lang/de/).
 
+## [Unveröffentlicht]
+
+- Korrektur: Die KI-Status-Seite (Standardansicht) zeigt jetzt dieselbe obere Leiste wie alle anderen Seiten (Fuchs-Icon, Titel, Sitzungskosten, Uhr). Bisher fehlte sie dort; nur die angeordnete Ansicht hatte sie.
+
 ## [2.15.1] - 2026-11-26
 
 **Prüfstatus 2.15.1:** C++-Suiten ohne Fehler: fl-tests 3581, fl-layout-ui-tests 1877, fl-custom-view-tests 2144, fl-plugin-snapshot-tests 2101, fl-builtin-snapshot-tests 4221 Bilder, fl-hardware-hud-tests 184. Live-Test mit isolierter Testinstanz: Hardware-HUD und System-Seite. Nicht geprüft: eigene Ansichten live, Vice Sunset, Display/Companion-Hardware.

@@ -253,6 +253,12 @@ int test_ai_status(const std::filesystem::path& output = {}) {
     const auto& aiCatalog=*builtin::find("ai");auto arranged=builtin::standard(aiCatalog);
     for(const auto& spec:aiCatalog.blocks) {auto tile=renderer.render_tile(spec.id,render_snapshot,now+13);AI_CHECK(!tile.empty());}
     AI_CHECK(!renderer.render_arranged(render_snapshot,arranged,10,now+13).image.empty());
+    {   // Regression: die Standardansicht trägt dieselbe obere Leiste (Fuchs-Icon links) wie die angeordnete Ansicht.
+        auto arranged_image=renderer.render_arranged(render_snapshot,arranged,10,now+13).image;
+        bool same_icon=true;
+        for(int y=0;y<33;++y) for(int x=0;x<40;++x) if(initial.at(x,y)!=arranged_image.at(x,y)) same_icon=false;
+        AI_CHECK(same_icon);
+    }
     if(!output.empty()) {
         std::filesystem::create_directories(output);
         write_file(output/"fading.png",encode_png(fading));
